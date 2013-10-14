@@ -1,7 +1,5 @@
 package org.apache.accumulo.core.client.mapreduce;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -21,7 +19,6 @@ import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
-import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableDeletedException;
@@ -58,6 +55,11 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
+/**
+ * 
+ * @param <K>
+ * @param <V>
+ */
 public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
 
   protected static final Class<?> CLASS = AccumuloInputFormat.class;
@@ -328,27 +330,12 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * <li>int {@link #numKeysRead} (used for progress reporting)</li>
    * </ul>
    */
-  protected abstract static class RecordReaderBase<K,V> extends RecordReader<K,V> {
+  protected abstract static class AbstractRecordReader<K,V> extends RecordReader<K,V> {
     protected long numKeysRead;
     protected Iterator<Map.Entry<Key,Value>> scannerIterator;
     protected RangeInputSplit split;
 
-    /**
-     * Apply the configured iterators from the configuration to the scanner. This applies both the default iterators and the per-table iterators.
-     * 
-     * @param context
-     *          the Hadoop context for the configured job
-     * @param scanner
-     *          the scanner to configure
-     * @param tableName
-     *          the table name for which to set up the iterators
-     */
-    protected void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName) {
-      BatchScanConfig config = getBatchScanConfig(context, tableName);
-      List<IteratorSetting> iterators = config.getIterators();
-      for (IteratorSetting iterator : iterators)
-        scanner.addScanIterator(iterator);
-    }
+    protected abstract void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName);
 
     /**
      * Initialize a scanner over the given input split using this task attempt configuration.
@@ -546,18 +533,18 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
   /**
    * Gets the splits of the tables that have been set on the job.
    * 
-   * @param conf
+   * @param context
    *          the configuration of the job
    * @return the splits from the tables based on the ranges.
    * @throws java.io.IOException
    *           if a table set on the job doesn't exist or an error occurs initializing the tablet locator
    */
-  public List<InputSplit> getSplits(JobContext conf) throws IOException {
-    log.setLevel(getLogLevel(conf));
-    validateOptions(conf);
+  public List<InputSplit> getSplits(JobContext context) throws IOException {
+    log.setLevel(getLogLevel(context));
+    validateOptions(context);
 
     LinkedList<InputSplit> splits = new LinkedList<InputSplit>();
-    List<BatchScanConfig> tableConfigs = getBatchScanConfigs(conf);
+    List<BatchScanConfig> tableConfigs = getBatchScanConfigs(context);
     for (BatchScanConfig tableConfig : tableConfigs) {
 
       boolean autoAdjust = tableConfig.shouldAutoAdjustRanges();
@@ -573,19 +560,19 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       TabletLocator tl;
       try {
         if (tableConfig.isOfflineScan()) {
-          binnedRanges = binOfflineTable(conf, tableConfig.getTableName(), ranges);
+          binnedRanges = binOfflineTable(context, tableConfig.getTableName(), ranges);
           while (binnedRanges == null) {
             // Some tablets were still online, try again
             UtilWaitThread.sleep(100 + (int) (Math.random() * 100)); // sleep randomly between 100 and 200 ms
-            binnedRanges = binOfflineTable(conf, tableConfig.getTableName(), ranges);
+            binnedRanges = binOfflineTable(context, tableConfig.getTableName(), ranges);
 
           }
         } else {
-          Instance instance = getInstance(conf);
-          tl = getTabletLocator(conf, tableConfig.getTableName());
+          Instance instance = getInstance(context);
+          tl = getTabletLocator(context, tableConfig.getTableName());
           // its possible that the cache could contain complete, but old information about a tables tablets... so clear it
           tl.invalidateCache();
-          Credentials creds = new Credentials(getPrincipal(conf), getAuthenticationToken(conf));
+          Credentials creds = new Credentials(getPrincipal(context), getAuthenticationToken(context));
 
           while (!tl.binRanges(creds, ranges, binnedRanges).isEmpty()) {
             if (!(instance instanceof MockInstance)) {

@@ -172,7 +172,6 @@ public class BatchScanConfig implements Writable {
    * @return true if the feature is enabled, false otherwise
    * @since 1.6.0
    * @see #setUseLocalIterators(boolean)
-   * @deprecated since 1.6.0
    */
   public boolean shouldUseLocalIterators() {
     return useLocalIterators;

@@ -24,6 +24,7 @@ import java.util.Set;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.mapreduce.lib.util.InputConfigurator;
@@ -304,9 +305,23 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @throws org.apache.accumulo.core.client.TableNotFoundException
    *           if the table name set on the configuration doesn't exist
    * @since 1.5.0
+   * @deprecated since 1.6.0
    */
+  @Deprecated
   protected static TabletLocator getTabletLocator(JobContext context) throws TableNotFoundException {
     return InputConfigurator.getTabletLocator(CLASS, getConfiguration(context), InputConfigurator.getInputTableName(CLASS, getConfiguration(context)));
   }
-
+  
+  protected abstract static class RecordReaderBase<K,V> extends AbstractRecordReader<K,V> {
+      @Override
+      protected void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName) {
+        setupIterators(context, scanner);
+      }
+      
+      protected void setupIterators(TaskAttemptContext context, Scanner scanner) {
+        List<IteratorSetting> iterators = getIterators(context);
+        for (IteratorSetting iterator : iterators) 
+          scanner.addScanIterator(iterator);
+      }
+  }
 }

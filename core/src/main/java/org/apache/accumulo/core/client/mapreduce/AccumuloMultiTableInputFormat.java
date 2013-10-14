@@ -1,5 +1,7 @@
 package org.apache.accumulo.core.client.mapreduce;
 
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.mapreduce.lib.util.InputConfigurator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -10,6 +12,7 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -33,7 +36,7 @@ public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value
   @Override
   public RecordReader<Key, Value> createRecordReader(InputSplit inputSplit, TaskAttemptContext context) throws IOException, InterruptedException {
     log.setLevel(getLogLevel(context));
-    return new RecordReaderBase<Key,Value>() {
+    return new AbstractRecordReader<Key, Value>() {
       @Override
       public boolean nextKeyValue() throws IOException, InterruptedException {
         if (scannerIterator.hasNext()) {
@@ -46,6 +49,14 @@ public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value
           return true;
         }
         return false;
+      }
+
+      @Override
+      protected void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName) {
+        List<IteratorSetting> iterators = getBatchScanConfig(context, tableName).getIterators();
+        for(IteratorSetting setting : iterators) {
+          scanner.addScanIterator(setting);
+        }
       }
     };
   }
