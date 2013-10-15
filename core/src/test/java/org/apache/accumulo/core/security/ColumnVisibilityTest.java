@@ -151,7 +151,7 @@ public class ColumnVisibilityTest {
 
   @Test
   public void testParseTree() {
-    Node node = parse("(W)|(U&V)";
+    Node node = parse("(W)|(U&V)");
     assertNode(node, NodeType.OR, 3, 4);
     assertNode(node.getChildren().get(0), NodeType.TERM, 1, 2);
     assertNode(node.getChildren().get(1), NodeType.AND, 6, 7);

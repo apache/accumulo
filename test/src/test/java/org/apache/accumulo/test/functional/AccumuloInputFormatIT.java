@@ -56,7 +56,7 @@ public class AccumuloInputFormatIT extends SimpleMacIT {
     Collection<Text> actualSplits = getConnector().tableOperations().listSplits(table);
 
     List<InputSplit> splits = inputFormat.getSplits(job);
-    assertEquals(actualSplits.size(), splits.size());
+    assertEquals(actualSplits.size()+1, splits.size());
 
   }
 
