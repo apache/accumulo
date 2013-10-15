@@ -24,7 +24,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -254,10 +256,14 @@ public class AccumuloInputFormatTest {
       AccumuloInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
       AccumuloInputFormat.setMockInstance(job, INSTANCE_NAME);
       
-      BatchScanConfig tableConfig1 = new BatchScanConfig(table1);
-      BatchScanConfig tableConfig2 = new BatchScanConfig(table2);
+      BatchScanConfig tableConfig1 = new BatchScanConfig();
+      BatchScanConfig tableConfig2 = new BatchScanConfig();
+
+      Map<String, BatchScanConfig> configMap = new HashMap<String, BatchScanConfig>();
+      configMap.put(table1, tableConfig1);
+      configMap.put(table2, tableConfig2);
       
-      AccumuloInputFormat.setTableQueryConfigs(job, tableConfig1, tableConfig2);
+      AccumuloInputFormat.setTableQueryConfigs(job, configMap);
       
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
@@ -306,16 +312,19 @@ public class AccumuloInputFormatTest {
     
     JobConf job = new JobConf();
     
-    BatchScanConfig table1 = new BatchScanConfig(TEST_TABLE_1).setRanges(Collections.singletonList(new Range("a", "b")))
+    BatchScanConfig table1 = new BatchScanConfig().setRanges(Collections.singletonList(new Range("a", "b")))
         .fetchColumns(Collections.singleton(new Pair<Text, Text>(new Text("CF1"), new Text("CQ1"))))
         .setIterators(Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
     
-    BatchScanConfig table2 = new BatchScanConfig(TEST_TABLE_2).setRanges(Collections.singletonList(new Range("a", "b")))
+    BatchScanConfig table2 = new BatchScanConfig().setRanges(Collections.singletonList(new Range("a", "b")))
         .fetchColumns(Collections.singleton(new Pair<Text, Text>(new Text("CF1"), new Text("CQ1"))))
         .setIterators(Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
     
-    AccumuloInputFormat.setTableQueryConfigs(job, table1, table2);
-    
+    Map<String, BatchScanConfig> configMap = new HashMap<String, BatchScanConfig>();
+    configMap.put(TEST_TABLE_1, table1);
+    configMap.put(TEST_TABLE_2, table2);
+    AccumuloInputFormat.setTableQueryConfigs(job, configMap);
+
     assertEquals(table1, AccumuloInputFormat.getTableQueryConfig(job, TEST_TABLE_1));
     assertEquals(table2, AccumuloInputFormat.getTableQueryConfig(job, TEST_TABLE_2));
   }
@@ -328,21 +337,20 @@ public class AccumuloInputFormatTest {
     
     JobConf job = new JobConf();
     
-    BatchScanConfig table1 = new BatchScanConfig(TEST_TABLE_1).setRanges(Collections.singletonList(new Range("a", "b")))
+    BatchScanConfig tableConfig = new BatchScanConfig().setRanges(Collections.singletonList(new Range("a", "b")))
         .fetchColumns(Collections.singleton(new Pair<Text, Text>(new Text("CF1"), new Text("CQ1"))))
         .setIterators(Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
     
-    BatchScanConfig table2 = new BatchScanConfig(TEST_TABLE_2).setRanges(Collections.singletonList(new Range("a", "b")))
-        .fetchColumns(Collections.singleton(new Pair<Text, Text>(new Text("CF1"), new Text("CQ1"))))
-        .setIterators(Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
+    Map<String, BatchScanConfig> configMap = new HashMap<String, BatchScanConfig>();
+    configMap.put(TEST_TABLE_1, tableConfig);
     
-    AccumuloInputFormat.setTableQueryConfigs(job, table1);
-    AccumuloInputFormat.setInputTableName(job, table2.getTableName());
-    AccumuloInputFormat.setRanges(job, table2.getRanges());
-    AccumuloInputFormat.fetchColumns(job, table2.getFetchedColumns());
-    AccumuloInputFormat.addIterator(job, table2.getIterators().get(0));
+    AccumuloInputFormat.setTableQueryConfigs(job, configMap);
+    AccumuloInputFormat.setInputTableName(job, TEST_TABLE_2);
+    AccumuloInputFormat.setRanges(job, tableConfig.getRanges());
+    AccumuloInputFormat.fetchColumns(job, tableConfig.getFetchedColumns());
+    AccumuloInputFormat.addIterator(job, tableConfig.getIterators().get(0));
     
-    assertEquals(table1, AccumuloInputFormat.getTableQueryConfig(job, TEST_TABLE_1));
-    assertEquals(table2, AccumuloInputFormat.getTableQueryConfig(job, TEST_TABLE_2));
+    assertEquals(tableConfig, AccumuloInputFormat.getTableQueryConfig(job, TEST_TABLE_1));
+    assertEquals(tableConfig, AccumuloInputFormat.getTableQueryConfig(job, TEST_TABLE_2));
   }
 }

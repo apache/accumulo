@@ -99,7 +99,6 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @return the ranges
    * @since 1.5.0
    * @see #setRanges(Job, Collection)
-   * @see #setRanges(org.apache.hadoop.mapreduce.Job, java.util.Collection)
    */
   protected static List<Range> getRanges(JobContext context) throws IOException {
     return InputConfigurator.getRanges(CLASS, getConfiguration(context));
@@ -313,11 +312,29 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   }
   
   protected abstract static class RecordReaderBase<K,V> extends AbstractRecordReader<K,V> {
+    
+      /**
+       * Apply the configured iterators from the configuration to the scanner for the specified table name
+       * 
+       * @param context
+       *          the Hadoop context for the configured job
+       * @param scanner
+       *          the scanner to configure
+       * @since 1.6.0
+       */
       @Override
       protected void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName) {
         setupIterators(context, scanner);
       }
       
+      /**
+       * Apply the configured iterators from the configuration to the scanner.
+       * 
+       * @param context
+       *          the Hadoop context for the configured job
+       * @param scanner
+       *          the scanner to configure
+       */
       protected void setupIterators(TaskAttemptContext context, Scanner scanner) {
         List<IteratorSetting> iterators = getIterators(context);
         for (IteratorSetting iterator : iterators) 

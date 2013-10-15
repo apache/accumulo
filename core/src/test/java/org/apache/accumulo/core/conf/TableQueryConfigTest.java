@@ -38,12 +38,11 @@ import org.junit.Test;
 
 public class TableQueryConfigTest {
   
-  private static final String TEST_TABLE = "TEST_TABLE";
   private BatchScanConfig tableQueryConfig;
   
   @Before
   public void setUp() {
-    tableQueryConfig = new BatchScanConfig(TEST_TABLE);
+    tableQueryConfig = new BatchScanConfig();
   }
   
   @Test

@@ -55,11 +55,6 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
-/**
- * 
- * @param <K>
- * @param <V>
- */
 public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
 
   protected static final Class<?> CLASS = AccumuloInputFormat.class;
@@ -262,13 +257,13 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
   /**
    * Fetches all {@link BatchScanConfig}s that have been set on the given Hadoop configuration.
    * 
-   * @param job
+   * @param context
    *          the Hadoop job instance to be configured
-   * @return
+   * @return the {@link BatchScanConfig} objects for the job
    * @since 1.6.0
    */
-  protected static List<BatchScanConfig> getBatchScanConfigs(JobContext job) {
-    return InputConfigurator.getTableQueryConfigs(CLASS, getConfiguration(job));
+  protected static Map<String, BatchScanConfig> getBatchScanConfigs(JobContext context) {
+    return InputConfigurator.getBatchScanConfigs(CLASS, getConfiguration(context));
   }
 
   /**
@@ -277,15 +272,15 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * <p>
    * null is returned in the event that the table doesn't exist.
    * 
-   * @param job
+   * @param context
    *          the Hadoop job instance to be configured
    * @param tableName
    *          the table name for which to grab the config object
    * @return the {@link BatchScanConfig} for the given table
    * @since 1.6.0
    */
-  protected static BatchScanConfig getBatchScanConfig(JobContext job, String tableName) {
-    return InputConfigurator.getTableQueryConfig(CLASS, getConfiguration(job), tableName);
+  protected static BatchScanConfig getBatchScanConfig(JobContext context, String tableName) {
+    return InputConfigurator.getTableQueryConfig(CLASS, getConfiguration(context), tableName);
   }
 
   /**
@@ -335,6 +330,15 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
     protected Iterator<Map.Entry<Key,Value>> scannerIterator;
     protected RangeInputSplit split;
 
+    /**
+     * Configures the iterators on a scanner for the given table name.
+     * @param context
+     *          the Hadoop context for the configured job
+     * @param scanner
+     *          the scanner for which to configure the iterators
+     * @param tableName
+     *          the table name for which the scanner is configured
+     */
     protected abstract void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName);
 
     /**
@@ -544,8 +548,11 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
     validateOptions(context);
 
     LinkedList<InputSplit> splits = new LinkedList<InputSplit>();
-    List<BatchScanConfig> tableConfigs = getBatchScanConfigs(context);
-    for (BatchScanConfig tableConfig : tableConfigs) {
+    Map<String, BatchScanConfig> tableConfigs = getBatchScanConfigs(context);
+    for (Map.Entry<String, BatchScanConfig> tableConfigEntry : tableConfigs.entrySet()) {
+      
+      String tableName = tableConfigEntry.getKey();
+      BatchScanConfig tableConfig = tableConfigEntry.getValue();
 
       boolean autoAdjust = tableConfig.shouldAutoAdjustRanges();
       String tableId = null;
@@ -560,16 +567,16 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       TabletLocator tl;
       try {
         if (tableConfig.isOfflineScan()) {
-          binnedRanges = binOfflineTable(context, tableConfig.getTableName(), ranges);
+          binnedRanges = binOfflineTable(context,tableName, ranges);
           while (binnedRanges == null) {
             // Some tablets were still online, try again
             UtilWaitThread.sleep(100 + (int) (Math.random() * 100)); // sleep randomly between 100 and 200 ms
-            binnedRanges = binOfflineTable(context, tableConfig.getTableName(), ranges);
+            binnedRanges = binOfflineTable(context, tableName, ranges);
 
           }
         } else {
           Instance instance = getInstance(context);
-          tl = getTabletLocator(context, tableConfig.getTableName());
+          tl = getTabletLocator(context, tableName);
           // its possible that the cache could contain complete, but old information about a tables tablets... so clear it
           tl.invalidateCache();
           Credentials creds = new Credentials(getPrincipal(context), getAuthenticationToken(context));
@@ -580,7 +587,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
                 throw new TableDeletedException(tableId);
               if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
                 throw new TableOfflineException(instance, tableId);
-              tableId = Tables.getTableId(instance, tableConfig.getTableName());
+              tableId = Tables.getTableId(instance, tableName);
             }
             binnedRanges.clear();
             log.warn("Unable to locate bins for specified ranges. Retrying.");
@@ -611,7 +618,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
           for (Range r : extentRanges.getValue()) {
             if (autoAdjust) {
               // divide ranges into smaller ranges, based on the tablets
-              splits.add(new RangeInputSplit(tableConfig.getTableName(), tableId, ke.clip(r), new String[] {location}));
+              splits.add(new RangeInputSplit(tableName, tableId, ke.clip(r), new String[] {location}));
             } else {
               // don't divide ranges
               ArrayList<String> locations = splitsToAdd.get(r);
@@ -626,7 +633,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
 
       if (!autoAdjust)
         for (Map.Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet())
-          splits.add(new RangeInputSplit(tableConfig.getTableName(), tableId, entry.getKey(), entry.getValue().toArray(new String[0])));
+          splits.add(new RangeInputSplit(tableName, tableId, entry.getKey(), entry.getValue().toArray(new String[0])));
     }
     return splits;
   }
@@ -786,5 +793,4 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       throw new RuntimeException(e);
     }
   }
-
 }

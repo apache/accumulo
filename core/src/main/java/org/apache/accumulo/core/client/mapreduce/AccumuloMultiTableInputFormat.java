@@ -17,6 +17,24 @@ import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+/**
+ * This class allows MapReduce jobs to use multiple Accumulo tables as the source of data. This {@link org.apache.hadoop.mapreduce.InputFormat} provides keys 
+ * and values of 
+ * type {@link Key} and
+ * {@link Value} to the Map function. 
+ * 
+ * The user must specify the following via static configurator methods:
+ * 
+ * <ul>
+ * <li>{@link AccumuloMultiTableInputFormat#setConnectorInfo(Job, String, org.apache.accumulo.core.client.security.tokens.AuthenticationToken)}
+ * <li>{@link AccumuloMultiTableInputFormat#setScanAuthorizations(Job, org.apache.accumulo.core.security.Authorizations)}
+ * <li>{@link AccumuloMultiTableInputFormat#setZooKeeperInstance(Job, String, String)} OR {@link AccumuloInputFormat#setMockInstance(Job, String)}
+ * <li>{@link AccumuloMultiTableInputFormat#setBatchScanConfigs(org.apache.hadoop.mapreduce.Job, Map<String,BatchScanConfig>)}
+ * </ul>
+ * 
+ * Other static methods are optional.
+ */
+
 public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value>{
   
   /**
@@ -28,9 +46,9 @@ public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value
    *          the table query configs to be set on the configuration.
    * @since 1.6.0
    */
-  public static void setBatchScanConfigs(Job job, BatchScanConfig... configs) {
+  public static void setBatchScanConfigs(Job job, Map<String, BatchScanConfig> configs) {
     checkNotNull(configs);
-    InputConfigurator.setTableQueryConfigs(CLASS, getConfiguration(job), configs);
+    InputConfigurator.setBatchScanConfigs(CLASS, getConfiguration(job), configs);
   }
   
   @Override

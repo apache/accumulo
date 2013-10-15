@@ -23,6 +23,8 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -87,10 +89,14 @@ public class AccumuloMultiTableInputFormatTest {
       
       AccumuloMultiTableInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
       
-      BatchScanConfig tableConfig1 = new BatchScanConfig(table1);
-      BatchScanConfig tableConfig2 = new BatchScanConfig(table2);
+      BatchScanConfig tableConfig1 = new BatchScanConfig();
+      BatchScanConfig tableConfig2 = new BatchScanConfig();
       
-      AccumuloMultiTableInputFormat.setBatchScanConfigs(job, tableConfig1, tableConfig2);
+      Map<String, BatchScanConfig> configMap = new HashMap<String, BatchScanConfig>();
+      configMap.put(table1, tableConfig1);
+      configMap.put(table2, tableConfig2);
+      
+      AccumuloMultiTableInputFormat.setBatchScanConfigs(job, configMap);
       AccumuloMultiTableInputFormat.setMockInstance(job, INSTANCE_NAME);
       
       job.setMapperClass(TestMapper.class);
@@ -145,18 +151,20 @@ public class AccumuloMultiTableInputFormatTest {
     
     Job job = new Job();
     
-    BatchScanConfig table1 = new BatchScanConfig(TEST_TABLE_1).setRanges(Collections.singletonList(new Range("a", "b")))
+    
+    
+    BatchScanConfig tableConfig= new BatchScanConfig().setRanges(Collections.singletonList(new Range("a", "b")))
         .fetchColumns(Collections.singleton(new Pair<Text, Text>(new Text("CF1"), new Text("CQ1"))))
         .setIterators(Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
+
+    Map<String, BatchScanConfig> configMap = new HashMap<String, BatchScanConfig>();
+    configMap.put(TEST_TABLE_1, tableConfig);
+    configMap.put(TEST_TABLE_2, tableConfig);
     
-    BatchScanConfig table2 = new BatchScanConfig(TEST_TABLE_2).setRanges(Collections.singletonList(new Range("a", "b")))
-        .fetchColumns(Collections.singleton(new Pair<Text, Text>(new Text("CF1"), new Text("CQ1"))))
-        .setIterators(Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
+    AccumuloMultiTableInputFormat.setBatchScanConfigs(job, configMap);
     
-    AccumuloMultiTableInputFormat.setBatchScanConfigs(job, table1, table2);
-    
-    assertEquals(table1, AccumuloMultiTableInputFormat.getBatchScanConfig(job, TEST_TABLE_1));
-    assertEquals(table2, AccumuloMultiTableInputFormat.getBatchScanConfig(job, TEST_TABLE_2));
+    assertEquals(tableConfig, AccumuloMultiTableInputFormat.getBatchScanConfig(job, TEST_TABLE_1));
+    assertEquals(tableConfig, AccumuloMultiTableInputFormat.getBatchScanConfig(job, TEST_TABLE_2));
   }
   
 }

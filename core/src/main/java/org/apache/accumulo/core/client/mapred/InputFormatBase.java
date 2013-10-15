@@ -536,9 +536,9 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    *          the table query configs to be set on the configuration.
    * @since 1.6.0
    */
-  public static void setTableQueryConfigs(JobConf job, BatchScanConfig... configs) {
+  public static void setTableQueryConfigs(JobConf job, Map<String, BatchScanConfig> configs) {
     checkNotNull(configs);
-    InputConfigurator.setTableQueryConfigs(CLASS, job, configs);
+    InputConfigurator.setBatchScanConfigs(CLASS, job, configs);
   }
   
   /**
@@ -554,8 +554,8 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    * @return
    * @since 1.6.0
    */
-  public static List<BatchScanConfig> getTableQueryConfigs(JobConf job) {
-    return InputConfigurator.getTableQueryConfigs(CLASS, job);
+  public static Map<String,BatchScanConfig> getTableQueryConfigs(JobConf job) {
+    return InputConfigurator.getBatchScanConfigs(CLASS, job);
   }
   
   /**
@@ -828,9 +828,10 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
     validateOptions(job);
     
     LinkedList<InputSplit> splits = new LinkedList<InputSplit>();
-    List<BatchScanConfig> tableConfigs = getTableQueryConfigs(job);
-    for (BatchScanConfig tableConfig : tableConfigs) {
-      
+    Map<String, BatchScanConfig> tableConfigs = getTableQueryConfigs(job);
+    for (Entry<String, BatchScanConfig> tableConfigEntry : tableConfigs.entrySet()) {
+      String tableName = tableConfigEntry.getKey();
+      BatchScanConfig tableConfig = tableConfigEntry.getValue();
       boolean autoAdjust = tableConfig.shouldAutoAdjustRanges();
       String tableId = null;
       List<Range> ranges = autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges()) : tableConfig.getRanges();
@@ -844,15 +845,15 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
       TabletLocator tl;
       try {
         if (tableConfig.isOfflineScan()) {
-          binnedRanges = binOfflineTable(job, tableConfig.getTableName(), ranges);
+          binnedRanges = binOfflineTable(job, tableName, ranges);
           while (binnedRanges == null) {
             // Some tablets were still online, try again
             UtilWaitThread.sleep(100 + (int) (Math.random() * 100)); // sleep randomly between 100 and 200 ms
-            binnedRanges = binOfflineTable(job, tableConfig.getTableName(), ranges);
+            binnedRanges = binOfflineTable(job, tableName, ranges);
           }
         } else {
           Instance instance = getInstance(job);
-          tl = getTabletLocator(job, tableConfig.getTableName());
+          tl = getTabletLocator(job, tableName);
           // its possible that the cache could contain complete, but old information about a tables tablets... so clear it
           tl.invalidateCache();
           Credentials creds = new Credentials(getPrincipal(job), getAuthenticationToken(job));
@@ -863,7 +864,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
                 throw new TableDeletedException(tableId);
               if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
                 throw new TableOfflineException(instance, tableId);
-              tableId = Tables.getTableId(instance, tableConfig.getTableName());
+              tableId = Tables.getTableId(instance, tableName);
             }
             binnedRanges.clear();
             log.warn("Unable to locate bins for specified ranges. Retrying.");
@@ -894,7 +895,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
           for (Range r : extentRanges.getValue()) {
             if (autoAdjust) {
               // divide ranges into smaller ranges, based on the tablets
-              splits.add(new RangeInputSplit(tableConfig.getTableName(), tableId, ke.clip(r), new String[] {location}));
+              splits.add(new RangeInputSplit(tableName, tableId, ke.clip(r), new String[] {location}));
             } else {
               // don't divide ranges
               ArrayList<String> locations = splitsToAdd.get(r);
@@ -909,7 +910,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
       
       if (!autoAdjust)
         for (Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet())
-          splits.add(new RangeInputSplit(tableConfig.getTableName(), tableId, entry.getKey(), entry.getValue().toArray(new String[0])));
+          splits.add(new RangeInputSplit(tableName, tableId, entry.getKey(), entry.getValue().toArray(new String[0])));
     }
     
     return splits.toArray(new InputSplit[splits.size()]);

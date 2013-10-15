@@ -33,36 +33,31 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 
 /**
- * This class to holds a query configuration for a table. It contains all the properties needed to specify how rows should be returned from the table.
+ * This class to holds a batch scan configuration for a table. It contains all the properties needed to specify how rows should be returned from the table.
  */
 public class BatchScanConfig implements Writable {
-  
-  private String tableName;
+
   private List<IteratorSetting> iterators;
   private List<Range> ranges;
   private Set<Pair<Text,Text>> columns;
-  
+
   private boolean autoAdjustRanges = true;
   private boolean useLocalIterators = false;
   private boolean useIsolatedScanners = false;
   private boolean offlineScan = false;
+
+  public BatchScanConfig() {}
   
-  public BatchScanConfig(String tableName) {
-    checkNotNull(tableName);
-    this.tableName = tableName;
-  }
-  
+  /**
+   * Creates a batch scan config object out of a previously serialized batch scan config object.
+   * @param input
+   *          the data input of the serialized batch scan config
+   * @throws IOException
+   */
   public BatchScanConfig(DataInput input) throws IOException {
     readFields(input);
   }
-  
-  /**
-   * Returns the table name associated with this configuration
-   */
-  public String getTableName() {
-    return tableName;
-  }
-  
+
   /**
    * Sets the input ranges to scan for all tables associated with this job. This will be added to any per-table ranges that have been set using
    * 
@@ -74,14 +69,14 @@ public class BatchScanConfig implements Writable {
     this.ranges = ranges;
     return this;
   }
-  
+
   /**
    * Returns the ranges to be queried in the configuration
    */
   public List<Range> getRanges() {
     return ranges != null ? ranges : new ArrayList<Range>();
   }
-  
+
   /**
    * Restricts the columns that will be mapped over for this job for the default input table.
    * 
@@ -94,14 +89,14 @@ public class BatchScanConfig implements Writable {
     this.columns = columns;
     return this;
   }
-  
+
   /**
    * Returns the columns to be fetched for this configuration
    */
   public Set<Pair<Text,Text>> getFetchedColumns() {
     return columns != null ? columns : new HashSet<Pair<Text,Text>>();
   }
-  
+
   /**
    * Set iterators on to be used in the query.
    * 
@@ -113,14 +108,14 @@ public class BatchScanConfig implements Writable {
     this.iterators = iterators;
     return this;
   }
-  
+
   /**
    * Returns the iterators to be set on this configuration
    */
   public List<IteratorSetting> getIterators() {
     return iterators != null ? iterators : new ArrayList<IteratorSetting>();
   }
-  
+
   /**
    * Controls the automatic adjustment of ranges for this job. This feature merges overlapping ranges, then splits them to align with tablet boundaries.
    * Disabling this feature will cause exactly one Map task to be created for each specified range. The default setting is enabled. *
@@ -137,7 +132,7 @@ public class BatchScanConfig implements Writable {
     this.autoAdjustRanges = autoAdjustRanges;
     return this;
   }
-  
+
   /**
    * Determines whether a configuration has auto-adjust ranges enabled.
    * 
@@ -148,7 +143,7 @@ public class BatchScanConfig implements Writable {
   public boolean shouldAutoAdjustRanges() {
     return autoAdjustRanges;
   }
-  
+
   /**
    * Controls the use of the {@link org.apache.accumulo.core.client.ClientSideIteratorScanner} in this job. Enabling this feature will cause the iterator stack
    * to be constructed within the Map task, rather than within the Accumulo TServer. To use this feature, all classes needed for those iterators must be
@@ -165,7 +160,7 @@ public class BatchScanConfig implements Writable {
     this.useLocalIterators = useLocalIterators;
     return this;
   }
-  
+
   /**
    * Determines whether a configuration uses local iterators.
    * 
@@ -176,7 +171,7 @@ public class BatchScanConfig implements Writable {
   public boolean shouldUseLocalIterators() {
     return useLocalIterators;
   }
-  
+
   /**
    * <p>
    * Enable reading offline tables. By default, this feature is disabled and only online tables are scanned. This will make the map reduce job directly read the
@@ -210,7 +205,7 @@ public class BatchScanConfig implements Writable {
     this.offlineScan = offlineScan;
     return this;
   }
-  
+
   /**
    * Determines whether a configuration has the offline table scan feature enabled.
    * 
@@ -221,7 +216,7 @@ public class BatchScanConfig implements Writable {
   public boolean isOfflineScan() {
     return offlineScan;
   }
-  
+
   /**
    * Controls the use of the {@link org.apache.accumulo.core.client.IsolatedScanner} in this job.
    * 
@@ -236,7 +231,7 @@ public class BatchScanConfig implements Writable {
     this.useIsolatedScanners = useIsolatedScanners;
     return this;
   }
-  
+
   /**
    * Determines whether a configuration has isolation enabled.
    * 
@@ -247,10 +242,15 @@ public class BatchScanConfig implements Writable {
   public boolean shouldUseIsolatedScanners() {
     return useIsolatedScanners;
   }
-  
+
+  /**
+   * Writes the state for the current object out to the specified {@see DataOutput}
+   * @param dataOutput
+   *          the output for which to write the object's state
+   * @throws IOException
+   */
   @Override
   public void write(DataOutput dataOutput) throws IOException {
-    dataOutput.writeUTF(tableName);
     if (iterators != null) {
       dataOutput.writeInt(iterators.size());
       for (IteratorSetting setting : iterators)
@@ -284,10 +284,15 @@ public class BatchScanConfig implements Writable {
     dataOutput.writeBoolean(useLocalIterators);
     dataOutput.writeBoolean(useIsolatedScanners);
   }
-  
+
+  /**
+   * Reads the fields in the {@see DataInput} into the current object
+   * @param dataInput
+   *          the input fields to read into the current object
+   * @throws IOException
+   */
   @Override
   public void readFields(DataInput dataInput) throws IOException {
-    this.tableName = dataInput.readUTF();
     // load iterators
     long iterSize = dataInput.readInt();
     if (iterSize > 0)
@@ -323,16 +328,16 @@ public class BatchScanConfig implements Writable {
     useLocalIterators = dataInput.readBoolean();
     useIsolatedScanners = dataInput.readBoolean();
   }
-  
+
   @Override
   public boolean equals(Object o) {
     if (this == o)
       return true;
     if (o == null || getClass() != o.getClass())
       return false;
-    
+
     BatchScanConfig that = (BatchScanConfig) o;
-    
+
     if (autoAdjustRanges != that.autoAdjustRanges)
       return false;
     if (offlineScan != that.offlineScan)
@@ -347,16 +352,12 @@ public class BatchScanConfig implements Writable {
       return false;
     if (ranges != null ? !ranges.equals(that.ranges) : that.ranges != null)
       return false;
-    if (tableName != null ? !tableName.equals(that.tableName) : that.tableName != null)
-      return false;
-    
     return true;
   }
-  
+
   @Override
   public int hashCode() {
-    int result = tableName != null ? tableName.hashCode() : 0;
-    result = 31 * result + (iterators != null ? iterators.hashCode() : 0);
+    int result = 31 * (iterators != null ? iterators.hashCode() : 0);
     result = 31 * result + (ranges != null ? ranges.hashCode() : 0);
     result = 31 * result + (columns != null ? columns.hashCode() : 0);
     result = 31 * result + (autoAdjustRanges ? 1 : 0);
