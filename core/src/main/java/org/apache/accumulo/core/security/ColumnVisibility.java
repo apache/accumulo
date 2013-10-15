@@ -56,8 +56,8 @@ public class ColumnVisibility {
   public static class Node {
     public final static List<Node> EMPTY = Collections.emptyList();
     NodeType type;
-    final int start;
-    final int end;
+    int start;
+    int end;
     List<Node> children = EMPTY;
     
     public Node(NodeType type, int start) {
@@ -247,6 +247,7 @@ public class ColumnVisibility {
     Node parse_(byte[] expression) {
       Node result = null;
       Node expr = null;
+      int wholeTermStart = index;
       int subtermStart = index;
       boolean subtermComplete = false;
       
@@ -258,7 +259,7 @@ public class ColumnVisibility {
               if (!result.type.equals(NodeType.AND))
                 throw new BadArgumentException("cannot mix & and |", new String(expression), index - 1);
             } else {
-              result = new Node(NodeType.AND, index - 1);
+              result = new Node(NodeType.AND, wholeTermStart);
             }
             result.add(expr);
             expr = null;
@@ -272,7 +273,7 @@ public class ColumnVisibility {
               if (!result.type.equals(NodeType.OR))
                 throw new BadArgumentException("cannot mix | and &", new String(expression), index - 1);
             } else {
-              result = new Node(NodeType.OR, index - 1);
+              result = new Node(NodeType.OR, wholeTermStart);
             }
             result.add(expr);
             expr = null;
@@ -339,9 +340,10 @@ public class ColumnVisibility {
         }
       }
       Node child = processTerm(subtermStart, index, expr, expression);
-      if (result != null)
+      if (result != null) {
         result.add(child);
-      else
+        result.end = index;
+      } else
         result = child;
       if (result.type != NodeType.TERM)
         if (result.children.size() < 2)
