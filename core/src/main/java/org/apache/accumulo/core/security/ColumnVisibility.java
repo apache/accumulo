@@ -247,13 +247,13 @@ public class ColumnVisibility {
     Node parse_(byte[] expression) {
       Node result = null;
       Node expr = null;
-      int termStart = index;
-      boolean termComplete = false;
+      int subtermStart = index;
+      boolean subtermComplete = false;
       
       while (index < expression.length) {
         switch (expression[index++]) {
           case '&': {
-            expr = processTerm(termStart, index - 1, expr, expression);
+            expr = processTerm(subtermStart, index - 1, expr, expression);
             if (result != null) {
               if (!result.type.equals(NodeType.AND))
                 throw new BadArgumentException("cannot mix & and |", new String(expression), index - 1);
@@ -262,12 +262,12 @@ public class ColumnVisibility {
             }
             result.add(expr);
             expr = null;
-            termStart = index;
-            termComplete = false;
+            subtermStart = index;
+            subtermComplete = false;
             break;
           }
           case '|': {
-            expr = processTerm(termStart, index - 1, expr, expression);
+            expr = processTerm(subtermStart, index - 1, expr, expression);
             if (result != null) {
               if (!result.type.equals(NodeType.OR))
                 throw new BadArgumentException("cannot mix | and &", new String(expression), index - 1);
@@ -276,22 +276,22 @@ public class ColumnVisibility {
             }
             result.add(expr);
             expr = null;
-            termStart = index;
-            termComplete = false;
+            subtermStart = index;
+            subtermComplete = false;
             break;
           }
           case '(': {
             parens++;
-            if (termStart != index - 1 || expr != null)
+            if (subtermStart != index - 1 || expr != null)
               throw new BadArgumentException("expression needs & or |", new String(expression), index - 1);
             expr = parse_(expression);
-            termStart = index;
-            termComplete = false;
+            subtermStart = index;
+            subtermComplete = false;
             break;
           }
           case ')': {
             parens--;
-            Node child = processTerm(termStart, index - 1, expr, expression);
+            Node child = processTerm(subtermStart, index - 1, expr, expression);
             if (child == null && result == null)
               throw new BadArgumentException("empty expression not allowed", new String(expression), index);
             if (result == null)
@@ -304,7 +304,7 @@ public class ColumnVisibility {
             return result;
           }
           case '"': {
-            if (termStart != index - 1)
+            if (subtermStart != index - 1)
               throw new BadArgumentException("expression needs & or |", new String(expression), index - 1);
             
             while (index < expression.length && expression[index] != '"') {
@@ -317,19 +317,19 @@ public class ColumnVisibility {
             }
             
             if (index == expression.length)
-              throw new BadArgumentException("unclosed quote", new String(expression), termStart);
+              throw new BadArgumentException("unclosed quote", new String(expression), subtermStart);
             
-            if (termStart + 1 == index)
-              throw new BadArgumentException("empty term", new String(expression), termStart);
+            if (subtermStart + 1 == index)
+              throw new BadArgumentException("empty term", new String(expression), subtermStart);
             
             index++;
             
-            termComplete = true;
+            subtermComplete = true;
             
             break;
           }
           default: {
-            if (termComplete)
+            if (subtermComplete)
               throw new BadArgumentException("expression needs & or |", new String(expression), index - 1);
             
             byte c = expression[index - 1];
@@ -338,7 +338,7 @@ public class ColumnVisibility {
           }
         }
       }
-      Node child = processTerm(termStart, index, expr, expression);
+      Node child = processTerm(subtermStart, index, expr, expression);
       if (result != null)
         result.add(child);
       else
