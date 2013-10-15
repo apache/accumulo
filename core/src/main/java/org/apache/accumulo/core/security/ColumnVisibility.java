@@ -144,7 +144,7 @@ public class ColumnVisibility {
   /*
    * Convience method that delegates to normalize with a new NodeComparator constructed using the supplied expression.
    */
-  private static Node normalize(Node root, byte[] expression) {
+  public static Node normalize(Node root, byte[] expression) {
     return normalize(root, expression, new NodeComparator(expression));
   }
   
@@ -156,7 +156,7 @@ public class ColumnVisibility {
    *  3) dedupes labels (`a&b&a` becomes `a&b`)
    */
   // @formatter:on
-  private static Node normalize(Node root, byte[] expression, NodeComparator comparator) {
+  public static Node normalize(Node root, byte[] expression, NodeComparator comparator) {
     if (root.type != NodeType.TERM) {
       TreeSet<Node> rolledUp = new TreeSet<Node>(comparator);
       java.util.Iterator<Node> itr = root.children.iterator();
@@ -183,7 +183,7 @@ public class ColumnVisibility {
   /*
    * Walks an expression's AST and appends a string representation to a supplied StringBuilder. This method adds parens where necessary.
    */
-  private static void stringify(Node root, byte[] expression, StringBuilder out) {
+  public static void stringify(Node root, byte[] expression, StringBuilder out) {
     if (root.type == NodeType.TERM) {
       out.append(new String(expression, root.start, root.end - root.start));
     } else {
