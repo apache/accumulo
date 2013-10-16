@@ -14,17 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.util;
+package org.apache.accumulo.core.util;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.util.MonitorUtil;
-import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
+import org.apache.zookeeper.KeeperException;
 
-public class Info {
-  public static void main(String[] args) throws Exception {
-    Instance instance = HdfsZooInstance.getInstance();
-    System.out.println("monitor: " + MonitorUtil.getLocation(instance));
-    System.out.println("masters: " + instance.getMasterLocations());
-    System.out.println("zookeepers: " + instance.getZooKeepers());
+public class MonitorUtil {
+  public static String getLocation(Instance instance) throws KeeperException, InterruptedException {
+    ZooReader zr = new ZooReader(instance.getZooKeepers(), 5000);
+    byte[] loc = zr.getData(ZooUtil.getRoot(instance) + Constants.ZMONITOR, null);
+    return loc==null ? null : new String(loc);
   }
 }

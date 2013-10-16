@@ -18,14 +18,12 @@ package org.apache.accumulo.test.functional;
 
 import java.io.IOException;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
+import org.apache.accumulo.core.util.MonitorUtil;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.log4j.Logger;
@@ -73,8 +71,7 @@ public class ConfigurableMacIT extends AbstractMacIT {
 
   public String getMonitor() throws KeeperException, InterruptedException {
     Instance instance = new ZooKeeperInstance(getCluster().getInstanceName(), getCluster().getZooKeepers());
-    ZooReader zr = new ZooReader(getCluster().getZooKeepers(), 5000);
-    return new String(zr.getData(ZooUtil.getRoot(instance) + Constants.ZMONITOR, null));
+    return MonitorUtil.getLocation(instance);
   }
 
 }
