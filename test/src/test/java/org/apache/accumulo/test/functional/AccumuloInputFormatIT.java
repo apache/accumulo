@@ -80,7 +80,6 @@ public class AccumuloInputFormatIT extends SimpleMacIT {
     getConnector().tableOperations().offline(table);
     splits = inputFormat.getSplits(job);
     assertEquals(actualSplits.size(), splits.size());
->>>>>>> ACCUMULO-1751 Adding tests for autoAdjustRanges and offlineTable paths through getSplits().
 
     // auto adjust ranges
     ranges = new ArrayList<Range>();
