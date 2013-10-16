@@ -302,6 +302,7 @@ public class ColumnVisibility {
                 result.add(c);
             else
               result.add(child);
+            result.end = index - 1;
             return result;
           }
           case '"': {
