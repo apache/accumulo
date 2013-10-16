@@ -125,6 +125,86 @@ AccumuloInputFormat.addIterator(job, is);
 \end{verbatim}
 \normalsize
 
+\subsection{AccumuloMultiTableInputFormat options}
+
+The AccumuloMultiTableInputFormat allows the scanning over multiple tables 
+in a single MapReduce job. Separate ranges, columns, and iterators can be 
+used for each table. 
+
+\small
+\begin{verbatim}
+BatchScanConfig tableOneConfig = new BatchScanConfig();
+BatchScanConfig tableTwoConfig = new BatchScanConfig();
+\end{verbatim}
+\normalsize
+
+To set the configuration objects on the job:
+
+\small
+\begin{verbatim}
+Map<String, BatchScanConfig> configs = new HashMap<String,BatchScanConfig>();
+configs.put("table1", tableOneConfig);
+configs.put("table2", tableTwoConfig);
+AccumuloMultiTableInputFormat.setBatchScanConfigs(job, configs);
+\end{verbatim}
+\normalsize
+
+\Large
+\textbf{Optional settings:}
+\normalsize
+
+To restrict to a set of ranges:
+
+\small
+\begin{verbatim}
+ArrayList<Range> tableOneRanges = new ArrayList<Range>();
+ArrayList<Range> tableTwoRanges = new ArrayList<Range>();
+// populate array lists of row ranges for tables...
+tableOneConfig.setRanges(tableOneRanges);
+tableTwoConfig.setRanges(tableTwoRanges);
+\end{verbatim}
+\normalsize
+
+To restrict Accumulo to a list of columns:
+
+\small
+\begin{verbatim}
+ArrayList<Pair<Text,Text>> tableOneColumns = new ArrayList<Pair<Text,Text>>();
+ArrayList<Pair<Text,Text>> tableTwoColumns = new ArrayList<Pair<Text,Text>>();
+// populate lists of columns for each of the tables ...
+tableOneConfig.fetchColumns(tableOneColumns);
+tableTwoConfig.fetchColumns(tableTwoColumns);
+\end{verbatim}
+\normalsize
+
+To set scan iterators:
+
+\small
+\begin{verbatim}
+List<IteratorSetting> tableOneIterators = new ArrayList<IteratorSetting>();
+List<IteratorSetting> tableTwoIterators = new ArrayList<IteratorSetting>();
+// populate the lists of iterator settings for each of the tables ...
+tableOneConfig.setIterators(tableOneIterators);
+tableTwoConfig.setIterators(tableTwoIterators);
+\end{verbatim}
+\normalsize
+
+
+The name of the table can be retrieved from the input split:
+
+\small
+\begin{verbatim}
+class MyMapper extends Mapper<Key,Value,WritableComparable,Writable> {
+    public void map(Key k, Value v, Context c) {
+        RangeInputSplit split = (RangeInputSplit)c.getInputSplit();
+        String tableName = split.getTableName();
+        // do something with table name 
+    }
+}
+\end{verbatim}
+\normalsize
+
+
 \subsection{AccumuloOutputFormat options}
 
 \small

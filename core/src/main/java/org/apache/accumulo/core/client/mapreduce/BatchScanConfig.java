@@ -20,6 +20,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -37,7 +38,7 @@ public class BatchScanConfig implements Writable {
 
   private List<IteratorSetting> iterators;
   private List<Range> ranges;
-  private Set<Pair<Text,Text>> columns;
+  private Collection<Pair<Text,Text>> columns;
 
   private boolean autoAdjustRanges = true;
   private boolean useLocalIterators = false;
@@ -83,7 +84,7 @@ public class BatchScanConfig implements Writable {
    *          selected. An empty set is the default and is equivalent to scanning the all columns.
    * @since 1.6.0
    */
-  public BatchScanConfig fetchColumns(Set<Pair<Text,Text>> columns) {
+  public BatchScanConfig fetchColumns(Collection<Pair<Text,Text>> columns) {
     this.columns = columns;
     return this;
   }
@@ -91,7 +92,7 @@ public class BatchScanConfig implements Writable {
   /**
    * Returns the columns to be fetched for this configuration
    */
-  public Set<Pair<Text,Text>> getFetchedColumns() {
+  public Collection<Pair<Text,Text>> getFetchedColumns() {
     return columns != null ? columns : new HashSet<Pair<Text,Text>>();
   }
 
