@@ -16,6 +16,12 @@
  */
 package org.apache.accumulo.core.client.mapreduce;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.mapreduce.lib.util.InputConfigurator;
@@ -27,17 +33,9 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-
 /**
- * This class allows MapReduce jobs to use multiple Accumulo tables as the source of data. This {@link org.apache.hadoop.mapreduce.InputFormat} provides keys 
- * and values of 
- * type {@link Key} and
- * {@link Value} to the Map function. 
+ * This class allows MapReduce jobs to use multiple Accumulo tables as the source of data. This {@link org.apache.hadoop.mapreduce.InputFormat} provides keys
+ * and values of type {@link Key} and {@link Value} to the Map function.
  * 
  * The user must specify the following via static configurator methods:
  * 
@@ -50,9 +48,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * 
  * Other static methods are optional.
  */
+public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value> {
 
-public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value>{
-  
   /**
    * Sets the {@link BatchScanConfig} objects on the given Hadoop configuration
    * 
@@ -62,15 +59,15 @@ public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value
    *          the table query configs to be set on the configuration.
    * @since 1.6.0
    */
-  public static void setBatchScanConfigs(Job job, Map<String, BatchScanConfig> configs) {
+  public static void setBatchScanConfigs(Job job, Map<String,BatchScanConfig> configs) {
     checkNotNull(configs);
     InputConfigurator.setBatchScanConfigs(CLASS, getConfiguration(job), configs);
   }
-  
+
   @Override
-  public RecordReader<Key, Value> createRecordReader(InputSplit inputSplit, TaskAttemptContext context) throws IOException, InterruptedException {
+  public RecordReader<Key,Value> createRecordReader(InputSplit inputSplit, TaskAttemptContext context) throws IOException, InterruptedException {
     log.setLevel(getLogLevel(context));
-    return new AbstractRecordReader<Key, Value>() {
+    return new AbstractRecordReader<Key,Value>() {
       @Override
       public boolean nextKeyValue() throws IOException, InterruptedException {
         if (scannerIterator.hasNext()) {
@@ -88,7 +85,7 @@ public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value
       @Override
       protected void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName) {
         List<IteratorSetting> iterators = getBatchScanConfig(context, tableName).getIterators();
-        for(IteratorSetting setting : iterators) {
+        for (IteratorSetting setting : iterators) {
           scanner.addScanIterator(setting);
         }
       }

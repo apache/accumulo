@@ -310,35 +310,35 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   protected static TabletLocator getTabletLocator(JobContext context) throws TableNotFoundException {
     return InputConfigurator.getTabletLocator(CLASS, getConfiguration(context), InputConfigurator.getInputTableName(CLASS, getConfiguration(context)));
   }
-  
+
   protected abstract static class RecordReaderBase<K,V> extends AbstractRecordReader<K,V> {
-    
-      /**
-       * Apply the configured iterators from the configuration to the scanner for the specified table name
-       * 
-       * @param context
-       *          the Hadoop context for the configured job
-       * @param scanner
-       *          the scanner to configure
-       * @since 1.6.0
-       */
-      @Override
-      protected void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName) {
-        setupIterators(context, scanner);
-      }
-      
-      /**
-       * Apply the configured iterators from the configuration to the scanner.
-       * 
-       * @param context
-       *          the Hadoop context for the configured job
-       * @param scanner
-       *          the scanner to configure
-       */
-      protected void setupIterators(TaskAttemptContext context, Scanner scanner) {
-        List<IteratorSetting> iterators = getIterators(context);
-        for (IteratorSetting iterator : iterators) 
-          scanner.addScanIterator(iterator);
-      }
+
+    /**
+     * Apply the configured iterators from the configuration to the scanner for the specified table name
+     * 
+     * @param context
+     *          the Hadoop context for the configured job
+     * @param scanner
+     *          the scanner to configure
+     * @since 1.6.0
+     */
+    @Override
+    protected void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName) {
+      setupIterators(context, scanner);
+    }
+
+    /**
+     * Apply the configured iterators from the configuration to the scanner.
+     * 
+     * @param context
+     *          the Hadoop context for the configured job
+     * @param scanner
+     *          the scanner to configure
+     */
+    protected void setupIterators(TaskAttemptContext context, Scanner scanner) {
+      List<IteratorSetting> iterators = getIterators(context);
+      for (IteratorSetting iterator : iterators)
+        scanner.addScanIterator(iterator);
+    }
   }
 }

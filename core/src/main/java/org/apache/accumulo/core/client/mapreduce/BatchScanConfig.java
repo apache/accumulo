@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.core.client.mapreduce;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;

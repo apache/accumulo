@@ -71,6 +71,10 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
+/**
+ * An abstract input format to provide shared methods common to all other input format classes. At the very least, any classes inheriting from this class will
+ * need to define their own {@link RecordReader}.
+ */
 public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
 
   protected static final Class<?> CLASS = AccumuloInputFormat.class;
@@ -296,7 +300,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @since 1.6.0
    */
   protected static BatchScanConfig getBatchScanConfig(JobContext context, String tableName) {
-    return InputConfigurator.getTableQueryConfig(CLASS, getConfiguration(context), tableName);
+    return InputConfigurator.getBatchScanConfig(CLASS, getConfiguration(context), tableName);
   }
 
   /**
@@ -355,6 +359,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
      *          the scanner for which to configure the iterators
      * @param tableName
      *          the table name for which the scanner is configured
+     * @since 1.6.0
      */
     protected abstract void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName);
 

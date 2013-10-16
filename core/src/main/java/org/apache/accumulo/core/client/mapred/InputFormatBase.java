@@ -25,6 +25,8 @@ import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.mapreduce.lib.util.InputConfigurator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -48,7 +50,7 @@ import org.apache.hadoop.mapred.Reporter;
  * See {@link AccumuloInputFormat} for an example implementation.
  */
 public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
-  
+
   /**
    * Sets the name of the input table, over which this job will scan.
    * 
@@ -61,7 +63,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   public static void setInputTableName(JobConf job, String tableName) {
     InputConfigurator.setInputTableName(CLASS, job, tableName);
   }
-  
+
   /**
    * Gets the table name from the configuration.
    * 
@@ -74,6 +76,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   protected static String getInputTableName(JobConf job) {
     return InputConfigurator.getInputTableName(CLASS, job);
   }
+
   /**
    * Sets the input ranges to scan for this job. If not set, the entire table will be scanned.
    * 
@@ -86,7 +89,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   public static void setRanges(JobConf job, Collection<Range> ranges) {
     InputConfigurator.setRanges(CLASS, job, ranges);
   }
-  
+
   /**
    * Gets the ranges to scan over from a job.
    * 
@@ -101,7 +104,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   protected static List<Range> getRanges(JobConf job) throws IOException {
     return InputConfigurator.getRanges(CLASS, job);
   }
-  
+
   /**
    * Restricts the columns that will be mapped over for this job.
    * 
@@ -115,7 +118,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   public static void fetchColumns(JobConf job, Collection<Pair<Text,Text>> columnFamilyColumnQualifierPairs) {
     InputConfigurator.fetchColumns(CLASS, job, columnFamilyColumnQualifierPairs);
   }
-  
+
   /**
    * Gets the columns to be mapped over from this job.
    * 
@@ -128,7 +131,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   protected static Set<Pair<Text,Text>> getFetchedColumns(JobConf job) {
     return InputConfigurator.getFetchedColumns(CLASS, job);
   }
-  
+
   /**
    * Encode an iterator on the input for this job.
    * 
@@ -141,7 +144,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   public static void addIterator(JobConf job, IteratorSetting cfg) {
     InputConfigurator.addIterator(CLASS, job, cfg);
   }
-  
+
   /**
    * Gets a list of the iterator settings (for iterators to apply to a scanner) from this configuration.
    * 
@@ -154,7 +157,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   protected static List<IteratorSetting> getIterators(JobConf job) {
     return InputConfigurator.getIterators(CLASS, job);
   }
-  
+
   /**
    * Controls the automatic adjustment of ranges for this job. This feature merges overlapping ranges, then splits them to align with tablet boundaries.
    * Disabling this feature will cause exactly one Map task to be created for each specified range. The default setting is enabled. *
@@ -172,7 +175,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   public static void setAutoAdjustRanges(JobConf job, boolean enableFeature) {
     InputConfigurator.setAutoAdjustRanges(CLASS, job, enableFeature);
   }
-  
+
   /**
    * Determines whether a configuration has auto-adjust ranges enabled.
    * 
@@ -185,7 +188,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   protected static boolean getAutoAdjustRanges(JobConf job) {
     return InputConfigurator.getAutoAdjustRanges(CLASS, job);
   }
-  
+
   /**
    * Controls the use of the {@link IsolatedScanner} in this job.
    * 
@@ -201,7 +204,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   public static void setScanIsolation(JobConf job, boolean enableFeature) {
     InputConfigurator.setScanIsolation(CLASS, job, enableFeature);
   }
-  
+
   /**
    * Determines whether a configuration has isolation enabled.
    * 
@@ -214,7 +217,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   protected static boolean isIsolated(JobConf job) {
     return InputConfigurator.isIsolated(CLASS, job);
   }
-  
+
   /**
    * Controls the use of the {@link ClientSideIteratorScanner} in this job. Enabling this feature will cause the iterator stack to be constructed within the Map
    * task, rather than within the Accumulo TServer. To use this feature, all classes needed for those iterators must be available on the classpath for the task.
@@ -231,7 +234,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   public static void setLocalIterators(JobConf job, boolean enableFeature) {
     InputConfigurator.setLocalIterators(CLASS, job, enableFeature);
   }
-  
+
   /**
    * Determines whether a configuration uses local iterators.
    * 
@@ -244,7 +247,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   protected static boolean usesLocalIterators(JobConf job) {
     return InputConfigurator.usesLocalIterators(CLASS, job);
   }
-  
+
   /**
    * <p>
    * Enable reading offline tables. By default, this feature is disabled and only online tables are scanned. This will make the map reduce job directly read the
@@ -279,7 +282,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   public static void setOfflineTableScan(JobConf job, boolean enableFeature) {
     InputConfigurator.setOfflineTableScan(CLASS, job, enableFeature);
   }
-  
+
   /**
    * Determines whether a configuration has the offline table scan feature enabled.
    * 
@@ -292,14 +295,30 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   protected static boolean isOfflineScan(JobConf job) {
     return InputConfigurator.isOfflineScan(CLASS, job);
   }
-  
+
+  /**
+   * Initializes an Accumulo {@link org.apache.accumulo.core.client.impl.TabletLocator} based on the configuration.
+   * 
+   * @param job
+   *          the Hadoop job for the configured job
+   * @return an Accumulo tablet locator
+   * @throws org.apache.accumulo.core.client.TableNotFoundException
+   *           if the table name set on the job doesn't exist
+   * @since 1.5.0
+   * @deprecated since 1.6.0
+   */
+  @Deprecated
+  protected static TabletLocator getTabletLocator(JobConf job) throws TableNotFoundException {
+    return InputConfigurator.getTabletLocator(CLASS, job, InputConfigurator.getInputTableName(CLASS, job));
+  }
+
   protected abstract static class RecordReaderBase<K,V> extends AbstractRecordReader<K,V> {
 
     @Override
     protected void setupIterators(JobConf job, Scanner scanner, String tableName) {
       setupIterators(job, scanner);
     }
-        
+
     /**
      * Apply the configured iterators from the configuration to the scanner.
      * 
@@ -310,9 +329,9 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
      */
     protected void setupIterators(JobConf job, Scanner scanner) {
       List<IteratorSetting> iterators = getIterators(job);
-      for (IteratorSetting iterator : iterators) 
+      for (IteratorSetting iterator : iterators)
         scanner.addScanIterator(iterator);
     }
   }
-  
+
 }

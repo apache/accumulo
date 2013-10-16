@@ -63,6 +63,10 @@ import org.apache.hadoop.mapred.RecordReader;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
+/**
+ * An abstract input format to provide shared methods common to all other input format classes. At the very least, any classes inheriting from this class will
+ * need to define their own {@link RecordReader}.
+ */
 public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   protected static final Class<?> CLASS = AccumuloInputFormat.class;
   protected static final Logger log = Logger.getLogger(CLASS);
@@ -270,7 +274,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * @return an Accumulo tablet locator
    * @throws org.apache.accumulo.core.client.TableNotFoundException
    *           if the table name set on the configuration doesn't exist
-   * @since 1.5.0
+   * @since 1.6.0
    */
   protected static TabletLocator getTabletLocator(JobConf job, String tableName) throws TableNotFoundException {
     return InputConfigurator.getTabletLocator(CLASS, job, tableName);
@@ -291,11 +295,11 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   }
 
   /**
-   * Fetches all {@link org.apache.accumulo.core.client.mapreduce.BatchScanConfig}s that have been set on the given Hadoop configuration.
+   * Fetches all {@link BatchScanConfig}s that have been set on the given Hadoop job.
    * 
    * @param job
    *          the Hadoop job instance to be configured
-   * @return
+   * @return the {@link BatchScanConfig} objects set on the job
    * @since 1.6.0
    */
   public static Map<String,BatchScanConfig> getBatchScanConfigs(JobConf job) {
@@ -316,7 +320,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * @since 1.6.0
    */
   public static BatchScanConfig getBatchScanConfig(JobConf job, String tableName) {
-    return InputConfigurator.getTableQueryConfig(CLASS, job, tableName);
+    return InputConfigurator.getBatchScanConfig(CLASS, job, tableName);
   }
 
   /**
@@ -343,6 +347,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
      *          the scanner for which to configure the iterators
      * @param tableName
      *          the table name for which the scanner is configured
+     * @since 1.6.0
      */
     protected abstract void setupIterators(JobConf job, Scanner scanner, String tableName);
 

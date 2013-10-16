@@ -41,18 +41,17 @@ import org.apache.hadoop.mapred.Reporter;
  * <li>{@link AccumuloInputFormat#setConnectorInfo(JobConf, String, String)}
  * <li>{@link AccumuloInputFormat#setScanAuthorizations(JobConf, Authorizations)}
  * <li>{@link AccumuloInputFormat#setZooKeeperInstance(JobConf, String, String)} OR {@link AccumuloInputFormat#setMockInstance(JobConf, String)}
- * <li>{@link AccumuloInputFormat#setTableQueryConfigs(JobConf, org.apache.accumulo.core.client.mapreduce.BatchScanConfig...)}</li>
  * </ul>
  * 
  * Other static methods are optional.
  */
 public class AccumuloInputFormat extends InputFormatBase<Key,Value> {
-  
+
   @Override
   public RecordReader<Key,Value> getRecordReader(InputSplit split, JobConf job, Reporter reporter) throws IOException {
     log.setLevel(getLogLevel(job));
     RecordReaderBase<Key,Value> recordReader = new RecordReaderBase<Key,Value>() {
-      
+
       @Override
       public boolean next(Key key, Value value) throws IOException {
         if (scannerIterator.hasNext()) {
@@ -66,17 +65,17 @@ public class AccumuloInputFormat extends InputFormatBase<Key,Value> {
         }
         return false;
       }
-      
+
       @Override
       public Key createKey() {
         return new Key();
       }
-      
+
       @Override
       public Value createValue() {
         return new Value();
       }
-      
+
     };
     recordReader.initialize(split, job);
     return recordReader;

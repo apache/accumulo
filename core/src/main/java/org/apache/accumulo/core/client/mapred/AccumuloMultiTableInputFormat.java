@@ -29,10 +29,27 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
 
-public class AccumuloMultiTableInputFormat extends AbstractInputFormat {
+/**
+ * This class allows MapReduce jobs to use multiple Accumulo tables as the source of data. This {@link org.apache.hadoop.mapred.InputFormat} provides keys and
+ * values of type {@link Key} and {@link Value} to the Map function.
+ * 
+ * The user must specify the following via static configurator methods:
+ * 
+ * <ul>
+ * <li>{@link AccumuloInputFormat#setConnectorInfo(JobConf, String, org.apache.accumulo.core.client.security.tokens.AuthenticationToken)}
+ * <li>{@link AccumuloInputFormat#setConnectorInfo(JobConf, String, String)}
+ * <li>{@link AccumuloInputFormat#setScanAuthorizations(JobConf, org.apache.accumulo.core.security.Authorizations)}
+ * <li>{@link AccumuloInputFormat#setZooKeeperInstance(JobConf, String, String)} OR {@link AccumuloInputFormat#setMockInstance(JobConf, String)}
+ * <li>{@link AccumuloMultiTableInputFormat#setBatchScanConfigs(org.apache.hadoop.mapred.JobConf, java.util.Map)}
+ * </ul>
+ * 
+ * Other static methods are optional.
+ */
+
+public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value> {
 
   /**
-   * Sets the {@link org.apache.accumulo.core.client.mapreduce.BatchScanConfig} objects on the given Hadoop configuration
+   * Sets the {@link BatchScanConfig} objects on the given Hadoop configuration
    * 
    * @param job
    *          the Hadoop job instance to be configured

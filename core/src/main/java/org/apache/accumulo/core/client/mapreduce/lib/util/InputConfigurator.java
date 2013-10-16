@@ -485,7 +485,7 @@ public class InputConfigurator extends ConfiguratorBase {
    * @param conf
    *          the Hadoop configuration object to configure
    * @param configs
-   *          an array of {@link org.apache.accumulo.core.client.mapreduce.BatchScanConfig} objects to associate with the job
+   *          an array of {@link BatchScanConfig} objects to associate with the job
    * @since 1.6.0
    */
   public static void setBatchScanConfigs(Class<?> implementingClass, Configuration conf, Map<String,BatchScanConfig> configs) {
@@ -505,7 +505,7 @@ public class InputConfigurator extends ConfiguratorBase {
   }
 
   /**
-   * Returns all {@link org.apache.accumulo.core.client.mapreduce.BatchScanConfig} objects associated with this job.
+   * Returns all {@link BatchScanConfig} objects associated with this job.
    * 
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
@@ -538,7 +538,7 @@ public class InputConfigurator extends ConfiguratorBase {
   }
 
   /**
-   * Returns the {@link org.apache.accumulo.core.client.mapreduce.BatchScanConfig} for the given table
+   * Returns the {@link BatchScanConfig} for the given table
    * 
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
@@ -549,7 +549,7 @@ public class InputConfigurator extends ConfiguratorBase {
    * @return the table query config for the given table name (if it exists) and null if it does not
    * @since 1.6.0
    */
-  public static BatchScanConfig getTableQueryConfig(Class<?> implementingClass, Configuration conf, String tableName) {
+  public static BatchScanConfig getBatchScanConfig(Class<?> implementingClass, Configuration conf, String tableName) {
     Map<String,BatchScanConfig> queryConfigs = getBatchScanConfigs(implementingClass, conf);
     return queryConfigs.get(tableName);
   }
