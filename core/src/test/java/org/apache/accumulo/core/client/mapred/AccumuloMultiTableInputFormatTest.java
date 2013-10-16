@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client.mapreduce;
+package org.apache.accumulo.core.client.mapred;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.mapreduce.BatchScanConfig;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
@@ -38,9 +39,12 @@ import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
+import org.apache.hadoop.mapred.JobClient;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.Mapper;
+import org.apache.hadoop.mapred.OutputCollector;
+import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.mapred.lib.NullOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.junit.Test;
@@ -48,23 +52,22 @@ import org.junit.Test;
 public class AccumuloMultiTableInputFormatTest {
 
   private static final String PREFIX = AccumuloMultiTableInputFormatTest.class.getSimpleName();
-  private static final String INSTANCE_NAME = PREFIX + "_mapreduce_instance";
-  private static final String TEST_TABLE_1 = PREFIX + "_mapreduce_table_1";
-  private static final String TEST_TABLE_2 = PREFIX + "_mapreduce_table_2";
+  private static final String INSTANCE_NAME = PREFIX + "_mapred_instance";
+  private static final String TEST_TABLE_1 = PREFIX + "_mapred_table_1";
+  private static final String TEST_TABLE_2 = PREFIX + "_mapred_table_2";
 
   private static AssertionError e1 = null;
   private static AssertionError e2 = null;
 
   private static class MRTester extends Configured implements Tool {
-
-    private static class TestMapper extends Mapper<Key,Value,Key,Value> {
+    private static class TestMapper implements Mapper<Key,Value,Key,Value> {
       Key key = null;
       int count = 0;
 
       @Override
-      protected void map(Key k, Value v, Context context) throws IOException, InterruptedException {
+      public void map(Key k, Value v, OutputCollector<Key,Value> output, Reporter reporter) throws IOException {
         try {
-          String tableName = ((InputFormatBase.RangeInputSplit) context.getInputSplit()).getTableName();
+          String tableName = ((InputFormatBase.RangeInputSplit) reporter.getInputSplit()).getTableName();
           if (key != null)
             assertEquals(key.getRow().toString(), new String(v.get()));
           assertEquals(new Text(String.format("%s_%09x", tableName, count + 1)), k.getRow());
@@ -77,13 +80,17 @@ public class AccumuloMultiTableInputFormatTest {
       }
 
       @Override
-      protected void cleanup(Context context) throws IOException, InterruptedException {
+      public void configure(JobConf job) {}
+
+      @Override
+      public void close() throws IOException {
         try {
           assertEquals(100, count);
         } catch (AssertionError e) {
           e2 = e;
         }
       }
+
     }
 
     @Override
@@ -98,12 +105,13 @@ public class AccumuloMultiTableInputFormatTest {
       String table1 = args[2];
       String table2 = args[3];
 
-      Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+      JobConf job = new JobConf(getConf());
       job.setJarByClass(this.getClass());
 
-      job.setInputFormatClass(AccumuloMultiTableInputFormat.class);
+      job.setInputFormat(AccumuloInputFormat.class);
 
       AccumuloMultiTableInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
+      AccumuloMultiTableInputFormat.setMockInstance(job, INSTANCE_NAME);
 
       BatchScanConfig tableConfig1 = new BatchScanConfig();
       BatchScanConfig tableConfig2 = new BatchScanConfig();
@@ -113,18 +121,15 @@ public class AccumuloMultiTableInputFormatTest {
       configMap.put(table2, tableConfig2);
 
       AccumuloMultiTableInputFormat.setBatchScanConfigs(job, configMap);
-      AccumuloMultiTableInputFormat.setMockInstance(job, INSTANCE_NAME);
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
       job.setMapOutputValueClass(Value.class);
-      job.setOutputFormatClass(NullOutputFormat.class);
+      job.setOutputFormat(NullOutputFormat.class);
 
       job.setNumReduceTasks(0);
 
-      job.waitForCompletion(true);
-
-      return job.isSuccessful() ? 0 : 1;
+      return JobClient.runJob(job).isSuccessful() ? 0 : 1;
     }
 
     public static void main(String[] args) throws Exception {
@@ -132,9 +137,6 @@ public class AccumuloMultiTableInputFormatTest {
     }
   }
 
-  /**
-   * Generate incrementing counts and attach table name to the key/value so that order and multi-table data can be verified.
-   */
   @Test
   public void testMap() throws Exception {
     MockInstance mockInstance = new MockInstance(INSTANCE_NAME);
@@ -160,25 +162,27 @@ public class AccumuloMultiTableInputFormatTest {
   }
 
   /**
-   * Verify {@link BatchScanConfig} objects get correctly serialized in the JobContext.
+   * Verify {@link org.apache.accumulo.core.client.mapreduce.BatchScanConfig} objects get correctly serialized in the JobContext.
    */
   @Test
-  public void testBatchScanConfigSerialization() throws IOException {
+  public void testTableQueryConfigSerialization() throws IOException {
 
-    Job job = new Job();
+    JobConf job = new JobConf();
 
-    BatchScanConfig tableConfig = new BatchScanConfig().setRanges(Collections.singletonList(new Range("a", "b")))
+    BatchScanConfig table1 = new BatchScanConfig().setRanges(Collections.singletonList(new Range("a", "b")))
+        .fetchColumns(Collections.singleton(new Pair<Text,Text>(new Text("CF1"), new Text("CQ1"))))
+        .setIterators(Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
+
+    BatchScanConfig table2 = new BatchScanConfig().setRanges(Collections.singletonList(new Range("a", "b")))
         .fetchColumns(Collections.singleton(new Pair<Text,Text>(new Text("CF1"), new Text("CQ1"))))
         .setIterators(Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
 
     Map<String,BatchScanConfig> configMap = new HashMap<String,BatchScanConfig>();
-    configMap.put(TEST_TABLE_1, tableConfig);
-    configMap.put(TEST_TABLE_2, tableConfig);
-
+    configMap.put(TEST_TABLE_1, table1);
+    configMap.put(TEST_TABLE_2, table2);
     AccumuloMultiTableInputFormat.setBatchScanConfigs(job, configMap);
 
-    assertEquals(tableConfig, AccumuloMultiTableInputFormat.getBatchScanConfig(job, TEST_TABLE_1));
-    assertEquals(tableConfig, AccumuloMultiTableInputFormat.getBatchScanConfig(job, TEST_TABLE_2));
+    assertEquals(table1, AccumuloMultiTableInputFormat.getBatchScanConfig(job, TEST_TABLE_1));
+    assertEquals(table2, AccumuloMultiTableInputFormat.getBatchScanConfig(job, TEST_TABLE_2));
   }
-
 }

@@ -23,26 +23,20 @@ import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.mapreduce.BatchScanConfig;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.Text;
@@ -57,12 +51,11 @@ import org.apache.hadoop.util.ToolRunner;
 import org.junit.Test;
 
 public class AccumuloInputFormatTest {
-  
+
   private static final String PREFIX = AccumuloInputFormatTest.class.getSimpleName();
   private static final String INSTANCE_NAME = PREFIX + "_mapred_instance";
   private static final String TEST_TABLE_1 = PREFIX + "_mapred_table_1";
-  private static final String TEST_TABLE_2 = PREFIX + "_mapred_table_2";
-  
+
   /**
    * Check that the iterator configuration is getting stored in the Job conf correctly.
    * 
@@ -71,6 +64,7 @@ public class AccumuloInputFormatTest {
   @Test
   public void testSetIterator() throws IOException {
     JobConf job = new JobConf();
+
     IteratorSetting is = new IteratorSetting(1, "WholeRow", "org.apache.accumulo.core.iterators.WholeRowIterator");
     AccumuloInputFormat.addIterator(job, is);
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -78,36 +72,36 @@ public class AccumuloInputFormatTest {
     String iterators = job.get("AccumuloInputFormat.ScanOpts.Iterators");
     assertEquals(new String(Base64.encodeBase64(baos.toByteArray())), iterators);
   }
-  
+
   @Test
   public void testAddIterator() throws IOException {
     JobConf job = new JobConf();
-    
+
     AccumuloInputFormat.addIterator(job, new IteratorSetting(1, "WholeRow", WholeRowIterator.class));
     AccumuloInputFormat.addIterator(job, new IteratorSetting(2, "Versions", "org.apache.accumulo.core.iterators.VersioningIterator"));
     IteratorSetting iter = new IteratorSetting(3, "Count", "org.apache.accumulo.core.iterators.CountingIterator");
     iter.addOption("v1", "1");
     iter.addOption("junk", "\0omg:!\\xyzzy");
     AccumuloInputFormat.addIterator(job, iter);
-    
+
     List<IteratorSetting> list = AccumuloInputFormat.getIterators(job);
-    
+
     // Check the list size
     assertTrue(list.size() == 3);
-    
+
     // Walk the list and make sure our settings are correct
     IteratorSetting setting = list.get(0);
     assertEquals(1, setting.getPriority());
     assertEquals("org.apache.accumulo.core.iterators.user.WholeRowIterator", setting.getIteratorClass());
     assertEquals("WholeRow", setting.getName());
     assertEquals(0, setting.getOptions().size());
-    
+
     setting = list.get(1);
     assertEquals(2, setting.getPriority());
     assertEquals("org.apache.accumulo.core.iterators.VersioningIterator", setting.getIteratorClass());
     assertEquals("Versions", setting.getName());
     assertEquals(0, setting.getOptions().size());
-    
+
     setting = list.get(2);
     assertEquals(3, setting.getPriority());
     assertEquals("org.apache.accumulo.core.iterators.CountingIterator", setting.getIteratorClass());
@@ -116,7 +110,7 @@ public class AccumuloInputFormatTest {
     assertEquals("1", setting.getOptions().get("v1"));
     assertEquals("\0omg:!\\xyzzy", setting.getOptions().get("junk"));
   }
-  
+
   /**
    * Test adding iterator options where the keys and values contain both the FIELD_SEPARATOR character (':') and ITERATOR_SEPARATOR (',') characters. There
    * should be no exceptions thrown when trying to parse these types of option entries.
@@ -131,12 +125,12 @@ public class AccumuloInputFormatTest {
     someSetting.addOption(key, value);
     JobConf job = new JobConf();
     AccumuloInputFormat.addIterator(job, someSetting);
-    
+
     List<IteratorSetting> list = AccumuloInputFormat.getIterators(job);
     assertEquals(1, list.size());
     assertEquals(1, list.get(0).getOptions().size());
     assertEquals(list.get(0).getOptions().get(key), value);
-    
+
     someSetting.addOption(key + "2", value);
     someSetting.setPriority(2);
     someSetting.setName("it2");
@@ -149,7 +143,7 @@ public class AccumuloInputFormatTest {
     assertEquals(list.get(1).getOptions().get(key), value);
     assertEquals(list.get(1).getOptions().get(key + "2"), value);
   }
-  
+
   /**
    * Test getting iterator settings for multiple iterators set
    * 
@@ -158,73 +152,72 @@ public class AccumuloInputFormatTest {
   @Test
   public void testGetIteratorSettings() throws IOException {
     JobConf job = new JobConf();
-    
+
     AccumuloInputFormat.addIterator(job, new IteratorSetting(1, "WholeRow", "org.apache.accumulo.core.iterators.WholeRowIterator"));
     AccumuloInputFormat.addIterator(job, new IteratorSetting(2, "Versions", "org.apache.accumulo.core.iterators.VersioningIterator"));
     AccumuloInputFormat.addIterator(job, new IteratorSetting(3, "Count", "org.apache.accumulo.core.iterators.CountingIterator"));
-    
+
     List<IteratorSetting> list = AccumuloInputFormat.getIterators(job);
-    
+
     // Check the list size
     assertTrue(list.size() == 3);
-    
+
     // Walk the list and make sure our settings are correct
     IteratorSetting setting = list.get(0);
     assertEquals(1, setting.getPriority());
     assertEquals("org.apache.accumulo.core.iterators.WholeRowIterator", setting.getIteratorClass());
     assertEquals("WholeRow", setting.getName());
-    
+
     setting = list.get(1);
     assertEquals(2, setting.getPriority());
     assertEquals("org.apache.accumulo.core.iterators.VersioningIterator", setting.getIteratorClass());
     assertEquals("Versions", setting.getName());
-    
+
     setting = list.get(2);
     assertEquals(3, setting.getPriority());
     assertEquals("org.apache.accumulo.core.iterators.CountingIterator", setting.getIteratorClass());
     assertEquals("Count", setting.getName());
-    
+
   }
-  
+
   @Test
   public void testSetRegex() throws IOException {
     JobConf job = new JobConf();
-    
+
     String regex = ">\"*%<>\'\\";
-    
+
     IteratorSetting is = new IteratorSetting(50, regex, RegExFilter.class);
     RegExFilter.setRegexs(is, regex, null, null, null, false);
     AccumuloInputFormat.addIterator(job, is);
-    
+
     assertTrue(regex.equals(AccumuloInputFormat.getIterators(job).get(0).getName()));
   }
-  
+
   private static AssertionError e1 = null;
   private static AssertionError e2 = null;
-  
+
   private static class MRTester extends Configured implements Tool {
     private static class TestMapper implements Mapper<Key,Value,Key,Value> {
       Key key = null;
       int count = 0;
-      
+
       @Override
       public void map(Key k, Value v, OutputCollector<Key,Value> output, Reporter reporter) throws IOException {
         try {
-          String tableName = ((InputFormatBase.RangeInputSplit) reporter.getInputSplit()).getTableName();
           if (key != null)
             assertEquals(key.getRow().toString(), new String(v.get()));
-          assertEquals(new Text(String.format("%s_%09x", tableName, count + 1)), k.getRow());
-          assertEquals(String.format("%s_%09x", tableName, count), new String(v.get()));
+          assertEquals(k.getRow(), new Text(String.format("%09x", count + 1)));
+          assertEquals(new String(v.get()), String.format("%09x", count));
         } catch (AssertionError e) {
           e1 = e;
         }
         key = new Key(k);
         count++;
       }
-      
+
       @Override
       public void configure(JobConf job) {}
-      
+
       @Override
       public void close() throws IOException {
         try {
@@ -233,124 +226,59 @@ public class AccumuloInputFormatTest {
           e2 = e;
         }
       }
-      
+
     }
-    
+
     @Override
     public int run(String[] args) throws Exception {
-      
-      if (args.length != 4) {
-        throw new IllegalArgumentException("Usage : " + MRTester.class.getName() + " <user> <pass> <table1> <table2>");
+
+      if (args.length != 3) {
+        throw new IllegalArgumentException("Usage : " + MRTester.class.getName() + " <user> <pass> <table>");
       }
-      
+
       String user = args[0];
       String pass = args[1];
-      String table1 = args[2];
-      String table2 = args[3];
-      
+      String table = args[2];
+
       JobConf job = new JobConf(getConf());
       job.setJarByClass(this.getClass());
-      
-      job.setInputFormat(AccumuloInputFormat.class);
-      
-      AccumuloInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
-      AccumuloInputFormat.setMockInstance(job, INSTANCE_NAME);
-      
-      BatchScanConfig tableConfig1 = new BatchScanConfig();
-      BatchScanConfig tableConfig2 = new BatchScanConfig();
 
-      Map<String, BatchScanConfig> configMap = new HashMap<String, BatchScanConfig>();
-      configMap.put(table1, tableConfig1);
-      configMap.put(table2, tableConfig2);
-      
-      AccumuloInputFormat.setTableQueryConfigs(job, configMap);
-      
+      job.setInputFormat(AccumuloInputFormat.class);
+
+      AccumuloInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
+      AccumuloInputFormat.setInputTableName(job, table);
+      AccumuloInputFormat.setMockInstance(job, INSTANCE_NAME);
+
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
       job.setMapOutputValueClass(Value.class);
       job.setOutputFormat(NullOutputFormat.class);
-      
+
       job.setNumReduceTasks(0);
-      
+
       return JobClient.runJob(job).isSuccessful() ? 0 : 1;
     }
-    
+
     public static void main(String[] args) throws Exception {
       assertEquals(0, ToolRunner.run(CachedConfiguration.getInstance(), new MRTester(), args));
     }
   }
-  
+
   @Test
   public void testMap() throws Exception {
     MockInstance mockInstance = new MockInstance(INSTANCE_NAME);
     Connector c = mockInstance.getConnector("root", new PasswordToken(""));
     c.tableOperations().create(TEST_TABLE_1);
-    c.tableOperations().create(TEST_TABLE_2);
     BatchWriter bw = c.createBatchWriter(TEST_TABLE_1, new BatchWriterConfig());
-    BatchWriter bw2 = c.createBatchWriter(TEST_TABLE_2, new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {
-      Mutation t1m = new Mutation(new Text(String.format("%s_%09x", TEST_TABLE_1, i + 1)));
-      t1m.put(new Text(), new Text(), new Value(String.format("%s_%09x", TEST_TABLE_1, i).getBytes()));
-      bw.addMutation(t1m);
-      Mutation t2m = new Mutation(new Text(String.format("%s_%09x", TEST_TABLE_2, i + 1)));
-      t2m.put(new Text(), new Text(), new Value(String.format("%s_%09x", TEST_TABLE_2, i).getBytes()));
-      bw2.addMutation(t2m);
+      Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
+      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+      bw.addMutation(m);
     }
     bw.close();
-    bw2.close();
-    
-    MRTester.main(new String[] {"root", "", TEST_TABLE_1, TEST_TABLE_2});
+
+    MRTester.main(new String[] {"root", "", TEST_TABLE_1});
     assertNull(e1);
     assertNull(e2);
-  }
-  
-  /**
-   * Verify {@link org.apache.accumulo.core.client.mapreduce.BatchScanConfig} objects get correctly serialized in the JobContext.
-   */
-  @Test
-  public void testTableQueryConfigSerialization() throws IOException {
-    
-    JobConf job = new JobConf();
-    
-    BatchScanConfig table1 = new BatchScanConfig().setRanges(Collections.singletonList(new Range("a", "b")))
-        .fetchColumns(Collections.singleton(new Pair<Text, Text>(new Text("CF1"), new Text("CQ1"))))
-        .setIterators(Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
-    
-    BatchScanConfig table2 = new BatchScanConfig().setRanges(Collections.singletonList(new Range("a", "b")))
-        .fetchColumns(Collections.singleton(new Pair<Text, Text>(new Text("CF1"), new Text("CQ1"))))
-        .setIterators(Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
-    
-    Map<String, BatchScanConfig> configMap = new HashMap<String, BatchScanConfig>();
-    configMap.put(TEST_TABLE_1, table1);
-    configMap.put(TEST_TABLE_2, table2);
-    AccumuloInputFormat.setTableQueryConfigs(job, configMap);
-
-    assertEquals(table1, AccumuloInputFormat.getTableQueryConfig(job, TEST_TABLE_1));
-    assertEquals(table2, AccumuloInputFormat.getTableQueryConfig(job, TEST_TABLE_2));
-  }
-  
-  /**
-   * Verify that union of legacy input and new multi-table input get returned for backwards compatibility.
-   */
-  @Test
-  public void testTableQueryConfigSingleAndMultitableMethods() throws IOException {
-    
-    JobConf job = new JobConf();
-    
-    BatchScanConfig tableConfig = new BatchScanConfig().setRanges(Collections.singletonList(new Range("a", "b")))
-        .fetchColumns(Collections.singleton(new Pair<Text, Text>(new Text("CF1"), new Text("CQ1"))))
-        .setIterators(Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
-    
-    Map<String, BatchScanConfig> configMap = new HashMap<String, BatchScanConfig>();
-    configMap.put(TEST_TABLE_1, tableConfig);
-    
-    AccumuloInputFormat.setTableQueryConfigs(job, configMap);
-    AccumuloInputFormat.setInputTableName(job, TEST_TABLE_2);
-    AccumuloInputFormat.setRanges(job, tableConfig.getRanges());
-    AccumuloInputFormat.fetchColumns(job, tableConfig.getFetchedColumns());
-    AccumuloInputFormat.addIterator(job, tableConfig.getIterators().get(0));
-    
-    assertEquals(tableConfig, AccumuloInputFormat.getTableQueryConfig(job, TEST_TABLE_1));
-    assertEquals(tableConfig, AccumuloInputFormat.getTableQueryConfig(job, TEST_TABLE_2));
   }
 }
