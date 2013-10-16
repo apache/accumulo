@@ -18,10 +18,8 @@ package org.apache.accumulo.server.util;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map.Entry;
 import java.util.UUID;
@@ -212,17 +210,6 @@ public class Initialize {
       result[i] = new Path(paths[i]);
     }
     return result;
-  }
-  
-  private static <T> T[] concat(T[] a, T[] b) {
-    List<T> result = new ArrayList<T>(a.length + b.length);
-    for (int i = 0; i < a.length; i++) {
-      result.add(a[i]);
-    }
-    for (int i = 0; i < b.length; i++) {
-      result.add(b[i]);
-    }
-    return result.toArray(a);
   }
   
   private static void initFileSystem(Opts opts, VolumeManager fs, UUID uuid) throws IOException {

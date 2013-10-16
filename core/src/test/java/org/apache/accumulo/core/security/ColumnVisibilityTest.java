@@ -20,7 +20,6 @@ import static org.apache.accumulo.core.security.ColumnVisibility.quote;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
-import static org.junit.Assert.*;
 
 import org.apache.accumulo.core.security.ColumnVisibility.Node;
 import org.apache.accumulo.core.security.ColumnVisibility.NodeType;
