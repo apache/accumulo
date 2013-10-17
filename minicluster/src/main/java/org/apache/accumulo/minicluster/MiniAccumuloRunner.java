@@ -122,6 +122,8 @@ public class MiniAccumuloRunner {
       setMemoryOnConfig(config, opts.prop.getProperty("defaultMemory"));
     if (opts.prop.containsKey("shutdownPort"))
       shutdownPort = Integer.parseInt(opts.prop.getProperty("shutdownPort"));
+    if (opts.prop.containsKey("useMiniDFS"))
+      config.useMiniDFS(Boolean.parseBoolean(opts.prop.getProperty("useMiniDFS")));
     
     Map<String,String> siteConfig = new HashMap<String,String>();
     for (Map.Entry<Object,Object> entry : opts.prop.entrySet()) {
