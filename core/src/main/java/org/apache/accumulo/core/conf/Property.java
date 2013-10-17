@@ -366,6 +366,7 @@ public enum Property {
   TABLE_INTERPRETER_CLASS("table.interepreter", DefaultScanInterpreter.class.getName(), PropertyType.STRING,
       "The ScanInterpreter class to apply on scan arguments in the shell"),
   TABLE_CLASSPATH("table.classpath.context", "", PropertyType.STRING, "Per table classpath context"),
+  TABLE_COMPACTION_STRATEGY("table.majc.compaction.strategy", "org.apache.accumulo.server.tabletserver.compaction.DefaultCompactionStrategy", PropertyType.CLASSNAME, "A customizable major compaction strategy."),
 
   // VFS ClassLoader properties
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(AccumuloVFSClassLoader.VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, "", PropertyType.STRING,

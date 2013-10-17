@@ -116,6 +116,10 @@ import org.apache.accumulo.server.tabletserver.InMemoryMap.MemoryIterator;
 import org.apache.accumulo.server.tabletserver.TabletServer.TservConstraintEnv;
 import org.apache.accumulo.server.tabletserver.TabletServerResourceManager.TabletResourceManager;
 import org.apache.accumulo.server.tabletserver.TabletStatsKeeper.Operation;
+import org.apache.accumulo.server.tabletserver.compaction.CompactionPlan;
+import org.apache.accumulo.server.tabletserver.compaction.DefaultCompactionStrategy;
+import org.apache.accumulo.server.tabletserver.compaction.MajorCompactionReason;
+import org.apache.accumulo.server.tabletserver.compaction.MajorCompactionRequest;
 import org.apache.accumulo.server.tabletserver.log.DfsLogger;
 import org.apache.accumulo.server.tabletserver.log.MutationReceiver;
 import org.apache.accumulo.server.tabletserver.mastermessage.TabletStatusMessage;
@@ -156,15 +160,6 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
  */
 
 public class Tablet {
-  
-  enum MajorCompactionReason {
-    // do not change the order, the order of this enum determines the order
-    // in which queued major compactions are executed
-    USER,
-    CHOP,
-    NORMAL,
-    IDLE
-  }
   
   enum MinorCompactionReason {
     USER, SYSTEM, CLOSE
@@ -927,7 +922,7 @@ public class Tablet {
       
     }
     
-    public void reserveMajorCompactingFiles(Set<FileRef> files) {
+    public void reserveMajorCompactingFiles(Collection<FileRef> files) {
       if (majorCompactingFiles.size() != 0)
         throw new IllegalStateException("Major compacting files not empty " + majorCompactingFiles);
       
@@ -2915,90 +2910,6 @@ public class Tablet {
     return tabletResources.needsMajorCompaction(datafileManager.getDatafileSizes(), reason);
   }
   
-  private class CompactionTuple {
-    private Map<FileRef,Long> filesToCompact;
-    private boolean compactAll;
-    
-    public CompactionTuple(Map<FileRef,Long> filesToCompact, boolean doAll) {
-      this.filesToCompact = filesToCompact;
-      compactAll = doAll;
-    }
-    
-    public Map<FileRef,Long> getFilesToCompact() {
-      return filesToCompact;
-    }
-    
-    public boolean getCompactAll() {
-      return compactAll;
-    }
-  }
-  
-  /**
-   * Returns list of files that need to be compacted by major compactor
-   */
-  
-  private CompactionTuple getFilesToCompact(MajorCompactionReason reason, Map<FileRef,Pair<Key,Key>> falks) {
-    SortedMap<FileRef,DataFileValue> files = datafileManager.getDatafileSizes();
-    
-    Map<FileRef,Long> toCompact;
-    if (reason == MajorCompactionReason.CHOP) {
-      toCompact = findChopFiles(files, falks);
-    } else {
-      toCompact = tabletResources.findMapFilesToCompact(files, reason);
-    }
-    if (toCompact == null)
-      return null;
-    return new CompactionTuple(toCompact, toCompact.size() == files.size());
-  }
-  
-  private Map<FileRef,Pair<Key,Key>> getFirstAndLastKeys(SortedMap<FileRef,DataFileValue> files) throws IOException {
-    FileOperations fileFactory = FileOperations.getInstance();
-    
-    Map<FileRef,Pair<Key,Key>> falks = new HashMap<FileRef,Pair<Key,Key>>();
-    
-    for (Entry<FileRef,DataFileValue> entry : files.entrySet()) {
-      FileRef file = entry.getKey();
-      FileSystem ns = fs.getFileSystemByPath(file.path());
-      FileSKVIterator openReader = fileFactory.openReader(file.path().toString(), true, ns, ns.getConf(), acuTableConf);
-      try {
-        Key first = openReader.getFirstKey();
-        Key last = openReader.getLastKey();
-        falks.put(file, new Pair<Key,Key>(first, last));
-      } finally {
-        openReader.close();
-      }
-    }
-    return falks;
-  }
-  
-  private Map<FileRef,Long> findChopFiles(SortedMap<FileRef,DataFileValue> files, Map<FileRef,Pair<Key,Key>> falks) {
-    
-    Map<FileRef,Long> result = new HashMap<FileRef,Long>();
-    
-    for (Entry<FileRef,DataFileValue> entry : files.entrySet()) {
-      FileRef file = entry.getKey();
-      
-      Pair<Key,Key> pair = falks.get(file);
-      if (pair == null) {
-        // file was created or imported after we obtained the first an last keys... there
-        // are a few options here... throw an exception which will cause the compaction to
-        // retry and also cause ugly error message that the admin has to ignore... could
-        // go get the first and last key, but this code is called while the tablet lock
-        // is held... or just compact the file....
-        result.put(file, entry.getValue().getSize());
-      } else {
-        Key first = pair.getFirst();
-        Key last = pair.getSecond();
-        // If first and last are null, it's an empty file. Add it to the compact set so it goes away.
-        if ((first == null && last == null) || !this.extent.contains(first.getRow()) || !this.extent.contains(last.getRow())) {
-          result.put(file, entry.getValue().getSize());
-        }
-      }
-    }
-    return result;
-    
-  }
-  
   /**
    * Returns an int representing the total block size of the mapfiles served by this tablet.
    * 
@@ -3142,20 +3053,20 @@ public class Tablet {
   
   private CompactionStats _majorCompact(MajorCompactionReason reason) throws IOException, CompactionCanceledException {
     
-    boolean propogateDeletes;
-    
     long t1, t2, t3;
     
-    // acquire first and last key info outside of tablet lock
-    Map<FileRef,Pair<Key,Key>> falks = null;
-    if (reason == MajorCompactionReason.CHOP)
-      falks = getFirstAndLastKeys(datafileManager.getDatafileSizes());
-    
-    Map<FileRef,Long> filesToCompact;
+    // acquire file info outside of tablet lock
+    DefaultCompactionStrategy strategy = new DefaultCompactionStrategy();
+    MajorCompactionRequest request = new MajorCompactionRequest(extent, reason, fs, acuTableConf);
+    request.setFiles(datafileManager.getDatafileSizes());
+    strategy.gatherInformation(request);
+
+    Map<FileRef, DataFileValue> filesToCompact;
     
     int maxFilesToCompact = acuTableConf.getCount(Property.TSERV_MAJC_THREAD_MAXOPEN);
     
     CompactionStats majCStats = new CompactionStats();
+    CompactionPlan plan;
     
     synchronized (this) {
       // plan all that work that needs to be done in the sync block... then do the actual work
@@ -3179,28 +3090,22 @@ public class Tablet {
         // removed by a major compaction
         cleanUpFiles(fs, fs.listStatus(this.location), false);
       }
-      
-      // getFilesToCompact() and cleanUpFiles() both
-      // do dir listings, which means two calls to the namenode
-      // we should refactor so that there is only one call
-      CompactionTuple ret = getFilesToCompact(reason, falks);
-      if (ret == null) {
-        // nothing to compact
+      request.setFiles(datafileManager.getDatafileSizes());
+      plan = strategy.getCompactionPlan(request);
+      if (plan == null || plan.passes.isEmpty()) {
         return majCStats;
       }
-      filesToCompact = ret.getFilesToCompact();
-      
-      if (!ret.getCompactAll()) {
-        // since not all files are being compacted, we want to propagate delete entries
-        propogateDeletes = true;
-      } else {
-        propogateDeletes = false;
-      }
+      log.debug("Major compaction plan: " + plan);
+      if (plan.passes.size() > 1)
+        log.info("Multiple passes presently not supported, only performing the first pass");
+      if (plan.passes.get(0).outputFiles != 1)
+        log.warn("Only one output file is supported, but " + plan.passes.get(0).outputFiles + " requested");
+      filesToCompact = new HashMap<FileRef, DataFileValue>(request.getFiles());
+      filesToCompact.keySet().retainAll(plan.passes.get(0).inputFiles);
       
       t3 = System.currentTimeMillis();
       
       datafileManager.reserveMajorCompactingFiles(filesToCompact.keySet());
-      
     }
     
     try {
@@ -3208,7 +3113,7 @@ public class Tablet {
       log.debug(String.format("MajC initiate lock %.2f secs, wait %.2f secs", (t3 - t2) / 1000.0, (t2 - t1) / 1000.0));
       
       Pair<Long,List<IteratorSetting>> compactionId = null;
-      if (!propogateDeletes) {
+      if (!plan.propogateDeletes) {
         // compacting everything, so update the compaction id in !METADATA
         try {
           compactionId = getCompactionID();
@@ -3247,7 +3152,7 @@ public class Tablet {
         
         Set<FileRef> smallestFiles = removeSmallest(filesToCompact, numToCompact);
         
-        FileRef fileName = getNextMapFilename((filesToCompact.size() == 0 && !propogateDeletes) ? "A" : "C");
+        FileRef fileName = getNextMapFilename((filesToCompact.size() == 0 && !plan.propogateDeletes) ? "A" : "C");
         FileRef compactTmpName = new FileRef(fileName.path().toString() + "_tmp");
         
         Span span = Trace.start("compactFiles");
@@ -3272,10 +3177,11 @@ public class Tablet {
           copy.keySet().retainAll(smallestFiles);
           
           log.debug("Starting MajC " + extent + " (" + reason + ") " + copy.keySet() + " --> " + compactTmpName + "  " + compactionIterators);
-          
+
           // always propagate deletes, unless last batch
-          Compactor compactor = new Compactor(conf, fs, copy, null, compactTmpName, filesToCompact.size() == 0 ? propogateDeletes : true, acuTableConf, extent,
-              cenv, compactionIterators, reason);
+          boolean lastBatch = filesToCompact.isEmpty();
+          Compactor compactor = new Compactor(conf, fs, copy, null, compactTmpName, lastBatch ? plan.propogateDeletes : true, acuTableConf, extent,
+              cenv, compactionIterators, reason, strategy.getCompactionWriter());
           
           CompactionStats mcs = compactor.call();
           
@@ -3284,6 +3190,9 @@ public class Tablet {
           span.data("written", "" + mcs.getEntriesWritten());
           majCStats.add(mcs);
           
+          if (lastBatch) {
+            smallestFiles.addAll(plan.deleteFiles);
+          }
           datafileManager.bringMajorCompactionOnline(smallestFiles, compactTmpName, fileName,
               filesToCompact.size() == 0 && compactionId != null ? compactionId.getFirst() : null,
               new DataFileValue(mcs.getFileSize(), mcs.getEntriesWritten()));
@@ -3291,14 +3200,13 @@ public class Tablet {
           // when major compaction produces a file w/ zero entries, it will be deleted... do not want
           // to add the deleted file
           if (filesToCompact.size() > 0 && mcs.getEntriesWritten() > 0) {
-            filesToCompact.put(fileName, mcs.getFileSize());
+            filesToCompact.put(fileName, new DataFileValue(mcs.getFileSize(), mcs.getEntriesWritten()));
           }
         } finally {
           span.stop();
         }
         
       }
-      
       return majCStats;
     } finally {
       synchronized (Tablet.this) {
@@ -3307,7 +3215,7 @@ public class Tablet {
     }
   }
   
-  private Set<FileRef> removeSmallest(Map<FileRef,Long> filesToCompact, int maxFilesToCompact) {
+  private Set<FileRef> removeSmallest(Map<FileRef,DataFileValue> filesToCompact, int maxFilesToCompact) {
     // ensure this method works properly when multiple files have the same size
     
     PriorityQueue<Pair<FileRef,Long>> fileHeap = new PriorityQueue<Pair<FileRef,Long>>(filesToCompact.size(), new Comparator<Pair<FileRef,Long>>() {
@@ -3321,9 +3229,9 @@ public class Tablet {
       }
     });
     
-    for (Iterator<Entry<FileRef,Long>> iterator = filesToCompact.entrySet().iterator(); iterator.hasNext();) {
-      Entry<FileRef,Long> entry = iterator.next();
-      fileHeap.add(new Pair<FileRef,Long>(entry.getKey(), entry.getValue()));
+    for (Iterator<Entry<FileRef,DataFileValue>> iterator = filesToCompact.entrySet().iterator(); iterator.hasNext();) {
+      Entry<FileRef,DataFileValue> entry = iterator.next();
+      fileHeap.add(new Pair<FileRef,Long>(entry.getKey(), entry.getValue().getSize()));
     }
     
     Set<FileRef> smallestFiles = new HashSet<FileRef>();

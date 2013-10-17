@@ -62,8 +62,11 @@ import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReportingIterator;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
-import org.apache.accumulo.server.tabletserver.Tablet.MajorCompactionReason;
 import org.apache.accumulo.server.tabletserver.Tablet.MinorCompactionReason;
+import org.apache.accumulo.server.tabletserver.compaction.CompactionStrategy;
+import org.apache.accumulo.server.tabletserver.compaction.CompactionStrategy.Writer;
+import org.apache.accumulo.server.tabletserver.compaction.DefaultWriter;
+import org.apache.accumulo.server.tabletserver.compaction.MajorCompactionReason;
 import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.hadoop.conf.Configuration;
@@ -162,6 +165,7 @@ public class Compactor implements Callable<CompactionStats> {
   private long compactorID = nextCompactorID.getAndIncrement();
 
   protected volatile Thread thread;
+  private Writer writer;
 
   private synchronized void setLocalityGroup(String name) {
     this.currentLocalityGroup = name;
@@ -285,7 +289,7 @@ public class Compactor implements Callable<CompactionStats> {
   }
 
   Compactor(Configuration conf, VolumeManager fs, Map<FileRef,DataFileValue> files, InMemoryMap imm, FileRef outputFile, boolean propogateDeletes,
-      TableConfiguration acuTableConf, KeyExtent extent, CompactionEnv env, List<IteratorSetting> iterators, MajorCompactionReason reason) {
+      TableConfiguration acuTableConf, KeyExtent extent, CompactionEnv env, List<IteratorSetting> iterators, MajorCompactionReason reason, CompactionStrategy.Writer writer) {
     this.extent = extent;
     this.conf = conf;
     this.fs = fs;
@@ -297,13 +301,14 @@ public class Compactor implements Callable<CompactionStats> {
     this.env = env;
     this.iterators = iterators;
     this.reason = reason;
+    this.writer = writer;
     
     startTime = System.currentTimeMillis();
   }
   
   Compactor(Configuration conf, VolumeManager fs, Map<FileRef,DataFileValue> files, InMemoryMap imm, FileRef outputFile, boolean propogateDeletes,
       TableConfiguration acuTableConf, KeyExtent extent, CompactionEnv env) {
-    this(conf, fs, files, imm, outputFile, propogateDeletes, acuTableConf, extent, env, new ArrayList<IteratorSetting>(), null);
+    this(conf, fs, files, imm, outputFile, propogateDeletes, acuTableConf, extent, env, new ArrayList<IteratorSetting>(), null, new DefaultWriter());
   }
   
   public VolumeManager getFileSystem() {
@@ -461,6 +466,7 @@ public class Compactor implements Callable<CompactionStats> {
   private void compactLocalityGroup(String lgName, Set<ByteSequence> columnFamilies, boolean inclusive, FileSKVWriter mfw, CompactionStats majCStats)
       throws IOException, CompactionCanceledException {
     ArrayList<FileSKVIterator> readers = new ArrayList<FileSKVIterator>(filesToCompact.size());
+    List<FileSKVWriter> writers = Collections.singletonList(mfw);
     Span span = Trace.start("compact");
     try {
       long entriesCompacted = 0;
@@ -499,7 +505,7 @@ public class Compactor implements Callable<CompactionStats> {
       Span write = Trace.start("write");
       try {
         while (itr.hasTop() && env.isCompactionEnabled()) {
-          mfw.append(itr.getTopKey(), itr.getTopValue());
+          writer.write(itr.getTopKey(), itr.getTopValue(), writers);
           itr.next();
           entriesCompacted++;
           

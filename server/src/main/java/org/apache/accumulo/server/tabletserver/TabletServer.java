@@ -175,7 +175,7 @@ import org.apache.accumulo.server.tabletserver.RowLocks.RowLock;
 import org.apache.accumulo.server.tabletserver.Tablet.CommitSession;
 import org.apache.accumulo.server.tabletserver.Tablet.KVEntry;
 import org.apache.accumulo.server.tabletserver.Tablet.LookupResult;
-import org.apache.accumulo.server.tabletserver.Tablet.MajorCompactionReason;
+import org.apache.accumulo.server.tabletserver.compaction.MajorCompactionReason;
 import org.apache.accumulo.server.tabletserver.Tablet.MinorCompactionReason;
 import org.apache.accumulo.server.tabletserver.Tablet.ScanBatch;
 import org.apache.accumulo.server.tabletserver.Tablet.Scanner;

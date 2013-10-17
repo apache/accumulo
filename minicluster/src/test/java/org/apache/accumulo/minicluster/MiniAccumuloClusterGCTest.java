@@ -76,7 +76,7 @@ public class MiniAccumuloClusterGCTest {
     accumulo.stop();
   }
 
-  @Test(timeout = 20000)
+  @Test(timeout = 40 * 1000)
   public void testFilesAreGarbageCollected() throws Exception {
     ZooKeeperInstance inst = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers());
     Connector c = inst.getConnector("root", new PasswordToken(passwd));

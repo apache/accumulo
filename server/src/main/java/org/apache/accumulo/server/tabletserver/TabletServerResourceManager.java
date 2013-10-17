@@ -19,14 +19,12 @@ package org.apache.accumulo.server.tabletserver;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -35,13 +33,11 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.accumulo.trace.instrument.TraceExecutorService;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.file.blockfile.cache.LruBlockCache;
-import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.LoggingRunnable;
@@ -51,10 +47,14 @@ import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tabletserver.FileManager.ScanFileManager;
-import org.apache.accumulo.server.tabletserver.Tablet.MajorCompactionReason;
 import org.apache.accumulo.server.tabletserver.Tablet.MinorCompactionReason;
+import org.apache.accumulo.server.tabletserver.compaction.CompactionPlan;
+import org.apache.accumulo.server.tabletserver.compaction.DefaultCompactionStrategy;
+import org.apache.accumulo.server.tabletserver.compaction.MajorCompactionReason;
+import org.apache.accumulo.server.tabletserver.compaction.MajorCompactionRequest;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
+import org.apache.accumulo.trace.instrument.TraceExecutorService;
 import org.apache.log4j.Logger;
 
 /**
@@ -80,6 +80,8 @@ public class TabletServerResourceManager {
   private Map<String,ExecutorService> threadPools = new TreeMap<String,ExecutorService>();
   
   private HashSet<TabletResourceManager> tabletResources;
+  
+  private final VolumeManager fs;
   
   private FileManager fileManager;
   
@@ -143,6 +145,7 @@ public class TabletServerResourceManager {
   
   public TabletServerResourceManager(Instance instance, VolumeManager fs) {
     this.conf = new ServerConfiguration(instance);
+    this.fs = fs;
     final AccumuloConfiguration acuConf = conf.getConfiguration();
     
     long maxMemory = acuConf.getMemoryInBytes(Property.TSERV_MAXMEM);
@@ -455,16 +458,6 @@ public class TabletServerResourceManager {
     tabletResources.remove(tr);
   }
   
-  private class MapFileInfo {
-    private final FileRef path;
-    private final long size;
-    
-    MapFileInfo(FileRef path, long size) {
-      this.path = path;
-      this.size = size;
-    }
-  }
-  
   public class TabletResourceManager {
     
     private final long creationTime = System.currentTimeMillis();
@@ -545,90 +538,6 @@ public class TabletServerResourceManager {
     // BEGIN methods that Tablets call to make decisions about major compaction
     // when too many files are open, we may want tablets to compact down
     // to one map file
-    Map<FileRef,Long> findMapFilesToCompact(SortedMap<FileRef,DataFileValue> tabletFiles, MajorCompactionReason reason) {
-      if (reason == MajorCompactionReason.USER) {
-        Map<FileRef,Long> files = new HashMap<FileRef,Long>();
-        for (Entry<FileRef,DataFileValue> entry : tabletFiles.entrySet()) {
-          files.put(entry.getKey(), entry.getValue().getSize());
-        }
-        return files;
-      }
-      
-      if (tabletFiles.size() <= 1)
-        return null;
-      TreeSet<MapFileInfo> candidateFiles = new TreeSet<MapFileInfo>(new Comparator<MapFileInfo>() {
-        @Override
-        public int compare(MapFileInfo o1, MapFileInfo o2) {
-          if (o1 == o2)
-            return 0;
-          if (o1.size < o2.size)
-            return -1;
-          if (o1.size > o2.size)
-            return 1;
-          return o1.path.compareTo(o2.path);
-        }
-      });
-      
-      double ratio = tableConf.getFraction(Property.TABLE_MAJC_RATIO);
-      int maxFilesToCompact = tableConf.getCount(Property.TSERV_MAJC_THREAD_MAXOPEN);
-      int maxFilesPerTablet = tableConf.getMaxFilesPerTablet();
-      
-      for (Entry<FileRef,DataFileValue> entry : tabletFiles.entrySet()) {
-        candidateFiles.add(new MapFileInfo(entry.getKey(), entry.getValue().getSize()));
-      }
-      
-      long totalSize = 0;
-      for (MapFileInfo mfi : candidateFiles) {
-        totalSize += mfi.size;
-      }
-      
-      Map<FileRef,Long> files = new HashMap<FileRef,Long>();
-      
-      while (candidateFiles.size() > 1) {
-        MapFileInfo max = candidateFiles.last();
-        if (max.size * ratio <= totalSize) {
-          files.clear();
-          for (MapFileInfo mfi : candidateFiles) {
-            files.put(mfi.path, mfi.size);
-            if (files.size() >= maxFilesToCompact)
-              break;
-          }
-          
-          break;
-        }
-        totalSize -= max.size;
-        candidateFiles.remove(max);
-      }
-      
-      int totalFilesToCompact = 0;
-      if (tabletFiles.size() > maxFilesPerTablet)
-        totalFilesToCompact = tabletFiles.size() - maxFilesPerTablet + 1;
-      
-      totalFilesToCompact = Math.min(totalFilesToCompact, maxFilesToCompact);
-      
-      if (files.size() < totalFilesToCompact) {
-        
-        TreeMap<FileRef,DataFileValue> tfc = new TreeMap<FileRef,DataFileValue>(tabletFiles);
-        tfc.keySet().removeAll(files.keySet());
-        
-        // put data in candidateFiles to sort it
-        candidateFiles.clear();
-        for (Entry<FileRef,DataFileValue> entry : tfc.entrySet())
-          candidateFiles.add(new MapFileInfo(entry.getKey(), entry.getValue().getSize()));
-        
-        for (MapFileInfo mfi : candidateFiles) {
-          files.put(mfi.path, mfi.size);
-          if (files.size() >= totalFilesToCompact)
-            break;
-        }
-      }
-      
-      if (files.size() == 0)
-        return null;
-      
-      return files;
-    }
-    
     boolean needsMajorCompaction(SortedMap<FileRef,DataFileValue> tabletFiles, MajorCompactionReason reason) {
       if (closed)
         return false;// throw new IOException("closed");
@@ -652,11 +561,18 @@ public class TabletServerResourceManager {
         if (idleTime < tableConf.getTimeInMillis(Property.TABLE_MAJC_COMPACTALL_IDLETIME)) {
           return false;
         }
-      }/*
-        * else{ threshold = tableConf.getCount(Property.TABLE_MAJC_THRESHOLD); }
-        */
-      
-      return findMapFilesToCompact(tabletFiles, reason) != null;
+      }
+      DefaultCompactionStrategy strategy = new DefaultCompactionStrategy();
+      MajorCompactionRequest request = new MajorCompactionRequest(tablet.getExtent(), reason, TabletServerResourceManager.this.fs, tableConf);
+      request.setFiles(tabletFiles);
+      try {
+        CompactionPlan plan = strategy.getCompactionPlan(request);
+        if (plan == null || plan.passes.isEmpty())
+          return false;
+        return true;
+      } catch (IOException ex) {
+        return false;
+      }
     }
     
     // END methods that Tablets call to make decisions about major compaction
@@ -710,7 +626,7 @@ public class TabletServerResourceManager {
   }
   
   public void executeMajorCompaction(KeyExtent tablet, Runnable compactionTask) {
-    if (tablet.equals(RootTable.EXTENT)) {
+    if (tablet.isRootTablet()) {
       rootMajorCompactionThreadPool.execute(compactionTask);
     } else if (tablet.isMeta()) {
       defaultMajorCompactionThreadPool.execute(compactionTask);
