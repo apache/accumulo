@@ -22,6 +22,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.Field;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
@@ -216,6 +218,11 @@ import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.fs.FSError;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.Trash;
+import org.apache.hadoop.hdfs.DFSConfigKeys;
+import org.apache.hadoop.hdfs.DistributedFileSystem;
+import org.apache.hadoop.io.SequenceFile;
+import org.apache.hadoop.io.SequenceFile.Reader;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
@@ -3596,6 +3603,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       Instance instance = HdfsZooInstance.getInstance();
       ServerConfiguration conf = new ServerConfiguration(instance);
       Accumulo.init(fs, conf, "tserver");
+      ensureHdfsSyncIsEnabled(fs);
       TabletServer server = new TabletServer(conf, fs);
       server.config(hostname);
       Accumulo.enableTracing(hostname, "tserver");
@@ -3606,6 +3614,58 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
   }
   
+  private static void ensureHdfsSyncIsEnabled(VolumeManager volumes) {
+    for (Entry<String,? extends FileSystem> entry : volumes.getFileSystems().entrySet()) {
+      final String volumeName = entry.getKey();
+      final FileSystem fs = entry.getValue();
+      
+      if (fs instanceof DistributedFileSystem) {
+        final String DFS_DURABLE_SYNC = "dfs.durable.sync", DFS_SUPPORT_APPEND = "dfs.support.append";
+        final String ticketMessage = "See ACCUMULO-623 and ACCUMULO-1637 for more details.";
+        // Check to make sure that we have proper defaults configured
+        try {
+          // If the default is off (0.20.205.x or 1.0.x)
+          DFSConfigKeys configKeys = new DFSConfigKeys();
+          
+          // Can't use the final constant itself as Java will inline it at compile time
+          Field dfsSupportAppendDefaultField = configKeys.getClass().getField("DFS_SUPPORT_APPEND_DEFAULT");
+          boolean dfsSupportAppendDefaultValue = dfsSupportAppendDefaultField.getBoolean(configKeys);
+          
+          if (!dfsSupportAppendDefaultValue) {
+            // See if the user did the correct override
+            if (!fs.getConf().getBoolean(DFS_SUPPORT_APPEND, false)) {
+              log.fatal("Accumulo requires that dfs.support.append to true on volume " + volumeName + ". " + ticketMessage);
+              System.exit(-1);
+            }
+          }
+        } catch (NoSuchFieldException e) {
+          // If we can't find DFSConfigKeys.DFS_SUPPORT_APPEND_DEFAULT, the user is running
+          // 1.1.x or 1.2.x. This is ok, though, as, by default, these versions have append/sync enabled.
+        } catch (Exception e) {
+          log.warn("Error while checking for " + DFS_SUPPORT_APPEND + " on volume " + volumeName + ". The user should ensure that Hadoop is configured to properly supports append and sync. " + ticketMessage, e);
+        }
+        
+        // If either of these parameters are configured to be false, fail.
+        // This is a sign that someone is writing bad configuration.
+        if (!fs.getConf().getBoolean(DFS_SUPPORT_APPEND, true) || !fs.getConf().getBoolean(DFS_DURABLE_SYNC, true)) {
+          log.fatal("Accumulo requires that " + DFS_SUPPORT_APPEND + " and " + DFS_DURABLE_SYNC + " not be configured as false on volume " + volumeName + ". " + ticketMessage);
+          System.exit(-1);
+        }
+        
+        try {
+          // if this class exists
+          Class.forName("org.apache.hadoop.fs.CreateFlag");
+          // we're running hadoop 2.0, 1.1
+          if (!fs.getConf().getBoolean("dfs.datanode.synconclose", false)) {
+            log.warn("dfs.datanode.synconclose set to false: data loss is possible on system reset or power loss on volume " + volumeName);
+          }
+        } catch (ClassNotFoundException ex) {
+          // hadoop 1.0
+        }
+      }
+    }
+  }
+
   public void minorCompactionFinished(CommitSession tablet, String newDatafile, int walogSeq) throws IOException {
     totalMinorCompactions++;
     logger.minorCompactionFinished(tablet, newDatafile, walogSeq);
