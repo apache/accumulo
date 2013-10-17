@@ -79,7 +79,7 @@ public class AccumuloDFSBase {
       throw new RuntimeException("Error getting umask from O/S", e);
     }
     
-    conf.setLong(DFSConfigKeys.DFS_BLOCK_SIZE_KEY, 1024 * 100); // 100K blocksize
+    conf.setLong(DFSConfigKeys.DFS_BLOCK_SIZE_KEY, 1024 * 1024); // 1M blocksize
     
     try {
       cluster = new MiniDFSCluster(conf, 1, true, null);

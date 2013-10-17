@@ -73,7 +73,7 @@ public class Config extends Test {
       s(Property.TSERV_SESSION_MAXIDLE, 100, 5*60*1000),
       s(Property.TSERV_SORT_BUFFER_SIZE, 1024*1024, 1024*1024*1024L),
       s(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN, 5, 100),
-      s(Property.TSERV_WAL_BLOCKSIZE, 100*1024, 1024*1024*1024*10L),
+      s(Property.TSERV_WAL_BLOCKSIZE, 1024*1024, 1024*1024*1024*10L),
       s(Property.TSERV_WORKQ_THREADS, 1, 10),
       s(Property.MASTER_BULK_THREADPOOL_SIZE, 1, 10),
       s(Property.MASTER_BULK_RETRIES, 1, 10),
