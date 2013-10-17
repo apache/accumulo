@@ -59,7 +59,7 @@ public class AccumuloDFSBase {
     conf.set("hadoop.security.token.service.use_ip", "true");
     
     conf.set("dfs.datanode.data.dir.perm", MiniDFSUtil.computeDatanodeDirectoryPermission());
-    conf.setLong(DFSConfigKeys.DFS_BLOCK_SIZE_KEY, 1024 * 100); // 100K blocksize
+    conf.setLong(DFSConfigKeys.DFS_BLOCK_SIZE_KEY, 1024 * 1024); // 1M blocksize
     
     try {
       cluster = new MiniDFSCluster(conf, 1, true, null);
