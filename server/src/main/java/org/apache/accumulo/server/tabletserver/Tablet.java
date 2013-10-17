@@ -117,6 +117,7 @@ import org.apache.accumulo.server.tabletserver.TabletServer.TservConstraintEnv;
 import org.apache.accumulo.server.tabletserver.TabletServerResourceManager.TabletResourceManager;
 import org.apache.accumulo.server.tabletserver.TabletStatsKeeper.Operation;
 import org.apache.accumulo.server.tabletserver.compaction.CompactionPlan;
+import org.apache.accumulo.server.tabletserver.compaction.CompactionStrategy;
 import org.apache.accumulo.server.tabletserver.compaction.DefaultCompactionStrategy;
 import org.apache.accumulo.server.tabletserver.compaction.MajorCompactionReason;
 import org.apache.accumulo.server.tabletserver.compaction.MajorCompactionRequest;
@@ -3056,7 +3057,7 @@ public class Tablet {
     long t1, t2, t3;
     
     // acquire file info outside of tablet lock
-    DefaultCompactionStrategy strategy = new DefaultCompactionStrategy();
+    CompactionStrategy strategy  = Property.createInstanceFromPropertyName(acuTableConf, Property.TABLE_COMPACTION_STRATEGY, CompactionStrategy.class, new DefaultCompactionStrategy());
     MajorCompactionRequest request = new MajorCompactionRequest(extent, reason, fs, acuTableConf);
     request.setFiles(datafileManager.getDatafileSizes());
     strategy.gatherInformation(request);

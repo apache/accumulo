@@ -49,6 +49,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tabletserver.FileManager.ScanFileManager;
 import org.apache.accumulo.server.tabletserver.Tablet.MinorCompactionReason;
 import org.apache.accumulo.server.tabletserver.compaction.CompactionPlan;
+import org.apache.accumulo.server.tabletserver.compaction.CompactionStrategy;
 import org.apache.accumulo.server.tabletserver.compaction.DefaultCompactionStrategy;
 import org.apache.accumulo.server.tabletserver.compaction.MajorCompactionReason;
 import org.apache.accumulo.server.tabletserver.compaction.MajorCompactionRequest;
@@ -562,7 +563,7 @@ public class TabletServerResourceManager {
           return false;
         }
       }
-      DefaultCompactionStrategy strategy = new DefaultCompactionStrategy();
+      CompactionStrategy strategy  = Property.createInstanceFromPropertyName(tableConf, Property.TABLE_COMPACTION_STRATEGY, CompactionStrategy.class, new DefaultCompactionStrategy());
       MajorCompactionRequest request = new MajorCompactionRequest(tablet.getExtent(), reason, TabletServerResourceManager.this.fs, tableConf);
       request.setFiles(tabletFiles);
       try {
