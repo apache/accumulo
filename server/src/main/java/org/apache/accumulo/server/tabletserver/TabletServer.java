@@ -24,6 +24,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -210,6 +211,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.Trash;
+import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.SequenceFile.Reader;
@@ -3242,21 +3244,37 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   
   private static void ensureHdfsSyncIsEnabled(FileSystem fs) {
     if (fs instanceof DistributedFileSystem) {
-      if (!fs.getConf().getBoolean("dfs.durable.sync", false) && !fs.getConf().getBoolean("dfs.support.append", false)) {
-        String msg = "Must set dfs.durable.sync OR dfs.support.append to true.  Which one needs to be set depends on your version of HDFS.  See ACCUMULO-623. \n"
-            + "HADOOP RELEASE          VERSION           SYNC NAME             DEFAULT\n"
-            + "Apache Hadoop           0.20.205          dfs.support.append    false\n"
-            + "Apache Hadoop            0.23.x           dfs.support.append    true\n"
-            + "Apache Hadoop             1.0.x           dfs.support.append    false\n"
-            + "Apache Hadoop             1.1.x           dfs.durable.sync      true\n"
-            + "Apache Hadoop          2.0.0-2.0.2        dfs.support.append    true\n"
-            + "Cloudera CDH             3u0-3u3             ????               true\n"
-            + "Cloudera CDH               3u4            dfs.support.append    true\n"
-            + "Hortonworks HDP           `1.0            dfs.support.append    false\n"
-            + "Hortonworks HDP           `1.1            dfs.support.append    false";
-        log.fatal(msg);
+      final String DFS_DURABLE_SYNC = "dfs.durable.sync", DFS_SUPPORT_APPEND = "dfs.support.append";
+      // Check to make sure that we have proper defaults configured
+      try {
+        // If the default is off (0.20.205.x or 1.0.x)
+        DFSConfigKeys configKeys = new DFSConfigKeys();
+        
+        // Can't use the final constant itself as Java will inline it at compile time
+        Field dfsSupportAppendDefaultField = configKeys.getClass().getField("DFS_SUPPORT_APPEND_DEFAULT");
+        boolean dfsSupportAppendDefaultValue = dfsSupportAppendDefaultField.getBoolean(configKeys);
+        
+        if (!dfsSupportAppendDefaultValue) {
+          // See if the user did the correct override
+          if (!fs.getConf().getBoolean(DFSConfigKeys.DFS_SUPPORT_APPEND_KEY, false)) {
+            log.fatal("Accumulo requires that dfs.support.append to true. See ACCUMULO-623 and ACCUMULO-1637 for more details.");
+            System.exit(-1);
+          }
+        }
+      } catch (NoSuchFieldException e) {
+        // If we can't find DFSConfigKeys.DFS_SUPPORT_APPEND_DEFAULT, the user is running
+        // 1.1.x or 1.2.x. This is ok, though, as, by default, these versions have append/sync enabled.
+      } catch (Exception e) {
+        log.warn("Error while checking for " + DFS_SUPPORT_APPEND + ". The user should ensure that Hadoop is configured to properly supports append and sync. See ACCUMULO-623 and ACCUMULO-1637 for more details.", e);
+      }
+      
+      // If either of these parameters are configured to be false, fail.
+      // This is a sign that someone is writing bad configuration.
+      if (!fs.getConf().getBoolean(DFS_SUPPORT_APPEND, true) || !fs.getConf().getBoolean(DFS_DURABLE_SYNC, true)) {
+        log.fatal("Accumulo requires that " + DFS_SUPPORT_APPEND + " and " + DFS_DURABLE_SYNC + " not be configured as false. See ACCUMULO-623 and ACCUMULO-1637 for more details.");
         System.exit(-1);
       }
+      
       try {
         // if this class exists
         Class.forName("org.apache.hadoop.fs.CreateFlag");
