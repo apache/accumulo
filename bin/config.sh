@@ -17,35 +17,48 @@
 
 # Guarantees that Accumulo and its environment variables are set.
 #
+# Parameters checked by script
+#  ACCUMULO_VERIFY_ONLY set to skip actions that would alter the local filesystem
+#
 # Values set by script that can be user provided.  If not provided script attempts to infer.
 #  ACCUMULO_CONF_DIR  Location where accumulo-env.sh, accumulo-site.xml and friends will be read from
 #  ACCUMULO_HOME      Home directory for Accumulo
 #  ACCUMULO_LOG_DIR   Directory for Accumulo daemon logs
 #  ACCUMULO_VERSION   Accumulo version name
 #  HADOOP_HOME        Home dir for hadoop.
-# 
+#  MONITOR            Machine to run monitor daemon on. Used by start-here.sh script
+#
 # Values always set by script.
 #  MALLOC_ARENA_MAX   To work around a memory management bug (see ACCUMULO-847)
-#  MONITOR            Machine to run monitor daemon on. Used by start-here.sh script
+#
+# Iff ACCUMULO_VERIFY_ONLY is not set, this script will
+#   * Check for standalone mode (lack of masters and slaves files)
+#     - Do appropriate set up
+#   * Ensure the existence of ACCUMULO_LOG_DIR on the current host
+#   * Ensure the presense of local role files (masters, slaves, gc, tracers)
+#
+# Values always set by script.
 #  SSH                Default ssh parameters used to start daemons
 
-this="$0"
-while [ -h "$this" ]; do
-    ls=`ls -ld "$this"`
-    link=`expr "$ls" : '.*-> \(.*\)$'`
-    if expr "$link" : '.*/.*' > /dev/null; then
-        this="$link"
-    else
-        this=`dirname "$this"`/"$link"
-    fi
-done
-bin=`dirname "$this"`
-script=`basename "$this"`
-bin=`cd "$bin"; pwd`
-this="$bin/$script"
+if [ -z "${ACCUMULO_HOME}" ] ; then
+  this="$0"
+  while [ -h "$this" ]; do
+      ls=`ls -ld "$this"`
+      link=`expr "$ls" : '.*-> \(.*\)$'`
+      if expr "$link" : '.*/.*' > /dev/null; then
+          this="$link"
+      else
+          this=`dirname "$this"`/"$link"
+      fi
+  done
+  bin=`dirname "$this"`
+  script=`basename "$this"`
+  bin=`cd "$bin"; pwd`
+  this="$bin/$script"
 
-ACCUMULO_HOME=`dirname "$this"`/..
-export ACCUMULO_HOME=`cd $ACCUMULO_HOME; pwd`
+  ACCUMULO_HOME=`dirname "$this"`/..
+  export ACCUMULO_HOME=`cd $ACCUMULO_HOME; pwd`
+fi
 
 ACCUMULO_CONF_DIR="${ACCUMULO_CONF_DIR:-$ACCUMULO_HOME/conf}"
 export ACCUMULO_CONF_DIR
@@ -64,7 +77,9 @@ if [ -z ${ACCUMULO_LOG_DIR} ]; then
         ACCUMULO_LOG_DIR=$ACCUMULO_HOME/logs
 fi
 
-mkdir -p $ACCUMULO_LOG_DIR 2>/dev/null
+if [ -z "${ACCUMULO_VERIFY_ONLY}" ] ; then
+  mkdir -p $ACCUMULO_LOG_DIR 2>/dev/null
+fi
 
 export ACCUMULO_LOG_DIR
 
@@ -90,43 +105,57 @@ then
 fi
 export HADOOP_PREFIX
 
-if [ ! -f "$ACCUMULO_CONF_DIR/masters" -o ! -f "$ACCUMULO_CONF_DIR/slaves" ]
-then
-    if [ ! -f "$ACCUMULO_CONF_DIR/masters" -a ! -f "$ACCUMULO_CONF_DIR/slaves" ]
-    then
-        echo "STANDALONE: Missing both conf/masters and conf/slaves files"
-        echo "STANDALONE: Assuming single-node (localhost only) instance"
-        echo "STANDALONE: echo "`hostname`" > $ACCUMULO_CONF_DIR/masters"
-        echo `hostname` > "$ACCUMULO_CONF_DIR/masters"
-        echo "STANDALONE: echo "`hostname`" > $ACCUMULO_CONF_DIR/slaves"
-        echo `hostname` > "$ACCUMULO_CONF_DIR/slaves"
-        fgrep -s logger.dir.walog "$ACCUMULO_CONF_DIR/accumulo-site.xml" > /dev/null
-        WALOG_CONFIGURED=$?
-        if [ $WALOG_CONFIGURED -ne 0 -a ! -e "$ACCUMULO_HOME/walogs" ]
-        then
-          echo "STANDALONE: Creating default local write-ahead log directory"
-          mkdir "$ACCUMULO_HOME/walogs"
-          echo "STANDALONE: mkdir \"$ACCUMULO_HOME/walogs\""
-        fi
-        if [ ! -e "$ACCUMULO_CONF_DIR/accumulo-metrics.xml" ]
-        then
-          echo "STANDALONE: Creating default metrics configuration"
-          cp "$ACCUMULO_CONF_DIR/accumulo-metrics.xml.example" "$ACCUMULO_CONF_DIR/accumulo-metrics.xml"
-        fi
-    else
-        echo "You are missing either $ACCUMULO_CONF_DIR/masters or $ACCUMULO_CONF_DIR/slaves"
-        echo "Please configure them both for a multi-node instance, or delete them both for a single-node (localhost only) instance"
-        exit 1
-    fi
+if [ -z "${ACCUMULO_VERIFY_ONLY}" ] ; then
+  if [ ! -f "$ACCUMULO_CONF_DIR/masters" -o ! -f "$ACCUMULO_CONF_DIR/slaves" ]
+  then
+      if [ ! -f "$ACCUMULO_CONF_DIR/masters" -a ! -f "$ACCUMULO_CONF_DIR/slaves" ]
+      then
+          echo "STANDALONE: Missing both conf/masters and conf/slaves files"
+          echo "STANDALONE: Assuming single-node (localhost only) instance"
+          echo "STANDALONE: echo "`hostname`" > $ACCUMULO_CONF_DIR/masters"
+          echo `hostname` > "$ACCUMULO_CONF_DIR/masters"
+          echo "STANDALONE: echo "`hostname`" > $ACCUMULO_CONF_DIR/slaves"
+          echo `hostname` > "$ACCUMULO_CONF_DIR/slaves"
+          fgrep -s logger.dir.walog "$ACCUMULO_CONF_DIR/accumulo-site.xml" > /dev/null
+          WALOG_CONFIGURED=$?
+          if [ $WALOG_CONFIGURED -ne 0 -a ! -e "$ACCUMULO_HOME/walogs" ]
+          then
+            echo "STANDALONE: Creating default local write-ahead log directory"
+            mkdir "$ACCUMULO_HOME/walogs"
+            echo "STANDALONE: mkdir \"$ACCUMULO_HOME/walogs\""
+          fi
+          if [ ! -e "$ACCUMULO_CONF_DIR/accumulo-metrics.xml" ]
+          then
+            echo "STANDALONE: Creating default metrics configuration"
+            cp "$ACCUMULO_CONF_DIR/accumulo-metrics.xml.example" "$ACCUMULO_CONF_DIR/accumulo-metrics.xml"
+          fi
+      else
+          echo "You are missing either $ACCUMULO_CONF_DIR/masters or $ACCUMULO_CONF_DIR/slaves"
+          echo "Please configure them both for a multi-node instance, or delete them both for a single-node (localhost only) instance"
+          exit 1
+      fi
+  fi
 fi
 MASTER1=`grep -v '^#' "$ACCUMULO_CONF_DIR/masters" | head -1`
-MONITOR=$MASTER1
-if [ -f "$ACCUMULO_CONF_DIR/monitor" ]; then
-    MONITOR=`grep -v '^#' "$ACCUMULO_CONF_DIR/monitor" | head -1`
+if [ -z "${MONITOR}" ] ; then
+  MONITOR=$MASTER1
+  if [ -f "$ACCUMULO_CONF_DIR/monitor" ]; then
+      MONITOR=`grep -v '^#' "$ACCUMULO_CONF_DIR/monitor" | head -1`
+  fi
+  if [ -z "${MONITOR}" ] ; then
+    echo "Could not infer a Monitor role. You need to either define the MONITOR env variable, define \"${ACCUMULO_CONF_DIR}/monitor\", or make sure \"${ACCUMULO_CONF_DIR}/masters\" is non-empty."
+    exit 1
+  fi
 fi
-if [ ! -f "$ACCUMULO_CONF_DIR/tracers" ]; then
+if [ ! -f "$ACCUMULO_CONF_DIR/tracers" -a -z "${ACCUMULO_VERIFY_ONLY}" ]; then
+  if [ -z "${MASTER1}" ] ; then
+    echo "Could not find a master node to use as a default for the tracer role. Either set up \"${ACCUMULO_CONF_DIR}/tracers\" or make sure \"${ACCUMULO_CONF_DIR}/masters\" is non-empty."
+    exit 1
+  else
     echo "$MASTER1" > "$ACCUMULO_CONF_DIR/tracers"
+  fi
 fi
+
 SSH='ssh -qnf -o ConnectTimeout=2'
 
 # See HADOOP-7154 and ACCUMULO-847
