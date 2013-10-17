@@ -3257,7 +3257,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         
         if (!dfsSupportAppendDefaultValue) {
           // See if the user did the correct override
-          if (!fs.getConf().getBoolean(DFSConfigKeys.DFS_SUPPORT_APPEND_KEY, false)) {
+          if (!fs.getConf().getBoolean(DFS_SUPPORT_APPEND, false)) {
             log.fatal("Accumulo requires that dfs.support.append to true. " + ticketMessage);
             System.exit(-1);
           }
