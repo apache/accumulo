@@ -24,6 +24,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.server.util.PortUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.SuffixFileFilter;
 import org.apache.commons.io.filefilter.TrueFileFilter;
@@ -58,8 +59,10 @@ public class MiniAccumuloClusterGCTest {
     // Turn on the garbage collector
     macConfig.runGC(true);
     
+    String gcPort = Integer.toString(PortUtils.getRandomFreePort());
+    
     // And tweak the settings to make it run often
-    Map<String,String> config = ImmutableMap.of(Property.GC_CYCLE_DELAY.getKey(), "1s", Property.GC_CYCLE_START.getKey(), "0s");
+    Map<String,String> config = ImmutableMap.of(Property.GC_CYCLE_DELAY.getKey(), "1s", Property.GC_CYCLE_START.getKey(), "0s", Property.GC_PORT.getKey(), gcPort);
     macConfig.setSiteConfig(config);
     
     accumulo = new MiniAccumuloCluster(macConfig);
