@@ -57,7 +57,7 @@ class CompactionTest(SimpleBulkTest):
 
         # insert some data
         self.createRFiles(self.masterHost())
-        self.bulkLoad(self.masterHost(), '/testrf')
+        self.bulkLoad(self.masterHost(), 'testrf')
 
         out, err, code = self.shell(self.masterHost(), "table !METADATA\nscan -b ! -c ~tab,file\n")
         self.assert_(code == 0)

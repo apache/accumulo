@@ -79,7 +79,7 @@ class SimpleBulkTest(TestUtilsMixin, unittest.TestCase):
 
         # insert some data
         self.createRFiles()
-        self.bulkLoad(self.masterHost(), '/testrf')
+        self.bulkLoad(self.masterHost(), 'testrf')
         
         log.info("Verifying Ingestion")
         handles = []
