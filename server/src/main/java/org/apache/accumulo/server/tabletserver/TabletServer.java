@@ -3686,7 +3686,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     for (LogEntry entry : sorted) {
       Path recovery = null;
       for (String log : entry.logSet) {
-        String[] parts = log.split("/", 2); // "host:port/filename"
+        String[] parts = log.split("/"); // "host:port/filename"
         Path finished = new Path(fs.getFullPath(FileType.RECOVERY, parts[parts.length - 1]), "finished");
         TabletServer.log.info("Looking for " + finished);
         if (fs.exists(finished)) {

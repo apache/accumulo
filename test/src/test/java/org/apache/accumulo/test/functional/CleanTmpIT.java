@@ -65,7 +65,7 @@ public class CleanTmpIT extends ConfigurableMacIT {
     // create a fake _tmp file in its directory
     String id = c.tableOperations().tableIdMap().get(tableName);
     FileSystem fs = getCluster().getFileSystem();
-    Path tmp = new Path(getCluster().getConfig().getAccumuloDir().getPath() + "/tables/" + id + "/default_tablet/junk.rf_tmp");
+    Path tmp = new Path("/accumulo/tables/" + id + "/default_tablet/junk.rf_tmp");
     fs.create(tmp).close();
     for (ProcessReference tserver : getCluster().getProcesses().get(ServerType.TABLET_SERVER)) {
       getCluster().killProcess(ServerType.TABLET_SERVER, tserver);
@@ -76,6 +76,6 @@ public class CleanTmpIT extends ConfigurableMacIT {
     for (@SuppressWarnings("unused")
     Entry<Key,Value> entry : scanner)
       ;
-    assertFalse(!fs.exists(tmp));
+    assertFalse(fs.exists(tmp));
   }
 }
