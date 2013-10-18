@@ -55,40 +55,6 @@ public class TabletServerSyncCheckTest {
     TabletServer.ensureHdfsSyncIsEnabled(fs);
   }
   
-  @Test(expected = RuntimeException.class)
-  public void testDefaultHadoopAction() {
-    // We currently depend on Hadoop-1.0.4 in this branch
-    // so this test should throw an exception by default
-    Configuration conf = new Configuration();
-    
-    FileSystem fs = new TestFileSystem(conf);
-    
-    TabletServer.ensureHdfsSyncIsEnabled(fs);
-  }
-  
-  @Test(expected = RuntimeException.class)
-  public void testMissingNecessaryConfiguration() {
-    // We currently depend on Hadoop-1.0.4 in this branch
-    // so this test should throw an exception by default
-    Configuration conf = new Configuration();
-    
-    FileSystem fs = new TestFileSystem(conf);
-    
-    TabletServer.ensureHdfsSyncIsEnabled(fs);
-  }
-  
-  @Test
-  public void testNecessaryConfiguration() {
-    // We currently depend on Hadoop-1.0.4 in this branch
-    // By providing the override, we should not throw an exception
-    Configuration conf = new Configuration();
-    conf.set(DFS_SUPPORT_APPEND, "true");
-    
-    FileSystem fs = new TestFileSystem(conf);
-    
-    TabletServer.ensureHdfsSyncIsEnabled(fs);
-  }
-  
   private class TestFileSystem extends DistributedFileSystem {
     protected final Configuration conf;
     
