@@ -3242,7 +3242,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
   }
   
-  private static void ensureHdfsSyncIsEnabled(FileSystem fs) {
+  protected static void ensureHdfsSyncIsEnabled(FileSystem fs) {
     if (fs instanceof DistributedFileSystem) {
       final String DFS_DURABLE_SYNC = "dfs.durable.sync", DFS_SUPPORT_APPEND = "dfs.support.append";
       final String ticketMessage = "See ACCUMULO-623 and ACCUMULO-1637 for more details.";
@@ -3258,22 +3258,25 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         if (!dfsSupportAppendDefaultValue) {
           // See if the user did the correct override
           if (!fs.getConf().getBoolean(DFS_SUPPORT_APPEND, false)) {
-            log.fatal("Accumulo requires that dfs.support.append to true. " + ticketMessage);
-            System.exit(-1);
+            String msg = "Accumulo requires that dfs.support.append to true. " + ticketMessage;
+            log.fatal(msg);
+            throw new RuntimeException(msg);
           }
         }
       } catch (NoSuchFieldException e) {
         // If we can't find DFSConfigKeys.DFS_SUPPORT_APPEND_DEFAULT, the user is running
         // 1.1.x or 1.2.x. This is ok, though, as, by default, these versions have append/sync enabled.
       } catch (Exception e) {
-        log.warn("Error while checking for " + DFS_SUPPORT_APPEND + ". The user should ensure that Hadoop is configured to properly supports append and sync. " + ticketMessage, e);
+        log.warn("Error while checking for " + DFS_SUPPORT_APPEND + ". The user should ensure that Hadoop is configured to properly supports append and sync. "
+            + ticketMessage, e);
       }
       
       // If either of these parameters are configured to be false, fail.
       // This is a sign that someone is writing bad configuration.
       if (!fs.getConf().getBoolean(DFS_SUPPORT_APPEND, true) || !fs.getConf().getBoolean(DFS_DURABLE_SYNC, true)) {
-        log.fatal("Accumulo requires that " + DFS_SUPPORT_APPEND + " and " + DFS_DURABLE_SYNC + " not be configured as false. " + ticketMessage);
-        System.exit(-1);
+        String msg = "Accumulo requires that " + DFS_SUPPORT_APPEND + " and " + DFS_DURABLE_SYNC + " not be configured as false. " + ticketMessage;
+        log.fatal(msg);
+        throw new RuntimeException(msg);
       }
       
       try {
