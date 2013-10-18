@@ -605,11 +605,11 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
 
           while (!tl.binRanges(creds, ranges, binnedRanges).isEmpty()) {
             if (!(instance instanceof MockInstance)) {
+              tableId = Tables.getTableId(instance, tableName);
               if (!Tables.exists(instance, tableId))
                 throw new TableDeletedException(tableId);
               if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
                 throw new TableOfflineException(instance, tableId);
-              tableId = Tables.getTableId(instance, tableName);
             }
             binnedRanges.clear();
             log.warn("Unable to locate bins for specified ranges. Retrying.");
