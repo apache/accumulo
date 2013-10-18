@@ -70,43 +70,6 @@ public class TabletServerSyncCheckTest {
     TabletServer.ensureHdfsSyncIsEnabled(vm);
   }
   
-  @Test(expected = RuntimeException.class)
-  public void testFailureOnExplicitSyncAndAppendFalseConf() {
-    Configuration conf = new Configuration();
-    conf.set(DFS_SUPPORT_APPEND, "false");
-    conf.set(DFS_DURABLE_SYNC, "false");
-    
-    FileSystem fs = new TestFileSystem(conf);
-    TestVolumeManagerImpl vm = new TestVolumeManagerImpl(ImmutableMap.of("foo", fs));
-    
-    TabletServer.ensureHdfsSyncIsEnabled(vm);
-  }
-  
-  @Test
-  public void testDefaultHadoopAction() {
-    // We currently depend on Hadoop-2.0.5 in this branch
-    // so this test should not throw an exception by default
-    Configuration conf = new Configuration();
-    
-    FileSystem fs = new TestFileSystem(conf);
-    TestVolumeManagerImpl vm = new TestVolumeManagerImpl(ImmutableMap.of("foo", fs));
-    
-    TabletServer.ensureHdfsSyncIsEnabled(vm);
-  }
-  
-  @Test
-  public void testNecessaryConfiguration() {
-    // We currently depend on Hadoop-2.0.5 in this branch
-    // By providing the override, we should not throw an exception
-    Configuration conf = new Configuration();
-    conf.set(DFS_SUPPORT_APPEND, "true");
-    
-    FileSystem fs = new TestFileSystem(conf);
-    TestVolumeManagerImpl vm = new TestVolumeManagerImpl(ImmutableMap.of("foo", fs));
-    
-    TabletServer.ensureHdfsSyncIsEnabled(vm);
-  }
-  
   private class TestFileSystem extends DistributedFileSystem {
     protected final Configuration conf;
     
