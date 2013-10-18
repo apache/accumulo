@@ -3610,7 +3610,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
   }
   
-  private static void ensureHdfsSyncIsEnabled(VolumeManager volumes) {
+  protected static void ensureHdfsSyncIsEnabled(VolumeManager volumes) {
     for (Entry<String,? extends FileSystem> entry : volumes.getFileSystems().entrySet()) {
       final String volumeName = entry.getKey();
       final FileSystem fs = entry.getValue();
@@ -3630,8 +3630,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           if (!dfsSupportAppendDefaultValue) {
             // See if the user did the correct override
             if (!fs.getConf().getBoolean(DFS_SUPPORT_APPEND, false)) {
-              log.fatal("Accumulo requires that dfs.support.append to true on volume " + volumeName + ". " + ticketMessage);
-              System.exit(-1);
+              String msg = "Accumulo requires that dfs.support.append to true. " + ticketMessage;
+              log.fatal(msg);
+              throw new RuntimeException(msg);
             }
           }
         } catch (NoSuchFieldException e) {
@@ -3644,8 +3645,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         // If either of these parameters are configured to be false, fail.
         // This is a sign that someone is writing bad configuration.
         if (!fs.getConf().getBoolean(DFS_SUPPORT_APPEND, true) || !fs.getConf().getBoolean(DFS_DURABLE_SYNC, true)) {
-          log.fatal("Accumulo requires that " + DFS_SUPPORT_APPEND + " and " + DFS_DURABLE_SYNC + " not be configured as false on volume " + volumeName + ". " + ticketMessage);
-          System.exit(-1);
+          String msg = "Accumulo requires that " + DFS_SUPPORT_APPEND + " and " + DFS_DURABLE_SYNC + " not be configured as false. " + ticketMessage;
+          log.fatal(msg);
+          throw new RuntimeException(msg);
         }
         
         try {
