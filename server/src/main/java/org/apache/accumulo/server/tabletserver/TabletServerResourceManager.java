@@ -568,7 +568,7 @@ public class TabletServerResourceManager {
       request.setFiles(tabletFiles);
       try {
         CompactionPlan plan = strategy.getCompactionPlan(request);
-        if (plan == null || plan.passes.isEmpty())
+        if (plan == null || plan.inputFiles.isEmpty())
           return false;
         return true;
       } catch (IOException ex) {

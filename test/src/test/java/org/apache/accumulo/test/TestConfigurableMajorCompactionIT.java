@@ -37,10 +37,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
-import org.apache.accumulo.server.tabletserver.compaction.CompactionPass;
 import org.apache.accumulo.server.tabletserver.compaction.CompactionPlan;
 import org.apache.accumulo.server.tabletserver.compaction.CompactionStrategy;
-import org.apache.accumulo.server.tabletserver.compaction.DefaultWriter;
 import org.apache.accumulo.server.tabletserver.compaction.MajorCompactionRequest;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.junit.Test;
@@ -62,21 +60,10 @@ public class TestConfigurableMajorCompactionIT extends ConfigurableMacIT {
     @Override
     public CompactionPlan getCompactionPlan(MajorCompactionRequest request) throws IOException {
       CompactionPlan plan = new CompactionPlan();
-      if (request.getFiles().size() == 5) {
-        CompactionPass pass = new CompactionPass();
-        pass.inputFiles.addAll(request.getFiles().keySet());
-        plan.passes.add(pass);
-      }
+      plan.inputFiles.addAll(request.getFiles().keySet());
       return plan;
     }
-
-    @Override
-    public Writer getCompactionWriter() {
-      return new DefaultWriter();
-    }
   }
-  
-  
   
   @Test(timeout = 20 * 1000)
   public void test() throws Exception {

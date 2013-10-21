@@ -3031,6 +3031,56 @@ public class Tablet {
     return common;
   }
   
+  
+ private Map<FileRef,Pair<Key,Key>> getFirstAndLastKeys(MajorCompactionRequest request) throws IOException {
+    Map<FileRef,Pair<Key,Key>> result = new HashMap<FileRef,Pair<Key,Key>>();
+    FileOperations fileFactory = FileOperations.getInstance();
+    for (Entry<FileRef,DataFileValue> entry : request.getFiles().entrySet()) {
+      FileRef file = entry.getKey();
+      FileSystem ns = fs.getFileSystemByPath(file.path());
+      FileSKVIterator openReader = fileFactory.openReader(file.path().toString(), true, ns, ns.getConf(), this.getTableConfiguration());
+      try {
+        Key first = openReader.getFirstKey();
+        Key last = openReader.getLastKey();
+        result.put(file, new Pair<Key,Key>(first, last));
+      } finally {
+        openReader.close();
+      }
+    }
+    return result;
+  }
+
+  
+  List<FileRef> findChopFiles(KeyExtent extent, Map<FileRef,Pair<Key,Key>> firstAndLastKeys, Collection<FileRef> allFiles) throws IOException {
+    List<FileRef> result = new ArrayList<FileRef>();
+    if (firstAndLastKeys == null) {
+      result.addAll(allFiles);
+      return result;
+    } 
+    
+    for (FileRef file : allFiles) {
+      Pair<Key,Key> pair = firstAndLastKeys.get(file);
+      if (pair == null) {
+        // file was created or imported after we obtained the first and last keys... there
+        // are a few options here... throw an exception which will cause the compaction to
+        // retry and also cause ugly error message that the admin has to ignore... could
+        // go get the first and last key, but this code is called while the tablet lock
+        // is held... or just compact the file....
+        result.add(file);
+      } else {
+        Key first = pair.getFirst();
+        Key last = pair.getSecond();
+        // If first and last are null, it's an empty file. Add it to the compact set so it goes away.
+        if ((first == null && last == null) || !extent.contains(first.getRow()) || !extent.contains(last.getRow())) {
+          result.add(file);
+        }
+      }
+    }
+    return result;
+  }
+  
+  
+
   /**
    * Returns true if this tablet needs to be split
    * 
@@ -3061,13 +3111,20 @@ public class Tablet {
     MajorCompactionRequest request = new MajorCompactionRequest(extent, reason, fs, acuTableConf);
     request.setFiles(datafileManager.getDatafileSizes());
     strategy.gatherInformation(request);
-
+    Map<FileRef,Pair<Key,Key>> firstAndLastKeys = null;
+    
+    if (reason == MajorCompactionReason.CHOP) {
+        firstAndLastKeys = getFirstAndLastKeys(request);
+    }
+    
     Map<FileRef, DataFileValue> filesToCompact;
     
     int maxFilesToCompact = acuTableConf.getCount(Property.TSERV_MAJC_THREAD_MAXOPEN);
     
     CompactionStats majCStats = new CompactionStats();
-    CompactionPlan plan;
+    CompactionPlan plan = null;
+    
+    boolean propogateDeletes = false; 
     
     synchronized (this) {
       // plan all that work that needs to be done in the sync block... then do the actual work
@@ -3092,29 +3149,43 @@ public class Tablet {
         cleanUpFiles(fs, fs.listStatus(this.location), false);
       }
       request.setFiles(datafileManager.getDatafileSizes());
-      plan = strategy.getCompactionPlan(request);
-      if (plan == null || plan.passes.isEmpty()) {
+      List<FileRef> inputFiles = new ArrayList<FileRef>();
+      if (request.getReason() == MajorCompactionReason.CHOP) {
+        // enforce rules: files with keys outside our range need to be compacted
+        inputFiles.addAll(findChopFiles(extent, firstAndLastKeys, request.getFiles().keySet()));
+      } else if (request.getReason() == MajorCompactionReason.USER) {
+        inputFiles.addAll(request.getFiles().keySet());
+      } else {
+        plan = strategy.getCompactionPlan(request);
+        if (plan != null)
+          inputFiles.addAll(plan.inputFiles);
+      }
+      
+      if (inputFiles.isEmpty()) {
         return majCStats;
       }
-      log.debug("Major compaction plan: " + plan);
-      if (plan.passes.size() > 1)
-        log.info("Multiple passes presently not supported, only performing the first pass");
-      if (plan.passes.get(0).outputFiles != 1)
-        log.warn("Only one output file is supported, but " + plan.passes.get(0).outputFiles + " requested");
+      // If no original files will exist at the end of the compaction, we do not have to propogate deletes
+      Set<FileRef> droppedFiles = new HashSet<FileRef>();
+      droppedFiles.addAll(inputFiles);
+      if (plan != null)
+        droppedFiles.addAll(plan.deleteFiles);
+      propogateDeletes = !(droppedFiles.equals(request.getFiles().keySet()));
+      log.debug("Major compaction plan: " + plan + " propogate deletes : " + propogateDeletes);
       filesToCompact = new HashMap<FileRef, DataFileValue>(request.getFiles());
-      filesToCompact.keySet().retainAll(plan.passes.get(0).inputFiles);
+      filesToCompact.keySet().retainAll(inputFiles);
       
       t3 = System.currentTimeMillis();
       
       datafileManager.reserveMajorCompactingFiles(filesToCompact.keySet());
     }
     
+    
     try {
       
       log.debug(String.format("MajC initiate lock %.2f secs, wait %.2f secs", (t3 - t2) / 1000.0, (t2 - t1) / 1000.0));
       
       Pair<Long,List<IteratorSetting>> compactionId = null;
-      if (!plan.propogateDeletes) {
+      if (!propogateDeletes) {
         // compacting everything, so update the compaction id in !METADATA
         try {
           compactionId = getCompactionID();
@@ -3153,7 +3224,7 @@ public class Tablet {
         
         Set<FileRef> smallestFiles = removeSmallest(filesToCompact, numToCompact);
         
-        FileRef fileName = getNextMapFilename((filesToCompact.size() == 0 && !plan.propogateDeletes) ? "A" : "C");
+        FileRef fileName = getNextMapFilename((filesToCompact.size() == 0 && !propogateDeletes) ? "A" : "C");
         FileRef compactTmpName = new FileRef(fileName.path().toString() + "_tmp");
         
         Span span = Trace.start("compactFiles");
@@ -3181,8 +3252,8 @@ public class Tablet {
 
           // always propagate deletes, unless last batch
           boolean lastBatch = filesToCompact.isEmpty();
-          Compactor compactor = new Compactor(conf, fs, copy, null, compactTmpName, lastBatch ? plan.propogateDeletes : true, acuTableConf, extent,
-              cenv, compactionIterators, reason, strategy.getCompactionWriter());
+          Compactor compactor = new Compactor(conf, fs, copy, null, compactTmpName, lastBatch ? propogateDeletes : true, acuTableConf, extent,
+              cenv, compactionIterators, reason);
           
           CompactionStats mcs = compactor.call();
           

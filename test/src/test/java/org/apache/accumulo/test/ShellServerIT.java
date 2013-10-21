@@ -545,9 +545,9 @@ public class ShellServerIT extends SimpleMacIT {
     exec("addsplits row5 row7");
     make10();
     exec("flush -w -t t");
-    assertTrue(base + 3 == countFiles());
+    assertEquals(base + 3, countFiles());
     exec("deleterows -t t -b row5 -e row7", true);
-    assertTrue(base + 2 == countFiles());
+    assertEquals(base + 2, countFiles());
     exec("deletetable -f t");
   }
 

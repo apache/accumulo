@@ -17,7 +17,6 @@
 package org.apache.accumulo.server.tabletserver.compaction;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.DataInputStream;
@@ -197,83 +196,26 @@ public class DefaultCompactionStrategyTest {
     MajorCompactionRequest request = createRequest(MajorCompactionReason.IDLE, "file1", 10, "file2", 10);
     s.gatherInformation(request);
     CompactionPlan plan = s.getCompactionPlan(request);
-    assertTrue(plan.passes.isEmpty());
+    assertTrue(plan.inputFiles.isEmpty());
     
     // do everything
     request = createRequest(MajorCompactionReason.IDLE, "file1", 10, "file2", 10, "file3", 10);
     s.gatherInformation(request);
     plan = s.getCompactionPlan(request);
-    assertEquals(1, plan.passes.size());
-    CompactionPass pass = plan.passes.get(0);
-    assertEquals(3, pass.inputFiles.size());
-    assertEquals(1, pass.outputFiles);
-    assertFalse(plan.propogateDeletes);
+    assertEquals(3, plan.inputFiles.size());
     
     // do everything
     request = createRequest(MajorCompactionReason.USER, "file1", 10, "file2", 10);
     s.gatherInformation(request);
     plan = s.getCompactionPlan(request);
-    assertEquals(1, plan.passes.size());
-    pass = plan.passes.get(0);
-    assertEquals(2, pass.inputFiles.size());
-    assertEquals(1, pass.outputFiles);
-    assertFalse(plan.propogateDeletes);
+    assertEquals(2, plan.inputFiles.size());
     
     // partial
     request = createRequest(MajorCompactionReason.NORMAL, "file0", 100, "file1", 10, "file2", 10, "file3", 10);
     s.gatherInformation(request);
     plan = s.getCompactionPlan(request);
-    assertEquals(1, plan.passes.size());
-    pass = plan.passes.get(0);
-    assertEquals(3, pass.inputFiles.size());
-    assertEquals(1, pass.outputFiles);
-    assertEquals(asStringSet(pass.inputFiles), asSet("file1,file2,file3".split(",")));
-    assertTrue(plan.propogateDeletes);
+    assertEquals(3, plan.inputFiles.size());
+    assertEquals(asStringSet(plan.inputFiles), asSet("file1,file2,file3".split(",")));
     
-    // chop tests
-    // everything overlaps default tablet
-    request = createRequest(MajorCompactionReason.NORMAL, "file1", 10, "file2", 10, "file3", 10);
-    s.gatherInformation(request);
-    plan = s.getCompactionPlan(request);
-    assertEquals(1, plan.passes.size());
-    pass = plan.passes.get(0);
-    assertEquals(3, pass.inputFiles.size());
-    assertEquals(1, pass.outputFiles);
-    assertEquals(asStringSet(pass.inputFiles), asSet("file1,file2,file3".split(",")));
-    assertFalse(plan.propogateDeletes);
-    
-    // Partial overlap
-    KeyExtent extent = new KeyExtent(new Text("0"), new Text("n"), new Text("a"));
-    request = createRequest(extent, MajorCompactionReason.CHOP, "file1", 10, "file2", 10, "file3", 10);
-    s.gatherInformation(request);
-    plan = s.getCompactionPlan(request);
-    assertEquals(1, plan.passes.size());
-    pass = plan.passes.get(0);
-    assertEquals(2, pass.inputFiles.size());
-    assertEquals(1, pass.outputFiles);
-    assertEquals(asStringSet(pass.inputFiles), asSet("file2,file3".split(",")));
-    assertTrue(plan.propogateDeletes);
-
-    // empty file
-    request = createRequest(extent, MajorCompactionReason.CHOP, "file1", 10, "file4", 10);
-    s.gatherInformation(request);
-    plan = s.getCompactionPlan(request);
-    assertEquals(1, plan.passes.size());
-    pass = plan.passes.get(0);
-    assertEquals(1, pass.inputFiles.size());
-    assertEquals(1, pass.outputFiles);
-    assertEquals(asStringSet(pass.inputFiles), asSet("file4".split(",")));
-    assertTrue(plan.propogateDeletes);
-    
-    // file without first/last keys
-    request = createRequest(extent, MajorCompactionReason.CHOP, "file1", 10, "file5", 10);
-    s.gatherInformation(request);
-    plan = s.getCompactionPlan(request);
-    assertEquals(1, plan.passes.size());
-    pass = plan.passes.get(0);
-    assertEquals(1, pass.inputFiles.size());
-    assertEquals(1, pass.outputFiles);
-    assertEquals(asStringSet(pass.inputFiles), asSet("file5".split(",")));
-    assertTrue(plan.propogateDeletes);
   }
 }
