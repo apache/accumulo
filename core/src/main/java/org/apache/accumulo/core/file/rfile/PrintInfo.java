@@ -47,6 +47,7 @@ public class PrintInfo {
   
   public static void main(String[] args) throws Exception {
     Configuration conf = new Configuration();
+
     @SuppressWarnings("deprecation")
     FileSystem hadoopFs = FileUtil.getFileSystem(conf, AccumuloConfiguration.getSiteConfiguration());
     FileSystem localFs  = FileSystem.getLocal(conf);
@@ -62,9 +63,13 @@ public class PrintInfo {
     long totalSize = 0;
     
     for (String arg : opts.files) {
-      
       Path path = new Path(arg);
-      FileSystem fs = hadoopFs.exists(path) ? hadoopFs : localFs; // fall back to local
+      FileSystem fs;
+      if (arg.contains(":"))
+        fs = path.getFileSystem(conf);
+      else
+        fs = hadoopFs.exists(path) ? hadoopFs : localFs; // fall back to local
+      
       CachableBlockFile.Reader _rdr = new CachableBlockFile.Reader(fs, path, conf, null, null);
       Reader iter = new RFile.Reader(_rdr);
       
