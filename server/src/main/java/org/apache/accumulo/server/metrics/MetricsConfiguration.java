@@ -35,7 +35,7 @@ public class MetricsConfiguration {
   
   private static final org.apache.log4j.Logger log = org.apache.log4j.Logger.getLogger(MetricsConfiguration.class);
   
-  private static final String metricsFileName = "conf/accumulo-metrics.xml";
+  private static final String metricsFileName = "accumulo-metrics.xml";
   
   private static boolean alreadyWarned = false;
   
@@ -144,7 +144,7 @@ public class MetricsConfiguration {
   
   private void loadConfiguration() {
     // Check to see if ACCUMULO_HOME environment variable is set.
-    String ACUHOME = getEnvironmentConfiguration().getString("ACCUMULO_HOME");
+    String ACUHOME = getEnvironmentConfiguration().getString("ACCUMULO_CONF_DIR");
     if (null != ACUHOME) {
       // Try to load the metrics properties file
       File mFile = new File(ACUHOME, metricsFileName);
@@ -179,7 +179,7 @@ public class MetricsConfiguration {
       }
     } else {
       if (!alreadyWarned)
-        log.warn("ACCUMULO_HOME variable not found in environment. Metrics collection will be disabled.");
+        log.warn("ACCUMULO_CONF_DIR variable not found in environment. Metrics collection will be disabled.");
       alreadyWarned = true;
       notFound = true;
       return;
