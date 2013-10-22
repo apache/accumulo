@@ -506,6 +506,8 @@ public class ShellServerIT extends SimpleMacIT {
     exec("createtable c -evc");
     exec("constraint -l -t c", true, "VisibilityConstraint=2", true);
     exec("constraint -t c -d 2", true, "Removed constraint 2 from table c");
+    // wait for zookeeper updates to propagate
+    UtilWaitThread.sleep(1000);
     exec("constraint -l -t c", true, "VisibilityConstraint=2", false);
     exec("deletetable -f c");
   }

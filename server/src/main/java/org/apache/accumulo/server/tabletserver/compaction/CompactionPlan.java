@@ -22,12 +22,13 @@ import java.util.List;
 import org.apache.accumulo.server.fs.FileRef;
 
 /**
- * A plan for a compaction: the input files the files that are *not* inputs to a compaction that should
- * simply be deleted.
+ * A plan for a compaction: the input files, the files that are *not* inputs to a compaction that should
+ * simply be deleted, and the optional parameters used to create the resulting output file.
  */
 public class CompactionPlan {
   public final List<FileRef> inputFiles = new ArrayList<FileRef>();
   public final List<FileRef> deleteFiles = new ArrayList<FileRef>();
+  public WriteParameters writeParameters = null;
   
   public String toString() {
     StringBuilder b = new StringBuilder();
@@ -35,6 +36,18 @@ public class CompactionPlan {
     if (!deleteFiles.isEmpty()) { 
       b.append(" files to be deleted ");
       b.append(deleteFiles);
+      if (writeParameters != null) {
+        if (writeParameters.getCompressType() != null)
+          b.append(" compress type " + writeParameters.getCompressType());
+        if (writeParameters.getHdfsBlockSize() != 0)
+          b.append(" hdfs block size " + writeParameters.getHdfsBlockSize());
+        if (writeParameters.getBlockSize() != 0)
+          b.append(" data block size " + writeParameters.getBlockSize());
+        if (writeParameters.getIndexBlockSize() != 0)
+          b.append(" index block size " + writeParameters.getIndexBlockSize());
+        if (writeParameters.getReplication() != 0)
+          b.append(" replication " + writeParameters.getReplication());
+      }
     }
     return b.toString(); 
   }

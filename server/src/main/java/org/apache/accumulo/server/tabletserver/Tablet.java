@@ -47,6 +47,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.Violations;
@@ -121,6 +122,7 @@ import org.apache.accumulo.server.tabletserver.compaction.CompactionStrategy;
 import org.apache.accumulo.server.tabletserver.compaction.DefaultCompactionStrategy;
 import org.apache.accumulo.server.tabletserver.compaction.MajorCompactionReason;
 import org.apache.accumulo.server.tabletserver.compaction.MajorCompactionRequest;
+import org.apache.accumulo.server.tabletserver.compaction.WriteParameters;
 import org.apache.accumulo.server.tabletserver.log.DfsLogger;
 import org.apache.accumulo.server.tabletserver.log.MutationReceiver;
 import org.apache.accumulo.server.tabletserver.mastermessage.TabletStatusMessage;
@@ -3111,8 +3113,8 @@ public class Tablet {
     MajorCompactionRequest request = new MajorCompactionRequest(extent, reason, fs, acuTableConf);
     request.setFiles(datafileManager.getDatafileSizes());
     strategy.gatherInformation(request);
-    Map<FileRef,Pair<Key,Key>> firstAndLastKeys = null;
     
+    Map<FileRef,Pair<Key,Key>> firstAndLastKeys = null;
     if (reason == MajorCompactionReason.CHOP) {
         firstAndLastKeys = getFirstAndLastKeys(request);
     }
@@ -3227,6 +3229,8 @@ public class Tablet {
         FileRef fileName = getNextMapFilename((filesToCompact.size() == 0 && !propogateDeletes) ? "A" : "C");
         FileRef compactTmpName = new FileRef(fileName.path().toString() + "_tmp");
         
+        AccumuloConfiguration tableConf = createTableConfiguration(acuTableConf, plan);
+        
         Span span = Trace.start("compactFiles");
         try {
           
@@ -3252,7 +3256,7 @@ public class Tablet {
 
           // always propagate deletes, unless last batch
           boolean lastBatch = filesToCompact.isEmpty();
-          Compactor compactor = new Compactor(conf, fs, copy, null, compactTmpName, lastBatch ? propogateDeletes : true, acuTableConf, extent,
+          Compactor compactor = new Compactor(conf, fs, copy, null, compactTmpName, lastBatch ? propogateDeletes : true, tableConf, extent,
               cenv, compactionIterators, reason);
           
           CompactionStats mcs = compactor.call();
@@ -3262,7 +3266,7 @@ public class Tablet {
           span.data("written", "" + mcs.getEntriesWritten());
           majCStats.add(mcs);
           
-          if (lastBatch) {
+          if (lastBatch && plan != null && plan.deleteFiles != null) {
             smallestFiles.addAll(plan.deleteFiles);
           }
           datafileManager.bringMajorCompactionOnline(smallestFiles, compactTmpName, fileName,
@@ -3287,6 +3291,24 @@ public class Tablet {
     }
   }
   
+  private AccumuloConfiguration createTableConfiguration(TableConfiguration base, CompactionPlan plan) {
+    if (plan == null || plan.writeParameters == null)
+      return base;
+    WriteParameters p = plan.writeParameters;
+    ConfigurationCopy result = new ConfigurationCopy(base);
+    if (p.getHdfsBlockSize() > 0)
+      result.set(Property.TABLE_FILE_BLOCK_SIZE, "" + p.getHdfsBlockSize());
+    if (p.getBlockSize() > 0)
+      result.set(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE, "" + p.getBlockSize());
+    if (p.getIndexBlockSize() > 0)
+      result.set(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX, "" + p.getBlockSize());
+    if (p.getCompressType() != null)
+      result.set(Property.TABLE_FILE_COMPRESSION_TYPE, p.getCompressType());
+    if (p.getReplication() != 0)
+      result.set(Property.TABLE_FILE_REPLICATION, "" + p.getReplication());
+    return result;
+  }
+
   private Set<FileRef> removeSmallest(Map<FileRef,DataFileValue> filesToCompact, int maxFilesToCompact) {
     // ensure this method works properly when multiple files have the same size
     

@@ -32,6 +32,9 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
+import org.apache.accumulo.core.file.rfile.RFile;
+import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
@@ -40,10 +43,14 @@ import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.server.tabletserver.compaction.CompactionPlan;
 import org.apache.accumulo.server.tabletserver.compaction.CompactionStrategy;
 import org.apache.accumulo.server.tabletserver.compaction.MajorCompactionRequest;
+import org.apache.accumulo.server.tabletserver.compaction.WriteParameters;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.junit.Test;
 
-public class TestConfigurableMajorCompactionIT extends ConfigurableMacIT {
+public class ConfigurableMajorCompactionIT extends ConfigurableMacIT {
   
   @Override
   public void configure(MiniAccumuloConfig cfg) {
@@ -52,15 +59,20 @@ public class TestConfigurableMajorCompactionIT extends ConfigurableMacIT {
     cfg.setSiteConfig(siteConfig);
   }
 
-  public static class TestCompactionStrategy implements CompactionStrategy {
-    @Override
-    public void gatherInformation(MajorCompactionRequest request) throws IOException {
-    }
-
+  public static class TestCompactionStrategy extends CompactionStrategy {
+   
     @Override
     public CompactionPlan getCompactionPlan(MajorCompactionRequest request) throws IOException {
+      if (request.getFiles().size() != 5)
+        return null;
       CompactionPlan plan = new CompactionPlan();
       plan.inputFiles.addAll(request.getFiles().keySet());
+      plan.writeParameters = new WriteParameters();
+      plan.writeParameters.setBlockSize(1024 * 1024);
+      plan.writeParameters.setCompressType("none");
+      plan.writeParameters.setHdfsBlockSize(1024 * 1024);
+      plan.writeParameters.setIndexBlockSize(10);
+      plan.writeParameters.setReplication(7);
       return plan;
     }
   }
