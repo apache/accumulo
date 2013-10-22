@@ -394,7 +394,7 @@ class TestUtilsMixin:
         handle = self.runOn(self.masterHost(),
                  [self.accumulo_sh(), 'admin', '-u', ROOT,
                  '-p', ROOT_PASSWORD, 'stopAll'])
-        self.waitForStop(handle, seconds)
+        self.waitForStop(handle, self.timeout_factor * seconds)
         self.stop_monitor(self.masterHost())
         self.cleanupAccumuloHandles()
         # give everyone a couple seconds to completely stop
@@ -424,6 +424,7 @@ class TestUtilsMixin:
 
     def setUp(self):
         self.hosts = self.options.hosts
+        self.timeout_factor = self.options.timeout_factor
         self.clean_accumulo(self.masterHost())
         self.setup_logging()
         self.start_accumulo()
