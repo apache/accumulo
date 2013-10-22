@@ -29,7 +29,6 @@
 
   <modules>
     <module>simple</module>
-    <module>wikisearch</module>
   </modules>
 
   <repositories>
