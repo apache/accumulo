@@ -144,7 +144,7 @@ public class DefaultCompactionStrategyTest {
   static final DefaultConfiguration dfault = AccumuloConfiguration.getDefaultConfiguration();
   private static class TestCompactionRequest extends MajorCompactionRequest {
     @Override
-    FileSKVIterator openReader(FileRef ref) throws IOException {
+    public FileSKVIterator openReader(FileRef ref) throws IOException {
       return new TestFileSKVIterator(ref.toString());
     }
 

@@ -70,12 +70,12 @@ public class MajorCompactionRequest {
     this.files = Collections.unmodifiableMap(update);
   }
   
-  FileStatus[] listStatus(Path path) throws IOException {
+  public FileStatus[] listStatus(Path path) throws IOException {
     // @TODO verify the file isn't some random file in HDFS
     return volumeManager.listStatus(path);
   }
   
-  FileSKVIterator openReader(FileRef ref) throws IOException {
+  public FileSKVIterator openReader(FileRef ref) throws IOException {
     // @TODO verify the file isn't some random file in HDFS
     // @TODO ensure these files are always closed?
     FileOperations fileFactory = FileOperations.getInstance();

@@ -17,25 +17,55 @@
 package org.apache.accumulo.server.tabletserver.compaction;
 
 import java.io.IOException;
+import java.util.Map;
 
 /**
  * The interface for customizing major compactions.
+ * <p>
+ * The tablet server has one thread to ask many tablets if they should compact. When the strategy returns true, then tablet is added to the queue of tablets
+ * waiting for a compaction thread. Once a thread is available, the {@link #gatherInformation(MajorCompactionRequest)} method is called outside the tablets' lock. This gives the strategy the
+ * ability to read information that maybe expensive to fetch. Once the gatherInformation returns, the tablet lock is grabbed and the compactionPlan computed.
+ * This should *not* do expensive operations, especially not I/O. Note that the number of files may change between calls to {@link #gatherInformation(MajorCompactionRequest)} and
+ * {@link #getCompactionPlan(MajorCompactionRequest)}.
+ * <p>
+ * <b>Note:</b> the strategy object used for the {@link #shouldCompact(MajorCompactionRequest)} call is going to be different from the one used in the compaction thread.
  */
 public abstract class CompactionStrategy {
   
   /**
-   * Called prior to obtaining the tablet lock, useful for examining metadata or indexes.
-   * @param request basic details about the tablet
+   * The settings for the compaction strategy pulled from zookeeper.  The <tt>table.compacations.major.strategy.opts</tt> part of the setting will be removed.
+   * 
+   * @param options
+   */
+  public void init(Map<String,String> options) {}
+  
+  /**
+   * Determine if this tablet is eligible for a major compaction. It's ok if it later determines (through {@link #gatherInformation(MajorCompactionRequest)} and
+   * {@link #getCompactionPlan(MajorCompactionRequest)}) that it does not need to. Any state stored during shouldCompact will no longer exist when
+   * {@link #gatherInformation(MajorCompactionRequest)} and {@link #getCompactionPlan(MajorCompactionRequest)} are called.
+   * 
+   * @param request
+   * @return
    * @throws IOException
    */
-  public void gatherInformation(MajorCompactionRequest request) throws IOException {
-    
-  }
+  public abstract boolean shouldCompact(MajorCompactionRequest request) throws IOException;
   
-  /** 
-   * Get the plan for compacting a tablets files.  Called while holding the tablet lock, so it should not be doing any blocking.
-   * @param request basic details about the tablet
-   * @return the plan for a major compaction
+  /**
+   * Called prior to obtaining the tablet lock, useful for examining metadata or indexes.
+   * State collected during this method will be available during the call the {@link #getCompactionPlan(MajorCompactionRequest)}.
+   * 
+   * @param request
+   *          basic details about the tablet
+   * @throws IOException
+   */
+  public void gatherInformation(MajorCompactionRequest request) throws IOException {}
+  
+  /**
+   * Get the plan for compacting a tablets files. Called while holding the tablet lock, so it should not be doing any blocking.
+   * 
+   * @param request
+   *          basic details about the tablet
+   * @return the plan for a major compaction, or null to cancel the compaction.
    * @throws IOException
    */
   abstract public CompactionPlan getCompactionPlan(MajorCompactionRequest request) throws IOException;

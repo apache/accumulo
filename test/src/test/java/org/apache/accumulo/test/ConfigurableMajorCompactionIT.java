@@ -55,10 +55,12 @@ public class ConfigurableMajorCompactionIT extends ConfigurableMacIT {
 
   public static class TestCompactionStrategy extends CompactionStrategy {
    
+    public boolean shouldCompact(MajorCompactionRequest request) throws IOException {
+      return request.getFiles().size() == 5;
+    }
+    
     @Override
     public CompactionPlan getCompactionPlan(MajorCompactionRequest request) throws IOException {
-      if (request.getFiles().size() != 5)
-        return null;
       CompactionPlan plan = new CompactionPlan();
       plan.inputFiles.addAll(request.getFiles().keySet());
       plan.writeParameters = new WriteParameters();

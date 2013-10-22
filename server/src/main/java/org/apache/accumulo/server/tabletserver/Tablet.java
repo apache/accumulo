@@ -3110,6 +3110,7 @@ public class Tablet {
     
     // acquire file info outside of tablet lock
     CompactionStrategy strategy  = Property.createInstanceFromPropertyName(acuTableConf, Property.TABLE_COMPACTION_STRATEGY, CompactionStrategy.class, new DefaultCompactionStrategy());
+    strategy.init(Property.getCompactionStrategyOptions(acuTableConf));
     MajorCompactionRequest request = new MajorCompactionRequest(extent, reason, fs, acuTableConf);
     request.setFiles(datafileManager.getDatafileSizes());
     strategy.gatherInformation(request);

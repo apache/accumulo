@@ -19,7 +19,10 @@ package org.apache.accumulo.core.conf;
 import java.io.File;
 import java.lang.annotation.Annotation;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -367,6 +370,8 @@ public enum Property {
       "The ScanInterpreter class to apply on scan arguments in the shell"),
   TABLE_CLASSPATH("table.classpath.context", "", PropertyType.STRING, "Per table classpath context"),
   TABLE_COMPACTION_STRATEGY("table.majc.compaction.strategy", "org.apache.accumulo.server.tabletserver.compaction.DefaultCompactionStrategy", PropertyType.CLASSNAME, "A customizable major compaction strategy."),
+  TABLE_COMPACTION_STRATEGY_PREFIX("table.majc.compaction.strategy.opts.", null, PropertyType.PREFIX,
+      "Properties in this category are used to configure the compaction strategy."),
 
   // VFS ClassLoader properties
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(AccumuloVFSClassLoader.VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, "", PropertyType.STRING,
@@ -583,5 +588,14 @@ public enum Property {
       instance = defaultInstance;
     }
     return instance;
+  }
+
+  public static Map<String,String> getCompactionStrategyOptions(AccumuloConfiguration tableConf) {
+    Map<String,String> longNames = tableConf.getAllPropertiesWithPrefix(Property.TABLE_COMPACTION_STRATEGY_PREFIX);
+    Map<String,String> result = new HashMap<String, String>();
+    for (Entry<String,String> entry : longNames.entrySet()) {
+      result.put(entry.getKey().substring(0, Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey().length()), entry.getValue());
+    }
+    return result;
   }
 }

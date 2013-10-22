@@ -30,7 +30,11 @@ import org.apache.accumulo.server.fs.FileRef;
 
 public class DefaultCompactionStrategy extends CompactionStrategy {
   
-  
+  @Override
+  public boolean shouldCompact(MajorCompactionRequest request) throws IOException {
+    return getCompactionPlan(request) != null;
+  }
+ 
   @Override
   public CompactionPlan getCompactionPlan(MajorCompactionRequest request) throws IOException {
     CompactionPlan result = new CompactionPlan();
@@ -137,4 +141,6 @@ public class DefaultCompactionStrategy extends CompactionStrategy {
     
     return files;
   }
+
+
 }

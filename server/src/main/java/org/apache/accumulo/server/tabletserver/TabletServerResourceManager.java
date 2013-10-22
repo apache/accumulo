@@ -564,13 +564,11 @@ public class TabletServerResourceManager {
         }
       }
       CompactionStrategy strategy  = Property.createInstanceFromPropertyName(tableConf, Property.TABLE_COMPACTION_STRATEGY, CompactionStrategy.class, new DefaultCompactionStrategy());
+      strategy.init(Property.getCompactionStrategyOptions(tableConf));
       MajorCompactionRequest request = new MajorCompactionRequest(tablet.getExtent(), reason, TabletServerResourceManager.this.fs, tableConf);
       request.setFiles(tabletFiles);
       try {
-        CompactionPlan plan = strategy.getCompactionPlan(request);
-        if (plan == null || plan.inputFiles.isEmpty())
-          return false;
-        return true;
+        return strategy.shouldCompact(request);
       } catch (IOException ex) {
         return false;
       }
