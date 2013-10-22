@@ -701,6 +701,30 @@ public class SimpleTest {
   }
 
   @Test(timeout = 10000)
+  public void testDelete() throws Exception {
+    final String TABLE_TEST = makeTableName();
+
+    client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
+    client.updateAndFlush(creds, TABLE_TEST, mutation("row0", "cf", "cq", "value"));
+    String scanner = client.createScanner(creds, TABLE_TEST, null);
+    ScanResult entries = client.nextK(scanner, 10);
+    client.closeScanner(scanner);
+    assertFalse(entries.more);
+    assertEquals(1, entries.results.size());
+    
+    ColumnUpdate upd = new ColumnUpdate(s2bb("cf"), s2bb("cq"));
+    upd.setDeleteCell(true);
+    Map<ByteBuffer,List<ColumnUpdate>> delete = Collections.singletonMap(s2bb("row0"), Collections.singletonList(upd));
+    
+    client.updateAndFlush(creds, TABLE_TEST, delete);
+    
+    scanner = client.createScanner(creds, TABLE_TEST, null);
+    entries = client.nextK(scanner, 10);
+    client.closeScanner(scanner);
+    assertEquals(0, entries.results.size());
+  }
+
+  @Test(timeout = 10000)
   public void testInstanceOperations() throws Exception {
     int tservers = 0;
     for (String tserver : client.getTabletServers(creds)) {
