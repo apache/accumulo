@@ -59,7 +59,11 @@ public class PrintInfo {
     FileSystem hadoopFs = FileUtil.getFileSystem(conf, AccumuloConfiguration.getSiteConfiguration());
     FileSystem localFs = FileSystem.getLocal(conf);
     Path path = new Path(args[0]);
-    FileSystem fs = hadoopFs.exists(path) ? hadoopFs : localFs; // fall back to local
+    FileSystem fs;
+    if (args[0].contains(":"))
+      fs = path.getFileSystem(conf);
+    else
+      fs = hadoopFs.exists(path) ? hadoopFs : localFs; // fall back to local
     printMetaBlockInfo(conf, fs, path);
   }
 }
