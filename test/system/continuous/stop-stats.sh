@@ -15,7 +15,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-CONTINUOUS_CONF_DIR=${CONTINUOUS_CONF_DIR:-$ACCUMULO_HOME/test/system/continuous/}
+# Start: Resolve Script Directory
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "${SOURCE}" ]; do # resolve $SOURCE until the file is no longer a symlink
+   bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
+   SOURCE="$(readlink "${SOURCE}")"
+   [[ "${SOURCE}" != /* ]] && SOURCE="${bin}/${SOURCE}" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
+script=$( basename "${SOURCE}" )
+# Stop: Resolve Script Directory
+
+CONTINUOUS_CONF_DIR=${CONTINUOUS_CONF_DIR:-${bin}}
 . $CONTINUOUS_CONF_DIR/continuous-env.sh
 
 pkill -f org.apache.accumulo.test.continuous.ContinuousStatsCollector
