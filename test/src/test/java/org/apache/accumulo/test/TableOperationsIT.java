@@ -23,11 +23,13 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -37,14 +39,17 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.DefaultKeySizeConstraint;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
@@ -52,10 +57,13 @@ import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 public class TableOperationsIT {
@@ -177,13 +185,54 @@ public class TableOperationsIT {
     String originalTable = makeTableName();
     TableOperations tops = connector.tableOperations();
     
+    TreeSet<Text> splits = Sets.newTreeSet(Arrays.asList(new Text("a"), new Text("b"), new Text("c"), new Text("d")));
+    
     tops.create(originalTable);
-    tops.addSplits(originalTable, Sets.newTreeSet(Arrays.asList(new Text("a"), new Text("b"), new Text("c"), new Text("d"))));
+    tops.addSplits(originalTable, splits);
+    
+    BatchWriter bw = connector.createBatchWriter(originalTable, new BatchWriterConfig());
+    for (Text row : splits) {
+      Mutation m = new Mutation(row);
+      for (int i = 0; i < 10; i++) {
+        for (int j = 0; j < 10; j++) {
+          m.put(Integer.toString(i), Integer.toString(j), Integer.toString(i+j));
+        }
+      }
+      
+      bw.addMutation(m);
+    }
+      
+    bw.close();
     
     String clonedTable = makeTableName();
     
     tops.clone(originalTable, clonedTable, true, null, null);
     tops.merge(clonedTable, null, new Text("b"));
+    
+    Map<String,Integer> rowCounts = Maps.newHashMap();
+    Scanner s = connector.createScanner(clonedTable, new Authorizations());
+    for (Entry<Key,Value> entry : s) {
+      final Key key = entry.getKey();
+      String row = key.getRow().toString();
+      String cf = key.getColumnFamily().toString(), cq = key.getColumnQualifier().toString();
+      String value = entry.getValue().toString();
+      
+      if (rowCounts.containsKey(row)) {
+        rowCounts.put(row, rowCounts.get(row) + 1);
+      } else {
+        rowCounts.put(row, 1);
+      }
+      
+      Assert.assertEquals(Integer.parseInt(cf) + Integer.parseInt(cq), Integer.parseInt(value));
+    }
+    
+    Collection<Text> clonedSplits = tops.listSplits(clonedTable);
+    Set<Text> expectedSplits = Sets.newHashSet(new Text("b"), new Text("c"), new Text("d"));
+    for (Text clonedSplit : clonedSplits) {
+      Assert.assertTrue("Encountered unexpected split on the cloned table: " + clonedSplit, expectedSplits.remove(clonedSplit));
+    }
+    
+    Assert.assertTrue("Did not find all expected splits on the cloned table: " + expectedSplits, expectedSplits.isEmpty());
   }
 
   private Map<String,String> propsToMap(Iterable<Map.Entry<String,String>> props) {
