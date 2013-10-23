@@ -31,12 +31,12 @@ import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
-import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.impl.OfflineScanner;
+import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.mapreduce.BatchScanConfig;
@@ -45,12 +45,9 @@ import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
-import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.master.state.tables.TableState;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.Pair;
@@ -276,8 +273,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *           if the table name set on the configuration doesn't exist
    * @since 1.6.0
    */
-  protected static TabletLocator getTabletLocator(JobConf job, String tableName) throws TableNotFoundException {
-    return InputConfigurator.getTabletLocator(CLASS, job, tableName);
+  protected static TabletLocator getTabletLocator(JobConf job, String tableId) throws TableNotFoundException {
+    return InputConfigurator.getTabletLocator(CLASS, job, tableId);
   }
 
   // InputFormat doesn't have the equivalent of OutputFormat's checkOutputSpecs(JobContext job)
@@ -359,34 +356,23 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       split = (RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + split.getRange());
       Instance instance = getInstance(job);
-      String user = getPrincipal(job);
+      String principal = getPrincipal(job);
       AuthenticationToken token = getAuthenticationToken(job);
       Authorizations authorizations = getScanAuthorizations(job);
 
+      // in case the table name changed, we can still use the previous name for terms of configuration,
+      // but the scanner will use the table id resolved at job setup time
       BatchScanConfig tableConfig = getBatchScanConfig(job, split.getTableName());
 
-      // in case the table name changed, we can still use the previous name for terms of configuration,
-      // but for the scanner, we'll need to reference the new table name.
-      String actualNameForId = split.getTableName();
-      if (!(instance instanceof MockInstance)) {
-        try {
-          actualNameForId = Tables.getTableName(instance, split.getTableId());
-          if (!actualNameForId.equals(split.getTableName()))
-            log.debug("Table name changed from " + split.getTableName() + " to " + actualNameForId);
-        } catch (TableNotFoundException e) {
-          throw new IOException("The specified table was not found for id=" + split.getTableId());
-        }
-      }
 
       try {
-        log.debug("Creating connector with user: " + user);
-        Connector conn = instance.getConnector(user, token);
+        log.debug("Creating connector with user: " + principal);
         log.debug("Creating scanner for table: " + split.getTableName());
         log.debug("Authorizations are: " + authorizations);
         if (tableConfig.isOfflineScan()) {
-          scanner = new OfflineScanner(instance, new Credentials(user, token), split.getTableId(), authorizations);
+          scanner = new OfflineScanner(instance, new Credentials(principal, token), split.getTableId(), authorizations);
         } else {
-          scanner = conn.createScanner(actualNameForId, authorizations);
+          scanner = new ScannerImpl(instance, new Credentials(principal, token), split.getTableId(), authorizations);
         }
         if (tableConfig.shouldUseIsolatedScanners()) {
           log.info("Creating isolated scanner");
@@ -396,7 +382,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
           log.info("Using local iterators");
           scanner = new ClientSideIteratorScanner(scanner);
         }
-        setupIterators(job, scanner, split.getTableName());
+        setupIterators(job, scanner, split.getTableId());
       } catch (Exception e) {
         throw new IOException(e);
       }
@@ -439,102 +425,13 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
   }
 
-  Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(JobConf job, String tableName, List<Range> ranges) throws TableNotFoundException, AccumuloException,
+  Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(JobConf job, String tableId, List<Range> ranges) throws TableNotFoundException, AccumuloException,
       AccumuloSecurityException {
-
-    Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
 
     Instance instance = getInstance(job);
     Connector conn = instance.getConnector(getPrincipal(job), getAuthenticationToken(job));
-    String tableId = Tables.getTableId(instance, tableName);
-
-    if (Tables.getTableState(instance, tableId) != TableState.OFFLINE) {
-      Tables.clearCache(instance);
-      if (Tables.getTableState(instance, tableId) != TableState.OFFLINE) {
-        throw new AccumuloException("Table is online " + tableName + "(" + tableId + ") cannot scan table in offline mode ");
-      }
-    }
-
-    for (Range range : ranges) {
-      Text startRow;
-
-      if (range.getStartKey() != null)
-        startRow = range.getStartKey().getRow();
-      else
-        startRow = new Text();
-
-      Range metadataRange = new Range(new KeyExtent(new Text(tableId), startRow, null).getMetadataEntry(), true, null, false);
-      Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-      MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
-      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.LastLocationColumnFamily.NAME);
-      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
-      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.FutureLocationColumnFamily.NAME);
-      scanner.setRange(metadataRange);
-
-      RowIterator rowIter = new RowIterator(scanner);
-
-      KeyExtent lastExtent = null;
-
-      while (rowIter.hasNext()) {
-        Iterator<Map.Entry<Key,Value>> row = rowIter.next();
-        String last = "";
-        KeyExtent extent = null;
-        String location = null;
-
-        while (row.hasNext()) {
-          Map.Entry<Key,Value> entry = row.next();
-          Key key = entry.getKey();
-
-          if (key.getColumnFamily().equals(MetadataSchema.TabletsSection.LastLocationColumnFamily.NAME)) {
-            last = entry.getValue().toString();
-          }
-
-          if (key.getColumnFamily().equals(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME)
-              || key.getColumnFamily().equals(MetadataSchema.TabletsSection.FutureLocationColumnFamily.NAME)) {
-            location = entry.getValue().toString();
-          }
-
-          if (MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
-            extent = new KeyExtent(key.getRow(), entry.getValue());
-          }
-
-        }
-
-        if (location != null)
-          return null;
-
-        if (!extent.getTableId().toString().equals(tableId)) {
-          throw new AccumuloException("Saw unexpected table Id " + tableId + " " + extent);
-        }
-
-        if (lastExtent != null && !extent.isPreviousExtent(lastExtent)) {
-          throw new AccumuloException(" " + lastExtent + " is not previous extent " + extent);
-        }
-
-        Map<KeyExtent,List<Range>> tabletRanges = binnedRanges.get(last);
-        if (tabletRanges == null) {
-          tabletRanges = new HashMap<KeyExtent,List<Range>>();
-          binnedRanges.put(last, tabletRanges);
-        }
-
-        List<Range> rangeList = tabletRanges.get(extent);
-        if (rangeList == null) {
-          rangeList = new ArrayList<Range>();
-          tabletRanges.put(extent, rangeList);
-        }
-
-        rangeList.add(range);
-
-        if (extent.getEndRow() == null || range.afterEndKey(new Key(extent.getEndRow()).followingKey(PartialKey.ROW))) {
-          break;
-        }
-
-        lastExtent = extent;
-      }
-
-    }
-
-    return binnedRanges;
+    
+    return InputConfigurator.binOffline(tableId, ranges, instance, conn);
   }
 
   /**
@@ -562,16 +459,18 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
       TabletLocator tl;
       try {
+        // resolve table name to id once, and use id from this point forward
+        tableId = Tables.getTableId(getInstance(job), tableName);
         if (tableConfig.isOfflineScan()) {
-          binnedRanges = binOfflineTable(job, tableName, ranges);
+          binnedRanges = binOfflineTable(job, tableId, ranges);
           while (binnedRanges == null) {
             // Some tablets were still online, try again
             UtilWaitThread.sleep(100 + (int) (Math.random() * 100)); // sleep randomly between 100 and 200 ms
-            binnedRanges = binOfflineTable(job, tableName, ranges);
+            binnedRanges = binOfflineTable(job, tableId, ranges);
           }
         } else {
           Instance instance = getInstance(job);
-          tl = getTabletLocator(job, tableName);
+          tl = getTabletLocator(job, tableId);
           // its possible that the cache could contain complete, but old information about a tables tablets... so clear it
           tl.invalidateCache();
           Credentials creds = new Credentials(getPrincipal(job), getAuthenticationToken(job));
@@ -582,7 +481,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
                 throw new TableDeletedException(tableId);
               if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
                 throw new TableOfflineException(instance, tableId);
-              tableId = Tables.getTableId(instance, tableName);
             }
             binnedRanges.clear();
             log.warn("Unable to locate bins for specified ranges. Retrying.");
