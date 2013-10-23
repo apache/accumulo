@@ -189,7 +189,7 @@ public class SortedLogRecovery {
         lastStartToFinish.update(fileno, key.seq);
         
         // Tablet server finished the minor compaction, but didn't remove the entry from the METADATA table.
-        log.error("filename in compaction start " + key.filename);
+        log.debug("minor compaction into " + key.filename + " finished, but was still in the METADATA");
         if (tabletFiles.contains(key.filename))
           lastStartToFinish.update(-1);
       } else if (key.event == COMPACTION_FINISH) {
