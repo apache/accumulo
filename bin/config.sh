@@ -25,6 +25,7 @@
 #  HADOOP_HOME        Home dir for hadoop.
 # 
 # Values always set by script.
+#  MALLOC_ARENA_MAX   To work around a memory management bug (see ACCUMULO-847)
 #  GC                 Machine to rn GC daemon on.  Used by start-here.sh script
 #  MONITOR            Machine to run monitor daemon on. Used by start-here.sh script
 #  SSH                Default ssh parameters used to start daemons
