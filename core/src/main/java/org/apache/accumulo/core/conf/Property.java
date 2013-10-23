@@ -534,7 +534,8 @@ public enum Property {
     }
 
     return validTableProperties.contains(key) || key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())
-        || key.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey()) || key.startsWith(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey());
+        || key.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey()) || key.startsWith(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey())
+        || key.startsWith(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey());
   }
 
   private static final EnumSet<Property> fixedProperties = EnumSet.of(Property.TSERV_CLIENTPORT, Property.TSERV_NATIVEMAP_ENABLED,
@@ -552,7 +553,8 @@ public enum Property {
     // white list prefixes
     return key.startsWith(Property.TABLE_PREFIX.getKey()) || key.startsWith(Property.TSERV_PREFIX.getKey()) || key.startsWith(Property.LOGGER_PREFIX.getKey())
         || key.startsWith(Property.MASTER_PREFIX.getKey()) || key.startsWith(Property.GC_PREFIX.getKey())
-        || key.startsWith(Property.MONITOR_PREFIX.getKey() + "banner.") || key.startsWith(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey());
+        || key.startsWith(Property.MONITOR_PREFIX.getKey() + "banner.") || key.startsWith(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey())
+        || key.startsWith(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey());
   }
 
   public static Property getPropertyByKey(String key) {
@@ -592,10 +594,12 @@ public enum Property {
 
   public static Map<String,String> getCompactionStrategyOptions(AccumuloConfiguration tableConf) {
     Map<String,String> longNames = tableConf.getAllPropertiesWithPrefix(Property.TABLE_COMPACTION_STRATEGY_PREFIX);
+    log.info("longNames " + longNames);
     Map<String,String> result = new HashMap<String, String>();
     for (Entry<String,String> entry : longNames.entrySet()) {
-      result.put(entry.getKey().substring(0, Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey().length()), entry.getValue());
+      result.put(entry.getKey().substring(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey().length()), entry.getValue());
     }
+    log.info("result " + result);
     return result;
   }
 }

@@ -3034,10 +3034,10 @@ public class Tablet {
   }
   
   
- private Map<FileRef,Pair<Key,Key>> getFirstAndLastKeys(MajorCompactionRequest request) throws IOException {
+  private Map<FileRef,Pair<Key,Key>> getFirstAndLastKeys(SortedMap<FileRef,DataFileValue> allFiles) throws IOException {
     Map<FileRef,Pair<Key,Key>> result = new HashMap<FileRef,Pair<Key,Key>>();
     FileOperations fileFactory = FileOperations.getInstance();
-    for (Entry<FileRef,DataFileValue> entry : request.getFiles().entrySet()) {
+    for (Entry<FileRef,DataFileValue> entry : allFiles.entrySet()) {
       FileRef file = entry.getKey();
       FileSystem ns = fs.getFileSystemByPath(file.path());
       FileSKVIterator openReader = fileFactory.openReader(file.path().toString(), true, ns, ns.getConf(), this.getTableConfiguration());
@@ -3111,13 +3111,15 @@ public class Tablet {
     // acquire file info outside of tablet lock
     CompactionStrategy strategy  = Property.createInstanceFromPropertyName(acuTableConf, Property.TABLE_COMPACTION_STRATEGY, CompactionStrategy.class, new DefaultCompactionStrategy());
     strategy.init(Property.getCompactionStrategyOptions(acuTableConf));
-    MajorCompactionRequest request = new MajorCompactionRequest(extent, reason, fs, acuTableConf);
-    request.setFiles(datafileManager.getDatafileSizes());
-    strategy.gatherInformation(request);
+
     
     Map<FileRef,Pair<Key,Key>> firstAndLastKeys = null;
     if (reason == MajorCompactionReason.CHOP) {
-        firstAndLastKeys = getFirstAndLastKeys(request);
+      firstAndLastKeys = getFirstAndLastKeys(datafileManager.getDatafileSizes());
+    } else if (reason != MajorCompactionReason.USER) {
+      MajorCompactionRequest request = new MajorCompactionRequest(extent, reason, fs, acuTableConf);
+      request.setFiles(datafileManager.getDatafileSizes());
+      strategy.gatherInformation(request);
     }
     
     Map<FileRef, DataFileValue> filesToCompact;
@@ -3151,14 +3153,16 @@ public class Tablet {
         // removed by a major compaction
         cleanUpFiles(fs, fs.listStatus(this.location), false);
       }
-      request.setFiles(datafileManager.getDatafileSizes());
+      SortedMap<FileRef,DataFileValue> allFiles = datafileManager.getDatafileSizes();
       List<FileRef> inputFiles = new ArrayList<FileRef>();
-      if (request.getReason() == MajorCompactionReason.CHOP) {
+      if (reason == MajorCompactionReason.CHOP) {
         // enforce rules: files with keys outside our range need to be compacted
-        inputFiles.addAll(findChopFiles(extent, firstAndLastKeys, request.getFiles().keySet()));
-      } else if (request.getReason() == MajorCompactionReason.USER) {
-        inputFiles.addAll(request.getFiles().keySet());
+        inputFiles.addAll(findChopFiles(extent, firstAndLastKeys, allFiles.keySet()));
+      } else if (reason == MajorCompactionReason.USER) {
+        inputFiles.addAll(allFiles.keySet());
       } else {
+        MajorCompactionRequest request = new MajorCompactionRequest(extent, reason, fs, acuTableConf);
+        request.setFiles(allFiles);
         plan = strategy.getCompactionPlan(request);
         if (plan != null)
           inputFiles.addAll(plan.inputFiles);
@@ -3172,9 +3176,9 @@ public class Tablet {
       droppedFiles.addAll(inputFiles);
       if (plan != null)
         droppedFiles.addAll(plan.deleteFiles);
-      propogateDeletes = !(droppedFiles.equals(request.getFiles().keySet()));
+      propogateDeletes = !(droppedFiles.equals(allFiles.keySet()));
       log.debug("Major compaction plan: " + plan + " propogate deletes : " + propogateDeletes);
-      filesToCompact = new HashMap<FileRef, DataFileValue>(request.getFiles());
+      filesToCompact = new HashMap<FileRef,DataFileValue>(allFiles);
       filesToCompact.keySet().retainAll(inputFiles);
       
       t3 = System.currentTimeMillis();

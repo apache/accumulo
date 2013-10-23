@@ -35,7 +35,7 @@ import org.apache.hadoop.fs.Path;
 /**
  * Information that can be used to determine how a tablet is to be major compacted, if needed.
  */
-public class MajorCompactionRequest {
+public class MajorCompactionRequest implements Cloneable {
   final private KeyExtent extent;
   final private MajorCompactionReason reason;
   final private VolumeManager volumeManager;
@@ -54,6 +54,12 @@ public class MajorCompactionRequest {
     this.files = Collections.emptyMap();
   }
   
+  public MajorCompactionRequest(MajorCompactionRequest mcr) {
+    this(mcr.extent, mcr.reason, mcr.volumeManager, mcr.tableConfig);
+    // know this is already unmodifiable, no need to wrap again
+    this.files = mcr.files;
+  }
+
   public KeyExtent getExtent() {
     return extent;
   }
