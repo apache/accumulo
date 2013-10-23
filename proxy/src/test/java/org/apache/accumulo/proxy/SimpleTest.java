@@ -1508,6 +1508,6 @@ public class SimpleTest {
   @AfterClass
   public static void tearDownMiniCluster() throws Exception {
     accumulo.stop();
-    //folder.delete();
+    folder.delete();
   }
 }
