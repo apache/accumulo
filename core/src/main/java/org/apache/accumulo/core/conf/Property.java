@@ -578,7 +578,7 @@ public enum Property {
     try {
       Class<? extends T> clazz = AccumuloVFSClassLoader.loadClass(clazzName, base);
       instance = clazz.newInstance();
-      log.debug("Loaded class : " + clazzName, new Throwable());
+      log.debug("Loaded class : " + clazzName);
     } catch (Exception e) {
       log.warn("Failed to load class ", e);
     }
