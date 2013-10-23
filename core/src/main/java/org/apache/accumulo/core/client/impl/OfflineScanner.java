@@ -67,6 +67,7 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
 class OfflineIterator implements Iterator<Entry<Key,Value>> {
@@ -227,13 +228,10 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       throw new AccumuloException(" " + currentExtent + " is not previous extent " + extent);
     
     String tablesDir = instance.getConfiguration().get(Property.INSTANCE_DFS_DIR) + "/tables";
-    String[] volumes = instance.getConfiguration().get(Property.INSTANCE_VOLUMES).split(",");
-    if (volumes.length > 1) {
-      tablesDir = volumes[0] + tablesDir;
-    }
+
     List<String> absFiles = new ArrayList<String>();
     for (String relPath : relFiles) {
-      if (relFiles.contains(":")) {
+      if (relPath.contains(":")) {
         absFiles.add(relPath);
       } else {
         // handle old-style relative paths
@@ -298,7 +296,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     
     Configuration conf = CachedConfiguration.getInstance();
     
-    FileSystem fs = FileUtil.getFileSystem(conf, instance.getConfiguration());
+    FileSystem defaultFs = FileUtil.getFileSystem(conf, instance.getConfiguration());
     
     for (SortedKeyValueIterator<Key,Value> reader : readers) {
       ((FileSKVIterator) reader).close();
@@ -308,6 +306,10 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     
     // TODO need to close files - ACCUMULO-1303
     for (String file : absFiles) {
+      FileSystem fs = defaultFs;
+      if (file.contains(":"))
+        fs = new Path(file).getFileSystem(conf);
+
       FileSKVIterator reader = FileOperations.getInstance().openReader(file, false, fs, conf, acuTableConf, null, null);
       readers.add(reader);
     }

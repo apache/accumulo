@@ -94,6 +94,9 @@ public class UniqueColumns extends Configured implements Tool {
     
     String clone = opts.tableName;
     Connector conn = null;
+    
+    opts.setAccumuloConfigs(job);
+
     if (opts.offline) {
       /*
        * this example clones the table and takes it offline. If you plan to run map reduce jobs over a table many times, it may be more efficient to compact the
@@ -106,11 +109,11 @@ public class UniqueColumns extends Configured implements Tool {
       conn.tableOperations().offline(clone);
       
       AccumuloInputFormat.setOfflineTableScan(job, true);
+      AccumuloInputFormat.setInputTableName(job, clone);
     }
     
     job.setInputFormatClass(AccumuloInputFormat.class);
-    opts.setAccumuloConfigs(job);
-    
+
     job.setMapperClass(UMapper.class);
     job.setMapOutputKeyClass(Text.class);
     job.setMapOutputValueClass(Text.class);
