@@ -32,7 +32,8 @@ public class DefaultCompactionStrategy extends CompactionStrategy {
   
   @Override
   public boolean shouldCompact(MajorCompactionRequest request) throws IOException {
-    return getCompactionPlan(request) != null;
+    CompactionPlan plan = getCompactionPlan(request);
+    return plan != null && !plan.inputFiles.isEmpty();
   }
  
   @Override

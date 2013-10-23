@@ -48,7 +48,6 @@ import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tabletserver.FileManager.ScanFileManager;
 import org.apache.accumulo.server.tabletserver.Tablet.MinorCompactionReason;
-import org.apache.accumulo.server.tabletserver.compaction.CompactionPlan;
 import org.apache.accumulo.server.tabletserver.compaction.CompactionStrategy;
 import org.apache.accumulo.server.tabletserver.compaction.DefaultCompactionStrategy;
 import org.apache.accumulo.server.tabletserver.compaction.MajorCompactionReason;

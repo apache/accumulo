@@ -578,13 +578,13 @@ public enum Property {
     try {
       Class<? extends T> clazz = AccumuloVFSClassLoader.loadClass(clazzName, base);
       instance = clazz.newInstance();
-      log.info("Loaded class : " + clazzName);
+      log.debug("Loaded class : " + clazzName, new Throwable());
     } catch (Exception e) {
       log.warn("Failed to load class ", e);
     }
 
     if (instance == null) {
-      log.info("Using " + defaultInstance.getClass().getName());
+      log.info("Using default class " + defaultInstance.getClass().getName());
       instance = defaultInstance;
     }
     return instance;
