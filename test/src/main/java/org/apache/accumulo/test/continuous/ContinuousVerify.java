@@ -64,7 +64,7 @@ public class ContinuousVerify extends Configured implements Tool {
     }
   }
   
-  private static void increment(Object obj) {
+  static void increment(Object obj) {
     try {
       INCREMENT.invoke(obj, 1L);
     } catch (Exception ex) {

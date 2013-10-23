@@ -32,6 +32,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.test.continuous.ContinuousIngest.BaseOpts;
+import org.apache.accumulo.test.continuous.ContinuousIngest.ShortConverter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.Text;
@@ -108,16 +109,16 @@ public class ContinuousMoru extends Configured implements Tool {
         }
         
       } else {
-        context.getCounter(Counts.SELF_READ).increment(1);
+        ContinuousVerify.increment(context.getCounter(Counts.SELF_READ));
       }
     }
   }
   
   static class Opts extends BaseOpts {
-    @Parameter(names = "--maxColF", description = "maximum column family value to use")
+    @Parameter(names = "--maxColF", description = "maximum column family value to use", converter=ShortConverter.class)
     short maxColF = Short.MAX_VALUE;
     
-    @Parameter(names = "--maxColQ", description = "maximum column qualifier value to use")
+    @Parameter(names = "--maxColQ", description = "maximum column qualifier value to use", converter=ShortConverter.class)
     short maxColQ = Short.MAX_VALUE;
     
     @Parameter(names = "--maxMappers", description = "the maximum number of mappers to use", required = true, validateWith = PositiveInteger.class)
