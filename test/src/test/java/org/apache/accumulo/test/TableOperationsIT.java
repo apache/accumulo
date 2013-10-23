@@ -22,12 +22,14 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -38,6 +40,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DiskUsage;
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.DefaultKeySizeConstraint;
 import org.apache.accumulo.core.data.Mutation;
@@ -52,6 +55,8 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+
+import com.google.common.collect.Sets;
 
 public class TableOperationsIT {
 
@@ -165,6 +170,20 @@ public class TableOperationsIT {
     Map<String,String> props = propsToMap(itrProps);
     assertEquals(DefaultKeySizeConstraint.class.getName(), props.get(Property.TABLE_CONSTRAINT_PREFIX.toString() + "1"));
     connector.tableOperations().delete(tableName);
+  }
+  
+  @Test(timeout = 30 * 1000)
+  public void createMergeClonedTable() throws Exception {
+    String originalTable = makeTableName();
+    TableOperations tops = connector.tableOperations();
+    
+    tops.create(originalTable);
+    tops.addSplits(originalTable, Sets.newTreeSet(Arrays.asList(new Text("a"), new Text("b"), new Text("c"), new Text("d"))));
+    
+    String clonedTable = makeTableName();
+    
+    tops.clone(originalTable, clonedTable, true, null, null);
+    tops.merge(clonedTable, null, new Text("b"));
   }
 
   private Map<String,String> propsToMap(Iterable<Map.Entry<String,String>> props) {
