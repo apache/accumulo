@@ -3599,7 +3599,6 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       Instance instance = HdfsZooInstance.getInstance();
       ServerConfiguration conf = new ServerConfiguration(instance);
       Accumulo.init(fs, conf, "tserver");
-      ensureHdfsSyncIsEnabled(fs);
       TabletServer server = new TabletServer(conf, fs);
       server.config(hostname);
       Accumulo.enableTracing(hostname, "tserver");
@@ -3607,60 +3606,6 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     } catch (Exception ex) {
       log.error("Uncaught exception in TabletServer.main, exiting", ex);
       System.exit(1);
-    }
-  }
-  
-  protected static void ensureHdfsSyncIsEnabled(VolumeManager volumes) {
-    for (Entry<String,? extends FileSystem> entry : volumes.getFileSystems().entrySet()) {
-      final String volumeName = entry.getKey();
-      final FileSystem fs = entry.getValue();
-      
-      if (fs instanceof DistributedFileSystem) {
-        final String DFS_DURABLE_SYNC = "dfs.durable.sync", DFS_SUPPORT_APPEND = "dfs.support.append";
-        final String ticketMessage = "See ACCUMULO-623 and ACCUMULO-1637 for more details.";
-        // Check to make sure that we have proper defaults configured
-        try {
-          // If the default is off (0.20.205.x or 1.0.x)
-          DFSConfigKeys configKeys = new DFSConfigKeys();
-          
-          // Can't use the final constant itself as Java will inline it at compile time
-          Field dfsSupportAppendDefaultField = configKeys.getClass().getField("DFS_SUPPORT_APPEND_DEFAULT");
-          boolean dfsSupportAppendDefaultValue = dfsSupportAppendDefaultField.getBoolean(configKeys);
-          
-          if (!dfsSupportAppendDefaultValue) {
-            // See if the user did the correct override
-            if (!fs.getConf().getBoolean(DFS_SUPPORT_APPEND, false)) {
-              String msg = "Accumulo requires that dfs.support.append to true. " + ticketMessage;
-              log.fatal(msg);
-              throw new RuntimeException(msg);
-            }
-          }
-        } catch (NoSuchFieldException e) {
-          // If we can't find DFSConfigKeys.DFS_SUPPORT_APPEND_DEFAULT, the user is running
-          // 1.1.x or 1.2.x. This is ok, though, as, by default, these versions have append/sync enabled.
-        } catch (Exception e) {
-          log.warn("Error while checking for " + DFS_SUPPORT_APPEND + " on volume " + volumeName + ". The user should ensure that Hadoop is configured to properly supports append and sync. " + ticketMessage, e);
-        }
-        
-        // If either of these parameters are configured to be false, fail.
-        // This is a sign that someone is writing bad configuration.
-        if (!fs.getConf().getBoolean(DFS_SUPPORT_APPEND, true) || !fs.getConf().getBoolean(DFS_DURABLE_SYNC, true)) {
-          String msg = "Accumulo requires that " + DFS_SUPPORT_APPEND + " and " + DFS_DURABLE_SYNC + " not be configured as false. " + ticketMessage;
-          log.fatal(msg);
-          throw new RuntimeException(msg);
-        }
-        
-        try {
-          // if this class exists
-          Class.forName("org.apache.hadoop.fs.CreateFlag");
-          // we're running hadoop 2.0, 1.1
-          if (!fs.getConf().getBoolean("dfs.datanode.synconclose", false)) {
-            log.warn("dfs.datanode.synconclose set to false: data loss is possible on system reset or power loss on volume " + volumeName);
-          }
-        } catch (ClassNotFoundException ex) {
-          // hadoop 1.0
-        }
-      }
     }
   }
 

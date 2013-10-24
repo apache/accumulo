@@ -14,13 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.tabletserver;
+package org.apache.accumulo.server.fs;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Map;
 
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -44,7 +45,7 @@ public class TabletServerSyncCheckTest {
     FileSystem fs = new TestFileSystem(conf);
     TestVolumeManagerImpl vm = new TestVolumeManagerImpl(ImmutableMap.of("foo", fs));
     
-    TabletServer.ensureHdfsSyncIsEnabled(vm);
+    vm.ensureSyncIsEnabled();
   }
   
   @Test(expected = RuntimeException.class)
@@ -55,8 +56,8 @@ public class TabletServerSyncCheckTest {
     FileSystem fs1 = new TestFileSystem(conf1);
     FileSystem fs2 = new TestFileSystem(conf2);
     TestVolumeManagerImpl vm = new TestVolumeManagerImpl(ImmutableMap.of("bar", fs2, "foo", fs1));
-    
-    TabletServer.ensureHdfsSyncIsEnabled(vm);
+
+    vm.ensureSyncIsEnabled();
   }
   
   @Test(expected = RuntimeException.class)
@@ -66,8 +67,8 @@ public class TabletServerSyncCheckTest {
     
     FileSystem fs = new TestFileSystem(conf);
     TestVolumeManagerImpl vm = new TestVolumeManagerImpl(ImmutableMap.of("foo", fs));
-    
-    TabletServer.ensureHdfsSyncIsEnabled(vm);
+
+    vm.ensureSyncIsEnabled();
   }
   
   private class TestFileSystem extends DistributedFileSystem {
@@ -84,11 +85,12 @@ public class TabletServerSyncCheckTest {
     
   }
   
-  private class TestVolumeManagerImpl implements VolumeManager {
+  private class TestVolumeManagerImpl extends VolumeManagerImpl {
     
     protected final Map<String,? extends FileSystem> volumes;
 
     public TestVolumeManagerImpl(Map<String,? extends FileSystem> volumes) {
+      super(volumes, volumes.keySet().iterator().next(), new ConfigurationCopy(Collections.<String,String> emptyMap()));
       this.volumes = volumes;
     }
 
@@ -223,7 +225,7 @@ public class TabletServerSyncCheckTest {
     }
 
     @Override
-    public Path getFullPath(FileType fileType, String fileName) throws IOException {
+    public Path getFullPath(FileType fileType, String fileName) {
       return null;
     }
 
