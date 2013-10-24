@@ -82,13 +82,7 @@ abstract class Basic extends BasicServlet {
         props.put(entry.getKey().substring(prefixLength), entry.getValue());
       }
       
-      AuthenticationToken token;
-      try {
-        token = AccumuloClassLoader.getClassLoader().loadClass(conf.get(Property.TRACE_TOKEN_TYPE)).asSubclass(AuthenticationToken.class).newInstance();
-      } catch (Exception e) {
-        throw new AccumuloException(e);
-      }
-      
+      AuthenticationToken token = Property.createInstanceFromPropertyName(conf, Property.TRACE_TOKEN_TYPE, AuthenticationToken.class, new PasswordToken());
       token.init(props);
       at = token;
     }

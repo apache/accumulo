@@ -84,22 +84,19 @@ public class SecurityOperation {
   }
   
   protected static Authorizor getAuthorizor(String instanceId, boolean initialize) {
-    Authorizor toRet = Master.createInstanceFromPropertyName(ServerConfiguration.getSiteConfiguration(), Property.INSTANCE_SECURITY_AUTHORIZOR,
-        Authorizor.class, ZKAuthorizor.getInstance());
+    Authorizor toRet = Property.createInstanceFromPropertyName(ServerConfiguration.getSiteConfiguration(), Property.INSTANCE_SECURITY_AUTHORIZOR, Authorizor.class, ZKAuthorizor.getInstance());
     toRet.initialize(instanceId, initialize);
     return toRet;
   }
   
   protected static Authenticator getAuthenticator(String instanceId, boolean initialize) {
-    Authenticator toRet = Master.createInstanceFromPropertyName(ServerConfiguration.getSiteConfiguration(), Property.INSTANCE_SECURITY_AUTHENTICATOR,
-        Authenticator.class, ZKAuthenticator.getInstance());
+    Authenticator toRet = Property.createInstanceFromPropertyName(ServerConfiguration.getSiteConfiguration(), Property.INSTANCE_SECURITY_AUTHENTICATOR, Authenticator.class, ZKAuthenticator.getInstance());
     toRet.initialize(instanceId, initialize);
     return toRet;
   }
   
   protected static PermissionHandler getPermHandler(String instanceId, boolean initialize) {
-    PermissionHandler toRet = Master.createInstanceFromPropertyName(ServerConfiguration.getSiteConfiguration(), Property.INSTANCE_SECURITY_PERMISSION_HANDLER,
-        PermissionHandler.class, ZKPermHandler.getInstance());
+    PermissionHandler toRet = Property.createInstanceFromPropertyName(ServerConfiguration.getSiteConfiguration(), Property.INSTANCE_SECURITY_PERMISSION_HANDLER, PermissionHandler.class, ZKPermHandler.getInstance());
     toRet.initialize(instanceId, initialize);
     return toRet;
   }

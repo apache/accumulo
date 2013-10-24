@@ -202,19 +202,7 @@ public class TabletServerResourceManager {
     
     fileManager = new FileManager(conf, fs, maxOpenFiles, _dCache, _iCache);
     
-    try {
-      Class<? extends MemoryManager> clazz = AccumuloVFSClassLoader.loadClass(acuConf.get(Property.TSERV_MEM_MGMT), MemoryManager.class);
-      memoryManager = clazz.newInstance();
-      memoryManager.init(conf);
-      log.debug("Loaded memory manager : " + memoryManager.getClass().getName());
-    } catch (Exception e) {
-      log.error("Failed to find memory manger in config, using default", e);
-    }
-    
-    if (memoryManager == null) {
-      memoryManager = new LargestFirstMemoryManager();
-    }
-    
+    memoryManager = Property.createInstanceFromPropertyName(acuConf, Property.TSERV_MEM_MGMT, MemoryManager.class, new LargestFirstMemoryManager());
     memMgmt = new MemoryManagementFramework();
   }
   

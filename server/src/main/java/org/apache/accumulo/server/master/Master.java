@@ -426,26 +426,6 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     listener.waitForEvents(ONE_SECOND);
   }
   
-  // TODO: maybe move this to Property? We do this in TabletServer, Master, TableLoadBalancer, etc. - ACCUMULO-1295
-  public static <T> T createInstanceFromPropertyName(AccumuloConfiguration conf, Property property, Class<T> base, T defaultInstance) {
-    String clazzName = conf.get(property);
-    T instance = null;
-    
-    try {
-      Class<? extends T> clazz = AccumuloVFSClassLoader.loadClass(clazzName, base);
-      instance = clazz.newInstance();
-      log.info("Loaded class : " + clazzName);
-    } catch (Exception e) {
-      log.warn("Failed to load class ", e);
-    }
-    
-    if (instance == null) {
-      log.info("Using " + defaultInstance.getClass().getName());
-      instance = defaultInstance;
-    }
-    return instance;
-  }
-  
   public Master(ServerConfiguration config, VolumeManager fs, String hostname) throws IOException {
     this.serverConfig = config;
     this.instance = config.getInstance();
@@ -459,7 +439,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     ThriftTransportPool.getInstance().setIdleTime(aconf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
     security = AuditedSecurityOperation.getInstance();
     tserverSet = new LiveTServerSet(instance, config.getConfiguration(), this);
-    this.tabletBalancer = createInstanceFromPropertyName(aconf, Property.MASTER_TABLET_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
+    this.tabletBalancer = Property.createInstanceFromPropertyName(aconf, Property.MASTER_TABLET_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
     this.tabletBalancer.init(serverConfig);
   }
   
@@ -763,8 +743,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     
     private void updatePlugins(String property) {
       if (property.equals(Property.MASTER_TABLET_BALANCER.getKey())) {
-        TabletBalancer balancer = createInstanceFromPropertyName(instance.getConfiguration(), Property.MASTER_TABLET_BALANCER, TabletBalancer.class,
-            new DefaultLoadBalancer());
+        TabletBalancer balancer = Property.createInstanceFromPropertyName(instance.getConfiguration(), Property.MASTER_TABLET_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
         balancer.init(serverConfig);
         tabletBalancer = balancer;
         log.info("tablet balancer changed to " + tabletBalancer.getClass().getName());

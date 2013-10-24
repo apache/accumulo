@@ -66,11 +66,7 @@ public class VolumeManagerImpl implements VolumeManager {
     this.defaultVolume = defaultVolume;
     this.conf = conf;
     ensureSyncIsEnabled();
-    try {
-      chooser = (VolumeChooser) this.getClass().getClassLoader().loadClass(conf.get(Property.GENERAL_VOLUME_CHOOSER)).newInstance();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+    chooser = Property.createInstanceFromPropertyName(conf, Property.GENERAL_VOLUME_CHOOSER, VolumeChooser.class, new RandomVolumeChooser());
   }
 
   public static org.apache.accumulo.server.fs.VolumeManager getLocal() throws IOException {
