@@ -60,6 +60,8 @@ import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.StopWatch;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.trace.instrument.TraceRunnable;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.hadoop.conf.Configuration;
@@ -115,8 +117,9 @@ public class BulkImporter {
     timer.start(Timers.TOTAL);
     
     Configuration conf = CachedConfiguration.getInstance();
-    final FileSystem fs = FileSystem.get(conf);
-    
+    VolumeManagerImpl.get(acuConf);
+    final VolumeManager fs = VolumeManagerImpl.get(acuConf);
+
     Set<Path> paths = new HashSet<Path>();
     for (String file : files) {
       paths.add(new Path(file));
@@ -124,11 +127,6 @@ public class BulkImporter {
     AssignmentStats assignmentStats = new AssignmentStats(paths.size());
     
     final Map<Path,List<KeyExtent>> completeFailures = Collections.synchronizedSortedMap(new TreeMap<Path,List<KeyExtent>>());
-    
-    if (!fs.exists(failureDir)) {
-      log.error(failureDir + " does not exist");
-      throw new RuntimeException("Directory does not exist " + failureDir);
-    }
     
     ClientService.Client client = null;
     final TabletLocator locator = TabletLocator.getLocator(instance, new Text(tableId));
@@ -256,7 +254,7 @@ public class BulkImporter {
         }
       }
       assignmentStats.assignmentsAbandoned(completeFailures);
-      Set<Path> failedFailures = processFailures(conf, fs, failureDir, completeFailures);
+      Set<Path> failedFailures = processFailures(completeFailures);
       assignmentStats.unrecoveredMapFiles(failedFailures);
       
       timer.stop(Timers.TOTAL);
@@ -292,7 +290,7 @@ public class BulkImporter {
     log.debug(String.format("Total                : %,10.2f secs", timer.getSecs(Timers.TOTAL)));
   }
   
-  private Set<Path> processFailures(Configuration conf, FileSystem fs, Path failureDir, Map<Path,List<KeyExtent>> completeFailures) {
+  private Set<Path> processFailures(Map<Path,List<KeyExtent>> completeFailures) {
     // we should check if map file was not assigned to any tablets, then we
     // should just move it; not currently being done?
     
@@ -330,7 +328,7 @@ public class BulkImporter {
     return result;
   }
   
-  private Map<Path,List<AssignmentInfo>> estimateSizes(final AccumuloConfiguration acuConf, final Configuration conf, final FileSystem fs,
+  private Map<Path,List<AssignmentInfo>> estimateSizes(final AccumuloConfiguration acuConf, final Configuration conf, final VolumeManager vm,
       Map<Path,List<TabletLocation>> assignments, Collection<Path> paths, int numThreads) {
     
     long t1 = System.currentTimeMillis();
@@ -338,6 +336,7 @@ public class BulkImporter {
     
     try {
       for (Path path : paths) {
+        FileSystem fs = vm.getFileSystemByPath(path);
         mapFileSizes.put(path, fs.getContentSummary(path).getLength());
       }
     } catch (IOException e) {
@@ -366,6 +365,7 @@ public class BulkImporter {
           Map<KeyExtent,Long> estimatedSizes = null;
           
           try {
+            FileSystem fs = vm.getFileSystemByPath(entry.getKey());
             estimatedSizes = FileUtil.estimateSizes(acuConf, entry.getKey(), mapFileSizes.get(entry.getKey()), extentsOf(entry.getValue()), conf, fs);
           } catch (IOException e) {
             log.warn("Failed to estimate map file sizes " + e.getMessage());
@@ -420,7 +420,7 @@ public class BulkImporter {
   }
   
   private Map<Path,List<KeyExtent>> assignMapFiles(AccumuloConfiguration acuConf, Instance instance, Configuration conf, Credentials credentials,
-      FileSystem fs, String tableId, Map<Path,List<TabletLocation>> assignments, Collection<Path> paths, int numThreads, int numMapThreads) {
+      VolumeManager fs, String tableId, Map<Path,List<TabletLocation>> assignments, Collection<Path> paths, int numThreads, int numMapThreads) {
     timer.start(Timers.EXAMINE_MAP_FILES);
     Map<Path,List<AssignmentInfo>> assignInfo = estimateSizes(acuConf, conf, fs, assignments, paths, numMapThreads);
     timer.stop(Timers.EXAMINE_MAP_FILES);
@@ -594,7 +594,7 @@ public class BulkImporter {
           
           for (PathSize pathSize : entry.getValue()) {
             org.apache.accumulo.core.data.thrift.MapFileInfo mfi = new org.apache.accumulo.core.data.thrift.MapFileInfo(pathSize.estSize);
-            tabletFiles.put(pathSize.path.toUri().getPath().toString(), mfi);
+            tabletFiles.put(pathSize.path.toString(), mfi);
           }
         }
         
@@ -614,12 +614,13 @@ public class BulkImporter {
     }
   }
   
-  public static List<TabletLocation> findOverlappingTablets(AccumuloConfiguration acuConf, FileSystem fs, TabletLocator locator, Path file,
+  public static List<TabletLocation> findOverlappingTablets(AccumuloConfiguration acuConf, VolumeManager fs, TabletLocator locator, Path file,
       Credentials credentials) throws Exception {
     return findOverlappingTablets(acuConf, fs, locator, file, null, null, credentials);
   }
   
-  public static List<TabletLocation> findOverlappingTablets(AccumuloConfiguration acuConf, FileSystem fs, TabletLocator locator, Path file, KeyExtent failed,
+  public static List<TabletLocation> findOverlappingTablets(AccumuloConfiguration acuConf, VolumeManager fs, TabletLocator locator, Path file,
+      KeyExtent failed,
       Credentials credentials) throws Exception {
     locator.invalidateCache(failed);
     Text start = failed.getPrevEndRow();
@@ -630,12 +631,13 @@ public class BulkImporter {
   
   final static byte[] byte0 = {0};
   
-  public static List<TabletLocation> findOverlappingTablets(AccumuloConfiguration acuConf, FileSystem fs, TabletLocator locator, Path file, Text startRow,
+  public static List<TabletLocation> findOverlappingTablets(AccumuloConfiguration acuConf, VolumeManager vm, TabletLocator locator, Path file, Text startRow,
       Text endRow, Credentials credentials) throws Exception {
     List<TabletLocation> result = new ArrayList<TabletLocation>();
     Collection<ByteSequence> columnFamilies = Collections.emptyList();
     String filename = file.toString();
     // log.debug(filename + " finding overlapping tablets " + startRow + " -> " + endRow);
+    FileSystem fs = vm.getFileSystemByPath(file);
     FileSKVIterator reader = FileOperations.getInstance().openReader(filename, true, fs, fs.getConf(), acuConf);
     try {
       Text row = startRow;

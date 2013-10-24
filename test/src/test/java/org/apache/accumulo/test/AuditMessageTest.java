@@ -327,8 +327,10 @@ public class AuditMessageTest {
             .size());
     assertEquals(1,
         findAuditMessage(auditMessages, String.format(AuditedSecurityOperation.CAN_EXPORT_AUDIT_TEMPLATE, OLD_TEST_TABLE_NAME, exportDir.toString())).size());
-    assertEquals(1,
-        findAuditMessage(auditMessages, String.format(AuditedSecurityOperation.CAN_IMPORT_AUDIT_TEMPLATE, NEW_TEST_TABLE_NAME, exportDir.toString())).size());
+    assertEquals(
+        1,
+        findAuditMessage(auditMessages,
+            String.format(AuditedSecurityOperation.CAN_IMPORT_AUDIT_TEMPLATE, NEW_TEST_TABLE_NAME, filePrefix + exportDir.toString())).size());
     assertEquals(1, findAuditMessage(auditMessages, String.format(AuditedSecurityOperation.CAN_CREATE_TABLE_AUDIT_TEMPLATE, THIRD_TEST_TABLE_NAME)).size());
     assertEquals(
         1,

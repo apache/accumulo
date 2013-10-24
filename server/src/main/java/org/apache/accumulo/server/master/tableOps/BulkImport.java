@@ -182,18 +182,9 @@ public class BulkImport extends MasterRepo {
   }
   
   private Path createNewBulkDir(VolumeManager fs, String tableId) throws IOException {
-    String tableDir = null;
-    loop: for (String dir : fs.getFileSystems().keySet()) {
-      if (this.sourceDir.startsWith(dir)) {
-        for (String path : ServerConstants.getTablesDirs()) {
-          if (path.startsWith(dir)) {
-            tableDir = path;
-            break loop;
-          }
-        }
-        break;
-      }
-    }
+    
+    String tableDir = fs.matchingFileSystem(new Path(sourceDir), ServerConstants.getTablesDirs()).toString();
+    
     if (tableDir == null)
       throw new IllegalStateException(sourceDir + " is not in a known namespace");
     Path directory = new Path(tableDir + "/" + tableId);

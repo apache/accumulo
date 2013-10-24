@@ -19,6 +19,7 @@ package org.apache.accumulo.server.fs;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -396,20 +397,14 @@ public class VolumeManagerImpl implements VolumeManager {
 
   @Override
   public Path matchingFileSystem(Path source, String[] options) {
-    for (String fs : getFileSystems().keySet()) {
-      for (String option : options) {
-        if (option.startsWith(fs))
+    URI uri1 = source.toUri();
+    for (String option : options) {
+      URI uri3 = URI.create(option);
+      if (uri1.getScheme().equals(uri3.getScheme())) {
+        String a1 = uri1.getAuthority();
+        String a2 = uri3.getAuthority();
+        if (a1 == a2 || (a1 != null && a1.equals(a2)))
           return new Path(option);
-      }
-    }
-    return null;
-  }
-
-  @Override
-  public String newPathOnSameVolume(String sourceDir, String suffix) {
-    for (String fs : getFileSystems().keySet()) {
-      if (sourceDir.startsWith(fs)) {
-        return fs + "/" + suffix;
       }
     }
     return null;

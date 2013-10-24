@@ -1102,24 +1102,43 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return ranges;
   }
   
+  private Path checkPath(String dir, String kind, String type) throws IOException, AccumuloException {
+    Path ret;
+    FileSystem fs;
+
+    if (dir.contains(":")) {
+      ret = new Path(dir);
+      fs = ret.getFileSystem(CachedConfiguration.getInstance());
+    } else {
+      fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), instance.getConfiguration());
+      ret = fs.makeQualified(new Path(dir));
+    }
+
+    if (!fs.exists(ret))
+      throw new AccumuloException(kind + " import " + type + " directory " + dir + " does not exist!");
+
+    if (!fs.getFileStatus(ret).isDir()) {
+      throw new AccumuloException(kind + " import " + type + " directory " + dir + " is not a directory!");
+    }
+
+    if (type.equals("failure")) {
+      FileStatus[] listStatus = fs.listStatus(ret);
+      if (listStatus != null && listStatus.length != 0) {
+        throw new AccumuloException("Bulk import failure directory " + ret + " is not empty");
+      }
+    }
+
+    return ret;
+  }
+
   @Override
   public void importDirectory(String tableName, String dir, String failureDir, boolean setTime) throws IOException, AccumuloSecurityException,
       TableNotFoundException, AccumuloException {
     ArgumentChecker.notNull(tableName, dir, failureDir);
-    FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), instance.getConfiguration());
-    Path dirPath = fs.makeQualified(new Path(dir));
-    Path failPath = fs.makeQualified(new Path(failureDir));
-    if (!fs.exists(dirPath))
-      throw new AccumuloException("Bulk import directory " + dir + " does not exist!");
-    if (!fs.exists(failPath))
-      throw new AccumuloException("Bulk import failure directory " + failureDir + " does not exist!");
-    FileStatus[] listStatus = fs.listStatus(failPath);
-    if (listStatus != null && listStatus.length != 0) {
-      if (listStatus.length == 1 && listStatus[0].isDir())
-        throw new AccumuloException("Bulk import directory " + failPath + " is a file");
-      throw new AccumuloException("Bulk import failure directory " + failPath + " is not empty");
-    }
     
+    Path dirPath = checkPath(dir, "Bulk", "");
+    Path failPath = checkPath(failureDir, "Bulk", "failure");
+
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()), ByteBuffer.wrap(dirPath.toString().getBytes()),
         ByteBuffer.wrap(failPath.toString().getBytes()), ByteBuffer.wrap((setTime + "").getBytes()));
     Map<String,String> opts = new HashMap<String,String>();
@@ -1418,7 +1437,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
     ArgumentChecker.notNull(tableName, importDir);
     
     try {
-      FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), instance.getConfiguration());
+      importDir = checkPath(importDir, "Table", "").toString();
+    } catch (IOException e) {
+      throw new AccumuloException(e);
+    }
+
+    try {
+      FileSystem fs = new Path(importDir).getFileSystem(CachedConfiguration.getInstance());
       Map<String,String> props = getExportedProps(fs, new Path(importDir, Constants.EXPORT_FILE));
       
       for (String propKey : props.keySet()) {

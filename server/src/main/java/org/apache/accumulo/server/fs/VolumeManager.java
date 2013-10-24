@@ -92,8 +92,6 @@ public interface VolumeManager {
   // return the item in options that is in the same volume as source
   Path matchingFileSystem(Path source, String[] options);
   
-  // create a new path in the same volume as the sourceDir
-  String newPathOnSameVolume(String sourceDir, String suffix);
   
   // forward to the appropriate FileSystem object
   FileStatus[] listStatus(Path path) throws IOException;

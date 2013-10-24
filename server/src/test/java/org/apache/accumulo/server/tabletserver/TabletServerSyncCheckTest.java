@@ -163,11 +163,6 @@ public class TabletServerSyncCheckTest {
     }
 
     @Override
-    public String newPathOnSameVolume(String sourceDir, String suffix) {
-      return null;
-    }
-
-    @Override
     public FileStatus[] listStatus(Path path) throws IOException {
       return null;
     }
