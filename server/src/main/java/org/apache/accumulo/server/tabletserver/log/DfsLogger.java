@@ -26,6 +26,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
+import java.nio.channels.ClosedChannelException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -407,6 +408,8 @@ public class DfsLogger {
           value.mutations = tabletMutations.getMutations();
           write(key, value);
         }
+      } catch (ClosedChannelException ex) {
+        throw new LogClosedException();
       } catch (Exception e) {
         log.error(e, e);
         work.exception = e;
