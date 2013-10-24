@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.conf;
+package org.apache.accumulo.core.client.mapreduce;
 
 import static org.junit.Assert.assertEquals;
 
@@ -36,7 +36,7 @@ import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TableQueryConfigTest {
+public class InputTableConfigTest {
   
   private InputTableConfig tableQueryConfig;
   
