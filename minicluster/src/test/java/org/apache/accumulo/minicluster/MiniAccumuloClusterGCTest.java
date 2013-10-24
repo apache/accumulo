@@ -112,8 +112,8 @@ public class MiniAccumuloClusterGCTest {
 
     int fileCountAfterCompaction = FileUtils.listFiles(tables, new SuffixFileFilter(".rf"), TrueFileFilter.TRUE).size();
 
-    // Sleep for 4s to let the GC do its thing
-    for (int i = 1; i < 5; i++) {
+    // Sleep for 10s to let the GC do its thing
+    for (int i = 1; i < 10; i++) {
       Thread.sleep(1000);
       int fileCountAfterGCWait = FileUtils.listFiles(tables, new SuffixFileFilter(".rf"), TrueFileFilter.TRUE).size();
 
