@@ -24,10 +24,11 @@
 
 . /etc/rc.d/init.d/functions
 
-# let's assume this file is symlinked in from accumulo distro bin directory
-# otherwise reset the ACCUMULO_HOME setting
-pwd=`pwd -P`
-ACCUMULO_HOME=`cd $pwd/.. ; pwd -P`
+# Assuming the file is symlinked in from the distro bin directory, the
+# following should assign ACCUMULO_HOME the value of the directory that is
+# the distro root.
+
+ACCUMULO_HOME=$(dirname $(dirname $(readlink -f $0)))
 
 RETVAL=0
 case "$1" in
