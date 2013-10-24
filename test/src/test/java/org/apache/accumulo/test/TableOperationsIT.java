@@ -76,10 +76,11 @@ public class TableOperationsIT {
 
   static Connector connector;
   static TabletClientService.Client client;
-  final AtomicInteger tableCounter = new AtomicInteger(0);
+  static AtomicInteger tableCounter;
 
   @BeforeClass
   public static void startUp() throws IOException, AccumuloException, AccumuloSecurityException, TTransportException, InterruptedException {
+    tableCounter = new AtomicInteger(0);
     tempFolder.create();
     accumuloCluster = new MiniAccumuloCluster(tempFolder.getRoot(), ROOT_PASS);
 
@@ -144,20 +145,22 @@ public class TableOperationsIT {
     assertTrue(diskUsages.get(0).getUsage() > 0);
     assertEquals(tableName, diskUsages.get(0).getTables().first());
 
+    String newTable = makeTableName();
+    
     // clone table
-    connector.tableOperations().clone(tableName, "table2", false, null, null);
+    connector.tableOperations().clone(tableName, newTable, false, null, null);
 
     // verify tables are exactly the same
     Set<String> tables = new HashSet<String>();
     tables.add(tableName);
-    tables.add("table2");
+    tables.add(newTable);
     diskUsages = connector.tableOperations().getDiskUsage(tables);
     assertEquals(1, diskUsages.size());
     assertEquals(2, diskUsages.get(0).getTables().size());
     assertTrue(diskUsages.get(0).getUsage() > 0);
 
     connector.tableOperations().compact(tableName, new Text("A"), new Text("z"), true, true);
-    connector.tableOperations().compact("table2", new Text("A"), new Text("z"), true, true);
+    connector.tableOperations().compact(newTable, new Text("A"), new Text("z"), true, true);
 
     // verify tables have differences
     diskUsages = connector.tableOperations().getDiskUsage(tables);
