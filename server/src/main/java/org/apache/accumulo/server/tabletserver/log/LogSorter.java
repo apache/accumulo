@@ -112,7 +112,8 @@ public class LogSorter {
         // the following call does not throw an exception if the file/dir does not exist
         fs.deleteRecursively(new Path(destPath));
         
-        FSDataInputStream tmpInput = fs.open(srcPath);
+        Map<String, String> opts = new HashMap<String,String>();
+        FSDataInputStream tmpInput = DfsLogger.readHeader(fs, srcPath, opts); 
                 
         byte[] magic = DfsLogger.LOG_FILE_HEADER_V2.getBytes();
         byte[] magicBuffer = new byte[magic.length];

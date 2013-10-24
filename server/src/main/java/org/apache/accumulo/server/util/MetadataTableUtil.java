@@ -52,6 +52,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -81,6 +82,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.master.state.TServerInstance;
+import org.apache.accumulo.server.master.state.tables.TableManager;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
@@ -1311,6 +1313,13 @@ public class MetadataTableUtil {
     }
     
     return tabletEntries;
+  }
+
+  public static void convertRootTabletToRootTable(Instance instance, SystemCredentials systemCredentials) throws KeeperException, InterruptedException {
+    ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    if (zoo.exists(ZooUtil.getRoot(instance)+"/tables/" + RootTable.ID))
+      return;
+    TableManager.prepareNewTableState(instance.getInstanceID(), RootTable.ID, RootTable.NAME, TableState.ONLINE, NodeExistsPolicy.FAIL);
   }
   
 }

@@ -144,7 +144,6 @@ import org.apache.accumulo.server.util.TabletIterator.TabletDeletedException;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.trace.instrument.thrift.TraceWrap;
 import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.hadoop.io.DataInputBuffer;
@@ -294,6 +293,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           @Override
           public void run() {
             try {
+              MetadataTableUtil.convertRootTabletToRootTable(instance, SystemCredentials.get());
               MetadataTableUtil.moveMetaDeleteMarkers(instance, SystemCredentials.get());
               Accumulo.updateAccumuloVersion(fs);
               

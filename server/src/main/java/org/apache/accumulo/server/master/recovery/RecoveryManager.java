@@ -35,6 +35,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.ZooCache;
@@ -129,6 +130,7 @@ public class RecoveryManager {
         String parts[] = filename.split("/");
         String sortId = parts[parts.length - 1];
         String dest = master.getFileSystem().choose(ServerConstants.getRecoveryDirs()) + "/" + sortId;
+        filename = master.getFileSystem().getFullPath(FileType.WAL, walog).toString();
         log.debug("Recovering " + filename + " to " + dest);
         
         boolean sortQueued;
