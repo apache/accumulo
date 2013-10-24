@@ -203,6 +203,7 @@ public class TabletServerResourceManager {
     fileManager = new FileManager(conf, fs, maxOpenFiles, _dCache, _iCache);
     
     memoryManager = Property.createInstanceFromPropertyName(acuConf, Property.TSERV_MEM_MGMT, MemoryManager.class, new LargestFirstMemoryManager());
+    memoryManager.init(conf);
     memMgmt = new MemoryManagementFramework();
   }
   

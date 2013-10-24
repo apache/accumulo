@@ -56,7 +56,7 @@ public class LargestFirstMemoryManager implements MemoryManager {
     numWaitingMultiplier = TSERV_MINC_MAXCONCURRENT_NUMWAITING_MULTIPLIER;
   }
   
-  LargestFirstMemoryManager() {
+  public LargestFirstMemoryManager() {
     prevIngestMemory = 0;
     compactionThreshold = 0.5;
     maxObserved = 0;
