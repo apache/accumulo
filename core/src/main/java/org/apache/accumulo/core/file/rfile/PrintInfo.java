@@ -101,6 +101,10 @@ public class PrintInfo {
           System.out.println(String.format("%11.0f : %10d %6.2f%%", Math.pow(10, i), countBuckets[i], sizeBuckets[i] * 100. / totalSize));
         }
       }
+      
+      // If the output stream has closed, there is no reason to keep going.
+      if (System.out.checkError())
+        return;
     }
   }
 }
