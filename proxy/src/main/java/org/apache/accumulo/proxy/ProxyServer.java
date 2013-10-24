@@ -518,20 +518,20 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void offlineTable(ByteBuffer login, String tableName) throws org.apache.accumulo.proxy.thrift.AccumuloException,
+  public void offlineTable(ByteBuffer login, String tableName, boolean wait) throws org.apache.accumulo.proxy.thrift.AccumuloException,
       org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
     try {
-      getConnector(login).tableOperations().offline(tableName);
+      getConnector(login).tableOperations().offline(tableName, wait);
     } catch (Exception e) {
       handleExceptionTNF(e);
     }
   }
   
   @Override
-  public void onlineTable(ByteBuffer login, String tableName) throws org.apache.accumulo.proxy.thrift.AccumuloException,
+  public void onlineTable(ByteBuffer login, String tableName, boolean wait) throws org.apache.accumulo.proxy.thrift.AccumuloException,
       org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
     try {
-      getConnector(login).tableOperations().online(tableName);
+      getConnector(login).tableOperations().online(tableName, wait);
     } catch (Exception e) {
       handleExceptionTNF(e);
     }

@@ -102,9 +102,9 @@ import org.slf4j.LoggerFactory;
 
     public void mergeTablets(ByteBuffer login, String tableName, ByteBuffer startRow, ByteBuffer endRow) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException;
 
-    public void offlineTable(ByteBuffer login, String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException;
+    public void offlineTable(ByteBuffer login, String tableName, boolean wait) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException;
 
-    public void onlineTable(ByteBuffer login, String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException;
+    public void onlineTable(ByteBuffer login, String tableName, boolean wait) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException;
 
     public void removeConstraint(ByteBuffer login, String tableName, int constraint) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException;
 
@@ -260,9 +260,9 @@ import org.slf4j.LoggerFactory;
 
     public void mergeTablets(ByteBuffer login, String tableName, ByteBuffer startRow, ByteBuffer endRow, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.mergeTablets_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void offlineTable(ByteBuffer login, String tableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.offlineTable_call> resultHandler) throws org.apache.thrift.TException;
+    public void offlineTable(ByteBuffer login, String tableName, boolean wait, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.offlineTable_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void onlineTable(ByteBuffer login, String tableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.onlineTable_call> resultHandler) throws org.apache.thrift.TException;
+    public void onlineTable(ByteBuffer login, String tableName, boolean wait, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.onlineTable_call> resultHandler) throws org.apache.thrift.TException;
 
     public void removeConstraint(ByteBuffer login, String tableName, int constraint, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.removeConstraint_call> resultHandler) throws org.apache.thrift.TException;
 
@@ -1215,17 +1215,18 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void offlineTable(ByteBuffer login, String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException
+    public void offlineTable(ByteBuffer login, String tableName, boolean wait) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException
     {
-      send_offlineTable(login, tableName);
+      send_offlineTable(login, tableName, wait);
       recv_offlineTable();
     }
 
-    public void send_offlineTable(ByteBuffer login, String tableName) throws org.apache.thrift.TException
+    public void send_offlineTable(ByteBuffer login, String tableName, boolean wait) throws org.apache.thrift.TException
     {
       offlineTable_args args = new offlineTable_args();
       args.setLogin(login);
       args.setTableName(tableName);
+      args.setWait(wait);
       sendBase("offlineTable", args);
     }
 
@@ -1245,17 +1246,18 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void onlineTable(ByteBuffer login, String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException
+    public void onlineTable(ByteBuffer login, String tableName, boolean wait) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, org.apache.thrift.TException
     {
-      send_onlineTable(login, tableName);
+      send_onlineTable(login, tableName, wait);
       recv_onlineTable();
     }
 
-    public void send_onlineTable(ByteBuffer login, String tableName) throws org.apache.thrift.TException
+    public void send_onlineTable(ByteBuffer login, String tableName, boolean wait) throws org.apache.thrift.TException
     {
       onlineTable_args args = new onlineTable_args();
       args.setLogin(login);
       args.setTableName(tableName);
+      args.setWait(wait);
       sendBase("onlineTable", args);
     }
 
@@ -3747,9 +3749,9 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void offlineTable(ByteBuffer login, String tableName, org.apache.thrift.async.AsyncMethodCallback<offlineTable_call> resultHandler) throws org.apache.thrift.TException {
+    public void offlineTable(ByteBuffer login, String tableName, boolean wait, org.apache.thrift.async.AsyncMethodCallback<offlineTable_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      offlineTable_call method_call = new offlineTable_call(login, tableName, resultHandler, this, ___protocolFactory, ___transport);
+      offlineTable_call method_call = new offlineTable_call(login, tableName, wait, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
@@ -3757,10 +3759,12 @@ import org.slf4j.LoggerFactory;
     public static class offlineTable_call extends org.apache.thrift.async.TAsyncMethodCall {
       private ByteBuffer login;
       private String tableName;
-      public offlineTable_call(ByteBuffer login, String tableName, org.apache.thrift.async.AsyncMethodCallback<offlineTable_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private boolean wait;
+      public offlineTable_call(ByteBuffer login, String tableName, boolean wait, org.apache.thrift.async.AsyncMethodCallback<offlineTable_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.login = login;
         this.tableName = tableName;
+        this.wait = wait;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
@@ -3768,6 +3772,7 @@ import org.slf4j.LoggerFactory;
         offlineTable_args args = new offlineTable_args();
         args.setLogin(login);
         args.setTableName(tableName);
+        args.setWait(wait);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -3782,9 +3787,9 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void onlineTable(ByteBuffer login, String tableName, org.apache.thrift.async.AsyncMethodCallback<onlineTable_call> resultHandler) throws org.apache.thrift.TException {
+    public void onlineTable(ByteBuffer login, String tableName, boolean wait, org.apache.thrift.async.AsyncMethodCallback<onlineTable_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      onlineTable_call method_call = new onlineTable_call(login, tableName, resultHandler, this, ___protocolFactory, ___transport);
+      onlineTable_call method_call = new onlineTable_call(login, tableName, wait, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
@@ -3792,10 +3797,12 @@ import org.slf4j.LoggerFactory;
     public static class onlineTable_call extends org.apache.thrift.async.TAsyncMethodCall {
       private ByteBuffer login;
       private String tableName;
-      public onlineTable_call(ByteBuffer login, String tableName, org.apache.thrift.async.AsyncMethodCallback<onlineTable_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private boolean wait;
+      public onlineTable_call(ByteBuffer login, String tableName, boolean wait, org.apache.thrift.async.AsyncMethodCallback<onlineTable_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.login = login;
         this.tableName = tableName;
+        this.wait = wait;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
@@ -3803,6 +3810,7 @@ import org.slf4j.LoggerFactory;
         onlineTable_args args = new onlineTable_args();
         args.setLogin(login);
         args.setTableName(tableName);
+        args.setWait(wait);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -6421,7 +6429,7 @@ import org.slf4j.LoggerFactory;
       public offlineTable_result getResult(I iface, offlineTable_args args) throws org.apache.thrift.TException {
         offlineTable_result result = new offlineTable_result();
         try {
-          iface.offlineTable(args.login, args.tableName);
+          iface.offlineTable(args.login, args.tableName, args.wait);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -6449,7 +6457,7 @@ import org.slf4j.LoggerFactory;
       public onlineTable_result getResult(I iface, onlineTable_args args) throws org.apache.thrift.TException {
         onlineTable_result result = new onlineTable_result();
         try {
-          iface.onlineTable(args.login, args.tableName);
+          iface.onlineTable(args.login, args.tableName, args.wait);
         } catch (AccumuloException ouch1) {
           result.ouch1 = ouch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -39608,6 +39616,7 @@ import org.slf4j.LoggerFactory;
 
     private static final org.apache.thrift.protocol.TField LOGIN_FIELD_DESC = new org.apache.thrift.protocol.TField("login", org.apache.thrift.protocol.TType.STRING, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
+    private static final org.apache.thrift.protocol.TField WAIT_FIELD_DESC = new org.apache.thrift.protocol.TField("wait", org.apache.thrift.protocol.TType.BOOL, (short)3);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -39617,11 +39626,13 @@ import org.slf4j.LoggerFactory;
 
     public ByteBuffer login; // required
     public String tableName; // required
+    public boolean wait; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
-      TABLE_NAME((short)2, "tableName");
+      TABLE_NAME((short)2, "tableName"),
+      WAIT((short)3, "wait");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -39640,6 +39651,8 @@ import org.slf4j.LoggerFactory;
             return LOGIN;
           case 2: // TABLE_NAME
             return TABLE_NAME;
+          case 3: // WAIT
+            return WAIT;
           default:
             return null;
         }
@@ -39680,6 +39693,8 @@ import org.slf4j.LoggerFactory;
     }
 
     // isset id assignments
+    private static final int __WAIT_ISSET_ID = 0;
+    private byte __isset_bitfield = 0;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
@@ -39687,26 +39702,34 @@ import org.slf4j.LoggerFactory;
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING          , true)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.WAIT, new org.apache.thrift.meta_data.FieldMetaData("wait", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(offlineTable_args.class, metaDataMap);
     }
 
     public offlineTable_args() {
+      this.wait = false;
+
     }
 
     public offlineTable_args(
       ByteBuffer login,
-      String tableName)
+      String tableName,
+      boolean wait)
     {
       this();
       this.login = login;
       this.tableName = tableName;
+      this.wait = wait;
+      setWaitIsSet(true);
     }
 
     /**
      * Performs a deep copy on <i>other</i>.
      */
     public offlineTable_args(offlineTable_args other) {
+      __isset_bitfield = other.__isset_bitfield;
       if (other.isSetLogin()) {
         this.login = org.apache.thrift.TBaseHelper.copyBinary(other.login);
 ;
@@ -39714,6 +39737,7 @@ import org.slf4j.LoggerFactory;
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
       }
+      this.wait = other.wait;
     }
 
     public offlineTable_args deepCopy() {
@@ -39724,6 +39748,8 @@ import org.slf4j.LoggerFactory;
     public void clear() {
       this.login = null;
       this.tableName = null;
+      this.wait = false;
+
     }
 
     public byte[] getLogin() {
@@ -39784,6 +39810,29 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    public boolean isWait() {
+      return this.wait;
+    }
+
+    public offlineTable_args setWait(boolean wait) {
+      this.wait = wait;
+      setWaitIsSet(true);
+      return this;
+    }
+
+    public void unsetWait() {
+      __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __WAIT_ISSET_ID);
+    }
+
+    /** Returns true if field wait is set (has been assigned a value) and false otherwise */
+    public boolean isSetWait() {
+      return EncodingUtils.testBit(__isset_bitfield, __WAIT_ISSET_ID);
+    }
+
+    public void setWaitIsSet(boolean value) {
+      __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __WAIT_ISSET_ID, value);
+    }
+
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case LOGIN:
@@ -39802,6 +39851,14 @@ import org.slf4j.LoggerFactory;
         }
         break;
 
+      case WAIT:
+        if (value == null) {
+          unsetWait();
+        } else {
+          setWait((Boolean)value);
+        }
+        break;
+
       }
     }
 
@@ -39812,6 +39869,9 @@ import org.slf4j.LoggerFactory;
 
       case TABLE_NAME:
         return getTableName();
+
+      case WAIT:
+        return Boolean.valueOf(isWait());
 
       }
       throw new IllegalStateException();
@@ -39828,6 +39888,8 @@ import org.slf4j.LoggerFactory;
         return isSetLogin();
       case TABLE_NAME:
         return isSetTableName();
+      case WAIT:
+        return isSetWait();
       }
       throw new IllegalStateException();
     }
@@ -39860,6 +39922,15 @@ import org.slf4j.LoggerFactory;
         if (!(this_present_tableName && that_present_tableName))
           return false;
         if (!this.tableName.equals(that.tableName))
+          return false;
+      }
+
+      boolean this_present_wait = true;
+      boolean that_present_wait = true;
+      if (this_present_wait || that_present_wait) {
+        if (!(this_present_wait && that_present_wait))
+          return false;
+        if (this.wait != that.wait)
           return false;
       }
 
@@ -39899,6 +39970,16 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
+      lastComparison = Boolean.valueOf(isSetWait()).compareTo(typedOther.isSetWait());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetWait()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.wait, typedOther.wait);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
       return 0;
     }
 
@@ -39934,6 +40015,10 @@ import org.slf4j.LoggerFactory;
         sb.append(this.tableName);
       }
       first = false;
+      if (!first) sb.append(", ");
+      sb.append("wait:");
+      sb.append(this.wait);
+      first = false;
       sb.append(")");
       return sb.toString();
     }
@@ -39953,6 +40038,8 @@ import org.slf4j.LoggerFactory;
 
     private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
       try {
+        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
+        __isset_bitfield = 0;
         read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
       } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
@@ -39993,6 +40080,14 @@ import org.slf4j.LoggerFactory;
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
+            case 3: // WAIT
+              if (schemeField.type == org.apache.thrift.protocol.TType.BOOL) {
+                struct.wait = iprot.readBool();
+                struct.setWaitIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -40018,6 +40113,9 @@ import org.slf4j.LoggerFactory;
           oprot.writeString(struct.tableName);
           oprot.writeFieldEnd();
         }
+        oprot.writeFieldBegin(WAIT_FIELD_DESC);
+        oprot.writeBool(struct.wait);
+        oprot.writeFieldEnd();
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -40042,19 +40140,25 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTableName()) {
           optionals.set(1);
         }
-        oprot.writeBitSet(optionals, 2);
+        if (struct.isSetWait()) {
+          optionals.set(2);
+        }
+        oprot.writeBitSet(optionals, 3);
         if (struct.isSetLogin()) {
           oprot.writeBinary(struct.login);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
         }
+        if (struct.isSetWait()) {
+          oprot.writeBool(struct.wait);
+        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, offlineTable_args struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(2);
+        BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           struct.login = iprot.readBinary();
           struct.setLoginIsSet(true);
@@ -40062,6 +40166,10 @@ import org.slf4j.LoggerFactory;
         if (incoming.get(1)) {
           struct.tableName = iprot.readString();
           struct.setTableNameIsSet(true);
+        }
+        if (incoming.get(2)) {
+          struct.wait = iprot.readBool();
+          struct.setWaitIsSet(true);
         }
       }
     }
@@ -40633,6 +40741,7 @@ import org.slf4j.LoggerFactory;
 
     private static final org.apache.thrift.protocol.TField LOGIN_FIELD_DESC = new org.apache.thrift.protocol.TField("login", org.apache.thrift.protocol.TType.STRING, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
+    private static final org.apache.thrift.protocol.TField WAIT_FIELD_DESC = new org.apache.thrift.protocol.TField("wait", org.apache.thrift.protocol.TType.BOOL, (short)3);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -40642,11 +40751,13 @@ import org.slf4j.LoggerFactory;
 
     public ByteBuffer login; // required
     public String tableName; // required
+    public boolean wait; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       LOGIN((short)1, "login"),
-      TABLE_NAME((short)2, "tableName");
+      TABLE_NAME((short)2, "tableName"),
+      WAIT((short)3, "wait");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -40665,6 +40776,8 @@ import org.slf4j.LoggerFactory;
             return LOGIN;
           case 2: // TABLE_NAME
             return TABLE_NAME;
+          case 3: // WAIT
+            return WAIT;
           default:
             return null;
         }
@@ -40705,6 +40818,8 @@ import org.slf4j.LoggerFactory;
     }
 
     // isset id assignments
+    private static final int __WAIT_ISSET_ID = 0;
+    private byte __isset_bitfield = 0;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
@@ -40712,26 +40827,34 @@ import org.slf4j.LoggerFactory;
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING          , true)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.WAIT, new org.apache.thrift.meta_data.FieldMetaData("wait", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(onlineTable_args.class, metaDataMap);
     }
 
     public onlineTable_args() {
+      this.wait = false;
+
     }
 
     public onlineTable_args(
       ByteBuffer login,
-      String tableName)
+      String tableName,
+      boolean wait)
     {
       this();
       this.login = login;
       this.tableName = tableName;
+      this.wait = wait;
+      setWaitIsSet(true);
     }
 
     /**
      * Performs a deep copy on <i>other</i>.
      */
     public onlineTable_args(onlineTable_args other) {
+      __isset_bitfield = other.__isset_bitfield;
       if (other.isSetLogin()) {
         this.login = org.apache.thrift.TBaseHelper.copyBinary(other.login);
 ;
@@ -40739,6 +40862,7 @@ import org.slf4j.LoggerFactory;
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
       }
+      this.wait = other.wait;
     }
 
     public onlineTable_args deepCopy() {
@@ -40749,6 +40873,8 @@ import org.slf4j.LoggerFactory;
     public void clear() {
       this.login = null;
       this.tableName = null;
+      this.wait = false;
+
     }
 
     public byte[] getLogin() {
@@ -40809,6 +40935,29 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    public boolean isWait() {
+      return this.wait;
+    }
+
+    public onlineTable_args setWait(boolean wait) {
+      this.wait = wait;
+      setWaitIsSet(true);
+      return this;
+    }
+
+    public void unsetWait() {
+      __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __WAIT_ISSET_ID);
+    }
+
+    /** Returns true if field wait is set (has been assigned a value) and false otherwise */
+    public boolean isSetWait() {
+      return EncodingUtils.testBit(__isset_bitfield, __WAIT_ISSET_ID);
+    }
+
+    public void setWaitIsSet(boolean value) {
+      __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __WAIT_ISSET_ID, value);
+    }
+
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case LOGIN:
@@ -40827,6 +40976,14 @@ import org.slf4j.LoggerFactory;
         }
         break;
 
+      case WAIT:
+        if (value == null) {
+          unsetWait();
+        } else {
+          setWait((Boolean)value);
+        }
+        break;
+
       }
     }
 
@@ -40837,6 +40994,9 @@ import org.slf4j.LoggerFactory;
 
       case TABLE_NAME:
         return getTableName();
+
+      case WAIT:
+        return Boolean.valueOf(isWait());
 
       }
       throw new IllegalStateException();
@@ -40853,6 +41013,8 @@ import org.slf4j.LoggerFactory;
         return isSetLogin();
       case TABLE_NAME:
         return isSetTableName();
+      case WAIT:
+        return isSetWait();
       }
       throw new IllegalStateException();
     }
@@ -40885,6 +41047,15 @@ import org.slf4j.LoggerFactory;
         if (!(this_present_tableName && that_present_tableName))
           return false;
         if (!this.tableName.equals(that.tableName))
+          return false;
+      }
+
+      boolean this_present_wait = true;
+      boolean that_present_wait = true;
+      if (this_present_wait || that_present_wait) {
+        if (!(this_present_wait && that_present_wait))
+          return false;
+        if (this.wait != that.wait)
           return false;
       }
 
@@ -40924,6 +41095,16 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
+      lastComparison = Boolean.valueOf(isSetWait()).compareTo(typedOther.isSetWait());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetWait()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.wait, typedOther.wait);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
       return 0;
     }
 
@@ -40959,6 +41140,10 @@ import org.slf4j.LoggerFactory;
         sb.append(this.tableName);
       }
       first = false;
+      if (!first) sb.append(", ");
+      sb.append("wait:");
+      sb.append(this.wait);
+      first = false;
       sb.append(")");
       return sb.toString();
     }
@@ -40978,6 +41163,8 @@ import org.slf4j.LoggerFactory;
 
     private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
       try {
+        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
+        __isset_bitfield = 0;
         read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
       } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
@@ -41018,6 +41205,14 @@ import org.slf4j.LoggerFactory;
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
+            case 3: // WAIT
+              if (schemeField.type == org.apache.thrift.protocol.TType.BOOL) {
+                struct.wait = iprot.readBool();
+                struct.setWaitIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -41043,6 +41238,9 @@ import org.slf4j.LoggerFactory;
           oprot.writeString(struct.tableName);
           oprot.writeFieldEnd();
         }
+        oprot.writeFieldBegin(WAIT_FIELD_DESC);
+        oprot.writeBool(struct.wait);
+        oprot.writeFieldEnd();
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -41067,19 +41265,25 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTableName()) {
           optionals.set(1);
         }
-        oprot.writeBitSet(optionals, 2);
+        if (struct.isSetWait()) {
+          optionals.set(2);
+        }
+        oprot.writeBitSet(optionals, 3);
         if (struct.isSetLogin()) {
           oprot.writeBinary(struct.login);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
         }
+        if (struct.isSetWait()) {
+          oprot.writeBool(struct.wait);
+        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, onlineTable_args struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(2);
+        BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           struct.login = iprot.readBinary();
           struct.setLoginIsSet(true);
@@ -41087,6 +41291,10 @@ import org.slf4j.LoggerFactory;
         if (incoming.get(1)) {
           struct.tableName = iprot.readString();
           struct.setTableNameIsSet(true);
+        }
+        if (incoming.get(2)) {
+          struct.wait = iprot.readBool();
+          struct.setWaitIsSet(true);
         }
       }
     }

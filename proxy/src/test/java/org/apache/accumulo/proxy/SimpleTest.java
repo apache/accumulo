@@ -257,11 +257,11 @@ public class SimpleTest {
       fail("exception not thrown");
     } catch (AccumuloSecurityException ex) {}
     try {
-      client.offlineTable(badLogin, table);
+      client.offlineTable(badLogin, table, false);
       fail("exception not thrown");
     } catch (AccumuloSecurityException ex) {}
     try {
-      client.onlineTable(badLogin, table);
+      client.onlineTable(badLogin, table, false);
       fail("exception not thrown");
     } catch (AccumuloSecurityException ex) {}
     try {
@@ -559,11 +559,11 @@ public class SimpleTest {
       fail("exception not thrown");
     } catch (TableNotFoundException ex) {}
     try {
-      client.offlineTable(creds, doesNotExist);
+      client.offlineTable(creds, doesNotExist, false);
       fail("exception not thrown");
     } catch (TableNotFoundException ex) {}
     try {
-      client.onlineTable(creds, doesNotExist);
+      client.onlineTable(creds, doesNotExist, false);
       fail("exception not thrown");
     } catch (TableNotFoundException ex) {}
     try {
@@ -1079,7 +1079,7 @@ public class SimpleTest {
     // export/import
     String dir = folder.getRoot() + "/test";
     String destDir = folder.getRoot() + "/test_dest";
-    client.offlineTable(creds, TABLE_TEST);
+    client.offlineTable(creds, TABLE_TEST, false);
     client.exportTable(creds, TABLE_TEST, dir);
     // copy files to a new location
     FileSystem fs = FileSystem.get(new Configuration());
