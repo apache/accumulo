@@ -133,8 +133,8 @@ used for each table.
 
 \small
 \begin{verbatim}
-BatchScanConfig tableOneConfig = new BatchScanConfig();
-BatchScanConfig tableTwoConfig = new BatchScanConfig();
+InputTableConfig tableOneConfig = new InputTableConfig();
+InputTableConfig tableTwoConfig = new InputTableConfig();
 \end{verbatim}
 \normalsize
 
@@ -142,10 +142,10 @@ To set the configuration objects on the job:
 
 \small
 \begin{verbatim}
-Map<String, BatchScanConfig> configs = new HashMap<String,BatchScanConfig>();
+Map<String, InputTableConfig> configs = new HashMap<String,InputTableConfig>();
 configs.put("table1", tableOneConfig);
 configs.put("table2", tableTwoConfig);
-AccumuloMultiTableInputFormat.setBatchScanConfigs(job, configs);
+AccumuloMultiTableInputFormat.setInputTableConfigs(job, configs);
 \end{verbatim}
 \normalsize
 

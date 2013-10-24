@@ -28,7 +28,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.mapreduce.BatchScanConfig;
+import org.apache.accumulo.core.client.mapreduce.InputTableConfig;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
@@ -113,14 +113,14 @@ public class AccumuloMultiTableInputFormatTest {
       AccumuloMultiTableInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
       AccumuloMultiTableInputFormat.setMockInstance(job, INSTANCE_NAME);
 
-      BatchScanConfig tableConfig1 = new BatchScanConfig();
-      BatchScanConfig tableConfig2 = new BatchScanConfig();
+      InputTableConfig tableConfig1 = new InputTableConfig();
+      InputTableConfig tableConfig2 = new InputTableConfig();
 
-      Map<String,BatchScanConfig> configMap = new HashMap<String,BatchScanConfig>();
+      Map<String,InputTableConfig> configMap = new HashMap<String,InputTableConfig>();
       configMap.put(table1, tableConfig1);
       configMap.put(table2, tableConfig2);
 
-      AccumuloMultiTableInputFormat.setBatchScanConfigs(job, configMap);
+      AccumuloMultiTableInputFormat.setInputTableConfigs(job, configMap);
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
@@ -162,27 +162,27 @@ public class AccumuloMultiTableInputFormatTest {
   }
 
   /**
-   * Verify {@link org.apache.accumulo.core.client.mapreduce.BatchScanConfig} objects get correctly serialized in the JobContext.
+   * Verify {@link org.apache.accumulo.core.client.mapreduce.InputTableConfig} objects get correctly serialized in the JobContext.
    */
   @Test
   public void testTableQueryConfigSerialization() throws IOException {
 
     JobConf job = new JobConf();
 
-    BatchScanConfig table1 = new BatchScanConfig().setRanges(Collections.singletonList(new Range("a", "b")))
+    InputTableConfig table1 = new InputTableConfig().setRanges(Collections.singletonList(new Range("a", "b")))
         .fetchColumns(Collections.singleton(new Pair<Text,Text>(new Text("CF1"), new Text("CQ1"))))
         .setIterators(Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
 
-    BatchScanConfig table2 = new BatchScanConfig().setRanges(Collections.singletonList(new Range("a", "b")))
+    InputTableConfig table2 = new InputTableConfig().setRanges(Collections.singletonList(new Range("a", "b")))
         .fetchColumns(Collections.singleton(new Pair<Text,Text>(new Text("CF1"), new Text("CQ1"))))
         .setIterators(Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
 
-    Map<String,BatchScanConfig> configMap = new HashMap<String,BatchScanConfig>();
+    Map<String,InputTableConfig> configMap = new HashMap<String,InputTableConfig>();
     configMap.put(TEST_TABLE_1, table1);
     configMap.put(TEST_TABLE_2, table2);
-    AccumuloMultiTableInputFormat.setBatchScanConfigs(job, configMap);
+    AccumuloMultiTableInputFormat.setInputTableConfigs(job, configMap);
 
-    assertEquals(table1, AccumuloMultiTableInputFormat.getBatchScanConfig(job, TEST_TABLE_1));
-    assertEquals(table2, AccumuloMultiTableInputFormat.getBatchScanConfig(job, TEST_TABLE_2));
+    assertEquals(table1, AccumuloMultiTableInputFormat.getInputTableConfigs(job, TEST_TABLE_1));
+    assertEquals(table2, AccumuloMultiTableInputFormat.getInputTableConfigs(job, TEST_TABLE_2));
   }
 }

@@ -33,7 +33,7 @@ import org.apache.hadoop.io.Writable;
 /**
  * This class to holds a batch scan configuration for a table. It contains all the properties needed to specify how rows should be returned from the table.
  */
-public class BatchScanConfig implements Writable {
+public class InputTableConfig implements Writable {
 
   private List<IteratorSetting> iterators;
   private List<Range> ranges;
@@ -44,15 +44,16 @@ public class BatchScanConfig implements Writable {
   private boolean useIsolatedScanners = false;
   private boolean offlineScan = false;
 
-  public BatchScanConfig() {}
-  
+  public InputTableConfig() {}
+
   /**
    * Creates a batch scan config object out of a previously serialized batch scan config object.
+   * 
    * @param input
    *          the data input of the serialized batch scan config
    * @throws IOException
    */
-  public BatchScanConfig(DataInput input) throws IOException {
+  public InputTableConfig(DataInput input) throws IOException {
     readFields(input);
   }
 
@@ -63,7 +64,7 @@ public class BatchScanConfig implements Writable {
    *          the ranges that will be mapped over
    * @since 1.6.0
    */
-  public BatchScanConfig setRanges(List<Range> ranges) {
+  public InputTableConfig setRanges(List<Range> ranges) {
     this.ranges = ranges;
     return this;
   }
@@ -83,7 +84,7 @@ public class BatchScanConfig implements Writable {
    *          selected. An empty set is the default and is equivalent to scanning the all columns.
    * @since 1.6.0
    */
-  public BatchScanConfig fetchColumns(Collection<Pair<Text,Text>> columns) {
+  public InputTableConfig fetchColumns(Collection<Pair<Text,Text>> columns) {
     this.columns = columns;
     return this;
   }
@@ -102,7 +103,7 @@ public class BatchScanConfig implements Writable {
    *          the configurations for the iterators
    * @since 1.6.0
    */
-  public BatchScanConfig setIterators(List<IteratorSetting> iterators) {
+  public InputTableConfig setIterators(List<IteratorSetting> iterators) {
     this.iterators = iterators;
     return this;
   }
@@ -126,7 +127,7 @@ public class BatchScanConfig implements Writable {
    * @see #setRanges(java.util.List)
    * @since 1.6.0
    */
-  public BatchScanConfig setAutoAdjustRanges(boolean autoAdjustRanges) {
+  public InputTableConfig setAutoAdjustRanges(boolean autoAdjustRanges) {
     this.autoAdjustRanges = autoAdjustRanges;
     return this;
   }
@@ -154,7 +155,7 @@ public class BatchScanConfig implements Writable {
    *          the feature is enabled if true, disabled otherwise
    * @since 1.6.0
    */
-  public BatchScanConfig setUseLocalIterators(boolean useLocalIterators) {
+  public InputTableConfig setUseLocalIterators(boolean useLocalIterators) {
     this.useLocalIterators = useLocalIterators;
     return this;
   }
@@ -199,7 +200,7 @@ public class BatchScanConfig implements Writable {
    *          the feature is enabled if true, disabled otherwise
    * @since 1.6.0
    */
-  public BatchScanConfig setOfflineScan(boolean offlineScan) {
+  public InputTableConfig setOfflineScan(boolean offlineScan) {
     this.offlineScan = offlineScan;
     return this;
   }
@@ -225,7 +226,7 @@ public class BatchScanConfig implements Writable {
    *          the feature is enabled if true, disabled otherwise
    * @since 1.6.0
    */
-  public BatchScanConfig setUseIsolatedScanners(boolean useIsolatedScanners) {
+  public InputTableConfig setUseIsolatedScanners(boolean useIsolatedScanners) {
     this.useIsolatedScanners = useIsolatedScanners;
     return this;
   }
@@ -242,7 +243,8 @@ public class BatchScanConfig implements Writable {
   }
 
   /**
-   * Writes the state for the current object out to the specified {@see DataOutput}
+   * Writes the state for the current object out to the specified {@link DataOutput}
+   * 
    * @param dataOutput
    *          the output for which to write the object's state
    * @throws IOException
@@ -284,7 +286,8 @@ public class BatchScanConfig implements Writable {
   }
 
   /**
-   * Reads the fields in the {@see DataInput} into the current object
+   * Reads the fields in the {@link DataInput} into the current object
+   * 
    * @param dataInput
    *          the input fields to read into the current object
    * @throws IOException
@@ -334,7 +337,7 @@ public class BatchScanConfig implements Writable {
     if (o == null || getClass() != o.getClass())
       return false;
 
-    BatchScanConfig that = (BatchScanConfig) o;
+    InputTableConfig that = (InputTableConfig) o;
 
     if (autoAdjustRanges != that.autoAdjustRanges)
       return false;

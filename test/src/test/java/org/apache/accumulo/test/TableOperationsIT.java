@@ -62,7 +62,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -146,7 +145,7 @@ public class TableOperationsIT {
     assertEquals(tableName, diskUsages.get(0).getTables().first());
 
     String newTable = makeTableName();
-    
+
     // clone table
     connector.tableOperations().clone(tableName, newTable, false, null, null);
 
@@ -182,36 +181,36 @@ public class TableOperationsIT {
     assertEquals(DefaultKeySizeConstraint.class.getName(), props.get(Property.TABLE_CONSTRAINT_PREFIX.toString() + "1"));
     connector.tableOperations().delete(tableName);
   }
-  
+
   @Test(timeout = 30 * 1000)
   public void createMergeClonedTable() throws Exception {
     String originalTable = makeTableName();
     TableOperations tops = connector.tableOperations();
-    
+
     TreeSet<Text> splits = Sets.newTreeSet(Arrays.asList(new Text("a"), new Text("b"), new Text("c"), new Text("d")));
-    
+
     tops.create(originalTable);
     tops.addSplits(originalTable, splits);
-    
+
     BatchWriter bw = connector.createBatchWriter(originalTable, new BatchWriterConfig());
     for (Text row : splits) {
       Mutation m = new Mutation(row);
       for (int i = 0; i < 10; i++) {
         for (int j = 0; j < 10; j++) {
-          m.put(Integer.toString(i), Integer.toString(j), Integer.toString(i+j));
+          m.put(Integer.toString(i), Integer.toString(j), Integer.toString(i + j));
         }
       }
-      
+
       bw.addMutation(m);
     }
-      
+
     bw.close();
-    
+
     String clonedTable = makeTableName();
-    
+
     tops.clone(originalTable, clonedTable, true, null, null);
     tops.merge(clonedTable, null, new Text("b"));
-    
+
     Map<String,Integer> rowCounts = Maps.newHashMap();
     Scanner s = connector.createScanner(clonedTable, new Authorizations());
     for (Entry<Key,Value> entry : s) {
@@ -219,22 +218,22 @@ public class TableOperationsIT {
       String row = key.getRow().toString();
       String cf = key.getColumnFamily().toString(), cq = key.getColumnQualifier().toString();
       String value = entry.getValue().toString();
-      
+
       if (rowCounts.containsKey(row)) {
         rowCounts.put(row, rowCounts.get(row) + 1);
       } else {
         rowCounts.put(row, 1);
       }
-      
+
       Assert.assertEquals(Integer.parseInt(cf) + Integer.parseInt(cq), Integer.parseInt(value));
     }
-    
+
     Collection<Text> clonedSplits = tops.listSplits(clonedTable);
     Set<Text> expectedSplits = Sets.newHashSet(new Text("b"), new Text("c"), new Text("d"));
     for (Text clonedSplit : clonedSplits) {
       Assert.assertTrue("Encountered unexpected split on the cloned table: " + clonedSplit, expectedSplits.remove(clonedSplit));
     }
-    
+
     Assert.assertTrue("Did not find all expected splits on the cloned table: " + expectedSplits, expectedSplits.isEmpty());
   }
 

@@ -43,7 +43,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  * <li>{@link AccumuloMultiTableInputFormat#setConnectorInfo(Job, String, org.apache.accumulo.core.client.security.tokens.AuthenticationToken)}
  * <li>{@link AccumuloMultiTableInputFormat#setScanAuthorizations(Job, org.apache.accumulo.core.security.Authorizations)}
  * <li>{@link AccumuloMultiTableInputFormat#setZooKeeperInstance(Job, String, String)} OR {@link AccumuloInputFormat#setMockInstance(Job, String)}
- * <li>{@link AccumuloMultiTableInputFormat#setBatchScanConfigs(org.apache.hadoop.mapreduce.Job, Map<String,BatchScanConfig>)}
+ * <li>{@link AccumuloMultiTableInputFormat#setInputTableConfigs(Job, Map)}
  * </ul>
  * 
  * Other static methods are optional.
@@ -51,7 +51,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value> {
 
   /**
-   * Sets the {@link BatchScanConfig} objects on the given Hadoop configuration
+   * Sets the {@link InputTableConfig} objects on the given Hadoop configuration
    * 
    * @param job
    *          the Hadoop job instance to be configured
@@ -59,9 +59,9 @@ public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value
    *          the table query configs to be set on the configuration.
    * @since 1.6.0
    */
-  public static void setBatchScanConfigs(Job job, Map<String,BatchScanConfig> configs) {
+  public static void setInputTableConfigs(Job job, Map<String,InputTableConfig> configs) {
     checkNotNull(configs);
-    InputConfigurator.setBatchScanConfigs(CLASS, getConfiguration(job), configs);
+    InputConfigurator.setInputTableConfigs(CLASS, getConfiguration(job), configs);
   }
 
   @Override
@@ -84,7 +84,7 @@ public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value
 
       @Override
       protected void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName) {
-        List<IteratorSetting> iterators = getBatchScanConfig(context, tableName).getIterators();
+        List<IteratorSetting> iterators = getInputTableConfig(context, tableName).getIterators();
         for (IteratorSetting setting : iterators) {
           scanner.addScanIterator(setting);
         }

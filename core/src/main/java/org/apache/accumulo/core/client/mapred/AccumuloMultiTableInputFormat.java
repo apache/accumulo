@@ -19,7 +19,7 @@ package org.apache.accumulo.core.client.mapred;
 import java.io.IOException;
 import java.util.Map;
 
-import org.apache.accumulo.core.client.mapreduce.BatchScanConfig;
+import org.apache.accumulo.core.client.mapreduce.InputTableConfig;
 import org.apache.accumulo.core.client.mapreduce.lib.util.InputConfigurator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -40,7 +40,7 @@ import org.apache.hadoop.mapred.Reporter;
  * <li>{@link AccumuloInputFormat#setConnectorInfo(JobConf, String, String)}
  * <li>{@link AccumuloInputFormat#setScanAuthorizations(JobConf, org.apache.accumulo.core.security.Authorizations)}
  * <li>{@link AccumuloInputFormat#setZooKeeperInstance(JobConf, String, String)} OR {@link AccumuloInputFormat#setMockInstance(JobConf, String)}
- * <li>{@link AccumuloMultiTableInputFormat#setBatchScanConfigs(org.apache.hadoop.mapred.JobConf, java.util.Map)}
+ * <li>{@link AccumuloMultiTableInputFormat#setInputTableConfigs(org.apache.hadoop.mapred.JobConf, java.util.Map)}
  * </ul>
  * 
  * Other static methods are optional.
@@ -49,7 +49,7 @@ import org.apache.hadoop.mapred.Reporter;
 public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value> {
 
   /**
-   * Sets the {@link BatchScanConfig} objects on the given Hadoop configuration
+   * Sets the {@link InputTableConfig} objects on the given Hadoop configuration
    * 
    * @param job
    *          the Hadoop job instance to be configured
@@ -57,8 +57,8 @@ public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value
    *          the table query configs to be set on the configuration.
    * @since 1.6.0
    */
-  public static void setBatchScanConfigs(JobConf job, Map<String,BatchScanConfig> configs) {
-    InputConfigurator.setBatchScanConfigs(CLASS, job, configs);
+  public static void setInputTableConfigs(JobConf job, Map<String,InputTableConfig> configs) {
+    InputConfigurator.setInputTableConfigs(CLASS, job, configs);
   }
 
   @Override

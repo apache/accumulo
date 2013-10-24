@@ -39,7 +39,7 @@ import org.apache.accumulo.core.client.impl.OfflineScanner;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
-import org.apache.accumulo.core.client.mapreduce.BatchScanConfig;
+import org.apache.accumulo.core.client.mapreduce.InputTableConfig;
 import org.apache.accumulo.core.client.mapreduce.lib.util.InputConfigurator;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -292,19 +292,19 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   }
 
   /**
-   * Fetches all {@link BatchScanConfig}s that have been set on the given Hadoop job.
+   * Fetches all {@link InputTableConfig}s that have been set on the given Hadoop job.
    * 
    * @param job
    *          the Hadoop job instance to be configured
-   * @return the {@link BatchScanConfig} objects set on the job
+   * @return the {@link InputTableConfig} objects set on the job
    * @since 1.6.0
    */
-  public static Map<String,BatchScanConfig> getBatchScanConfigs(JobConf job) {
-    return InputConfigurator.getBatchScanConfigs(CLASS, job);
+  public static Map<String,InputTableConfig> getInputTableConfigs(JobConf job) {
+    return InputConfigurator.getInputTableConfigs(CLASS, job);
   }
 
   /**
-   * Fetches a {@link org.apache.accumulo.core.client.mapreduce.BatchScanConfig} that has been set on the configuration for a specific table.
+   * Fetches a {@link InputTableConfig} that has been set on the configuration for a specific table.
    * 
    * <p>
    * null is returned in the event that the table doesn't exist.
@@ -313,11 +313,11 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *          the Hadoop job instance to be configured
    * @param tableName
    *          the table name for which to grab the config object
-   * @return the {@link org.apache.accumulo.core.client.mapreduce.BatchScanConfig} for the given table
+   * @return the {@link InputTableConfig} for the given table
    * @since 1.6.0
    */
-  public static BatchScanConfig getBatchScanConfig(JobConf job, String tableName) {
-    return InputConfigurator.getBatchScanConfig(CLASS, job, tableName);
+  public static InputTableConfig getInputTableConfigs(JobConf job, String tableName) {
+    return InputConfigurator.getInputTableConfig(CLASS, job, tableName);
   }
 
   /**
@@ -362,8 +362,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
       // in case the table name changed, we can still use the previous name for terms of configuration,
       // but the scanner will use the table id resolved at job setup time
-      BatchScanConfig tableConfig = getBatchScanConfig(job, split.getTableName());
-
+      InputTableConfig tableConfig = getInputTableConfigs(job, split.getTableName());
 
       try {
         log.debug("Creating connector with user: " + principal);
@@ -432,7 +431,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
     Instance instance = getInstance(job);
     Connector conn = instance.getConnector(getPrincipal(job), getAuthenticationToken(job));
-    
+
     return InputConfigurator.binOffline(tableId, ranges, instance, conn);
   }
 
@@ -445,10 +444,10 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
     validateOptions(job);
 
     LinkedList<InputSplit> splits = new LinkedList<InputSplit>();
-    Map<String,BatchScanConfig> tableConfigs = getBatchScanConfigs(job);
-    for (Map.Entry<String,BatchScanConfig> tableConfigEntry : tableConfigs.entrySet()) {
+    Map<String,InputTableConfig> tableConfigs = getInputTableConfigs(job);
+    for (Map.Entry<String,InputTableConfig> tableConfigEntry : tableConfigs.entrySet()) {
       String tableName = tableConfigEntry.getKey();
-      BatchScanConfig tableConfig = tableConfigEntry.getValue();
+      InputTableConfig tableConfig = tableConfigEntry.getValue();
       boolean autoAdjust = tableConfig.shouldAutoAdjustRanges();
       String tableId = null;
       List<Range> ranges = autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges()) : tableConfig.getRanges();

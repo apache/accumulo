@@ -36,12 +36,11 @@ import org.apache.accumulo.core.trace.TraceFormatter;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.monitor.Monitor;
 import org.apache.accumulo.server.monitor.servlets.BasicServlet;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 
 abstract class Basic extends BasicServlet {
-  
+
   private static final long serialVersionUID = 1L;
-  
+
   public static String getStringParameter(HttpServletRequest req, String name, String defaultValue) {
     String result = req.getParameter(name);
     if (result == null) {
@@ -49,7 +48,7 @@ abstract class Basic extends BasicServlet {
     }
     return result;
   }
-  
+
   public static int getIntParameter(HttpServletRequest req, String name, int defaultMinutes) {
     String valueString = req.getParameter(name);
     if (valueString == null)
@@ -62,11 +61,11 @@ abstract class Basic extends BasicServlet {
     }
     return result;
   }
-  
+
   public static String dateString(long millis) {
     return TraceFormatter.formatDate(new Date(millis));
   }
-  
+
   protected Scanner getScanner(StringBuilder sb) throws AccumuloException, AccumuloSecurityException {
     AccumuloConfiguration conf = Monitor.getSystemConfiguration();
     String principal = conf.get(Property.TRACE_USER);
@@ -81,12 +80,12 @@ abstract class Basic extends BasicServlet {
       for (Entry<String,String> entry : loginMap.entrySet()) {
         props.put(entry.getKey().substring(prefixLength), entry.getValue());
       }
-      
+
       AuthenticationToken token = Property.createInstanceFromPropertyName(conf, Property.TRACE_TOKEN_TYPE, AuthenticationToken.class, new PasswordToken());
       token.init(props);
       at = token;
     }
-    
+
     String table = conf.get(Property.TRACE_TABLE);
     try {
       Connector conn = HdfsZooInstance.getInstance().getConnector(principal, at);

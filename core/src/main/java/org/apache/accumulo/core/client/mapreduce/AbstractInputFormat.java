@@ -273,19 +273,19 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
   }
 
   /**
-   * Fetches all {@link BatchScanConfig}s that have been set on the given job.
+   * Fetches all {@link InputTableConfig}s that have been set on the given job.
    * 
    * @param context
    *          the Hadoop job instance to be configured
-   * @return the {@link BatchScanConfig} objects for the job
+   * @return the {@link InputTableConfig} objects for the job
    * @since 1.6.0
    */
-  protected static Map<String,BatchScanConfig> getBatchScanConfigs(JobContext context) {
-    return InputConfigurator.getBatchScanConfigs(CLASS, getConfiguration(context));
+  protected static Map<String,InputTableConfig> getInputTableConfigs(JobContext context) {
+    return InputConfigurator.getInputTableConfigs(CLASS, getConfiguration(context));
   }
 
   /**
-   * Fetches a {@link BatchScanConfig} that has been set on the configuration for a specific table.
+   * Fetches a {@link InputTableConfig} that has been set on the configuration for a specific table.
    * 
    * <p>
    * null is returned in the event that the table doesn't exist.
@@ -294,11 +294,11 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    *          the Hadoop job instance to be configured
    * @param tableName
    *          the table name for which to grab the config object
-   * @return the {@link BatchScanConfig} for the given table
+   * @return the {@link InputTableConfig} for the given table
    * @since 1.6.0
    */
-  protected static BatchScanConfig getBatchScanConfig(JobContext context, String tableName) {
-    return InputConfigurator.getBatchScanConfig(CLASS, getConfiguration(context), tableName);
+  protected static InputTableConfig getInputTableConfig(JobContext context, String tableName) {
+    return InputConfigurator.getInputTableConfig(CLASS, getConfiguration(context), tableName);
   }
 
   /**
@@ -377,7 +377,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
 
       // in case the table name changed, we can still use the previous name for terms of configuration,
       // but the scanner will use the table id resolved at job setup time
-      BatchScanConfig tableConfig = getBatchScanConfig(attempt, split.getTableName());
+      InputTableConfig tableConfig = getInputTableConfig(attempt, split.getTableName());
 
 
       try {
@@ -471,11 +471,11 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
     validateOptions(context);
 
     LinkedList<InputSplit> splits = new LinkedList<InputSplit>();
-    Map<String,BatchScanConfig> tableConfigs = getBatchScanConfigs(context);
-    for (Map.Entry<String,BatchScanConfig> tableConfigEntry : tableConfigs.entrySet()) {
+    Map<String,InputTableConfig> tableConfigs = getInputTableConfigs(context);
+    for (Map.Entry<String,InputTableConfig> tableConfigEntry : tableConfigs.entrySet()) {
 
       String tableName = tableConfigEntry.getKey();
-      BatchScanConfig tableConfig = tableConfigEntry.getValue();
+      InputTableConfig tableConfig = tableConfigEntry.getValue();
 
       boolean autoAdjust = tableConfig.shouldAutoAdjustRanges();
       String tableId = null;
