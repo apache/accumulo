@@ -383,6 +383,9 @@ The following provides more details on the included cryptographic software: ...
 Apache Accumulo uses the built-in java cryptography libraries in it's RFile 
 encryption implementation. See 
 http://www.oracle.com/us/products/export/export-regulations-345813.html
-for more details for on Java's cryptography features.
+for more details for on Java's cryptography features. Apache Accumulo also uses
+the bouncycastle library for some crypographic technology as well. See 
+http://www.bouncycastle.org/wiki/display/JA1/Frequently+Asked+Questions for
+more details on bouncycastle's cryptography features.
 
 ******************************************************************************
