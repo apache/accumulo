@@ -109,7 +109,7 @@ public class MiniAccumuloConfig {
       mergeProp(Property.TSERV_MAXMEM.getKey(), "50M");
       mergeProp(Property.TSERV_WALOG_MAX_SIZE.getKey(), "100M");
       mergeProp(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "false");
-      mergeProp(Property.TRACE_TOKEN_PROPERTY_PREFIX + ".password", getRootPassword());
+      mergeProp(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + ".password", getRootPassword());
       // since there is a small amount of memory, check more frequently for majc... setting may not be needed in 1.5
       mergeProp(Property.TSERV_MAJC_DELAY.getKey(), "3");
       mergeProp(Property.GENERAL_CLASSPATHS.getKey(), classpath);
