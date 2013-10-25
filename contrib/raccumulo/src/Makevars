@@ -1,0 +1,2 @@
+PKG_CXXFLAGS+= -I. -g  -DHAVE_UINTPTR_T -DHAVE_NETDB_H=1 -fpermissive -DHAVE_INTTYPES_H -DHAVE_NETINET_IN_H -DHAVE_CONFIG_H `pkg-config --cflags thrift` -Wall
+PKG_LIBS+= `pkg-config --libs thrift` 
