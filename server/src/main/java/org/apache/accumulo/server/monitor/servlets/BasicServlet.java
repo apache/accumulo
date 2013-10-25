@@ -23,6 +23,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.Date;
+import java.util.List;
 import java.util.TimerTask;
 
 import javax.servlet.ServletException;
@@ -34,9 +35,11 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.monitor.DedupedLogEvent;
 import org.apache.accumulo.server.monitor.LogService;
 import org.apache.accumulo.server.monitor.Monitor;
 import org.apache.accumulo.server.util.time.SimpleTimer;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 abstract public class BasicServlet extends HttpServlet {
@@ -183,9 +186,16 @@ abstract public class BasicServlet extends HttpServlet {
     sb.append("<a href='/tables'>Tables</a><br />\n");
     sb.append("<a href='/trace/summary?minutes=10'>Recent&nbsp;Traces</a><br />\n");
     sb.append("<a href='/docs'>Documentation</a><br />\n");
-    int numLogs = LogService.getInstance().getEvents().size();
+    List<DedupedLogEvent> dedupedLogEvents = LogService.getInstance().getEvents();
+    int numLogs = dedupedLogEvents.size();
+    boolean logsHaveError = false;
+    for (DedupedLogEvent dedupedLogEvent : dedupedLogEvents)
+      if (dedupedLogEvent.getEvent().getLevel().isGreaterOrEqual(Level.ERROR)) {
+        logsHaveError = true;
+        break;
+      }
     if (numLogs > 0)
-      sb.append("<span class='error'><a href='/log'>Recent&nbsp;Logs&nbsp;<span class='smalltext'>(" + numLogs + ")</a></span></span><br />\n");
+      sb.append("<span class='" + (logsHaveError ? "error" : "warning") + "'><a href='/log'>Recent&nbsp;Logs&nbsp;<span class='smalltext'>(" + numLogs + ")</a></span></span><br />\n");
     int numProblems = Monitor.getProblemSummary().entrySet().size();
     if (numProblems > 0)
       sb.append("<span class='error'><a href='/problems'>Table&nbsp;Problems&nbsp;<span class='smalltext'>(" + numProblems + ")</a></span></span><br />\n");

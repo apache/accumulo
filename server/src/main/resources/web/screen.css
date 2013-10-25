@@ -309,6 +309,10 @@ pre.logevent {
 	background-color: #ffff33;
 }
 
+.warning a {
+	background-color: #ffff33;
+}
+
 .highlight {
 	background-color: #cef4b5;
 }
