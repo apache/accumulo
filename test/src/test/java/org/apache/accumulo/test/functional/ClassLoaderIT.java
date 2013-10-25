@@ -56,7 +56,7 @@ public class ClassLoaderIT extends SimpleMacIT {
     scanCheck(c, "Test");
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     Path jarPath = new Path(rootPath() + "/lib/Test.jar");
-    fs.copyFromLocalFile(new Path(System.getProperty("user.dir") + "/system/auto/TestCombinerX.jar"), jarPath);
+    fs.copyFromLocalFile(new Path(System.getProperty("user.dir") + "/src/test/resources/TestCombinerX.jar"), jarPath);
     UtilWaitThread.sleep(1000);
     IteratorSetting is = new IteratorSetting(10, "TestCombiner", "org.apache.accumulo.test.functional.TestCombiner");
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf")));
@@ -64,7 +64,7 @@ public class ClassLoaderIT extends SimpleMacIT {
     UtilWaitThread.sleep(5000);
     scanCheck(c, "TestX");
     fs.delete(jarPath, true);
-    fs.copyFromLocalFile(new Path(System.getProperty("user.dir") + "/system/auto/TestCombinerY.jar"), jarPath);
+    fs.copyFromLocalFile(new Path(System.getProperty("user.dir") + "/src/test/resources/TestCombinerY.jar"), jarPath);
     UtilWaitThread.sleep(5000);
     scanCheck(c, "TestY");
   }
