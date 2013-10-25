@@ -56,20 +56,20 @@ import org.apache.log4j.Logger;
  */
 
 public class ZooKeeperInstance implements Instance {
-  
+
   private static final Logger log = Logger.getLogger(ZooKeeperInstance.class);
-  
+
   private String instanceId = null;
   private String instanceName = null;
-  
+
   private final ZooCache zooCache;
-  
+
   private final String zooKeepers;
-  
+
   private final int zooKeepersSessionTimeOut;
-  
-  private boolean closed = false;
-  
+
+  private volatile boolean closed = false;
+
   /**
    * 
    * @param instanceName
@@ -77,11 +77,11 @@ public class ZooKeeperInstance implements Instance {
    * @param zooKeepers
    *          A comma separated list of zoo keeper server locations. Each location can contain an optional port, of the format host:port.
    */
-  
+
   public ZooKeeperInstance(String instanceName, String zooKeepers) {
     this(instanceName, zooKeepers, (int) AccumuloConfiguration.getDefaultConfiguration().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT));
   }
-  
+
   /**
    * 
    * @param instanceName
@@ -91,7 +91,7 @@ public class ZooKeeperInstance implements Instance {
    * @param sessionTimeout
    *          zoo keeper session time out in milliseconds.
    */
-  
+
   public ZooKeeperInstance(String instanceName, String zooKeepers, int sessionTimeout) {
     ArgumentChecker.notNull(instanceName, zooKeepers);
     this.instanceName = instanceName;
@@ -101,7 +101,7 @@ public class ZooKeeperInstance implements Instance {
     getInstanceID();
     clientInstances.incrementAndGet();
   }
-  
+
   /**
    * 
    * @param instanceId
@@ -109,11 +109,11 @@ public class ZooKeeperInstance implements Instance {
    * @param zooKeepers
    *          A comma separated list of zoo keeper server locations. Each location can contain an optional port, of the format host:port.
    */
-  
+
   public ZooKeeperInstance(UUID instanceId, String zooKeepers) {
     this(instanceId, zooKeepers, (int) AccumuloConfiguration.getDefaultConfiguration().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT));
   }
-  
+
   /**
    * 
    * @param instanceId
@@ -123,7 +123,7 @@ public class ZooKeeperInstance implements Instance {
    * @param sessionTimeout
    *          zoo keeper session time out in milliseconds.
    */
-  
+
   public ZooKeeperInstance(UUID instanceId, String zooKeepers, int sessionTimeout) {
     ArgumentChecker.notNull(instanceId, zooKeepers);
     this.instanceId = instanceId.toString();
@@ -132,7 +132,7 @@ public class ZooKeeperInstance implements Instance {
     zooCache = ZooCache.getInstance(zooKeepers, sessionTimeout);
     clientInstances.incrementAndGet();
   }
-  
+
   @Override
   public String getInstanceID() {
     if (closed)
@@ -148,109 +148,109 @@ public class ZooKeeperInstance implements Instance {
       }
       instanceId = new String(iidb);
     }
-    
+
     if (zooCache.get(Constants.ZROOT + "/" + instanceId) == null) {
       if (instanceName == null)
         throw new RuntimeException("Instance id " + instanceId + " does not exist in zookeeper");
       throw new RuntimeException("Instance id " + instanceId + " pointed to by the name " + instanceName + " does not exist in zookeeper");
     }
-    
+
     return instanceId;
   }
-  
+
   @Override
   public List<String> getMasterLocations() {
     if (closed)
       throw new RuntimeException("ZooKeeperInstance has been closed.");
     String masterLocPath = ZooUtil.getRoot(this) + Constants.ZMASTER_LOCK;
-    
+
     OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Looking up master location in zoocache.");
     byte[] loc = ZooUtil.getLockData(zooCache, masterLocPath);
     opTimer.stop("Found master at " + (loc == null ? null : new String(loc)) + " in %DURATION%");
-    
+
     if (loc == null) {
       return Collections.emptyList();
     }
-    
+
     return Collections.singletonList(new String(loc));
   }
-  
+
   @Override
   public String getRootTabletLocation() {
     if (closed)
       throw new RuntimeException("ZooKeeperInstance has been closed.");
     String zRootLocPath = ZooUtil.getRoot(this) + RootTable.ZROOT_TABLET_LOCATION;
-    
+
     OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Looking up root tablet location in zookeeper.");
     byte[] loc = zooCache.get(zRootLocPath);
     opTimer.stop("Found root tablet at " + (loc == null ? null : new String(loc)) + " in %DURATION%");
-    
+
     if (loc == null) {
       return null;
     }
-    
+
     return new String(loc).split("\\|")[0];
   }
-  
+
   @Override
   public String getInstanceName() {
     if (closed)
       throw new RuntimeException("ZooKeeperInstance has been closed.");
     if (instanceName == null)
       instanceName = lookupInstanceName(zooCache, UUID.fromString(getInstanceID()));
-    
+
     return instanceName;
   }
-  
+
   @Override
   public String getZooKeepers() {
     return zooKeepers;
   }
-  
+
   @Override
   public int getZooKeepersSessionTimeOut() {
     return zooKeepersSessionTimeOut;
   }
-  
+
   @Override
   @Deprecated
   public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, TextUtil.getBytes(new Text(pass.toString())));
   }
-  
+
   @Override
   @Deprecated
   public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, ByteBufferUtil.toBytes(pass));
   }
-  
+
   @Override
   public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
     if (closed)
       throw new RuntimeException("ZooKeeperInstance has been closed.");
     return new ConnectorImpl(this, new Credentials(principal, token));
   }
-  
+
   @Override
   @Deprecated
   public Connector getConnector(String principal, byte[] pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(principal, new PasswordToken(pass));
   }
-  
+
   private AccumuloConfiguration conf = null;
-  
+
   @Override
   public AccumuloConfiguration getConfiguration() {
     if (conf == null)
       conf = AccumuloConfiguration.getDefaultConfiguration();
     return conf;
   }
-  
+
   @Override
   public void setConfiguration(AccumuloConfiguration conf) {
     this.conf = conf;
   }
-  
+
   /**
    * Given a zooCache and instanceId, look up the instance name.
    */
@@ -267,19 +267,21 @@ public class ZooKeeperInstance implements Instance {
   }
 
   static private final AtomicInteger clientInstances = new AtomicInteger(0);
-  
+
   @Override
-  public void close() throws AccumuloException {
-    if (!closed && clientInstances.decrementAndGet() == 0)
-    try {
-      zooCache.close();
-      ThriftUtil.close();
-    } catch (InterruptedException e) {
-      throw new AccumuloException("Issues closing ZooKeeper.");
+  public synchronized void close() throws AccumuloException {
+    if (!closed && clientInstances.decrementAndGet() == 0) {
+      try {
+        zooCache.close();
+        ThriftUtil.close();
+      } catch (InterruptedException e) {
+        clientInstances.incrementAndGet();
+        throw new AccumuloException("Issues closing ZooKeeper.");
+      }
+      closed = true;
     }
-    closed = true;
   }
-  
+
   @Override
   public void finalize() {
     // This method intentionally left blank. Users need to explicitly close Instances if they want things cleaned up nicely.
