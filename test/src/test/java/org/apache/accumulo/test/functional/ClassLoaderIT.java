@@ -47,30 +47,32 @@ public class ClassLoaderIT extends SimpleMacIT {
   @Test(timeout = 2 * 60 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("test");
-    BatchWriter bw = c.createBatchWriter("test", new BatchWriterConfig());
+    String tableName = getTableNames(1)[0];
+    c.tableOperations().create(tableName);
+    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m = new Mutation("row1");
     m.put("cf", "col1", "Test");
     bw.addMutation(m);
     bw.close();
-    scanCheck(c, "Test");
+    scanCheck(c, tableName, "Test");
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     Path jarPath = new Path(rootPath() + "/lib/Test.jar");
     fs.copyFromLocalFile(new Path(System.getProperty("user.dir") + "/src/test/resources/TestCombinerX.jar"), jarPath);
     UtilWaitThread.sleep(1000);
     IteratorSetting is = new IteratorSetting(10, "TestCombiner", "org.apache.accumulo.test.functional.TestCombiner");
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf")));
-    c.tableOperations().attachIterator("test", is, EnumSet.of(IteratorScope.scan));
+    c.tableOperations().attachIterator(tableName, is, EnumSet.of(IteratorScope.scan));
     UtilWaitThread.sleep(5000);
-    scanCheck(c, "TestX");
+    scanCheck(c, tableName, "TestX");
     fs.delete(jarPath, true);
     fs.copyFromLocalFile(new Path(System.getProperty("user.dir") + "/src/test/resources/TestCombinerY.jar"), jarPath);
     UtilWaitThread.sleep(5000);
-    scanCheck(c, "TestY");
+    scanCheck(c, tableName, "TestY");
+    fs.delete(jarPath, true);
   }
 
-  private void scanCheck(Connector c, String expected) throws Exception {
-    Scanner bs = c.createScanner("test", Authorizations.EMPTY);
+  private void scanCheck(Connector c, String tableName, String expected) throws Exception {
+    Scanner bs = c.createScanner(tableName, Authorizations.EMPTY);
     Iterator<Entry<Key,Value>> iterator = bs.iterator();
     assertTrue(iterator.hasNext());
     Entry<Key,Value> next = iterator.next();

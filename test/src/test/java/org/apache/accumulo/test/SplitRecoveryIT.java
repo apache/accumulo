@@ -18,7 +18,6 @@ package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.File;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -37,32 +36,11 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
+import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
-public class TestAccumuloSplitRecovery {
-
-  private static final String TABLE = "simple";
-  public static TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
-  private MiniAccumuloCluster accumulo;
-  private String secret = "secret";
-
-  @Before
-  public void setUp() throws Exception {
-    folder.create();
-    accumulo = new MiniAccumuloCluster(folder.getRoot(), secret);
-    accumulo.start();
-  }
-
-  @After
-  public void tearDown() throws Exception {
-    accumulo.stop();
-    folder.delete();
-  }
+public class SplitRecoveryIT extends SimpleMacIT {
 
   private Mutation m(String row) {
     Mutation result = new Mutation(row);
@@ -85,24 +63,26 @@ public class TestAccumuloSplitRecovery {
   @Test(timeout = 60000)
   public void test() throws Exception {
 
+    String tableName = getTableNames(1)[0];
+
     for (int tn = 0; tn < 2; tn++) {
 
-      Connector connector = accumulo.getConnector("root", secret);
+      Connector connector = getConnector();
       // create a table and put some data in it
-      connector.tableOperations().create(TABLE);
-      BatchWriter bw = connector.createBatchWriter(TABLE, new BatchWriterConfig());
+      connector.tableOperations().create(tableName);
+      BatchWriter bw = connector.createBatchWriter(tableName, new BatchWriterConfig());
       bw.addMutation(m("a"));
       bw.addMutation(m("b"));
       bw.addMutation(m("c"));
       bw.close();
       // take the table offline
-      connector.tableOperations().offline(TABLE);
-      while (!isOffline(TABLE, connector))
+      connector.tableOperations().offline(tableName);
+      while (!isOffline(tableName, connector))
         UtilWaitThread.sleep(200);
 
       // poke a partial split into the !METADATA table
       connector.securityOperations().grantTablePermission("root", MetadataTable.NAME, TablePermission.WRITE);
-      String tableId = connector.tableOperations().tableIdMap().get(TABLE);
+      String tableId = connector.tableOperations().tableIdMap().get(tableName);
 
       KeyExtent extent = new KeyExtent(new Text(tableId), null, new Text("b"));
       Mutation m = extent.getPrevRowUpdateMutation();
@@ -134,10 +114,10 @@ public class TestAccumuloSplitRecovery {
 
       bw.close();
       // bring the table online
-      connector.tableOperations().online(TABLE);
+      connector.tableOperations().online(tableName);
 
       // verify the tablets went online
-      Scanner scanner = connector.createScanner(TABLE, Authorizations.EMPTY);
+      Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY);
       int i = 0;
       String expected[] = {"a", "b", "c"};
       for (Entry<Key,Value> entry : scanner) {
@@ -146,7 +126,7 @@ public class TestAccumuloSplitRecovery {
       }
       assertEquals(3, i);
 
-      connector.tableOperations().delete(TABLE);
+      connector.tableOperations().delete(tableName);
 
     }
   }

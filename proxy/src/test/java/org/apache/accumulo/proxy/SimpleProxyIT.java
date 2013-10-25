@@ -104,15 +104,17 @@ import org.apache.thrift.protocol.TProtocolFactory;
 import org.apache.thrift.server.TServer;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.rules.TestName;
 
 /**
  * Call every method on the proxy and try to verify that it works.
  */
-public class SimpleTest {
+public class SimpleProxyIT {
 
-  public static TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  public static File macTestFolder = new File(System.getProperty("user.dir") + "/target/" + SimpleProxyIT.class.getName());
 
   private static MiniAccumuloCluster accumulo;
   private static String secret = "superSecret";
@@ -122,8 +124,10 @@ public class SimpleTest {
   private static int proxyPort;
   private static org.apache.accumulo.proxy.thrift.AccumuloProxy.Client client;
   private static String principal = "root";
-  @SuppressWarnings("serial")
+
   private static Map<String,String> properties = new TreeMap<String,String>() {
+    private static final long serialVersionUID = 1L;
+
     {
       put("password", secret);
     }
@@ -148,10 +152,17 @@ public class SimpleTest {
     return "test" + tableCounter.getAndIncrement();
   }
 
+  @Rule
+  public TemporaryFolder tempFolder = new TemporaryFolder(macTestFolder);
+
+  @Rule
+  public TestName testName = new TestName();
+
   @BeforeClass
   public static void setupMiniCluster() throws Exception {
-    folder.create();
-    MiniAccumuloConfig config = new MiniAccumuloConfig(folder.getRoot(), secret).setNumTservers(1);
+    FileUtils.deleteQuietly(macTestFolder);
+    macTestFolder.mkdirs();
+    MiniAccumuloConfig config = new MiniAccumuloConfig(macTestFolder, secret).setNumTservers(1);
     accumulo = new MiniAccumuloCluster(config);
     accumulo.start();
 
@@ -430,8 +441,9 @@ public class SimpleTest {
       fail("exception not thrown");
     } catch (AccumuloSecurityException ex) {}
     try {
-      File newFolder = folder.newFolder();
-      client.importDirectory(badLogin, table, "/tmp", newFolder.getAbsolutePath(), true);
+      File importDir = tempFolder.newFolder("importDir");
+      File failuresDir = tempFolder.newFolder("failuresDir");
+      client.importDirectory(badLogin, table, importDir.getAbsolutePath(), failuresDir.getAbsolutePath(), true);
       fail("exception not thrown");
     } catch (AccumuloSecurityException ex) {}
     try {
@@ -542,8 +554,9 @@ public class SimpleTest {
       fail("exception not thrown");
     } catch (TableNotFoundException ex) {}
     try {
-      File newFolder = folder.newFolder();
-      client.importDirectory(creds, doesNotExist, "/tmp", newFolder.getAbsolutePath(), true);
+      File importDir = tempFolder.newFolder("importDir");
+      File failuresDir = tempFolder.newFolder("failuresDir");
+      client.importDirectory(creds, doesNotExist, importDir.getAbsolutePath(), failuresDir.getAbsolutePath(), true);
       fail("exception not thrown");
     } catch (TableNotFoundException ex) {}
     try {
@@ -711,13 +724,13 @@ public class SimpleTest {
     client.closeScanner(scanner);
     assertFalse(entries.more);
     assertEquals(1, entries.results.size());
-    
+
     ColumnUpdate upd = new ColumnUpdate(s2bb("cf"), s2bb("cq"));
     upd.setDeleteCell(true);
     Map<ByteBuffer,List<ColumnUpdate>> delete = Collections.singletonMap(s2bb("row0"), Collections.singletonList(upd));
-    
+
     client.updateAndFlush(creds, TABLE_TEST, delete);
-    
+
     scanner = client.createScanner(creds, TABLE_TEST, null);
     entries = client.nextK(scanner, 10);
     client.closeScanner(scanner);
@@ -735,7 +748,7 @@ public class SimpleTest {
 
     // get something we know is in the site config
     Map<String,String> cfg = client.getSiteConfiguration(creds);
-    assertTrue(cfg.get("instance.dfs.dir").startsWith(folder.getRoot().toString()));
+    assertTrue(cfg.get("instance.dfs.dir").startsWith(macTestFolder.getPath()));
 
     // set a property in zookeeper
     client.setProperty(creds, "table.split.threshold", "500M");
@@ -1077,10 +1090,10 @@ public class SimpleTest {
     client.deleteTable(creds, TABLE_TEST2);
 
     // export/import
-    String dir = folder.getRoot() + "/test";
-    String destDir = folder.getRoot() + "/test_dest";
+    File dir = tempFolder.newFolder("test");
+    File destDir = tempFolder.newFolder("test_dest");
     client.offlineTable(creds, TABLE_TEST, false);
-    client.exportTable(creds, TABLE_TEST, dir);
+    client.exportTable(creds, TABLE_TEST, dir.getAbsolutePath());
     // copy files to a new location
     FileSystem fs = FileSystem.get(new Configuration());
     FSDataInputStream is = fs.open(new Path(dir + "/distcp.txt"));
@@ -1093,7 +1106,7 @@ public class SimpleTest {
       FileUtils.copyFile(new File(srcPath.toUri().getPath()), new File(destDir, srcPath.getName()));
     }
     client.deleteTable(creds, TABLE_TEST);
-    client.importTable(creds, "testify", destDir);
+    client.importTable(creds, "testify", destDir.getAbsolutePath());
     scanner = client.createScanner(creds, "testify", null);
     more = client.nextK(scanner, 100);
     client.closeScanner(scanner);
@@ -1101,7 +1114,7 @@ public class SimpleTest {
 
     try {
       // ACCUMULO-1558 a second import from the same dir should fail, the first import moved the files
-      client.importTable(creds, "testify2", destDir);
+      client.importTable(creds, "testify2", destDir.getAbsolutePath());
       fail();
     } catch (Exception e) {}
 
@@ -1508,6 +1521,5 @@ public class SimpleTest {
   @AfterClass
   public static void tearDownMiniCluster() throws Exception {
     accumulo.stop();
-    folder.delete();
   }
 }

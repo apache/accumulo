@@ -17,7 +17,6 @@
 
 package org.apache.accumulo.test;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -51,7 +50,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -70,43 +68,27 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.AlphaNumKeyConstraint;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.test.functional.BadIterator;
+import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.io.Text;
-import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 /**
  * 
  */
-public class ConditionalWriterTest {
-
-  private static String secret = "superSecret";
-  public static TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
-  public static MiniAccumuloCluster cluster;
-
-  @BeforeClass
-  public static void setUpBeforeClass() throws Exception {
-    folder.create();
-    MiniAccumuloConfig cfg = new MiniAccumuloConfig(folder.newFolder("miniAccumulo"), secret);
-    cluster = new MiniAccumuloCluster(cfg);
-    cluster.start();
-  }
+public class ConditionalWriterIT extends SimpleMacIT {
 
   @Test
   public void testBasic() throws Exception {
 
-    ZooKeeperInstance zki = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers());
-    Connector conn = zki.getConnector("root", new PasswordToken(secret));
+    Connector conn = getConnector();
+    String tableName = getTableNames(1)[0];
 
-    conn.tableOperations().create("foo");
+    conn.tableOperations().create(tableName);
 
-    ConditionalWriter cw = conn.createConditionalWriter("foo", new ConditionalWriterConfig());
+    ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig());
 
     // mutation conditional on column tx:seq not exiting
     ConditionalMutation cm0 = new ConditionalMutation("99006", new Condition("tx", "seq"));
@@ -147,7 +129,7 @@ public class ConditionalWriterTest {
     Assert.assertEquals(Status.REJECTED, cw.write(cm5).getStatus());
 
     // ensure rejected mutations did not write
-    Scanner scanner = conn.createScanner("foo", Authorizations.EMPTY);
+    Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
     scanner.fetchColumn(new Text("name"), new Text("last"));
     scanner.setRange(new Range("99006"));
     Assert.assertEquals("Doe", scanner.iterator().next().getValue().toString());
@@ -174,23 +156,21 @@ public class ConditionalWriterTest {
     Assert.assertEquals(Status.REJECTED, cw.write(cm0).getStatus());
 
     Assert.assertEquals("doe", scanner.iterator().next().getValue().toString());
-    zki.close();
   }
 
   @Test
   public void testFields() throws Exception {
-    String table = "foo2";
 
-    ZooKeeperInstance zki = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers());
-    Connector conn = zki.getConnector("root", new PasswordToken(secret));
+    Connector conn = getConnector();
+    String tableName = getTableNames(1)[0];
 
-    conn.tableOperations().create(table);
+    conn.tableOperations().create(tableName);
 
     Authorizations auths = new Authorizations("A", "B");
 
     conn.securityOperations().changeUserAuthorizations("root", auths);
 
-    ConditionalWriter cw = conn.createConditionalWriter(table, new ConditionalWriterConfig().setAuthorizations(auths));
+    ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig().setAuthorizations(auths));
 
     ColumnVisibility cva = new ColumnVisibility("A");
     ColumnVisibility cvb = new ColumnVisibility("B");
@@ -201,7 +181,7 @@ public class ConditionalWriterTest {
     cm0.put("tx", "seq", cva, "1");
     Assert.assertEquals(Status.ACCEPTED, cw.write(cm0).getStatus());
 
-    Scanner scanner = conn.createScanner(table, auths);
+    Scanner scanner = conn.createScanner(tableName, auths);
     scanner.setRange(new Range("99006"));
     // TODO verify all columns
     scanner.fetchColumn(new Text("tx"), new Text("seq"));
@@ -258,20 +238,16 @@ public class ConditionalWriterTest {
     entry = scanner.iterator().next();
     Assert.assertEquals("2", entry.getValue().toString());
 
-    // TODO test each field w/ absence
-    zki.close();
-
   }
 
   @Test
   public void testBadColVis() throws Exception {
     // test when a user sets a col vis in a condition that can never be seen
-    String table = "foo3";
 
-    ZooKeeperInstance zki = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers());
-    Connector conn = zki.getConnector("root", new PasswordToken(secret));
+    Connector conn = getConnector();
+    String tableName = getTableNames(1)[0];
 
-    conn.tableOperations().create(table);
+    conn.tableOperations().create(tableName);
 
     Authorizations auths = new Authorizations("A", "B");
 
@@ -279,7 +255,7 @@ public class ConditionalWriterTest {
 
     Authorizations filteredAuths = new Authorizations("A");
 
-    ConditionalWriter cw = conn.createConditionalWriter(table, new ConditionalWriterConfig().setAuthorizations(filteredAuths));
+    ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig().setAuthorizations(filteredAuths));
 
     ColumnVisibility cva = new ColumnVisibility("A");
     ColumnVisibility cvb = new ColumnVisibility("B");
@@ -345,7 +321,7 @@ public class ConditionalWriterTest {
     // test passing auths that exceed users configured auths
 
     Authorizations exceedingAuths = new Authorizations("A", "B", "D");
-    ConditionalWriter cw2 = conn.createConditionalWriter(table, new ConditionalWriterConfig().setAuthorizations(exceedingAuths));
+    ConditionalWriter cw2 = conn.createConditionalWriter(tableName, new ConditionalWriterConfig().setAuthorizations(exceedingAuths));
 
     ConditionalMutation cm8 = new ConditionalMutation("99006", new Condition("tx", "seq").setVisibility(cvb), new Condition("tx", "seq").setVisibility(cva)
         .setValue("1"));
@@ -359,25 +335,22 @@ public class ConditionalWriterTest {
     } catch (AccumuloSecurityException ase) {}
 
     cw2.close();
-
-    zki.close();
   }
 
   @Test
   public void testConstraints() throws Exception {
     // ensure constraint violations are properly reported
-    String table = "foo5";
 
-    ZooKeeperInstance zki = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers());
-    Connector conn = zki.getConnector("root", new PasswordToken(secret));
+    Connector conn = getConnector();
+    String tableName = getTableNames(1)[0];
 
-    conn.tableOperations().create(table);
-    conn.tableOperations().addConstraint(table, AlphaNumKeyConstraint.class.getName());
-    conn.tableOperations().clone(table, table + "_clone", true, new HashMap<String,String>(), new HashSet<String>());
+    conn.tableOperations().create(tableName);
+    conn.tableOperations().addConstraint(tableName, AlphaNumKeyConstraint.class.getName());
+    conn.tableOperations().clone(tableName, tableName + "_clone", true, new HashMap<String,String>(), new HashSet<String>());
 
-    Scanner scanner = conn.createScanner(table + "_clone", new Authorizations());
+    Scanner scanner = conn.createScanner(tableName + "_clone", new Authorizations());
 
-    ConditionalWriter cw = conn.createConditionalWriter(table + "_clone", new ConditionalWriterConfig());
+    ConditionalWriter cw = conn.createConditionalWriter(tableName + "_clone", new ConditionalWriterConfig());
 
     ConditionalMutation cm0 = new ConditionalMutation("99006+", new Condition("tx", "seq"));
     cm0.put("tx", "seq", "1");
@@ -392,20 +365,17 @@ public class ConditionalWriterTest {
     Assert.assertTrue(scanner.iterator().hasNext());
 
     cw.close();
-    zki.close();
-
   }
 
   @Test
   public void testIterators() throws Exception {
-    String table = "foo4";
 
-    ZooKeeperInstance zki = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers());
-    Connector conn = zki.getConnector("root", new PasswordToken(secret));
+    Connector conn = getConnector();
+    String tableName = getTableNames(1)[0];
 
-    conn.tableOperations().create(table, false);
+    conn.tableOperations().create(tableName, false);
 
-    BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
+    BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
 
     Mutation m = new Mutation("ACCUMULO-1000");
     m.put("count", "comments", "1");
@@ -436,14 +406,14 @@ public class ConditionalWriterTest {
     IteratorSetting iterConfig3 = new IteratorSetting(5, VersioningIterator.class);
     VersioningIterator.setMaxVersions(iterConfig3, 1);
 
-    Scanner scanner = conn.createScanner(table, new Authorizations());
+    Scanner scanner = conn.createScanner(tableName, new Authorizations());
     scanner.addScanIterator(iterConfig);
     scanner.setRange(new Range("ACCUMULO-1000"));
     scanner.fetchColumn(new Text("count"), new Text("comments"));
 
     Assert.assertEquals("3", scanner.iterator().next().getValue().toString());
 
-    ConditionalWriter cw = conn.createConditionalWriter(table, new ConditionalWriterConfig());
+    ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig());
 
     ConditionalMutation cm0 = new ConditionalMutation("ACCUMULO-1000", new Condition("count", "comments").setValue("3"));
     cm0.put("count", "comments", "1");
@@ -491,17 +461,15 @@ public class ConditionalWriterTest {
     // TODO test w/ table that has iterators configured
 
     cw.close();
-    zki.close();
   }
 
   @Test
   public void testBatch() throws Exception {
-    String table = "foo6";
 
-    ZooKeeperInstance zki = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers());
-    Connector conn = zki.getConnector("root", new PasswordToken(secret));
+    Connector conn = getConnector();
+    String tableName = getTableNames(1)[0];
 
-    conn.tableOperations().create(table);
+    conn.tableOperations().create(tableName);
 
     conn.securityOperations().changeUserAuthorizations("root", new Authorizations("A", "B"));
 
@@ -527,7 +495,7 @@ public class ConditionalWriterTest {
     cm2.put("tx", "seq", cvab, "1");
     mutations.add(cm2);
 
-    ConditionalWriter cw = conn.createConditionalWriter(table, new ConditionalWriterConfig().setAuthorizations(new Authorizations("A")));
+    ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig().setAuthorizations(new Authorizations("A")));
     Iterator<Result> results = cw.write(mutations.iterator());
     int count = 0;
     while (results.hasNext()) {
@@ -538,7 +506,7 @@ public class ConditionalWriterTest {
 
     Assert.assertEquals(3, count);
 
-    Scanner scanner = conn.createScanner(table, new Authorizations("A"));
+    Scanner scanner = conn.createScanner(tableName, new Authorizations("A"));
     scanner.fetchColumn(new Text("tx"), new Text("seq"));
 
     for (String row : new String[] {"99006", "59056", "19059"}) {
@@ -549,7 +517,7 @@ public class ConditionalWriterTest {
     TreeSet<Text> splits = new TreeSet<Text>();
     splits.add(new Text("7"));
     splits.add(new Text("3"));
-    conn.tableOperations().addSplits(table, splits);
+    conn.tableOperations().addSplits(tableName, splits);
 
     mutations.clear();
 
@@ -598,19 +566,16 @@ public class ConditionalWriterTest {
     Assert.assertEquals("Doe", scanner.iterator().next().getValue().toString());
 
     cw.close();
-    zki.close();
   }
 
   @Test
   public void testBigBatch() throws Exception {
 
-    String table = "foo100";
+    Connector conn = getConnector();
+    String tableName = getTableNames(1)[0];
 
-    ZooKeeperInstance zki = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers());
-    Connector conn = zki.getConnector("root", new PasswordToken(secret));
-
-    conn.tableOperations().create(table);
-    conn.tableOperations().addSplits(table, nss("2", "4", "6"));
+    conn.tableOperations().create(tableName);
+    conn.tableOperations().addSplits(tableName, nss("2", "4", "6"));
 
     UtilWaitThread.sleep(2000);
 
@@ -635,7 +600,7 @@ public class ConditionalWriterTest {
       cml.add(cm);
     }
 
-    ConditionalWriter cw = conn.createConditionalWriter(table, new ConditionalWriterConfig());
+    ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig());
 
     Iterator<Result> results = cw.write(cml.iterator());
 
@@ -674,20 +639,17 @@ public class ConditionalWriterTest {
     Assert.assertEquals(num, count);
 
     cw.close();
-    zki.close();
   }
 
   @Test
   public void testBatchErrors() throws Exception {
 
-    String table = "foo7";
+    Connector conn = getConnector();
+    String tableName = getTableNames(1)[0];
 
-    ZooKeeperInstance zki = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers());
-    Connector conn = zki.getConnector("root", new PasswordToken(secret));
-
-    conn.tableOperations().create(table);
-    conn.tableOperations().addConstraint(table, AlphaNumKeyConstraint.class.getName());
-    conn.tableOperations().clone(table, table + "_clone", true, new HashMap<String,String>(), new HashSet<String>());
+    conn.tableOperations().create(tableName);
+    conn.tableOperations().addConstraint(tableName, AlphaNumKeyConstraint.class.getName());
+    conn.tableOperations().clone(tableName, tableName + "_clone", true, new HashMap<String,String>(), new HashSet<String>());
 
     conn.securityOperations().changeUserAuthorizations("root", new Authorizations("A", "B"));
 
@@ -696,10 +658,10 @@ public class ConditionalWriterTest {
 
     switch ((new Random()).nextInt(3)) {
       case 1:
-        conn.tableOperations().addSplits(table, nss("6"));
+        conn.tableOperations().addSplits(tableName, nss("6"));
         break;
       case 2:
-        conn.tableOperations().addSplits(table, nss("2", "95"));
+        conn.tableOperations().addSplits(tableName, nss("2", "95"));
         break;
     }
 
@@ -729,7 +691,7 @@ public class ConditionalWriterTest {
     cm3.put("tx", "seq", cvaob, "2");
     mutations.add(cm3);
 
-    ConditionalWriter cw = conn.createConditionalWriter(table, new ConditionalWriterConfig().setAuthorizations(new Authorizations("A")));
+    ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig().setAuthorizations(new Authorizations("A")));
     Iterator<Result> results = cw.write(mutations.iterator());
     HashSet<String> rows = new HashSet<String>();
     while (results.hasNext()) {
@@ -749,7 +711,7 @@ public class ConditionalWriterTest {
 
     Assert.assertEquals(4, rows.size());
 
-    Scanner scanner = conn.createScanner(table, new Authorizations("A"));
+    Scanner scanner = conn.createScanner(tableName, new Authorizations("A"));
     scanner.fetchColumn(new Text("tx"), new Text("seq"));
 
     Iterator<Entry<Key,Value>> iter = scanner.iterator();
@@ -757,21 +719,18 @@ public class ConditionalWriterTest {
     Assert.assertFalse(iter.hasNext());
 
     cw.close();
-    zki.close();
   }
 
   @Test
   public void testSameRow() throws Exception {
     // test multiple mutations for same row in same batch
 
-    String table = "foo8";
+    Connector conn = getConnector();
+    String tableName = getTableNames(1)[0];
 
-    ZooKeeperInstance zki = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers());
-    Connector conn = zki.getConnector("root", new PasswordToken(secret));
+    conn.tableOperations().create(tableName);
 
-    conn.tableOperations().create(table);
-
-    ConditionalWriter cw = conn.createConditionalWriter(table, new ConditionalWriterConfig());
+    ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig());
 
     ConditionalMutation cm1 = new ConditionalMutation("r1", new Condition("tx", "seq"));
     cm1.put("tx", "seq", "1");
@@ -811,7 +770,6 @@ public class ConditionalWriterTest {
     Assert.assertEquals(3, total);
 
     cw.close();
-    zki.close();
   }
 
   private static class Stats {
@@ -953,9 +911,7 @@ public class ConditionalWriterTest {
     // test multiple threads using a single conditional writer
 
     String table = "foo9";
-
-    ZooKeeperInstance zki = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers());
-    Connector conn = zki.getConnector("root", new PasswordToken(secret));
+    Connector conn = getConnector();
 
     conn.tableOperations().create(table);
 
@@ -1019,7 +975,6 @@ public class ConditionalWriterTest {
       Iterator<Entry<Key,Value>> row = rowIter.next();
       new Stats(row);
     }
-    zki.close();
   }
 
   private SortedSet<Text> nss(String... splits) {
@@ -1033,9 +988,7 @@ public class ConditionalWriterTest {
   @Test
   public void testSecurity() throws Exception {
     // test against table user does not have read and/or write permissions for
-
-    ZooKeeperInstance zki = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers());
-    Connector conn = zki.getConnector("root", new PasswordToken(secret));
+    Connector conn = getConnector();
 
     conn.securityOperations().createLocalUser("user1", new PasswordToken("u1p"));
 
@@ -1048,7 +1001,7 @@ public class ConditionalWriterTest {
     conn.securityOperations().grantTablePermission("user1", "sect3", TablePermission.READ);
     conn.securityOperations().grantTablePermission("user1", "sect3", TablePermission.WRITE);
 
-    Connector conn2 = zki.getConnector("user1", new PasswordToken("u1p"));
+    Connector conn2 = getConnector().getInstance().getConnector("user1", new PasswordToken("u1p"));
 
     ConditionalMutation cm1 = new ConditionalMutation("r1", new Condition("tx", "seq"));
     cm1.put("tx", "seq", "1");
@@ -1073,14 +1026,11 @@ public class ConditionalWriterTest {
     } catch (AccumuloSecurityException ase) {
 
     }
-    zki.close();
-
   }
 
   @Test
   public void testTimeout() throws Exception {
-    ZooKeeperInstance zki = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers());
-    Connector conn = zki.getConnector("root", new PasswordToken(secret));
+    Connector conn = getConnector();
 
     String table = "fooT";
 
@@ -1125,16 +1075,12 @@ public class ConditionalWriterTest {
     Assert.assertEquals(cw.write(cm3).getStatus(), Status.ACCEPTED);
 
     cw.close();
-    zki.close();
-
   }
 
   @Test
   public void testDeleteTable() throws Exception {
     String table = "foo12";
-
-    ZooKeeperInstance zki = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers());
-    Connector conn = zki.getConnector("root", new PasswordToken(secret));
+    Connector conn = getConnector();
 
     try {
       conn.createConditionalWriter(table, new ConditionalWriterConfig());
@@ -1159,16 +1105,12 @@ public class ConditionalWriterTest {
     } catch (AccumuloException ae) {
       Assert.assertEquals(TableDeletedException.class, ae.getCause().getClass());
     }
-    zki.close();
-
   }
 
   @Test
   public void testOffline() throws Exception {
     String table = "foo11";
-
-    ZooKeeperInstance zki = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers());
-    Connector conn = zki.getConnector("root", new PasswordToken(secret));
+    Connector conn = getConnector();
 
     conn.tableOperations().create(table);
 
@@ -1195,15 +1137,12 @@ public class ConditionalWriterTest {
       conn.createConditionalWriter(table, new ConditionalWriterConfig());
       Assert.assertFalse(true);
     } catch (TableOfflineException e) {}
-    zki.close();
   }
 
   @Test
   public void testError() throws Exception {
     String table = "foo10";
-
-    ZooKeeperInstance zki = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers());
-    Connector conn = zki.getConnector("root", new PasswordToken(secret));
+    Connector conn = getConnector();
 
     conn.tableOperations().create(table);
 
@@ -1225,13 +1164,6 @@ public class ConditionalWriterTest {
     }
 
     cw.close();
-    zki.close();
-
   }
 
-  @AfterClass
-  public static void tearDownAfterClass() throws Exception {
-    cluster.stop();
-    folder.delete();
-  }
 }

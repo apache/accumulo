@@ -18,47 +18,22 @@ package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.File;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-import org.apache.accumulo.minicluster.MiniAccumuloConfig;
+import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.apache.hadoop.io.Text;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
-public class MetaSplitTest {
-
-  private static String secret = "superSecret";
-  public static TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
-  public static MiniAccumuloCluster cluster;
-
-  @BeforeClass
-  public static void setUpBeforeClass() throws Exception {
-    folder.create();
-    MiniAccumuloConfig cfg = new MiniAccumuloConfig(folder.newFolder("miniAccumulo"), secret);
-    cluster = new MiniAccumuloCluster(cfg);
-    cluster.start();
-  }
-
-  @AfterClass
-  public static void tearDownAfterClass() throws Exception {
-    cluster.stop();
-    folder.delete();
-  }
+public class MetaSplitIT extends SimpleMacIT {
 
   @Test(expected = AccumuloException.class)
   public void testRootTableSplit() throws Exception {
-    Connector connector = cluster.getConnector("root", secret);
-    TableOperations opts = connector.tableOperations();
+    TableOperations opts = getConnector().tableOperations();
     SortedSet<Text> splits = new TreeSet<Text>();
     splits.add(new Text("5"));
     opts.addSplits(RootTable.NAME, splits);
@@ -66,8 +41,7 @@ public class MetaSplitTest {
 
   @Test
   public void testRootTableMerge() throws Exception {
-    Connector connector = cluster.getConnector("root", secret);
-    TableOperations opts = connector.tableOperations();
+    TableOperations opts = getConnector().tableOperations();
     opts.merge(RootTable.NAME, null, null);
   }
 
@@ -81,8 +55,7 @@ public class MetaSplitTest {
 
   @Test(timeout = 60000)
   public void testMetadataTableSplit() throws Exception {
-    Connector connector = cluster.getConnector("root", secret);
-    TableOperations opts = connector.tableOperations();
+    TableOperations opts = getConnector().tableOperations();
     for (int i = 1; i <= 10; i++) {
       opts.create("" + i);
     }

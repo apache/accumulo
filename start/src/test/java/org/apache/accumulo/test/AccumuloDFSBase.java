@@ -36,28 +36,29 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 public class AccumuloDFSBase {
-  
+
   // Turn off the MiniDFSCluster logging
   static {
+    System.setProperty("java.io.tmpdir", System.getProperty("user.dir") + "/target");
     System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.NoOpLog");
   }
-  
+
   protected static Configuration conf = null;
   protected static DefaultFileSystemManager vfs = null;
   protected static MiniDFSCluster cluster = null;
-  
+
   protected static final URI HDFS_URI;
-  
+
   static {
     Logger.getRootLogger().setLevel(Level.ERROR);
-    
+
     // Put the MiniDFSCluster directory in the target directory
     System.setProperty("test.build.data", "target/build/test/data");
-    
+
     // Setup HDFS
     conf = new Configuration();
     conf.set("hadoop.security.token.service.use_ip", "true");
-    
+
     conf.set("dfs.datanode.data.dir.perm", MiniDFSUtil.computeDatanodeDirectoryPermission());
     conf.setLong(DFSConfigKeys.DFS_BLOCK_SIZE_KEY, 1024 * 1024); // 1M blocksize
     
@@ -70,7 +71,7 @@ public class AccumuloDFSBase {
     } catch (IOException e) {
       throw new RuntimeException("Error setting up mini cluster", e);
     }
-    
+
     // Set up the VFS
     vfs = new DefaultFileSystemManager();
     try {
@@ -115,7 +116,7 @@ public class AccumuloDFSBase {
     } catch (FileSystemException e) {
       throw new RuntimeException("Error setting up VFS", e);
     }
-    
+
   }
-  
+
 }

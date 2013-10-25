@@ -134,11 +134,11 @@
     </property>
     <property>
       <name>instance.dfs.dir</name>
-      <value>/tmp</value>
+      <value>${project.build.directory}</value>
     </property>
     <property>
       <name>instance.dfs.uri</name>
-      <value>file:///</value>
+      <value>file://${project.build.directory}</value>
     </property>
 
 </configuration>

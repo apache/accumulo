@@ -20,7 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.util.Map;
+import java.io.IOException;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -34,52 +34,47 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
+import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
-public class VolumeTest {
+public class VolumeIT extends ConfigurableMacIT {
 
   private static final Text EMPTY = new Text();
   private static final Value EMPTY_VALUE = new Value(new byte[] {});
-  private static String secret = "superSecret";
-  public static TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
-  public static MiniAccumuloCluster cluster;
+  public static File volDirBase;
   public static Path v1;
   public static Path v2;
 
   @BeforeClass
-  public static void setUpBeforeClass() throws Exception {
-    folder.create();
-    // Run MAC on two locations in the local file system
-    MiniAccumuloConfig cfg = new MiniAccumuloConfig(folder.newFolder("miniAccumulo"), secret);
-    Map<String,String> siteConfig = cfg.getSiteConfig();
-    v1 = new Path("file://" + folder.newFolder("v1").getAbsolutePath().toString());
-    v2 = new Path("file://" + folder.newFolder("v2").getAbsolutePath().toString());
-    siteConfig.put(Property.INSTANCE_VOLUMES.getKey(), v1.toString() + "," + v2.toString());
-    cfg.setSiteConfig(siteConfig);
-    cluster = new MiniAccumuloCluster(cfg);
-    cluster.start();
+  public static void createVolumeDirs() throws IOException {
+    volDirBase = createSharedTestDir(VolumeIT.class.getName() + "-volumes");
+    File v1f = new File(volDirBase, "v1");
+    File v2f = new File(volDirBase, "v2");
+    v1f.mkdir();
+    v2f.mkdir();
+    v1 = new Path("file://" + v1f.getAbsolutePath());
+    v2 = new Path("file://" + v2f.getAbsolutePath());
   }
 
-  @AfterClass
-  public static void tearDownAfterClass() throws Exception {
-    cluster.stop();
-    folder.delete();
+  @Override
+  public void configure(MiniAccumuloConfig cfg) {
+    // Run MAC on two locations in the local file system
+    cfg.setProperty(Property.INSTANCE_VOLUMES, v1.toString() + "," + v2.toString());
+    super.configure(cfg);
   }
 
   @Test
   public void test() throws Exception {
     // create a table
-    Connector connector = cluster.getConnector("root", secret);
-    String tableName = "test";
+    Connector connector = getConnector();
+    String tableName = getTableNames(1)[0];
     connector.tableOperations().create(tableName);
     SortedSet<Text> partitions = new TreeSet<Text>();
     // with some splits
@@ -103,11 +98,11 @@ public class VolumeTest {
       assertEquals(rows[i++], entry.getKey().getRow().toString());
     }
     // verify the new files are written to the different volumes
-    scanner = connector.createScanner("!METADATA", Authorizations.EMPTY);
+    scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.setRange(new Range("1", "1<"));
     scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
     int fileCount = 0;
-    
+
     for (Entry<Key,Value> entry : scanner) {
       boolean inV1 = entry.getKey().getColumnQualifier().toString().contains(v1.toString());
       boolean inV2 = entry.getKey().getColumnQualifier().toString().contains(v2.toString());

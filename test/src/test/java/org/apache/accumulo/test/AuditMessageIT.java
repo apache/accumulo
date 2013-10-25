@@ -24,8 +24,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -47,16 +47,12 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
+import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 /**
  * Tests that Accumulo is outputting audit messages as expected. Since this is using MiniAccumuloCluster, it could take a while if we test everything in
@@ -64,11 +60,8 @@ import org.junit.rules.TemporaryFolder;
  * MiniAccumuloClusterTest sets up the log4j stuff differently to an installed instance, instead piping everything through stdout and writing to a set location
  * so we have to find the logs and grep the bits we need out.
  */
-public class AuditMessageTest {
+public class AuditMessageIT extends ConfigurableMacIT {
 
-  private static MiniAccumuloCluster accumulo;
-  private static File logDir;
-  private static List<MiniAccumuloCluster.LogWriter> logWriters;
   private static final String AUDIT_USER_1 = "AuditUser1";
   private static final String AUDIT_USER_2 = "AuditUser2";
   private static final String PASSWORD = "password";
@@ -76,7 +69,6 @@ public class AuditMessageTest {
   private static final String NEW_TEST_TABLE_NAME = "oranges";
   private static final String THIRD_TEST_TABLE_NAME = "pears";
   private static final Authorizations auths = new Authorizations("private", "public");
-  private static TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   // Must be static to survive Junit re-initialising the class every time.
   private static String lastAuditTimestamp;
@@ -92,17 +84,6 @@ public class AuditMessageTest {
     return result;
   }
 
-  @BeforeClass
-  public static void setupMiniCluster() throws Exception {
-    folder.create();
-    Logger.getLogger("org.apache.zookeeper").setLevel(Level.ERROR);
-
-    accumulo = new MiniAccumuloCluster(folder.getRoot(), "superSecret");
-    accumulo.start();
-    logDir = accumulo.getConfig().getLogDir();
-    logWriters = accumulo.getLogWriters();
-  }
-
   /**
    * Returns a List of Audit messages that have been grep'd out of the MiniAccumuloCluster output.
    * 
@@ -112,7 +93,7 @@ public class AuditMessageTest {
    */
   private ArrayList<String> getAuditMessages(String stepName) throws IOException {
 
-    for (MiniAccumuloCluster.LogWriter lw : logWriters) {
+    for (MiniAccumuloCluster.LogWriter lw : getCluster().getLogWriters()) {
       lw.flush();
     }
 
@@ -120,7 +101,7 @@ public class AuditMessageTest {
     System.out.println("Start of captured audit messages for step " + stepName);
 
     ArrayList<String> result = new ArrayList<String>();
-    for (File file : logDir.listFiles()) {
+    for (File file : getCluster().getConfig().getLogDir().listFiles()) {
       // We want to grab the files called .out
       if (file.getName().contains(".out") && file.isFile() && file.canRead()) {
         LineIterator it = FileUtils.lineIterator(file, Constants.UTF8.name());
@@ -160,7 +141,7 @@ public class AuditMessageTest {
 
   @Before
   public void setup() throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException {
-    conn = accumulo.getConnector("root", "superSecret");
+    conn = getConnector();
 
     // I don't want to recreate the instance for every test since it will take ages.
     // If we run every test as non-root users, I can drop these users every test which should effectively
@@ -183,7 +164,6 @@ public class AuditMessageTest {
   }
 
   @Test(timeout = 60 * 1000)
-  @SuppressWarnings("unchecked")
   public void testTableOperationsAudits() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException, IOException,
       InterruptedException {
 
@@ -193,10 +173,12 @@ public class AuditMessageTest {
 
     // Connect as Audit User and do a bunch of stuff.
     // Testing activity begins here
-    auditConnector = accumulo.getConnector(AUDIT_USER_1, PASSWORD);
+    auditConnector = getCluster().getConnector(AUDIT_USER_1, PASSWORD);
     auditConnector.tableOperations().create(OLD_TEST_TABLE_NAME);
     auditConnector.tableOperations().rename(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME);
-    auditConnector.tableOperations().clone(NEW_TEST_TABLE_NAME, OLD_TEST_TABLE_NAME, true, Collections.EMPTY_MAP, Collections.EMPTY_SET);
+    Map<String,String> emptyMap = Collections.emptyMap();
+    Set<String> emptySet = Collections.emptySet();
+    auditConnector.tableOperations().clone(NEW_TEST_TABLE_NAME, OLD_TEST_TABLE_NAME, true, emptyMap, emptySet);
     auditConnector.tableOperations().delete(OLD_TEST_TABLE_NAME);
     auditConnector.tableOperations().offline(NEW_TEST_TABLE_NAME);
     auditConnector.tableOperations().delete(NEW_TEST_TABLE_NAME);
@@ -223,7 +205,7 @@ public class AuditMessageTest {
 
     // Connect as Audit User and do a bunch of stuff.
     // Start testing activities here
-    auditConnector = accumulo.getConnector(AUDIT_USER_1, PASSWORD);
+    auditConnector = getCluster().getConnector(AUDIT_USER_1, PASSWORD);
     auditConnector.securityOperations().createLocalUser(AUDIT_USER_2, new PasswordToken(PASSWORD));
 
     // It seems only root can grant stuff.
@@ -273,7 +255,7 @@ public class AuditMessageTest {
 
     // Connect as Audit User and do a bunch of stuff.
     // Start testing activities here
-    auditConnector = accumulo.getConnector(AUDIT_USER_1, PASSWORD);
+    auditConnector = getCluster().getConnector(AUDIT_USER_1, PASSWORD);
     auditConnector.tableOperations().create(OLD_TEST_TABLE_NAME);
 
     // Insert some play data
@@ -285,7 +267,7 @@ public class AuditMessageTest {
     bw.close();
 
     // Prepare to export the table
-    File exportDir = new File(accumulo.getConfig().getDir().toString() + "/export");
+    File exportDir = new File(getCluster().getConfig().getDir().toString() + "/export");
 
     auditConnector.tableOperations().offline(OLD_TEST_TABLE_NAME);
     auditConnector.tableOperations().exportTable(OLD_TEST_TABLE_NAME, exportDir.toString());
@@ -355,7 +337,7 @@ public class AuditMessageTest {
 
     // Connect as Audit User and do a bunch of stuff.
     // Start testing activities here
-    auditConnector = accumulo.getConnector(AUDIT_USER_1, PASSWORD);
+    auditConnector = getCluster().getConnector(AUDIT_USER_1, PASSWORD);
     auditConnector.tableOperations().create(OLD_TEST_TABLE_NAME);
 
     // Insert some play data
@@ -404,7 +386,7 @@ public class AuditMessageTest {
     // Create our user with no privs
     conn.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
     conn.tableOperations().create(OLD_TEST_TABLE_NAME);
-    auditConnector = accumulo.getConnector(AUDIT_USER_1, PASSWORD);
+    auditConnector = getCluster().getConnector(AUDIT_USER_1, PASSWORD);
 
     // Start testing activities
     // We should get denied or / failed audit messages here.
@@ -493,11 +475,4 @@ public class AuditMessageTest {
 
   }
 
-  @AfterClass
-  public static void tearDownMiniCluster() throws Exception {
-    accumulo.stop();
-
-    // Comment this out to have a look at the logs, they will be in /tmp/junit*
-    folder.delete();
-  }
 }

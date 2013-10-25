@@ -113,7 +113,7 @@ public class MiniAccumuloConfig {
       // since there is a small amount of memory, check more frequently for majc... setting may not be needed in 1.5
       mergeProp(Property.TSERV_MAJC_DELAY.getKey(), "3");
       mergeProp(Property.GENERAL_CLASSPATHS.getKey(), classpath);
-      mergeProp(Property.GENERAL_DYNAMIC_CLASSPATHS.getKey(), libDir.getAbsolutePath());
+      mergeProp(Property.GENERAL_DYNAMIC_CLASSPATHS.getKey(), libDir.getAbsolutePath() + "/[^.].*[.]jar");
       mergeProp(Property.GC_CYCLE_DELAY.getKey(), "30s");
       mergePropWithRandomPort(Property.MASTER_CLIENTPORT.getKey());
       mergePropWithRandomPort(Property.TRACE_PORT.getKey());
@@ -394,5 +394,14 @@ public class MiniAccumuloConfig {
    */
   public void setClasspathItems(String... classpathItems) {
     this.classpathItems = classpathItems;
+  }
+
+  /**
+   * Sets arbitrary configuration properties.
+   * 
+   * @since 1.6.0
+   */
+  public void setProperty(Property p, String value) {
+    this.siteConfig.put(p.getKey(), value);
   }
 }
