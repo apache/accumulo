@@ -50,6 +50,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
 public class FunctionalTestUtils {
+  
   static void checkRFiles(Connector c, String tableName, int minTablets, int maxTablets, int minRFiles, int maxRFiles) throws Exception {
     Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     String tableId = c.tableOperations().tableIdMap().get(tableName);
