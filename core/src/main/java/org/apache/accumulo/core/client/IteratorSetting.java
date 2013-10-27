@@ -191,6 +191,20 @@ public class IteratorSetting implements Writable {
   }
   
   /**
+   * Constructs an iterator setting using the provided name and the provided class's name for the scan scope with the provided parameters.
+   * 
+   * @param priority The priority for the iterator (see {@link #setPriority(int)})
+   * @param name The distinguishing name for the iterator
+   * @param iteratorClass The class for the iterator
+   * @param properties Any properties for the iterator
+   * 
+   * @since 1.6.0
+   */
+  public IteratorSetting(int priority, String name, Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass, Map<String,String> properties) {
+    this(priority, name, iteratorClass.getName(), properties);
+  }
+  
+  /**
    * @since 1.5.0
    */
   public IteratorSetting(DataInput din) throws IOException {

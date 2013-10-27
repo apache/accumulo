@@ -19,9 +19,13 @@ package org.apache.accumulo.core.client;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
+import java.util.Map;
+
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.DevNull;
 import org.junit.Test;
+
+import com.google.common.collect.Maps;
 
 /**
  * Test cases for the IteratorSetting class
@@ -88,5 +92,23 @@ public class IteratorSettingTest {
     assertNotEquals(setting1, setting4);
     assertNotEquals(setting1, setting5);
     assertNotEquals(setting1, setting6);
+  }
+  
+  @Test
+  public void testEquivalentConstructor() {
+    IteratorSetting setting1 = new IteratorSetting(100, Combiner.class);
+    IteratorSetting setting2 = new IteratorSetting(100, "Combiner", Combiner.class, Maps.<String,String> newHashMap());
+    
+    assertEquals(setting1, setting2);
+    
+    IteratorSetting notEqual1 = new IteratorSetting(100, "FooCombiner", Combiner.class, Maps.<String,String> newHashMap());
+    
+    assertNotEquals(setting1, notEqual1);
+    
+    Map<String,String> props = Maps.newHashMap();
+    props.put("foo", "bar");
+    IteratorSetting notEquals2 = new IteratorSetting(100, "Combiner", Combiner.class, props);
+    
+    assertNotEquals(setting1, notEquals2);
   }
 }
