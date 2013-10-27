@@ -48,9 +48,9 @@ if [ -z "$JAVA_HOME" -o ! -d "$JAVA_HOME" ]; then
     echo "JAVA_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
     exit 1
 fi
-if [ -z "$HADOOP_HOME" -o ! -d "$HADOOP_HOME" ]; then
-    echo "HADOOP_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
-    exit 1
+if [ -z $HADOOP_PREFIX -o ! -d $HADOOP_PREFIX ]; then
+  echo "HADOOP_PREFIX is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
+  exit 1
 fi
 if [ -z "$ZOOKEEPER_HOME" -o ! -d "$ZOOKEEPER_HOME" ]; then
     echo "ZOOKEEPER_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
@@ -60,8 +60,11 @@ fi
 #Export the variables just in case they are not exported
 #This makes them available to java
 export JAVA_HOME=$JAVA_HOME
-export HADOOP_HOME=$HADOOP_HOME
+export HADOOP_PREFIX=$HADOOP_PREFIX
 export ZOOKEEPER_HOME=$ZOOKEEPER_HOME
+# backwards compatible with old configurations
+export HADOOP_HOME=$HADOOP_PREFIX
+export HADOOP_HOME_WARN_SUPPRESS=1
 
 START_JAR=$ACCUMULO_HOME/lib/accumulo-start-$ACCUMULO_VERSION.jar
 COMMONS_JCI_JARS=$ACCUMULO_HOME/lib/commons-jci-core-1.0.jar:$ACCUMULO_HOME/lib/commons-jci-fam-1.0.jar:$ACCUMULO_HOME/lib/log4j-1.2.16.jar:$ACCUMULO_HOME/lib/commons-logging-1.0.4.jar:$ACCUMULO_HOME/lib/commons-logging-api-1.0.4.jar
@@ -79,7 +82,7 @@ locationByProgram()
 }
 
 test -n "$JAVA_HOME"      || export JAVA_HOME=`locationByProgram java`
-test -n "$HADOOP_HOME"    || export HADOOP_HOME=`locationByProgram hadoop`
+test -n "$HADOOP_PREFIX"  || export HADOOP_PREFIX=`locationByProgram hadoop`
 test -n "$ZOOKEEPER_HOME" || export ZOOKEEPER_HOME=`locationByProgram zkCli.sh`
 
 
@@ -130,4 +133,4 @@ JAVA=$JAVA_HOME/bin/java
 PLATFORM="`$JAVA -cp $CLASSPATH org.apache.accumulo.start.Platform`"
 
 # app isn't used anywhere, but it makes the process easier to spot when ps/top/snmp truncate the command line
-exec $JAVA "-Dapp=$1" -classpath $CLASSPATH $ACCUMULO_OPTS -XX:OnOutOfMemoryError="${ACCUMULO_KILL_CMD:-kill -9 %p}" -Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl -Djava.library.path="$HADOOP_HOME/lib/native/$PLATFORM" -Dorg.apache.accumulo.core.home.dir="$ACCUMULO_HOME" -Dhadoop.home.dir="$HADOOP_HOME" -Dzookeeper.home.dir="$ZOOKEEPER_HOME" org.apache.accumulo.start.Main "$@"
+exec $JAVA "-Dapp=$1" -classpath $CLASSPATH $ACCUMULO_OPTS -XX:OnOutOfMemoryError="${ACCUMULO_KILL_CMD:-kill -9 %p}" -Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl -Djava.library.path="$HADOOP_PREFIX/lib/native/$PLATFORM" -Dorg.apache.accumulo.core.home.dir="$ACCUMULO_HOME" -Dhadoop.home.dir="$HADOOP_PREFIX" -Dhadoop.conf.dir="$HADOOP_CONF_DIR" -Dzookeeper.home.dir="$ZOOKEEPER_HOME" org.apache.accumulo.start.Main "$@"

@@ -54,8 +54,20 @@ LOG_PROPERTIES= os.path.join(ACCUMULO_CONF_DIR, 'log4j.properties')
 LOG_GENERIC = os.path.join(ACCUMULO_CONF_DIR, 'generic_logger.xml')
 LOG_MONITOR = os.path.join(ACCUMULO_CONF_DIR, 'monitor_logger.xml')
 
-General_CLASSPATH = ("$ACCUMULO_CONF_DIR,$ACCUMULO_HOME/lib/[^.].$ACCUMULO_VERSION.jar, $ACCUMULO_HOME/lib/[^.].*.jar, $ZOOKEEPER_HOME/zookeeper[^.].*.jar,"
-"$HADOOP_HOME/conf,$HADOOP_HOME/[^.].*.jar, $HADOOP_HOME/lib/[^.].*.jar") 
+General_CLASSPATH = """
+$ACCUMULO_CONF_DIR,
+$ACCUMULO_HOME/server/target/classes/,
+    $ACCUMULO_HOME/core/target/classes/,
+    $ACCUMULO_HOME/start/target/classes/,
+    $ACCUMULO_HOME/fate/target/classes/,
+    $ACCUMULO_HOME/examples/instamo/target/classes,
+    $ACCUMULO_HOME/examples/simple/target/classes,
+        $ACCUMULO_HOME/lib/[^.].*.jar,
+        $ZOOKEEPER_HOME/zookeeper[^.].*.jar,
+        $HADOOP_CONF_DIR,
+        $HADOOP_PREFIX/[^.].*.jar,
+        $HADOOP_PREFIX/lib/[^.].*.jar,
+"""
 
 log = logging.getLogger('test.auto')
 
