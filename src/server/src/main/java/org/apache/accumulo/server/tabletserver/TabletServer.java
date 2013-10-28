@@ -2559,6 +2559,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   
   public void addLoggersToMetadata(List<RemoteLogger> logs, KeyExtent extent, int id) {
     log.info("Adding " + logs.size() + " logs for extent " + extent + " as alias " + id);
+    if (!this.onlineTablets.containsKey(extent)) {
+      // minor compaction due to recovery... don't make updates... if it finishes, there will be no WALs,
+      // if it doesn't, we'll need to do the same recovery with the old files.
+      return;
+    }
     
     List<MetadataTable.LogEntry> entries = new ArrayList<MetadataTable.LogEntry>();
     long now = RelativeTime.currentTimeMillis();
