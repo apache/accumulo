@@ -36,6 +36,7 @@ public class VisibilityFilter extends Filter {
   protected Text defaultVisibility;
   protected LRUMap cache;
   protected Text tmpVis;
+  protected Authorizations authorizations;
   
   private static final Logger log = Logger.getLogger(VisibilityFilter.class);
   
@@ -44,6 +45,7 @@ public class VisibilityFilter extends Filter {
   public VisibilityFilter(SortedKeyValueIterator<Key,Value> iterator, Authorizations authorizations, byte[] defaultVisibility) {
     setSource(iterator);
     this.ve = new VisibilityEvaluator(authorizations);
+    this.authorizations = authorizations;
     this.defaultVisibility = new Text(defaultVisibility);
     this.cache = new LRUMap(1000);
     this.tmpVis = new Text();
@@ -51,7 +53,7 @@ public class VisibilityFilter extends Filter {
   
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    return new VisibilityFilter(getSource().deepCopy(env), ve.getAuthorizations(), TextUtil.getBytes(defaultVisibility));
+    return new VisibilityFilter(getSource().deepCopy(env), authorizations, TextUtil.getBytes(defaultVisibility));
   }
   
   @Override

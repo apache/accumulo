@@ -17,12 +17,12 @@
 package org.apache.accumulo.core.security;
 
 import java.util.ArrayList;
-import java.util.Collection;
 
+import org.apache.accumulo.core.constraints.Constraint.Environment;
 import org.apache.accumulo.core.security.ColumnVisibility.Node;
 
 public class VisibilityEvaluator {
-  private Authorizations auths;
+  private AuthorizationContainer auths;
   
   static Authorizations escape(Authorizations auths) {
     ArrayList<byte[]> retAuths = new ArrayList<byte[]>(auths.getAuthorizations().size());
@@ -53,25 +53,21 @@ public class VisibilityEvaluator {
         escapedAuth[0] = '"';
         escapedAuth[escapedAuth.length - 1] = '"';
       }
-
+      
       auth = escapedAuth;
     }
     return auth;
   }
-
-  VisibilityEvaluator(Collection<byte[]> authorizations) {
-    this(new Authorizations(authorizations));
+  
+  VisibilityEvaluator(Environment env) {
+    this.auths = env.getAuthorizationsContainer();
   }
   
   /**
    * The VisibilityEvaluator computes a trie from the given Authorizations, that ColumnVisibility expressions can be evaluated against.
    */
   public VisibilityEvaluator(Authorizations authorizations) {
-    this.auths = escape(authorizations);
-  }
-  
-  public Authorizations getAuthorizations() {
-    return new Authorizations(auths.getAuthorizations());
+      this.auths = escape((Authorizations) authorizations);
   }
   
   public boolean evaluate(ColumnVisibility visibility) throws VisibilityParseException {
@@ -79,7 +75,7 @@ public class VisibilityEvaluator {
   }
   
   private final boolean evaluate(final byte[] expression, final Node root) throws VisibilityParseException {
-    if(expression.length == 0)
+    if (expression.length == 0)
       return true;
     switch (root.type) {
       case TERM:

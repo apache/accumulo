@@ -60,7 +60,7 @@ public class VisibilityConstraint implements Constraint {
         try {
           
           if (ve == null)
-            ve = new VisibilityEvaluator(env.getAuthorizations());
+            ve = new VisibilityEvaluator(env);
           
           if (!ve.evaluate(new ColumnVisibility(cv)))
             return Collections.singletonList(new Short((short) 2));

@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.server.security.handler;
 
+import java.nio.ByteBuffer;
+import java.util.List;
+
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.security.Authorizations;
@@ -51,6 +54,11 @@ public interface Authorizor {
    * Used to get the authorizations for the user
    */
   public Authorizations getCachedUserAuthorizations(String user) throws AccumuloSecurityException;
+
+  /**
+   * Used to check if a user has valid auths.
+   */
+  public boolean isValidAuthorizations(String user, List<ByteBuffer> list) throws AccumuloSecurityException;
   
   /**
    * Initializes a new user

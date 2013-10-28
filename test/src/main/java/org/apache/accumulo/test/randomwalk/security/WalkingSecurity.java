@@ -17,8 +17,11 @@
 package org.apache.accumulo.test.randomwalk.security;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -411,4 +414,14 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
     cs.add(PasswordToken.class);
     return cs;
   }
+  
+  @Override
+  public boolean isValidAuthorizations(String user, List<ByteBuffer> auths) throws AccumuloSecurityException {
+    Collection<ByteBuffer> userauths = getCachedUserAuthorizations(user).getAuthorizationsBB();
+    for (ByteBuffer auth : auths)
+      if (!userauths.contains(auth))
+        return false;
+    return true;
+  }
+  
 }

@@ -16,8 +16,11 @@
  */
 package org.apache.accumulo.server.security.handler;
 
+import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -152,6 +155,15 @@ public class ZKAuthorizor implements Authorizor {
       log.error(e, e);
       throw new RuntimeException(e);
     }
+  }
+  
+  @Override
+  public boolean isValidAuthorizations(String user, List<ByteBuffer> auths) throws AccumuloSecurityException {
+    Collection<ByteBuffer> userauths = getCachedUserAuthorizations(user).getAuthorizationsBB();
+    for (ByteBuffer auth : auths)
+      if (!userauths.contains(auth))
+        return false;
+    return true;
   }
   
 }

@@ -34,7 +34,7 @@ import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.commons.codec.binary.Base64;
 
-public class Authorizations implements Iterable<byte[]>, Serializable {
+public class Authorizations implements Iterable<byte[]>, Serializable, AuthorizationContainer {
   
   private static final long serialVersionUID = 1L;
   
@@ -223,6 +223,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
   /**
    * Checks for the existence of this UTF-8 encoded authorization.
    */
+  @Override
   public boolean contains(ByteSequence auth) {
     return auths.contains(auth);
   }
