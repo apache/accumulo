@@ -209,12 +209,13 @@
       </build>
     </profile>
     <profile>
-      <!-- profile for building against Hadoop 1.0.x
-      Activate by not specifying hadoop.profile -->
-      <id>hadoop-1.0</id>
+      <!-- profile for building against Hadoop 1.2.x
+      Activate using: mvn -Dhadoop.profile=1.2 -->
+      <id>hadoop-1.2</id>
       <activation>
         <property>
-          <name>!hadoop.profile</name>
+          <name>hadoop.profile</name>
+          <value>1.2</value>
         </property>
       </activation>
       <dependencies>
@@ -226,13 +227,12 @@
       </dependencies>
     </profile>
     <profile>
-      <!-- profile for building against Hadoop 2.0.x
-      Activate using: mvn -Dhadoop.profile=2.0 -->
-      <id>hadoop-2.0</id>
+      <!-- profile for building against Hadoop 2.2.x
+      Activate by not specifying hadoop.profile -->
+      <id>hadoop-2.2</id>
       <activation>
         <property>
-          <name>hadoop.profile</name>
-          <value>2.0</value>
+          <name>!hadoop.profile</name>
         </property>
       </activation>
       <dependencies>
