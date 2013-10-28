@@ -35,6 +35,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 import jline.console.ConsoleReader;
+import jline.console.UserInterruptException;
 import jline.console.history.FileHistory;
 
 import org.apache.accumulo.core.Constants;
@@ -473,6 +474,9 @@ public class Shell extends ShellOptions {
     // This would be a nice feature but !METADATA screws it up
     reader.setExpandEvents(false);
     
+    // Turn Ctrl+C into Exception instead of JVM exit
+    reader.setHandleUserInterrupt(true);
+    
     ShellCompletor userCompletor = null;
     
     if (execFile != null) {
@@ -492,26 +496,39 @@ public class Shell extends ShellOptions {
     }
     
     while (true) {
-      if (hasExited())
-        return exitCode;
+      try {
+        if (hasExited())
+          return exitCode;
       
-      // If tab completion is true we need to reset
-      if (tabCompletion) {
-        if (userCompletor != null)
-          reader.removeCompleter(userCompletor);
-        
-        userCompletor = setupCompletion();
-        reader.addCompleter(userCompletor);
-      }
+        // If tab completion is true we need to reset
+        if (tabCompletion) {
+          if (userCompletor != null)
+            reader.removeCompleter(userCompletor);
+          
+          userCompletor = setupCompletion();
+          reader.addCompleter(userCompletor);
+        }
       
-      reader.setPrompt(getDefaultPrompt());
-      input = reader.readLine();
-      if (input == null) {
+        reader.setPrompt(getDefaultPrompt());
+        input = reader.readLine();
+        if (input == null) {
+          reader.println();
+          return exitCode;
+        } // User Canceled (Ctrl+D)
+      
+        execCommand(input, disableAuthTimeout, false);
+      } catch (UserInterruptException uie) {
+        // User Cancelled (Ctrl+C)
         reader.println();
-        return exitCode;
-      } // user canceled
-      
-      execCommand(input, disableAuthTimeout, false);
+        
+        String partialLine = uie.getPartialLine();
+        if (partialLine == null || "".equals(uie.getPartialLine().trim())) {
+          // No content, actually exit
+          return exitCode;
+        }
+      } finally {
+        reader.flush();
+      }
     }
   }
   
