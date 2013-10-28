@@ -24,7 +24,11 @@ endif
 
 ifeq ($(shell uname),Darwin)
 LIBS:= libNativeMap-Mac_OS_X-x86_64-64.jnilib
-CXXFLAGS=-m64 -dynamiclib -O3 -I/System/Library/Frameworks/JavaVM.framework/Headers
+# Update flags for OSX-10.9 and Xcode 5.0.1
+# I think that we should be able to remove the `-undefined dynamic_lookup` option,
+# but I don't know exactly how to go about this.
+CXXFLAGS=-m64 -dynamiclib -undefined dynamic_lookup -O3 -I/System/Library/Frameworks/JavaVM.framework/Headers -I${JAVA_HOME}/include -I${JAVA_HOME}/include/darwin \
+             -I/usr/include/c++/4.2.1
 endif
 
 INSTALL_DIR=../../../../../../lib/native/map
