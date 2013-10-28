@@ -2978,7 +2978,12 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
   public void addLoggersToMetadata(List<DfsLogger> logs, KeyExtent extent, int id) {
     log.info("Adding " + logs.size() + " logs for extent " + extent + " as alias " + id);
-
+    if (!this.onlineTablets.containsKey(extent)) {
+      // minor compaction due to recovery... don't make updates... if it finishes, there will be no WALs,
+      // if it doesn't, we'll need to do the same recovery with the old files.
+      return;
+    }
+    
     long now = RelativeTime.currentTimeMillis();
     List<String> logSet = new ArrayList<String>();
     for (DfsLogger log : logs)
