@@ -16,25 +16,25 @@
  */
 package org.apache.accumulo.server.logger;
 
+import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.cli.Help;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.tabletserver.log.DfsLogger;
+import org.apache.accumulo.server.tabletserver.log.DfsLogger.DFSLoggerInputStreams;
 import org.apache.accumulo.server.tabletserver.log.MultiReader;
-import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
@@ -90,26 +90,28 @@ public class LogReader {
     
     for (String file : opts.files) {
       
-      Map<String, String> meta = new HashMap<String, String>();
       Path path = new Path(file);
       LogFileKey key = new LogFileKey();
       LogFileValue value = new LogFileValue();
       
       if (fs.isFile(path)) {
         // read log entries from a simple hdfs file
-        FSDataInputStream f = DfsLogger.readHeader(fs, path, meta);
+        @SuppressWarnings("deprecation")
+        DFSLoggerInputStreams streams = DfsLogger.readHeaderAndReturnStream(fs, path, SiteConfiguration.getSiteConfiguration());        
+        DataInputStream input =  streams.getDecryptingInputStream();
+
         try {
           while (true) {
             try {
-              key.readFields(f);
-              value.readFields(f);
+              key.readFields(input);
+              value.readFields(input);
             } catch (EOFException ex) {
               break;
             }
             printLogEvent(key, value, row, rowMatcher, ke, tabletIds, opts.maxMutations);
           }
         } finally {
-          f.close();
+          input.close();
         }
       } else {
         // read the log entries sorted in a map file

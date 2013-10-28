@@ -128,6 +128,16 @@
       <testResource>
         <filtering>true</filtering>
         <directory>src/test/resources</directory>
+        <excludes>
+          <exclude>**/*.walog</exclude>
+        </excludes>
+      </testResource>
+      <testResource>
+        <filtering>false</filtering>
+        <directory>src/test/resources</directory>
+        <includes>
+          <include>**/*.walog</include>
+        </includes>
       </testResource>
     </testResources>
     <pluginManagement>

@@ -22,6 +22,7 @@ import static org.apache.accumulo.server.logger.LogEvents.DEFINE_TABLET;
 import static org.apache.accumulo.server.logger.LogEvents.MANY_MUTATIONS;
 import static org.apache.accumulo.server.logger.LogEvents.OPEN;
 
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -30,6 +31,7 @@ import java.nio.channels.ClosedChannelException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,6 +45,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.crypto.CryptoModuleFactory;
 import org.apache.accumulo.core.security.crypto.CryptoModuleParameters;
+import org.apache.accumulo.core.security.crypto.DefaultCryptoModule;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.server.ServerConstants;
@@ -63,6 +66,7 @@ import org.apache.log4j.Logger;
 public class DfsLogger {
   // Package private so that LogSorter can find this
   static final String LOG_FILE_HEADER_V2 = "--- Log File Header (v2) ---";
+  static final String LOG_FILE_HEADER_V3 = "--- Log File Header (v3) ---";
   
   private static Logger log = Logger.getLogger(DfsLogger.class);
   
@@ -73,6 +77,34 @@ public class DfsLogger {
       super("LogClosed");
     }
   }
+  
+  public static class DFSLoggerInputStreams {
+    
+    private FSDataInputStream originalInput;
+    private DataInputStream decryptingInputStream;
+
+    public DFSLoggerInputStreams(FSDataInputStream originalInput, DataInputStream decryptingInputStream) {
+      this.originalInput = originalInput;
+      this.decryptingInputStream = decryptingInputStream;
+    }
+
+    public FSDataInputStream getOriginalInput() {
+      return originalInput;
+    }
+
+    public void setOriginalInput(FSDataInputStream originalInput) {
+      this.originalInput = originalInput;
+    }
+
+    public DataInputStream getDecryptingInputStream() {
+      return decryptingInputStream;
+    }
+
+    public void setDecryptingInputStream(DataInputStream decryptingInputStream) {
+      this.decryptingInputStream = decryptingInputStream;
+    }
+  }
+  
   
   public interface ServerResources {
     AccumuloConfiguration getConfiguration();
@@ -210,28 +242,83 @@ public class DfsLogger {
     this.logPath = filename;
   }
   
-  public static FSDataInputStream readHeader(VolumeManager fs, Path path, Map<String,String> opts) throws IOException {
-    FSDataInputStream file = fs.open(path);
-    try {
-      byte[] magic = LOG_FILE_HEADER_V2.getBytes();
-      byte[] buffer = new byte[magic.length];
-      file.readFully(buffer);
-      if (Arrays.equals(buffer, magic)) {
-        int count = file.readInt();
+  public static DFSLoggerInputStreams readHeaderAndReturnStream(VolumeManager fs, Path path, AccumuloConfiguration conf) throws IOException {
+    FSDataInputStream input = fs.open(path);
+    DataInputStream decryptingInput = null;
+    
+    byte[] magic = DfsLogger.LOG_FILE_HEADER_V3.getBytes();
+    byte[] magicBuffer = new byte[magic.length];
+    input.readFully(magicBuffer);
+    if (Arrays.equals(magicBuffer, magic)) {
+      // additional parameters it needs from the underlying stream.
+      String cryptoModuleClassname = input.readUTF();
+      org.apache.accumulo.core.security.crypto.CryptoModule cryptoModule = org.apache.accumulo.core.security.crypto.CryptoModuleFactory
+          .getCryptoModule(cryptoModuleClassname);
+
+      // Create the parameters and set the input stream into those parameters
+      CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
+      params.setEncryptedInputStream(input);
+
+      // Create the plaintext input stream from the encrypted one
+      params = cryptoModule.getDecryptingInputStream(params);
+
+      if (params.getPlaintextInputStream() instanceof DataInputStream) {
+        decryptingInput = (DataInputStream) params.getPlaintextInputStream();
+      } else {
+        decryptingInput = new DataInputStream(params.getPlaintextInputStream());
+      }
+    } else {
+      input.seek(0);
+      byte[] magicV2 = DfsLogger.LOG_FILE_HEADER_V2.getBytes();
+      byte[] magicBufferV2 = new byte[magic.length];
+      input.readFully(magicBufferV2);
+
+      if (Arrays.equals(magicBufferV2, magicV2)) {
+        // Log files from 1.5 dump their options in raw to the logger files.  Since we don't know the class
+        // that needs to read those files, we can make a couple of basic assumptions.  Either it's going to be
+        // the NullCryptoModule (no crypto) or the DefaultCryptoModule.
+        
+        // If it's null, we won't have any parameters whatsoever.  First, let's attempt to read 
+        // parameters
+        Map<String,String> opts = new HashMap<String,String>();
+        int count = input.readInt();
         for (int i = 0; i < count; i++) {
-          String key = file.readUTF();
-          String value = file.readUTF();
+          String key = input.readUTF();
+          String value = input.readUTF();
           opts.put(key, value);
         }
+        
+        if (opts.size() == 0) {
+          // NullCryptoModule, we're done
+          decryptingInput = input;
+        } else {
+          
+          // The DefaultCryptoModule will want to read the parameters from the underlying file, so we will put the file back to that spot.
+          org.apache.accumulo.core.security.crypto.CryptoModule cryptoModule = org.apache.accumulo.core.security.crypto.CryptoModuleFactory
+              .getCryptoModule(DefaultCryptoModule.class.getName());
+
+          CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
+          
+          input.seek(0);
+          input.readFully(magicBuffer);
+          params.setEncryptedInputStream(input);
+
+          params = cryptoModule.getDecryptingInputStream(params);
+          if (params.getPlaintextInputStream() instanceof DataInputStream) {
+            decryptingInput = (DataInputStream) params.getPlaintextInputStream();
+          } else {
+            decryptingInput = new DataInputStream(params.getPlaintextInputStream());
+          }
+        }
+        
       } else {
-        file.seek(0);
-        return file;
+
+        input.seek(0);
+        decryptingInput = input;
       }
-      return file;
-    } catch (IOException ex) {
-      file.seek(0);
-      return file;
+
     }
+    return new DFSLoggerInputStreams(input, decryptingInput);
   }
   
   public synchronized void open(String address) throws IOException {
@@ -278,7 +365,7 @@ public class DfsLogger {
           .getConfiguration().get(Property.CRYPTO_MODULE_CLASS));
       
       // Initialize the log file with a header and the crypto params used to set up this log file.
-      logFile.write(LOG_FILE_HEADER_V2.getBytes());
+      logFile.write(LOG_FILE_HEADER_V3.getBytes());
 
       CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf.getConfiguration());
       
@@ -290,8 +377,6 @@ public class DfsLogger {
       logFile.writeUTF(conf.getConfiguration().get(Property.CRYPTO_MODULE_CLASS));
       
       
-      //@SuppressWarnings("deprecation")
-      //OutputStream encipheringOutputStream = cryptoModule.getEncryptingOutputStream(logFile, cryptoOpts);
       params = cryptoModule.getEncryptingOutputStream(params);
       OutputStream encipheringOutputStream = params.getEncryptedOutputStream();
       
