@@ -43,7 +43,6 @@ ifeq ($(shell uname),Linux)
 endif
 
 ifeq ($(shell uname),Darwin)
-<<<<<<< HEAD:server/src/main/c++/nativeMap/Makefile
   LIBS:= libNativeMap-Mac_OS_X-x86_64-64.jnilib
   # Update flags for OSX-10.9 and Xcode 5.0.1
   # I think that we should be able to remove the `-undefined dynamic_lookup` option,
