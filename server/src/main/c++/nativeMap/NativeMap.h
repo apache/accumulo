@@ -37,7 +37,6 @@ struct NativeMapData {
 
 	NativeMapData(int blockSize, int bigBlockSize):lba(new LinkedBlockAllocator(blockSize, bigBlockSize)),
 							rowmap(RowMap(std::less<Field>(), BlockAllocator<std::pair<Field, ColumnMap> >(lba))){
-		this->lba = lba;
 	}
 
 	~NativeMapData(){
