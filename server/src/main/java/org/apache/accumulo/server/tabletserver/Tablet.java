@@ -1271,7 +1271,6 @@ public class Tablet {
     this.lastCompactID = initCompactID;
     
     if (extent.isRootTablet()) {
-      
       long rtime = Long.MIN_VALUE;
       for (FileRef ref : datafiles.keySet()) {
         Path path = ref.path();
@@ -1294,6 +1293,10 @@ public class Tablet {
           rtime = maxTime;
         }
       }
+    }
+    if (time == null && datafiles.isEmpty() && extent.equals(RootTable.OLD_EXTENT)) {
+      // recovery... old root tablet has no data, so time doesn't matter:
+      time = TabletTime.LOGICAL_TIME_ID + "" + Long.MIN_VALUE;
     }
     
     this.tabletServer = tabletServer;
@@ -1430,7 +1433,7 @@ public class Tablet {
       removeOldTemporaryFiles();
     }
     
-    log.log(TLevel.TABLET_HIST, extent + " opened ");
+    log.log(TLevel.TABLET_HIST, extent + " opened");
   }
   
   private void removeOldTemporaryFiles() {
@@ -3176,7 +3179,7 @@ public class Tablet {
       droppedFiles.addAll(inputFiles);
       if (plan != null)
         droppedFiles.addAll(plan.deleteFiles);
-      propogateDeletes = !(droppedFiles.equals(allFiles.keySet()));
+      propogateDeletes = droppedFiles.equals(allFiles.keySet());
       log.debug("Major compaction plan: " + plan + " propogate deletes : " + propogateDeletes);
       filesToCompact = new HashMap<FileRef,DataFileValue>(allFiles);
       filesToCompact.keySet().retainAll(inputFiles);

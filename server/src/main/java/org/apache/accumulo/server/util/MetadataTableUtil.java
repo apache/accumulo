@@ -810,7 +810,7 @@ public class MetadataTableUtil {
     if (extent.isRootTablet()) {
       getRootLogEntries(result);
       Path rootDir = new Path(ServerConstants.getRootTabletDir());
-      rootDir = rootDir.makeQualified(fs.getDefaultVolume());
+      rootDir = fs.getDefaultVolume().makeQualified(rootDir);
       FileStatus[] files = fs.listStatus(rootDir);
       for (FileStatus fileStatus : files) {
         if (fileStatus.getPath().toString().endsWith("_tmp")) {
@@ -892,6 +892,8 @@ public class MetadataTableUtil {
         LogEntry e = new LogEntry();
         try {
           e.fromBytes(zoo.getData(root + "/" + child, null));
+          // upgrade from !0;!0<< -> !!R<<
+          e.extent = RootTable.EXTENT;
           result.add(e);
         } catch (KeeperException.NoNodeException ex) {
           continue;
@@ -1275,11 +1277,11 @@ public class MetadataTableUtil {
         log.info("Moving " + filename + " marker in " + RootTable.NAME);
         Mutation m = new Mutation(MetadataSchema.DeletesSection.getRowPrefix() + filename);
         m.put(EMPTY_BYTES, EMPTY_BYTES, EMPTY_BYTES);
-        update(creds, m, null);
+        update(creds, m, RootTable.EXTENT);
         // remove the old entry
         m = new Mutation(entry.getKey().getRow());
         m.putDelete(EMPTY_BYTES, EMPTY_BYTES);
-        update(creds, m, null);
+        update(creds, m,  RootTable.OLD_EXTENT);
       } else {
         break;
       }
@@ -1315,11 +1317,4 @@ public class MetadataTableUtil {
     return tabletEntries;
   }
 
-  public static void convertRootTabletToRootTable(Instance instance, SystemCredentials systemCredentials) throws KeeperException, InterruptedException {
-    ZooReaderWriter zoo = ZooReaderWriter.getInstance();
-    if (zoo.exists(ZooUtil.getRoot(instance)+"/tables/" + RootTable.ID))
-      return;
-    TableManager.prepareNewTableState(instance.getInstanceID(), RootTable.ID, RootTable.NAME, TableState.ONLINE, NodeExistsPolicy.FAIL);
-  }
-  
 }

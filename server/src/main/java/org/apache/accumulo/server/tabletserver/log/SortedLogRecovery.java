@@ -29,10 +29,13 @@ import java.util.Set;
 
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.logger.LogFileKey;
 import org.apache.accumulo.server.logger.LogFileValue;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 /**
@@ -150,6 +153,10 @@ public class SortedLogRecovery {
         throw new RuntimeException("COMPACTION_FINISH (without preceding COMPACTION_START) is not followed by a successful minor compaction.");
       lastStartToFinish.update(key.tserverSession);
     }
+    KeyExtent alternative = extent;
+    if (extent.isRootTablet()) {
+      alternative = RootTable.OLD_EXTENT;
+    }
     
     LogFileKey defineKey = null;
     
@@ -159,7 +166,7 @@ public class SortedLogRecovery {
       // LogReader.printEntry(entry);
       if (key.event != DEFINE_TABLET)
         break;
-      if (key.tablet.equals(extent)) {
+      if (key.tablet.equals(extent) || key.tablet.equals(alternative)) {
         if (tid != key.tid) {
           tid = key.tid;
           defineKey = key;

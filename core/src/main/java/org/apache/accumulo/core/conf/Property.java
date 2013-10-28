@@ -594,12 +594,10 @@ public enum Property {
 
   public static Map<String,String> getCompactionStrategyOptions(AccumuloConfiguration tableConf) {
     Map<String,String> longNames = tableConf.getAllPropertiesWithPrefix(Property.TABLE_COMPACTION_STRATEGY_PREFIX);
-    log.info("longNames " + longNames);
     Map<String,String> result = new HashMap<String, String>();
     for (Entry<String,String> entry : longNames.entrySet()) {
       result.put(entry.getKey().substring(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey().length()), entry.getValue());
     }
-    log.info("result " + result);
     return result;
   }
 }

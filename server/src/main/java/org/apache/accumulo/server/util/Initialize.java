@@ -237,7 +237,7 @@ public class Initialize {
     for (Path mtd : metadataTableDirs) {
       try {
         fstat = fs.getFileStatus(mtd);
-        if (!fstat.isDir()) {
+        if (!fstat.isDirectory()) {
           log.fatal("location " + mtd.toString() + " exists but is not a directory");
           return;
         }
@@ -252,7 +252,7 @@ public class Initialize {
     // create root table and tablet
     try {
       fstat = fs.getFileStatus(rootTablet);
-      if (!fstat.isDir()) {
+      if (!fstat.isDirectory()) {
         log.fatal("location " + rootTablet.toString() + " exists but is not a directory");
         return;
       }
@@ -313,14 +313,14 @@ public class Initialize {
       Path dir = new Path(s);
       try {
         fstat = fs.getFileStatus(dir);
-        if (!fstat.isDir()) {
+        if (!fstat.isDirectory()) {
           log.fatal("location " + dir.toString() + " exists but is not a directory");
           return;
         }
       } catch (FileNotFoundException fnfe) {
         try {
           fstat = fs.getFileStatus(dir);
-          if (!fstat.isDir()) {
+          if (!fstat.isDirectory()) {
             log.fatal("location " + dir.toString() + " exists but is not a directory");
             return;
           }
@@ -432,7 +432,7 @@ public class Initialize {
         opts.rootpass);
   }
   
-  protected static void initMetadataConfig() throws IOException {
+  public static void initMetadataConfig(String tableId) throws IOException {
     try {
       Configuration conf = CachedConfiguration.getInstance();
       int max = conf.getInt("dfs.replication.max", 512);
@@ -452,6 +452,11 @@ public class Initialize {
       log.fatal("error talking to zookeeper", e);
       throw new IOException(e);
     }
+  }
+  
+  protected static void initMetadataConfig() throws IOException {
+    initMetadataConfig(RootTable.ID);
+    initMetadataConfig(MetadataTable.ID);
   }
   
   private static void setMetadataReplication(int replication, String reason) throws IOException {

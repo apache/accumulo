@@ -37,6 +37,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
@@ -49,7 +50,7 @@ import org.apache.log4j.Logger;
 public class MetaDataTableScanner implements Iterator<TabletLocationState> {
   private static final Logger log = Logger.getLogger(MetaDataTableScanner.class);
   
-  BatchScanner mdScanner;
+  BatchScanner mdScanner = null;
   Iterator<Entry<Key,Value>> iter;
   
   public MetaDataTableScanner(Instance instance, Credentials credentials, Range range, CurrentState state) {
@@ -65,7 +66,8 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
       mdScanner.setRanges(Collections.singletonList(range));
       iter = mdScanner.iterator();
     } catch (Exception ex) {
-      mdScanner.close();
+      if (mdScanner != null)
+        mdScanner.close();
       throw new RuntimeException(ex);
     }
   }

@@ -78,6 +78,7 @@ import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
+import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -95,6 +96,7 @@ import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.balancer.DefaultLoadBalancer;
@@ -135,6 +137,7 @@ import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.DefaultMap;
 import org.apache.accumulo.server.util.Halt;
+import org.apache.accumulo.server.util.Initialize;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.SystemPropUtil;
 import org.apache.accumulo.server.util.TServerUtils;
@@ -146,6 +149,9 @@ import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.trace.instrument.thrift.TraceWrap;
 import org.apache.accumulo.trace.thrift.TInfo;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileUtil;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
@@ -265,9 +271,13 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         
         IZooReaderWriter zoo = ZooReaderWriter.getInstance();
         
+        if (!Tables.exists(instance, RootTable.ID)) {
+          TableManager.prepareNewTableState(instance.getInstanceID(), RootTable.ID, RootTable.NAME, TableState.ONLINE, NodeExistsPolicy.FAIL);
+          Initialize.initMetadataConfig(RootTable.ID);
+        }
+        
         zoo.recursiveDelete(ZooUtil.getRoot(instance) + "/loggers", NodeMissingPolicy.SKIP);
         zoo.recursiveDelete(ZooUtil.getRoot(instance) + "/dead/loggers", NodeMissingPolicy.SKIP);
-        
         zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZRECOVERY, new byte[] {'0'}, NodeExistsPolicy.SKIP);
         
         for (String id : Tables.getIdToNameMap(instance).keySet()) {
@@ -293,7 +303,18 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           @Override
           public void run() {
             try {
-              MetadataTableUtil.convertRootTabletToRootTable(instance, SystemCredentials.get());
+              Path oldDir = fs.getFullPath(FileType.TABLE, ServerConstants.getDefaultBaseDir() + "/tables/!0/root_tablet");
+              for (FileStatus file : fs.listStatus(oldDir)) {
+                if (file.isFile()) {
+                  Path newFile = new Path(ServerConstants.getRootTabletDir(), file.getPath().getName());
+                  FileUtil.copy(
+                      fs.getFileSystemByPath(file.getPath()), file.getPath(),
+                      fs.getFileSystemByPath(newFile), newFile,
+                      false,
+                      true,
+                      CachedConfiguration.getInstance());
+                }
+              }
               MetadataTableUtil.moveMetaDeleteMarkers(instance, SystemCredentials.get());
               Accumulo.updateAccumuloVersion(fs);
               

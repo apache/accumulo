@@ -2987,7 +2987,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     long now = RelativeTime.currentTimeMillis();
     List<String> logSet = new ArrayList<String>();
     for (DfsLogger log : logs)
-      logSet.add(log.toString());
+      logSet.add(log.getFileName());
     MetadataTableUtil.LogEntry entry = new MetadataTableUtil.LogEntry();
     entry.extent = extent;
     entry.tabletId = id;
@@ -3376,7 +3376,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       throw new AccumuloException("Metadata entry does not have directory (" + metadataEntry + ")");
     }
 
-    if (time == null) {
+    if (time == null && !extent.equals(RootTable.OLD_EXTENT)) {
       throw new AccumuloException("Metadata entry does not have time (" + metadataEntry + ")");
     }
 

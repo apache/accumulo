@@ -113,7 +113,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       if (opTimer != null)
         opTimer.stop("Got " + results.size() + " results  from " + src.tablet_extent + " in %DURATION%");
       
-      // System.out.println("results "+results.keySet());
+      //if (log.isTraceEnabled()) log.trace("results "+results);
       
       return MetadataLocationObtainer.getMetadataLocationEntries(results);
       
