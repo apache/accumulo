@@ -27,6 +27,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.interpret.ScanInterpreter;
 import org.apache.accumulo.core.util.shell.Shell;
+import org.apache.accumulo.core.util.shell.Shell.PrintFile;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.MissingArgumentException;
 import org.apache.commons.cli.Option;
@@ -38,6 +39,7 @@ public class GrepCommand extends ScanCommand {
   
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+    final PrintFile printFile = getOutputFile(cl);
     
     final String tableName = OptUtil.getTableOpt(cl, shellState);
     
@@ -67,7 +69,7 @@ public class GrepCommand extends ScanCommand {
       fetchColumns(cl, scanner, interpeter);
       
       // output the records
-      printRecords(cl, shellState, scanner, formatter);
+      printRecords(cl, shellState, scanner, formatter, printFile);
     } finally {
       scanner.close();
     }
