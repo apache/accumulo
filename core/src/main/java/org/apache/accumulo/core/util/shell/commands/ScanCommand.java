@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
@@ -58,10 +59,7 @@ public class ScanCommand extends Command {
   
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
-    
-    final String outputFile = cl.getOptionValue(outputFileOpt.getOpt());
-    final PrintFile printFile = outputFile == null ? null : new PrintFile(outputFile);
-    
+    final PrintFile printFile = getOutputFile(cl);
     final String tableName = OptUtil.getTableOpt(cl, shellState);
     
     final Class<? extends Formatter> formatter = getFormatter(cl, tableName, shellState);
@@ -327,5 +325,10 @@ public class ScanCommand extends Command {
   @Override
   public int numArgs() {
     return 0;
+  }
+  
+  protected PrintFile getOutputFile(final CommandLine cl) throws FileNotFoundException {
+    final String outputFile = cl.getOptionValue(outputFileOpt.getOpt());
+    return (outputFile == null ? null : new PrintFile(outputFile));
   }
 }
