@@ -35,6 +35,8 @@ else
    unset HADOOP_HOME
 fi
 test -z "$HADOOP_CONF_DIR"       && export HADOOP_CONF_DIR="$HADOOP_PREFIX/conf"
+# hadoop-2.0:
+# test -z "$HADOOP_CONF_DIR"     && export HADOOP_CONF_DIR="$HADOOP_PREFIX/etc/hadoop"
 
 
 test -z "$JAVA_HOME"             && export JAVA_HOME=/path/to/java
