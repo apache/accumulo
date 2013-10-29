@@ -28,6 +28,7 @@ import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
@@ -127,48 +128,48 @@ public class AccumuloReloadingVFSClassLoaderTest {
   //
   // This is caused by the filed being deleted and then readded in the same monitor tick. This causes the file to ultimately register the deletion over any
   // other events.
-//  @Test
-//  public void testFastDeleteAndReAdd() throws Exception {
-//    FileObject testDir = vfs.resolveFile(folder1.getRoot().toURI().toString());
-//    FileObject[] dirContents = testDir.getChildren();
-//
-//    AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folderPath, vfs, new ReloadingClassLoader() {
-//
-//      @Override
-//      public ClassLoader getClassLoader() {
-//        return ClassLoader.getSystemClassLoader();
-//      }
-//    }, 1000, true);
-//
-//    FileObject[] files = ((VFSClassLoader) arvcl.getClassLoader()).getFileObjects();
-//    Assert.assertArrayEquals(createFileSystems(dirContents), files);
-//
-//    Class<?> clazz1 = arvcl.getClassLoader().loadClass("test.HelloWorld");
-//    Object o1 = clazz1.newInstance();
-//    Assert.assertEquals("Hello World!", o1.toString());
-//
-//    // Check that the class is the same before the update
-//    Class<?> clazz1_5 = arvcl.getClassLoader().loadClass("test.HelloWorld");
-//    Assert.assertEquals(clazz1, clazz1_5);
-//
-//    new File(folder1.getRoot(), "HelloWorld.jar").delete();
-//
-//    // Update the class
-//    FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"), folder1.newFile("HelloWorld.jar"));
-//
-//    // Wait for the monitor to notice
-//    Thread.sleep(2000);
-//
-//    Class<?> clazz2 = arvcl.getClassLoader().loadClass("test.HelloWorld");
-//    Object o2 = clazz2.newInstance();
-//    Assert.assertEquals("Hello World!", o2.toString());
-//
-//    // This is false because they are loaded by a different classloader
-//    Assert.assertFalse(clazz1.equals(clazz2));
-//    Assert.assertFalse(o1.equals(o2));
-//
-//    arvcl.close();
-//  }
+  @Test @Ignore
+  public void testFastDeleteAndReAdd() throws Exception {
+    FileObject testDir = vfs.resolveFile(folder1.getRoot().toURI().toString());
+    FileObject[] dirContents = testDir.getChildren();
+
+    AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folderPath, vfs, new ReloadingClassLoader() {
+
+      @Override
+      public ClassLoader getClassLoader() {
+        return ClassLoader.getSystemClassLoader();
+      }
+    }, 1000, true);
+
+    FileObject[] files = ((VFSClassLoader) arvcl.getClassLoader()).getFileObjects();
+    Assert.assertArrayEquals(createFileSystems(dirContents), files);
+
+    Class<?> clazz1 = arvcl.getClassLoader().loadClass("test.HelloWorld");
+    Object o1 = clazz1.newInstance();
+    Assert.assertEquals("Hello World!", o1.toString());
+
+    // Check that the class is the same before the update
+    Class<?> clazz1_5 = arvcl.getClassLoader().loadClass("test.HelloWorld");
+    Assert.assertEquals(clazz1, clazz1_5);
+
+    new File(folder1.getRoot(), "HelloWorld.jar").delete();
+
+    // Update the class
+    FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"), folder1.newFile("HelloWorld.jar"));
+
+    // Wait for the monitor to notice
+    Thread.sleep(2000);
+
+    Class<?> clazz2 = arvcl.getClassLoader().loadClass("test.HelloWorld");
+    Object o2 = clazz2.newInstance();
+    Assert.assertEquals("Hello World!", o2.toString());
+
+    // This is false because they are loaded by a different classloader
+    Assert.assertFalse(clazz1.equals(clazz2));
+    Assert.assertFalse(o1.equals(o2));
+
+    arvcl.close();
+  }
 
   @Test
   public void testModifiedClass() throws Exception {
