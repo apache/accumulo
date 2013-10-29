@@ -3179,7 +3179,7 @@ public class Tablet {
       droppedFiles.addAll(inputFiles);
       if (plan != null)
         droppedFiles.addAll(plan.deleteFiles);
-      propogateDeletes = droppedFiles.equals(allFiles.keySet());
+      propogateDeletes = !(droppedFiles.equals(allFiles.keySet()));
       log.debug("Major compaction plan: " + plan + " propogate deletes : " + propogateDeletes);
       filesToCompact = new HashMap<FileRef,DataFileValue>(allFiles);
       filesToCompact.keySet().retainAll(inputFiles);
