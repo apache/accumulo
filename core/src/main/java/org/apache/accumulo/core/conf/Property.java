@@ -18,6 +18,7 @@ package org.apache.accumulo.core.conf;
 
 import java.io.File;
 import java.lang.annotation.Annotation;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -573,6 +574,9 @@ public enum Property {
         || key.equals(Property.TABLE_LOAD_BALANCER.getKey());
   }
 
+  // This is not a cache for loaded classes, just a way to avoid spamming the debug log
+  static Map<String, Class<? extends Object>> loaded = Collections.synchronizedMap(new HashMap<String, Class<? extends Object>>()); 
+
   public static <T> T createInstanceFromPropertyName(AccumuloConfiguration conf, Property property, Class<T> base, T defaultInstance) {
     String clazzName = conf.get(property);
     T instance = null;
@@ -580,7 +584,8 @@ public enum Property {
     try {
       Class<? extends T> clazz = AccumuloVFSClassLoader.loadClass(clazzName, base);
       instance = clazz.newInstance();
-      log.debug("Loaded class : " + clazzName);
+      if (loaded.put(clazzName, clazz) != clazz)
+        log.debug("Loaded class : " + clazzName);
     } catch (Exception e) {
       log.warn("Failed to load class ", e);
     }

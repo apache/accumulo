@@ -53,7 +53,11 @@ public class RestartIT extends ConfigurableMacIT {
 
   private static final ScannerOpts SOPTS = new ScannerOpts();
   private static final VerifyIngest.Opts VOPTS = new VerifyIngest.Opts();
+  private static final TestIngest.Opts OPTS = new TestIngest.Opts();
   private static final BatchWriterOpts BWOPTS = new BatchWriterOpts();
+  static {
+    OPTS.rows = VOPTS.rows = 10 * 1000;
+  }
   
   @Test(timeout = 2 * 60 * 1000)
   public void restartMaster() throws Exception {
@@ -61,7 +65,7 @@ public class RestartIT extends ConfigurableMacIT {
     c.tableOperations().create("test_ingest");
     Process ingest = cluster.exec(TestIngest.class, 
         "-u", "root", "-p", ROOT_PASSWORD, 
-        "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers());
+        "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "--rows", ""+OPTS.rows);
     for (ProcessReference master : cluster.getProcesses().get(ServerType.MASTER)) {
       cluster.killProcess(ServerType.MASTER, master);
     }
@@ -75,8 +79,7 @@ public class RestartIT extends ConfigurableMacIT {
   public void restartMasterRecovery() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
-    TestIngest.Opts opts = new TestIngest.Opts();
-    TestIngest.ingest(c, opts, BWOPTS);
+    TestIngest.ingest(c, OPTS, BWOPTS);
     for (Entry<ServerType,Collection<ProcessReference>> entry : cluster.getProcesses().entrySet()) {
       for (ProcessReference proc : entry.getValue()) {
         cluster.killProcess(entry.getKey(), proc);
@@ -98,7 +101,7 @@ public class RestartIT extends ConfigurableMacIT {
     c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(), "5K");
     Process ingest = cluster.exec(TestIngest.class, 
         "-u", "root", "-p", ROOT_PASSWORD, 
-        "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers());
+        "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "--rows", ""+VOPTS.rows);
     for (ProcessReference master : cluster.getProcesses().get(ServerType.MASTER)) {
       cluster.killProcess(ServerType.MASTER, master);
     }
@@ -108,12 +111,11 @@ public class RestartIT extends ConfigurableMacIT {
     ingest.destroy();
   }
   
-  @Test(timeout = 100 * 60 * 1000)
+  @Test(timeout = 10 * 60 * 1000)
   public void killedTabletServer() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
-    TestIngest.Opts opts = new TestIngest.Opts();
-    TestIngest.ingest(c, opts, BWOPTS);
+    TestIngest.ingest(c, OPTS, BWOPTS);
     VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
     List<ProcessReference> procs = new ArrayList<ProcessReference>(cluster.getProcesses().get(ServerType.TABLET_SERVER));
     for (ProcessReference tserver : procs) {
@@ -142,8 +144,7 @@ public class RestartIT extends ConfigurableMacIT {
   public void killedTabletServerDuringShutdown() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
-    TestIngest.Opts opts = new TestIngest.Opts();
-    TestIngest.ingest(c, opts, BWOPTS);
+    TestIngest.ingest(c, OPTS, BWOPTS);
     List<ProcessReference> procs = new ArrayList<ProcessReference>(cluster.getProcesses().get(ServerType.TABLET_SERVER));
     cluster.killProcess(ServerType.TABLET_SERVER, procs.get(0));
     assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());

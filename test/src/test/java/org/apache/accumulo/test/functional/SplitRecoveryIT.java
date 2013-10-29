@@ -259,7 +259,7 @@ public class SplitRecoveryIT extends ConfigurableMacIT {
     new SplitRecoveryIT().run();
   }
   
-  @Test(timeout = 10 * 1000)
+  @Test(timeout = 30 * 1000)
   public void test() throws Exception {
     assertEquals(0, exec(SplitRecoveryIT.class).waitFor());
   }

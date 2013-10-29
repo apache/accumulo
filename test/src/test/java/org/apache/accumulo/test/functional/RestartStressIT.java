@@ -38,7 +38,7 @@ public class RestartStressIT extends ConfigurableMacIT {
     Map<String, String> opts = new HashMap<String, String>();
     opts.put(Property.TSERV_MAXMEM.getKey(), "100K");
     opts.put(Property.TSERV_MAJC_DELAY.getKey(), "100ms");
-    opts.put(Property.TSERV_WALOG_MAX_SIZE.getKey(), "500K");
+    opts.put(Property.TSERV_WALOG_MAX_SIZE.getKey(), "1M");
     opts.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "5s");
     opts.put(Property.MASTER_RECOVERY_DELAY.getKey(), "1s");
     cfg.setSiteConfig(opts);
@@ -50,7 +50,7 @@ public class RestartStressIT extends ConfigurableMacIT {
   static {
     IOPTS = new TestIngest.Opts();
     VOPTS = new VerifyIngest.Opts();
-    IOPTS.rows = VOPTS.rows = 100*1000;
+    IOPTS.rows = VOPTS.rows = 10*1000;
   }
   private static final ScannerOpts SOPTS = new ScannerOpts();
   

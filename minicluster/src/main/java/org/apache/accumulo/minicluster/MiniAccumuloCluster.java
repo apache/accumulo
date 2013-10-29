@@ -240,6 +240,8 @@ public class MiniAccumuloCluster {
     builder.environment().put("ACCUMULO_HOME", config.getDir().getAbsolutePath());
     builder.environment().put("ACCUMULO_LOG_DIR", config.getLogDir().getAbsolutePath());
     builder.environment().put("ACCUMULO_CONF_DIR", config.getConfDir().getAbsolutePath());
+    // hadoop-2.2 puts error messages in the logs if this is not set
+    builder.environment().put("HADOOP_HOME", config.getDir().getAbsolutePath());
 
     Process process = builder.start();
 

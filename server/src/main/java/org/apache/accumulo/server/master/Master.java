@@ -183,7 +183,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   final private static long DEFAULT_WAIT_FOR_WATCHER = 10 * ONE_SECOND;
   final private static int MAX_CLEANUP_WAIT_TIME = ONE_SECOND;
   final private static int TIME_TO_WAIT_BETWEEN_LOCK_CHECKS = ONE_SECOND;
-  final static int MAX_TSERVER_WORK_CHUNK = 5 * ONE_SECOND;
+  final static int MAX_TSERVER_WORK_CHUNK = 5000;
   final private static int MAX_BAD_STATUS_COUNT = 3;
   
   final VolumeManager fs;
