@@ -160,18 +160,22 @@ public class GarbageCollectionTest {
     gca.collect(gce);
     assertRemoved(gce);
 
+    // Remove the reference to this flush file, run the GC which should not trim it from the candidates, and assert that it's gone
     gce.removeFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F000.rf");
     gca.collect(gce);
     assertRemoved(gce, "hdfs://foo:6000/accumulo/tables/4/t0/F000.rf");
 
+    // Removing a reference to a file that wasn't in the candidates should do nothing
     gce.removeFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F002.rf");
     gca.collect(gce);
     assertRemoved(gce);
 
+    // Remove the reference to a file in the candidates should cause it to be removed
     gce.removeFileReference("4", null, "hdfs://foo:6000/accumulo/tables/4/t0/F001.rf");
     gca.collect(gce);
     assertRemoved(gce, "hdfs://foo.com:6000/accumulo/tables/4/t0/F001.rf");
 
+    // Adding more candidates which do no have references should be removed
     gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/4/t0/F003.rf");
     gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/4/t0/F004.rf");
     gca.collect(gce);
@@ -195,6 +199,7 @@ public class GarbageCollectionTest {
 
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
+    // All candidates currently have references
     gca.collect(gce);
     assertRemoved(gce);
 
@@ -249,16 +254,20 @@ public class GarbageCollectionTest {
 
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
+    // Nothing should be removed because all candidates exist within a blip
     gca.collect(gce);
     assertRemoved(gce);
 
+    // Remove the first blip
     gce.blips.remove("/4/b-0");
 
+    // And we should lose all files in that blip and the blip directory itself -- relative and absolute 
     gca.collect(gce);
     assertRemoved(gce, "/4/b-0", "/4/b-0/F002.rf", "hdfs://foo.com:6000/accumulo/tables/4/b-0/F001.rf");
 
     gce.blips.remove("hdfs://foo.com:6000/accumulo/tables/5/b-0");
 
+    // Same as above, we should lose relative and absolute for a relative or absolute blip
     gca.collect(gce);
     assertRemoved(gce, "/5/b-0", "/5/b-0/F002.rf", "hdfs://foo.com:6000/accumulo/tables/5/b-0/F001.rf");
 
@@ -298,9 +307,11 @@ public class GarbageCollectionTest {
 
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
+    // A directory reference does not preclude a candidate file beneath that directory from deletion
     gca.collect(gce);
     assertRemoved(gce, "/4/t-0/F002.rf");
 
+    // Removing the dir reference for a table will delete all tablet directories
     gce.removeDirReference("5", null);
     gca.collect(gce);
     assertRemoved(gce, "hdfs://foo.com:6000/accumulo/tables/5/t-0");

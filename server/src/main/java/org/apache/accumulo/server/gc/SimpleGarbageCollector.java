@@ -243,10 +243,7 @@ public class SimpleGarbageCollector implements Iface {
       if (opts.safeMode) {
         if (opts.verbose)
           System.out.println("SAFEMODE: There are " + confirmedDeletes.size() + " data file candidates marked for deletion.%n"
-              + "          Examine the log files to identify them.%n" + "          They can be removed by executing: bin/accumulo gc --offline%n"
-              + "WARNING:  Do not run the garbage collector in offline mode unless you are positive%n"
-              + "          that the accumulo METADATA table is in a clean state, or that accumulo%n"
-              + "          has not yet been run, in the case of an upgrade.");
+              + "          Examine the log files to identify them.%n");
         log.info("SAFEMODE: Listing all data file candidates for deletion");
         for (String s : confirmedDeletes.values())
           log.info("SAFEMODE: " + s);
@@ -263,10 +260,13 @@ public class SimpleGarbageCollector implements Iface {
         writer = c.createBatchWriter(tableName, new BatchWriterConfig());
       } catch (AccumuloException e) {
         log.error("Unable to connect to Accumulo to write deletes", e);
+        // TODO Throw exception or return?
       } catch (AccumuloSecurityException e) {
         log.error("Unable to connect to Accumulo to write deletes", e);
+        // TODO Throw exception or return?
       } catch (TableNotFoundException e) {
         log.error("Unable to create writer to remove file from the " + e.getTableName() + " table", e);
+        // TODO Throw exception or return?
       }
 
       // when deleting a dir and all files in that dir, only need to delete the dir

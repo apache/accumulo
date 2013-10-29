@@ -122,8 +122,9 @@ public class GarbageCollectionAlgorithm {
   protected void confirmDeletes(GarbageCollectionEnvironment gce, SortedMap<String,String> candidateMap) throws TableNotFoundException, AccumuloException,
       AccumuloSecurityException {
     boolean checkForBulkProcessingFiles = false;
-    for (String candidate : candidateMap.keySet())
-      checkForBulkProcessingFiles |= candidate.toLowerCase(Locale.ENGLISH).contains(Constants.BULK_PREFIX);
+    Iterator<String> relativePaths = candidateMap.keySet().iterator();
+    while (!checkForBulkProcessingFiles && relativePaths.hasNext())
+      checkForBulkProcessingFiles |= relativePaths.next().toLowerCase(Locale.ENGLISH).contains(Constants.BULK_PREFIX);
 
     if (checkForBulkProcessingFiles) {
       Iterator<String> blipiter = gce.getBlipIterator();
