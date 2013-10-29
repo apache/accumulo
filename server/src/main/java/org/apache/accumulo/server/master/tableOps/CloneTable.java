@@ -109,7 +109,7 @@ class CloneMetadata extends MasterRepo {
     // need to clear out any metadata entries for tableId just in case this
     // died before and is executing again
     MetadataTableUtil.deleteTable(cloneInfo.tableId, false, SystemCredentials.get(), environment.getMasterLock());
-    MetadataTableUtil.cloneTable(instance, cloneInfo.srcTableId, cloneInfo.tableId);
+    MetadataTableUtil.cloneTable(instance, cloneInfo.srcTableId, cloneInfo.tableId, environment.getFileSystem());
     return new FinishCloneTable(cloneInfo);
   }
   

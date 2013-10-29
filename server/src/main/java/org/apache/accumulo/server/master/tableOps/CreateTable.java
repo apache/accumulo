@@ -41,7 +41,6 @@ import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.tabletserver.TabletTime;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.TablePropUtil;
-import org.apache.accumulo.server.util.TabletOperations;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -56,6 +55,8 @@ class TableInfo implements Serializable {
   String user;
   
   public Map<String,String> props;
+
+  public String dir = null;
 }
 
 class FinishCreateTable extends MasterRepo {
@@ -113,10 +114,8 @@ class PopulateMetadata extends MasterRepo {
   
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
-    
     KeyExtent extent = new KeyExtent(new Text(tableInfo.tableId), null, null);
-    String tdir = environment.getFileSystem().choose(ServerConstants.getTablesDirs()) + "/" + tableInfo.tableId + "" + Constants.DEFAULT_TABLET_LOCATION;
-    MetadataTableUtil.addTablet(extent, tdir, SystemCredentials.get(), tableInfo.timeType, environment.getMasterLock());
+    MetadataTableUtil.addTablet(extent, tableInfo.dir, SystemCredentials.get(), tableInfo.timeType, environment.getMasterLock());
     
     return new FinishCreateTable(tableInfo);
     
@@ -146,16 +145,40 @@ class CreateDir extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     VolumeManager fs = master.getFileSystem();
-    TabletOperations.createTabletDirectory(fs, tableInfo.tableId, null);
+    fs.mkdirs(new Path(tableInfo.dir));
     return new PopulateMetadata(tableInfo);
   }
   
   @Override
   public void undo(long tid, Master master) throws Exception {
     VolumeManager fs = master.getFileSystem();
-    for (String dir : ServerConstants.getTablesDirs()) {
-      fs.deleteRecursively(new Path(dir + "/" + tableInfo.tableId));
-    }
+    fs.deleteRecursively(new Path(tableInfo.dir));
+
+  }
+}
+
+class ChooseDir extends MasterRepo {
+  private static final long serialVersionUID = 1L;
+
+  private TableInfo tableInfo;
+
+  ChooseDir(TableInfo ti) {
+    this.tableInfo = ti;
+  }
+
+  @Override
+  public long isReady(long tid, Master environment) throws Exception {
+    return 0;
+  }
+
+  @Override
+  public Repo<Master> call(long tid, Master master) throws Exception {
+    tableInfo.dir = master.getFileSystem().choose(ServerConstants.getTablesDirs()) + "/" + tableInfo.tableId + "" + Constants.DEFAULT_TABLET_LOCATION;
+    return new CreateDir(tableInfo);
+  }
+
+  @Override
+  public void undo(long tid, Master master) throws Exception {
     
   }
 }
@@ -192,7 +215,7 @@ class PopulateZookeeper extends MasterRepo {
         TablePropUtil.setTableProperty(tableInfo.tableId, entry.getKey(), entry.getValue());
       
       Tables.clearCache(instance);
-      return new CreateDir(tableInfo);
+      return new ChooseDir(tableInfo);
     } finally {
       Utils.tableNameLock.unlock();
     }

@@ -1131,7 +1131,7 @@ public class MetadataTableUtil {
     return rewrites;
   }
   
-  public static void cloneTable(Instance instance, String srcTableId, String tableId) throws Exception {
+  public static void cloneTable(Instance instance, String srcTableId, String tableId, VolumeManager volumeManager) throws Exception {
     
     Connector conn = instance.getConnector(SystemCredentials.get().getPrincipal(), SystemCredentials.get().getToken());
     BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
@@ -1177,7 +1177,9 @@ public class MetadataTableUtil {
       Key k = entry.getKey();
       Mutation m = new Mutation(k.getRow());
       m.putDelete(k.getColumnFamily(), k.getColumnQualifier());
-      TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(FastFormat.toZeroPaddedString(dirCount++, 8, 16, "/c-".getBytes())));
+      String dir = volumeManager.choose(ServerConstants.getTablesDirs()) + "/" + tableId
+          + new String(FastFormat.toZeroPaddedString(dirCount++, 8, 16, "/c-".getBytes()));
+      TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(dir.getBytes()));
       bw.addMutation(m);
     }
     
