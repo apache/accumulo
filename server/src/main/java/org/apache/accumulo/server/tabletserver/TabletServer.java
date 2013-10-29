@@ -935,7 +935,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     private RowLocks rowLocks = new RowLocks();
     
     ThriftClientHandler() {
-      super(instance, watcher);
+      super(instance, watcher, fs);
       log.debug(ThriftClientHandler.class.getName() + " created");
       sessionManager = new SessionManager(getSystemConfiguration());
       // Register the metrics MBean

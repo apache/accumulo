@@ -45,9 +45,9 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.cli.ClientOpts;
-import org.apache.hadoop.conf.Configuration;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -129,7 +129,7 @@ public class TableDiskUsage {
     void print(String line);
   }
   
-  public static void printDiskUsage(AccumuloConfiguration acuConf, Collection<String> tables, FileSystem fs, Connector conn, boolean humanReadable)
+  public static void printDiskUsage(AccumuloConfiguration acuConf, Collection<String> tables, VolumeManager fs, Connector conn, boolean humanReadable)
       throws TableNotFoundException, IOException {
     printDiskUsage(acuConf, tables, fs, conn, new Printer() {
       @Override
@@ -139,7 +139,7 @@ public class TableDiskUsage {
     }, humanReadable);
   }
   
-  public static Map<TreeSet<String>,Long> getDiskUsage(AccumuloConfiguration acuConf, Set<String> tableIds, FileSystem fs, Connector conn) throws IOException {
+  public static Map<TreeSet<String>,Long> getDiskUsage(AccumuloConfiguration acuConf, Set<String> tableIds, VolumeManager fs, Connector conn) throws IOException {
     TableDiskUsage tdu = new TableDiskUsage();
     
     for (String tableId : tableIds)
@@ -243,7 +243,7 @@ public class TableDiskUsage {
     return usage;
   }
   
-  public static void printDiskUsage(AccumuloConfiguration acuConf, Collection<String> tables, FileSystem fs, Connector conn, Printer printer,
+  public static void printDiskUsage(AccumuloConfiguration acuConf, Collection<String> tables, VolumeManager fs, Connector conn, Printer printer,
       boolean humanReadable) throws TableNotFoundException, IOException {
     
     HashSet<String> tableIds = new HashSet<String>();
@@ -274,7 +274,7 @@ public class TableDiskUsage {
    * @param args
    */
   public static void main(String[] args) throws Exception {
-    FileSystem fs = FileSystem.get(new Configuration());
+    VolumeManager fs = VolumeManagerImpl.get();
     Opts opts = new Opts();
     opts.parseArgs(TableDiskUsage.class.getName(), args);
     Connector conn = opts.getConnector();

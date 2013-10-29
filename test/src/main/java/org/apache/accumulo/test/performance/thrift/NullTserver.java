@@ -88,7 +88,7 @@ public class NullTserver {
     private long updateSession = 1;
     
     public ThriftClientHandler(Instance instance, TransactionWatcher watcher) {
-      super(instance, watcher);
+      super(instance, watcher, null);
     }
     
     @Override

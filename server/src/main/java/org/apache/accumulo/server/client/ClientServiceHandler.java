@@ -47,21 +47,19 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Authe
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.util.TableDiskUsage;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.trace.thrift.TInfo;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 
@@ -70,10 +68,12 @@ public class ClientServiceHandler implements ClientService.Iface {
   private static SecurityOperation security = AuditedSecurityOperation.getInstance();
   protected final TransactionWatcher transactionWatcher;
   private final Instance instance;
+  private final VolumeManager fs;
   
-  public ClientServiceHandler(Instance instance, TransactionWatcher transactionWatcher) {
+  public ClientServiceHandler(Instance instance, TransactionWatcher transactionWatcher, VolumeManager fs) {
     this.instance = instance;
     this.transactionWatcher = transactionWatcher;
+    this.fs = fs;
   }
   
   protected String checkTableId(String tableName, TableOperation operation) throws ThriftTableOperationException {
@@ -332,9 +332,6 @@ public class ClientServiceHandler implements ClientService.Iface {
         if (!security.canScan(credentials, tableId))
           throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
       }
-      
-      AccumuloConfiguration conf = new ServerConfiguration(instance).getConfiguration();
-      FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), conf);
       
       // use the same set of tableIds that were validated above to avoid race conditions
       Map<TreeSet<String>,Long> diskUsage = TableDiskUsage.getDiskUsage(new ServerConfiguration(instance).getConfiguration(), tableIds, fs, conn);
