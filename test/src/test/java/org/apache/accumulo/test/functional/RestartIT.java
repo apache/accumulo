@@ -154,8 +154,8 @@ public class RestartIT extends ConfigurableMacIT {
   public void shutdownDuringCompactingSplitting() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
-    c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(), "5K");
-    c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
+    c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
+    c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), "20K");
     TestIngest.Opts opts = new TestIngest.Opts();
     TestIngest.ingest(c, opts, BWOPTS);
     c.tableOperations().flush("test_ingest", null, null, false);
