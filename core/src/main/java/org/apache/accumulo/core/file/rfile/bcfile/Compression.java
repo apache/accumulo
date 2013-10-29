@@ -68,11 +68,20 @@ public final class Compression {
     }
   }
   
+  /** snappy codec **/
+  public static final String COMPRESSION_SNAPPY = "snappy";
+  /** compression: gzip */
+  public static final String COMPRESSION_GZ = "gz";
+  /** compression: lzo */
+  public static final String COMPRESSION_LZO = "lzo";
+  /** compression: none */
+  public static final String COMPRESSION_NONE = "none";
+  
   /**
    * Compression algorithms.
    */
   public static enum Algorithm {
-    LZO(TFile.COMPRESSION_LZO) {
+    LZO(COMPRESSION_LZO) {
       private transient boolean checked = false;
       private static final String defaultClazz = "org.apache.hadoop.io.compress.LzoCodec";
       private transient CompressionCodec codec = null;
@@ -137,7 +146,7 @@ public final class Compression {
       }
     },
     
-    GZ(TFile.COMPRESSION_GZ) {
+    GZ(COMPRESSION_GZ) {
       private transient DefaultCodec codec;
       
       @Override
@@ -181,7 +190,7 @@ public final class Compression {
       }
     },
     
-    NONE(TFile.COMPRESSION_NONE) {
+    NONE(COMPRESSION_NONE) {
       @Override
       CompressionCodec getCodec() {
         return null;
@@ -210,7 +219,7 @@ public final class Compression {
       }
     },
     
-    SNAPPY(TFile.COMPRESSION_SNAPPY) {
+    SNAPPY(COMPRESSION_SNAPPY) {
       // Use base type to avoid compile-time dependencies.
       private transient CompressionCodec snappyCodec = null;
       private transient boolean checked = false;
