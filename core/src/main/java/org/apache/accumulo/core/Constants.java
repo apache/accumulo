@@ -36,7 +36,7 @@ public class Constants {
   public static final String ZTABLE_FLUSH_ID = "/flush-id";
   public static final String ZTABLE_COMPACT_ID = "/compact-id";
   public static final String ZTABLE_COMPACT_CANCEL_ID = "/compact-cancel-id";
-  
+
   public static final String ZMASTERS = "/masters";
   public static final String ZMASTER_LOCK = ZMASTERS + "/lock";
   public static final String ZMASTER_GOAL_STATE = ZMASTERS + "/goal_state";

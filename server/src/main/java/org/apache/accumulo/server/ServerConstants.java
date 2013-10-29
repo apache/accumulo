@@ -55,6 +55,8 @@ public class ServerConstants {
           throw new RuntimeException(e);
         }
       } else {
+        if (!dfsUri.contains(":"))
+          throw new IllegalArgumentException("Expected fully qualified URI for " + Property.INSTANCE_DFS_URI.getKey() + " got " + dfsUri);
         baseDir = dfsUri + singleNamespace;
       }
       
@@ -75,6 +77,11 @@ public class ServerConstants {
         baseDirs = new String[] {getDefaultBaseDir()};
       } else {
         String namespaces[] = ns.split(",");
+        for (String namespace : namespaces) {
+          if (!namespace.contains(":")) {
+            throw new IllegalArgumentException("Expected fully qualified URI for " + Property.INSTANCE_VOLUMES.getKey() + " got " + namespace);
+          }
+        }
         baseDirs = prefix(namespaces, singleNamespace);
       }
     }
@@ -126,9 +133,5 @@ public class ServerConstants {
   
   public static String[] getMetadataTableDirs() {
     return prefix(getTablesDirs(), MetadataTable.ID);
-  }
-  
-  public static String getRootTabletDir() {
-    return prefix(getRootTableDirs(), RootTable.ROOT_TABLET_LOCATION)[0];
   }
 }

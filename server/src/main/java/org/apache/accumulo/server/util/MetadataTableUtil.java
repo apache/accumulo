@@ -33,6 +33,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -85,7 +86,6 @@ import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -800,6 +800,18 @@ public class MetadataTableUtil {
     return e;
   }
   
+  public static String getRootTabletDir() throws IOException {
+    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    String zpath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + RootTable.ZROOT_TABLET_PATH;
+    try {
+      return new String(zoo.getData(zpath, null), Constants.UTF8);
+    } catch (KeeperException e) {
+      throw new IOException(e);
+    } catch (InterruptedException e) {
+      throw new IOException(e);
+    }
+  }
+
   public static Pair<List<LogEntry>,SortedMap<FileRef,DataFileValue>> getFileAndLogEntries(Credentials credentials, KeyExtent extent) throws KeeperException,
       InterruptedException, IOException {
     ArrayList<LogEntry> result = new ArrayList<LogEntry>();
@@ -808,9 +820,7 @@ public class MetadataTableUtil {
     VolumeManager fs = VolumeManagerImpl.get();
     if (extent.isRootTablet()) {
       getRootLogEntries(result);
-      Path rootDir = new Path(ServerConstants.getRootTabletDir());
-      FileSystem defaultVolume = fs.getDefaultVolume();
-      rootDir = rootDir.makeQualified(defaultVolume.getUri(), defaultVolume.getWorkingDirectory());
+      Path rootDir = new Path(getRootTabletDir());
       FileStatus[] files = fs.listStatus(rootDir);
       for (FileStatus fileStatus : files) {
         if (fileStatus.getPath().toString().endsWith("_tmp")) {

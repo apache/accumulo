@@ -51,7 +51,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Lo
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -138,7 +137,7 @@ public class OfflineMetadataScanner extends ScannerOptions implements Scanner {
       throw new RuntimeException("Root tablet has write ahead logs, can not scan offline");
     }
     
-    FileStatus[] rootFiles = fs.listStatus(new Path(ServerConstants.getRootTabletDir()));
+    FileStatus[] rootFiles = fs.listStatus(new Path(MetadataTableUtil.getRootTabletDir()));
     
     for (FileStatus rootFile : rootFiles) {
       allFiles.add(rootFile.getPath().toString());

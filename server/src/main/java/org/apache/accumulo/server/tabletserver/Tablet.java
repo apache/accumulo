@@ -1123,9 +1123,7 @@ public class Tablet {
     TreeMap<FileRef,DataFileValue> datafiles = new TreeMap<FileRef,DataFileValue>();
     
     if (extent.isRootTablet()) { // the meta0 tablet
-      Path location = new Path(ServerConstants.getRootTabletDir());
-      FileSystem defaultVolume = fs.getDefaultVolume();
-      location = location.makeQualified(defaultVolume.getUri(), defaultVolume.getWorkingDirectory());
+      Path location = new Path(MetadataTableUtil.getRootTabletDir());
       // cleanUpFiles() has special handling for delete. files
       FileStatus[] files = fs.listStatus(location);
       Collection<String> goodPaths = cleanUpFiles(fs, files, true);

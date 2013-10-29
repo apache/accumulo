@@ -170,15 +170,17 @@ public class Initialize {
   public static boolean initialize(Opts opts, String instanceNamePath, VolumeManager fs) {
     
     UUID uuid = UUID.randomUUID();
+    // the actual disk locations of the root table and tablets
+    final Path rootTablet = new Path(fs.choose(ServerConstants.getTablesDirs()) + "/" + RootTable.ID + RootTable.ROOT_TABLET_LOCATION);
     try {
-      initZooKeeper(opts, uuid.toString(), instanceNamePath);
+      initZooKeeper(opts, uuid.toString(), instanceNamePath, rootTablet);
     } catch (Exception e) {
       log.fatal("Failed to initialize zookeeper", e);
       return false;
     }
     
     try {
-      initFileSystem(opts, fs, uuid);
+      initFileSystem(opts, fs, uuid, rootTablet);
     } catch (Exception e) {
       log.fatal("Failed to initialize filesystem", e);
       return false;
@@ -214,12 +216,9 @@ public class Initialize {
   
   //TODO Remove deprecation warning suppression when Hadoop1 support is dropped
   @SuppressWarnings("deprecation")
-  private static void initFileSystem(Opts opts, VolumeManager fs, UUID uuid) throws IOException {
+  private static void initFileSystem(Opts opts, VolumeManager fs, UUID uuid, Path rootTablet) throws IOException {
     FileStatus fstat;
-    
-    // the actual disk locations of the root table and tablets
-    final Path rootTablet = new Path(ServerConstants.getRootTabletDir());
-    
+
     // the actual disk locations of the metadata table and tablets
     final Path[] metadataTableDirs = paths(ServerConstants.getMetadataTableDirs());
     
@@ -343,7 +342,7 @@ public class Initialize {
     }
   }
   
-  private static void initZooKeeper(Opts opts, String uuid, String instanceNamePath) throws KeeperException, InterruptedException {
+  private static void initZooKeeper(Opts opts, String uuid, String instanceNamePath, Path rootTablet) throws KeeperException, InterruptedException {
     // setup basic data in zookeeper
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     ZooUtil.putPersistentData(zoo.getZooKeeper(), Constants.ZROOT, new byte[0], -1, NodeExistsPolicy.SKIP, Ids.OPEN_ACL_UNSAFE);
@@ -364,6 +363,7 @@ public class Initialize {
     zoo.putPersistentData(zkInstanceRoot + Constants.ZPROBLEMS, new byte[0], NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + RootTable.ZROOT_TABLET, new byte[0], NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + RootTable.ZROOT_TABLET_WALOGS, new byte[0], NodeExistsPolicy.FAIL);
+    zoo.putPersistentData(zkInstanceRoot + RootTable.ZROOT_TABLET_PATH, rootTablet.toString().getBytes(), NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTRACERS, new byte[0], NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZMASTERS, new byte[0], NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZMASTER_LOCK, new byte[0], NodeExistsPolicy.FAIL);

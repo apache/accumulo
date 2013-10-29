@@ -3275,7 +3275,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       throw new AccumuloException("Root tablet already has a location set");
     }
     
-    return new Pair<Text,KeyExtent>(new Text(RootTable.ROOT_TABLET_LOCATION), null);
+    try {
+      return new Pair<Text,KeyExtent>(new Text(MetadataTableUtil.getRootTabletDir()), null);
+    } catch (IOException e) {
+      throw new AccumuloException(e);
+    }
   }
   
   public static Pair<Text,KeyExtent> verifyTabletInformation(KeyExtent extent, TServerInstance instance, SortedMap<Key,Value> tabletsKeyValues,

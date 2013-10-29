@@ -40,6 +40,7 @@ public class RootTable {
   public static final String ZROOT_TABLET_FUTURE_LOCATION = ZROOT_TABLET + "/future_location";
   public static final String ZROOT_TABLET_LAST_LOCATION = ZROOT_TABLET + "/lastlocation";
   public static final String ZROOT_TABLET_WALOGS = ZROOT_TABLET + "/walogs";
+  public static final String ZROOT_TABLET_PATH = ZROOT_TABLET + "/dir";
   
   public static final KeyExtent EXTENT = new KeyExtent(new Text(ID), null, null);
   public static final KeyExtent OLD_EXTENT = new KeyExtent(new Text(MetadataTable.ID), KeyExtent.getMetadataEntry(new Text(MetadataTable.ID), null), null);

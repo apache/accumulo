@@ -78,7 +78,6 @@ import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -149,8 +148,6 @@ import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.trace.instrument.thrift.TraceWrap;
 import org.apache.accumulo.trace.thrift.TInfo;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -264,6 +261,42 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
   }
   
+  private void moveRootTabletToRootTable(IZooReaderWriter zoo) throws Exception {
+    String dirZPath = ZooUtil.getRoot(instance) + RootTable.ZROOT_TABLET_PATH;
+
+    if (!zoo.exists(dirZPath)) {
+      Path oldPath = fs.getFullPath(FileType.TABLE, "/!0/root_tablet");
+      if (fs.exists(oldPath)) {
+        String newPath = fs.choose(ServerConstants.getTablesDirs()) + "/" + RootTable.ID;
+        fs.mkdirs(new Path(newPath));
+        if (!fs.rename(oldPath, new Path(newPath))) {
+          throw new IOException("Failed to move root tablet from " + oldPath + " to " + newPath);
+        }
+
+        log.info("Upgrade renamed " + oldPath + " to " + newPath);
+      }
+
+      Path location = null;
+
+      for (String basePath : ServerConstants.getTablesDirs()) {
+        Path path = new Path(basePath + "/" + RootTable.ID + RootTable.ROOT_TABLET_LOCATION);
+        if (fs.exists(path)) {
+          if (location != null) {
+            throw new IllegalStateException("Root table at multiple locations " + location + " " + path);
+          }
+
+          location = path;
+        }
+      }
+
+      if (location == null)
+        throw new IllegalStateException("Failed to find root tablet");
+
+      log.info("Upgrade setting root table location in zookeeper " + location);
+      zoo.putPersistentData(dirZPath, location.toString().getBytes(), NodeExistsPolicy.FAIL);
+    }
+  }
+
   private void upgradeZookeeper() {
     if (Accumulo.getAccumuloPersistentVersion(fs) == ServerConstants.PREV_DATA_VERSION) {
       try {
@@ -272,10 +305,12 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         IZooReaderWriter zoo = ZooReaderWriter.getInstance();
         
         if (!Tables.exists(instance, RootTable.ID)) {
-          TableManager.prepareNewTableState(instance.getInstanceID(), RootTable.ID, RootTable.NAME, TableState.ONLINE, NodeExistsPolicy.FAIL);
+          TableManager.prepareNewTableState(instance.getInstanceID(), RootTable.ID, RootTable.NAME, TableState.ONLINE, NodeExistsPolicy.SKIP);
           Initialize.initMetadataConfig(RootTable.ID);
         }
         
+        moveRootTabletToRootTable(zoo);
+
         zoo.recursiveDelete(ZooUtil.getRoot(instance) + "/loggers", NodeMissingPolicy.SKIP);
         zoo.recursiveDelete(ZooUtil.getRoot(instance) + "/dead/loggers", NodeMissingPolicy.SKIP);
         zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZRECOVERY, new byte[] {'0'}, NodeExistsPolicy.SKIP);
@@ -303,18 +338,6 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           @Override
           public void run() {
             try {
-              Path oldDir = fs.getFullPath(FileType.TABLE, ServerConstants.getDefaultBaseDir() + "/tables/!0/root_tablet");
-              for (FileStatus file : fs.listStatus(oldDir)) {
-                if (fs.isFile(file.getPath())) {
-                  Path newFile = new Path(ServerConstants.getRootTabletDir(), file.getPath().getName());
-                  FileUtil.copy(
-                      fs.getFileSystemByPath(file.getPath()), file.getPath(),
-                      fs.getFileSystemByPath(newFile), newFile,
-                      false,
-                      true,
-                      CachedConfiguration.getInstance());
-                }
-              }
               MetadataTableUtil.moveMetaDeleteMarkers(instance, SystemCredentials.get());
               Accumulo.updateAccumuloVersion(fs);
               
