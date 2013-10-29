@@ -18,7 +18,7 @@
 
 if [ ! -n "$1" ]; then
     echo "Usage: `basename $0` TestClass1[,TestClass2,TestClass3] ..."
-    echo "       `basename $0` \"Prefix*IT\" ..."
+    echo "       `basename $0` \"Prefix*IT[,Prefix2*IT]\" ..."
     echo "       `basename $0` \"MyIT#method1+method2\" ..."
     exit 1
 fi
