@@ -305,7 +305,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
             try {
               Path oldDir = fs.getFullPath(FileType.TABLE, ServerConstants.getDefaultBaseDir() + "/tables/!0/root_tablet");
               for (FileStatus file : fs.listStatus(oldDir)) {
-                if (file.isFile()) {
+                if (fs.isFile(file.getPath())) {
                   Path newFile = new Path(ServerConstants.getRootTabletDir(), file.getPath().getName());
                   FileUtil.copy(
                       fs.getFileSystemByPath(file.getPath()), file.getPath(),

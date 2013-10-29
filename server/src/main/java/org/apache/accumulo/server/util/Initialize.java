@@ -237,7 +237,7 @@ public class Initialize {
     for (Path mtd : metadataTableDirs) {
       try {
         fstat = fs.getFileStatus(mtd);
-        if (!fstat.isDirectory()) {
+        if (!fstat.isDir()) {
           log.fatal("location " + mtd.toString() + " exists but is not a directory");
           return;
         }
@@ -252,7 +252,7 @@ public class Initialize {
     // create root table and tablet
     try {
       fstat = fs.getFileStatus(rootTablet);
-      if (!fstat.isDirectory()) {
+      if (!fstat.isDir()) {
         log.fatal("location " + rootTablet.toString() + " exists but is not a directory");
         return;
       }
@@ -313,14 +313,14 @@ public class Initialize {
       Path dir = new Path(s);
       try {
         fstat = fs.getFileStatus(dir);
-        if (!fstat.isDirectory()) {
+        if (!fstat.isDir()) {
           log.fatal("location " + dir.toString() + " exists but is not a directory");
           return;
         }
       } catch (FileNotFoundException fnfe) {
         try {
           fstat = fs.getFileStatus(dir);
-          if (!fstat.isDirectory()) {
+          if (!fstat.isDir()) {
             log.fatal("location " + dir.toString() + " exists but is not a directory");
             return;
           }
