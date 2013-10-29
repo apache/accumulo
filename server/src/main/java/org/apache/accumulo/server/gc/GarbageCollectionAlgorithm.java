@@ -119,7 +119,7 @@ public class GarbageCollectionAlgorithm {
     return ret;
   }
 
-  protected void confirmDeletes(GarbageCollectionEnvironment gce, SortedMap<String,String> candidateMap) throws TableNotFoundException, AccumuloException,
+  private void confirmDeletes(GarbageCollectionEnvironment gce, SortedMap<String,String> candidateMap) throws TableNotFoundException, AccumuloException,
       AccumuloSecurityException {
     boolean checkForBulkProcessingFiles = false;
     Iterator<String> relativePaths = candidateMap.keySet().iterator();
@@ -227,18 +227,46 @@ public class GarbageCollectionAlgorithm {
 
   }
 
+  private List<String> getCandidates(GarbageCollectionEnvironment gce, String lastCandidate) throws TableNotFoundException, AccumuloException,
+      AccumuloSecurityException {
+    Span candidatesSpan = Trace.start("getCandidates");
+    List<String> candidates;
+    try {
+      candidates = gce.getCandidates(lastCandidate);
+    } finally {
+      candidatesSpan.stop();
+    }
+    return candidates;
+  }
+
+  private void confirmDeletesTrace(GarbageCollectionEnvironment gce, SortedMap<String,String> candidateMap) throws TableNotFoundException, AccumuloException,
+      AccumuloSecurityException {
+    Span confirmDeletesSpan = Trace.start("confirmDeletes");
+    try {
+      confirmDeletes(gce, candidateMap);
+    } finally {
+      confirmDeletesSpan.stop();
+    }
+  }
+
+  private void deleteConfirmed(GarbageCollectionEnvironment gce, SortedMap<String,String> candidateMap) throws IOException, AccumuloException,
+      AccumuloSecurityException, TableNotFoundException {
+    Span deleteSpan = Trace.start("deleteFiles");
+    try {
+      gce.delete(candidateMap);
+    } finally {
+      deleteSpan.stop();
+    }
+
+    cleanUpDeletedTableDirs(gce, candidateMap);
+  }
+
   public void collect(GarbageCollectionEnvironment gce) throws TableNotFoundException, AccumuloException, AccumuloSecurityException, IOException {
 
     String lastCandidate = "";
 
     while (true) {
-      Span candidatesSpan = Trace.start("getCandidates");
-      List<String> candidates;
-      try {
-        candidates = gce.getCandidates(lastCandidate);
-      } finally {
-        candidatesSpan.stop();
-      }
+      List<String> candidates = getCandidates(gce, lastCandidate);
 
       if (candidates.size() == 0)
         break;
@@ -250,23 +278,10 @@ public class GarbageCollectionAlgorithm {
 
       SortedMap<String,String> candidateMap = makeRelative(candidates);
 
-      Span confirmDeletesSpan = Trace.start("confirmDeletes");
-      try {
-        confirmDeletes(gce, candidateMap);
-      } finally {
-        confirmDeletesSpan.stop();
-      }
+      confirmDeletesTrace(gce, candidateMap);
       gce.incrementInUseStat(origSize - candidateMap.size());
 
-      Span deleteSpan = Trace.start("deleteFiles");
-      try {
-        gce.delete(candidateMap);
-      } finally {
-        deleteSpan.stop();
-      }
-
-      cleanUpDeletedTableDirs(gce, candidateMap);
+      deleteConfirmed(gce, candidateMap);
     }
   }
-
 }

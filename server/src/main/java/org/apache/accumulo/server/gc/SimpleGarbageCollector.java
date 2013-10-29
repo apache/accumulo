@@ -238,7 +238,7 @@ public class SimpleGarbageCollector implements Iface {
     }
 
     @Override
-    public void delete(SortedMap<String,String> confirmedDeletes) throws IOException {
+    public void delete(SortedMap<String,String> confirmedDeletes) throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
       if (opts.safeMode) {
         if (opts.verbose)
@@ -251,23 +251,8 @@ public class SimpleGarbageCollector implements Iface {
         return;
       }
 
-      // create a batchwriter to remove the delete flags for successful
-      // deletes; Need separate writer for the root tablet.
-      BatchWriter writer = null;
-      Connector c;
-      try {
-        c = instance.getConnector(SystemCredentials.get().getPrincipal(), SystemCredentials.get().getToken());
-        writer = c.createBatchWriter(tableName, new BatchWriterConfig());
-      } catch (AccumuloException e) {
-        log.error("Unable to connect to Accumulo to write deletes", e);
-        // TODO Throw exception or return?
-      } catch (AccumuloSecurityException e) {
-        log.error("Unable to connect to Accumulo to write deletes", e);
-        // TODO Throw exception or return?
-      } catch (TableNotFoundException e) {
-        log.error("Unable to create writer to remove file from the " + e.getTableName() + " table", e);
-        // TODO Throw exception or return?
-      }
+      Connector c = instance.getConnector(SystemCredentials.get().getPrincipal(), SystemCredentials.get().getToken());
+      BatchWriter writer = c.createBatchWriter(tableName, new BatchWriterConfig());
 
       // when deleting a dir and all files in that dir, only need to delete the dir
       // the dir will sort right before the files... so remove the files in this case
