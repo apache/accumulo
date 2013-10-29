@@ -128,7 +128,8 @@ public class IndexMeta extends Configured implements Tool {
     opts.parseArgs(IndexMeta.class.getName(), args);
     
     String jobName = this.getClass().getSimpleName() + "_" + System.currentTimeMillis();
-    
+
+    @SuppressWarnings("deprecation")
     Job job = new Job(getConf(), jobName);
     job.setJarByClass(this.getClass());
     

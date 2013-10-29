@@ -142,6 +142,8 @@ public class BulkImport extends MasterRepo {
   }
   
   @Override
+  //TODO Remove deprecation warning suppression when Hadoop1 support is dropped
+  @SuppressWarnings("deprecation")
   public Repo<Master> call(long tid, Master master) throws Exception {
     log.debug(" tid " + tid + " sourceDir " + sourceDir);
     
@@ -209,7 +211,9 @@ public class BulkImport extends MasterRepo {
       UtilWaitThread.sleep(3000);
     }
   }
-  
+
+  //TODO Remove deprecation warning suppression when Hadoop1 support is dropped
+  @SuppressWarnings("deprecation")
   private String prepareBulkImport(VolumeManager fs, String dir, String tableId) throws IOException {
     Path bulkDir = createNewBulkDir(fs, tableId);
     

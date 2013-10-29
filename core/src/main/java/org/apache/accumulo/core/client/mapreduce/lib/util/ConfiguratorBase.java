@@ -31,7 +31,6 @@ import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -154,7 +153,7 @@ public class ConfiguratorBase {
     ArgumentChecker.notNull(principal, tokenFile);
 
     try {
-      DistributedCache.addCacheFile(new URI(tokenFile), conf);
+      DistributedCacheHelper.addCacheFile(new URI(tokenFile), conf);
     } catch (URISyntaxException e) {
       throw new IllegalStateException("Unable to add tokenFile \"" + tokenFile + "\" to distributed cache.");
     }
@@ -234,7 +233,7 @@ public class ConfiguratorBase {
   private static AuthenticationToken getTokenFromFile(Configuration conf, String principal, String tokenFile) {
     FSDataInputStream in = null;
     try {
-      URI[] uris = DistributedCache.getCacheFiles(conf);
+      URI[] uris = DistributedCacheHelper.getCacheFiles(conf);
       Path path = null;
       for (URI u : uris) {
         if (u.toString().equals(tokenFile)) {

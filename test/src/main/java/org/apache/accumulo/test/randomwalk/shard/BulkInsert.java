@@ -51,6 +51,7 @@ public class BulkInsert extends Test {
     
     SequenceFile.Writer writer;
     
+    @SuppressWarnings("deprecation")
     SeqfileBatchWriter(Configuration conf, FileSystem fs, String file) throws IOException {
       writer = new SequenceFile.Writer(fs, conf, new Path(file), Key.class, Value.class);
     }

@@ -166,7 +166,9 @@ public class HdfsFileObject extends AbstractFileObject
     /**
      * @see org.apache.commons.vfs2.provider.AbstractFileObject#doGetType()
      */
-    @Override
+    @Override  
+    //TODO Remove deprecation warning suppression when Hadoop1 support is dropped
+    @SuppressWarnings("deprecation")
     protected FileType doGetType() throws Exception
     {
         try

@@ -61,6 +61,7 @@ public class AccumuloInputFormatTest {
    */
   @Test
   public void testSetIterator() throws IOException {
+    @SuppressWarnings("deprecation")
     Job job = new Job();
     
     IteratorSetting is = new IteratorSetting(1, "WholeRow", "org.apache.accumulo.core.iterators.WholeRowIterator");
@@ -74,6 +75,7 @@ public class AccumuloInputFormatTest {
   
   @Test
   public void testAddIterator() throws IOException {
+    @SuppressWarnings("deprecation")
     Job job = new Job();
     
     AccumuloInputFormat.addIterator(job, new IteratorSetting(1, "WholeRow", WholeRowIterator.class));
@@ -122,6 +124,7 @@ public class AccumuloInputFormatTest {
     String value = "comma,delimited,value";
     IteratorSetting someSetting = new IteratorSetting(1, "iterator", "Iterator.class");
     someSetting.addOption(key, value);
+    @SuppressWarnings("deprecation")
     Job job = new Job();
     AccumuloInputFormat.addIterator(job, someSetting);
     
@@ -150,6 +153,7 @@ public class AccumuloInputFormatTest {
    */
   @Test
   public void testGetIteratorSettings() throws IOException {
+    @SuppressWarnings("deprecation")
     Job job = new Job();
     
     AccumuloInputFormat.addIterator(job, new IteratorSetting(1, "WholeRow", "org.apache.accumulo.core.iterators.WholeRowIterator"));
@@ -181,6 +185,7 @@ public class AccumuloInputFormatTest {
   
   @Test
   public void testSetRegex() throws IOException {
+    @SuppressWarnings("deprecation")
     Job job = new Job();
     
     String regex = ">\"*%<>\'\\";
@@ -234,7 +239,8 @@ public class AccumuloInputFormatTest {
       String user = args[0];
       String pass = args[1];
       String table = args[2];
-      
+
+      @SuppressWarnings("deprecation")
       Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
       job.setJarByClass(this.getClass());
       

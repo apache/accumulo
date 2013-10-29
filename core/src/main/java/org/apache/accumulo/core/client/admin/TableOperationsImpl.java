@@ -1101,7 +1101,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     
     return ranges;
   }
-  
+
+  // TODO Remove deprecation warning surppression when Hadoop1 support is dropped
+  @SuppressWarnings("deprecation")
   private Path checkPath(String dir, String kind, String type) throws IOException, AccumuloException {
     Path ret;
     FileSystem fs;

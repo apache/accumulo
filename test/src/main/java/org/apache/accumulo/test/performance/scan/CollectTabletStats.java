@@ -384,7 +384,9 @@ public class CollectTabletStats {
   private static List<FileRef> getTabletFiles(Credentials credentials, Instance zki, String tableId, KeyExtent ke) throws IOException {
     return new ArrayList<FileRef>(MetadataTableUtil.getDataFileSizes(ke, credentials).keySet());
   }
-  
+
+  //TODO Remove deprecation warning suppression when Hadoop1 support is dropped
+  @SuppressWarnings("deprecation")
   private static void reportHdfsBlockLocations(List<FileRef> files) throws Exception {
     VolumeManager fs = VolumeManagerImpl.get();
     

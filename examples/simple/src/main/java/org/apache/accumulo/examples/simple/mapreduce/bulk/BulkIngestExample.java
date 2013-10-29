@@ -107,6 +107,7 @@ public class BulkIngestExample extends Configured implements Tool {
     Configuration conf = getConf();
     PrintStream out = null;
     try {
+      @SuppressWarnings("deprecation")
       Job job = new Job(conf, "bulk ingest example");
       job.setJarByClass(this.getClass());
       

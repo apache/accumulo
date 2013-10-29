@@ -192,7 +192,8 @@ public class ChunkInputFormatTest extends TestCase {
       String user = args[1];
       String pass = args[2];
       String table = args[3];
-      
+
+      @SuppressWarnings("deprecation")
       Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
       job.setJarByClass(this.getClass());
       

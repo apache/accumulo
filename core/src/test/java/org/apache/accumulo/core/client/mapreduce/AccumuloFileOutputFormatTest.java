@@ -131,6 +131,7 @@ public class AccumuloFileOutputFormatTest {
       String pass = args[1];
       String table = args[2];
 
+      @SuppressWarnings("deprecation")
       Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
       job.setJarByClass(this.getClass());
 
@@ -196,14 +197,15 @@ public class AccumuloFileOutputFormatTest {
     long d = 10l;
     String e = "snappy";
 
-    Job job = new Job();
-    AccumuloFileOutputFormat.setReplication(job, a);
-    AccumuloFileOutputFormat.setFileBlockSize(job, b);
-    AccumuloFileOutputFormat.setDataBlockSize(job, c);
-    AccumuloFileOutputFormat.setIndexBlockSize(job, d);
-    AccumuloFileOutputFormat.setCompressionType(job, e);
+    @SuppressWarnings("deprecation")
+    Job job1 = new Job();
+    AccumuloFileOutputFormat.setReplication(job1, a);
+    AccumuloFileOutputFormat.setFileBlockSize(job1, b);
+    AccumuloFileOutputFormat.setDataBlockSize(job1, c);
+    AccumuloFileOutputFormat.setIndexBlockSize(job1, d);
+    AccumuloFileOutputFormat.setCompressionType(job1, e);
 
-    AccumuloConfiguration acuconf = AccumuloFileOutputFormat.getAccumuloConfiguration(job);
+    AccumuloConfiguration acuconf = AccumuloFileOutputFormat.getAccumuloConfiguration(job1);
 
     assertEquals(7, acuconf.getCount(Property.TABLE_FILE_REPLICATION));
     assertEquals(300l, acuconf.getMemoryInBytes(Property.TABLE_FILE_BLOCK_SIZE));
@@ -217,14 +219,15 @@ public class AccumuloFileOutputFormatTest {
     d = 110l;
     e = "lzo";
 
-    job = new Job();
-    AccumuloFileOutputFormat.setReplication(job, a);
-    AccumuloFileOutputFormat.setFileBlockSize(job, b);
-    AccumuloFileOutputFormat.setDataBlockSize(job, c);
-    AccumuloFileOutputFormat.setIndexBlockSize(job, d);
-    AccumuloFileOutputFormat.setCompressionType(job, e);
+    @SuppressWarnings("deprecation")
+    Job job2 = new Job();
+    AccumuloFileOutputFormat.setReplication(job2, a);
+    AccumuloFileOutputFormat.setFileBlockSize(job2, b);
+    AccumuloFileOutputFormat.setDataBlockSize(job2, c);
+    AccumuloFileOutputFormat.setIndexBlockSize(job2, d);
+    AccumuloFileOutputFormat.setCompressionType(job2, e);
 
-    acuconf = AccumuloFileOutputFormat.getAccumuloConfiguration(job);
+    acuconf = AccumuloFileOutputFormat.getAccumuloConfiguration(job2);
 
     assertEquals(17, acuconf.getCount(Property.TABLE_FILE_REPLICATION));
     assertEquals(1300l, acuconf.getMemoryInBytes(Property.TABLE_FILE_BLOCK_SIZE));

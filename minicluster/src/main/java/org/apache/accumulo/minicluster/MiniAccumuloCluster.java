@@ -283,6 +283,7 @@ public class MiniAccumuloCluster {
    * @param config
    *          initial configuration
    */
+  @SuppressWarnings("deprecation")
   public MiniAccumuloCluster(MiniAccumuloConfig config) throws IOException {
 
     this.config = config.initialize();

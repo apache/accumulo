@@ -53,6 +53,7 @@ public class RangePartitionerTest {
   }
   
   private RangePartitioner prepPartitioner(int numSubBins) throws IOException {
+    @SuppressWarnings("deprecation")
     Job job = new Job();
     RangePartitioner.setNumSubBins(job, numSubBins);
     RangePartitioner rp = new RangePartitioner();

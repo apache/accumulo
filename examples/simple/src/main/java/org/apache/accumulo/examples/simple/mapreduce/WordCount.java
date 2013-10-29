@@ -68,7 +68,8 @@ public class WordCount extends Configured implements Tool {
   public int run(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(WordCount.class.getName(), args);
-    
+
+    @SuppressWarnings("deprecation")
     Job job = new Job(getConf(), WordCount.class.getName());
     job.setJarByClass(this.getClass());
     

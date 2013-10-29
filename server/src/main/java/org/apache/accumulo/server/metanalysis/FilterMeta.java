@@ -62,7 +62,8 @@ public class FilterMeta extends Configured implements Tool {
   public int run(String[] args) throws Exception {
     
     String jobName = this.getClass().getSimpleName() + "_" + System.currentTimeMillis();
-    
+
+    @SuppressWarnings("deprecation")
     Job job = new Job(getConf(), jobName);
     job.setJarByClass(this.getClass());
     

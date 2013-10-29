@@ -82,6 +82,7 @@ public class CharacterHistogram extends Configured implements Tool {
   
   @Override
   public int run(String[] args) throws Exception {
+    @SuppressWarnings("deprecation")
     Job job = new Job(getConf(), this.getClass().getSimpleName());
     job.setJarByClass(this.getClass());
 

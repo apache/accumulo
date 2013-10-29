@@ -151,7 +151,8 @@ public class AccumuloRowInputFormatTest {
       String user = args[0];
       String pass = args[1];
       String table = args[2];
-      
+
+      @SuppressWarnings("deprecation")
       Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
       job.setJarByClass(this.getClass());
       

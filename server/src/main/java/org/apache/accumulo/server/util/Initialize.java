@@ -212,6 +212,8 @@ public class Initialize {
     return result;
   }
   
+  //TODO Remove deprecation warning suppression when Hadoop1 support is dropped
+  @SuppressWarnings("deprecation")
   private static void initFileSystem(Opts opts, VolumeManager fs, UUID uuid) throws IOException {
     FileStatus fstat;
     

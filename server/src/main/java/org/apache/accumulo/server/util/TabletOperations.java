@@ -24,6 +24,7 @@ import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.tabletserver.UniqueNameAllocator;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -43,16 +44,20 @@ public class TabletOperations {
         if (endRow == null) {
           lowDirectory = Constants.DEFAULT_TABLET_LOCATION;
           Path lowDirectoryPath = new Path(volume + "/" + tableId + "/" + lowDirectory);
-          if (fs.exists(lowDirectoryPath) || fs.mkdirs(lowDirectoryPath))
-            return lowDirectoryPath.makeQualified(fs.getFileSystemByPath(lowDirectoryPath)).toString();
+          if (fs.exists(lowDirectoryPath) || fs.mkdirs(lowDirectoryPath)) {
+            FileSystem pathFs = fs.getFileSystemByPath(lowDirectoryPath);
+            return lowDirectoryPath.makeQualified(pathFs.getUri(), pathFs.getWorkingDirectory()).toString();
+          }
           log.warn("Failed to create " + lowDirectoryPath + " for unknown reason");
         } else {
           lowDirectory = "/" + Constants.GENERATED_TABLET_DIRECTORY_PREFIX + namer.getNextName();
           Path lowDirectoryPath = new Path(volume + "/" + tableId + "/" +  lowDirectory);
           if (fs.exists(lowDirectoryPath))
             throw new IllegalStateException("Dir exist when it should not " + lowDirectoryPath);
-          if (fs.mkdirs(lowDirectoryPath))
-            return lowDirectoryPath.makeQualified(fs.getFileSystemByPath(lowDirectoryPath)).toString();
+          if (fs.mkdirs(lowDirectoryPath)) {
+            FileSystem lowDirectoryFs = fs.getFileSystemByPath(lowDirectoryPath);
+            return lowDirectoryPath.makeQualified(lowDirectoryFs.getUri(), lowDirectoryFs.getWorkingDirectory()).toString();
+          }
         }
       } catch (IOException e) {
         log.warn(e);

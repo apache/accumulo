@@ -247,7 +247,9 @@ public class GarbageCollectWriteAheadLogs {
     }
     return count;
   }
-  
+
+  //TODO Remove deprecation warning suppression when Hadoop1 support is dropped
+  @SuppressWarnings("deprecation")
   private int scanServers(Map<Path,String> fileToServerMap) throws Exception {
     Set<String> servers = new HashSet<String>();
     for (String walDir : ServerConstants.getWalDirs()) {

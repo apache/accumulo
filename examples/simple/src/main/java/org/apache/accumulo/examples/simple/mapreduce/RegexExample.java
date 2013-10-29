@@ -60,7 +60,8 @@ public class RegexExample extends Configured implements Tool {
   public int run(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(getClass().getName(), args);
-    
+
+    @SuppressWarnings("deprecation")
     Job job = new Job(getConf(), getClass().getSimpleName());
     job.setJarByClass(getClass());
     

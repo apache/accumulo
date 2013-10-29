@@ -87,6 +87,7 @@ public class MultiReader {
   
   private PriorityBuffer heap = new PriorityBuffer();
   
+  @SuppressWarnings("deprecation")
   public MultiReader(VolumeManager fs, Path directory) throws IOException {
     boolean foundFinish = false;
     for (FileStatus child : fs.listStatus(directory)) {

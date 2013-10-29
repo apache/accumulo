@@ -87,6 +87,7 @@ import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -810,7 +811,8 @@ public class MetadataTableUtil {
     if (extent.isRootTablet()) {
       getRootLogEntries(result);
       Path rootDir = new Path(ServerConstants.getRootTabletDir());
-      rootDir = fs.getDefaultVolume().makeQualified(rootDir);
+      FileSystem defaultVolume = fs.getDefaultVolume();
+      rootDir = rootDir.makeQualified(defaultVolume.getUri(), defaultVolume.getWorkingDirectory());
       FileStatus[] files = fs.listStatus(rootDir);
       for (FileStatus fileStatus : files) {
         if (fileStatus.getPath().toString().endsWith("_tmp")) {

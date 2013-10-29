@@ -122,7 +122,6 @@ public class TransformingIteratorTest {
   
   @Test
   public void testNoRangeScan() throws Exception {
-    @SuppressWarnings("unchecked")
     List<Class<? extends ReversingKeyTransformingIterator>> classes = Arrays.asList(ColFamReversingKeyTransformingIterator.class,
         ColQualReversingKeyTransformingIterator.class, ColVisReversingKeyTransformingIterator.class);
     

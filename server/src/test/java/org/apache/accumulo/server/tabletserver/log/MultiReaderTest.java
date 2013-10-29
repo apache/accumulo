@@ -53,19 +53,23 @@ public class MultiReaderTest {
     fs.mkdirs(root);
     fs.create(new Path(root, "finished")).close();
     FileSystem ns = fs.getDefaultVolume();
-    Writer writer = new Writer(ns.getConf(), ns, new Path(root, "odd").toString(), IntWritable.class, BytesWritable.class);
+    
+    @SuppressWarnings("deprecation")
+    Writer oddWriter = new Writer(ns.getConf(), ns, new Path(root, "odd").toString(), IntWritable.class, BytesWritable.class);
     BytesWritable value = new BytesWritable("someValue".getBytes());
     for (int i = 1; i < 1000; i += 2) {
-      writer.append(new IntWritable(i), value);
+      oddWriter.append(new IntWritable(i), value);
     }
-    writer.close();
-    writer = new Writer(ns.getConf(), ns, new Path(root, "even").toString(), IntWritable.class, BytesWritable.class);
+    oddWriter.close();
+    
+    @SuppressWarnings("deprecation")
+    Writer evenWriter = new Writer(ns.getConf(), ns, new Path(root, "even").toString(), IntWritable.class, BytesWritable.class);
     for (int i = 0; i < 1000; i += 2) {
       if (i == 10)
         continue;
-      writer.append(new IntWritable(i), value);
+      evenWriter.append(new IntWritable(i), value);
     }
-    writer.close();
+    evenWriter.close();
   }
 
   @After

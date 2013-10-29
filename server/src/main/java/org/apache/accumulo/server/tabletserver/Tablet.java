@@ -1124,7 +1124,8 @@ public class Tablet {
     
     if (extent.isRootTablet()) { // the meta0 tablet
       Path location = new Path(ServerConstants.getRootTabletDir());
-      location = location.makeQualified(fs.getDefaultVolume());
+      FileSystem defaultVolume = fs.getDefaultVolume();
+      location = location.makeQualified(defaultVolume.getUri(), defaultVolume.getWorkingDirectory());
       // cleanUpFiles() has special handling for delete. files
       FileStatus[] files = fs.listStatus(location);
       Collection<String> goodPaths = cleanUpFiles(fs, files, true);
@@ -1257,7 +1258,8 @@ public class Tablet {
     } else {
       locationPath = fs.getFullPath(FileType.TABLE, extent.getTableId().toString() + location.toString());
     }
-    this.location = locationPath.makeQualified(fs.getFileSystemByPath(locationPath));
+    FileSystem fsForPath = fs.getFileSystemByPath(locationPath);
+    this.location = locationPath.makeQualified(fsForPath.getUri(), fsForPath.getWorkingDirectory());
     this.lastLocation = lastLocation;
     this.tabletDirectory = location.toString();
     this.conf = conf;

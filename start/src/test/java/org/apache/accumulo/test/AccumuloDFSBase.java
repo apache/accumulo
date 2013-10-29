@@ -35,6 +35,7 @@ import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
+@SuppressWarnings("deprecation")
 public class AccumuloDFSBase {
 
   // Turn off the MiniDFSCluster logging
