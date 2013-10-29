@@ -17,7 +17,6 @@
 package org.apache.accumulo.start.classloader.vfs;
 
 import java.io.File;
-import java.net.URI;
 import java.util.HashSet;
 
 import org.apache.accumulo.start.classloader.vfs.ContextManager.ContextConfig;
@@ -38,8 +37,8 @@ public class ContextManagerTest {
   private TemporaryFolder folder1 = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
   private TemporaryFolder folder2 = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
   private FileSystemManager vfs;
-  private URI uri1;
-  private URI uri2;
+  private String uri1;
+  private String uri2;
 
   static FileSystemManager getVFS() {
     try {
@@ -60,8 +59,8 @@ public class ContextManagerTest {
     FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"), folder1.newFile("HelloWorld.jar"));
     FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"), folder2.newFile("HelloWorld.jar"));
 
-    uri1 = new File(folder1.getRoot(), "HelloWorld.jar").toURI();
-    uri2 = folder2.getRoot().toURI();
+    uri1 = new File(folder1.getRoot(), "HelloWorld.jar").toURI().toString();
+    uri2 = folder2.getRoot().toURI().toString()+".*";
 
   }
 
@@ -91,9 +90,9 @@ public class ContextManagerTest {
       @Override
       public ContextConfig getContextConfig(String context) {
         if (context.equals("CX1")) {
-          return new ContextConfig(uri1.toString(), true);
+          return new ContextConfig(uri1, true);
         } else if (context.equals("CX2")) {
-          return new ContextConfig(uri2.toString(), true);
+          return new ContextConfig(uri2, true);
         }
         return null;
       }
@@ -126,7 +125,7 @@ public class ContextManagerTest {
 
   @Test
   public void testPostDelegation() throws Exception {
-    final VFSClassLoader parent = new VFSClassLoader(new FileObject[] {vfs.resolveFile(uri1.toString())}, vfs);
+    final VFSClassLoader parent = new VFSClassLoader(new FileObject[] {vfs.resolveFile(uri1)}, vfs);
 
     Class<?> pclass = parent.loadClass("test.HelloWorld");
 

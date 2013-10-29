@@ -34,6 +34,7 @@ import org.junit.rules.TemporaryFolder;
 public class AccumuloReloadingVFSClassLoaderTest {
 
   private TemporaryFolder folder1 = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  String folderPath;
   private FileSystemManager vfs;
 
   @Before
@@ -43,6 +44,8 @@ public class AccumuloReloadingVFSClassLoaderTest {
     vfs = ContextManagerTest.getVFS();
 
     folder1.create();
+    folderPath = folder1.getRoot().toURI().toString() + ".*";
+
     FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"), folder1.newFile("HelloWorld.jar"));
   }
 
@@ -63,7 +66,7 @@ public class AccumuloReloadingVFSClassLoaderTest {
     FileObject testDir = vfs.resolveFile(folder1.getRoot().toURI().toString());
     FileObject[] dirContents = testDir.getChildren();
 
-    AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folder1.getRoot().toURI().toString(), vfs, new ReloadingClassLoader() {
+    AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folderPath, vfs, new ReloadingClassLoader() {
       @Override
       public ClassLoader getClassLoader() {
         return ClassLoader.getSystemClassLoader();
@@ -83,7 +86,7 @@ public class AccumuloReloadingVFSClassLoaderTest {
     FileObject testDir = vfs.resolveFile(folder1.getRoot().toURI().toString());
     FileObject[] dirContents = testDir.getChildren();
 
-    AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folder1.getRoot().toURI().toString(), vfs, new ReloadingClassLoader() {
+    AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folderPath, vfs, new ReloadingClassLoader() {
       @Override
       public ClassLoader getClassLoader() {
         return ClassLoader.getSystemClassLoader();
@@ -126,7 +129,7 @@ public class AccumuloReloadingVFSClassLoaderTest {
     FileObject testDir = vfs.resolveFile(folder1.getRoot().toURI().toString());
     FileObject[] dirContents = testDir.getChildren();
 
-    AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folder1.getRoot().toURI().toString(), vfs, new ReloadingClassLoader() {
+    AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folderPath, vfs, new ReloadingClassLoader() {
       @Override
       public ClassLoader getClassLoader() {
         return ClassLoader.getSystemClassLoader();

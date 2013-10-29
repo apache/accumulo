@@ -134,14 +134,9 @@ public class AccumuloVFSClassLoader {
       
       switch (fo.getType()) {
         case FILE:
+        case FOLDER:
           classpath.add(fo);
           pathsToMonitor.add(fo);
-          break;
-        case FOLDER:
-          pathsToMonitor.add(fo);
-          for (FileObject child : fo.getChildren()) {
-            classpath.add(child);
-          }
           break;
         case IMAGINARY:
           // assume its a pattern

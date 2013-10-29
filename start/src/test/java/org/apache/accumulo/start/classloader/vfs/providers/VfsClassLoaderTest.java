@@ -114,17 +114,17 @@ public class VfsClassLoaderTest extends AccumuloDFSBase {
     private boolean fileCreated = false;
     
     public void fileCreated(FileChangeEvent event) throws Exception {
-      //System.out.println(event.getFile() + " created");
+      System.out.println(event.getFile() + " created");
       this.fileCreated = true;
     }
 
     public void fileDeleted(FileChangeEvent event) throws Exception {
-      //System.out.println(event.getFile() + " deleted");
+      System.out.println(event.getFile() + " deleted");
       this.fileDeleted = true;
     }
 
     public void fileChanged(FileChangeEvent event) throws Exception {
-      //System.out.println(event.getFile() + " changed");
+      System.out.println(event.getFile() + " changed");
       this.fileChanged = true;
     }
 
