@@ -40,7 +40,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Sc
 public interface GarbageCollectionEnvironment {
 
   /**
-   * Return a list of paths to files and dirs which are candidates for deletion from a given table, {@link RootTable.NAME} or {@link MetadataTable.NAME}
+   * Return a list of paths to files and dirs which are candidates for deletion from a given table, {@link RootTable#NAME} or {@link MetadataTable#NAME}
    * 
    * @param continuePoint
    *          A row to resume from if a previous invocation was stopped due to finding an extremely large number of candidates to remove which would have
@@ -53,7 +53,7 @@ public interface GarbageCollectionEnvironment {
   List<String> getCandidates(String continuePoint) throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
 
   /**
-   * Fetch a list of paths for all bulk loads in progress (blip) from a given table, {@link RootTable.NAME} or {@link MetadataTable.NAME}
+   * Fetch a list of paths for all bulk loads in progress (blip) from a given table, {@link RootTable#NAME} or {@link MetadataTable#NAME}
    * 
    * @return The list of files for each bulk load currently in progress.
    * @throws TableNotFoundException
@@ -63,9 +63,9 @@ public interface GarbageCollectionEnvironment {
   Iterator<String> getBlipIterator() throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
 
   /**
-   * Fetches the references to files, {@link DataFileColumnFamily.NAME} or {@link ScanFileColumnFamily.NAME}, from tablets
+   * Fetches the references to files, {@link DataFileColumnFamily#NAME} or {@link ScanFileColumnFamily#NAME}, from tablets
    * 
-   * @return An Iterator to the @{link Entry<Key,Value>}s which constitute a reference to a file.
+   * @return An {@link Iterator} of {@link Entry}&lt;{@link Key}, {@link Value}&gt; which constitute a reference to a file.
    * @throws TableNotFoundException
    * @throws AccumuloException
    * @throws AccumuloSecurityException
