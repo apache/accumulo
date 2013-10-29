@@ -45,7 +45,8 @@ import com.google.common.collect.ImmutableMap;
  * 
  */
 public class MiniAccumuloClusterGCTest {
-
+  private static final Logger log = Logger.getLogger(MiniAccumuloClusterGCTest.class);
+  
   private static File testDir = new File(System.getProperty("user.dir") + "/target/" + MiniAccumuloClusterGCTest.class.getName());
   private static MiniAccumuloConfig macConfig;
   private static MiniAccumuloCluster accumulo;
@@ -83,14 +84,16 @@ public class MiniAccumuloClusterGCTest {
 
     final String table = "foobar";
     c.tableOperations().create(table);
+    
+    final String tableId = c.tableOperations().tableIdMap().get(table);
 
     BatchWriter bw = null;
 
     // Add some data
     try {
-      bw = c.createBatchWriter(table, new BatchWriterConfig().setMaxMemory(1000l).setMaxLatency(100, TimeUnit.MILLISECONDS).setMaxWriteThreads(1));
+      bw = c.createBatchWriter(table, new BatchWriterConfig().setMaxMemory(100000l).setMaxLatency(100, TimeUnit.MILLISECONDS).setMaxWriteThreads(1));
       Mutation m = new Mutation("a");
-      for (int i = 0; i < 50; i++) {
+      for (int i = 0; i < 500; i++) {
         m.put("colf", Integer.toString(i), "");
       }
 
@@ -101,21 +104,30 @@ public class MiniAccumuloClusterGCTest {
       }
     }
 
+    File accumuloDir = new File(testDir, "accumulo");
+    File tables = new File(accumuloDir.getAbsolutePath(), "tables");
+    File myTable = new File(tables, tableId);
+    
+    log.trace("Files before compaction: " + FileUtils.listFiles(myTable, new SuffixFileFilter(".rf"), TrueFileFilter.TRUE));
+
     final boolean flush = true, wait = true;
 
     // Compact the tables to get some rfiles which we can gc
     c.tableOperations().compact(table, null, null, flush, wait);
-    c.tableOperations().compact(MetadataTable.NAME, null, null, flush, wait);
 
-    File accumuloDir = new File(testDir, "accumulo");
-    File tables = new File(accumuloDir.getAbsolutePath(), "tables");
-
-    int fileCountAfterCompaction = FileUtils.listFiles(tables, new SuffixFileFilter(".rf"), TrueFileFilter.TRUE).size();
+    Collection<File> filesAfterCompaction = FileUtils.listFiles(myTable, new SuffixFileFilter(".rf"), TrueFileFilter.TRUE);
+    int fileCountAfterCompaction = filesAfterCompaction.size();
+    
+    log.trace("Files after compaction: " + filesAfterCompaction);
 
     // Sleep for 10s to let the GC do its thing
     for (int i = 1; i < 10; i++) {
       Thread.sleep(1000);
-      int fileCountAfterGCWait = FileUtils.listFiles(tables, new SuffixFileFilter(".rf"), TrueFileFilter.TRUE).size();
+      filesAfterCompaction = FileUtils.listFiles(myTable, new SuffixFileFilter(".rf"), TrueFileFilter.TRUE);
+      
+      log.trace("Files in loop: " + filesAfterCompaction);
+      
+      int fileCountAfterGCWait = filesAfterCompaction.size();
 
       if (fileCountAfterGCWait < fileCountAfterCompaction) {
         return;
