@@ -157,8 +157,11 @@ public class CloneTestIT extends SimpleMacIT {
     // delete the table
     c.tableOperations().delete(table3);
     // verify its gone from the file system
-    status = fs.listStatus(new Path(rootPath() + "/accumulo/tables/" + id));
-    assertTrue(status == null || status.length == 0);
+    Path tablePath = new Path(rootPath() + "/accumulo/tables/" + id);
+    if (fs.exists(tablePath)) {
+      status = fs.listStatus(tablePath);
+      assertTrue(status == null || status.length == 0);
+    }
 
     c.tableOperations().create(table1);
 
