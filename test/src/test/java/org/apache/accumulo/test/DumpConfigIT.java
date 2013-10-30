@@ -48,13 +48,17 @@ public class DumpConfigIT extends ConfigurableMacIT {
   public void test() throws Exception {
     File siteFileBackup = new File(folder.getRoot(), "accumulo-site.xml.bak");
     assertFalse(siteFileBackup.exists());
-    assertEquals(0, exec(Admin.class, new String[] {"dumpConfig", "-a", "-d", folder.getRoot().getPath()}).waitFor());
+    assertEquals(0, exec(Admin.class, new String[] {"dumpConfig", "-a", "-p", "-d", folder.getRoot().getPath()}).waitFor());
     assertTrue(siteFileBackup.exists());
     String site = FunctionalTestUtils.readAll(new FileInputStream(siteFileBackup));
     assertTrue(site.contains(Property.TABLE_FILE_BLOCK_SIZE.getKey()));
     assertTrue(site.contains("1234567"));
     String meta = FunctionalTestUtils.readAll(new FileInputStream(new File(folder.getRoot(), MetadataTable.NAME + ".cfg")));
     assertTrue(meta.contains(Property.TABLE_FILE_REPLICATION.getKey()));
+    String systemPerm = FunctionalTestUtils.readAll(new FileInputStream(new File(folder.getRoot(), "system_perm.cfg")));
+    assertTrue(systemPerm.contains("grant System.ALTER_USER -s -u root"));
+    String metaPerm = FunctionalTestUtils.readAll(new FileInputStream(new File(folder.getRoot(), "!METADATA_perm.cfg")));
+    assertTrue(metaPerm.contains("grant Table.READ -t !METADATA -u root"));
+    assertFalse(metaPerm.contains("grant Table.DROP -t !METADATA -u root"));
   }
-
 }
