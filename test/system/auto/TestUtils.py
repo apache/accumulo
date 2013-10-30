@@ -42,12 +42,18 @@ ACCUMULO_HOME = os.path.dirname(__file__)
 ACCUMULO_HOME = os.path.join(ACCUMULO_HOME, *(os.path.pardir,)*3)
 ACCUMULO_HOME = os.path.realpath(ACCUMULO_HOME)
 ACCUMULO_DIR = "/user/" + os.getenv('LOGNAME') + "/accumulo-" + ID
+if os.getenv('ACCUMULO_CONF_DIR'):
+   ACCUMULO_CONF_DIR = os.getenv('ACCUMULO_CONF_DIR')
+else:
+   ACCUMULO_CONF_DIR = os.path.join(ACCUMULO_HOME, 'conf')
 SITE = "test-" + ID
 
 WALOG = os.path.join(ACCUMULO_HOME, 'walogs', ID)
-LOG_PROPERTIES= os.path.join(ACCUMULO_HOME, 'conf', 'log4j.properties')
-LOG_GENERIC = os.path.join(ACCUMULO_HOME, 'conf', 'generic_logger.xml')
-LOG_MONITOR = os.path.join(ACCUMULO_HOME, 'conf', 'monitor_logger.xml')
+
+LOG_PROPERTIES= os.path.join(ACCUMULO_CONF_DIR, 'log4j.properties')
+LOG_GENERIC = os.path.join(ACCUMULO_CONF_DIR, 'generic_logger.xml')
+LOG_MONITOR = os.path.join(ACCUMULO_CONF_DIR, 'conf', 'monitor_logger.xml')
+
 General_CLASSPATH = ("$ACCUMULO_CONF_DIR,$ACCUMULO_HOME/lib/[^.].$ACCUMULO_VERSION.jar, $ACCUMULO_HOME/lib/[^.].*.jar, $ZOOKEEPER_HOME/zookeeper[^.].*.jar,"
 "$HADOOP_HOME/conf,$HADOOP_HOME/[^.].*.jar, $HADOOP_HOME/lib/[^.].*.jar") 
 
@@ -58,7 +64,8 @@ ROOT_PASSWORD = 'secret'
 INSTANCE_NAME=ID
 ZOOKEEPERS = socket.getfqdn()
 
-accumulo_site = os.path.join(ACCUMULO_HOME, 'conf', 'accumulo-site.xml')
+accumulo_site = os.path.join(ACCUMULO_CONF_DIR, 'accumulo-site.xml')
+
 if os.path.exists(accumulo_site):
    import config
    ZOOKEEPERS = config.parse(accumulo_site).get('instance.zookeeper.host', ZOOKEEPERS)
@@ -238,9 +245,8 @@ class TestUtilsMixin:
             self.pkill(host, 'org.apache.accumulo.start', signal)
 
     def create_config_file(self, settings):
-        fp = open(os.path.join(ACCUMULO_HOME, 'conf', SITE),
-                  'w')
-        fp.write('<configuration>\n')
+        fp = open(os.path.join(ACCUMULO_CONF_DIR, SITE), 'w')
+	fp.write('<configuration>\n')
         settings = self.settings.copy()
         settings.update({ 'instance.zookeeper.host': ZOOKEEPERS,
                           'instance.dfs.dir': ACCUMULO_DIR,

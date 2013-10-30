@@ -35,6 +35,10 @@ this="$bin/$script"
 ACCUMULO_HOME=`dirname "$this"`/../../../..
 export ACCUMULO_HOME=`cd $ACCUMULO_HOME; pwd`
 
+if [ -z "$ACCUMULO_CONF_DIR" ] ; then
+    export ACCUMULO_CONF_DIR=${ACCUMULO_HOME}/conf
+fi
+
 if [ -f $ACCUMULO_CONF_DIR/accumulo-env.sh ] ; then
 . $ACCUMULO_CONF_DIR/accumulo-env.sh
 fi

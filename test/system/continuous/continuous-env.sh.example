@@ -18,6 +18,7 @@
 # Inherit values from environment if they are already set.
 HADOOP_HOME=${HADOOP_HOME:-/opt/hadoop}
 ACCUMULO_HOME=${ACCUMULO_HOME:-/opt/accumulo}
+ACCUMULO_CONF_DIR=${ACCUMULO_CONF_DIR:-$ACCUMULO_HOME/conf}
 JAVA_HOME=${JAVA_HOME:-/opt/java}
 ZOOKEEPER_HOME=${ZOOKEEPER_HOME:-/opt/zookeeper}
 

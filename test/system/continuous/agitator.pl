@@ -25,6 +25,12 @@ if(scalar(@ARGV) != 4 && scalar(@ARGV) != 2){
 
 $ACCUMULO_HOME="../../..";
 
+if(defined $ENV{'ACCUMULO_CONF_DIR'}){
+        $ACCUMULO_CONF_DIR = $ENV{'ACCUMULO_CONF_DIR'};
+}else{
+	$ACCUMULO_CONF_DIR = $ACCUMULO_HOME . '/conf';
+}
+
 $sleep1 = $ARGV[0];
 $sleep2 = $ARGV[1];
 
