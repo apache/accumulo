@@ -28,7 +28,8 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 public interface InstanceOperations {
   
   /**
-   * Sets an instance property in zookeeper. Tablet servers will pull this setting and override the equivalent setting in accumulo-site.xml
+   * Sets an system property in zookeeper. Tablet servers will pull this setting and override the equivalent setting in accumulo-site.xml. Changes can be seen
+   * using {@link #getSystemConfiguration()}
    * 
    * @param property
    *          the name of a per-table property
@@ -42,7 +43,7 @@ public interface InstanceOperations {
   public void setProperty(final String property, final String value) throws AccumuloException, AccumuloSecurityException;
   
   /**
-   * Removes a instance property from zookeeper
+   * Removes a system property from zookeeper. Changes can be seen using {@link #getSystemConfiguration()}
    * 
    * @param property
    *          the name of a per-table property
@@ -53,8 +54,24 @@ public interface InstanceOperations {
    */
   public void removeProperty(final String property) throws AccumuloException, AccumuloSecurityException;
   
+  /**
+   * 
+   * @return A map of system properties set in zookeeper. If a property is not set in zookeeper, then it will return the value set in accumulo-site.xml on some
+   *         server. If nothing is set in an accumulo-site.xml file it will return the default value for each property.
+   * @throws AccumuloException
+   * @throws AccumuloSecurityException
+   */
+
   public Map<String,String> getSystemConfiguration() throws AccumuloException, AccumuloSecurityException;
   
+  /**
+   * 
+   * @return A map of system properties set in accumulo-site.xml on some server. If nothing is set in an accumulo-site.xml file it will return the default value
+   *         for each property.
+   * @throws AccumuloException
+   * @throws AccumuloSecurityException
+   */
+
   public Map<String,String> getSiteConfiguration() throws AccumuloException, AccumuloSecurityException;
   
   /**
