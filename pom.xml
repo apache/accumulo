@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   Licensed to the Apache Software Foundation (ASF) under one or more
-  contributor license agreements. See the NOTICE file distributed with
+  contributor license agreements.  See the NOTICE file distributed with
   this work for additional information regarding copyright ownership.
   The ASF licenses this file to You under the Apache License, Version 2.0
   (the "License"); you may not use this file except in compliance with
-  the License. You may obtain a copy of the License at
+  the License.  You may obtain a copy of the License at
 
-  http://www.apache.org/licenses/LICENSE-2.0
+      http://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
@@ -83,6 +83,7 @@
     <module>test</module>
     <module>minicluster</module>
     <module>docs</module>
+    <module>maven-plugin</module>
   </modules>
   <scm>
     <connection>scm:git:git://git.apache.org/accumulo.git</connection>
@@ -668,7 +669,7 @@
               <goal>verify</goal>
             </goals>
             <configuration>
-              <!--parallel>classes</parallel -->
+              <!--parallel>classes</parallel-->
               <reuseForks>false</reuseForks>
               <forkMode>perthread</forkMode>
               <perCoreThreadCount>false</perCoreThreadCount>
@@ -867,7 +868,8 @@
       </build>
     </profile>
     <profile>
-      <!-- Seal jars and skip tests when the apache-release profile is activated. -->
+      <!-- Seal jars and skip tests when the
+           apache-release profile is activated. -->
       <id>seal-jars</id>
       <properties>
         <sealJars>true</sealJars>
@@ -877,7 +879,7 @@
     </profile>
     <profile>
       <!-- Generate cobertura reports with site.
-        Activate with -P cobertura -->
+           Activate with -P cobertura -->
       <id>cobertura</id>
       <reporting>
         <plugins>
@@ -897,7 +899,7 @@
     </profile>
     <profile>
       <!-- profile for building against Hadoop 1.2.x
-        Activate using: mvn -Dhadoop.profile=1.2 -->
+      Activate using: mvn -Dhadoop.profile=1.2 -->
       <id>hadoop-1.2</id>
       <activation>
         <property>
@@ -913,7 +915,7 @@
     </profile>
     <profile>
       <!-- profile for building against Hadoop 2.2.x
-        Activate by not specifying hadoop.profile -->
+      Activate by not specifying hadoop.profile -->
       <id>hadoop-2.2</id>
       <activation>
         <property>
@@ -925,50 +927,6 @@
         <httpclient.version>3.1</httpclient.version>
         <slf4j.version>1.7.5</slf4j.version>
       </properties>
-    </profile>
-    <profile>
-      <id>use-maven-plugin</id>
-      <activation>
-        <property>
-          <name>!skipTests</name>
-        </property>
-      </activation>
-      <modules>
-        <module>maven-plugin</module>
-      </modules>
-    </profile>
-    <profile>
-      <id>rat-ignore-maven-plugin</id>
-      <activation>
-        <property>
-          <name>skipTests</name>
-        </property>
-      </activation>
-      <build>
-        <pluginManagement>
-          <plugins>
-            <plugin>
-              <groupId>org.apache.rat</groupId>
-              <artifactId>apache-rat-plugin</artifactId>
-              <configuration>
-                <excludes>
-                  <exclude>maven-plugin/target/**</exclude>
-                  <exclude>maven-plugin/.*</exclude>
-                  <exclude>maven-plugin/.settings/**</exclude>
-                </excludes>
-              </configuration>
-              <executions>
-                <execution>
-                  <goals>
-                    <goal>check</goal>
-                  </goals>
-                  <phase>verify</phase>
-                </execution>
-              </executions>
-            </plugin>
-          </plugins>
-        </pluginManagement>
-      </build>
     </profile>
   </profiles>
 </project>
