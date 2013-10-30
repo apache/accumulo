@@ -27,6 +27,7 @@ class ZooCacheTest(TestUtilsMixin, unittest.TestCase):
     testClass=""
 
     def setUp(self):
+        self.timeout_factor = self.options.timeout_factor
         self.create_config_file(self.settings.copy())
         
     def runTest(self):
@@ -37,7 +38,7 @@ class ZooCacheTest(TestUtilsMixin, unittest.TestCase):
         handleR2 = self.runClassOn('localhost', 'org.apache.accumulo.server.test.functional.CacheTestReader', ['/zcTest-42','/tmp/zcTest-42', ZOOKEEPERS])
         handleR3 = self.runClassOn('localhost', 'org.apache.accumulo.server.test.functional.CacheTestReader', ['/zcTest-42','/tmp/zcTest-42', ZOOKEEPERS])
         handleW = self.runClassOn('localhost', 'org.apache.accumulo.server.test.functional.CacheTestWriter', ['/zcTest-42','/tmp/zcTest-42','3','500'])
-        self.waitForStop(handleW, 120)
+        self.waitForStop(handleW, 120 * self.timeout_factor)
         self.waitForStop(handleR1, 1)
         self.waitForStop(handleR2, 1)
         self.waitForStop(handleR3, 1)

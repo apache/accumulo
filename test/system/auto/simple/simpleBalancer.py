@@ -71,7 +71,7 @@ class SimpleBalancerFairness(SunnyDayTest):
         self.ingester = self.ingest(self.masterHost(),
                                     200000,
                                     size=self.options.size)
-        self.waitForStop(self.ingester, 120)
+        self.waitForStop(self.ingester, self.timeout_factor * 120)
         self.shell(self.masterHost(), 'flush -t test_ingest')
         self.waitForStop(self.verify(self.masterHost(), self.options.rows), 60)
 

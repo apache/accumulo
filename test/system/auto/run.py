@@ -243,6 +243,9 @@ def main():
                       help='Start the test list at the given test name')
     parser.add_option('-x', '--xml', dest='xmlreport', default=False, action='store_true',
                       help='Output tests results to xml (jenkins conpatible)')
+    parser.add_option('-f', '--timeout-factor', dest='timeout_factor',
+                      default=1, type=int,
+                      help="Multiplier for some timeouts (use on slower hardware) (%default)")
     
     allTests = getTests()
     options = parseArguments(parser, allTests)

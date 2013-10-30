@@ -41,6 +41,7 @@ class JavaTest(TestUtilsMixin, unittest.TestCase):
         self.settings = TestUtilsMixin.settings.copy()
         self.settings.update(eval(out))
         TestUtilsMixin.setUp(self);
+        self.maxRuntime = self.timeout_factor * self.maxRuntime
 
         handle = self.runJTest(self.masterHost(),'setup')
         out,err = handle.communicate()
