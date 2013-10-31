@@ -507,6 +507,10 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
     advanceToIntersection();
   }
   
+  /**
+   * @deprecated since 1.6.0
+   */
+  @Deprecated
   public void addSource(SortedKeyValueIterator<Key,Value> source, IteratorEnvironment env, Text term, boolean notFlag) {
     // Check if we have space for the added Source
     if (sources == null) {
