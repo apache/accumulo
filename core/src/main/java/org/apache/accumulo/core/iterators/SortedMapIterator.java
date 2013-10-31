@@ -33,6 +33,12 @@ import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
 /**
  * A simple iterator over a Java SortedMap
  * 
+ * Note that this class is intended as an in-memory replacement for RFile$Reader, so its behavior reflects
+ * the same assumptions; namely, that this iterator is not responsible for respecting the columnFamilies
+ * passed into seek().  If you want a Map-backed Iterator that returns only sought CFs, construct a new 
+ * ColumnFamilySkippingIterator(new SortedMapIterator(map)).
+ * 
+ * @see org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator
  * 
  */
 
