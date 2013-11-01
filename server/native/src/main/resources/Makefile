@@ -43,7 +43,7 @@ test : $(NATIVE_LIB) testJavaHome runTests
 testJavaHome :
 	@echo JAVA_HOME is $(JAVA_HOME)
 
-runTests : clean $(TESTSRCS) $(NATIVE_LIB)
+runTests : $(NATIVE_LIB) $(TESTSRCS)
 	$(CXX) -g -Wall -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux -InativeMap -o $@ $(TESTSRCS) $(NATIVE_LIB)
 	LD_LIBRARY_PATH=./ ./$@ 20 20 20 20 20 20 20 20 true
 

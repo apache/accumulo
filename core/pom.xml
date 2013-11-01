@@ -258,8 +258,7 @@
                     <require>accumulo-start = %{version}-%{release}</require>
                   </requires>
                   <preinstallScriptlet>
-                    <scriptFile>src/main/packaging/preinstall.sh</scriptFile>
-                    <fileEncoding>${project.build.sourceEncoding}</fileEncoding>
+                    <script>getent group accumulo &gt;/dev/null || groupadd -r accumulo; getent passwd accumulo &gt;/dev/null || useradd -r -g accumulo -d %{_datadir}/accumulo -s /sbin/nologin -c "Apache Accumulo" accumulo; exit 0</script>
                   </preinstallScriptlet>
                   <postinstallScriptlet>
                     <script>sysctl -q -p %{_sysconfdir}/sysctl.d/accumulo; ln -s %{_sysconfdir}/accumulo %{_datadir}/accumulo/conf</script>
