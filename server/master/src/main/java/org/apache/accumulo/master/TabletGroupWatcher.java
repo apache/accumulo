@@ -148,6 +148,9 @@ class TabletGroupWatcher extends Daemon {
           if (TableManager.getInstance().getTableState(tls.extent.getTableId().toString()) == null)
             continue;
           
+          if (Master.log.isTraceEnabled())
+            Master.log.trace(tls + " walogs " + tls.walogs.size());
+                    
           // Don't overwhelm the tablet servers with work
           if (unassigned.size() + unloaded > Master.MAX_TSERVER_WORK_CHUNK * currentTServers.size()) {
             flushChanges(destinations, assignments, assigned, assignedToDeadServers, unassigned);
@@ -166,6 +169,8 @@ class TabletGroupWatcher extends Daemon {
           TabletGoalState goal = this.master.getGoalState(tls, mergeStats.getMergeInfo());
           TServerInstance server = tls.getServer();
           TabletState state = tls.getState(currentTServers.keySet());
+          if (Master.log.isTraceEnabled())
+            Master.log.trace("Goal state " + goal + " current " + state);
           stats.update(tableId, state);
           mergeStats.update(tls.extent, state, tls.chopped, !tls.walogs.isEmpty());
           sendChopRequest(mergeStats.getMergeInfo(), state, tls);
@@ -629,6 +634,10 @@ class TabletGroupWatcher extends Daemon {
       for (Entry<KeyExtent,TServerInstance> assignment : assignedOut.entrySet()) {
         if (unassigned.containsKey(assignment.getKey())) {
           if (assignment.getValue() != null) {
+            if (!currentTServers.containsKey(assignment.getValue())) {
+              Master.log.warn("balancer assigned " + assignment.getKey() + " to a tablet server that is not current " + assignment.getValue() + " ignoring");
+              continue;
+            }
             Master.log.debug(store.name() + " assigning tablet " + assignment);
             assignments.add(new Assignment(assignment.getKey(), assignment.getValue()));
           }

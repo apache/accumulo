@@ -1,5 +1,5 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
+77 * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
  * The ASF licenses this file to You under the Apache License, Version 2.0
@@ -2992,13 +2992,14 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   }
 
   public void addLoggersToMetadata(List<DfsLogger> logs, KeyExtent extent, int id) {
-    log.info("Adding " + logs.size() + " logs for extent " + extent + " as alias " + id);
     if (!this.onlineTablets.containsKey(extent)) {
+      log.info("Not adding " + logs.size() + " logs for extent " + extent + " as alias " + id + " tablet is offline");
       // minor compaction due to recovery... don't make updates... if it finishes, there will be no WALs,
       // if it doesn't, we'll need to do the same recovery with the old files.
       return;
     }
 
+    log.info("Adding " + logs.size() + " logs for extent " + extent + " as alias " + id);
     long now = RelativeTime.currentTimeMillis();
     List<String> logSet = new ArrayList<String>();
     for (DfsLogger log : logs)
