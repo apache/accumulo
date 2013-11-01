@@ -52,7 +52,7 @@ public class Main {
       } else if (args[0].equals("shell")) {
         runTMP = cl.loadClass("org.apache.accumulo.core.util.shell.Shell");
       } else if (args[0].equals("init")) {
-        runTMP = cl.loadClass("org.apache.accumulo.server.util.Initialize");
+        runTMP = cl.loadClass("org.apache.accumulo.server.init.Initialize");
       } else if (args[0].equals("admin")) {
         runTMP = cl.loadClass("org.apache.accumulo.server.util.Admin");
       } else if (args[0].equals("gc")) {
