@@ -43,7 +43,7 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
   protected String namespaceId = null;
   protected Instance inst = null;
   private Set<ConfigurationObserver> observers;
-  
+
   public TableNamespaceConfiguration(String namespaceId, AccumuloConfiguration parent) {
     inst = HdfsZooInstance.getInstance();
     this.parent = parent;
@@ -152,7 +152,7 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
     for (ConfigurationObserver co : copy)
       co.propertiesChanged();
   }
-  
+
   protected boolean isIterConst(Entry<String,String> e) {
     if (e.getKey().startsWith(Property.TABLE_ITERATOR_PREFIX.getKey()) || e.getKey().startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())) {
       return true;

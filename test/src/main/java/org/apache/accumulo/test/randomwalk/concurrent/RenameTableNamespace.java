@@ -27,19 +27,19 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class RenameTableNamespace extends Test {
-  
+
   @Override
   public void visit(State state, Properties props) throws Exception {
     Connector conn = state.getConnector();
-    
+
     Random rand = (Random) state.get("rand");
-    
+
     @SuppressWarnings("unchecked")
     List<String> namespaces = (List<String>) state.get("namespaces");
-    
+
     String srcName = namespaces.get(rand.nextInt(namespaces.size()));
     String newName = namespaces.get(rand.nextInt(namespaces.size()));
-    
+
     try {
       conn.tableNamespaceOperations().rename(srcName, newName);
       log.debug("Renamed table namespace " + srcName + " " + newName);

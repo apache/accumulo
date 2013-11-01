@@ -47,31 +47,31 @@ public class RenameNamespaceCommand extends Command {
       currentTableId = Tables.getTableId(shellState.getInstance(), shellState.getTableName());
       resetContext = tableIds.contains(currentTableId);
     }
-    
+
     shellState.getConnector().tableNamespaceOperations().rename(old, newer);
-    
+
     if (resetContext) {
       shellState.setTableName(Tables.getTableName(shellState.getInstance(), currentTableId));
     }
-    
+
     return 0;
   }
-  
+
   @Override
   public String usage() {
     return getName() + " <current table namespace> <new table namespace>";
   }
-  
+
   @Override
   public String description() {
     return "renames a table namespace";
   }
-  
+
   @Override
   public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> special) {
     registerCompletionForTableNamespaces(root, special);
   }
-  
+
   @Override
   public int numArgs() {
     return 2;

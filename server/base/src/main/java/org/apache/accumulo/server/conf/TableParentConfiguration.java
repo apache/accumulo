@@ -19,22 +19,21 @@ package org.apache.accumulo.server.conf;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 
-
 /**
  * Used by TableConfiguration to dynamically get the TableNamespaceConfiguration if the namespace changes
  */
 public class TableParentConfiguration extends TableNamespaceConfiguration {
 
   private String tableId;
-  
+
   public TableParentConfiguration(String tableId, AccumuloConfiguration parent) {
     super(null, parent);
     this.tableId = tableId;
     this.namespaceId = getNamespaceId();
   }
-  
+
   @Override
   protected String getNamespaceId() {
-    return Tables.getNamespace(inst, tableId); 
+    return Tables.getNamespace(inst, tableId);
   }
 }

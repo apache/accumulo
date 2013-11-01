@@ -29,20 +29,20 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class CloneTableNamespace extends Test {
-  
+
   @Override
   public void visit(State state, Properties props) throws Exception {
     Connector conn = state.getConnector();
-    
+
     Random rand = (Random) state.get("rand");
-    
+
     @SuppressWarnings("unchecked")
     List<String> namespaces = (List<String>) state.get("namespaces");
-    
+
     String srcName = namespaces.get(rand.nextInt(namespaces.size()));
     String newName = namespaces.get(rand.nextInt(namespaces.size()));
     boolean flush = rand.nextBoolean();
-    
+
     try {
       log.debug("Cloning table namespace " + srcName + " " + newName + " " + flush);
       conn.tableNamespaceOperations().clone(srcName, newName, flush, new HashMap<String,String>(), new HashSet<String>(), true);

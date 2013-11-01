@@ -24,15 +24,16 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
 import org.apache.accumulo.core.client.impl.TableNamespaces;
 import org.apache.accumulo.core.util.shell.Shell;
-import org.apache.accumulo.core.util.shell.Token;
 import org.apache.accumulo.core.util.shell.Shell.Command;
+import org.apache.accumulo.core.util.shell.Token;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 public class DeleteNamespaceCommand extends Command {
   private Option forceOpt;
-  
+
+  @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     boolean force = false;
     boolean operate = true;
@@ -40,7 +41,7 @@ public class DeleteNamespaceCommand extends Command {
       force = true;
     }
     String namespace = cl.getArgs()[0];
-    
+
     if (!force) {
       shellState.getReader().flush();
       String line = shellState.getReader().readLine(getName() + " { " + namespace + " } (yes|no)? ");
@@ -51,19 +52,19 @@ public class DeleteNamespaceCommand extends Command {
     }
     return 0;
   }
-  
+
   @Override
   public String description() {
     return "deletes a table namespace";
   }
-  
+
   protected void doTableOp(final Shell shellState, final String namespace, boolean force) throws Exception {
     boolean resetContext = false;
     String currentTable = shellState.getTableName();
     if (!TableNamespaces.getNameToIdMap(shellState.getInstance()).containsKey(namespace)) {
       throw new TableNamespaceNotFoundException(null, namespace, null);
     }
-    
+
     String namespaceId = TableNamespaces.getNamespaceId(shellState.getInstance(), namespace);
     List<String> tables = TableNamespaces.getTableNames(shellState.getInstance(), namespaceId);
     resetContext = tables.contains(currentTable);
@@ -82,12 +83,12 @@ public class DeleteNamespaceCommand extends Command {
       shellState.setTableName("");
     }
   }
-  
+
   @Override
   public Options getOptions() {
     forceOpt = new Option("f", "force", false, "force deletion without prompting");
     final Options opts = super.getOptions();
-    
+
     opts.addOption(forceOpt);
     return opts;
   }
@@ -96,7 +97,7 @@ public class DeleteNamespaceCommand extends Command {
   public int numArgs() {
     return 1;
   }
-  
+
   @Override
   public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> special) {
     registerCompletionForTableNamespaces(root, special);

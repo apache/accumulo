@@ -28,39 +28,39 @@ public enum TableNamespacePermission {
   ALTER_TABLE((byte) 4),
   CREATE_TABLE((byte) 5),
   DROP_TABLE((byte) 6);
-  
+
   final private byte permID;
-  
+
   final private static TableNamespacePermission mapping[] = new TableNamespacePermission[8];
   static {
     for (TableNamespacePermission perm : TableNamespacePermission.values())
       mapping[perm.permID] = perm;
   }
-  
+
   private TableNamespacePermission(byte id) {
     this.permID = id;
   }
-  
+
   public byte getId() {
     return this.permID;
   }
-  
+
   public static List<String> printableValues() {
     TableNamespacePermission[] a = TableNamespacePermission.values();
-    
+
     List<String> list = new ArrayList<String>(a.length);
-    
+
     for (TableNamespacePermission p : a)
       list.add("Namespace." + p);
-    
+
     return list;
   }
-  
+
   public static TableNamespacePermission getPermissionById(byte id) {
     TableNamespacePermission result = mapping[id];
     if (result != null)
       return result;
     throw new IndexOutOfBoundsException("No such permission");
   }
-  
+
 }

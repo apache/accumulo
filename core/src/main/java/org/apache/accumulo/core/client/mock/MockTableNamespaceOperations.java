@@ -39,8 +39,6 @@ import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.commons.lang.NotImplementedException;
 
-
-
 public class MockTableNamespaceOperations extends TableNamespaceOperationsHelper {
 
   final private MockAccumulo acu;
@@ -88,7 +86,8 @@ public class MockTableNamespaceOperations extends TableNamespaceOperationsHelper
   }
 
   @Override
-  public void delete(String namespace) throws AccumuloException, AccumuloSecurityException, TableNamespaceNotFoundException, TableNamespaceNotEmptyException, TableNotFoundException {
+  public void delete(String namespace) throws AccumuloException, AccumuloSecurityException, TableNamespaceNotFoundException, TableNamespaceNotEmptyException,
+      TableNotFoundException {
     delete(namespace, false);
   }
 
@@ -182,11 +181,11 @@ public class MockTableNamespaceOperations extends TableNamespaceOperationsHelper
     // TODO Implement clone in Mock
     throw new NotImplementedException();
   }
-  
+
   @Override
   public boolean testClassLoad(String namespace, String className, String asTypeName) throws AccumuloException, AccumuloSecurityException,
       TableNamespaceNotFoundException {
-    
+
     try {
       AccumuloVFSClassLoader.loadClass(className, Class.forName(asTypeName));
     } catch (ClassNotFoundException e) {

@@ -27,9 +27,9 @@ public class TableNamespaceNotFoundException extends Exception {
    * 
    */
   private static final long serialVersionUID = 1L;
-  
+
   private String namespace;
-  
+
   /**
    * @param namespaceId
    *          the internal id of the table namespace that was sought
@@ -39,11 +39,12 @@ public class TableNamespaceNotFoundException extends Exception {
    *          the specific reason why it failed
    */
   public TableNamespaceNotFoundException(String namespaceId, String namespaceName, String description) {
-    super("Table namespace" + (namespaceName != null && !namespaceName.isEmpty() ? " " + namespaceName : "") + (namespaceId != null && !namespaceId.isEmpty() ? " (Id=" + namespaceId + ")" : "")
-        + " does not exist" + (description != null && !description.isEmpty() ? " (" + description + ")" : ""));
+    super("Table namespace" + (namespaceName != null && !namespaceName.isEmpty() ? " " + namespaceName : "")
+        + (namespaceId != null && !namespaceId.isEmpty() ? " (Id=" + namespaceId + ")" : "") + " does not exist"
+        + (description != null && !description.isEmpty() ? " (" + description + ")" : ""));
     this.namespace = namespaceName;
   }
-  
+
   /**
    * @param namespaceId
    *          the internal id of the table namespace that was sought
@@ -58,7 +59,7 @@ public class TableNamespaceNotFoundException extends Exception {
     this(namespaceId, namespaceName, description);
     super.initCause(cause);
   }
-  
+
   /**
    * @param e
    *          constructs an exception from a thrift exception
@@ -66,7 +67,7 @@ public class TableNamespaceNotFoundException extends Exception {
   public TableNamespaceNotFoundException(ThriftTableOperationException e) {
     this(e.getTableId(), e.getTableName(), e.getDescription(), e);
   }
-  
+
   /**
    * @return the name of the table namespace sought
    */

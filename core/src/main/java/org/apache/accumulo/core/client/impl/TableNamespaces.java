@@ -30,7 +30,7 @@ import org.apache.accumulo.fate.zookeeper.ZooCache;
 
 public class TableNamespaces {
   private static SecurityPermission TABLES_PERMISSION = new SecurityPermission("tablesPermission");
-  
+
   private static ZooCache getZooCache(Instance instance) {
     SecurityManager sm = System.getSecurityManager();
     if (sm != null) {
@@ -38,14 +38,14 @@ public class TableNamespaces {
     }
     return ZooCache.getInstance(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
   }
-  
+
   private static SortedMap<String,String> getMap(Instance instance, boolean nameAsKey) {
     ZooCache zc = getZooCache(instance);
-    
+
     List<String> namespaceIds = zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES);
-    
+
     TreeMap<String,String> namespaceMap = new TreeMap<String,String>();
-    
+
     for (String id : namespaceIds) {
       byte[] path = zc.get(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + id + Constants.ZNAMESPACE_NAME);
       if (path != null) {
@@ -57,29 +57,29 @@ public class TableNamespaces {
     }
     return namespaceMap;
   }
-  
+
   public static String getNamespaceId(Instance instance, String namespace) throws TableNamespaceNotFoundException {
     String id = getNameToIdMap(instance).get(namespace);
     if (id == null)
       throw new TableNamespaceNotFoundException(null, namespace, "getNamespaceId() failed to find namespace");
     return id;
   }
-  
+
   public static String getNamespaceName(Instance instance, String namespaceId) throws TableNamespaceNotFoundException {
     String namespaceName = getIdToNameMap(instance).get(namespaceId);
     if (namespaceName == null)
       throw new TableNamespaceNotFoundException(namespaceId, null, "getNamespaceName() failed to find namespace");
     return namespaceName;
   }
-  
+
   public static SortedMap<String,String> getNameToIdMap(Instance instance) {
     return getMap(instance, true);
   }
-  
+
   public static SortedMap<String,String> getIdToNameMap(Instance instance) {
     return getMap(instance, false);
   }
-  
+
   public static List<String> getTableIds(Instance instance, String namespaceId) throws TableNamespaceNotFoundException {
     List<String> l = new LinkedList<String>();
     for (String id : Tables.getIdToNameMap(instance).keySet()) {
@@ -89,7 +89,7 @@ public class TableNamespaces {
     }
     return l;
   }
-  
+
   public static List<String> getTableNames(Instance instance, String namespaceId) throws TableNamespaceNotFoundException {
     ZooCache zc = getZooCache(instance);
     List<String> ids = getTableIds(instance, namespaceId);

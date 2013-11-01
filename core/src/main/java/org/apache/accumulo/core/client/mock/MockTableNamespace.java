@@ -27,12 +27,11 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.TableNamespacePermission;
 
-
 public class MockTableNamespace {
-  
+
   final Map<String,String> settings;
   Map<String,EnumSet<TableNamespacePermission>> userPermissions = new HashMap<String,EnumSet<TableNamespacePermission>>();
-  
+
   public MockTableNamespace() {
     settings = new HashMap<String,String>();
     for (Entry<String,String> entry : AccumuloConfiguration.getDefaultConfiguration()) {
@@ -42,7 +41,7 @@ public class MockTableNamespace {
       }
     }
   }
-  
+
   public List<String> getTables(MockAccumulo acu) {
     List<String> l = new LinkedList<String>();
     for (String t : acu.tables.keySet()) {

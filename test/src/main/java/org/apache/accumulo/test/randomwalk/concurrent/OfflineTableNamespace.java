@@ -27,18 +27,18 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class OfflineTableNamespace extends Test {
-  
+
   @Override
   public void visit(State state, Properties props) throws Exception {
     Connector conn = state.getConnector();
-    
+
     Random rand = (Random) state.get("rand");
-    
+
     @SuppressWarnings("unchecked")
     List<String> namespaces = (List<String>) state.get("namespaces");
-    
+
     String namespace = namespaces.get(rand.nextInt(namespaces.size()));
-    
+
     try {
       conn.tableNamespaceOperations().offline(namespace);
       log.debug("Offlined namespace " + namespace);
@@ -48,6 +48,6 @@ public class OfflineTableNamespace extends Test {
     } catch (TableNamespaceNotFoundException tne) {
       log.debug("offline or online failed " + namespace + ", doesnt exist");
     }
-    
+
   }
 }

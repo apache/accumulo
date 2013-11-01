@@ -36,18 +36,19 @@ import org.apache.commons.cli.Options;
 public class CreateNamespaceCommand extends Command {
   private Option createTableOptCopyConfig, createTableNamespaceOptCopyConfig;
   private Option base64Opt;
-  
+
+  @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
       TableExistsException, TableNotFoundException, IOException, ClassNotFoundException, TableNamespaceExistsException, TableNamespaceNotFoundException {
-    
+
     if (createTableOptCopyConfig == null) {
       getOptions();
     }
-    
+
     String namespace = cl.getArgs()[0];
-    
+
     shellState.getConnector().tableNamespaceOperations().create(namespace);
-    
+
     // Copy options if flag was set
     Iterable<Entry<String,String>> configuration = null;
     if (cl.hasOption(createTableNamespaceOptCopyConfig.getOpt())) {
@@ -68,41 +69,41 @@ public class CreateNamespaceCommand extends Command {
         }
       }
     }
-    
+
     return 0;
   }
-  
+
   @Override
   public String description() {
     return "creates a new table namespace";
   }
-  
+
   @Override
   public String usage() {
     return getName() + " <namespaceName>";
   }
-  
+
   @Override
   public Options getOptions() {
     final Options o = new Options();
-    
+
     createTableNamespaceOptCopyConfig = new Option("cc", "copy-config", true, "table namespace to copy configuration from");
     createTableNamespaceOptCopyConfig.setArgName("tableNamespace");
-    
+
     createTableOptCopyConfig = new Option("ctc", "copy-table-config", true, "table to copy configuration from");
     createTableOptCopyConfig.setArgName("tableName");
-    
+
     base64Opt = new Option("b64", "base64encoded", false, "decode encoded split points");
     o.addOption(base64Opt);
     OptionGroup ogp = new OptionGroup();
     ogp.addOption(createTableOptCopyConfig);
     ogp.addOption(createTableNamespaceOptCopyConfig);
-    
+
     o.addOptionGroup(ogp);
-    
+
     return o;
   }
-  
+
   @Override
   public int numArgs() {
     return 1;

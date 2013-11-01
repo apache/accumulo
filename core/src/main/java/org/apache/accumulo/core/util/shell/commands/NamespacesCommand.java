@@ -18,8 +18,8 @@ package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.TreeMap;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -32,13 +32,14 @@ import org.apache.commons.collections.iterators.AbstractIteratorDecorator;
 
 public class NamespacesCommand extends Command {
   private Option disablePaginationOpt, namespaceIdOption;
-  
+
   @SuppressWarnings("unchecked")
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
-      Iterator<String> names = shellState.getConnector().tableNamespaceOperations().list().iterator();
-      Iterator<String> ids = new NamespaceIdIterator(new TreeMap<String,String>(shellState.getConnector().tableNamespaceOperations().namespaceIdMap()).entrySet().iterator());
-    
+    Iterator<String> names = shellState.getConnector().tableNamespaceOperations().list().iterator();
+    Iterator<String> ids = new NamespaceIdIterator(new TreeMap<String,String>(shellState.getConnector().tableNamespaceOperations().namespaceIdMap()).entrySet()
+        .iterator());
+
     if (cl.hasOption(namespaceIdOption.getOpt())) {
       shellState.printLines(ids, !cl.hasOption(disablePaginationOpt.getOpt()));
     } else {
@@ -46,7 +47,7 @@ public class NamespacesCommand extends Command {
     }
     return 0;
   }
-  
+
   /**
    * Decorator that formats the id and name for display.
    */
@@ -54,7 +55,7 @@ public class NamespacesCommand extends Command {
     public NamespaceIdIterator(Iterator<Entry<String,String>> iterator) {
       super(iterator);
     }
-    
+
     @SuppressWarnings("rawtypes")
     @Override
     public Object next() {
@@ -62,12 +63,12 @@ public class NamespacesCommand extends Command {
       return String.format("%-15s => %10s%n", entry.getKey(), entry.getValue());
     }
   }
-  
+
   @Override
   public String description() {
     return "displays a list of all existing table namespaces";
   }
-  
+
   @Override
   public Options getOptions() {
     final Options o = new Options();
@@ -77,7 +78,7 @@ public class NamespacesCommand extends Command {
     o.addOption(disablePaginationOpt);
     return o;
   }
-  
+
   @Override
   public int numArgs() {
     return 0;

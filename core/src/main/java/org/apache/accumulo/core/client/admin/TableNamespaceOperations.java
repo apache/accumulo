@@ -38,14 +38,14 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
  */
 
 public interface TableNamespaceOperations {
-  
+
   /**
    * Retrieve a list of table namespaces in Accumulo.
    * 
    * @return List of table namespaces in accumulo
    */
   public SortedSet<String> list();
-  
+
   /**
    * A method to check if a table namespace exists in Accumulo.
    * 
@@ -54,7 +54,7 @@ public interface TableNamespaceOperations {
    * @return true if the table namespace exists
    */
   public boolean exists(String namespace);
-  
+
   /**
    * Create a table namespace with no special configuration
    * 
@@ -68,7 +68,7 @@ public interface TableNamespaceOperations {
    *           if the table namespace already exists
    */
   public void create(String namespace) throws AccumuloException, AccumuloSecurityException, TableNamespaceExistsException;
-  
+
   /**
    * @param namespace
    *          the name of the table namespace
@@ -82,7 +82,7 @@ public interface TableNamespaceOperations {
    *           if the table namespace already exists
    */
   public void create(String namespace, boolean limitVersion) throws AccumuloException, AccumuloSecurityException, TableNamespaceExistsException;
-  
+
   /**
    * @param namespace
    *          the name of the table namespace
@@ -99,7 +99,7 @@ public interface TableNamespaceOperations {
    */
   public void create(String namespace, boolean versioningIter, TimeType timeType) throws AccumuloException, AccumuloSecurityException,
       TableNamespaceExistsException;
-  
+
   /**
    * Delete a table namespace if it is empty
    * 
@@ -118,7 +118,7 @@ public interface TableNamespaceOperations {
    */
   public void delete(String namespace) throws AccumuloException, AccumuloSecurityException, TableNamespaceNotFoundException, TableNamespaceNotEmptyException,
       TableNotFoundException;
-  
+
   /**
    * Delete a table namespace
    * 
@@ -139,7 +139,7 @@ public interface TableNamespaceOperations {
    */
   public void delete(String namespace, boolean deleteTables) throws AccumuloException, AccumuloSecurityException, TableNamespaceNotFoundException,
       TableNamespaceNotEmptyException, TableNotFoundException;
-  
+
   /**
    * Rename a table namespace
    * 
@@ -158,7 +158,7 @@ public interface TableNamespaceOperations {
    */
   public void rename(String oldNamespaceName, String newNamespaceName) throws AccumuloSecurityException, TableNamespaceNotFoundException, AccumuloException,
       TableNamespaceExistsException;
-  
+
   /**
    * Sets a property on a table namespace which applies to all tables in the namespace. Note that it may take a short period of time (a second) to propagate the
    * change everywhere.
@@ -175,7 +175,7 @@ public interface TableNamespaceOperations {
    *           if the user does not have permission
    */
   public void setProperty(String namespace, String property, String value) throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * Removes a property from a table namespace. Note that it may take a short period of time (a second) to propagate the change everywhere.
    * 
@@ -189,7 +189,7 @@ public interface TableNamespaceOperations {
    *           if the user does not have permission
    */
   public void removeProperty(String namespace, String property) throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * Gets properties of a table namespace. Note that recently changed properties may not be available immediately.
    * 
@@ -200,7 +200,7 @@ public interface TableNamespaceOperations {
    *           if the table namespace does not exist
    */
   public Iterable<Entry<String,String>> getProperties(String namespace) throws AccumuloException, TableNamespaceNotFoundException;
-  
+
   /**
    * 
    * @param namespace
@@ -213,7 +213,7 @@ public interface TableNamespaceOperations {
    *           if the table namespace does not exist
    */
   public void offline(String namespace) throws AccumuloSecurityException, AccumuloException, TableNamespaceNotFoundException;
-  
+
   /**
    * 
    * @param namespace
@@ -226,14 +226,14 @@ public interface TableNamespaceOperations {
    *           if the table namespace does not exist
    */
   public void online(String namespace) throws AccumuloSecurityException, AccumuloException, TableNamespaceNotFoundException;
-  
+
   /**
    * Get a mapping of table namespace name to internal table namespace id.
    * 
    * @return the map from table namespace name to internal table namespace id
    */
   public Map<String,String> namespaceIdMap();
-  
+
   /**
    * Gets the number of bytes being used in the files for the set of tables in this namespace
    * 
@@ -247,7 +247,7 @@ public interface TableNamespaceOperations {
    *           when the user does not have the proper permissions
    */
   public List<DiskUsage> getDiskUsage(String namespace) throws AccumuloException, AccumuloSecurityException, TableNamespaceNotFoundException;
-  
+
   /**
    * Clone a all the tables in a table namespace to a new table namespace. Optionally copy all their properties as well.
    * 
@@ -274,7 +274,7 @@ public interface TableNamespaceOperations {
    */
   public void clone(String srcName, String newName, boolean flush, Map<String,String> propertiesToSet, Set<String> propertiesToExclude, Boolean copyTableProps)
       throws AccumuloSecurityException, AccumuloException, TableNamespaceNotFoundException, TableNamespaceExistsException;
-  
+
   /**
    * Add an iterator to a table namespace on all scopes.
    * 
@@ -292,7 +292,7 @@ public interface TableNamespaceOperations {
    */
   public void attachIterator(String tableNamespace, IteratorSetting setting) throws AccumuloSecurityException, AccumuloException,
       TableNamespaceNotFoundException;
-  
+
   /**
    * Add an iterator to a table namespace on the given scopes.
    * 
@@ -310,7 +310,7 @@ public interface TableNamespaceOperations {
    */
   public void attachIterator(String tableNamespace, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloSecurityException,
       AccumuloException, TableNamespaceNotFoundException;
-  
+
   /**
    * Remove an iterator from a table namespace by name.
    * 
@@ -328,7 +328,7 @@ public interface TableNamespaceOperations {
    */
   public void removeIterator(String tableNamespace, String name, EnumSet<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException,
       TableNamespaceNotFoundException;
-  
+
   /**
    * Get the settings for an iterator.
    * 
@@ -347,7 +347,7 @@ public interface TableNamespaceOperations {
    */
   public IteratorSetting getIteratorSetting(String tableNamespace, String name, IteratorScope scope) throws AccumuloSecurityException, AccumuloException,
       NumberFormatException, TableNamespaceNotFoundException;
-  
+
   /**
    * Get a list of iterators for this table namespace.
    * 
@@ -362,7 +362,7 @@ public interface TableNamespaceOperations {
    */
   public Map<String,EnumSet<IteratorScope>> listIterators(String tableNamespace) throws AccumuloSecurityException, AccumuloException,
       TableNamespaceNotFoundException;
-  
+
   /**
    * Check whether a given iterator configuration conflicts with existing configuration; in particular, determine if the name or priority are already in use for
    * the specified scopes.
@@ -379,7 +379,7 @@ public interface TableNamespaceOperations {
    */
   public void checkIteratorConflicts(String tableNamespace, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException,
       TableNamespaceNotFoundException;
-  
+
   /**
    * Add a new constraint to a table namespace.
    * 
@@ -397,7 +397,7 @@ public interface TableNamespaceOperations {
    */
   public int addConstraint(String tableNamespace, String constraintClassName) throws AccumuloException, AccumuloSecurityException,
       TableNamespaceNotFoundException;
-  
+
   /**
    * Remove a constraint from a table namespace.
    * 
@@ -410,7 +410,7 @@ public interface TableNamespaceOperations {
    *           thrown if the user doesn't have permission to remove the constraint
    */
   public void removeConstraint(String tableNamespace, int number) throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * List constraints on a table namespace with their assigned numbers.
    * 
@@ -423,7 +423,7 @@ public interface TableNamespaceOperations {
    *           thrown if the table namespace no longer exists
    */
   public Map<String,Integer> listConstraints(String tableNamespace) throws AccumuloException, TableNamespaceNotFoundException;
-  
+
   /**
    * Test to see if the instance can load the given class as the given type. This check uses the table classpath property if it is set.
    * 

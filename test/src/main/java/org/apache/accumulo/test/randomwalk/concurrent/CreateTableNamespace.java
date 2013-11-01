@@ -26,18 +26,18 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class CreateTableNamespace extends Test {
-  
+
   @Override
   public void visit(State state, Properties props) throws Exception {
     Connector conn = state.getConnector();
-    
+
     Random rand = (Random) state.get("rand");
-    
+
     @SuppressWarnings("unchecked")
     List<String> namespaces = (List<String>) state.get("namespaces");
-    
+
     String namespace = namespaces.get(rand.nextInt(namespaces.size()));
-    
+
     try {
       conn.tableNamespaceOperations().create(namespace);
       log.debug("Created namespace " + namespace);

@@ -35,21 +35,21 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 public class CloneNamespaceCommand extends Command {
-  
+
   private Option setPropsOption;
   private Option excludePropsOption;
   private Option noFlushOption;
   private Option copyTablePropsOption;
-  
+
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-      TableExistsException, TableNamespaceNotFoundException, TableNamespaceExistsException {
-    
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException, TableExistsException, TableNamespaceNotFoundException, TableNamespaceExistsException {
+
     final HashMap<String,String> props = new HashMap<String,String>();
     final HashSet<String> exclude = new HashSet<String>();
     boolean flush = true;
     boolean copyTableProps = false;
-    
+
     if (cl.hasOption(setPropsOption.getOpt())) {
       String[] keyVals = cl.getOptionValue(setPropsOption.getOpt()).split(",");
       for (String keyVal : keyVals) {
@@ -57,40 +57,41 @@ public class CloneNamespaceCommand extends Command {
         props.put(sa[0], sa[1]);
       }
     }
-    
+
     if (cl.hasOption(excludePropsOption.getOpt())) {
       String[] keys = cl.getOptionValue(excludePropsOption.getOpt()).split(",");
       for (String key : keys) {
         exclude.add(key);
       }
     }
-    
+
     if (cl.hasOption(noFlushOption.getOpt())) {
       flush = false;
     }
-    
+
     if (cl.hasOption(noFlushOption.getOpt())) {
       copyTableProps = true;
     }
-    
+
     shellState.getConnector().tableNamespaceOperations().clone(cl.getArgs()[0], cl.getArgs()[1], flush, props, exclude, copyTableProps);
     return 0;
   }
-  
+
   @Override
   public String usage() {
     return getName() + " <current name> <new name>";
   }
-  
+
   @Override
   public String description() {
     return "clones a table namespace";
   }
-  
+
+  @Override
   public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> completionSet) {
     registerCompletionForTableNamespaces(root, completionSet);
   }
-  
+
   @Override
   public Options getOptions() {
     final Options o = new Options();
@@ -104,7 +105,7 @@ public class CloneNamespaceCommand extends Command {
     o.addOption(copyTablePropsOption);
     return o;
   }
-  
+
   @Override
   public int numArgs() {
     return 2;

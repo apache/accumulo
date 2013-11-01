@@ -27,7 +27,7 @@ public class TableNamespaceExistsException extends Exception {
    * 
    */
   private static final long serialVersionUID = 1L;
-  
+
   /**
    * @param namespaceId
    *          the internal id of the table namespace that exists
@@ -37,10 +37,11 @@ public class TableNamespaceExistsException extends Exception {
    *          the specific reason why it failed
    */
   public TableNamespaceExistsException(String namespaceId, String namespaceName, String description) {
-    super("Table namespace" + (namespaceName != null && !namespaceName.isEmpty() ? " " + namespaceName : "") + (namespaceId != null && !namespaceId.isEmpty() ? " (Id=" + namespaceId + ")" : "")
-        + " exists" + (description != null && !description.isEmpty() ? " (" + description + ")" : ""));
+    super("Table namespace" + (namespaceName != null && !namespaceName.isEmpty() ? " " + namespaceName : "")
+        + (namespaceId != null && !namespaceId.isEmpty() ? " (Id=" + namespaceId + ")" : "") + " exists"
+        + (description != null && !description.isEmpty() ? " (" + description + ")" : ""));
   }
-  
+
   /**
    * @param namespaceId
    *          the internal id of the table namespace that exists
@@ -55,7 +56,7 @@ public class TableNamespaceExistsException extends Exception {
     this(namespaceId, namespaceName, description);
     super.initCause(cause);
   }
-  
+
   /**
    * @param e
    *          constructs an exception from a thrift exception

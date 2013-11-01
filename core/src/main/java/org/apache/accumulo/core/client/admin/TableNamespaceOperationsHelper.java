@@ -31,13 +31,13 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 
 public abstract class TableNamespaceOperationsHelper implements TableNamespaceOperations {
-  
+
   @Override
   public void attachIterator(String tableNamespace, IteratorSetting setting) throws AccumuloSecurityException, AccumuloException,
       TableNamespaceNotFoundException {
     attachIterator(tableNamespace, setting, EnumSet.allOf(IteratorScope.class));
   }
-  
+
   @Override
   public void attachIterator(String tableNamespace, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloSecurityException,
       AccumuloException, TableNamespaceNotFoundException {
@@ -50,7 +50,7 @@ public abstract class TableNamespaceOperationsHelper implements TableNamespaceOp
       this.setProperty(tableNamespace, root, setting.getPriority() + "," + setting.getIteratorClass());
     }
   }
-  
+
   @Override
   public void removeIterator(String tableNamespace, String name, EnumSet<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException,
       TableNamespaceNotFoundException {
@@ -68,7 +68,7 @@ public abstract class TableNamespaceOperationsHelper implements TableNamespaceOp
       }
     }
   }
-  
+
   @Override
   public IteratorSetting getIteratorSetting(String tableNamespace, String name, IteratorScope scope) throws AccumuloSecurityException, AccumuloException,
       TableNamespaceNotFoundException {
@@ -77,7 +77,7 @@ public abstract class TableNamespaceOperationsHelper implements TableNamespaceOp
     int priority = -1;
     String classname = null;
     Map<String,String> settings = new HashMap<String,String>();
-    
+
     String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), name);
     String opt = root + ".opt.";
     for (Entry<String,String> property : this.getProperties(tableNamespace)) {
@@ -97,7 +97,7 @@ public abstract class TableNamespaceOperationsHelper implements TableNamespaceOp
     }
     return new IteratorSetting(priority, name, classname, settings);
   }
-  
+
   @Override
   public Map<String,EnumSet<IteratorScope>> listIterators(String tableNamespace) throws AccumuloSecurityException, AccumuloException,
       TableNamespaceNotFoundException {
@@ -118,7 +118,7 @@ public abstract class TableNamespaceOperationsHelper implements TableNamespaceOp
     }
     return result;
   }
-  
+
   @Override
   public void checkIteratorConflicts(String tableNamespace, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException,
       TableNamespaceNotFoundException {
@@ -153,7 +153,7 @@ public abstract class TableNamespaceOperationsHelper implements TableNamespaceOp
         throw new AccumuloException(new IllegalArgumentException("iterator options conflict for " + setting.getName() + ": " + optionConflicts));
     }
   }
-  
+
   @Override
   public int addConstraint(String tableNamespace, String constraintClassName) throws AccumuloException, AccumuloSecurityException,
       TableNamespaceNotFoundException {
@@ -180,12 +180,12 @@ public abstract class TableNamespaceOperationsHelper implements TableNamespaceOp
     this.setProperty(tableNamespace, Property.TABLE_CONSTRAINT_PREFIX.toString() + i, constraintClassName);
     return i;
   }
-  
+
   @Override
   public void removeConstraint(String tableNamespace, int number) throws AccumuloException, AccumuloSecurityException {
     this.removeProperty(tableNamespace, Property.TABLE_CONSTRAINT_PREFIX.toString() + number);
   }
-  
+
   @Override
   public Map<String,Integer> listConstraints(String tableNamespace) throws AccumuloException, TableNamespaceNotFoundException {
     Map<String,Integer> constraints = new TreeMap<String,Integer>();

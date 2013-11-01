@@ -24,9 +24,9 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException
 public class TableNamespaceNotEmptyException extends Exception {
 
   private static final long serialVersionUID = 1L;
-  
+
   private String namespace;
-  
+
   /**
    * @param namespaceId
    *          the internal id of the table namespace
@@ -36,11 +36,12 @@ public class TableNamespaceNotEmptyException extends Exception {
    *          the specific reason why it failed
    */
   public TableNamespaceNotEmptyException(String namespaceId, String namespaceName, String description) {
-    super("Table namespace" + (namespaceName != null && !namespaceName.isEmpty() ? " " + namespaceName : "") + (namespaceId != null && !namespaceId.isEmpty() ? " (Id=" + namespaceId + ")" : "")
-        + " it not empty, contains at least one table" + (description != null && !description.isEmpty() ? " (" + description + ")" : ""));
+    super("Table namespace" + (namespaceName != null && !namespaceName.isEmpty() ? " " + namespaceName : "")
+        + (namespaceId != null && !namespaceId.isEmpty() ? " (Id=" + namespaceId + ")" : "") + " it not empty, contains at least one table"
+        + (description != null && !description.isEmpty() ? " (" + description + ")" : ""));
     this.namespace = namespaceName;
   }
-  
+
   /**
    * @param namespaceId
    *          the internal id of the table namespace
@@ -55,7 +56,7 @@ public class TableNamespaceNotEmptyException extends Exception {
     this(namespaceId, namespaceName, description);
     super.initCause(cause);
   }
-  
+
   /**
    * @param e
    *          constructs an exception from a thrift exception
@@ -63,7 +64,7 @@ public class TableNamespaceNotEmptyException extends Exception {
   public TableNamespaceNotEmptyException(ThriftTableOperationException e) {
     this(e.getTableId(), e.getTableName(), e.getDescription(), e);
   }
-  
+
   /**
    * @return the name of the table namespace
    */
