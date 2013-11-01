@@ -229,16 +229,14 @@ public class DfsLogger {
   private FSDataOutputStream logFile;
   private DataOutputStream encryptingLogFile = null;
   private Method sync;
-  private Path logPath;
-  private String logger;
+  private String logPath;
   
   public DfsLogger(ServerResources conf) throws IOException {
     this.conf = conf;
   }
   
-  public DfsLogger(ServerResources conf, String logger, Path filename) throws IOException {
+  public DfsLogger(ServerResources conf, String filename) throws IOException {
     this.conf = conf;
-    this.logger = logger;
     this.logPath = filename;
   }
   
@@ -323,23 +321,23 @@ public class DfsLogger {
   
   public synchronized void open(String address) throws IOException {
     String filename = UUID.randomUUID().toString();
-    logger = StringUtil.join(Arrays.asList(address.split(":")), "+");
-    
+    String logger = StringUtil.join(Arrays.asList(address.split(":")), "+");
+
     log.debug("DfsLogger.open() begin");
     VolumeManager fs = conf.getFileSystem();
     
-    logPath = new Path(fs.choose(ServerConstants.getWalDirs()) + "/" + logger + "/" + filename);
+    logPath = fs.choose(ServerConstants.getWalDirs()) + "/" + logger + "/" + filename;
     try {
       short replication = (short) conf.getConfiguration().getCount(Property.TSERV_WAL_REPLICATION);
       if (replication == 0)
-        replication = fs.getDefaultReplication(logPath);
+        replication = fs.getDefaultReplication(new Path(logPath));
       long blockSize = conf.getConfiguration().getMemoryInBytes(Property.TSERV_WAL_BLOCKSIZE);
       if (blockSize == 0)
         blockSize = (long) (conf.getConfiguration().getMemoryInBytes(Property.TSERV_WALOG_MAX_SIZE) * 1.1);
       if (conf.getConfiguration().getBoolean(Property.TSERV_WAL_SYNC))
-        logFile = fs.createSyncable(logPath, 0, replication, blockSize);
+        logFile = fs.createSyncable(new Path(logPath), 0, replication, blockSize);
       else
-        logFile = fs.create(logPath, true, 0, replication, blockSize);
+        logFile = fs.create(new Path(logPath), true, 0, replication, blockSize);
       
       try {
         NoSuchMethodException e = null;
@@ -410,10 +408,6 @@ public class DfsLogger {
   @Override
   public String toString() {
     return getLogger() + "/" + getFileName();
-  }
-  
-  public String getLogger() {
-    return logger;
   }
   
   public String getFileName() {
@@ -538,6 +532,11 @@ public class DfsLogger {
       log.error(ex);
       throw ex;
     }
+  }
+
+  public String getLogger() {
+    String parts[] = logPath.split("/");
+    return StringUtil.join(Arrays.asList(parts[parts.length - 2].split("[+]")), ":");
   }
   
 }

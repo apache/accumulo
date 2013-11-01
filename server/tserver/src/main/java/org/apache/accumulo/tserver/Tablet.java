@@ -1405,9 +1405,7 @@ public class Tablet {
       currentLogs = new HashSet<DfsLogger>();
       for (LogEntry logEntry : logEntries) {
         for (String log : logEntry.logSet) {
-          String[] parts = log.split("/", 2);
-          Path file = fs.getFullPath(FileType.WAL, parts[1]);
-          currentLogs.add(new DfsLogger(tabletServer.getServerConfig(), logEntry.server, file));
+          currentLogs.add(new DfsLogger(tabletServer.getServerConfig(), log));
         }
       }
 
