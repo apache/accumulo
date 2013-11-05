@@ -29,6 +29,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
@@ -73,11 +74,28 @@ public class Initialize {
   private static boolean clearInstanceName = false;
   
   private static ConsoleReader reader = null;
+  private static IZooReaderWriter zoo = ZooReaderWriter.getInstance();
   
   private static ConsoleReader getConsoleReader() throws IOException {
     if (reader == null)
       reader = new ConsoleReader();
     return reader;
+  }
+  /**
+   * Sets this class's ZooKeeper reader/writer.
+   *
+   * @param izoo reader/writer
+   */
+  static void setZooReaderWriter(IZooReaderWriter izoo) {
+    zoo = izoo;
+  }
+  /**
+   * Gets this class's ZooKeeper reader/writer.
+   *
+   * @return reader/writer
+   */
+  static IZooReaderWriter getZooReaderWriter() {
+    return zoo;
   }
   
   private static HashMap<String,String> initialMetadataConf = new HashMap<String,String>();
@@ -107,20 +125,18 @@ public class Initialize {
     initialMetadataConf.put(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true");
   }
   
-  public static boolean doInit(Configuration conf, FileSystem fs) throws IOException {
-    if (!ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_DFS_URI).equals(""))
-      log.info("Hadoop Filesystem is " + ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_DFS_URI));
-    else
-      log.info("Hadoop Filesystem is " + FileSystem.getDefaultUri(conf));
+  static boolean checkInit(Configuration conf, FileSystem fs, SiteConfiguration sconf) throws IOException {
+    String fsUri = fs.getUri().toString();
+    log.info("Hadoop Filesystem is " + fsUri);
     
     log.info("Accumulo data dir is " + ServerConstants.getBaseDir());
-    log.info("Zookeeper server is " + ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_ZK_HOST));
+    log.info("Zookeeper server is " + sconf.get(Property.INSTANCE_ZK_HOST));
     log.info("Checking if Zookeeper is available. If this hangs, then you need to make sure zookeeper is running");
     if (!zookeeperAvailable()) {
       log.fatal("Zookeeper needs to be up and running in order to init. Exiting ...");
       return false;
     }
-    if (ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_SECRET).equals(Property.INSTANCE_SECRET.getDefaultValue())) {
+    if (sconf.get(Property.INSTANCE_SECRET).equals(Property.INSTANCE_SECRET.getDefaultValue())) {
       ConsoleReader c = getConsoleReader();
       c.beep();
       c.printNewline();
@@ -137,16 +153,34 @@ public class Initialize {
       c.printNewline();
     }
     
-    UUID uuid = UUID.randomUUID();
-    
     try {
       if (isInitialized(fs)) {
-        log.fatal("It appears this location was previously initialized, exiting ... ");
+        String instanceDfsDir = sconf.get(Property.INSTANCE_DFS_DIR);
+        log.fatal("It appears the directory " + fsUri + instanceDfsDir + " was previously initialized.");
+        String instanceDfsUri = sconf.get(Property.INSTANCE_DFS_URI);
+        if ("".equals(instanceDfsUri)) {
+          log.fatal("You are using the default URI for the filesystem. Set the property " + Property.INSTANCE_DFS_URI + " to use a different filesystem,");
+        } else {
+          log.fatal("Change the property " + Property.INSTANCE_DFS_URI + " to use a different filesystem,");
+        }
+        log.fatal("or change the property " + Property.INSTANCE_DFS_DIR + " to use a different directory.");
+        log.fatal("The current value of " + Property.INSTANCE_DFS_URI + " is |" + instanceDfsUri + "|");
+        log.fatal("The current value of " + Property.INSTANCE_DFS_DIR + " is |" + instanceDfsDir + "|");
         return false;
       }
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new IOException("Failed to check if filesystem already initialized", e);
     }
+
+    return true;
+  }
+
+  public static boolean doInit(Configuration conf, FileSystem fs) throws IOException {
+    if (!checkInit(conf, fs, ServerConfiguration.getSiteConfiguration())) {
+      return false;
+    }
+
+    UUID uuid = UUID.randomUUID();
     
     // prompt user for instance name and root password early, in case they
     // abort, we don't leave an inconsistent HDFS/ZooKeeper structure
@@ -186,7 +220,6 @@ public class Initialize {
    * @return
    */
   private static boolean zookeeperAvailable() {
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     try {
       return zoo.exists("/");
     } catch (KeeperException e) {
@@ -332,7 +365,6 @@ public class Initialize {
   
   private static void initZooKeeper(String uuid, String instanceNamePath) throws KeeperException, InterruptedException {
     // setup basic data in zookeeper
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     ZooUtil.putPersistentData(zoo.getZooKeeper(), Constants.ZROOT, new byte[0], -1, NodeExistsPolicy.SKIP, Ids.OPEN_ACL_UNSAFE);
     ZooUtil.putPersistentData(zoo.getZooKeeper(), Constants.ZROOT + Constants.ZINSTANCES, new byte[0], -1, NodeExistsPolicy.SKIP, Ids.OPEN_ACL_UNSAFE);
     
@@ -378,7 +410,7 @@ public class Initialize {
       if (clearInstanceName) {
         exists = false;
         break;
-      } else if ((boolean) (exists = ZooReaderWriter.getInstance().exists(instanceNamePath))) {
+      } else if ((boolean) (exists = zoo.exists(instanceNamePath))) {
         String decision = getConsoleReader().readLine("Instance name \"" + instanceName + "\" exists. Delete existing entry from zookeeper? [Y/N] : ");
         if (decision == null)
           System.exit(0);
