@@ -33,6 +33,7 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.util.AddressUtil;
@@ -225,7 +226,7 @@ public class GarbageCollectWriteAheadLogs {
   private int removeMetadataEntries(Map<Path,String> fileToServerMap, Set<Path> sortedWALogs, GCStatus status) throws IOException, KeeperException,
       InterruptedException {
     int count = 0;
-    Iterator<MetadataTableUtil.LogEntry> iterator = MetadataTableUtil.getLogEntries(SystemCredentials.get());
+    Iterator<LogEntry> iterator = MetadataTableUtil.getLogEntries(SystemCredentials.get());
     while (iterator.hasNext()) {
       for (String entry : iterator.next().logSet) {
         String parts[] = entry.split("/", 2);

@@ -1177,8 +1177,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
         range = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
       else
         range = new Range(startRow, lastRow);
-      
-      Scanner scanner = instance.getConnector(credentials.getPrincipal(), credentials.getToken()).createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+      String metaTable = MetadataTable.NAME;
+      if (tableId.equals(MetadataTable.ID))
+        metaTable = RootTable.NAME;
+      Scanner scanner = instance.getConnector(credentials.getPrincipal(), credentials.getToken()).createScanner(metaTable, Authorizations.EMPTY);
       scanner = new IsolatedScanner(scanner);
       TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);

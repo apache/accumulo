@@ -116,6 +116,7 @@ import org.apache.accumulo.core.security.AuthorizationContainer;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
@@ -173,7 +174,6 @@ import org.apache.accumulo.server.util.FileSystemMonitor;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
-import org.apache.accumulo.server.util.MetadataTableUtil.LogEntry;
 import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.util.TServerUtils.ServerAddress;
 import org.apache.accumulo.server.util.time.RelativeTime;
@@ -3004,7 +3004,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     List<String> logSet = new ArrayList<String>();
     for (DfsLogger log : logs)
       logSet.add(log.getFileName());
-    MetadataTableUtil.LogEntry entry = new MetadataTableUtil.LogEntry();
+    LogEntry entry = new LogEntry();
     entry.extent = extent;
     entry.tabletId = id;
     entry.timestamp = now;

@@ -23,9 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.server.master.state.TServerInstance;
-import org.apache.accumulo.server.master.state.TabletLocationState;
-import org.apache.accumulo.server.util.MetadataTableUtil;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.log4j.Logger;
 
@@ -84,7 +82,7 @@ public class ZooTabletStateStore extends TabletStateStore {
           for (String entry : store.getChildren(RootTable.ZROOT_TABLET_WALOGS)) {
             byte[] logInfo = store.get(RootTable.ZROOT_TABLET_WALOGS + "/" + entry);
             if (logInfo != null) {
-              MetadataTableUtil.LogEntry logEntry = new MetadataTableUtil.LogEntry();
+              LogEntry logEntry = new LogEntry();
               logEntry.fromBytes(logInfo);
               logs.add(logEntry.logSet);
               log.debug("root tablet logSet " + logEntry.logSet);

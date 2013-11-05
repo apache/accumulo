@@ -428,9 +428,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     return result;
   }
 
-  private void checkNotMetadataID(String tableId, TableOperation operation) throws ThriftTableOperationException {
-    if (MetadataTable.ID.equals(tableId) || RootTable.ID.equals(tableId)) {
-      String why = "Table names cannot be == " + RootTable.NAME + " or " + MetadataTable.NAME;
+  private void checkNotRootID(String tableId, TableOperation operation) throws ThriftTableOperationException {
+    if (RootTable.ID.equals(tableId)) {
+      String why = "Table name cannot be == " + RootTable.NAME;
       log.warn(why);
       throw new ThriftTableOperationException(tableId, null, operation, TableOperationExceptionType.OTHER, why);
     }
@@ -908,7 +908,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         }
         case ONLINE: {
           final String tableId = ByteBufferUtil.toString(arguments.get(0));
-          checkNotMetadataID(tableId, TableOperation.ONLINE);
+          checkNotRootID(tableId, TableOperation.ONLINE);
 
           if (!security.canOnlineOfflineTable(c, tableId, op))
             throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
@@ -918,7 +918,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         }
         case OFFLINE: {
           final String tableId = ByteBufferUtil.toString(arguments.get(0));
-          checkNotMetadataID(tableId, TableOperation.OFFLINE);
+          checkNotRootID(tableId, TableOperation.OFFLINE);
 
           if (!security.canOnlineOfflineTable(c, tableId, op))
             throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
