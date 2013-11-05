@@ -89,6 +89,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Sc
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
@@ -114,7 +115,6 @@ import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.accumulo.server.util.FileUtil;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
-import org.apache.accumulo.server.util.MetadataTableUtil.LogEntry;
 import org.apache.accumulo.server.util.TabletOperations;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
@@ -1183,7 +1183,7 @@ public class Tablet {
         Key key = entry.getKey();
         if (key.getRow().equals(row)) {
           if (key.getColumnFamily().equals(LogColumnFamily.NAME)) {
-            logEntries.add(MetadataTableUtil.entryFromKeyValue(key, entry.getValue()));
+            logEntries.add(LogEntry.fromKeyValue(key, entry.getValue()));
           }
         }
       }

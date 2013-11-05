@@ -18,8 +18,6 @@ package org.apache.accumulo.server.util;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -66,11 +64,11 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Lo
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
@@ -88,8 +86,6 @@ import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.DataInputBuffer;
-import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
@@ -467,55 +463,6 @@ public class MetadataTableUtil {
     bw.close();
   }
 
-  public static class LogEntry {
-    public KeyExtent extent;
-    public long timestamp;
-    public String server;
-    public String filename;
-    public int tabletId;
-    public Collection<String> logSet;
-
-    @Override
-    public String toString() {
-      return extent.toString() + " " + filename + " (" + tabletId + ")";
-    }
-
-    public String getName() {
-      return server + "/" + filename;
-    }
-
-    public byte[] toBytes() throws IOException {
-      DataOutputBuffer out = new DataOutputBuffer();
-      extent.write(out);
-      out.writeLong(timestamp);
-      out.writeUTF(server);
-      out.writeUTF(filename.toString());
-      out.write(tabletId);
-      out.write(logSet.size());
-      for (String s : logSet) {
-        out.writeUTF(s);
-      }
-      return Arrays.copyOf(out.getData(), out.getLength());
-    }
-
-    public void fromBytes(byte bytes[]) throws IOException {
-      DataInputBuffer inp = new DataInputBuffer();
-      inp.reset(bytes, bytes.length);
-      extent = new KeyExtent();
-      extent.readFields(inp);
-      timestamp = inp.readLong();
-      server = inp.readUTF();
-      filename = inp.readUTF();
-      tabletId = inp.read();
-      int count = inp.read();
-      ArrayList<String> logSet = new ArrayList<String>(count);
-      for (int i = 0; i < count; i++)
-        logSet.add(inp.readUTF());
-      this.logSet = logSet;
-    }
-
-  }
-
   static String getZookeeperLogLocation() {
     return ZooUtil.getRoot(HdfsZooInstance.getInstance()) + RootTable.ZROOT_TABLET_WALOGS;
   }
@@ -542,24 +489,10 @@ public class MetadataTableUtil {
         UtilWaitThread.sleep(1000);
       }
     } else {
-      String value = StringUtil.join(entry.logSet, ";") + "|" + entry.tabletId;
-      Mutation m = new Mutation(entry.extent.getMetadataEntry());
-      m.put(LogColumnFamily.NAME, new Text(entry.server + "/" + entry.filename), new Value(value.getBytes()));
+      Mutation m = new Mutation(entry.getRow());
+      m.put(entry.getColumnFamily(), entry.getColumnQualifier(), entry.getValue());
       update(credentials, zooLock, m, entry.extent);
     }
-  }
-
-  public static LogEntry entryFromKeyValue(Key key, Value value) {
-    MetadataTableUtil.LogEntry e = new MetadataTableUtil.LogEntry();
-    e.extent = new KeyExtent(key.getRow(), EMPTY_TEXT);
-    String[] parts = key.getColumnQualifier().toString().split("/", 2);
-    e.server = parts[0];
-    e.filename = parts[1];
-    parts = value.toString().split("\\|");
-    e.tabletId = Integer.parseInt(parts[1]);
-    e.logSet = Arrays.asList(parts[0].split(";"));
-    e.timestamp = key.getTimestamp();
-    return e;
   }
 
   public static String getRootTabletDir() throws IOException {
@@ -605,7 +538,7 @@ public class MetadataTableUtil {
         }
 
         if (entry.getKey().getColumnFamily().equals(LogColumnFamily.NAME)) {
-          result.add(entryFromKeyValue(entry.getKey(), entry.getValue()));
+          result.add(LogEntry.fromKeyValue(entry.getKey(), entry.getValue()));
         } else if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
           DataFileValue dfv = new DataFileValue(entry.getValue().get());
           sizes.put(new FileRef(fs, entry.getKey()), dfv);
@@ -632,7 +565,7 @@ public class MetadataTableUtil {
         Text row = entry.getKey().getRow();
         if (entry.getKey().getColumnFamily().equals(LogColumnFamily.NAME)) {
           if (row.equals(pattern)) {
-            result.add(entryFromKeyValue(entry.getKey(), entry.getValue()));
+            result.add(LogEntry.fromKeyValue(entry.getKey(), entry.getValue()));
           }
         }
       }
@@ -723,7 +656,7 @@ public class MetadataTableUtil {
         return rootTableEntries.next();
       }
       Entry<Key,Value> entry = metadataEntries.next();
-      return entryFromKeyValue(entry.getKey(), entry.getValue());
+      return LogEntry.fromKeyValue(entry.getKey(), entry.getValue());
     }
 
     @Override

@@ -50,7 +50,7 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
   private static final Logger log = Logger.getLogger(MetaDataTableScanner.class);
   
   BatchScanner mdScanner = null;
-  Iterator<Entry<Key,Value>> iter;
+  Iterator<Entry<Key,Value>> iter = null;
   
   public MetaDataTableScanner(Instance instance, Credentials credentials, Range range, CurrentState state) {
     this(instance, credentials, range, state, MetadataTable.NAME);
@@ -67,6 +67,8 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
     } catch (Exception ex) {
       if (mdScanner != null)
         mdScanner.close();
+      iter = null;
+      mdScanner = null;
       throw new RuntimeException(ex);
     }
   }
