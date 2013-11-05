@@ -21,6 +21,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -29,6 +31,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -110,6 +113,11 @@ public class VolumeIT extends ConfigurableMacIT {
       fileCount++;
     }
     assertEquals(4, fileCount);
+    List<DiskUsage> diskUsage = connector.tableOperations().getDiskUsage(Collections.singleton(tableName));
+    assertEquals(1, diskUsage.size());
+    long usage = diskUsage.get(0).getUsage().longValue();
+    System.out.println("usage " + usage);
+    assertTrue(usage > 700 && usage < 800);
   }
 
 }
