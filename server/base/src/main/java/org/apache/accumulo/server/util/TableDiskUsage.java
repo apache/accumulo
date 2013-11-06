@@ -43,9 +43,12 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.NumUtil;
+import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
@@ -155,13 +158,11 @@ public class TableDiskUsage {
       mdScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       mdScanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
       
-      Iterator<Entry<Key,Value>> mdIter = mdScanner.iterator();
-      if (!mdIter.hasNext()) {
+      if (!mdScanner.iterator().hasNext()) {
         emptyTableIds.add(tableId);
       }
       
-      while (mdIter.hasNext()) {
-        Entry<Key,Value> entry = mdIter.next();
+      for (Entry<Key,Value> entry : mdScanner) {
         String file = entry.getKey().getColumnQualifier().toString();
         String parts[] = file.split("/");
         String uniqueName = parts[parts.length - 1];
@@ -173,11 +174,18 @@ public class TableDiskUsage {
         }
         
         tdu.linkFileAndTable(tableId, uniqueName);
-        String sizeKeys = entry.getValue().toString();
-        parts = sizeKeys.split(",");
-        // defensive: all file entries should have a size
-        if (parts.length == 2) {
-          tdu.addFileSize(uniqueName, Long.parseLong(parts[0]));
+      }
+    }
+    
+    for (String tableId : tablesReferenced) {
+      for (String tableDir : ServerConstants.getTablesDirs()) {
+        FileStatus[] files = fs.globStatus(new Path(tableDir + "/" + tableId + "/*/*"));
+        if (files != null) {
+          for (FileStatus fileStatus : files) {
+            // Assumes that all filenames are unique
+            String name = fileStatus.getPath().getName();
+            tdu.addFileSize(name, fileStatus.getLen());
+          }
         }
       }
     }
