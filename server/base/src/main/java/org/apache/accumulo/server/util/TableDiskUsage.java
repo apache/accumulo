@@ -43,6 +43,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.NumUtil;
+import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -147,6 +148,7 @@ public class TableDiskUsage {
     
     HashSet<String> tablesReferenced = new HashSet<String>(tableIds);
     HashSet<String> emptyTableIds = new HashSet<String>();
+    HashSet<String> nameSpacesReferenced = new HashSet<String>();
     
     for (String tableId : tableIds) {
       Scanner mdScanner = null;
@@ -171,6 +173,10 @@ public class TableDiskUsage {
           if (!ref.equals(tableId)) {
             tablesReferenced.add(ref);
           }
+          if (file.contains(":") && parts.length > 3) {
+            List<String> base = Arrays.asList(Arrays.copyOf(parts, parts.length - 3));
+            nameSpacesReferenced.add(StringUtil.join(base, "/"));
+          }
         }
         
         tdu.linkFileAndTable(tableId, uniqueName);
@@ -178,7 +184,7 @@ public class TableDiskUsage {
     }
     
     for (String tableId : tablesReferenced) {
-      for (String tableDir : ServerConstants.getTablesDirs()) {
+      for (String tableDir : nameSpacesReferenced) {
         FileStatus[] files = fs.globStatus(new Path(tableDir + "/" + tableId + "/*/*"));
         if (files != null) {
           for (FileStatus fileStatus : files) {
