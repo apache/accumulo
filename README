@@ -129,18 +129,15 @@ You will need to have hadoop installed and configured on your system.  Accumulo
 you must enable HDFS durable sync.  How you enable this depends on your version
 of Hadoop. Please consult the table below for information regarding your version.
 If you need to set the coniguration, please be sure to restart HDFS. See 
-ACCUMULO-623 for more information.
+ACCUMULO-623 and ACCUMULO-1637 for more information.
 
-HADOOP RELEASE          VERSION           SYNC NAME             DEFAULT
-Apache Hadoop           0.20.205          dfs.support.append    false
-Apache Hadoop            0.23.x           dfs.support.append    true
-Apache Hadoop             1.0.x           dfs.support.append    false
-Apache Hadoop             1.1.x           dfs.durable.sync      true
-Apache Hadoop          2.0.0-2.0.4        dfs.support.append    true
-Cloudera CDH             3u0-3u3             ????               true
-Cloudera CDH               3u4            dfs.support.append    true
-Hortonworks HDP           `1.0            dfs.support.append    false
-Hortonworks HDP           `1.1            dfs.support.append    false
+The following releases of Apache Hadoop require special configuration to ensure 
+that data is not inadvertently lost; however, in all releases of Apache Hadoop, 
+`dfs.durable.sync` and `dfs.support.append` should *not* be configured as `false`.
+
+VERSION        NAME=VALUE
+0.20.205.0  -  dfs.support.append=true
+1.0.x       -  dfs.support.append=true
 
 The example accumulo configuration files are placed in directories based on the 
 memory footprint for the accumulo processes.  If you are using native libraries
