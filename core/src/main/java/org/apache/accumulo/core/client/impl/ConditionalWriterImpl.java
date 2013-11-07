@@ -380,7 +380,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
       public void run() {
         List<QCMutation> mutations = new ArrayList<QCMutation>();
         failedMutations.drainTo(mutations);
-        queue(mutations);
+        if (mutations.size() > 0)
+          queue(mutations);
       }
     };
     

@@ -67,6 +67,8 @@ public class Transfer extends Test {
     String bank = Utils.getBank(rand.nextInt((Integer) state.get("numBanks")));
     String acct1 = Utils.getAccount(rand.nextInt(numAccts));
     String acct2 = Utils.getAccount(rand.nextInt(numAccts));
+    while (acct2.equals(acct1))
+      acct2 = Utils.getAccount(rand.nextInt(numAccts));
 
     // TODO document how data should be read when using ConditionalWriter
     Scanner scanner = new IsolatedScanner(conn.createScanner(table, Authorizations.EMPTY));
@@ -85,19 +87,23 @@ public class Transfer extends Test {
 
       if (cf.equals(acct1))
         a = a1;
-      else
+      else if (cf.equals(acct2))
         a = a2;
+      else
+        throw new Exception("Unexpected column fam: " + cf);
 
       if (cq.equals("bal"))
         a.setBal(entry.getValue().toString());
-      else
+      else if (cq.equals("seq"))
         a.setSeq(entry.getValue().toString());
+      else
+        throw new Exception("Unexpected column qual: " + cq);
     }
 
 
     int amt = rand.nextInt(50);
 
-    log.debug("transfer req " + bank + " " + amt + " " + a1 + " " + a2);
+    log.debug("transfer req " + bank + " " + amt + " " + acct1 + " " + a1 + " " + acct2 + " " + a2);
 
     if (a1.bal >= amt) {
       ConditionalMutation cm = new ConditionalMutation(bank, new Condition(acct1, "seq").setValue(Utils.getSeq(a1.seq)),
