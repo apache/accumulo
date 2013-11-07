@@ -112,15 +112,20 @@ public class RandomBatchScanner {
    * Prints a count of the number of rows mapped to false.
    * 
    * @param expectedRows
+   * @return boolean indicating "were all the rows found?"
    */
-  private static void printRowsNotFound(HashMap<Text,Boolean> expectedRows) {
+  private static boolean checkAllRowsFound(HashMap<Text,Boolean> expectedRows) {
     int count = 0;
+    boolean allFound = true;
     for (Entry<Text,Boolean> entry : expectedRows.entrySet())
       if (!entry.getValue())
         count++;
     
-    if (count > 0)
+    if (count > 0) {
       log.warn("Did not find " + count + " rows");
+      allFound = false;
+    }
+    return allFound;
   }
   
   /**
@@ -139,8 +144,9 @@ public class RandomBatchScanner {
    *          a random number generator
    * @param tsbr
    *          a batch scanner
+   * @return boolean indicating "did the queries go fine?"
    */
-  static void doRandomQueries(int num, long min, long max, int evs, Random r, BatchScanner tsbr) {
+  static boolean doRandomQueries(int num, long min, long max, int evs, Random r, BatchScanner tsbr) {
     
     HashSet<Range> ranges = new HashSet<Range>(num);
     HashMap<Text,Boolean> expectedRows = new java.util.HashMap<Text,Boolean>();
@@ -162,7 +168,7 @@ public class RandomBatchScanner {
     log.info(String.format("%6.2f lookups/sec %6.2f secs\n", num / ((t2 - t1) / 1000.0), ((t2 - t1) / 1000.0)));
     log.info(String.format("num results : %,d\n", receiver.count));
     
-    printRowsNotFound(expectedRows);
+    return checkAllRowsFound(expectedRows);
   }
   
   /**
@@ -175,6 +181,7 @@ public class RandomBatchScanner {
    * @throws TableNotFoundException
    */
   public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    boolean status = true;
     String seed = null;
     
     int index = 0;
@@ -190,7 +197,7 @@ public class RandomBatchScanner {
     if (index != 11) {
       System.out
           .println("Usage : RandomBatchScanner [-s <seed>] <instance name> <zoo keepers> <username> <password> <table> <num> <min> <max> <expected value size> <num threads> <auths>");
-      return;
+      System.exit(1);
     }
     
     String instanceName = processedArgs[0];
@@ -220,7 +227,7 @@ public class RandomBatchScanner {
       r = new Random(Long.parseLong(seed));
     
     // do one cold
-    doRandomQueries(num, min, max, expectedValueSize, r, tsbr);
+    status = doRandomQueries(num, min, max, expectedValueSize, r, tsbr);
     
     System.gc();
     System.gc();
@@ -232,8 +239,11 @@ public class RandomBatchScanner {
       r = new Random(Long.parseLong(seed));
     
     // do one hot (connections already established, metadata table cached)
-    doRandomQueries(num, min, max, expectedValueSize, r, tsbr);
+    status = status && doRandomQueries(num, min, max, expectedValueSize, r, tsbr);
     
     tsbr.close();
+    if (!status) {
+      System.exit(1);
+    }
   }
 }

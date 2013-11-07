@@ -41,6 +41,10 @@ class Examples(TestUtilsMixin, unittest.TestCase):
     order = 21
 
     def runExample(self, cmd):
+        self.assert_(self.wait(self.runOn(self.masterHost(), [self.accumulo_sh(),] + cmd)), "example exited with error status.")
+
+    def ignoreExample(self, cmd):
+        self.comment("  Ignoring results of command.")
         self.wait(self.runOn(self.masterHost(), [self.accumulo_sh(),] + cmd))
 
     def ashell(self, input):
@@ -55,6 +59,12 @@ class Examples(TestUtilsMixin, unittest.TestCase):
         log.info(LINE)
 
     def execute(self, *cmd):
+        self.assert_(self.wait(self.runOn('localhost', cmd)), "command exited with error status.")
+
+    def executeExpectFail(self, *cmd):
+        self.assert_(not self.wait(self.runOn('localhost', cmd)), "command did not exit with error status and we expected it to.")
+
+    def executeIgnoreFail(self, *cmd):
         self.wait(self.runOn('localhost', cmd))
 
     def runTest(self):
@@ -97,7 +107,7 @@ class Examples(TestUtilsMixin, unittest.TestCase):
         self.ashell('createtable bloom_test\nconfig -t bloom_test -s table.bloom.enabled=true\n')
         self.execute(self.accumulo_sh(), 'org.apache.accumulo.examples.simple.client.RandomBatchWriter', '-s', '7',
                      INSTANCE_NAME, ZOOKEEPERS, ROOT, ROOT_PASSWORD, 'bloom_test',
-                     '1000000', '0', '1000000000', '50', '2000000', '60000', '3' 'A')
+                     '1000000', '0', '1000000000', '50', '2000000', '60000', '3', 'A')
         self.ashell('flush -t bloom_test -w\n')
         now = time.time()
         self.execute(self.accumulo_sh(), 'org.apache.accumulo.examples.simple.client.RandomBatchScanner', '-s', '7',
@@ -105,7 +115,7 @@ class Examples(TestUtilsMixin, unittest.TestCase):
                      500, 0, 1000000000, 50, 20, 'A')
         diff = time.time() - now
         now = time.time()
-        self.execute(self.accumulo_sh(), 'org.apache.accumulo.examples.simple.client.RandomBatchScanner', '-s', '8',
+        self.executeExpectFail(self.accumulo_sh(), 'org.apache.accumulo.examples.simple.client.RandomBatchScanner', '-s', '8',
                      INSTANCE_NAME, ZOOKEEPERS, ROOT, ROOT_PASSWORD, 'bloom_test',
                      500, 0, 1000000000, 50, 20, 'A')
         diff2 = time.time() - now
@@ -114,28 +124,28 @@ class Examples(TestUtilsMixin, unittest.TestCase):
         self.comment("Creating a sharded index of the accumulo java files")
         self.ashell('createtable shard\ncreatetable doc2term\nquit\n')
         self.execute('/bin/sh', '-c',
-                     'find src -name "*.java" | xargs ./bin/accumulo org.apache.accumulo.simple.examples.shard.Index %s %s shard %s %s 30' %
+                     'find src -name "*.java" | xargs ./bin/accumulo org.apache.accumulo.examples.simple.shard.Index %s %s shard %s %s 30' %
                      (INSTANCE_NAME, ZOOKEEPERS, ROOT, ROOT_PASSWORD))
-        self.execute(self.accumulo_sh(), 'org.apache.accumulo.simple.examples.shard.Query',
+        self.execute(self.accumulo_sh(), 'org.apache.accumulo.examples.simple.shard.Query',
                      INSTANCE_NAME, ZOOKEEPERS, 'shard', ROOT, ROOT_PASSWORD,
                      'foo', 'bar')
         self.comment("Creating a word index of the sharded files")
-        self.execute(self.accumulo_sh(), 'org.apache.accumulo.simple.examples.shard.Reverse',
+        self.execute(self.accumulo_sh(), 'org.apache.accumulo.examples.simple.shard.Reverse',
                      INSTANCE_NAME, ZOOKEEPERS, 'shard', 'doc2term', ROOT, ROOT_PASSWORD)
         self.comment("Making 1000 conjunctive queries of 5 random words")
-        self.execute(self.accumulo_sh(), 'org.apache.accumulo.simple.examples.shard.ContinuousQuery',
+        self.execute(self.accumulo_sh(), 'org.apache.accumulo.examples.simple.shard.ContinuousQuery',
                      INSTANCE_NAME, ZOOKEEPERS, 'shard', 'doc2term', ROOT, ROOT_PASSWORD, 5, 1000)
 
-        self.execute('hadoop', 'fs', '-rmr', "/tmp/input", "/tmp/files", "/tmp/splits.txt", "/tmp/failures")
+        self.executeIgnoreFail('hadoop', 'fs', '-rmr', "/tmp/input", "/tmp/files", "/tmp/splits.txt", "/tmp/failures")
         self.execute('hadoop', 'fs', '-mkdir', "/tmp/input")
         self.comment("Starting bulk ingest example")
         self.comment("   Creating some test data")
-        self.execute(self.accumulo_sh(), 'org.apache.accumulo.simple.examples.mapreduce.bulk.GenerateTestData', 0, 1000000, '/tmp/input/data')
-        self.execute(self.accumulo_sh(), 'org.apache.accumulo.simple.examples.mapreduce.bulk.SetupTable',
+        self.execute(self.accumulo_sh(), 'org.apache.accumulo.examples.simple.mapreduce.bulk.GenerateTestData', 0, 1000000, '/tmp/input/data')
+        self.execute(self.accumulo_sh(), 'org.apache.accumulo.examples.simple.mapreduce.bulk.SetupTable',
                  INSTANCE_NAME, ZOOKEEPERS, ROOT, ROOT_PASSWORD, 'bulkTable')
-        self.execute(ACCUMULO_HOME+'/bin/tool.sh', examplesJar, 'org.apache.accumulo.simple.examples.mapreduce.bulk.BulkIngestExample',
+        self.execute(ACCUMULO_HOME+'/bin/tool.sh', examplesJar, 'org.apache.accumulo.examples.simple.mapreduce.bulk.BulkIngestExample',
                  INSTANCE_NAME, ZOOKEEPERS, ROOT, ROOT_PASSWORD, 'bulkTable', '/tmp/input', '/tmp')
-        self.execute(ACCUMULO_HOME+'/bin/tool.sh', examplesJar, 'org.apache.accumulo.simple.examples.mapreduce.bulk.VerifyIngest',
+        self.execute(ACCUMULO_HOME+'/bin/tool.sh', examplesJar, 'org.apache.accumulo.examples.simple.mapreduce.bulk.VerifyIngest',
                  INSTANCE_NAME, ZOOKEEPERS, ROOT, ROOT_PASSWORD, 'bulkTable', 0, 1000000)
         self.wait(self.runOn(self.masterHost(), [
             'hadoop', 'fs', '-rmr', "/tmp/tableFile", "/tmp/nines"
@@ -146,7 +156,7 @@ class Examples(TestUtilsMixin, unittest.TestCase):
         self.wait(self.runOn(self.masterHost(), [
             ACCUMULO_HOME+'/bin/tool.sh',
             examplesJar,
-            'org.apache.accumulo.simple.examples.mapreduce.TeraSortIngest',
+            'org.apache.accumulo.examples.simple.mapreduce.TeraSortIngest',
             ROWS,  
             10, 10,
             78, 78,
@@ -160,7 +170,7 @@ class Examples(TestUtilsMixin, unittest.TestCase):
         self.wait(self.runOn(self.masterHost(), [
             ACCUMULO_HOME+'/bin/tool.sh',
             examplesJar,
-            'org.apache.accumulo.simple.examples.mapreduce.RegexExample',
+            'org.apache.accumulo.examples.simple.mapreduce.RegexExample',
             INSTANCE_NAME,
             ZOOKEEPERS,
             ROOT,
@@ -175,7 +185,7 @@ class Examples(TestUtilsMixin, unittest.TestCase):
         self.wait(self.runOn(self.masterHost(), [
             ACCUMULO_HOME+'/bin/tool.sh',
             examplesJar,
-            'org.apache.accumulo.simple.examples.mapreduce.RowHash',
+            'org.apache.accumulo.examples.simple.mapreduce.RowHash',
             INSTANCE_NAME,
             ZOOKEEPERS,
             ROOT,
@@ -188,7 +198,7 @@ class Examples(TestUtilsMixin, unittest.TestCase):
         self.wait(self.runOn(self.masterHost(), [
             ACCUMULO_HOME+'/bin/tool.sh',
             examplesJar,
-            'org.apache.accumulo.simple.examples.mapreduce.TableToFile',
+            'org.apache.accumulo.examples.simple.mapreduce.TableToFile',
             INSTANCE_NAME,
             ZOOKEEPERS,
             ROOT,
@@ -211,28 +221,28 @@ class Examples(TestUtilsMixin, unittest.TestCase):
         self.wait(self.runOn(self.masterHost(), [
             ACCUMULO_HOME+'/bin/tool.sh',
             examplesJar,
-            'org.apache.accumulo.simple.examples.mapreduce.WordCount',
+            'org.apache.accumulo.examples.simple.mapreduce.WordCount',
             INSTANCE_NAME,
             ZOOKEEPERS,
             '/tmp/wc',
             'wctable'
             ]))
         self.comment("Inserting data with a batch writer")
-        self.runExample(['org.apache.accumulo.simple.examples.helloworld.InsertWithBatchWriter',
+        self.runExample(['org.apache.accumulo.examples.simple.helloworld.InsertWithBatchWriter',
                         INSTANCE_NAME,
                         ZOOKEEPERS,
-                        'helloBatch',
                         ROOT,
-                        ROOT_PASSWORD])
+                        ROOT_PASSWORD,
+                        'helloBatch'])
         self.comment("Reading data")
-        self.runExample(['org.apache.accumulo.simple.examples.helloworld.ReadData',
+        self.runExample(['org.apache.accumulo.examples.simple.helloworld.ReadData',
                          INSTANCE_NAME,
                          ZOOKEEPERS,
-                        'helloBatch',
                          ROOT,
-                         ROOT_PASSWORD])
+                         ROOT_PASSWORD,
+                         'helloBatch'])
         self.comment("Running isolated scans")
-        self.runExample(['org.apache.accumulo.simple.examples.isolation.InterferenceTest',
+        self.runExample(['org.apache.accumulo.examples.simple.isolation.InterferenceTest',
                          INSTANCE_NAME,
                          ZOOKEEPERS,
                          ROOT,
@@ -241,7 +251,7 @@ class Examples(TestUtilsMixin, unittest.TestCase):
                          100000,
                          'true'])
         self.comment("Running scans without isolation")
-        self.runExample(['org.apache.accumulo.simple.examples.isolation.InterferenceTest',
+        self.runExample(['org.apache.accumulo.examples.simple.isolation.InterferenceTest',
                          INSTANCE_NAME,
                          ZOOKEEPERS,
                          ROOT,
@@ -250,30 +260,30 @@ class Examples(TestUtilsMixin, unittest.TestCase):
                          100000,
                          'false'])
         self.comment("Inserting data using a map/reduce job")
-        self.runExample(['org.apache.accumulo.simple.examples.helloworld.InsertWithOutputFormat',
+        self.runExample(['org.apache.accumulo.examples.simple.helloworld.InsertWithOutputFormat',
                          INSTANCE_NAME,
                          ZOOKEEPERS,
-                        'helloOutputFormat',
                          ROOT,
-                         ROOT_PASSWORD])
+                         ROOT_PASSWORD,
+                        'helloOutputFormat'])
         self.comment("Using some example constraints")
         self.ashell('\n'.join([
             'createtable testConstraints',
-            'config -t testConstraints -s table.constraint.1=org.apache.accumulo.simple.examples.constraints.NumericValueConstraint',
-            'config -t testConstraints -s table.constraint.2=org.apache.accumulo.simple.examples.constraints.AlphaNumKeyConstraint',
+            'config -t testConstraints -s table.constraint.1=org.apache.accumulo.examples.simple.constraints.NumericValueConstraint',
+            'config -t testConstraints -s table.constraint.2=org.apache.accumulo.examples.simple.constraints.AlphaNumKeyConstraint',
             'insert r1 cf1 cq1 1111',
             'insert r1 cf1 cq1 ABC',
             'scan',
             'quit'
             ]))
         self.comment("Performing some row operations")
-        self.runExample(['org.apache.accumulo.simple.examples.client.RowOperations', 
+        self.runExample(['org.apache.accumulo.examples.simple.client.RowOperations',
                            INSTANCE_NAME,
                            ZOOKEEPERS,
                            ROOT,
                            ROOT_PASSWORD])
         self.comment("Using the batch writer")
-        self.runExample(['org.apache.accumulo.simple.examples.client.SequentialBatchWriter',
+        self.runExample(['org.apache.accumulo.examples.simple.client.SequentialBatchWriter',
                            INSTANCE_NAME, 
                            ZOOKEEPERS, 
                            ROOT, 
@@ -287,7 +297,7 @@ class Examples(TestUtilsMixin, unittest.TestCase):
                            numThreads,
                            visibility])
         self.comment("Reading and writing some data")
-        self.runExample(['org.apache.accumulo.simple.examples.client.ReadWriteExample',
+        self.runExample(['org.apache.accumulo.examples.simple.client.ReadWriteExample',
                            '-i', INSTANCE_NAME, 
                            '-z', ZOOKEEPERS, 
                            '-u', ROOT, 
@@ -298,7 +308,7 @@ class Examples(TestUtilsMixin, unittest.TestCase):
                            '-r', 
                            '-dbg'])
         self.comment("Deleting some data")
-        self.runExample(['org.apache.accumulo.simple.examples.client.ReadWriteExample',
+        self.runExample(['org.apache.accumulo.examples.simple.client.ReadWriteExample',
                            '-i', INSTANCE_NAME, 
                            '-z', ZOOKEEPERS, 
                            '-u', ROOT, 
@@ -308,7 +318,9 @@ class Examples(TestUtilsMixin, unittest.TestCase):
                            '-d', 
                            '-dbg'])
         self.comment("Writing some random data with the batch writer")
-        self.runExample(['org.apache.accumulo.simple.examples.client.RandomBatchWriter',
+        self.runExample(['org.apache.accumulo.examples.simple.client.RandomBatchWriter',
+                           '-s',
+                           5,
                            INSTANCE_NAME, 
                            ZOOKEEPERS, 
                            ROOT, 
@@ -322,8 +334,10 @@ class Examples(TestUtilsMixin, unittest.TestCase):
                            latency, 
                            numThreads, 
                            visibility])
-        self.comment("Writing some random data with the batch writer")
-        self.runExample(['org.apache.accumulo.simple.examples.client.RandomBatchScanner',
+        self.comment("Reading some random data with the batch scanner")
+        self.runExample(['org.apache.accumulo.examples.simple.client.RandomBatchScanner',
+                           '-s',
+                           5,
                            INSTANCE_NAME, 
                            ZOOKEEPERS, 
                            ROOT, 
@@ -336,7 +350,7 @@ class Examples(TestUtilsMixin, unittest.TestCase):
                            numThreads, 
                            auths]);
         self.comment("Running an example table operation (Flush)")
-        self.runExample(['org.apache.accumulo.simple.examples.client.Flush',
+        self.runExample(['org.apache.accumulo.examples.simple.client.Flush',
                            INSTANCE_NAME,
                            ZOOKEEPERS,
                            ROOT,
