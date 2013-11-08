@@ -32,12 +32,12 @@
 </node>
 
 <node id="ct.Setup">
+  <property key="numAccts" value="1000"/>
+  <property key="numBanks" value="10"/>
   <edge id="ct.Init" weight="1"/>
 </node>
 
 <node id="ct.Init">
-  <property key="numAccts" value="10"/>
-  <property key="numBanks" value="1000"/>
   <edge id="dummy.ToAll" weight="1"/>
 </node>
 
