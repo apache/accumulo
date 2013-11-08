@@ -17,7 +17,6 @@
 package org.apache.accumulo.test.randomwalk;
 
 import java.io.File;
-import java.util.Properties;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
@@ -31,12 +30,12 @@ import org.apache.accumulo.test.randomwalk.unit.CreateTable;
 import org.junit.Assert;
 
 public class FrameworkTest extends TestCase {
-  
+
   public void testXML() {
-    
+
     DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
     DocumentBuilder docbuilder;
-    
+
     SchemaFactory sf = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
     Schema moduleSchema = null;
     try {
@@ -44,9 +43,9 @@ public class FrameworkTest extends TestCase {
     } catch (Exception e) {
       Assert.fail("Caught exception: " + e);
     }
-    
+
     dbf.setSchema(moduleSchema);
-    
+
     try {
       File f = new File(this.getClass().getResource("/randomwalk/Basic.xml").toURI());
       docbuilder = dbf.newDocumentBuilder();
@@ -55,14 +54,14 @@ public class FrameworkTest extends TestCase {
       Assert.fail("Caught exception: " + e);
     }
   }
-  
+
   public void testRWTest() {
-    
+
     Test t1 = new CreateTable();
     assertTrue(t1.toString().equals("org.apache.accumulo.test.randomwalk.unit.CreateTable"));
-    
+
     Test t2 = new CreateTable();
     assertTrue(t1.equals(t2));
   }
-  
+
 }

@@ -52,74 +52,74 @@ import org.apache.log4j.Logger;
  * 
  */
 public class HdfsZooInstance implements Instance {
-  
+
   public static class AccumuloNotInitializedException extends RuntimeException {
     private static final long serialVersionUID = 1L;
-    
+
     public AccumuloNotInitializedException(String string) {
       super(string);
     }
   }
-  
+
   private HdfsZooInstance() {
     AccumuloConfiguration acuConf = ServerConfiguration.getSiteConfiguration();
     zooCache = new ZooCache(acuConf.get(Property.INSTANCE_ZK_HOST), (int) acuConf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT));
   }
-  
+
   private static HdfsZooInstance cachedHdfsZooInstance = null;
-  
+
   public static synchronized Instance getInstance() {
     if (cachedHdfsZooInstance == null)
       cachedHdfsZooInstance = new HdfsZooInstance();
     return cachedHdfsZooInstance;
   }
-  
+
   private static ZooCache zooCache;
   private static String instanceId = null;
   private static final Logger log = Logger.getLogger(HdfsZooInstance.class);
-  
+
   @Override
   public String getRootTabletLocation() {
     String zRootLocPath = ZooUtil.getRoot(this) + Constants.ZROOT_TABLET_LOCATION;
-    
+
     OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Looking up root tablet location in zoocache.");
-    
+
     byte[] loc = zooCache.get(zRootLocPath);
-    
+
     opTimer.stop("Found root tablet at " + (loc == null ? null : new String(loc)) + " in %DURATION%");
-    
+
     if (loc == null) {
       return null;
     }
-    
+
     return new String(loc).split("\\|")[0];
   }
-  
+
   @Override
   public List<String> getMasterLocations() {
-    
+
     String masterLocPath = ZooUtil.getRoot(this) + Constants.ZMASTER_LOCK;
-    
+
     OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Looking up master location in zoocache.");
-    
+
     byte[] loc = ZooLock.getLockData(zooCache, masterLocPath, null);
-    
+
     opTimer.stop("Found master at " + (loc == null ? null : new String(loc)) + " in %DURATION%");
-    
+
     if (loc == null) {
       return Collections.emptyList();
     }
-    
+
     return Collections.singletonList(new String(loc));
   }
-  
+
   @Override
   public String getInstanceID() {
     if (instanceId == null)
       _getInstanceID();
     return instanceId;
   }
-  
+
   private static synchronized void _getInstanceID() {
     if (instanceId == null) {
       @SuppressWarnings("deprecation")
@@ -127,64 +127,67 @@ public class HdfsZooInstance implements Instance {
       instanceId = instanceIdFromFile;
     }
   }
-  
+
   @Override
   public String getInstanceName() {
     return ZooKeeperInstance.lookupInstanceName(zooCache, UUID.fromString(getInstanceID()));
   }
-  
+
   @Override
   public String getZooKeepers() {
     return ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_ZK_HOST);
   }
-  
+
   @Override
   public int getZooKeepersSessionTimeOut() {
     return (int) ServerConfiguration.getSiteConfiguration().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
   }
-  
+
   @Override
   // Not really deprecated, just not for client use
   public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
     return getConnector(CredentialHelper.create(principal, token, getInstanceID()));
   }
-  
+
   @SuppressWarnings("deprecation")
   private Connector getConnector(TCredentials cred) throws AccumuloException, AccumuloSecurityException {
     return new ConnectorImpl(this, cred);
   }
-  
+
+  @Deprecated
   @Override
   // Not really deprecated, just not for client use
   public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, new PasswordToken(pass));
   }
-  
+
+  @Deprecated
   @Override
   // Not really deprecated, just not for client use
   public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, ByteBufferUtil.toBytes(pass));
   }
-  
+
+  @Deprecated
   @Override
   public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, TextUtil.getBytes(new Text(pass.toString())));
   }
-  
+
   private AccumuloConfiguration conf = null;
-  
+
   @Override
   public AccumuloConfiguration getConfiguration() {
     if (conf == null)
       conf = new ServerConfiguration(this).getConfiguration();
     return conf;
   }
-  
+
   @Override
   public void setConfiguration(AccumuloConfiguration conf) {
     this.conf = conf;
   }
-  
+
   public static void main(String[] args) {
     Instance instance = HdfsZooInstance.getInstance();
     System.out.println("Instance Name: " + instance.getInstanceName());
@@ -192,7 +195,7 @@ public class HdfsZooInstance implements Instance {
     System.out.println("ZooKeepers: " + instance.getZooKeepers());
     System.out.println("Masters: " + StringUtil.join(instance.getMasterLocations(), ", "));
   }
-  
+
   @Deprecated
   @Override
   public Connector getConnector(org.apache.accumulo.core.security.thrift.AuthInfo auth) throws AccumuloException, AccumuloSecurityException {

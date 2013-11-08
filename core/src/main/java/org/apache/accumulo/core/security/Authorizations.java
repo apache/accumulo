@@ -33,56 +33,56 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.commons.codec.binary.Base64;
 
 public class Authorizations implements Iterable<byte[]>, Serializable {
-  
+
   private static final long serialVersionUID = 1L;
-  
+
   private HashSet<ByteSequence> auths = new HashSet<ByteSequence>();
   private List<byte[]> authsList = new ArrayList<byte[]>();
   private List<byte[]> immutableList = Collections.unmodifiableList(authsList);
-  
+
   private static final boolean[] validAuthChars = new boolean[256];
-  
+
   public static final String HEADER = "!AUTH1:";
-  
+
   static {
     for (int i = 0; i < 256; i++) {
       validAuthChars[i] = false;
     }
-    
+
     for (int i = 'a'; i <= 'z'; i++) {
       validAuthChars[i] = true;
     }
-    
+
     for (int i = 'A'; i <= 'Z'; i++) {
       validAuthChars[i] = true;
     }
-    
+
     for (int i = '0'; i <= '9'; i++) {
       validAuthChars[i] = true;
     }
-    
+
     validAuthChars['_'] = true;
     validAuthChars['-'] = true;
     validAuthChars[':'] = true;
     validAuthChars['.'] = true;
     validAuthChars['/'] = true;
   }
-  
+
   static final boolean isValidAuthChar(byte b) {
     return validAuthChars[0xff & b];
   }
-  
+
   private void checkAuths() {
-    
+
     for (ByteSequence bs : auths) {
       if (bs.length() == 0) {
         throw new IllegalArgumentException("Empty authorization");
       }
-      
+
       authsList.add(bs.toArray());
     }
   }
-  
+
   /**
    * A convenience constructor that accepts a collection of string authorizations that have each already been encoded as UTF-8 bytes.
    * 
@@ -94,7 +94,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
       auths.add(new ArrayByteSequence(auth));
     checkAuths();
   }
-  
+
   /**
    * A convenience constructor that accepts a collection of string authorizations that have each already been encoded as UTF-8 bytes.
    * 
@@ -107,7 +107,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
     }
     checkAuths();
   }
-  
+
   /**
    * Constructs an authorizations object a serialized form. This is NOT a constructor for a set of authorizations of size one.
    * 
@@ -115,9 +115,9 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
    *          a serialized authorizations string produced by {@link #getAuthorizationsArray()} or {@link #serialize()} (converted to UTF-8 bytes)
    */
   public Authorizations(byte[] authorizations) {
-    
+
     ArgumentChecker.notNull(authorizations);
-    
+
     String authsString = new String(authorizations, Constants.UTF8);
     if (authsString.startsWith(HEADER)) {
       // it's the new format
@@ -136,14 +136,14 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
         setAuthorizations(authsString.split(","));
     }
   }
-  
+
   /**
    * Constructs an empty set of authorizations.
    * 
    * @see #Authorizations(String...)
    */
   public Authorizations() {}
-  
+
   /**
    * Constructs an authorizations object from a set of human-readable authorizations.
    * 
@@ -153,7 +153,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
   public Authorizations(String... authorizations) {
     setAuthorizations(authorizations);
   }
-  
+
   private void setAuthorizations(String... authorizations) {
     ArgumentChecker.notNull(authorizations);
     auths.clear();
@@ -161,10 +161,10 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
       str = str.trim();
       auths.add(new ArrayByteSequence(str.getBytes(Constants.UTF8)));
     }
-    
+
     checkAuths();
   }
-  
+
   /**
    * Retrieve a serialized form of the underlying set of authorizations.
    * 
@@ -173,7 +173,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
   public byte[] getAuthorizationsArray() {
     return serialize().getBytes(Constants.UTF8);
   }
-  
+
   /**
    * Retrieve authorizations as a list of strings that have been encoded as UTF-8 bytes.
    * 
@@ -182,16 +182,14 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
   public List<byte[]> getAuthorizations() {
     return immutableList;
   }
-  
+
   /**
    * Retrieve authorizations as a list of strings that have been encoded as UTF-8 bytes.
-   * 
-   * @see #Authorizations(List)
    */
   public List<ByteBuffer> getAuthorizationsBB() {
     return ByteBufferUtil.toByteBuffers(immutableList);
   }
-  
+
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
@@ -201,46 +199,46 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
       sep = ",";
       sb.append(new String(auth.toArray(), Constants.UTF8));
     }
-    
+
     return sb.toString();
   }
-  
+
   /**
    * Checks for the existence of this UTF-8 encoded authorization.
    */
   public boolean contains(byte[] auth) {
     return auths.contains(new ArrayByteSequence(auth));
   }
-  
+
   /**
    * Checks for the existence of this UTF-8 encoded authorization.
    */
   public boolean contains(ByteSequence auth) {
     return auths.contains(auth);
   }
-  
+
   /**
    * Checks for the existence of this authorization.
    */
   public boolean contains(String auth) {
     return auths.contains(auth.getBytes(Constants.UTF8));
   }
-  
+
   @Override
   public boolean equals(Object o) {
     if (o == null) {
       return false;
     }
-    
+
     if (o instanceof Authorizations) {
       Authorizations ao = (Authorizations) o;
-      
+
       return auths.equals(ao.auths);
     }
-    
+
     return false;
   }
-  
+
   @Override
   public int hashCode() {
     int result = 0;
@@ -248,20 +246,20 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
       result += b.hashCode();
     return result;
   }
-  
+
   public int size() {
     return auths.size();
   }
-  
+
   public boolean isEmpty() {
     return auths.isEmpty();
   }
-  
+
   @Override
   public Iterator<byte[]> iterator() {
     return immutableList.iterator();
   }
-  
+
   /**
    * Returns a serialized form of these authorizations. Convert to UTF-8 bytes to deserialize with {@link #Authorizations(byte[])}
    */
@@ -273,7 +271,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
       sep = ",";
       sb.append(new String(Base64.encodeBase64(auth.toArray()), Constants.UTF8));
     }
-    
+
     return sb.toString();
   }
 }
