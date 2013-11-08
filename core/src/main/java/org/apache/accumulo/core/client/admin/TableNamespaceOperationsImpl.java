@@ -49,6 +49,7 @@ import org.apache.accumulo.core.client.impl.ServerClient;
 import org.apache.accumulo.core.client.impl.TableNamespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
+import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.constraints.Constraint;
@@ -331,8 +332,8 @@ public class TableNamespaceOperationsImpl extends TableNamespaceOperationsHelper
     String namespaceId = TableNamespaces.getNamespaceId(instance, namespace);
 
     if (namespaceId.equals(Constants.SYSTEM_TABLE_NAMESPACE_ID) || namespaceId.equals(Constants.DEFAULT_TABLE_NAMESPACE_ID)) {
-      String why = "Can't delete the system or default table namespace";
-      throw new RuntimeException(why);
+      log.debug(credentials.getPrincipal() + " attempted to delete the " + namespaceId + " table namespace");
+      throw new AccumuloSecurityException(credentials.getPrincipal(), SecurityErrorCode.UNSUPPORTED_OPERATION);
     }
 
     if (TableNamespaces.getTableIds(instance, namespaceId).size() > 0) {

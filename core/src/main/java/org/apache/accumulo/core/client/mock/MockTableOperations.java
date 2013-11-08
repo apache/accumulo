@@ -61,43 +61,39 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
 public class MockTableOperations extends TableOperationsHelper {
-  
+
   final private MockAccumulo acu;
   final private String username;
-  
+
   MockTableOperations(MockAccumulo acu, String username) {
     this.acu = acu;
     this.username = username;
   }
-  
+
   @Override
   public SortedSet<String> list() {
     return new TreeSet<String>(acu.tables.keySet());
   }
-  
-  /*
-   * @Override public SortedSet<String> listNamespaces() { return new TreeSet<String>(acu.namespaces.keySet()); }
-   */
-  
+
   @Override
   public boolean exists(String tableName) {
     return acu.tables.containsKey(tableName);
   }
-  
+
   private boolean namespaceExists(String namespace) {
     return acu.namespaces.containsKey(namespace);
   }
-  
+
   @Override
   public void create(String tableName) throws AccumuloException, AccumuloSecurityException, TableExistsException {
     create(tableName, true, TimeType.MILLIS);
   }
-  
+
   @Override
   public void create(String tableName, boolean versioningIter) throws AccumuloException, AccumuloSecurityException, TableExistsException {
     create(tableName, versioningIter, TimeType.MILLIS);
   }
-  
+
   @Override
   public void create(String tableName, boolean versioningIter, TimeType timeType) throws AccumuloException, AccumuloSecurityException, TableExistsException {
     String namespace = Tables.extractNamespace(tableName);
@@ -106,51 +102,51 @@ public class MockTableOperations extends TableOperationsHelper {
     }
     if (exists(tableName))
       throw new TableExistsException(tableName, tableName, "");
-    
+
     if (!namespaceExists(namespace)) {
       throw new IllegalArgumentException("Table namespace (" + namespace + ") does not exist, create it first");
     }
     acu.createTable(username, tableName, versioningIter, timeType);
   }
-  
+
   @Override
   public void addSplits(String tableName, SortedSet<Text> partitionKeys) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     if (!exists(tableName))
       throw new TableNotFoundException(tableName, tableName, "");
     acu.addSplits(tableName, partitionKeys);
   }
-  
+
   @Deprecated
   @Override
   public Collection<Text> getSplits(String tableName) throws TableNotFoundException {
     return listSplits(tableName);
   }
-  
+
   @Deprecated
   @Override
   public Collection<Text> getSplits(String tableName, int maxSplits) throws TableNotFoundException {
     return listSplits(tableName);
   }
-  
+
   @Override
   public Collection<Text> listSplits(String tableName) throws TableNotFoundException {
     if (!exists(tableName))
       throw new TableNotFoundException(tableName, tableName, "");
     return acu.getSplits(tableName);
   }
-  
+
   @Override
   public Collection<Text> listSplits(String tableName, int maxSplits) throws TableNotFoundException {
     return listSplits(tableName);
   }
-  
+
   @Override
   public void delete(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     if (!exists(tableName))
       throw new TableNotFoundException(tableName, tableName, "");
     acu.tables.remove(tableName);
   }
-  
+
   @Override
   public void rename(String oldTableName, String newTableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException,
       TableExistsException {
@@ -169,35 +165,35 @@ public class MockTableOperations extends TableOperationsHelper {
     acu.namespaces.put(namespace, n);
     acu.tables.put(newTableName, t);
   }
-  
+
   @Deprecated
   @Override
   public void flush(String tableName) throws AccumuloException, AccumuloSecurityException {}
-  
+
   @Override
   public void setProperty(String tableName, String property, String value) throws AccumuloException, AccumuloSecurityException {
     acu.tables.get(tableName).settings.put(property, value);
   }
-  
+
   @Override
   public void removeProperty(String tableName, String property) throws AccumuloException, AccumuloSecurityException {
     acu.tables.get(tableName).settings.remove(property);
   }
-  
+
   @Override
   public Iterable<Entry<String,String>> getProperties(String tableName) throws TableNotFoundException {
     String namespace = Tables.extractNamespace(tableName);
-    
+
     if (!namespaceExists(namespace)) {
       throw new IllegalArgumentException("Table namespace (" + namespace + ") does not exist");
     }
-    
+
     Set<Entry<String,String>> props = new HashSet<Entry<String,String>>(acu.namespaces.get(namespace).settings.entrySet());
-    
+
     if (!exists(tableName)) {
       throw new TableNotFoundException(tableName, tableName, "");
     }
-    
+
     Set<Entry<String,String>> tableProps = acu.tables.get(tableName).settings.entrySet();
     for (Entry<String,String> e : tableProps) {
       if (props.contains(e)) {
@@ -207,21 +203,21 @@ public class MockTableOperations extends TableOperationsHelper {
     }
     return props;
   }
-  
+
   @Override
   public void setLocalityGroups(String tableName, Map<String,Set<Text>> groups) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     if (!exists(tableName))
       throw new TableNotFoundException(tableName, tableName, "");
     acu.tables.get(tableName).setLocalityGroups(groups);
   }
-  
+
   @Override
   public Map<String,Set<Text>> getLocalityGroups(String tableName) throws AccumuloException, TableNotFoundException {
     if (!exists(tableName))
       throw new TableNotFoundException(tableName, tableName, "");
     return acu.tables.get(tableName).getLocalityGroups();
   }
-  
+
   @Override
   public Set<Range> splitRangeByTablets(String tableName, Range range, int maxSplits) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
@@ -229,7 +225,7 @@ public class MockTableOperations extends TableOperationsHelper {
       throw new TableNotFoundException(tableName, tableName, "");
     return Collections.singleton(range);
   }
-  
+
   @Override
   public void importDirectory(String tableName, String dir, String failureDir, boolean setTime) throws IOException, AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
@@ -240,7 +236,7 @@ public class MockTableOperations extends TableOperationsHelper {
     }
     Path importPath = new Path(dir);
     Path failurePath = new Path(failureDir);
-    
+
     FileSystem fs = acu.getFileSystem();
     /*
      * check preconditions
@@ -315,35 +311,35 @@ public class MockTableOperations extends TableOperationsHelper {
       fs.delete(importStatus.getPath(), true);
     }
   }
-  
+
   @Override
   public void offline(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     offline(tableName, false);
   }
-  
+
   @Override
   public void offline(String tableName, boolean wait) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     if (!exists(tableName))
       throw new TableNotFoundException(tableName, tableName, "");
   }
-  
+
   @Override
   public void online(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     online(tableName, false);
   }
-  
+
   @Override
   public void online(String tableName, boolean wait) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     if (!exists(tableName))
       throw new TableNotFoundException(tableName, tableName, "");
   }
-  
+
   @Override
   public void clearLocatorCache(String tableName) throws TableNotFoundException {
     if (!exists(tableName))
       throw new TableNotFoundException(tableName, tableName, "");
   }
-  
+
   @Override
   public Map<String,String> tableIdMap() {
     Map<String,String> result = new HashMap<String,String>();
@@ -357,23 +353,23 @@ public class MockTableOperations extends TableOperationsHelper {
     }
     return result;
   }
-  
+
   @Override
   public List<DiskUsage> getDiskUsage(Set<String> tables) throws AccumuloException, AccumuloSecurityException {
-    
+
     List<DiskUsage> diskUsages = new ArrayList<DiskUsage>();
     diskUsages.add(new DiskUsage(new TreeSet<String>(tables), 0l));
-    
+
     return diskUsages;
   }
-  
+
   @Override
   public void merge(String tableName, Text start, Text end) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     if (!exists(tableName))
       throw new TableNotFoundException(tableName, tableName, "");
     acu.merge(tableName, start, end);
   }
-  
+
   @Override
   public void deleteRows(String tableName, Text start, Text end) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     if (!exists(tableName))
@@ -382,63 +378,63 @@ public class MockTableOperations extends TableOperationsHelper {
     Set<Key> keep = new TreeSet<Key>(t.table.tailMap(new Key(start)).headMap(new Key(end)).keySet());
     t.table.keySet().removeAll(keep);
   }
-  
+
   @Override
   public void compact(String tableName, Text start, Text end, boolean flush, boolean wait) throws AccumuloSecurityException, TableNotFoundException,
       AccumuloException {
     if (!exists(tableName))
       throw new TableNotFoundException(tableName, tableName, "");
   }
-  
+
   @Override
   public void compact(String tableName, Text start, Text end, List<IteratorSetting> iterators, boolean flush, boolean wait) throws AccumuloSecurityException,
       TableNotFoundException, AccumuloException {
     if (!exists(tableName))
       throw new TableNotFoundException(tableName, tableName, "");
   }
-  
+
   @Override
   public void cancelCompaction(String tableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException {
     if (!exists(tableName))
       throw new TableNotFoundException(tableName, tableName, "");
   }
-  
+
   @Override
   public void clone(String srcTableName, String newTableName, boolean flush, Map<String,String> propertiesToSet, Set<String> propertiesToExclude)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, TableExistsException {
     throw new NotImplementedException();
   }
-  
+
   @Override
   public void flush(String tableName, Text start, Text end, boolean wait) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     if (!exists(tableName))
       throw new TableNotFoundException(tableName, tableName, "");
   }
-  
+
   @Override
   public Text getMaxRow(String tableName, Authorizations auths, Text startRow, boolean startInclusive, Text endRow, boolean endInclusive)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     MockTable table = acu.tables.get(tableName);
     if (table == null)
       throw new TableNotFoundException(tableName, tableName, "no such table");
-    
+
     return FindMax.findMax(new MockScanner(table, auths), startRow, startInclusive, endRow, endInclusive);
   }
-  
+
   @Override
   public void importTable(String tableName, String exportDir) throws TableExistsException, AccumuloException, AccumuloSecurityException {
     throw new NotImplementedException();
   }
-  
+
   @Override
   public void exportTable(String tableName, String exportDir) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     throw new NotImplementedException();
   }
-  
+
   @Override
   public boolean testClassLoad(String tableName, String className, String asTypeName) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
-    
+
     try {
       AccumuloVFSClassLoader.loadClass(className, Class.forName(asTypeName));
     } catch (ClassNotFoundException e) {
