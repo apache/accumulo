@@ -52,6 +52,12 @@ if($sleep2 > $sleep2max){
 	die("sleep2 > sleep2max $sleep2 > $sleep2max");
 }
 
+if(defined $ENV{'ACCUMULO_CONF_DIR'}){
+  $ACCUMULO_CONF_DIR = $ENV{'ACCUMULO_CONF_DIR'};
+}else{
+	$ACCUMULO_CONF_DIR = $ACCUMULO_HOME . '/conf';
+}
+
 if(scalar(@ARGV) == 4){
 	$minKill = $ARGV[2];
 	$maxKill = $ARGV[3];
