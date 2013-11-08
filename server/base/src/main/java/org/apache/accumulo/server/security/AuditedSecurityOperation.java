@@ -130,7 +130,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
     List<String> result = new ArrayList<String>();
     int i = 0;
     for (Object obj : list) {
-      if (i > MAX_ELEMENTS_TO_LOG) {
+      if (i++ > MAX_ELEMENTS_TO_LOG) {
         result.add(" and " + (list.size() - MAX_ELEMENTS_TO_LOG) + " more ");
         break;
       }
@@ -179,11 +179,11 @@ public class AuditedSecurityOperation extends SecurityOperation {
       
       try {
         boolean canScan = super.canScan(credentials, tableId);
-        audit(credentials, canScan, CAN_SCAN_BATCH_AUDIT_TEMPLATE, tableName, getAuthString(authorizations), convertedBatch, convertedColumns, ssiList, ssio);
+        audit(credentials, canScan, CAN_SCAN_BATCH_AUDIT_TEMPLATE, tableName, getAuthString(authorizations), truncated, convertedColumns, ssiList, ssio);
         
         return canScan;
       } catch (ThriftSecurityException ex) {
-        audit(credentials, ex, CAN_SCAN_BATCH_AUDIT_TEMPLATE, getAuthString(authorizations), tableId, convertedBatch, convertedColumns, ssiList, ssio);
+        audit(credentials, ex, CAN_SCAN_BATCH_AUDIT_TEMPLATE, getAuthString(authorizations), tableId, truncated, convertedColumns, ssiList, ssio);
         throw ex;
       }
     } else {
