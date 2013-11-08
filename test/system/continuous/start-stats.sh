@@ -15,6 +15,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+if [ -z "${ACCUMULO_CONF_DIR}" ]; then
+    ACCUMULO_CONF_DIR=${ACCUMULO_HOME}/conf
+fi
+
 CONTINUOUS_CONF_DIR=${CONTINUOUS_CONF_DIR:-$ACCUMULO_HOME/test/system/continuous/}
 . $CONTINUOUS_CONF_DIR/continuous-env.sh
 

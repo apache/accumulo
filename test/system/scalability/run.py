@@ -173,6 +173,9 @@ def main():
     if not os.getenv('ACCUMULO_HOME'):
         raise 'ACCUMULO_HOME needs to be set!'
 
+    if not os.getenv('ACCUMULO_CONF_DIR'):
+        os.environ['ACCUMULO_CONF_DIR'] = os.path.join(os.getenv('ACCUMULO_HOME'), 'conf')
+
     if not os.getenv('HADOOP_HOME'):
 		raise 'HADOOP_HOME needs to be set!'
 
