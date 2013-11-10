@@ -89,8 +89,8 @@ public class UniqueColumns extends Configured implements Tool {
     
     String jobName = this.getClass().getSimpleName() + "_" + System.currentTimeMillis();
 
-    @SuppressWarnings("deprecation")
-    Job job = new Job(getConf(), jobName);
+    Job job = JobUtil.getJob(getConf());
+    job.setJobName(jobName);
     job.setJarByClass(this.getClass());
     
     String clone = opts.tableName;

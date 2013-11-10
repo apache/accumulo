@@ -62,8 +62,8 @@ public class RowHash extends Configured implements Tool {
   
   @Override
   public int run(String[] args) throws Exception {
-    @SuppressWarnings("deprecation")
-    Job job = new Job(getConf(), this.getClass().getName());
+    Job job = JobUtil.getJob(getConf());
+    job.setJobName(this.getClass().getName());
     job.setJarByClass(this.getClass());
     Opts opts = new Opts();
     opts.parseArgs(RowHash.class.getName(), args);

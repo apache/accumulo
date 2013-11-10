@@ -69,8 +69,8 @@ public class WordCount extends Configured implements Tool {
     Opts opts = new Opts();
     opts.parseArgs(WordCount.class.getName(), args);
 
-    @SuppressWarnings("deprecation")
-    Job job = new Job(getConf(), WordCount.class.getName());
+    Job job = JobUtil.getJob(getConf());
+    job.setJobName(WordCount.class.getName());
     job.setJarByClass(this.getClass());
     
     job.setInputFormatClass(TextInputFormat.class);

@@ -369,8 +369,8 @@ public class TeraSortIngest extends Configured implements Tool {
   
   @Override
   public int run(String[] args) throws Exception {
-    @SuppressWarnings("deprecation")
-    Job job = new Job(getConf(), "TeraSortCloud");
+    Job job = JobUtil.getJob(getConf());
+    job.setJobName("TeraSortCloud");
     job.setJarByClass(this.getClass());
     Opts opts = new Opts();
     opts.parseArgs(TeraSortIngest.class.getName(), args);

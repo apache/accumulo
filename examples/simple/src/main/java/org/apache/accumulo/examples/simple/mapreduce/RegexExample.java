@@ -61,8 +61,8 @@ public class RegexExample extends Configured implements Tool {
     Opts opts = new Opts();
     opts.parseArgs(getClass().getName(), args);
 
-    @SuppressWarnings("deprecation")
-    Job job = new Job(getConf(), getClass().getSimpleName());
+    Job job = JobUtil.getJob(getConf());
+    job.setJobName(getClass().getSimpleName());
     job.setJarByClass(getClass());
     
     job.setInputFormatClass(AccumuloInputFormat.class);
