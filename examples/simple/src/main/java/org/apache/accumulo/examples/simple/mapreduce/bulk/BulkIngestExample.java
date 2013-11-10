@@ -29,6 +29,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.examples.simple.mapreduce.JobUtil;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -107,8 +108,8 @@ public class BulkIngestExample extends Configured implements Tool {
     Configuration conf = getConf();
     PrintStream out = null;
     try {
-      @SuppressWarnings("deprecation")
-      Job job = new Job(conf, "bulk ingest example");
+      Job job = JobUtil.getJob(conf);
+      job.setJobName("bulk ingest example");
       job.setJarByClass(this.getClass());
       
       job.setInputFormatClass(TextInputFormat.class);

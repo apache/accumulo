@@ -35,6 +35,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.examples.simple.mapreduce.JobUtil;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -193,8 +194,8 @@ public class ChunkInputFormatTest extends TestCase {
       String pass = args[2];
       String table = args[3];
 
-      @SuppressWarnings("deprecation")
-      Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+      Job job = JobUtil.getJob(getConf());
+      job.setJobName(this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
       job.setJarByClass(this.getClass());
       
       job.setInputFormatClass(ChunkInputFormat.class);

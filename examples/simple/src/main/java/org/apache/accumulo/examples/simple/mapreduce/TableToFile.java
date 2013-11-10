@@ -84,8 +84,8 @@ public class TableToFile extends Configured implements Tool {
   
   @Override
   public int run(String[] args) throws IOException, InterruptedException, ClassNotFoundException, AccumuloSecurityException {
-    @SuppressWarnings("deprecation")
-    Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+    Job job = JobUtil.getJob(getConf());
+    job.setJobName(this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
     job.setJarByClass(this.getClass());
     Opts opts = new Opts();
     opts.parseArgs(getClass().getName(), args);
