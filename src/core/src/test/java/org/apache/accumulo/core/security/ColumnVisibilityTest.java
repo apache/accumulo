@@ -47,6 +47,13 @@ public class ColumnVisibilityTest {
   }
   
   @Test
+  public void testEmptyFlatten() {
+    // empty visibility is valid
+    new ColumnVisibility().flatten();
+    new ColumnVisibility("").flatten();
+  }
+
+  @Test
   public void testSimple() {
     shouldNotThrow("test", "(one)");
   }

@@ -46,8 +46,13 @@ public class ColumnVisibility {
   }
   
   public static enum NodeType {
-    TERM, OR, AND,
+    EMPTY, TERM, OR, AND,
   }
+
+  /**
+   * All empty nodes are equal and represent the same value.
+   */
+  private static final Node EMPTY_NODE = new Node(NodeType.EMPTY);
   
   public static class Node {
     public final static List<Node> EMPTY = Collections.emptyList();
@@ -104,6 +109,8 @@ public class ColumnVisibility {
       if (diff != 0)
         return diff;
       switch (a.type) {
+        case EMPTY:
+          return 0; // All empty nodes are the same
         case TERM:
           return WritableComparator.compareBytes(text, a.start, a.end - a.start, text, b.start, b.end - b.start);
         case OR:
@@ -255,6 +262,8 @@ public class ColumnVisibility {
     if (expression != null && expression.length > 0) {
       ColumnVisibilityParser p = new ColumnVisibilityParser();
       node = p.parse(expression);
+    } else {
+      node = EMPTY_NODE;
     }
     this.expression = expression;
   }
@@ -263,7 +272,7 @@ public class ColumnVisibility {
    * Empty visibility. Normally, elements with empty visibility can be seen by everyone. Though, one could change this behavior with filters.
    */
   public ColumnVisibility() {
-    expression = new byte[0];
+    this(new byte[] {});
   }
   
   /**
