@@ -52,7 +52,7 @@ WALOG = os.path.join(ACCUMULO_HOME, 'walogs', ID)
 
 LOG_PROPERTIES= os.path.join(ACCUMULO_CONF_DIR, 'log4j.properties')
 LOG_GENERIC = os.path.join(ACCUMULO_CONF_DIR, 'generic_logger.xml')
-LOG_MONITOR = os.path.join(ACCUMULO_CONF_DIR, 'conf', 'monitor_logger.xml')
+LOG_MONITOR = os.path.join(ACCUMULO_CONF_DIR, 'monitor_logger.xml')
 
 General_CLASSPATH = ("$ACCUMULO_CONF_DIR,$ACCUMULO_HOME/lib/[^.].$ACCUMULO_VERSION.jar, $ACCUMULO_HOME/lib/[^.].*.jar, $ZOOKEEPER_HOME/zookeeper[^.].*.jar,"
 "$HADOOP_HOME/conf,$HADOOP_HOME/[^.].*.jar, $HADOOP_HOME/lib/[^.].*.jar") 
