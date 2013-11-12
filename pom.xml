@@ -107,6 +107,9 @@
   <properties>
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
+    <!-- overwritten in profiles hadoop-1.0 or hadoop-2.0 -->
+    <hadoop.version>1.2.1</hadoop.version>
+    <httpclient.version>3.0.1</httpclient.version>
     <!-- the maven-release-plugin makes this recommendation, due to plugin bugs -->
     <maven.min-version>3.0.4</maven.min-version>
     <powermock.version>1.5</powermock.version>
