@@ -134,4 +134,9 @@ public class ServerConstants {
   public static String[] getMetadataTableDirs() {
     return prefix(getTablesDirs(), MetadataTable.ID);
   }
+  
+  public static String[] getTemporaryDirs() {
+    return prefix(getBaseDirs(), "tmp");
+  }
+
 }
