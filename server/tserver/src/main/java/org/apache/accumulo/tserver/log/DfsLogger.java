@@ -407,7 +407,10 @@ public class DfsLogger {
   
   @Override
   public String toString() {
-    return getLogger() + "/" + getFileName();
+    String fileName = getFileName();
+    if (fileName.contains(":"))
+      return getLogger() + "/" + getFileName();
+    return fileName;
   }
   
   public String getFileName() {

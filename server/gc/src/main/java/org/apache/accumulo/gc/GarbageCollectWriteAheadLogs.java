@@ -79,7 +79,8 @@ public class GarbageCollectWriteAheadLogs {
       status.currentLog.started = System.currentTimeMillis();
       
       Map<Path,String> fileToServerMap = new HashMap<Path,String>();
-      int count = scanServers(fileToServerMap);
+      Map<String,Path> nameToFileMap = new HashMap<String, Path>();
+      int count = scanServers(fileToServerMap, nameToFileMap);
       long fileScanStop = System.currentTimeMillis();
       log.info(String.format("Fetched %d files from %d servers in %.2f seconds", fileToServerMap.size(), count,
           (fileScanStop - status.currentLog.started) / 1000.));
@@ -88,7 +89,7 @@ public class GarbageCollectWriteAheadLogs {
       
       span = Trace.start("removeMetadataEntries");
       try {
-        count = removeMetadataEntries(fileToServerMap, sortedWALogs, status);
+        count = removeMetadataEntries(nameToFileMap, sortedWALogs, status);
       } catch (Exception ex) {
         log.error("Unable to scan metadata table", ex);
         return;
@@ -100,9 +101,9 @@ public class GarbageCollectWriteAheadLogs {
       log.info(String.format("%d log entries scanned in %.2f seconds", count, (logEntryScanStop - fileScanStop) / 1000.));
       
       span = Trace.start("removeFiles");
-      Map<String,ArrayList<Path>> serverToFileMap = mapServersToFiles(fileToServerMap);
+      Map<String,ArrayList<Path>> serverToFileMap = mapServersToFiles(fileToServerMap, nameToFileMap);
       
-      count = removeFiles(serverToFileMap, sortedWALogs, status);
+      count = removeFiles(nameToFileMap, serverToFileMap, sortedWALogs, status);
       
       long removeStop = System.currentTimeMillis();
       log.info(String.format("%d total logs removed from %d servers in %.2f seconds", count, serverToFileMap.size(), (removeStop - logEntryScanStop) / 1000.));
@@ -131,7 +132,7 @@ public class GarbageCollectWriteAheadLogs {
     }
   }
   
-  private int removeFiles(Map<String,ArrayList<Path>> serverToFileMap, Set<Path> sortedWALogs, final GCStatus status) {
+  private int removeFiles(Map<String,Path> nameToFileMap, Map<String,ArrayList<Path>> serverToFileMap, Set<Path> sortedWALogs, final GCStatus status) {
     AccumuloConfiguration conf = instance.getConfiguration();
     for (Entry<String,ArrayList<Path>> entry : serverToFileMap.entrySet()) {
       if (entry.getKey().isEmpty()) {
@@ -210,9 +211,11 @@ public class GarbageCollectWriteAheadLogs {
     return result;
   }
   
-  private static Map<String,ArrayList<Path>> mapServersToFiles(Map<Path,String> fileToServerMap) {
+  private static Map<String,ArrayList<Path>> mapServersToFiles(Map<Path,String> fileToServerMap, Map<String,Path> nameToFileMap) {
     Map<String,ArrayList<Path>> result = new HashMap<String,ArrayList<Path>>();
     for (Entry<Path,String> fileServer : fileToServerMap.entrySet()) {
+      if (!nameToFileMap.containsKey(fileServer.getKey().getName()))
+        continue;
       ArrayList<Path> files = result.get(fileServer.getValue());
       if (files == null) {
         files = new ArrayList<Path>();
@@ -223,7 +226,7 @@ public class GarbageCollectWriteAheadLogs {
     return result;
   }
   
-  private int removeMetadataEntries(Map<Path,String> fileToServerMap, Set<Path> sortedWALogs, GCStatus status) throws IOException, KeeperException,
+  private int removeMetadataEntries(Map<String,Path>  nameToFileMap, Set<Path> sortedWALogs, GCStatus status) throws IOException, KeeperException,
       InterruptedException {
     int count = 0;
     Iterator<LogEntry> iterator = MetadataTableUtil.getLogEntries(SystemCredentials.get());
@@ -237,11 +240,11 @@ public class GarbageCollectWriteAheadLogs {
         else
           path = fs.getFullPath(FileType.WAL, filename);
         
-        if (fileToServerMap.remove(path) != null)
+        Path pathFromNN = nameToFileMap.remove(path.getName());
+        if (pathFromNN != null) {
           status.currentLog.inUse++;
-        
-        sortedWALogs.remove(path);
-        
+          sortedWALogs.remove(pathFromNN);
+        }
         count++;
       }
     }
@@ -250,7 +253,7 @@ public class GarbageCollectWriteAheadLogs {
 
   //TODO Remove deprecation warning suppression when Hadoop1 support is dropped
   @SuppressWarnings("deprecation")
-  private int scanServers(Map<Path,String> fileToServerMap) throws Exception {
+  private int scanServers(Map<Path,String> fileToServerMap, Map<String,Path> nameToFileMap) throws Exception {
     Set<String> servers = new HashSet<String>();
     for (String walDir : ServerConstants.getWalDirs()) {
       Path walRoot = new Path(walDir);
@@ -262,9 +265,10 @@ public class GarbageCollectWriteAheadLogs {
         servers.add(server);
         if (status.isDir()) {
           for (FileStatus file : fs.listStatus(new Path(walRoot, server))) {
-            if (isUUID(file.getPath().getName()))
+            if (isUUID(file.getPath().getName())) {
               fileToServerMap.put(file.getPath(), server);
-            else {
+              nameToFileMap.put(file.getPath().getName(), file.getPath());
+            } else {
               log.info("Ignoring file " + file.getPath() + " because it doesn't look like a uuid");
             }
           }
@@ -276,6 +280,8 @@ public class GarbageCollectWriteAheadLogs {
         }
       }
     }
+    log.debug("fileToServerMap " + fileToServerMap);
+    log.debug("nameToFileMap " + nameToFileMap);
     return servers.size();
   }
   

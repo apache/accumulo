@@ -36,7 +36,6 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -243,7 +242,7 @@ public class MasterMetadataUtil {
    */
   public static void updateTabletDataFile(KeyExtent extent, FileRef path, FileRef mergeFile, DataFileValue dfv, String time, Credentials credentials,
       Set<FileRef> filesInUseByScans, String address, ZooLock zooLock, Set<String> unusedWalLogs, TServerInstance lastLocation, long flushId) {
-    if (extent.equals(RootTable.EXTENT)) {
+    if (extent.isRootTablet()) {
       if (unusedWalLogs != null) {
         IZooReaderWriter zk = ZooReaderWriter.getInstance();
         // unusedWalLogs will contain the location/name of each log in a log set
