@@ -44,6 +44,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
+import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.conf.Configuration;
@@ -75,33 +76,32 @@ public class FileUtil {
   
   private static final Logger log = Logger.getLogger(FileUtil.class);
   
-  private static String createTmpDir(AccumuloConfiguration acuConf, VolumeManager fs) throws IOException {
-    String accumuloDir = acuConf.get(Property.INSTANCE_DFS_DIR);
+  private static Path createTmpDir(AccumuloConfiguration acuConf, VolumeManager fs) throws IOException {
+    String accumuloDir = fs.choose(ServerConstants.getTemporaryDirs());
     
-    String tmpDir = null;
-    while (tmpDir == null) {
-      tmpDir = accumuloDir + "/tmp/idxReduce_" + String.format("%09d", (int) (Math.random() * Integer.MAX_VALUE));
+    Path result = null;
+    while (result == null) {
+      result = new Path(accumuloDir + "/tmp/idxReduce_" + String.format("%09d", (int) (Math.random() * Integer.MAX_VALUE)));
       
       try {
-        fs.getFileStatus(new Path(tmpDir));
-        tmpDir = null;
+        fs.getFileStatus(result);
+        result = null;
         continue;
       } catch (FileNotFoundException fne) {
         // found an unused temp directory
       }
       
-      fs.mkdirs(new Path(tmpDir));
+      fs.mkdirs(result);
       
       // try to reserve the tmp dir
-      if (!fs.createNewFile(new Path(tmpDir + "/__reserve")))
-        tmpDir = null;
+      if (!fs.createNewFile(new Path(result, "__reserve")))
+        result = null;
     }
-    
-    return tmpDir;
+    return result;
   }
   
   public static Collection<FileRef> reduceFiles(AccumuloConfiguration acuConf, Configuration conf, VolumeManager fs, Text prevEndRow, Text endRow,
-      Collection<FileRef> mapFiles, int maxFiles, String tmpDir, int pass) throws IOException {
+      Collection<FileRef> mapFiles, int maxFiles, Path tmpDir, int pass) throws IOException {
     ArrayList<FileRef> paths = new ArrayList<FileRef>(mapFiles);
     
     if (paths.size() <= maxFiles)
@@ -121,7 +121,7 @@ public class FileUtil {
       
       start = end;
       
-      FileRef newMapFile = new FileRef(String.format("%s/%04d." + RFile.EXTENSION, newDir, count++));
+      FileRef newMapFile = new FileRef(String.format("%s/%04d.%s", newDir, count++, RFile.EXTENSION));
       
       outFiles.add(newMapFile);
       FileSystem ns = fs.getFileSystemByPath(newMapFile.path());
@@ -132,6 +132,7 @@ public class FileUtil {
       FileSKVIterator reader = null;
       try {
         for (FileRef s : inFiles) {
+          ns = fs.getFileSystemByPath(s.path());
           reader = FileOperations.getInstance().openIndex(s.path().toString(), ns, ns.getConf(), acuConf);
           iters.add(reader);
         }
@@ -192,7 +193,7 @@ public class FileUtil {
     
     Configuration conf = CachedConfiguration.getInstance();
     
-    String tmpDir = null;
+    Path tmpDir = null;
     
     int maxToOpen = acuconf.getCount(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN);
     ArrayList<FileSKVIterator> readers = new ArrayList<FileSKVIterator>(mapFiles.size());
@@ -265,7 +266,7 @@ public class FileUtil {
     
     Collection<FileRef> origMapFiles = mapFiles;
     
-    String tmpDir = null;
+    Path tmpDir = null;
     
     int maxToOpen = acuConf.getCount(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN);
     ArrayList<FileSKVIterator> readers = new ArrayList<FileSKVIterator>(mapFiles.size());
@@ -359,7 +360,7 @@ public class FileUtil {
     }
   }
   
-  private static void cleanupIndexOp(AccumuloConfiguration acuConf, String tmpDir, VolumeManager fs, ArrayList<FileSKVIterator> readers) throws IOException {
+  private static void cleanupIndexOp(AccumuloConfiguration acuConf, Path tmpDir, VolumeManager fs, ArrayList<FileSKVIterator> readers) throws IOException {
     // close all of the index sequence files
     for (FileSKVIterator r : readers) {
       try {
@@ -373,8 +374,8 @@ public class FileUtil {
     
     if (tmpDir != null) {
       String tmpPrefix = acuConf.get(Property.INSTANCE_DFS_DIR) + "/tmp";
-      if (tmpDir.startsWith(tmpPrefix))
-        fs.deleteRecursively(new Path(tmpDir));
+      if (tmpDir.toUri().getPath().startsWith(tmpPrefix))
+        fs.deleteRecursively(tmpDir);
       else
         log.error("Did not delete tmp dir because it wasn't a tmp dir " + tmpDir);
     }
