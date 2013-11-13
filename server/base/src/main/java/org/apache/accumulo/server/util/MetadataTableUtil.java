@@ -686,7 +686,7 @@ public class MetadataTableUtil {
         }
       } else {
         Mutation m = new Mutation(entry.extent.getMetadataEntry());
-        m.putDelete(LogColumnFamily.NAME, new Text(entry.server + "/" + entry.filename));
+        m.putDelete(LogColumnFamily.NAME, new Text(entry.toString()));
         update(SystemCredentials.get(), zooLock, m, entry.extent);
       }
     }
