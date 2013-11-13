@@ -1556,6 +1556,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     while (clientService.isServing()) {
       UtilWaitThread.sleep(500);
     }
+    log.info("Shutting down fate.");
+    fate.shutdown();
 
     final long deadline = System.currentTimeMillis() + MAX_CLEANUP_WAIT_TIME;
     statusThread.join(remaining(deadline));
