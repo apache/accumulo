@@ -177,6 +177,15 @@ public class HdfsZooInstance implements Instance {
     System.out.println("ZooKeepers: " + instance.getZooKeepers());
     System.out.println("Masters: " + StringUtil.join(instance.getMasterLocations(), ", "));
   }
+
+  @Override
+  public void close() throws AccumuloException {
+    try {
+      zooCache.close();
+    } catch (InterruptedException e) {
+      throw new AccumuloException("Issues closing ZooKeeper, try again");
+    }
+  }
   
   @Override
   public Connector getConnector(AuthInfo auth) throws AccumuloException, AccumuloSecurityException {

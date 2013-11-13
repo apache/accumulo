@@ -107,4 +107,8 @@ public class ZooReader implements IZooReader {
   public ZooReader(Instance instance) {
     this(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
   }
+
+  public void close() throws InterruptedException {
+    getZooKeeper().close();
+  }
 }
