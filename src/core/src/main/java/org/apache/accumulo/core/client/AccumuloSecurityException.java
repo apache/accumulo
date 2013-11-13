@@ -27,6 +27,9 @@ public class AccumuloSecurityException extends Exception {
   private static final long serialVersionUID = 1L;
   
   private static String getDefaultErrorMessage(SecurityErrorCode errorcode) {
+    if (null == errorcode) {
+      errorcode = SecurityErrorCode.DEFAULT_SECURITY_ERROR;
+    }
     switch (errorcode) {
       case BAD_CREDENTIALS:
         return "Username or Password is Invalid";
