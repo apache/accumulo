@@ -1499,7 +1499,6 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
     tserverSet.startListeningForTabletServerChanges();
 
-    // TODO: add shutdown for fate object - ACCUMULO-1307
     try {
       final AgeOffStore<Master> store = new AgeOffStore<Master>(new org.apache.accumulo.fate.ZooStore<Master>(ZooUtil.getRoot(instance) + Constants.ZFATE,
           ZooReaderWriter.getRetryingInstance()), 1000 * 60 * 60 * 8);
