@@ -100,51 +100,49 @@ public class IteratorUtil {
   }
   
   private static void parseIterConf(IteratorScope scope, List<IterInfo> iters, Map<String,Map<String,String>> allOptions, AccumuloConfiguration conf) {
-    for (Entry<String,String> entry : conf) {
-      if (entry.getKey().startsWith(Property.TABLE_ITERATOR_PREFIX.getKey())) {
-        
-        String suffix = entry.getKey().substring(Property.TABLE_ITERATOR_PREFIX.getKey().length());
-        String suffixSplit[] = suffix.split("\\.", 4);
-        
-        if (!suffixSplit[0].equals(scope.name())) {
-          
-          // do a sanity check to see if this is a valid scope
-          boolean found = false;
-          IteratorScope[] scopes = IteratorScope.values();
-          for (IteratorScope s : scopes) {
-            found = found || suffixSplit[0].equals(s.name());
-          }
-          
-          if (!found) {
-            log.warn("Option contains unknown scope: " + entry.getKey());
-          }
-          
-          continue;
+    for (Entry<String,String> entry : conf.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_PREFIX).entrySet()) {
+
+      String suffix = entry.getKey().substring(Property.TABLE_ITERATOR_PREFIX.getKey().length());
+      String suffixSplit[] = suffix.split("\\.", 4);
+
+      if (!suffixSplit[0].equals(scope.name())) {
+
+        // do a sanity check to see if this is a valid scope
+        boolean found = false;
+        IteratorScope[] scopes = IteratorScope.values();
+        for (IteratorScope s : scopes) {
+          found = found || suffixSplit[0].equals(s.name());
         }
-        
-        if (suffixSplit.length == 2) {
-          String sa[] = entry.getValue().split(",");
-          int prio = Integer.parseInt(sa[0]);
-          String className = sa[1];
-          iters.add(new IterInfo(prio, className, suffixSplit[1]));
-        } else if (suffixSplit.length == 4 && suffixSplit[2].equals("opt")) {
-          String iterName = suffixSplit[1];
-          String optName = suffixSplit[3];
-          
-          Map<String,String> options = allOptions.get(iterName);
-          if (options == null) {
-            options = new HashMap<String,String>();
-            allOptions.put(iterName, options);
-          }
-          
-          options.put(optName, entry.getValue());
-          
-        } else {
-          log.warn("Unrecognizable option: " + entry.getKey());
+
+        if (!found) {
+          log.warn("Option contains unknown scope: " + entry.getKey());
         }
+
+        continue;
+      }
+
+      if (suffixSplit.length == 2) {
+        String sa[] = entry.getValue().split(",");
+        int prio = Integer.parseInt(sa[0]);
+        String className = sa[1];
+        iters.add(new IterInfo(prio, className, suffixSplit[1]));
+      } else if (suffixSplit.length == 4 && suffixSplit[2].equals("opt")) {
+        String iterName = suffixSplit[1];
+        String optName = suffixSplit[3];
+
+        Map<String,String> options = allOptions.get(iterName);
+        if (options == null) {
+          options = new HashMap<String,String>();
+          allOptions.put(iterName, options);
+        }
+
+        options.put(optName, entry.getValue());
+
+      } else {
+        log.warn("Unrecognizable option: " + entry.getKey());
       }
     }
-    
+
     Collections.sort(iters, new IterInfoComparator());
   }
   

@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Connector;
@@ -29,12 +30,44 @@ import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.log4j.Logger;
 
 public abstract class AccumuloConfiguration implements Iterable<Entry<String,String>> {
+
+  public static interface PropertyFilter {
+    boolean accept(String key);
+  }
+
+  public static class AllFilter implements PropertyFilter {
+    @Override
+    public boolean accept(String key) {
+      return true;
+    }
+  }
+
+  public static class PrefixFilter implements PropertyFilter {
+
+    private String prefix;
+
+    public PrefixFilter(String prefix) {
+      this.prefix = prefix;
+    }
+
+    @Override
+    public boolean accept(String key) {
+      return key.startsWith(prefix);
+    }
+  }
+
   private static final Logger log = Logger.getLogger(AccumuloConfiguration.class);
   
   public abstract String get(Property property);
   
+  public abstract void getProperties(Map<String,String> props, PropertyFilter filter);
+
   @Override
-  public abstract Iterator<Entry<String,String>> iterator();
+  public Iterator<Entry<String,String>> iterator() {
+    TreeMap<String,String> entries = new TreeMap<String,String>();
+    getProperties(entries, new AllFilter());
+    return entries.entrySet().iterator();
+  }
   
   private void checkType(Property property, PropertyType type) {
     if (!property.getType().equals(type)) {
@@ -56,13 +89,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     checkType(property, PropertyType.PREFIX);
     
     Map<String,String> propMap = new HashMap<String,String>();
-    
-    for (Entry<String,String> entry : this) {
-      if (entry.getKey().startsWith(property.getKey())) {
-        propMap.put(entry.getKey(), entry.getValue());
-      }
-    }
-    
+    getProperties(propMap, new PrefixFilter(property.getKey()));
     return propMap;
   }
   

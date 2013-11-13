@@ -16,11 +16,9 @@
  */
 package org.apache.accumulo.core.cli;
 
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.TreeMap;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
@@ -202,13 +200,13 @@ public class ClientOpts extends Help {
         }
         
         @Override
-        public Iterator<Entry<String,String>> iterator() {
-          TreeMap<String,String> map = new TreeMap<String,String>();
-          for (Entry<String,String> props : DefaultConfiguration.getInstance())
-            map.put(props.getKey(), props.getValue());
-          for (Entry<String,String> props : xml)
-            map.put(props.getKey(), props.getValue());
-          return map.entrySet().iterator();
+        public void getProperties(Map<String,String> props, PropertyFilter filter) {
+          for (Entry<String,String> prop : DefaultConfiguration.getInstance())
+            if (filter.accept(prop.getKey()))
+              props.put(prop.getKey(), prop.getValue());
+          for (Entry<String,String> prop : xml)
+            if (filter.accept(prop.getKey()))
+              props.put(prop.getKey(), prop.getValue());
         }
         
         @Override
