@@ -306,8 +306,8 @@ public class ZooKeeperInstance implements Instance {
         clientInstances.incrementAndGet();
         throw new AccumuloException("Issues closing ZooKeeper.");
       }
-      closed = true;
     }
+    closed = true;
   }
 
   @Override
