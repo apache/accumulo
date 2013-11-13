@@ -29,37 +29,55 @@ import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.collections.iterators.AbstractIteratorDecorator;
 
 public class TablesCommand extends Command {
+  private static final String NAME_AND_ID_FORMAT = "%-15s => %10s%n";
+  
   private Option tableIdOption;
+  private Option sortByTableIdOption;
   private Option disablePaginationOpt;
   
   @SuppressWarnings("unchecked")
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
+    Iterator<String> it = null;
     if (cl.hasOption(tableIdOption.getOpt())) {
-      final Map<String,String> tableIds = new TreeMap<String,String>(shellState.getConnector().tableOperations().tableIdMap());
-      shellState.printLines(new TableIdIterator(tableIds.entrySet().iterator()), !cl.hasOption(disablePaginationOpt.getOpt()));
+      it = new TableIdIterator(shellState.getConnector().tableOperations().tableIdMap(), cl.hasOption(sortByTableIdOption.getOpt()));
     } else {
-      shellState.printLines(shellState.getConnector().tableOperations().list().iterator(), !cl.hasOption(disablePaginationOpt.getOpt()));
+      it = shellState.getConnector().tableOperations().list().iterator();
     }
+    
+    shellState.printLines(it, !cl.hasOption(disablePaginationOpt.getOpt()));
     return 0;
   }
   
   /**
-   * Decorator that formats table id and name for display.
+   * Decorator that formats table name and id for display.
    */
   private static final class TableIdIterator extends AbstractIteratorDecorator {
-    public TableIdIterator(Iterator<Entry<String,String>> iterator) {
-      super(iterator);
+    private final boolean sortByTableId;
+    
+    /**
+     * @param tableIdMap tableName -> tableId
+     * @param sortByTableId
+     */
+    @SuppressWarnings("unchecked")
+    public TableIdIterator(Map<String,String> tableIdMap, boolean sortByTableId) {
+      super(new TreeMap<String,String>((sortByTableId ? MapUtils.invertMap(tableIdMap) : tableIdMap)).entrySet().iterator());
+      this.sortByTableId = sortByTableId;
     }
     
     @SuppressWarnings("rawtypes")
     @Override
     public Object next() {
       Entry entry = (Entry) super.next();
-      return String.format("%-15s => %10s%n", entry.getKey(), entry.getValue());
+      if (sortByTableId) {
+        return String.format(NAME_AND_ID_FORMAT, entry.getValue(), entry.getKey());
+      } else {
+        return String.format(NAME_AND_ID_FORMAT, entry.getKey(), entry.getValue());
+      }
     }
   }
   
@@ -73,6 +91,8 @@ public class TablesCommand extends Command {
     final Options o = new Options();
     tableIdOption = new Option("l", "list-ids", false, "display internal table ids along with the table name");
     o.addOption(tableIdOption);
+    sortByTableIdOption = new Option("s", "sort-ids", false, "with -l: sort output by table ids");
+    o.addOption(sortByTableIdOption);
     disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
     o.addOption(disablePaginationOpt);
     return o;

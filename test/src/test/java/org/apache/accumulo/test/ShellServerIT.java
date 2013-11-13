@@ -718,6 +718,17 @@ public class ShellServerIT extends SimpleMacIT {
     exec("scan -t xyzzy", true, "value", true);
     exec("deletetable -f xyzzy", true);
   }
+  
+  @Test(timeout = 30 * 1000)
+  public void tables() throws Exception {
+    exec("createtable zzzz");
+    exec("createtable aaaa");
+    exec("notable");
+    String lst = exec("tables -l");
+    assertTrue(lst.indexOf("aaaa") < lst.indexOf("zzzz"));
+    lst = exec("tables -l -s");
+    assertTrue(lst.indexOf("zzzz") < lst.indexOf("aaaa"));
+  }
 
   @Test(timeout = 30 * 1000)
   public void systempermission() throws Exception {
