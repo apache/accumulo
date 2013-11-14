@@ -21,7 +21,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
@@ -30,6 +31,7 @@ import org.apache.log4j.Logger;
 public class DefaultConfiguration extends AccumuloConfiguration {
   private static DefaultConfiguration instance = null;
   private static Logger log = Logger.getLogger(DefaultConfiguration.class);
+  private Map<String,String> resolvedProps = null;
 
   synchronized public static DefaultConfiguration getInstance() {
     if (instance == null) {
@@ -44,14 +46,22 @@ public class DefaultConfiguration extends AccumuloConfiguration {
     return property.getDefaultValue();
   }
 
-  @Override
-  public Iterator<Entry<String,String>> iterator() {
-    TreeMap<String,String> entries = new TreeMap<String,String>();
-    for (Property prop : Property.values())
-      if (!prop.isExperimental() && !prop.getType().equals(PropertyType.PREFIX))
-        entries.put(prop.getKey(), prop.getDefaultValue());
+  private synchronized Map<String,String> getResolvedProps() {
+    if (resolvedProps == null) {
+      // the following loop is super slow, it takes a few milliseconds, so cache it
+      resolvedProps = new HashMap<String,String>();
+      for (Property prop : Property.values())
+        if (!prop.isExperimental() && !prop.getType().equals(PropertyType.PREFIX))
+          resolvedProps.put(prop.getKey(), prop.getDefaultValue());
+    }
+    return resolvedProps;
+  }
 
-    return entries.entrySet().iterator();
+  @Override
+  public void getProperties(Map<String,String> props, PropertyFilter filter) {
+    for (Entry<String,String> entry : getResolvedProps().entrySet())
+      if (filter.accept(entry.getKey()))
+        props.put(entry.getKey(), entry.getValue());
   }
 
   protected static void generateDocumentation(PrintStream doc) {

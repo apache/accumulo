@@ -19,11 +19,9 @@ package org.apache.accumulo.server.conf;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map.Entry;
+import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
@@ -103,7 +101,7 @@ public class TableConfiguration extends AccumuloConfiguration {
   @Override
   public String get(Property property) {
     String key = property.getKey();
-    String value = get(key);
+    String value = get(getTablePropCache(), key);
     
     if (value == null || !property.getType().isValidFormat(value)) {
       if (value != null)
@@ -113,32 +111,31 @@ public class TableConfiguration extends AccumuloConfiguration {
     return value;
   }
   
-  private String get(String key) {
+  private String get(ZooCache zc, String key) {
     String zPath = ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + table + Constants.ZTABLE_CONF + "/" + key;
-    byte[] v = getTablePropCache().get(zPath);
+    byte[] v = zc.get(zPath);
     String value = null;
     if (v != null)
       value = new String(v);
     return value;
   }
-  
+
   @Override
-  public Iterator<Entry<String,String>> iterator() {
-    TreeMap<String,String> entries = new TreeMap<String,String>();
-    
-    for (Entry<String,String> parentEntry : parent)
-      entries.put(parentEntry.getKey(), parentEntry.getValue());
-    
-    List<String> children = getTablePropCache().getChildren(ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + table + Constants.ZTABLE_CONF);
+  public void getProperties(Map<String,String> props, PropertyFilter filter) {
+    parent.getProperties(props, filter);
+
+    ZooCache zc = getTablePropCache();
+
+    List<String> children = zc.getChildren(ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + table + Constants.ZTABLE_CONF);
     if (children != null) {
       for (String child : children) {
-        String value = get(child);
-        if (child != null && value != null)
-          entries.put(child, value);
+        if (child != null && filter.accept(child)) {
+          String value = get(zc, child);
+          if (value != null)
+            props.put(child, value);
+        }
       }
     }
-    
-    return entries.entrySet().iterator();
   }
   
   public String getTableId() {

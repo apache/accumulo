@@ -23,6 +23,8 @@ import org.apache.hadoop.mapreduce.Job;
 
 public class JobUtil {
   public static Job getJob(Configuration conf) throws IOException {
-    return new Job(conf);
+    @SuppressWarnings("deprecation")
+    Job job = new Job(conf);
+    return job;
   }
 }

@@ -16,9 +16,8 @@
  */
 package org.apache.accumulo.core.conf;
 
-import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
-import java.util.TreeMap;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
@@ -71,18 +70,14 @@ public class SiteConfiguration extends AccumuloConfiguration {
   }
   
   @Override
-  public Iterator<Entry<String,String>> iterator() {
-    TreeMap<String,String> entries = new TreeMap<String,String>();
-    
-    for (Entry<String,String> parentEntry : parent)
-      entries.put(parentEntry.getKey(), parentEntry.getValue());
-    
-    for (Entry<String,String> siteEntry : getXmlConfig())
-      entries.put(siteEntry.getKey(), siteEntry.getValue());
-    
-    return entries.entrySet().iterator();
+  public void getProperties(Map<String,String> props, PropertyFilter filter) {
+    parent.getProperties(props, filter);
+
+    for (Entry<String,String> entry : getXmlConfig())
+      if (filter.accept(entry.getKey()))
+        props.put(entry.getKey(), entry.getValue());
   }
-  
+
   /**
    * method here to support testing, do not call
    */

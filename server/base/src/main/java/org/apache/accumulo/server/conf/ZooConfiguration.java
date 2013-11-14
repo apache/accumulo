@@ -18,11 +18,8 @@ package org.apache.accumulo.server.conf;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
@@ -120,29 +117,18 @@ public class ZooConfiguration extends AccumuloConfiguration {
   }
   
   @Override
-  public Iterator<Entry<String,String>> iterator() {
-    TreeMap<String,String> entries = new TreeMap<String,String>();
-    
-    for (Entry<String,String> parentEntry : parent)
-      entries.put(parentEntry.getKey(), parentEntry.getValue());
-    
+  public void getProperties(Map<String,String> props, PropertyFilter filter) {
+    parent.getProperties(props, filter);
+
     List<String> children = propCache.getChildren(ZooUtil.getRoot(instanceId) + Constants.ZCONFIG);
     if (children != null) {
       for (String child : children) {
-        String value = get(child);
-        if (child != null && value != null)
-          entries.put(child, value);
+        if (child != null && filter.accept(child)) {
+          String value = get(child);
+          if (value != null)
+            props.put(child, value);
+        }
       }
     }
-    
-    /*
-     * //this code breaks the shells ability to show updates just made //the code is probably not needed as fixed props are only obtained through get
-     * 
-     * for(Property prop : Property.getFixedProperties()) get(prop);
-     * 
-     * for(Entry<String, String> fprop : fixedProps.entrySet()) entries.put(fprop.getKey(), fprop.getValue());
-     */
-    
-    return entries.entrySet().iterator();
   }
 }
