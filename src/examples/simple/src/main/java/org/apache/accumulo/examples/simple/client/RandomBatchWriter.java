@@ -112,7 +112,7 @@ public class RandomBatchWriter {
     if (index != 13) {
       System.out
           .println("Usage : RandomBatchWriter [-s <seed>] <instance name> <zoo keepers> <username> <password> <table> <num> <min> <max> <value size> <max memory> <max latency> <num threads> <visibility>");
-      return;
+      System.exit(1);
     }
     
     String instanceName = processedArgs[0];
@@ -128,6 +128,11 @@ public class RandomBatchWriter {
     long maxLatency = Long.parseLong(processedArgs[10]) == 0 ? Long.MAX_VALUE : Long.parseLong(processedArgs[10]);
     int numThreads = Integer.parseInt(processedArgs[11]);
     String visiblity = processedArgs[12];
+
+    if ((max - min) < num) {
+      System.err.println(String.format("You must specify a min and a max that allow for at least num possible values. For example, you requested %d rows, but a min of %d and a max of %d only allows for %d rows.", num, min, max, (max-min)));
+      System.exit(1);
+    }
     
     // Uncomment the following lines for detailed debugging info
     // Logger logger = Logger.getLogger(Constants.CORE_PACKAGE_NAME);
@@ -147,9 +152,12 @@ public class RandomBatchWriter {
     // reuse the ColumnVisibility object to improve performance
     ColumnVisibility cv = new ColumnVisibility(visiblity);
     
-    for (int i = 0; i < num; i++) {
-      
-      long rowid = (Math.abs(r.nextLong()) % (max - min)) + min;
+    // Generate num unique row ids in the given range
+    HashSet<Long> rowids = new HashSet<Long>(num);
+    while (rowids.size() < num) {
+      rowids.add((Math.abs(r.nextLong()) % (max - min)) + min);
+    }
+    for (long rowid : rowids) {
       
       Mutation m = createMutation(rowid, valueSize, cv);
       
@@ -171,6 +179,7 @@ public class RandomBatchWriter {
       if (e.getConstraintViolationSummaries().size() > 0) {
         System.err.println("ERROR : Constraint violations occurred : " + e.getConstraintViolationSummaries());
       }
+      System.exit(1);
     }
   }
 }
