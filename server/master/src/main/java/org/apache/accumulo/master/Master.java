@@ -99,7 +99,6 @@ import org.apache.accumulo.master.tableOps.BulkImport;
 import org.apache.accumulo.master.tableOps.CancelCompactions;
 import org.apache.accumulo.master.tableOps.ChangeTableState;
 import org.apache.accumulo.master.tableOps.CloneTable;
-import org.apache.accumulo.master.tableOps.CloneTableNamespace;
 import org.apache.accumulo.master.tableOps.CompactRange;
 import org.apache.accumulo.master.tableOps.CreateTable;
 import org.apache.accumulo.master.tableOps.CreateTableNamespace;
@@ -951,7 +950,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           } catch (TableNamespaceNotFoundException e) {
             throw new TException(e.getMessage(), e);
           }
-          
+
           break;
         }
         case CLONE: {
@@ -1188,34 +1187,6 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
             throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
           fate.seedTransaction(opid, new TraceRepo<Master>(new DeleteTableNamespace(namespaceId)), autoCleanup);
-          break;
-        }
-        case CLONE: {
-          String namespaceId = ByteBufferUtil.toString(arguments.get(0));
-          String namespace = ByteBufferUtil.toString(arguments.get(1));
-          checkNotSystemNamespace(namespace, TableOperation.CLONE);
-          checkTableNamespaceName(namespace, TableOperation.CLONE);
-          if (!security.canCloneNamespace(c, namespaceId, namespace))
-            throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
-
-          Map<String,String> propertiesToSet = new HashMap<String,String>();
-          Set<String> propertiesToExclude = new HashSet<String>();
-
-          for (Entry<String,String> entry : options.entrySet()) {
-            if (entry.getValue() == null || entry.getValue().isEmpty()) {
-              propertiesToExclude.add(entry.getKey());
-              continue;
-            }
-            if (!TablePropUtil.isPropertyValid(entry.getKey(), entry.getValue())) {
-              throw new ThriftTableOperationException(null, namespace, TableOperation.CLONE, TableOperationExceptionType.OTHER, "Property or value not valid "
-                  + entry.getKey() + "=" + entry.getValue());
-            }
-            propertiesToSet.put(entry.getKey(), entry.getValue());
-          }
-
-          fate.seedTransaction(opid, new TraceRepo<Master>(new CloneTableNamespace(c.getPrincipal(), namespaceId, namespace, propertiesToSet,
-              propertiesToExclude)), autoCleanup);
-
           break;
         }
         default:
