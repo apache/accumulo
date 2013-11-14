@@ -57,8 +57,10 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
     if (value == null || !property.getType().isValidFormat(value)) {
       if (value != null)
         log.error("Using default value for " + key + " due to improperly formatted " + property.getType() + ": " + value);
-      if (!isIterConst(property.getKey()))
+      if (!(namespaceId.equals(Constants.SYSTEM_TABLE_NAMESPACE_ID) && isIteratorOrConstraint(property.getKey()))) {
+        // ignore iterators from parent if system namespace
         value = parent.get(property);
+      }
     }
     return value;
   }
@@ -92,7 +94,7 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
 
     @Override
     public boolean accept(String key) {
-      if (isIterConst(key))
+      if (isIteratorOrConstraint(key))
         return false;
       return userFilter.accept(key);
     }
@@ -166,7 +168,7 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
       co.propertiesChanged();
   }
 
-  protected boolean isIterConst(String key) {
+  protected boolean isIteratorOrConstraint(String key) {
     return key.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey()) || key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey());
   }
 }
