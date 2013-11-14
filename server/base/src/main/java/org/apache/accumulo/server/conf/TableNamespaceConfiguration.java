@@ -19,11 +19,9 @@ package org.apache.accumulo.server.conf;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map.Entry;
+import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
@@ -54,19 +52,20 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
   @Override
   public String get(Property property) {
     String key = property.getKey();
-    String value = get(key);
+    String value = get(getPropCache(), key);
 
     if (value == null || !property.getType().isValidFormat(value)) {
       if (value != null)
         log.error("Using default value for " + key + " due to improperly formatted " + property.getType() + ": " + value);
-      value = parent.get(property);
+      if (!isIterConst(property.getKey()))
+        value = parent.get(property);
     }
     return value;
   }
 
-  private String get(String key) {
+  private String get(ZooCache zc, String key) {
     String zPath = ZooUtil.getRoot(inst.getInstanceID()) + Constants.ZNAMESPACES + "/" + getNamespaceId() + Constants.ZNAMESPACE_CONF + "/" + key;
-    byte[] v = getPropCache().get(zPath);
+    byte[] v = zc.get(zPath);
     String value = null;
     if (v != null)
       value = new String(v, Constants.UTF8);
@@ -83,33 +82,47 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
     return propCache;
   }
 
-  @Override
-  public Iterator<Entry<String,String>> iterator() {
-    TreeMap<String,String> entries = new TreeMap<String,String>();
+  private class SystemNamespaceFilter implements PropertyFilter {
 
-    for (Entry<String,String> parentEntry : parent) {
-      if (this.namespaceId.equals(Constants.SYSTEM_TABLE_NAMESPACE_ID)) {
-        // exclude system iterators/constraints from the system namespace
-        // so they don't affect the metadata or root tables.
-        if (!isIterConst(parentEntry)) {
-          entries.put(parentEntry.getKey(), parentEntry.getValue());
-        }
-      } else {
-        entries.put(parentEntry.getKey(), parentEntry.getValue());
-      }
+    private PropertyFilter userFilter;
+
+    SystemNamespaceFilter(PropertyFilter userFilter) {
+      this.userFilter = userFilter;
     }
 
-    List<String> children = getPropCache().getChildren(
-        ZooUtil.getRoot(inst.getInstanceID()) + Constants.ZNAMESPACES + "/" + getNamespaceId() + Constants.ZNAMESPACE_CONF);
+    @Override
+    public boolean accept(String key) {
+      if (isIterConst(key))
+        return false;
+      return userFilter.accept(key);
+    }
+
+  }
+
+  @Override
+  public void getProperties(Map<String,String> props, PropertyFilter filter) {
+
+    PropertyFilter parentFilter = filter;
+
+    // exclude system iterators/constraints from the system namespace
+    // so they don't affect the metadata or root tables.
+    if (this.namespaceId.equals(Constants.SYSTEM_TABLE_NAMESPACE_ID))
+      parentFilter = new SystemNamespaceFilter(filter);
+
+    parent.getProperties(props, parentFilter);
+
+    ZooCache zc = getPropCache();
+
+    List<String> children = zc.getChildren(ZooUtil.getRoot(inst.getInstanceID()) + Constants.ZNAMESPACES + "/" + getNamespaceId() + Constants.ZNAMESPACE_CONF);
     if (children != null) {
       for (String child : children) {
-        String value = get(child);
-        if (child != null && value != null)
-          entries.put(child, value);
+        if (child != null && filter.accept(child)) {
+          String value = get(zc, child);
+          if (value != null)
+            props.put(child, value);
+        }
       }
     }
-
-    return entries.entrySet().iterator();
   }
 
   protected String getNamespaceId() {
@@ -153,10 +166,7 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
       co.propertiesChanged();
   }
 
-  protected boolean isIterConst(Entry<String,String> e) {
-    if (e.getKey().startsWith(Property.TABLE_ITERATOR_PREFIX.getKey()) || e.getKey().startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())) {
-      return true;
-    }
-    return false;
+  protected boolean isIterConst(String key) {
+    return key.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey()) || key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey());
   }
 }
