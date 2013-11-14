@@ -39,7 +39,7 @@ public class CreateMapFiles {
     int count = 0;
     while (currEnd <= end && currStart < currEnd) {
       
-      final String tia = String.format("-mapFile /%s/mf%05d -timestamp 1 -size 50 -random 56 %d %d 1", dir, count, currEnd - currStart, currStart);
+      final String tia = String.format("-mapFile %s/mf%05d -timestamp 1 -size 50 -random 56 %d %d 1", dir, count, currEnd - currStart, currStart);
       
       Runnable r = new Runnable() {
         
