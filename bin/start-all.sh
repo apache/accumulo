@@ -33,10 +33,20 @@ if [ -z $ZOOKEEPER_HOME ] ; then
     echo "ZOOKEEPER_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
     exit 1
 fi
+if [ ! -d $ZOOKEEPER_HOME ]; then
+   echo "ZOOKEEPER_HOME is not a directory: $ZOOKEEPER_HOME"
+   echo "Please check the setting, either globally or in accumulo-env.sh."
+   exit 1
+fi
 
-ZOOKEEPER_VERSION=`(cd $ZOOKEEPER_HOME; ls zookeeper-[0-9]*.jar | head -1)`
-ZOOKEEPER_VERSION=${ZOOKEEPER_VERSION/zookeeper-/}
-ZOOKEEPER_VERSION=${ZOOKEEPER_VERSION/.jar/}
+ZOOKEEPER_VERSION=$(find $ZOOKEEPER_HOME -maxdepth 1 -name "zookeeper-[0-9]*.jar" | head -1)
+if [ -z "$ZOOKEEPER_VERSION" ]; then
+   echo "A Zookeeper JAR was not found in $ZOOKEEPER_HOME."
+   echo "Please check ZOOKEEPER_HOME, either globally or in accumulo-env.sh."
+   exit 1
+fi
+ZOOKEEPER_VERSION=${ZOOKEEPER_VERSION##$ZOOKEEPER_HOME/zookeeper-}
+ZOOKEEPER_VERSION=${ZOOKEEPER_VERSION%%.jar}
 
 if [ "$ZOOKEEPER_VERSION" '<' "3.3.0" ] ; then 
 	echo "WARN : Using Zookeeper $ZOOKEEPER_VERSION.  Use version 3.3.0 or greater to avoid zookeeper deadlock bug.";
