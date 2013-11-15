@@ -164,6 +164,7 @@ public class RandomBatchWriter {
       if (e.getConstraintViolationSummaries().size() > 0) {
         System.err.println("ERROR : Constraint violations occurred : " + e.getConstraintViolationSummaries());
       }
+      System.exit(1);
     }
   }
 }
