@@ -22,6 +22,7 @@ import java.util.Random;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.TableExistsException;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -32,11 +33,11 @@ public class Setup extends Test {
     Random rand = new Random();
     state.set("rand", rand);
     
-    int numBanks = Integer.parseInt(props.getProperty("numBanks", "10"));
+    int numBanks = Integer.parseInt(props.getProperty("numBanks", "1000"));
     log.debug("numBanks = " + numBanks);
     state.set("numBanks", numBanks);
 
-    int numAccts = Integer.parseInt(props.getProperty("numAccts", "1000"));
+    int numAccts = Integer.parseInt(props.getProperty("numAccts", "10000"));
     log.debug("numAccts = " + numAccts);
     state.set("numAccts", numAccts);
 
@@ -46,9 +47,10 @@ public class Setup extends Test {
     try {
       state.getConnector().tableOperations().create(tableName);
       log.debug("created table " + tableName);
+      boolean blockCache = rand.nextBoolean();
+      state.getConnector().tableOperations().setProperty(tableName, Property.TABLE_BLOCKCACHE_ENABLED.getKey(), blockCache + "");
+      log.debug("set " + Property.TABLE_BLOCKCACHE_ENABLED.getKey() + " " + blockCache);
     } catch (TableExistsException tee) {}
-
-
 
 
     ConditionalWriter cw = state.getConnector()

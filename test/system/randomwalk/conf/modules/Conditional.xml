@@ -23,17 +23,17 @@
 <init id="ct.Setup"/>
 
 <node id="dummy.ToAll">
-  <edge id="ct.Compact" weight="100"/>
-  <edge id="ct.Flush" weight="100"/>
-  <edge id="ct.Merge" weight="100"/>
-  <edge id="ct.Split" weight="100"/>
+  <edge id="ct.Compact" weight="1"/>
+  <edge id="ct.Flush" weight="1"/>
+  <edge id="ct.Merge" weight="1"/>
+  <edge id="ct.Split" weight="1"/>
   <edge id="ct.Transfer" weight="100000"/>
-  <edge id="ct.Verify" weight="500"/>
+  <edge id="ct.Verify" weight="2"/>
 </node>
 
 <node id="ct.Setup">
-  <property key="numAccts" value="1000"/>
-  <property key="numBanks" value="10"/>
+  <property key="numAccts" value="10000"/>
+  <property key="numBanks" value="1000"/>
   <edge id="ct.Init" weight="1"/>
 </node>
 

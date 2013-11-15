@@ -33,6 +33,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
+import org.apache.commons.math.distribution.ZipfDistributionImpl;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -64,11 +65,17 @@ public class Transfer extends Test {
     Connector conn = state.getConnector();
 
     int numAccts = (Integer) state.get("numAccts");
-    String bank = Utils.getBank(rand.nextInt((Integer) state.get("numBanks")));
-    String acct1 = Utils.getAccount(rand.nextInt(numAccts));
-    String acct2 = Utils.getAccount(rand.nextInt(numAccts));
-    while (acct2.equals(acct1))
+    // note: non integer exponents are slow
+
+    ZipfDistributionImpl zdiBanks = new ZipfDistributionImpl((Integer) state.get("numBanks"), 1);
+    String bank = Utils.getBank(zdiBanks.inverseCumulativeProbability(rand.nextDouble()));
+    ZipfDistributionImpl zdiAccts = new ZipfDistributionImpl(numAccts, 1);
+    String acct1 = Utils.getAccount(zdiAccts.inverseCumulativeProbability(rand.nextDouble()));
+    String acct2 = Utils.getAccount(zdiAccts.inverseCumulativeProbability(rand.nextDouble()));
+    while (acct2.equals(acct1)) {
+      // intentionally not using zipf distribution to pick on retry
       acct2 = Utils.getAccount(rand.nextInt(numAccts));
+    }
 
     // TODO document how data should be read when using ConditionalWriter
     Scanner scanner = new IsolatedScanner(conn.createScanner(table, Authorizations.EMPTY));
