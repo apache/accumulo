@@ -16,7 +16,11 @@
  */
 package org.apache.accumulo.core.client.impl;
 
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -33,68 +37,107 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.log4j.Logger;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.util.concurrent.UncheckedExecutionException;
+
 public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
+  public static final long DEFAULT_CACHE_TIME = 200;
+  public static final TimeUnit DEFAULT_CACHE_TIME_UNIT = TimeUnit.MILLISECONDS;
+
   static final Logger log = Logger.getLogger(MultiTableBatchWriterImpl.class);
-  private boolean closed;
-  
+  private AtomicBoolean closed;
+  private AtomicLong cacheLastState;
+
   private class TableBatchWriter implements BatchWriter {
-    
+
     private String table;
-    
+
     TableBatchWriter(String table) {
       this.table = table;
     }
-    
+
     @Override
     public void addMutation(Mutation m) throws MutationsRejectedException {
       ArgumentChecker.notNull(m);
       bw.addMutation(table, m);
     }
-    
+
     @Override
     public void addMutations(Iterable<Mutation> iterable) throws MutationsRejectedException {
       bw.addMutation(table, iterable.iterator());
     }
-    
+
     @Override
     public void close() {
       throw new UnsupportedOperationException("Must close all tables, can not close an individual table");
     }
-    
+
     @Override
     public void flush() {
       throw new UnsupportedOperationException("Must flush all tables, can not flush an individual table");
     }
-    
+
   }
-  
+
+  /**
+   * CacheLoader which will look up the internal table ID for a given table name.
+   */
+  private class TableNameToIdLoader extends CacheLoader<String,String> {
+
+    @Override
+    public String load(String tableName) throws Exception {
+      String tableId = Tables.getNameToIdMap(instance).get(tableName);
+
+      if (tableId == null)
+        throw new TableNotFoundException(tableId, tableName, null);
+
+      if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
+        throw new TableOfflineException(instance, tableId);
+
+      return tableId;
+    }
+
+  }
+
   private TabletServerBatchWriter bw;
-  private HashMap<String,BatchWriter> tableWriters;
+  private ConcurrentHashMap<String,BatchWriter> tableWriters;
   private Instance instance;
-  
+  private final LoadingCache<String,String> nameToIdCache;
+
   public MultiTableBatchWriterImpl(Instance instance, TCredentials credentials, BatchWriterConfig config) {
-    ArgumentChecker.notNull(instance, credentials);
+    this(instance, credentials, config, DEFAULT_CACHE_TIME, DEFAULT_CACHE_TIME_UNIT);
+  }
+
+  public MultiTableBatchWriterImpl(Instance instance, TCredentials credentials, BatchWriterConfig config, long cacheTime, TimeUnit cacheTimeUnit) {
+    ArgumentChecker.notNull(instance, credentials, config, cacheTimeUnit);
     this.instance = instance;
     this.bw = new TabletServerBatchWriter(instance, credentials, config);
-    tableWriters = new HashMap<String,BatchWriter>();
-    this.closed = false;
+    tableWriters = new ConcurrentHashMap<String,BatchWriter>();
+    this.closed = new AtomicBoolean(false);
+    this.cacheLastState = new AtomicLong(0);
+
+    // Potentially up to ~500k used to cache names to IDs with "segments" of (maybe) ~1000 entries
+    nameToIdCache = CacheBuilder.newBuilder().expireAfterWrite(cacheTime, cacheTimeUnit).concurrencyLevel(10).maximumSize(10000).initialCapacity(20)
+        .build(new TableNameToIdLoader());
   }
-  
+
   public boolean isClosed() {
-    return this.closed;
+    return this.closed.get();
   }
-  
+
   public void close() throws MutationsRejectedException {
+    this.closed.set(true);
     bw.close();
-    this.closed = true;
   }
-  
+
   /**
    * Warning: do not rely upon finalize to close this class. Finalize is not guaranteed to be called.
    */
   @Override
   protected void finalize() {
-    if (!closed) {
+    if (!closed.get()) {
       log.warn(MultiTableBatchWriterImpl.class.getSimpleName() + " not shutdown; did you forget to call close()?");
       try {
         close();
@@ -104,17 +147,74 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
       }
     }
   }
-  
+
+  /**
+   * Returns the table ID for the given table name.
+   * 
+   * @param tableName
+   *          The name of the table which to find the ID for
+   * @return The table ID, or null if the table name doesn't exist
+   */
+  private String getId(String tableName) throws TableNotFoundException {
+    try {
+      return nameToIdCache.get(tableName);
+    } catch (UncheckedExecutionException e) {
+      Throwable cause = e.getCause();
+
+      log.error("Unexpected exception when fetching table id for " + tableName);
+
+      if (null == cause) {
+        throw new RuntimeException(e);
+      } else if (cause instanceof TableNotFoundException) {
+        throw (TableNotFoundException) cause;
+      } else if (cause instanceof TableOfflineException) {
+        throw (TableOfflineException) cause;
+      }
+
+      throw e;
+    } catch (ExecutionException e) {
+      Throwable cause = e.getCause();
+
+      log.error("Unexpected exception when fetching table id for " + tableName);
+
+      if (null == cause) {
+        throw new RuntimeException(e);
+      } else if (cause instanceof TableNotFoundException) {
+        throw (TableNotFoundException) cause;
+      } else if (cause instanceof TableOfflineException) {
+        throw (TableOfflineException) cause;
+      }
+
+      throw new RuntimeException(e);
+    }
+  }
+
   @Override
-  public synchronized BatchWriter getBatchWriter(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public BatchWriter getBatchWriter(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     ArgumentChecker.notNull(tableName);
-    String tableId = Tables.getNameToIdMap(instance).get(tableName);
-    if (tableId == null)
-      throw new TableNotFoundException(tableId, tableName, null);
-    
-    if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
-      throw new TableOfflineException(instance, tableId);
-    
+
+    while (true) {
+      long cacheResetCount = Tables.getCacheResetCount();
+
+      // cacheResetCount could change after this point in time, but I think thats ok because just want to ensure this methods sees changes
+      // made before it was called.
+      
+      long internalResetCount = cacheLastState.get();
+
+      if (cacheResetCount > internalResetCount) {
+        if (!cacheLastState.compareAndSet(internalResetCount, cacheResetCount)) {
+          continue; // concurrent operation, lets not possibly move cacheLastState backwards in the case where a thread pauses for along time
+        }
+
+        nameToIdCache.invalidateAll();
+        break;
+      }
+
+      break;
+    }
+
+    String tableId = getId(tableName);
+
     BatchWriter tbw = tableWriters.get(tableId);
     if (tbw == null) {
       tbw = new TableBatchWriter(tableId);
@@ -122,10 +222,10 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
     }
     return tbw;
   }
-  
+
   @Override
   public void flush() throws MutationsRejectedException {
     bw.flush();
   }
-  
+
 }
