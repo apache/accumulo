@@ -16,13 +16,19 @@
  */
 package org.apache.accumulo.test.randomwalk.conditional;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Properties;
+import java.util.Random;
+import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.ConditionalWriter;
+import org.apache.accumulo.core.client.ConditionalWriter.Status;
 import org.apache.accumulo.core.data.Condition;
 import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
+import org.apache.hadoop.io.Text;
 
 /**
  * 
@@ -34,10 +40,25 @@ public class Init extends Test {
 
     int numBanks = (Integer) state.get("numBanks");
     int numAccts = (Integer) state.get("numAccts");
+
+    // add some splits to spread ingest out a little
+    TreeSet<Text> splits = new TreeSet<Text>();
+    for (int i = 1; i < 10; i++)
+      splits.add(new Text(Utils.getBank((int) (numBanks * .1 * i))));
+    state.getConnector().tableOperations().addSplits((String) state.get("tableName"), splits);
+    log.debug("Added splits " + splits);
+
+    ArrayList<Integer> banks = new ArrayList<Integer>();
+    for (int i = 0; i < numBanks; i++)
+      banks.add(i);
+    // shuffle for case when multiple threads are adding banks
+    Collections.shuffle(banks, (Random) state.get("rand"));
+
     ConditionalWriter cw = (ConditionalWriter) state.get("cw");
 
-    for (int i = 0; i < numBanks; i++) {
+    for (int i : banks) {
       ConditionalMutation m = null;
+      int acceptedCount = 0;
       for (int j = 0; j < numAccts; j++) {
         String cf = Utils.getAccount(j);
         if (m == null) {
@@ -49,7 +70,8 @@ public class Init extends Test {
         m.put(cf, "seq", Utils.getSeq(0));
 
         if (j % 1000 == 0) {
-          cw.write(m);
+          if (cw.write(m).getStatus() == Status.ACCEPTED)
+            acceptedCount++;
           m = null;
         }
 
@@ -57,7 +79,7 @@ public class Init extends Test {
       if (m != null)
         cw.write(m);
 
-      log.debug("Added bank " + Utils.getBank(i));
+      log.debug("Added bank " + Utils.getBank(i) + " " + acceptedCount);
     }
 
   }
