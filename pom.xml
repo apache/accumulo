@@ -869,6 +869,8 @@
   <properties>
     <targetJdk>1.6</targetJdk>
     <!-- overwritten in profiles hadoop-1.0 or hadoop-2.0 -->
+    <hadoop.version>1.0.4</hadoop.version>
+    <!-- overwritten in profiles hadoop-1.0 or hadoop-2.0 -->
     <slf4j.version>1.4.3</slf4j.version>
     <zookeeper.version>3.3.1</zookeeper.version>
   </properties>
