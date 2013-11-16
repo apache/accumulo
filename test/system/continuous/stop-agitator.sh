@@ -18,5 +18,9 @@
 CONTINUOUS_CONF_DIR=${CONTINUOUS_CONF_DIR:-$ACCUMULO_HOME/test/system/continuous/}
 . $CONTINUOUS_CONF_DIR/continuous-env.sh
 
+if ${AGITATE_HDFS:-false} ; then
+  pkill -f hdfs-agitator.pl
+fi
+
 pkill -f agitator.pl
 

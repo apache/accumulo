@@ -89,6 +89,15 @@ MAX_KILL=1
 MASTER_KILL_SLEEP_TIME=60
 MASTER_RESTART_SLEEP_TIME=2
 
+#Do we want to perturb HDFS? Only works on HDFS versions with HA, i.e. Hadoop 2
+# AGITATE_HDFS=true
+#Defaults to false for Accumulo versions that ship default against Hadoop 1
+AGITATE_HDFS=false
+AGITATE_HDFS_SLEEP_TIME=10
+AGITATE_HDFS_SUPERUSER=hdfs
+AGITATE_HDFS_COMMAND="${HADOOP_PREFIX:/usr/lib/hadoop}/share/hadoop/hdfs/bin/hdfs"
+AGITATE_HDFS_SUDO=`which sudo`
+
 #settings for the verification map reduce job
 VERIFY_OUT=/tmp/continuous_verify
 VERIFY_MAX_MAPS=64

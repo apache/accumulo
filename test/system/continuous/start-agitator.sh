@@ -21,3 +21,8 @@ CONTINUOUS_CONF_DIR=${CONTINUOUS_CONF_DIR:-$ACCUMULO_HOME/test/system/continuous
 nohup ./agitator.pl $KILL_SLEEP_TIME $TUP_SLEEP_TIME $MIN_KILL $MAX_KILL >$CONTINUOUS_LOG_DIR/`date +%Y%m%d%H%M%S`_`hostname`_agitator.out 2>$CONTINUOUS_LOG_DIR/`date +%Y%m%d%H%M%S`_`hostname`_agitator.err &
 
 nohup ./magitator.pl $MASTER_KILL_SLEEP_TIME $MASTER_RESTART_SLEEP_TIME >$CONTINUOUS_LOG_DIR/`date +%Y%m%d%H%M%S`_`hostname`_magitator.out 2>$CONTINUOUS_LOG_DIR/`date +%Y%m%d%H%M%S`_`hostname`_magitator.err &
+
+if ${AGITATE_HDFS:-false} ; then
+  AGITATOR_LOG=${CONTINUOUS_LOG_DIR}/`date +%Y%m%d%H%M%S`_`hostname`_hdfs-agitator
+  nohup ./hdfs-agitator.pl --sleep ${AGITATE_HDFS_SLEEP_TIME} --hdfs-cmd ${AGITATE_HDFS_COMMAND} --superuser ${AGITATE_HDFS_SUPERUSER} --sudo ${AGITATE_HDFS_SUDO} >${AGITATOR_LOG}.out 2>${AGITATOR_LOG}.err &
+fi
