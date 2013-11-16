@@ -32,8 +32,8 @@ import org.apache.accumulo.core.data.KeyExtent;
 public class ServerConfiguration {
 
   private static final Map<String,TableConfiguration> tableInstances = new HashMap<String,TableConfiguration>(1);
-  private static final Map<String,TableNamespaceConfiguration> tableNamespaceInstances = new HashMap<String,TableNamespaceConfiguration>(1);
-  private static final Map<String,TableNamespaceConfiguration> tableParentInstances = new HashMap<String,TableNamespaceConfiguration>(1);
+  private static final Map<String,NamespaceConfiguration> namespaceInstances = new HashMap<String,NamespaceConfiguration>(1);
+  private static final Map<String,NamespaceConfiguration> tableParentInstances = new HashMap<String,NamespaceConfiguration>(1);
   private static SecurityPermission CONFIGURATION_PERMISSION = new SecurityPermission("configurationPermission");
 
   public static synchronized SiteConfiguration getSiteConfiguration() {
@@ -62,10 +62,10 @@ public class ServerConfiguration {
     return getZooConfiguration(instance);
   }
 
-  public static TableNamespaceConfiguration getTableNamespaceConfigurationForTable(Instance instance, String tableId) {
+  public static NamespaceConfiguration getNamespaceConfigurationForTable(Instance instance, String tableId) {
     checkPermissions();
     synchronized (tableParentInstances) {
-      TableNamespaceConfiguration conf = tableParentInstances.get(tableId);
+      NamespaceConfiguration conf = tableParentInstances.get(tableId);
       if (conf == null) {
         conf = new TableParentConfiguration(tableId, getSystemConfiguration(instance));
         ConfigSanityCheck.validate(conf);
@@ -75,14 +75,14 @@ public class ServerConfiguration {
     }
   }
 
-  public static TableNamespaceConfiguration getTableNamespaceConfiguration(Instance instance, String namespaceId) {
+  public static NamespaceConfiguration getNamespaceConfiguration(Instance instance, String namespaceId) {
     checkPermissions();
-    synchronized (tableNamespaceInstances) {
-      TableNamespaceConfiguration conf = tableNamespaceInstances.get(namespaceId);
+    synchronized (namespaceInstances) {
+      NamespaceConfiguration conf = namespaceInstances.get(namespaceId);
       if (conf == null) {
-        conf = new TableNamespaceConfiguration(namespaceId, getSystemConfiguration(instance));
+        conf = new NamespaceConfiguration(namespaceId, getSystemConfiguration(instance));
         ConfigSanityCheck.validate(conf);
-        tableNamespaceInstances.put(namespaceId, conf);
+        namespaceInstances.put(namespaceId, conf);
       }
       return conf;
     }
@@ -93,7 +93,7 @@ public class ServerConfiguration {
     synchronized (tableInstances) {
       TableConfiguration conf = tableInstances.get(tableId);
       if (conf == null && Tables.exists(instance, tableId)) {
-        conf = new TableConfiguration(instance.getInstanceID(), tableId, getTableNamespaceConfigurationForTable(instance, tableId));
+        conf = new TableConfiguration(instance.getInstanceID(), tableId, getNamespaceConfigurationForTable(instance, tableId));
         ConfigSanityCheck.validate(conf);
         tableInstances.put(tableId, conf);
       }
@@ -108,8 +108,8 @@ public class ServerConfiguration {
   }
 
   static void removeNamespaceIdInstance(String namespaceId) {
-    synchronized (tableNamespaceInstances) {
-      tableNamespaceInstances.remove(namespaceId);
+    synchronized (namespaceInstances) {
+      namespaceInstances.remove(namespaceId);
     }
   }
 
@@ -135,8 +135,8 @@ public class ServerConfiguration {
     return getTableConfiguration(extent.getTableId().toString());
   }
 
-  public TableNamespaceConfiguration getTableNamespaceConfiguration(String namespaceId) {
-    return getTableNamespaceConfiguration(instance, namespaceId);
+  public NamespaceConfiguration getNamespaceConfiguration(String namespaceId) {
+    return getNamespaceConfiguration(instance, namespaceId);
   }
 
   public synchronized AccumuloConfiguration getConfiguration() {

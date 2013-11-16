@@ -727,12 +727,12 @@ public class Shell extends ShellOptions {
       userlist = Collections.emptySet();
     }
 
-    Set<String> tableNamespaces = null;
+    Set<String> namespaces = null;
     try {
-      tableNamespaces = connector.tableNamespaceOperations().list();
+      namespaces = connector.namespaceOperations().list();
     } catch (Exception e) {
-      log.debug("Unable to obtain list of table namespaces", e);
-      tableNamespaces = Collections.emptySet();
+      log.debug("Unable to obtain list of namespaces", e);
+      namespaces = Collections.emptySet();
     }
 
     Map<Command.CompletionSet,Set<String>> options = new HashMap<Command.CompletionSet,Set<String>>();
@@ -743,18 +743,18 @@ public class Shell extends ShellOptions {
 
     Set<String> modifiedUserlist = new HashSet<String>();
     Set<String> modifiedTablenames = new HashSet<String>();
-    Set<String> modifiedTableNamespaces = new HashSet<String>();
+    Set<String> modifiedNamespaces = new HashSet<String>();
 
     for (String a : tableNames)
       modifiedTablenames.add(a.replaceAll("([\\s'\"])", "\\\\$1"));
     for (String a : userlist)
       modifiedUserlist.add(a.replaceAll("([\\s'\"])", "\\\\$1"));
-    for (String a : tableNamespaces)
-      modifiedTableNamespaces.add(a.replaceAll("([\\s'\"])", "\\\\$1"));
+    for (String a : namespaces)
+      modifiedNamespaces.add(a.replaceAll("([\\s'\"])", "\\\\$1"));
 
     options.put(Command.CompletionSet.USERNAMES, modifiedUserlist);
     options.put(Command.CompletionSet.TABLENAMES, modifiedTablenames);
-    options.put(Command.CompletionSet.TABLENAMESPACES, modifiedTableNamespaces);
+    options.put(Command.CompletionSet.NAMESPACES, modifiedNamespaces);
     options.put(Command.CompletionSet.COMMANDS, commands);
 
     for (Command[] cmdGroup : commandGrouping.values()) {
@@ -775,7 +775,7 @@ public class Shell extends ShellOptions {
   public static abstract class Command {
     // Helper methods for completion
     public enum CompletionSet {
-      TABLENAMES, USERNAMES, COMMANDS, TABLENAMESPACES
+      TABLENAMES, USERNAMES, COMMANDS, NAMESPACES
     }
 
     static Set<String> getCommandNames(Map<CompletionSet,Set<String>> objects) {
@@ -790,8 +790,8 @@ public class Shell extends ShellOptions {
       return objects.get(CompletionSet.USERNAMES);
     }
 
-    static Set<String> getTableNamespaces(Map<CompletionSet,Set<String>> objects) {
-      return objects.get(CompletionSet.TABLENAMESPACES);
+    static Set<String> getNamespaces(Map<CompletionSet,Set<String>> objects) {
+      return objects.get(CompletionSet.NAMESPACES);
     }
 
     public void registerCompletionGeneral(Token root, Set<String> args, boolean caseSens) {
@@ -816,8 +816,8 @@ public class Shell extends ShellOptions {
       registerCompletionGeneral(root, completionSet.get(CompletionSet.COMMANDS), false);
     }
 
-    public void registerCompletionForTableNamespaces(Token root, Map<CompletionSet,Set<String>> completionSet) {
-      registerCompletionGeneral(root, completionSet.get(CompletionSet.TABLENAMESPACES), true);
+    public void registerCompletionForNamespaces(Token root, Map<CompletionSet,Set<String>> completionSet) {
+      registerCompletionGeneral(root, completionSet.get(CompletionSet.NAMESPACES), true);
     }
 
     // abstract methods to override

@@ -26,7 +26,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.security.SystemPermission;
-import org.apache.accumulo.core.security.TableNamespacePermission;
+import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
@@ -48,8 +48,8 @@ public class ChangePermissions extends Test {
     String tableName = tableNames.get(rand.nextInt(tableNames.size()));
     
     @SuppressWarnings("unchecked")
-    List<String> tableNamespaces = (List<String>) state.get("namespaces");
-    String tableNamespace = tableNamespaces.get(rand.nextInt(tableNamespaces.size()));
+    List<String> namespaces = (List<String>) state.get("namespaces");
+    String namespace = namespaces.get(rand.nextInt(namespaces.size()));
     
     try {
       int dice = rand.nextInt(2);
@@ -58,7 +58,7 @@ public class ChangePermissions extends Test {
       else if (dice == 1)
         changeTablePermission(conn, rand, userName, tableName);
       else if (dice == 2)
-        changeTableNamespacePermission(conn, rand, userName, tableNamespace);
+        changeNamespacePermission(conn, rand, userName, namespace);
     } catch (AccumuloSecurityException ex) {
       log.debug("Unable to change user permissions: " + ex.getCause());
     }
@@ -116,28 +116,28 @@ public class ChangePermissions extends Test {
     }
   }
   
-  private void changeTableNamespacePermission(Connector conn, Random rand, String userName, String tableNamespace) throws AccumuloException, AccumuloSecurityException {
+  private void changeNamespacePermission(Connector conn, Random rand, String userName, String namespace) throws AccumuloException, AccumuloSecurityException {
     
-    EnumSet<TableNamespacePermission> perms = EnumSet.noneOf(TableNamespacePermission.class);
-    for (TableNamespacePermission p : TableNamespacePermission.values()) {
-      if (conn.securityOperations().hasTableNamespacePermission(userName, tableNamespace, p))
+    EnumSet<NamespacePermission> perms = EnumSet.noneOf(NamespacePermission.class);
+    for (NamespacePermission p : NamespacePermission.values()) {
+      if (conn.securityOperations().hasNamespacePermission(userName, namespace, p))
         perms.add(p);
     }
     
-    EnumSet<TableNamespacePermission> more = EnumSet.allOf(TableNamespacePermission.class);
+    EnumSet<NamespacePermission> more = EnumSet.allOf(NamespacePermission.class);
     more.removeAll(perms);
     
     if (rand.nextBoolean() && more.size() > 0) {
-      List<TableNamespacePermission> moreList = new ArrayList<TableNamespacePermission>(more);
-      TableNamespacePermission choice = moreList.get(rand.nextInt(moreList.size()));
+      List<NamespacePermission> moreList = new ArrayList<NamespacePermission>(more);
+      NamespacePermission choice = moreList.get(rand.nextInt(moreList.size()));
       log.debug("adding permission " + choice);
-      conn.securityOperations().grantTableNamespacePermission(userName, tableNamespace, choice);
+      conn.securityOperations().grantNamespacePermission(userName, namespace, choice);
     } else {
       if (perms.size() > 0) {
-        List<TableNamespacePermission> permList = new ArrayList<TableNamespacePermission>(perms);
-        TableNamespacePermission choice = permList.get(rand.nextInt(permList.size()));
+        List<NamespacePermission> permList = new ArrayList<NamespacePermission>(perms);
+        NamespacePermission choice = permList.get(rand.nextInt(permList.size()));
         log.debug("removing permission " + choice);
-        conn.securityOperations().revokeTableNamespacePermission(userName, tableNamespace, choice);
+        conn.securityOperations().revokeNamespacePermission(userName, namespace, choice);
       }
     }
   }

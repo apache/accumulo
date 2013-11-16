@@ -25,14 +25,14 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.security.TableNamespacePermission;
+import org.apache.accumulo.core.security.NamespacePermission;
 
-public class MockTableNamespace {
+public class MockNamespace {
 
   final Map<String,String> settings;
-  Map<String,EnumSet<TableNamespacePermission>> userPermissions = new HashMap<String,EnumSet<TableNamespacePermission>>();
+  Map<String,EnumSet<NamespacePermission>> userPermissions = new HashMap<String,EnumSet<NamespacePermission>>();
 
-  public MockTableNamespace() {
+  public MockNamespace() {
     settings = new HashMap<String,String>();
     for (Entry<String,String> entry : AccumuloConfiguration.getDefaultConfiguration()) {
       String key = entry.getKey();

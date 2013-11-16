@@ -21,11 +21,12 @@ import java.util.Properties;
 import java.util.Random;
 
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.TableNamespaceExistsException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
-public class CreateTableNamespace extends Test {
+public class OfflineNamespace extends Test {
 
   @Override
   public void visit(State state, Properties props) throws Exception {
@@ -39,10 +40,14 @@ public class CreateTableNamespace extends Test {
     String namespace = namespaces.get(rand.nextInt(namespaces.size()));
 
     try {
-      conn.tableNamespaceOperations().create(namespace);
-      log.debug("Created namespace " + namespace);
-    } catch (TableNamespaceExistsException e) {
-      log.debug("Create namespace " + namespace + " failed, it exists");
+      conn.namespaceOperations().offline(namespace);
+      log.debug("Offlined namespace " + namespace);
+      UtilWaitThread.sleep(rand.nextInt(200));
+      conn.namespaceOperations().online(namespace);
+      log.debug("Onlined namespace " + namespace);
+    } catch (NamespaceNotFoundException tne) {
+      log.debug("offline or online failed " + namespace + ", doesnt exist");
     }
+
   }
 }

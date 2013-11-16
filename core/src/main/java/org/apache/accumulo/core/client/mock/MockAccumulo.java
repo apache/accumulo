@@ -32,14 +32,14 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
-import org.apache.accumulo.core.security.TableNamespacePermission;
+import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 
 public class MockAccumulo {
   final Map<String,MockTable> tables = new HashMap<String,MockTable>();
-  final Map<String,MockTableNamespace> namespaces = new HashMap<String,MockTableNamespace>();
+  final Map<String,MockNamespace> namespaces = new HashMap<String,MockNamespace>();
   final Map<String,String> systemProperties = new HashMap<String,String>();
   Map<String,MockUser> users = new HashMap<String,MockUser>();
   final FileSystem fs;
@@ -52,8 +52,8 @@ public class MockAccumulo {
     MockUser root = new MockUser("root", new PasswordToken(new byte[0]), Authorizations.EMPTY);
     root.permissions.add(SystemPermission.SYSTEM);
     users.put(root.name, root);
-    namespaces.put(Constants.DEFAULT_TABLE_NAMESPACE, new MockTableNamespace());
-    namespaces.put(Constants.SYSTEM_TABLE_NAMESPACE, new MockTableNamespace());
+    namespaces.put(Constants.DEFAULT_NAMESPACE, new MockNamespace());
+    namespaces.put(Constants.SYSTEM_NAMESPACE, new MockNamespace());
     createTable("root", RootTable.NAME, true, TimeType.LOGICAL);
     createTable("root", MetadataTable.NAME, true, TimeType.LOGICAL);
   }
@@ -90,7 +90,7 @@ public class MockAccumulo {
       return;
     }
     
-    MockTableNamespace n = namespaces.get(namespace);
+    MockNamespace n = namespaces.get(namespace);
     MockTable t = new MockTable(n, useVersions, timeType);
     t.userPermissions.put(username, EnumSet.allOf(TablePermission.class));
     t.setNamespaceName(namespace);
@@ -100,8 +100,8 @@ public class MockAccumulo {
   
   public void createNamespace(String username, String namespace) {
     if (!namespaceExists(namespace)) {
-      MockTableNamespace n = new MockTableNamespace();
-      n.userPermissions.put(username, EnumSet.allOf(TableNamespacePermission.class));
+      MockNamespace n = new MockNamespace();
+      n.userPermissions.put(username, EnumSet.allOf(NamespacePermission.class));
       namespaces.put(namespace, n);
     }
   }

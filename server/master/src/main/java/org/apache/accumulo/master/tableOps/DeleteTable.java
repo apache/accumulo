@@ -202,7 +202,7 @@ class CleanUp extends MasterRepo {
     }
     
     Utils.unreserveTable(tableId, tid, true);
-    Utils.unreserveTableNamespace(namespaceId, tid, false);
+    Utils.unreserveNamespace(namespaceId, tid, false);
     
     Logger.getLogger(CleanUp.class).debug("Deleted table " + tableId);
     
@@ -231,7 +231,7 @@ public class DeleteTable extends MasterRepo {
   @Override
   public long isReady(long tid, Master environment) throws Exception {
     
-    return Utils.reserveTableNamespace(namespaceId, tid, false, false, TableOperation.DELETE)
+    return Utils.reserveNamespace(namespaceId, tid, false, false, TableOperation.DELETE)
         + Utils.reserveTable(tableId, tid, true, true, TableOperation.DELETE);
   }
   
@@ -244,7 +244,7 @@ public class DeleteTable extends MasterRepo {
   
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    Utils.unreserveTableNamespace(namespaceId, tid, false);
+    Utils.unreserveNamespace(namespaceId, tid, false);
     Utils.unreserveTable(tableId, tid, true);
   }
   

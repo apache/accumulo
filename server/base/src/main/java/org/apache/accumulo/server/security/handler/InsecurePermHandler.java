@@ -17,10 +17,10 @@
 package org.apache.accumulo.server.security.handler;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.security.SystemPermission;
-import org.apache.accumulo.core.security.TableNamespacePermission;
+import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 
@@ -103,31 +103,31 @@ public class InsecurePermHandler implements PermissionHandler {
   public void initTable(String table) throws AccumuloSecurityException {}
 
   @Override
-  public boolean hasTableNamespacePermission(String user, String namespace, TableNamespacePermission permission) throws AccumuloSecurityException,
-      TableNamespaceNotFoundException {
+  public boolean hasNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException,
+      NamespaceNotFoundException {
     return true;
   }
 
   @Override
-  public boolean hasCachedTableNamespacePermission(String user, String namespace, TableNamespacePermission permission) throws AccumuloSecurityException,
-      TableNamespaceNotFoundException {
+  public boolean hasCachedNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException,
+      NamespaceNotFoundException {
     return true;
   }
 
   @Override
-  public void grantTableNamespacePermission(String user, String tableNamespace, TableNamespacePermission permission) throws AccumuloSecurityException,
-      TableNamespaceNotFoundException {
+  public void grantNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException,
+      NamespaceNotFoundException {
     return;
   }
 
   @Override
-  public void revokeTableNamespacePermission(String user, String tableNamespace, TableNamespacePermission permission) throws AccumuloSecurityException,
-      TableNamespaceNotFoundException {
+  public void revokeNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException,
+      NamespaceNotFoundException {
     return;
   }
 
   @Override
-  public void cleanTableNamespacePermissions(String tableNamespace) throws AccumuloSecurityException, TableNamespaceNotFoundException {
+  public void cleanNamespacePermissions(String namespace) throws AccumuloSecurityException, NamespaceNotFoundException {
     return;
   }
   

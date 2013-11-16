@@ -26,8 +26,8 @@ import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
-import org.apache.accumulo.core.security.TableNamespacePermission;
 import org.apache.accumulo.core.security.TablePermission;
 
 public class MockSecurityOperations implements SecurityOperations {
@@ -129,15 +129,14 @@ public class MockSecurityOperations implements SecurityOperations {
   }
 
   @Override
-  public boolean hasTableNamespacePermission(String principal, String tableNamespace, TableNamespacePermission perm) throws AccumuloException,
-      AccumuloSecurityException {
-    MockTableNamespace namespace = acu.namespaces.get(tableNamespace);
-    if (namespace == null)
-      throw new AccumuloSecurityException(tableNamespace, SecurityErrorCode.TABLE_NAMESPACE_DOESNT_EXIST);
-    EnumSet<TableNamespacePermission> perms = namespace.userPermissions.get(principal);
+  public boolean hasNamespacePermission(String principal, String namespace, NamespacePermission permission) throws AccumuloException, AccumuloSecurityException {
+    MockNamespace mockNamespace = acu.namespaces.get(namespace);
+    if (mockNamespace == null)
+      throw new AccumuloSecurityException(namespace, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
+    EnumSet<NamespacePermission> perms = mockNamespace.userPermissions.get(principal);
     if (perms == null)
       return false;
-    return perms.contains(perm);
+    return perms.contains(permission);
   }
 
   @Override
@@ -164,16 +163,15 @@ public class MockSecurityOperations implements SecurityOperations {
   }
 
   @Override
-  public void grantTableNamespacePermission(String principal, String tableNamespace, TableNamespacePermission permission) throws AccumuloException,
-      AccumuloSecurityException {
+  public void grantNamespacePermission(String principal, String namespace, NamespacePermission permission) throws AccumuloException, AccumuloSecurityException {
     if (acu.users.get(principal) == null)
       throw new AccumuloSecurityException(principal, SecurityErrorCode.USER_DOESNT_EXIST);
-    MockTableNamespace namespace = acu.namespaces.get(tableNamespace);
-    if (namespace == null)
-      throw new AccumuloSecurityException(tableNamespace, SecurityErrorCode.TABLE_NAMESPACE_DOESNT_EXIST);
-    EnumSet<TableNamespacePermission> perms = namespace.userPermissions.get(principal);
+    MockNamespace mockNamespace = acu.namespaces.get(namespace);
+    if (mockNamespace == null)
+      throw new AccumuloSecurityException(namespace, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
+    EnumSet<NamespacePermission> perms = mockNamespace.userPermissions.get(principal);
     if (perms == null)
-      namespace.userPermissions.put(principal, EnumSet.of(permission));
+      mockNamespace.userPermissions.put(principal, EnumSet.of(permission));
     else
       perms.add(permission);
   }
@@ -201,14 +199,13 @@ public class MockSecurityOperations implements SecurityOperations {
   }
 
   @Override
-  public void revokeTableNamespacePermission(String principal, String tableNamespace, TableNamespacePermission permission) throws AccumuloException,
-      AccumuloSecurityException {
+  public void revokeNamespacePermission(String principal, String namespace, NamespacePermission permission) throws AccumuloException, AccumuloSecurityException {
     if (acu.users.get(principal) == null)
       throw new AccumuloSecurityException(principal, SecurityErrorCode.USER_DOESNT_EXIST);
-    MockTableNamespace namespace = acu.namespaces.get(tableNamespace);
-    if (namespace == null)
-      throw new AccumuloSecurityException(tableNamespace, SecurityErrorCode.TABLE_NAMESPACE_DOESNT_EXIST);
-    EnumSet<TableNamespacePermission> perms = namespace.userPermissions.get(principal);
+    MockNamespace mockNamespace = acu.namespaces.get(namespace);
+    if (mockNamespace == null)
+      throw new AccumuloSecurityException(namespace, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
+    EnumSet<NamespacePermission> perms = mockNamespace.userPermissions.get(principal);
     if (perms != null)
       perms.remove(permission);
 

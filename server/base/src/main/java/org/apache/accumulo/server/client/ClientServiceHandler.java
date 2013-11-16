@@ -33,8 +33,8 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
-import org.apache.accumulo.core.client.impl.TableNamespaces;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.ConfigurationType;
@@ -51,8 +51,8 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
-import org.apache.accumulo.core.security.TableNamespacePermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.server.conf.ServerConfiguration;
@@ -91,14 +91,14 @@ public class ClientServiceHandler implements ClientService.Iface {
     return tableId;
   }
 
-  protected String checkTableNamespaceId(String tableNamespace, TableOperation operation) throws ThriftTableOperationException {
-    String namespaceId = TableNamespaces.getNameToIdMap(instance).get(tableNamespace);
+  protected String checkNamespaceId(String namespace, TableOperation operation) throws ThriftTableOperationException {
+    String namespaceId = Namespaces.getNameToIdMap(instance).get(namespace);
     if (namespaceId == null) {
-      // maybe the table namespace exists, but the cache was not updated yet... so try to clear the cache and check again
+      // maybe the namespace exists, but the cache was not updated yet... so try to clear the cache and check again
       Tables.clearCache(instance);
-      namespaceId = TableNamespaces.getNameToIdMap(instance).get(tableNamespace);
+      namespaceId = Namespaces.getNameToIdMap(instance).get(namespace);
       if (namespaceId == null)
-        throw new ThriftTableOperationException(null, tableNamespace, operation, TableOperationExceptionType.NOTFOUND, null);
+        throw new ThriftTableOperationException(null, namespace, operation, TableOperationExceptionType.NOTFOUND, null);
     }
     return namespaceId;
   }
@@ -186,10 +186,10 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public void grantTableNamespacePermission(TInfo tinfo, TCredentials credentials, String user, String tableNamespace, byte permission)
-      throws ThriftSecurityException, ThriftTableOperationException {
-    String namespaceId = checkTableNamespaceId(tableNamespace, TableOperation.PERMISSION);
-    security.grantTableNamespacePermission(credentials, user, namespaceId, TableNamespacePermission.getPermissionById(permission));
+  public void grantNamespacePermission(TInfo tinfo, TCredentials credentials, String user, String ns, byte permission) throws ThriftSecurityException,
+      ThriftTableOperationException {
+    String namespaceId = checkNamespaceId(ns, TableOperation.PERMISSION);
+    security.grantNamespacePermission(credentials, user, namespaceId, NamespacePermission.getPermissionById(permission));
   }
 
   @Override
@@ -217,17 +217,17 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public boolean hasTableNamespacePermission(TInfo tinfo, TCredentials credentials, String user, String tableNamespace, byte perm)
-      throws ThriftSecurityException, ThriftTableOperationException {
-    String namespaceId = checkTableNamespaceId(tableNamespace, TableOperation.PERMISSION);
-    return security.hasTableNamespacePermission(credentials, user, namespaceId, TableNamespacePermission.getPermissionById(perm));
+  public boolean hasNamespacePermission(TInfo tinfo, TCredentials credentials, String user, String ns, byte perm) throws ThriftSecurityException,
+      ThriftTableOperationException {
+    String namespaceId = checkNamespaceId(ns, TableOperation.PERMISSION);
+    return security.hasNamespacePermission(credentials, user, namespaceId, NamespacePermission.getPermissionById(perm));
   }
 
   @Override
-  public void revokeTableNamespacePermission(TInfo tinfo, TCredentials credentials, String user, String tableNamespace, byte permission)
-      throws ThriftSecurityException, ThriftTableOperationException {
-    String namespaceId = checkTableNamespaceId(tableNamespace, TableOperation.PERMISSION);
-    security.revokeTableNamespacePermission(credentials, user, namespaceId, TableNamespacePermission.getPermissionById(permission));
+  public void revokeNamespacePermission(TInfo tinfo, TCredentials credentials, String user, String ns, byte permission) throws ThriftSecurityException,
+      ThriftTableOperationException {
+    String namespaceId = checkNamespaceId(ns, TableOperation.PERMISSION);
+    security.revokeNamespacePermission(credentials, user, namespaceId, NamespacePermission.getPermissionById(permission));
   }
 
   @Override
@@ -355,21 +355,21 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public boolean checkTableNamespaceClass(TInfo tinfo, TCredentials credentials, String tableNamespace, String className, String interfaceMatch)
-      throws TException, ThriftTableOperationException, ThriftSecurityException {
+  public boolean checkNamespaceClass(TInfo tinfo, TCredentials credentials, String ns, String className, String interfaceMatch) throws TException,
+      ThriftTableOperationException, ThriftSecurityException {
 
     security.authenticateUser(credentials, credentials);
 
-    String tableNamespaceId = checkTableNamespaceId(tableNamespace, null);
+    String namespaceId = checkNamespaceId(ns, null);
 
     ClassLoader loader = getClass().getClassLoader();
     Class<?> shouldMatch;
     try {
       shouldMatch = loader.loadClass(interfaceMatch);
 
-      new ServerConfiguration(instance).getTableNamespaceConfiguration(tableNamespaceId);
+      new ServerConfiguration(instance).getNamespaceConfiguration(namespaceId);
 
-      String context = new ServerConfiguration(instance).getTableNamespaceConfiguration(tableNamespaceId).get(Property.TABLE_CLASSPATH);
+      String context = new ServerConfiguration(instance).getNamespaceConfiguration(namespaceId).get(Property.TABLE_CLASSPATH);
 
       ClassLoader currentLoader;
 
@@ -422,15 +422,15 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public Map<String,String> getTableNamespaceConfiguration(TInfo tinfo, TCredentials credentials, String ns) throws ThriftTableOperationException, TException {
+  public Map<String,String> getNamespaceConfiguration(TInfo tinfo, TCredentials credentials, String ns) throws ThriftTableOperationException, TException {
     String namespaceId;
     try {
-      namespaceId = TableNamespaces.getNamespaceId(instance, ns);
-    } catch (TableNamespaceNotFoundException e) {
-      String why = "Could not find table namespace while getting configuration.";
+      namespaceId = Namespaces.getNamespaceId(instance, ns);
+    } catch (NamespaceNotFoundException e) {
+      String why = "Could not find namespace while getting configuration.";
       throw new ThriftTableOperationException(null, ns, null, TableOperationExceptionType.NOTFOUND, why);
     }
-    AccumuloConfiguration config = ServerConfiguration.getTableNamespaceConfiguration(instance, namespaceId);
+    AccumuloConfiguration config = ServerConfiguration.getNamespaceConfiguration(instance, namespaceId);
     return conf(credentials, config);
   }
 }

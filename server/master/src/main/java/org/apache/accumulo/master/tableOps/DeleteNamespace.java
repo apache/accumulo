@@ -50,20 +50,20 @@ class NamespaceCleanUp extends MasterRepo {
     try {
       TableManager.getInstance().removeNamespace(namespaceId);
     } catch (Exception e) {
-      log.error("Failed to find table namespace in zookeeper", e);
+      log.error("Failed to find namespace in zookeeper", e);
     }
     Tables.clearCache(master.getInstance());
 
-    // remove any permissions associated with this table namespace
+    // remove any permissions associated with this namespace
     try {
-      AuditedSecurityOperation.getInstance().deleteTableNamespace(SystemCredentials.get().toThrift(master.getInstance()), namespaceId);
+      AuditedSecurityOperation.getInstance().deleteNamespace(SystemCredentials.get().toThrift(master.getInstance()), namespaceId);
     } catch (ThriftSecurityException e) {
       log.error(e.getMessage(), e);
     }
 
-    Utils.unreserveTableNamespace(namespaceId, id, true);
+    Utils.unreserveNamespace(namespaceId, id, true);
 
-    Logger.getLogger(CleanUp.class).debug("Deleted table namespace " + namespaceId);
+    Logger.getLogger(CleanUp.class).debug("Deleted namespace " + namespaceId);
 
     return null;
   }
@@ -75,30 +75,30 @@ class NamespaceCleanUp extends MasterRepo {
 
 }
 
-public class DeleteTableNamespace extends MasterRepo {
+public class DeleteNamespace extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
 
   private String namespaceId;
 
-  public DeleteTableNamespace(String namespaceId) {
+  public DeleteNamespace(String namespaceId) {
     this.namespaceId = namespaceId;
   }
 
   @Override
   public long isReady(long id, Master environment) throws Exception {
-    return Utils.reserveTableNamespace(namespaceId, id, true, true, TableOperation.DELETE);
+    return Utils.reserveNamespace(namespaceId, id, true, true, TableOperation.DELETE);
   }
 
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
-    environment.getEventCoordinator().event("deleting table namespace %s ", namespaceId);
+    environment.getEventCoordinator().event("deleting namespace %s ", namespaceId);
     return new NamespaceCleanUp(namespaceId);
   }
 
   @Override
   public void undo(long id, Master environment) throws Exception {
-    Utils.unreserveTableNamespace(namespaceId, id, true);
+    Utils.unreserveNamespace(namespaceId, id, true);
   }
 
 }

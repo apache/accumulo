@@ -36,8 +36,8 @@ public class NamespacesCommand extends Command {
   @SuppressWarnings("unchecked")
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
-    Iterator<String> names = shellState.getConnector().tableNamespaceOperations().list().iterator();
-    Iterator<String> ids = new NamespaceIdIterator(new TreeMap<String,String>(shellState.getConnector().tableNamespaceOperations().namespaceIdMap()).entrySet()
+    Iterator<String> names = shellState.getConnector().namespaceOperations().list().iterator();
+    Iterator<String> ids = new NamespaceIdIterator(new TreeMap<String,String>(shellState.getConnector().namespaceOperations().namespaceIdMap()).entrySet()
         .iterator());
 
     if (cl.hasOption(namespaceIdOption.getOpt())) {
@@ -66,13 +66,13 @@ public class NamespacesCommand extends Command {
 
   @Override
   public String description() {
-    return "displays a list of all existing table namespaces";
+    return "displays a list of all existing namespaces";
   }
 
   @Override
   public Options getOptions() {
     final Options o = new Options();
-    namespaceIdOption = new Option("l", "list-ids", false, "display internal table namespace ids along with the name");
+    namespaceIdOption = new Option("l", "list-ids", false, "display internal namespace ids along with the name");
     o.addOption(namespaceIdOption);
     disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
     o.addOption(disablePaginationOpt);

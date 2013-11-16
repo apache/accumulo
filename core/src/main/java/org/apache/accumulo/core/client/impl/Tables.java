@@ -27,7 +27,7 @@ import jline.internal.Log;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -61,10 +61,10 @@ public class Tables {
       // create fully qualified table name if it's in a namespace other than default or system.
       if (nId != null) {
         String namespaceId = new String(nId, Constants.UTF8);
-        if (!namespaceId.equals(Constants.DEFAULT_TABLE_NAMESPACE_ID) && !namespaceId.equals(Constants.SYSTEM_TABLE_NAMESPACE_ID)) {
+        if (!namespaceId.equals(Constants.DEFAULT_NAMESPACE_ID) && !namespaceId.equals(Constants.SYSTEM_NAMESPACE_ID)) {
           try {
-            name += TableNamespaces.getNamespaceName(instance, namespaceId) + ".";
-          } catch (TableNamespaceNotFoundException e) {
+            name += Namespaces.getNamespaceName(instance, namespaceId) + ".";
+          } catch (NamespaceNotFoundException e) {
             Log.error("Table (" + tableId + ") contains reference to namespace (" + namespaceId + ") that doesn't exist");
             continue;
           }
@@ -163,11 +163,11 @@ public class Tables {
   public static String extractNamespace(String tableName) {
     String[] s = tableName.split("\\.");
     if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME)) {
-      return Constants.SYSTEM_TABLE_NAMESPACE;
+      return Constants.SYSTEM_NAMESPACE;
     } else if (s.length == 2 && !s[0].isEmpty()) {
       return s[0];
     } else {
-      return Constants.DEFAULT_TABLE_NAMESPACE;
+      return Constants.DEFAULT_NAMESPACE;
     }
   }
   

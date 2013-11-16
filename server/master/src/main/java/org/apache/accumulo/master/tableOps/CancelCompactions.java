@@ -64,7 +64,7 @@ public class CancelCompactions extends MasterRepo {
   
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-    return Utils.reserveTableNamespace(namespaceId, tid, false, true, TableOperation.COMPACT_CANCEL)
+    return Utils.reserveNamespace(namespaceId, tid, false, true, TableOperation.COMPACT_CANCEL)
         + Utils.reserveTable(tableId, tid, false, true, TableOperation.COMPACT_CANCEL);
   }
   
@@ -100,7 +100,7 @@ public class CancelCompactions extends MasterRepo {
   
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    Utils.unreserveTableNamespace(namespaceId, tid, false);
+    Utils.unreserveNamespace(namespaceId, tid, false);
     Utils.unreserveTable(tableId, tid, false);
   }
 }

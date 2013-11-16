@@ -20,8 +20,8 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
-import org.apache.accumulo.core.security.TableNamespacePermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
@@ -32,11 +32,11 @@ import org.apache.commons.cli.Options;
 public class UserPermissionsCommand extends Command {
   private Option userOpt;
   private static int runOnce = 0;
-  
+
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
     final String user = cl.getOptionValue(userOpt.getOpt(), shellState.getConnector().whoami());
-    
+
     String delim = "";
     shellState.getReader().print("System permissions: ");
     for (SystemPermission p : SystemPermission.values()) {
@@ -46,13 +46,13 @@ public class UserPermissionsCommand extends Command {
       }
     }
     shellState.getReader().println();
-    
-    for (String n : shellState.getConnector().tableNamespaceOperations().list()) {
+
+    for (String n : shellState.getConnector().namespaceOperations().list()) {
       delim = "";
-      for (TableNamespacePermission p : TableNamespacePermission.values()) {
-        if (p != null && shellState.getConnector().securityOperations().hasTableNamespacePermission(user, n, p)) {
+      for (NamespacePermission p : NamespacePermission.values()) {
+        if (p != null && shellState.getConnector().securityOperations().hasNamespacePermission(user, n, p)) {
           if (runOnce == 0) {
-            shellState.getReader().print("\nTable Namespace permissions (" + n + "): ");
+            shellState.getReader().print("\nNamespace permissions (" + n + "): ");
             runOnce++;
           }
           shellState.getReader().print(delim + "Namespace." + p.name());
@@ -62,7 +62,7 @@ public class UserPermissionsCommand extends Command {
       runOnce = 0;
     }
     shellState.getReader().println();
-    
+
     for (String t : shellState.getConnector().tableOperations().list()) {
       delim = "";
       for (TablePermission p : TablePermission.values()) {
@@ -74,20 +74,20 @@ public class UserPermissionsCommand extends Command {
           shellState.getReader().print(delim + "Table." + p.name());
           delim = ", ";
         }
-        
+
       }
       runOnce = 0;
     }
     shellState.getReader().println();
-    
+
     return 0;
   }
-  
+
   @Override
   public String description() {
-    return "displays a user's system, table, and table namespace permissions";
+    return "displays a user's system, table, and namespace permissions";
   }
-  
+
   @Override
   public Options getOptions() {
     Options o = new Options();
@@ -96,7 +96,7 @@ public class UserPermissionsCommand extends Command {
     o.addOption(userOpt);
     return o;
   }
-  
+
   @Override
   public int numArgs() {
     return 0;

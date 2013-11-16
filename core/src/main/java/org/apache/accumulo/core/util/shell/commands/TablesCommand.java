@@ -26,8 +26,8 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
-import org.apache.accumulo.core.client.impl.TableNamespaces;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -46,15 +46,15 @@ public class TablesCommand extends Command {
   @SuppressWarnings("unchecked")
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException,
-      TableNamespaceNotFoundException {
+      NamespaceNotFoundException {
 
     final Iterator<String> tableNames;
     final Iterator<String> tableIds;
 
-    if (cl.hasOption(OptUtil.tableNamespaceOpt().getOpt())) {
-      String namespace = shellState.getConnector().tableNamespaceOperations().namespaceIdMap().get(OptUtil.getTableNamespaceOpt(cl, shellState));
-      tableNames = TableNamespaces.getTableNames(shellState.getConnector().getInstance(), namespace).iterator();
-      List<String> tableIdStrings = TableNamespaces.getTableIds(shellState.getConnector().getInstance(), namespace);
+    if (cl.hasOption(OptUtil.namespaceOpt().getOpt())) {
+      String namespace = shellState.getConnector().namespaceOperations().namespaceIdMap().get(OptUtil.getNamespaceOpt(cl, shellState));
+      tableNames = Namespaces.getTableNames(shellState.getConnector().getInstance(), namespace).iterator();
+      List<String> tableIdStrings = Namespaces.getTableIds(shellState.getConnector().getInstance(), namespace);
       if (cl.hasOption(sortByTableIdOption.getOpt()))
         Collections.sort(tableIdStrings);
       tableIds = tableIdStrings.iterator();
@@ -111,7 +111,7 @@ public class TablesCommand extends Command {
     o.addOption(sortByTableIdOption);
     disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
     o.addOption(disablePaginationOpt);
-    o.addOption(OptUtil.tableNamespaceOpt("name of table namespace to list only its tables"));
+    o.addOption(OptUtil.namespaceOpt("name of namespace to list only its tables"));
     return o;
   }
 

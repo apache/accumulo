@@ -50,20 +50,20 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableExistsException;
-import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.impl.AccumuloServerException;
 import org.apache.accumulo.core.client.impl.ClientExec;
 import org.apache.accumulo.core.client.impl.ClientExecReturn;
 import org.apache.accumulo.core.client.impl.MasterClient;
+import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.ServerClient;
 import org.apache.accumulo.core.client.impl.ServerConfigurationUtil;
-import org.apache.accumulo.core.client.impl.TableNamespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
@@ -129,7 +129,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   private Credentials credentials;
 
   public static final String CLONE_EXCLUDE_PREFIX = "!";
-  
+
   private static final Logger log = Logger.getLogger(TableOperations.class);
 
   /**
@@ -222,9 +222,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     String namespace = Tables.extractNamespace(tableName);
     if (!namespaceExists(namespace)) {
-      String info = "Table namespace not found while trying to create table";
-      throw new IllegalArgumentException(new TableNamespaceNotFoundException(null, namespace, info));
-    } else if (namespace.equals(Constants.SYSTEM_TABLE_NAMESPACE)) {
+      String info = "Namespace not found while trying to create table";
+      throw new IllegalArgumentException(new NamespaceNotFoundException(null, namespace, info));
+    } else if (namespace.equals(Constants.SYSTEM_NAMESPACE)) {
       String info = "Can't create tables in the system namespace";
       throw new IllegalArgumentException(info);
     }
@@ -687,8 +687,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     String namespace = Tables.extractNamespace(newTableName);
     if (!namespaceExists(namespace)) {
-      String info = "Table namespace not found while cloning table";
-      throw new IllegalArgumentException(new TableNamespaceNotFoundException(null, namespace, info));
+      String info = "Namespace not found while cloning table";
+      throw new IllegalArgumentException(new NamespaceNotFoundException(null, namespace, info));
     }
 
     String srcTableId = Tables.getTableId(instance, srcTableName);
@@ -725,13 +725,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
     doTableOperation(TableOperation.CLONE, args, opts);
   }
 
-  // get the properties that are only in the table namespace so that we can exclude them when copying table properties.
+  // get the properties that are only in the namespace so that we can exclude them when copying table properties.
   // also, don't exclude properties that are going to be explicitly set.
   private HashSet<String> getUniqueNamespaceProperties(String namespace, String table, Map<String,String> propsToSet) throws TableNotFoundException,
       AccumuloException {
     HashSet<String> props = new HashSet<String>();
     try {
-      Iterable<Entry<String,String>> n = new TableNamespaceOperationsImpl(instance, credentials).getProperties(namespace);
+      Iterable<Entry<String,String>> n = new NamespaceOperationsImpl(instance, credentials).getProperties(namespace);
       Iterable<Entry<String,String>> t = getProperties(table);
       Map<String,String> tmap = new HashMap<String,String>();
       for (Entry<String,String> e : t) {
@@ -743,8 +743,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
           props.add(e.getKey());
         }
       }
-    } catch (TableNamespaceNotFoundException e) {
-      throw new IllegalStateException(new TableNamespaceNotFoundException(null, namespace, null));
+    } catch (NamespaceNotFoundException e) {
+      throw new IllegalStateException(new NamespaceNotFoundException(null, namespace, null));
     }
 
     for (Entry<String,String> e : propsToSet.entrySet()) {
@@ -775,8 +775,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     String namespace = Tables.extractNamespace(newTableName);
     if (!namespaceExists(namespace)) {
-      String info = "Table namespace not found while renaming table";
-      throw new IllegalArgumentException(new TableNamespaceNotFoundException(null, namespace, info));
+      String info = "Namespace not found while renaming table";
+      throw new IllegalArgumentException(new NamespaceNotFoundException(null, namespace, info));
     }
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldTableName.getBytes()), ByteBuffer.wrap(newTableName.getBytes()));
@@ -1523,8 +1523,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     String namespace = Tables.extractNamespace(tableName);
     if (!namespaceExists(namespace)) {
-      String info = "Table namespace not found while importing to table";
-      throw new RuntimeException(new TableNamespaceNotFoundException(null, namespace, info));
+      String info = "Namespace not found while importing to table";
+      throw new RuntimeException(new NamespaceNotFoundException(null, namespace, info));
     }
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()), ByteBuffer.wrap(importDir.getBytes()));
@@ -1599,6 +1599,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   private boolean namespaceExists(String namespace) {
-    return TableNamespaces.getNameToIdMap(instance).containsKey(namespace);
+    return Namespaces.getNameToIdMap(instance).containsKey(namespace);
   }
 }

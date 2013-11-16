@@ -23,7 +23,7 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.impl.TableNamespaces;
+import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
@@ -34,11 +34,12 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
 public abstract class TableOperation extends Command {
-  
-  protected Option optTablePattern, optTableName, optTableNamespace;
+
+  protected Option optTablePattern, optTableName, optNamespace;
   private boolean force = true;
   private boolean useCommandLine = true;
-  
+
+  @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     // populate the tableSet set with the tables you want to operate on
     final SortedSet<String> tableSet = new TreeSet<String>();
@@ -49,10 +50,10 @@ public abstract class TableOperation extends Command {
         }
     } else if (cl.hasOption(optTableName.getOpt())) {
       tableSet.add(cl.getOptionValue(optTableName.getOpt()));
-    } else if (cl.hasOption(optTableNamespace.getOpt())) {
+    } else if (cl.hasOption(optNamespace.getOpt())) {
       Instance instance = shellState.getInstance();
-      String namespaceId = TableNamespaces.getNamespaceId(instance, cl.getOptionValue(optTableNamespace.getOpt()));
-      for (String tableId : TableNamespaces.getTableIds(instance, namespaceId)) {
+      String namespaceId = Namespaces.getNamespaceId(instance, cl.getOptionValue(optNamespace.getOpt()));
+      for (String tableId : Namespaces.getTableIds(instance, namespaceId)) {
         tableSet.add(Tables.getTableName(instance, tableId));
       }
     } else if (useCommandLine && cl.getArgs().length > 0) {
@@ -63,10 +64,10 @@ public abstract class TableOperation extends Command {
       shellState.checkTableState();
       tableSet.add(shellState.getTableName());
     }
-    
+
     if (tableSet.isEmpty())
       Shell.log.warn("No tables found that match your criteria");
-    
+
     boolean more = true;
     // flush the tables
     for (String tableName : tableSet) {
@@ -87,63 +88,63 @@ public abstract class TableOperation extends Command {
         doTableOp(shellState, tableName);
       }
     }
-    
+
     return 0;
   }
-  
+
   protected abstract void doTableOp(Shell shellState, String tableName) throws Exception;
-  
+
   @Override
   public String description() {
     return "makes a best effort to flush tables from memory to disk";
   }
-  
+
   @Override
   public Options getOptions() {
     final Options o = new Options();
-    
+
     optTablePattern = new Option("p", "pattern", true, "regex pattern of table names to operate on");
     optTablePattern.setArgName("pattern");
-    
+
     optTableName = new Option(Shell.tableOption, "table", true, "name of a table to operate on");
     optTableName.setArgName("tableName");
-    
-    optTableNamespace = new Option(Shell.tableNamespaceOption, "table-namespace", true, "name of a table namespace to operate on");
-    optTableNamespace.setArgName("tableNamespace");
-    
+
+    optNamespace = new Option(Shell.namespaceOption, "namespace", true, "name of a namespace to operate on");
+    optNamespace.setArgName("namespace");
+
     final OptionGroup opg = new OptionGroup();
-    
+
     opg.addOption(optTablePattern);
     opg.addOption(optTableName);
-    opg.addOption(optTableNamespace);
-    
+    opg.addOption(optNamespace);
+
     o.addOptionGroup(opg);
-    
+
     return o;
   }
-  
+
   @Override
   public int numArgs() {
     return useCommandLine ? Shell.NO_FIXED_ARG_LENGTH_CHECK : 0;
   }
-  
+
   protected void force() {
     force = true;
   }
-  
+
   protected void noForce() {
     force = false;
   }
-  
+
   protected void disableUnflaggedTableOptions() {
     useCommandLine = false;
   }
-  
+
   @Override
   public String usage() {
     return getName() + " [<table>{ <table>}]";
   }
-  
+
   @Override
   public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> special) {
     if (useCommandLine)

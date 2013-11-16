@@ -90,7 +90,7 @@ public class MockTable {
   private TimeType timeType;
   SortedSet<Text> splits = new ConcurrentSkipListSet<Text>();
   Map<String,Set<Text>> localityGroups = new TreeMap<String,Set<Text>>();
-  private MockTableNamespace namespace;
+  private MockNamespace namespace;
   private String namespaceName;
   
   MockTable(boolean limitVersion, TimeType timeType) {
@@ -103,7 +103,7 @@ public class MockTable {
     }
   }
   
-  MockTable(MockTableNamespace namespace, boolean limitVersion, TimeType timeType) {
+  MockTable(MockNamespace namespace, boolean limitVersion, TimeType timeType) {
     this(limitVersion, timeType);
     Set<Entry<String,String>> set = namespace.settings.entrySet();
     Iterator<Entry<String,String>> entries = set.iterator();
@@ -164,7 +164,7 @@ public class MockTable {
     this.namespaceName = n;
   }
   
-  public void setNamespace(MockTableNamespace n) {
+  public void setNamespace(MockNamespace n) {
     this.namespace = n;
   }
   
@@ -172,7 +172,7 @@ public class MockTable {
     return this.namespaceName;
   }
   
-  public MockTableNamespace getNamespace() {
+  public MockNamespace getNamespace() {
     return this.namespace;
   }
 }

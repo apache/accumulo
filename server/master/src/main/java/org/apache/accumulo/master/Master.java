@@ -40,13 +40,13 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperationsImpl;
 import org.apache.accumulo.core.client.admin.TimeType;
-import org.apache.accumulo.core.client.impl.TableNamespaces;
+import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.ThriftTransportPool;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
@@ -78,8 +78,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SecurityUtil;
-import org.apache.accumulo.core.security.TableNamespacePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.Daemon;
@@ -100,14 +100,14 @@ import org.apache.accumulo.master.tableOps.CancelCompactions;
 import org.apache.accumulo.master.tableOps.ChangeTableState;
 import org.apache.accumulo.master.tableOps.CloneTable;
 import org.apache.accumulo.master.tableOps.CompactRange;
+import org.apache.accumulo.master.tableOps.CreateNamespace;
 import org.apache.accumulo.master.tableOps.CreateTable;
-import org.apache.accumulo.master.tableOps.CreateTableNamespace;
+import org.apache.accumulo.master.tableOps.DeleteNamespace;
 import org.apache.accumulo.master.tableOps.DeleteTable;
-import org.apache.accumulo.master.tableOps.DeleteTableNamespace;
 import org.apache.accumulo.master.tableOps.ExportTable;
 import org.apache.accumulo.master.tableOps.ImportTable;
+import org.apache.accumulo.master.tableOps.RenameNamespace;
 import org.apache.accumulo.master.tableOps.RenameTable;
-import org.apache.accumulo.master.tableOps.RenameTableNamespace;
 import org.apache.accumulo.master.tableOps.TableRangeOp;
 import org.apache.accumulo.master.tableOps.TraceRepo;
 import org.apache.accumulo.master.tserverOps.ShutdownTServer;
@@ -331,35 +331,32 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
               NodeExistsPolicy.SKIP);
         }
 
-        // setup default and system table namespaces if not already there
-        String tableNamespaces = ZooUtil.getRoot(instance) + Constants.ZNAMESPACES;
-        String defaultTableNamespace = ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + Constants.DEFAULT_TABLE_NAMESPACE_ID;
-        String systemTableNamespace = ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + Constants.SYSTEM_TABLE_NAMESPACE_ID;
+        // setup default and system namespaces if not already there
+        String namespaces = ZooUtil.getRoot(instance) + Constants.ZNAMESPACES;
+        String defaultNamespace = ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + Constants.DEFAULT_NAMESPACE_ID;
+        String systemNamespace = ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + Constants.SYSTEM_NAMESPACE_ID;
         String tables = ZooUtil.getRoot(instance) + Constants.ZTABLES;
-        zoo.putPersistentData(tableNamespaces, new byte[0], NodeExistsPolicy.SKIP);
+        zoo.putPersistentData(namespaces, new byte[0], NodeExistsPolicy.SKIP);
 
-        zoo.putPersistentData(defaultTableNamespace, new byte[0], NodeExistsPolicy.SKIP);
-        zoo.putPersistentData(defaultTableNamespace + Constants.ZNAMESPACE_CONF, new byte[0], NodeExistsPolicy.SKIP);
-        zoo.putPersistentData(defaultTableNamespace + Constants.ZNAMESPACE_NAME, Constants.DEFAULT_TABLE_NAMESPACE.getBytes(Constants.UTF8),
-            NodeExistsPolicy.SKIP);
+        zoo.putPersistentData(defaultNamespace, new byte[0], NodeExistsPolicy.SKIP);
+        zoo.putPersistentData(defaultNamespace + Constants.ZNAMESPACE_CONF, new byte[0], NodeExistsPolicy.SKIP);
+        zoo.putPersistentData(defaultNamespace + Constants.ZNAMESPACE_NAME, Constants.DEFAULT_NAMESPACE.getBytes(Constants.UTF8), NodeExistsPolicy.SKIP);
 
-        zoo.putPersistentData(systemTableNamespace, new byte[0], NodeExistsPolicy.SKIP);
-        zoo.putPersistentData(systemTableNamespace + Constants.ZNAMESPACE_CONF, new byte[0], NodeExistsPolicy.SKIP);
-        zoo.putPersistentData(systemTableNamespace + Constants.ZNAMESPACE_NAME, Constants.SYSTEM_TABLE_NAMESPACE.getBytes(Constants.UTF8),
-            NodeExistsPolicy.SKIP);
+        zoo.putPersistentData(systemNamespace, new byte[0], NodeExistsPolicy.SKIP);
+        zoo.putPersistentData(systemNamespace + Constants.ZNAMESPACE_CONF, new byte[0], NodeExistsPolicy.SKIP);
+        zoo.putPersistentData(systemNamespace + Constants.ZNAMESPACE_NAME, Constants.SYSTEM_NAMESPACE.getBytes(Constants.UTF8), NodeExistsPolicy.SKIP);
 
         Map<String,String> opts = IteratorUtil.generateInitialTableProperties(true);
         for (Entry<String,String> e : opts.entrySet()) {
-          zoo.putPersistentData(defaultTableNamespace + Constants.ZNAMESPACE_CONF + "/" + e.getKey(), e.getValue().getBytes(Constants.UTF8),
-              NodeExistsPolicy.SKIP);
+          zoo.putPersistentData(defaultNamespace + Constants.ZNAMESPACE_CONF + "/" + e.getKey(), e.getValue().getBytes(Constants.UTF8), NodeExistsPolicy.SKIP);
         }
 
         for (Entry<String,String> table : Tables.getIdToNameMap(instance).entrySet()) {
           if (table.getValue().equals(MetadataTable.NAME) || table.getValue().equals(RootTable.NAME)) {
-            zoo.putPersistentData(tables + "/" + table.getKey() + Constants.ZTABLE_NAMESPACE, Constants.SYSTEM_TABLE_NAMESPACE_ID.getBytes(Constants.UTF8),
+            zoo.putPersistentData(tables + "/" + table.getKey() + Constants.ZTABLE_NAMESPACE, Constants.SYSTEM_NAMESPACE_ID.getBytes(Constants.UTF8),
                 NodeExistsPolicy.SKIP);
           } else {
-            zoo.putPersistentData(tables + "/" + table.getKey() + Constants.ZTABLE_NAMESPACE, Constants.DEFAULT_TABLE_NAMESPACE_ID.getBytes(Constants.UTF8),
+            zoo.putPersistentData(tables + "/" + table.getKey() + Constants.ZTABLE_NAMESPACE, Constants.DEFAULT_NAMESPACE_ID.getBytes(Constants.UTF8),
                 NodeExistsPolicy.SKIP);
           }
         }
@@ -370,9 +367,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         String users = ZooUtil.getRoot(instance) + "/users";
         for (String user : zoo.getChildren(users)) {
           zoo.putPersistentData(users + "/" + user + "/Namespaces", new byte[0], NodeExistsPolicy.SKIP);
-          perm.grantTableNamespacePermission(user, Constants.SYSTEM_TABLE_NAMESPACE_ID, TableNamespacePermission.READ);
+          perm.grantNamespacePermission(user, Constants.SYSTEM_NAMESPACE_ID, NamespacePermission.READ);
         }
-        perm.grantTableNamespacePermission("root", Constants.SYSTEM_TABLE_NAMESPACE_ID, TableNamespacePermission.ALTER_TABLE);
+        perm.grantNamespacePermission("root", Constants.SYSTEM_NAMESPACE_ID, NamespacePermission.ALTER_TABLE);
 
       } catch (Exception ex) {
         log.fatal("Error performing upgrade", ex);
@@ -750,8 +747,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       }
     }
 
-    private void alterTableNamespaceProperty(TCredentials c, String namespace, String property, String value, TableOperation op)
-        throws ThriftSecurityException, ThriftTableOperationException {
+    private void alterNamespaceProperty(TCredentials c, String namespace, String property, String value, TableOperation op) throws ThriftSecurityException,
+        ThriftTableOperationException {
 
       String namespaceId = null;
       namespaceId = checkNamespaceId(namespace, op);
@@ -766,13 +763,13 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           NamespacePropUtil.setNamespaceProperty(namespaceId, property, value);
         }
       } catch (KeeperException.NoNodeException e) {
-        // race condition... table namespace no longer exists? This call will throw an exception if the table namespace was deleted:
+        // race condition... namespace no longer exists? This call will throw an exception if the namespace was deleted:
         checkNamespaceId(namespaceId, op);
-        log.info("Error altering table namespace property", e);
-        throw new ThriftTableOperationException(namespaceId, namespace, op, TableOperationExceptionType.OTHER, "Problem altering table namespaceproperty");
+        log.info("Error altering namespace property", e);
+        throw new ThriftTableOperationException(namespaceId, namespace, op, TableOperationExceptionType.OTHER, "Problem altering namespaceproperty");
       } catch (Exception e) {
-        log.error("Problem altering table namespace property", e);
-        throw new ThriftTableOperationException(namespaceId, namespace, op, TableOperationExceptionType.OTHER, "Problem altering table namespace property");
+        log.error("Problem altering namespace property", e);
+        throw new ThriftTableOperationException(namespaceId, namespace, op, TableOperationExceptionType.OTHER, "Problem altering namespace property");
       }
     }
 
@@ -929,7 +926,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
           try {
             fate.seedTransaction(opid, new TraceRepo<Master>(new CreateTable(c.getPrincipal(), tableName, timeType, options)), autoCleanup);
-          } catch (TableNamespaceNotFoundException e) {
+          } catch (NamespaceNotFoundException e) {
             throw new TException(e.getMessage(), e);
           }
           break;
@@ -947,7 +944,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
           try {
             fate.seedTransaction(opid, new TraceRepo<Master>(new RenameTable(tableId, oldTableName, newTableName)), autoCleanup);
-          } catch (TableNamespaceNotFoundException e) {
+          } catch (NamespaceNotFoundException e) {
             throw new TException(e.getMessage(), e);
           }
 
@@ -1087,7 +1084,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
           try {
             fate.seedTransaction(opid, new TraceRepo<Master>(new ImportTable(c.getPrincipal(), tableName, exportDir)), autoCleanup);
-          } catch (TableNamespaceNotFoundException e) {
+          } catch (NamespaceNotFoundException e) {
             throw new TException(e.getMessage(), e);
           }
           break;
@@ -1144,12 +1141,12 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
 
     @Override
-    public long beginTableNamespaceOperation(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
+    public long beginNamespaceOperation(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
       return beginTableOperation(tinfo, credentials);
     }
 
     @Override
-    public void executeTableNamespaceOperation(TInfo tinfo, TCredentials c, long opid, org.apache.accumulo.core.master.thrift.TableOperation op,
+    public void executeNamespaceOperation(TInfo tinfo, TCredentials c, long opid, org.apache.accumulo.core.master.thrift.TableOperation op,
         List<ByteBuffer> arguments, Map<String,String> options, boolean autoCleanup) throws ThriftSecurityException, ThriftTableOperationException, TException {
       authenticate(c);
 
@@ -1160,8 +1157,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
             throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
           checkNotSystemNamespace(namespace, TableOperation.CREATE);
-          checkTableNamespaceName(namespace, TableOperation.CREATE);
-          fate.seedTransaction(opid, new TraceRepo<Master>(new CreateTableNamespace(c.getPrincipal(), namespace, options)), autoCleanup);
+          checkNamespaceName(namespace, TableOperation.CREATE);
+          fate.seedTransaction(opid, new TraceRepo<Master>(new CreateNamespace(c.getPrincipal(), namespace, options)), autoCleanup);
           break;
         }
         case RENAME: {
@@ -1172,11 +1169,11 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
           checkNotSystemNamespace(oldName, TableOperation.RENAME);
           checkNotSystemNamespace(newName, TableOperation.RENAME);
-          checkTableNamespaceName(newName, TableOperation.RENAME);
+          checkNamespaceName(newName, TableOperation.RENAME);
           if (!security.canRenameNamespace(c, namespaceId, oldName, newName))
             throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
-          fate.seedTransaction(opid, new TraceRepo<Master>(new RenameTableNamespace(namespaceId, oldName, newName)), autoCleanup);
+          fate.seedTransaction(opid, new TraceRepo<Master>(new RenameNamespace(namespaceId, oldName, newName)), autoCleanup);
           break;
         }
         case DELETE: {
@@ -1186,7 +1183,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           if (!security.canDeleteNamespace(c, namespaceId))
             throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
-          fate.seedTransaction(opid, new TraceRepo<Master>(new DeleteTableNamespace(namespaceId)), autoCleanup);
+          fate.seedTransaction(opid, new TraceRepo<Master>(new DeleteNamespace(namespaceId)), autoCleanup);
           break;
         }
         default:
@@ -1196,53 +1193,53 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
 
     private void checkNotSystemNamespace(String namespace, TableOperation operation) throws ThriftTableOperationException {
-      if (Constants.SYSTEM_TABLE_NAMESPACE.equals(namespace)) {
-        String why = "Table namespaces cannot be == " + Constants.SYSTEM_TABLE_NAMESPACE;
+      if (Constants.SYSTEM_NAMESPACE.equals(namespace)) {
+        String why = "Namespaces cannot be == " + Constants.SYSTEM_NAMESPACE;
         log.warn(why);
         throw new ThriftTableOperationException(null, namespace, operation, TableOperationExceptionType.OTHER, why);
       }
     }
 
-    private void checkTableNamespaceName(String namespace, TableOperation operation) throws ThriftTableOperationException {
-      if (!namespace.matches(Constants.VALID_TABLE_NAMESPACE_REGEX)) {
-        String why = "Table namespaces must only contain word characters (letters, digits, and underscores): " + namespace;
+    private void checkNamespaceName(String namespace, TableOperation operation) throws ThriftTableOperationException {
+      if (!namespace.matches(Constants.VALID_NAMESPACE_REGEX)) {
+        String why = "Namespaces must only contain word characters (letters, digits, and underscores): " + namespace;
         log.warn(why);
         throw new ThriftTableOperationException(null, namespace, operation, TableOperationExceptionType.OTHER, why);
       }
-      if (TableNamespaces.getNameToIdMap(instance).containsKey(namespace)) {
-        String why = "Table namespace already exists: " + namespace;
+      if (Namespaces.getNameToIdMap(instance).containsKey(namespace)) {
+        String why = "Namespace already exists: " + namespace;
         throw new ThriftTableOperationException(null, namespace, operation, TableOperationExceptionType.EXISTS, why);
       }
     }
 
     private String checkNamespaceId(String namespace, TableOperation operation) throws ThriftTableOperationException {
-      final String namespaceId = TableNamespaces.getNameToIdMap(getConfiguration().getInstance()).get(namespace);
+      final String namespaceId = Namespaces.getNameToIdMap(getConfiguration().getInstance()).get(namespace);
       if (namespaceId == null)
         throw new ThriftTableOperationException(null, namespace, operation, TableOperationExceptionType.NOTFOUND, null);
       return namespaceId;
     }
 
     @Override
-    public String waitForTableNamespaceOperation(TInfo tinfo, TCredentials credentials, long opid) throws ThriftSecurityException,
-        ThriftTableOperationException, TException {
+    public String waitForNamespaceOperation(TInfo tinfo, TCredentials credentials, long opid) throws ThriftSecurityException, ThriftTableOperationException,
+        TException {
       return waitForTableOperation(tinfo, credentials, opid);
     }
 
     @Override
-    public void finishTableNamespaceOperation(TInfo tinfo, TCredentials credentials, long opid) throws ThriftSecurityException, TException {
+    public void finishNamespaceOperation(TInfo tinfo, TCredentials credentials, long opid) throws ThriftSecurityException, TException {
       finishTableOperation(tinfo, credentials, opid);
     }
 
     @Override
-    public void setTableNamespaceProperty(TInfo tinfo, TCredentials credentials, String ns, String property, String value) throws ThriftSecurityException,
+    public void setNamespaceProperty(TInfo tinfo, TCredentials credentials, String ns, String property, String value) throws ThriftSecurityException,
         ThriftTableOperationException, TException {
-      alterTableNamespaceProperty(credentials, ns, property, value, TableOperation.SET_PROPERTY);
+      alterNamespaceProperty(credentials, ns, property, value, TableOperation.SET_PROPERTY);
     }
 
     @Override
-    public void removeTableNamespaceProperty(TInfo tinfo, TCredentials credentials, String ns, String property) throws ThriftSecurityException,
+    public void removeNamespaceProperty(TInfo tinfo, TCredentials credentials, String ns, String property) throws ThriftSecurityException,
         ThriftTableOperationException, TException {
-      alterTableNamespaceProperty(credentials, ns, property, null, TableOperation.REMOVE_PROPERTY);
+      alterNamespaceProperty(credentials, ns, property, null, TableOperation.REMOVE_PROPERTY);
     }
   }
 

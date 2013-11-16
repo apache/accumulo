@@ -19,40 +19,43 @@ package org.apache.accumulo.core.client;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 
 /**
- * Thrown when the table namespace specified contains tables
+ * Thrown when the namespace specified doesn't exist when it was expected to
  */
-public class TableNamespaceNotEmptyException extends Exception {
-
+public class NamespaceNotFoundException extends Exception {
+  /**
+   * Exception to throw if an operation is attempted on a namespace that doesn't exist.
+   * 
+   */
   private static final long serialVersionUID = 1L;
 
   private String namespace;
 
   /**
    * @param namespaceId
-   *          the internal id of the table namespace
+   *          the internal id of the namespace that was sought
    * @param namespaceName
-   *          the visible name of the table namespace
+   *          the visible name of the namespace that was sought
    * @param description
    *          the specific reason why it failed
    */
-  public TableNamespaceNotEmptyException(String namespaceId, String namespaceName, String description) {
-    super("Table namespace" + (namespaceName != null && !namespaceName.isEmpty() ? " " + namespaceName : "")
-        + (namespaceId != null && !namespaceId.isEmpty() ? " (Id=" + namespaceId + ")" : "") + " it not empty, contains at least one table"
+  public NamespaceNotFoundException(String namespaceId, String namespaceName, String description) {
+    super("Namespace" + (namespaceName != null && !namespaceName.isEmpty() ? " " + namespaceName : "")
+        + (namespaceId != null && !namespaceId.isEmpty() ? " (Id=" + namespaceId + ")" : "") + " does not exist"
         + (description != null && !description.isEmpty() ? " (" + description + ")" : ""));
     this.namespace = namespaceName;
   }
 
   /**
    * @param namespaceId
-   *          the internal id of the table namespace
+   *          the internal id of the namespace that was sought
    * @param namespaceName
-   *          the visible name of the table namespace
+   *          the visible name of the namespace that was sought
    * @param description
    *          the specific reason why it failed
    * @param cause
    *          the exception that caused this failure
    */
-  public TableNamespaceNotEmptyException(String namespaceId, String namespaceName, String description, Throwable cause) {
+  public NamespaceNotFoundException(String namespaceId, String namespaceName, String description, Throwable cause) {
     this(namespaceId, namespaceName, description);
     super.initCause(cause);
   }
@@ -61,12 +64,12 @@ public class TableNamespaceNotEmptyException extends Exception {
    * @param e
    *          constructs an exception from a thrift exception
    */
-  public TableNamespaceNotEmptyException(ThriftTableOperationException e) {
+  public NamespaceNotFoundException(ThriftTableOperationException e) {
     this(e.getTableId(), e.getTableName(), e.getDescription(), e);
   }
 
   /**
-   * @return the name of the table namespace
+   * @return the name of the namespace sought
    */
   public String getNamespaceName() {
     return namespace;

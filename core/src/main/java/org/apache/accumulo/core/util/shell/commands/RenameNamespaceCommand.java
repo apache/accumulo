@@ -22,11 +22,11 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.NamespaceExistsException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableExistsException;
-import org.apache.accumulo.core.client.TableNamespaceExistsException;
-import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.impl.TableNamespaces;
+import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
@@ -36,19 +36,19 @@ import org.apache.commons.cli.CommandLine;
 public class RenameNamespaceCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException, TableExistsException, TableNamespaceNotFoundException, TableNamespaceExistsException {
+      TableNotFoundException, TableExistsException, NamespaceNotFoundException, NamespaceExistsException {
     String old = cl.getArgs()[0];
     String newer = cl.getArgs()[1];
     boolean resetContext = false;
     String currentTableId = "";
     if (!(shellState.getTableName() == null) && !shellState.getTableName().isEmpty()) {
-      String namespaceId = TableNamespaces.getNamespaceId(shellState.getInstance(), old);
-      List<String> tableIds = TableNamespaces.getTableIds(shellState.getInstance(), namespaceId);
+      String namespaceId = Namespaces.getNamespaceId(shellState.getInstance(), old);
+      List<String> tableIds = Namespaces.getTableIds(shellState.getInstance(), namespaceId);
       currentTableId = Tables.getTableId(shellState.getInstance(), shellState.getTableName());
       resetContext = tableIds.contains(currentTableId);
     }
 
-    shellState.getConnector().tableNamespaceOperations().rename(old, newer);
+    shellState.getConnector().namespaceOperations().rename(old, newer);
 
     if (resetContext) {
       shellState.setTableName(Tables.getTableName(shellState.getInstance(), currentTableId));
@@ -59,17 +59,17 @@ public class RenameNamespaceCommand extends Command {
 
   @Override
   public String usage() {
-    return getName() + " <current table namespace> <new table namespace>";
+    return getName() + " <current namespace> <new namespace>";
   }
 
   @Override
   public String description() {
-    return "renames a table namespace";
+    return "renames a namespace";
   }
 
   @Override
   public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> special) {
-    registerCompletionForTableNamespaces(root, special);
+    registerCompletionForNamespaces(root, special);
   }
 
   @Override

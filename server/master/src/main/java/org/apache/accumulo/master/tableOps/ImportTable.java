@@ -34,9 +34,9 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperationsImpl;
-import org.apache.accumulo.core.client.impl.TableNamespaces;
+import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
@@ -109,7 +109,7 @@ class FinishImportTable extends MasterRepo {
     
     TableManager.getInstance().transitionTableState(tableInfo.tableId, TableState.ONLINE);
     
-    Utils.unreserveTableNamespace(tableInfo.namespaceId, tid, false);
+    Utils.unreserveNamespace(tableInfo.namespaceId, tid, false);
     Utils.unreserveTable(tableInfo.tableId, tid, true);
     
     Utils.unreserveHdfsDirectory(new Path(tableInfo.exportDir).toString(), tid);
@@ -450,7 +450,7 @@ class ImportPopulateZookeeper extends MasterRepo {
       TableManager.getInstance().addTable(tableInfo.tableId, tableInfo.tableName, NodeExistsPolicy.OVERWRITE);
       
       String namespace = Tables.extractNamespace(tableInfo.tableName);
-      String namespaceId = TableNamespaces.getNamespaceId(instance, namespace);
+      String namespaceId = Namespaces.getNamespaceId(instance, namespace);
       TableManager.getInstance().addNamespaceToTable(tableInfo.tableId, namespaceId);
       
       Tables.clearCache(instance);
@@ -521,18 +521,18 @@ public class ImportTable extends MasterRepo {
   
   private ImportedTableInfo tableInfo;
   
-  public ImportTable(String user, String tableName, String exportDir) throws TableNamespaceNotFoundException {
+  public ImportTable(String user, String tableName, String exportDir) throws NamespaceNotFoundException {
     tableInfo = new ImportedTableInfo();
     tableInfo.tableName = tableName;
     tableInfo.user = user;
     tableInfo.exportDir = exportDir;
     Instance inst = HdfsZooInstance.getInstance();
-    tableInfo.namespaceId = TableNamespaces.getNamespaceId(inst, Tables.extractNamespace(tableName));
+    tableInfo.namespaceId = Namespaces.getNamespaceId(inst, Tables.extractNamespace(tableName));
   }
   
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-    return Utils.reserveHdfsDirectory(new Path(tableInfo.exportDir).toString(), tid) + Utils.reserveTableNamespace(tableInfo.namespaceId, tid, false, true, TableOperation.IMPORT);
+    return Utils.reserveHdfsDirectory(new Path(tableInfo.exportDir).toString(), tid) + Utils.reserveNamespace(tableInfo.namespaceId, tid, false, true, TableOperation.IMPORT);
   }
   
   @Override
@@ -612,6 +612,6 @@ public class ImportTable extends MasterRepo {
   @Override
   public void undo(long tid, Master env) throws Exception {
     Utils.unreserveHdfsDirectory(new Path(tableInfo.exportDir).toString(), tid);
-    Utils.unreserveTableNamespace(tableInfo.namespaceId, tid, false);
+    Utils.unreserveNamespace(tableInfo.namespaceId, tid, false);
   }
 }

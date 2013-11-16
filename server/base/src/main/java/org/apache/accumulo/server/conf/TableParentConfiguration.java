@@ -20,9 +20,9 @@ import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 
 /**
- * Used by TableConfiguration to dynamically get the TableNamespaceConfiguration if the namespace changes
+ * Used by TableConfiguration to dynamically get the NamespaceConfiguration if the namespace changes
  */
-public class TableParentConfiguration extends TableNamespaceConfiguration {
+public class TableParentConfiguration extends NamespaceConfiguration {
 
   private String tableId;
 

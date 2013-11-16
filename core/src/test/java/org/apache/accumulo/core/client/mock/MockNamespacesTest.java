@@ -32,10 +32,11 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.NamespaceNotEmptyException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableNamespaceNotEmptyException;
-import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -47,7 +48,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-public class MockTableNamespacesTest {
+public class MockNamespacesTest {
 
   Random random = new Random();
   public static TemporaryFolder folder = new TemporaryFolder();
@@ -63,7 +64,7 @@ public class MockTableNamespacesTest {
     Instance instance = new MockInstance("default");
     Connector c = instance.getConnector("user", new PasswordToken("pass"));
 
-    assertTrue(c.tableNamespaceOperations().exists(Constants.DEFAULT_TABLE_NAMESPACE));
+    assertTrue(c.namespaceOperations().exists(Constants.DEFAULT_NAMESPACE));
     c.tableOperations().create(tableName);
     assertTrue(c.tableOperations().exists(tableName));
   }
@@ -84,8 +85,8 @@ public class MockTableNamespacesTest {
     Instance instance = new MockInstance("createdelete");
     Connector c = instance.getConnector("user", new PasswordToken("pass"));
 
-    c.tableNamespaceOperations().create(namespace);
-    assertTrue(c.tableNamespaceOperations().exists(namespace));
+    c.namespaceOperations().create(namespace);
+    assertTrue(c.namespaceOperations().exists(namespace));
 
     c.tableOperations().create(tableName1);
     assertTrue(c.tableOperations().exists(tableName1));
@@ -96,28 +97,28 @@ public class MockTableNamespacesTest {
     // deleting
     try {
       // can't delete a namespace with tables in it
-      c.tableNamespaceOperations().delete(namespace);
+      c.namespaceOperations().delete(namespace);
       fail();
-    } catch (TableNamespaceNotEmptyException e) {
+    } catch (NamespaceNotEmptyException e) {
       // ignore, supposed to happen
     }
-    assertTrue(c.tableNamespaceOperations().exists(namespace));
+    assertTrue(c.namespaceOperations().exists(namespace));
     assertTrue(c.tableOperations().exists(tableName1));
     assertTrue(c.tableOperations().exists(tableName2));
 
     c.tableOperations().delete(tableName2);
     assertTrue(!c.tableOperations().exists(tableName2));
-    assertTrue(c.tableNamespaceOperations().exists(namespace));
+    assertTrue(c.namespaceOperations().exists(namespace));
 
     c.tableOperations().delete(tableName1);
     assertTrue(!c.tableOperations().exists(tableName1));
-    c.tableNamespaceOperations().delete(namespace);
-    assertTrue(!c.tableNamespaceOperations().exists(namespace));
+    c.namespaceOperations().delete(namespace);
+    assertTrue(!c.namespaceOperations().exists(namespace));
   }
 
   /**
    * This test creates a namespace, modifies it's properties, and checks to make sure that those properties are applied to its tables. To do something on a
-   * namespace-wide level, use TableNamespaceOperations.
+   * namespace-wide level, use {@link NamespaceOperations}.
    * 
    * Checks to make sure namespace-level properties are overridden by table-level properties.
    * 
@@ -138,12 +139,12 @@ public class MockTableNamespacesTest {
     Instance instance = new MockInstance("props");
     Connector c = instance.getConnector("user", new PasswordToken("pass"));
 
-    c.tableNamespaceOperations().create(namespace);
+    c.namespaceOperations().create(namespace);
     c.tableOperations().create(tableName1);
-    c.tableNamespaceOperations().setProperty(namespace, propKey, propVal);
+    c.namespaceOperations().setProperty(namespace, propKey, propVal);
 
     // check the namespace has the property
-    assertTrue(checkTableNamespaceHasProp(c, namespace, propKey, propVal));
+    assertTrue(checkNamespaceHasProp(c, namespace, propKey, propVal));
 
     // check that the table gets it from the namespace
     assertTrue(checkTableHasProp(c, tableName1, propKey, propVal));
@@ -159,7 +160,7 @@ public class MockTableNamespacesTest {
     String tablePropVal = "13";
 
     c.tableOperations().setProperty(tableName2, propKey2, tablePropVal);
-    c.tableNamespaceOperations().setProperty("propchange", propKey2, propVal2);
+    c.namespaceOperations().setProperty("propchange", propKey2, propVal2);
 
     assertTrue(checkTableHasProp(c, tableName2, propKey2, tablePropVal));
 
@@ -167,7 +168,7 @@ public class MockTableNamespacesTest {
     propVal = "13K";
     String tableName = "some_table";
     c.tableOperations().create(tableName);
-    c.tableNamespaceOperations().setProperty(Constants.DEFAULT_TABLE_NAMESPACE, propKey, propVal);
+    c.namespaceOperations().setProperty(Constants.DEFAULT_NAMESPACE, propKey, propVal);
 
     assertTrue(checkTableHasProp(c, tableName, propKey, propVal));
 
@@ -177,7 +178,7 @@ public class MockTableNamespacesTest {
     c.tableOperations().create(tableName3);
 
     IteratorSetting setting = new IteratorSetting(250, "thing", SimpleFilter.class.getName());
-    c.tableNamespaceOperations().attachIterator(namespace, setting);
+    c.namespaceOperations().attachIterator(namespace, setting);
 
     BatchWriter bw = c.createBatchWriter(tableName3, new BatchWriterConfig());
     Mutation m = new Mutation("r");
@@ -208,8 +209,8 @@ public class MockTableNamespacesTest {
     Connector c = instance.getConnector("user", new PasswordToken("pass"));
 
     c.tableOperations().create(tableName);
-    c.tableNamespaceOperations().create(namespace1);
-    c.tableNamespaceOperations().create(namespace2);
+    c.namespaceOperations().create(namespace1);
+    c.namespaceOperations().create(namespace2);
 
     c.tableOperations().rename(tableName, tableName1);
 
@@ -226,7 +227,7 @@ public class MockTableNamespacesTest {
   }
 
   /**
-   * This test renames a table namespace and ensures that its tables are still correct
+   * This test renames a namespace and ensures that its tables are still correct
    */
   @Test
   public void testNamespaceRename() throws Exception {
@@ -237,13 +238,13 @@ public class MockTableNamespacesTest {
     Instance instance = new MockInstance("rename");
     Connector c = instance.getConnector("user", new PasswordToken("pass"));
 
-    c.tableNamespaceOperations().create(namespace1);
+    c.namespaceOperations().create(namespace1);
     c.tableOperations().create(namespace1 + "." + table);
 
-    c.tableNamespaceOperations().rename(namespace1, namespace2);
+    c.namespaceOperations().rename(namespace1, namespace2);
 
-    assertTrue(!c.tableNamespaceOperations().exists(namespace1));
-    assertTrue(c.tableNamespaceOperations().exists(namespace2));
+    assertTrue(!c.namespaceOperations().exists(namespace1));
+    assertTrue(c.namespaceOperations().exists(namespace2));
     assertTrue(!c.tableOperations().exists(namespace1 + "." + table));
     assertTrue(c.tableOperations().exists(namespace2 + "." + table));
   }
@@ -260,13 +261,13 @@ public class MockTableNamespacesTest {
     String tableName = namespace + ".table";
     String iter = "thing";
 
-    c.tableNamespaceOperations().create(namespace);
+    c.namespaceOperations().create(namespace);
     c.tableOperations().create(tableName);
 
     IteratorSetting setting = new IteratorSetting(250, iter, SimpleFilter.class.getName());
     HashSet<IteratorScope> scope = new HashSet<IteratorScope>();
     scope.add(IteratorScope.scan);
-    c.tableNamespaceOperations().attachIterator(namespace, setting, EnumSet.copyOf(scope));
+    c.namespaceOperations().attachIterator(namespace, setting, EnumSet.copyOf(scope));
 
     BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m = new Mutation("r");
@@ -279,8 +280,8 @@ public class MockTableNamespacesTest {
     // do scanners work correctly in mock?
     // assertTrue(!s.iterator().hasNext());
 
-    assertTrue(c.tableNamespaceOperations().listIterators(namespace).containsKey(iter));
-    c.tableNamespaceOperations().removeIterator(namespace, iter, EnumSet.copyOf(scope));
+    assertTrue(c.namespaceOperations().listIterators(namespace).containsKey(iter));
+    c.namespaceOperations().removeIterator(namespace, iter, EnumSet.copyOf(scope));
   }
 
   private boolean checkTableHasProp(Connector c, String t, String propKey, String propVal) throws AccumuloException, TableNotFoundException {
@@ -292,8 +293,8 @@ public class MockTableNamespacesTest {
     return false;
   }
 
-  private boolean checkTableNamespaceHasProp(Connector c, String n, String propKey, String propVal) throws AccumuloException, TableNamespaceNotFoundException {
-    for (Entry<String,String> e : c.tableNamespaceOperations().getProperties(n)) {
+  private boolean checkNamespaceHasProp(Connector c, String n, String propKey, String propVal) throws AccumuloException, NamespaceNotFoundException {
+    for (Entry<String,String> e : c.namespaceOperations().getProperties(n)) {
       if (e.getKey().equals(propKey) && e.getValue().equals(propVal)) {
         return true;
       }

@@ -58,9 +58,9 @@ import org.slf4j.LoggerFactory;
 
     public void removeTableProperty(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String tableName, String property) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException;
 
-    public void setTableNamespaceProperty(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, String property, String value) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException;
+    public void setNamespaceProperty(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, String property, String value) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException;
 
-    public void removeTableNamespaceProperty(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, String property) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException;
+    public void removeNamespaceProperty(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, String property) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException;
 
     public void setMasterGoalState(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, MasterGoalState state) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
@@ -86,13 +86,13 @@ import org.slf4j.LoggerFactory;
 
     public void finishTableOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public long beginTableNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public long beginNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public void executeTableNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, TableOperation op, List<ByteBuffer> arguments, Map<String,String> options, boolean autoClean) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException;
+    public void executeNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, TableOperation op, List<ByteBuffer> arguments, Map<String,String> options, boolean autoClean) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException;
 
-    public String waitForTableNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException;
+    public String waitForNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException;
 
-    public void finishTableNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public void finishNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
   }
 
@@ -106,9 +106,9 @@ import org.slf4j.LoggerFactory;
 
     public void removeTableProperty(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String tableName, String property, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.removeTableProperty_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void setTableNamespaceProperty(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, String property, String value, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.setTableNamespaceProperty_call> resultHandler) throws org.apache.thrift.TException;
+    public void setNamespaceProperty(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, String property, String value, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.setNamespaceProperty_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void removeTableNamespaceProperty(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, String property, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.removeTableNamespaceProperty_call> resultHandler) throws org.apache.thrift.TException;
+    public void removeNamespaceProperty(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, String property, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.removeNamespaceProperty_call> resultHandler) throws org.apache.thrift.TException;
 
     public void setMasterGoalState(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, MasterGoalState state, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.setMasterGoalState_call> resultHandler) throws org.apache.thrift.TException;
 
@@ -134,13 +134,13 @@ import org.slf4j.LoggerFactory;
 
     public void finishTableOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.finishTableOperation_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void beginTableNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.beginTableNamespaceOperation_call> resultHandler) throws org.apache.thrift.TException;
+    public void beginNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.beginNamespaceOperation_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void executeTableNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, TableOperation op, List<ByteBuffer> arguments, Map<String,String> options, boolean autoClean, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.executeTableNamespaceOperation_call> resultHandler) throws org.apache.thrift.TException;
+    public void executeNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, TableOperation op, List<ByteBuffer> arguments, Map<String,String> options, boolean autoClean, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.executeNamespaceOperation_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void waitForTableNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.waitForTableNamespaceOperation_call> resultHandler) throws org.apache.thrift.TException;
+    public void waitForNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.waitForNamespaceOperation_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void finishTableNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.finishTableNamespaceOperation_call> resultHandler) throws org.apache.thrift.TException;
+    public void finishNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.finishNamespaceOperation_call> resultHandler) throws org.apache.thrift.TException;
 
   }
 
@@ -286,27 +286,27 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void setTableNamespaceProperty(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, String property, String value) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException
+    public void setNamespaceProperty(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, String property, String value) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException
     {
-      send_setTableNamespaceProperty(tinfo, credentials, ns, property, value);
-      recv_setTableNamespaceProperty();
+      send_setNamespaceProperty(tinfo, credentials, ns, property, value);
+      recv_setNamespaceProperty();
     }
 
-    public void send_setTableNamespaceProperty(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, String property, String value) throws org.apache.thrift.TException
+    public void send_setNamespaceProperty(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, String property, String value) throws org.apache.thrift.TException
     {
-      setTableNamespaceProperty_args args = new setTableNamespaceProperty_args();
+      setNamespaceProperty_args args = new setNamespaceProperty_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
       args.setNs(ns);
       args.setProperty(property);
       args.setValue(value);
-      sendBase("setTableNamespaceProperty", args);
+      sendBase("setNamespaceProperty", args);
     }
 
-    public void recv_setTableNamespaceProperty() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException
+    public void recv_setNamespaceProperty() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException
     {
-      setTableNamespaceProperty_result result = new setTableNamespaceProperty_result();
-      receiveBase(result, "setTableNamespaceProperty");
+      setNamespaceProperty_result result = new setNamespaceProperty_result();
+      receiveBase(result, "setNamespaceProperty");
       if (result.sec != null) {
         throw result.sec;
       }
@@ -316,26 +316,26 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void removeTableNamespaceProperty(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, String property) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException
+    public void removeNamespaceProperty(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, String property) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException
     {
-      send_removeTableNamespaceProperty(tinfo, credentials, ns, property);
-      recv_removeTableNamespaceProperty();
+      send_removeNamespaceProperty(tinfo, credentials, ns, property);
+      recv_removeNamespaceProperty();
     }
 
-    public void send_removeTableNamespaceProperty(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, String property) throws org.apache.thrift.TException
+    public void send_removeNamespaceProperty(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, String property) throws org.apache.thrift.TException
     {
-      removeTableNamespaceProperty_args args = new removeTableNamespaceProperty_args();
+      removeNamespaceProperty_args args = new removeNamespaceProperty_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
       args.setNs(ns);
       args.setProperty(property);
-      sendBase("removeTableNamespaceProperty", args);
+      sendBase("removeNamespaceProperty", args);
     }
 
-    public void recv_removeTableNamespaceProperty() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException
+    public void recv_removeNamespaceProperty() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException
     {
-      removeTableNamespaceProperty_result result = new removeTableNamespaceProperty_result();
-      receiveBase(result, "removeTableNamespaceProperty");
+      removeNamespaceProperty_result result = new removeNamespaceProperty_result();
+      receiveBase(result, "removeNamespaceProperty");
       if (result.sec != null) {
         throw result.sec;
       }
@@ -645,42 +645,42 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public long beginTableNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public long beginNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
-      send_beginTableNamespaceOperation(tinfo, credentials);
-      return recv_beginTableNamespaceOperation();
+      send_beginNamespaceOperation(tinfo, credentials);
+      return recv_beginNamespaceOperation();
     }
 
-    public void send_beginTableNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.thrift.TException
+    public void send_beginNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.thrift.TException
     {
-      beginTableNamespaceOperation_args args = new beginTableNamespaceOperation_args();
+      beginNamespaceOperation_args args = new beginNamespaceOperation_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
-      sendBase("beginTableNamespaceOperation", args);
+      sendBase("beginNamespaceOperation", args);
     }
 
-    public long recv_beginTableNamespaceOperation() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public long recv_beginNamespaceOperation() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
-      beginTableNamespaceOperation_result result = new beginTableNamespaceOperation_result();
-      receiveBase(result, "beginTableNamespaceOperation");
+      beginNamespaceOperation_result result = new beginNamespaceOperation_result();
+      receiveBase(result, "beginNamespaceOperation");
       if (result.isSetSuccess()) {
         return result.success;
       }
       if (result.sec != null) {
         throw result.sec;
       }
-      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "beginTableNamespaceOperation failed: unknown result");
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "beginNamespaceOperation failed: unknown result");
     }
 
-    public void executeTableNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, TableOperation op, List<ByteBuffer> arguments, Map<String,String> options, boolean autoClean) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException
+    public void executeNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, TableOperation op, List<ByteBuffer> arguments, Map<String,String> options, boolean autoClean) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException
     {
-      send_executeTableNamespaceOperation(tinfo, credentials, opid, op, arguments, options, autoClean);
-      recv_executeTableNamespaceOperation();
+      send_executeNamespaceOperation(tinfo, credentials, opid, op, arguments, options, autoClean);
+      recv_executeNamespaceOperation();
     }
 
-    public void send_executeTableNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, TableOperation op, List<ByteBuffer> arguments, Map<String,String> options, boolean autoClean) throws org.apache.thrift.TException
+    public void send_executeNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, TableOperation op, List<ByteBuffer> arguments, Map<String,String> options, boolean autoClean) throws org.apache.thrift.TException
     {
-      executeTableNamespaceOperation_args args = new executeTableNamespaceOperation_args();
+      executeNamespaceOperation_args args = new executeNamespaceOperation_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
       args.setOpid(opid);
@@ -688,13 +688,13 @@ import org.slf4j.LoggerFactory;
       args.setArguments(arguments);
       args.setOptions(options);
       args.setAutoClean(autoClean);
-      sendBase("executeTableNamespaceOperation", args);
+      sendBase("executeNamespaceOperation", args);
     }
 
-    public void recv_executeTableNamespaceOperation() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException
+    public void recv_executeNamespaceOperation() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException
     {
-      executeTableNamespaceOperation_result result = new executeTableNamespaceOperation_result();
-      receiveBase(result, "executeTableNamespaceOperation");
+      executeNamespaceOperation_result result = new executeNamespaceOperation_result();
+      receiveBase(result, "executeNamespaceOperation");
       if (result.sec != null) {
         throw result.sec;
       }
@@ -704,25 +704,25 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public String waitForTableNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException
+    public String waitForNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException
     {
-      send_waitForTableNamespaceOperation(tinfo, credentials, opid);
-      return recv_waitForTableNamespaceOperation();
+      send_waitForNamespaceOperation(tinfo, credentials, opid);
+      return recv_waitForNamespaceOperation();
     }
 
-    public void send_waitForTableNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid) throws org.apache.thrift.TException
+    public void send_waitForNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid) throws org.apache.thrift.TException
     {
-      waitForTableNamespaceOperation_args args = new waitForTableNamespaceOperation_args();
+      waitForNamespaceOperation_args args = new waitForNamespaceOperation_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
       args.setOpid(opid);
-      sendBase("waitForTableNamespaceOperation", args);
+      sendBase("waitForNamespaceOperation", args);
     }
 
-    public String recv_waitForTableNamespaceOperation() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException
+    public String recv_waitForNamespaceOperation() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException
     {
-      waitForTableNamespaceOperation_result result = new waitForTableNamespaceOperation_result();
-      receiveBase(result, "waitForTableNamespaceOperation");
+      waitForNamespaceOperation_result result = new waitForNamespaceOperation_result();
+      receiveBase(result, "waitForNamespaceOperation");
       if (result.isSetSuccess()) {
         return result.success;
       }
@@ -732,28 +732,28 @@ import org.slf4j.LoggerFactory;
       if (result.tope != null) {
         throw result.tope;
       }
-      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "waitForTableNamespaceOperation failed: unknown result");
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "waitForNamespaceOperation failed: unknown result");
     }
 
-    public void finishTableNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public void finishNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
-      send_finishTableNamespaceOperation(tinfo, credentials, opid);
-      recv_finishTableNamespaceOperation();
+      send_finishNamespaceOperation(tinfo, credentials, opid);
+      recv_finishNamespaceOperation();
     }
 
-    public void send_finishTableNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid) throws org.apache.thrift.TException
+    public void send_finishNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid) throws org.apache.thrift.TException
     {
-      finishTableNamespaceOperation_args args = new finishTableNamespaceOperation_args();
+      finishNamespaceOperation_args args = new finishNamespaceOperation_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
       args.setOpid(opid);
-      sendBase("finishTableNamespaceOperation", args);
+      sendBase("finishNamespaceOperation", args);
     }
 
-    public void recv_finishTableNamespaceOperation() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public void recv_finishNamespaceOperation() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
-      finishTableNamespaceOperation_result result = new finishTableNamespaceOperation_result();
-      receiveBase(result, "finishTableNamespaceOperation");
+      finishNamespaceOperation_result result = new finishNamespaceOperation_result();
+      receiveBase(result, "finishNamespaceOperation");
       if (result.sec != null) {
         throw result.sec;
       }
@@ -951,20 +951,20 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void setTableNamespaceProperty(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, String property, String value, org.apache.thrift.async.AsyncMethodCallback<setTableNamespaceProperty_call> resultHandler) throws org.apache.thrift.TException {
+    public void setNamespaceProperty(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, String property, String value, org.apache.thrift.async.AsyncMethodCallback<setNamespaceProperty_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      setTableNamespaceProperty_call method_call = new setTableNamespaceProperty_call(tinfo, credentials, ns, property, value, resultHandler, this, ___protocolFactory, ___transport);
+      setNamespaceProperty_call method_call = new setNamespaceProperty_call(tinfo, credentials, ns, property, value, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
-    public static class setTableNamespaceProperty_call extends org.apache.thrift.async.TAsyncMethodCall {
+    public static class setNamespaceProperty_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.trace.thrift.TInfo tinfo;
       private org.apache.accumulo.core.security.thrift.TCredentials credentials;
       private String ns;
       private String property;
       private String value;
-      public setTableNamespaceProperty_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, String property, String value, org.apache.thrift.async.AsyncMethodCallback<setTableNamespaceProperty_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public setNamespaceProperty_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, String property, String value, org.apache.thrift.async.AsyncMethodCallback<setNamespaceProperty_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -974,8 +974,8 @@ import org.slf4j.LoggerFactory;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
-        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("setTableNamespaceProperty", org.apache.thrift.protocol.TMessageType.CALL, 0));
-        setTableNamespaceProperty_args args = new setTableNamespaceProperty_args();
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("setNamespaceProperty", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        setNamespaceProperty_args args = new setNamespaceProperty_args();
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
         args.setNs(ns);
@@ -991,23 +991,23 @@ import org.slf4j.LoggerFactory;
         }
         org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
         org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
-        (new Client(prot)).recv_setTableNamespaceProperty();
+        (new Client(prot)).recv_setNamespaceProperty();
       }
     }
 
-    public void removeTableNamespaceProperty(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, String property, org.apache.thrift.async.AsyncMethodCallback<removeTableNamespaceProperty_call> resultHandler) throws org.apache.thrift.TException {
+    public void removeNamespaceProperty(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, String property, org.apache.thrift.async.AsyncMethodCallback<removeNamespaceProperty_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      removeTableNamespaceProperty_call method_call = new removeTableNamespaceProperty_call(tinfo, credentials, ns, property, resultHandler, this, ___protocolFactory, ___transport);
+      removeNamespaceProperty_call method_call = new removeNamespaceProperty_call(tinfo, credentials, ns, property, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
-    public static class removeTableNamespaceProperty_call extends org.apache.thrift.async.TAsyncMethodCall {
+    public static class removeNamespaceProperty_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.trace.thrift.TInfo tinfo;
       private org.apache.accumulo.core.security.thrift.TCredentials credentials;
       private String ns;
       private String property;
-      public removeTableNamespaceProperty_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, String property, org.apache.thrift.async.AsyncMethodCallback<removeTableNamespaceProperty_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public removeNamespaceProperty_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, String property, org.apache.thrift.async.AsyncMethodCallback<removeNamespaceProperty_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -1016,8 +1016,8 @@ import org.slf4j.LoggerFactory;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
-        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("removeTableNamespaceProperty", org.apache.thrift.protocol.TMessageType.CALL, 0));
-        removeTableNamespaceProperty_args args = new removeTableNamespaceProperty_args();
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("removeNamespaceProperty", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        removeNamespaceProperty_args args = new removeNamespaceProperty_args();
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
         args.setNs(ns);
@@ -1032,7 +1032,7 @@ import org.slf4j.LoggerFactory;
         }
         org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
         org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
-        (new Client(prot)).recv_removeTableNamespaceProperty();
+        (new Client(prot)).recv_removeNamespaceProperty();
       }
     }
 
@@ -1511,25 +1511,25 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void beginTableNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<beginTableNamespaceOperation_call> resultHandler) throws org.apache.thrift.TException {
+    public void beginNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<beginNamespaceOperation_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      beginTableNamespaceOperation_call method_call = new beginTableNamespaceOperation_call(tinfo, credentials, resultHandler, this, ___protocolFactory, ___transport);
+      beginNamespaceOperation_call method_call = new beginNamespaceOperation_call(tinfo, credentials, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
-    public static class beginTableNamespaceOperation_call extends org.apache.thrift.async.TAsyncMethodCall {
+    public static class beginNamespaceOperation_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.trace.thrift.TInfo tinfo;
       private org.apache.accumulo.core.security.thrift.TCredentials credentials;
-      public beginTableNamespaceOperation_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<beginTableNamespaceOperation_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public beginNamespaceOperation_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<beginNamespaceOperation_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
-        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("beginTableNamespaceOperation", org.apache.thrift.protocol.TMessageType.CALL, 0));
-        beginTableNamespaceOperation_args args = new beginTableNamespaceOperation_args();
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("beginNamespaceOperation", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        beginNamespaceOperation_args args = new beginNamespaceOperation_args();
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
         args.write(prot);
@@ -1542,18 +1542,18 @@ import org.slf4j.LoggerFactory;
         }
         org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
         org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
-        return (new Client(prot)).recv_beginTableNamespaceOperation();
+        return (new Client(prot)).recv_beginNamespaceOperation();
       }
     }
 
-    public void executeTableNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, TableOperation op, List<ByteBuffer> arguments, Map<String,String> options, boolean autoClean, org.apache.thrift.async.AsyncMethodCallback<executeTableNamespaceOperation_call> resultHandler) throws org.apache.thrift.TException {
+    public void executeNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, TableOperation op, List<ByteBuffer> arguments, Map<String,String> options, boolean autoClean, org.apache.thrift.async.AsyncMethodCallback<executeNamespaceOperation_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      executeTableNamespaceOperation_call method_call = new executeTableNamespaceOperation_call(tinfo, credentials, opid, op, arguments, options, autoClean, resultHandler, this, ___protocolFactory, ___transport);
+      executeNamespaceOperation_call method_call = new executeNamespaceOperation_call(tinfo, credentials, opid, op, arguments, options, autoClean, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
-    public static class executeTableNamespaceOperation_call extends org.apache.thrift.async.TAsyncMethodCall {
+    public static class executeNamespaceOperation_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.trace.thrift.TInfo tinfo;
       private org.apache.accumulo.core.security.thrift.TCredentials credentials;
       private long opid;
@@ -1561,7 +1561,7 @@ import org.slf4j.LoggerFactory;
       private List<ByteBuffer> arguments;
       private Map<String,String> options;
       private boolean autoClean;
-      public executeTableNamespaceOperation_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, TableOperation op, List<ByteBuffer> arguments, Map<String,String> options, boolean autoClean, org.apache.thrift.async.AsyncMethodCallback<executeTableNamespaceOperation_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public executeNamespaceOperation_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, TableOperation op, List<ByteBuffer> arguments, Map<String,String> options, boolean autoClean, org.apache.thrift.async.AsyncMethodCallback<executeNamespaceOperation_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -1573,8 +1573,8 @@ import org.slf4j.LoggerFactory;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
-        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("executeTableNamespaceOperation", org.apache.thrift.protocol.TMessageType.CALL, 0));
-        executeTableNamespaceOperation_args args = new executeTableNamespaceOperation_args();
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("executeNamespaceOperation", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        executeNamespaceOperation_args args = new executeNamespaceOperation_args();
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
         args.setOpid(opid);
@@ -1592,22 +1592,22 @@ import org.slf4j.LoggerFactory;
         }
         org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
         org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
-        (new Client(prot)).recv_executeTableNamespaceOperation();
+        (new Client(prot)).recv_executeNamespaceOperation();
       }
     }
 
-    public void waitForTableNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, org.apache.thrift.async.AsyncMethodCallback<waitForTableNamespaceOperation_call> resultHandler) throws org.apache.thrift.TException {
+    public void waitForNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, org.apache.thrift.async.AsyncMethodCallback<waitForNamespaceOperation_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      waitForTableNamespaceOperation_call method_call = new waitForTableNamespaceOperation_call(tinfo, credentials, opid, resultHandler, this, ___protocolFactory, ___transport);
+      waitForNamespaceOperation_call method_call = new waitForNamespaceOperation_call(tinfo, credentials, opid, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
-    public static class waitForTableNamespaceOperation_call extends org.apache.thrift.async.TAsyncMethodCall {
+    public static class waitForNamespaceOperation_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.trace.thrift.TInfo tinfo;
       private org.apache.accumulo.core.security.thrift.TCredentials credentials;
       private long opid;
-      public waitForTableNamespaceOperation_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, org.apache.thrift.async.AsyncMethodCallback<waitForTableNamespaceOperation_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public waitForNamespaceOperation_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, org.apache.thrift.async.AsyncMethodCallback<waitForNamespaceOperation_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -1615,8 +1615,8 @@ import org.slf4j.LoggerFactory;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
-        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("waitForTableNamespaceOperation", org.apache.thrift.protocol.TMessageType.CALL, 0));
-        waitForTableNamespaceOperation_args args = new waitForTableNamespaceOperation_args();
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("waitForNamespaceOperation", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        waitForNamespaceOperation_args args = new waitForNamespaceOperation_args();
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
         args.setOpid(opid);
@@ -1630,22 +1630,22 @@ import org.slf4j.LoggerFactory;
         }
         org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
         org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
-        return (new Client(prot)).recv_waitForTableNamespaceOperation();
+        return (new Client(prot)).recv_waitForNamespaceOperation();
       }
     }
 
-    public void finishTableNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, org.apache.thrift.async.AsyncMethodCallback<finishTableNamespaceOperation_call> resultHandler) throws org.apache.thrift.TException {
+    public void finishNamespaceOperation(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, org.apache.thrift.async.AsyncMethodCallback<finishNamespaceOperation_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      finishTableNamespaceOperation_call method_call = new finishTableNamespaceOperation_call(tinfo, credentials, opid, resultHandler, this, ___protocolFactory, ___transport);
+      finishNamespaceOperation_call method_call = new finishNamespaceOperation_call(tinfo, credentials, opid, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
-    public static class finishTableNamespaceOperation_call extends org.apache.thrift.async.TAsyncMethodCall {
+    public static class finishNamespaceOperation_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.trace.thrift.TInfo tinfo;
       private org.apache.accumulo.core.security.thrift.TCredentials credentials;
       private long opid;
-      public finishTableNamespaceOperation_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, org.apache.thrift.async.AsyncMethodCallback<finishTableNamespaceOperation_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public finishNamespaceOperation_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, org.apache.thrift.async.AsyncMethodCallback<finishNamespaceOperation_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -1653,8 +1653,8 @@ import org.slf4j.LoggerFactory;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
-        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("finishTableNamespaceOperation", org.apache.thrift.protocol.TMessageType.CALL, 0));
-        finishTableNamespaceOperation_args args = new finishTableNamespaceOperation_args();
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("finishNamespaceOperation", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        finishNamespaceOperation_args args = new finishNamespaceOperation_args();
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
         args.setOpid(opid);
@@ -1668,7 +1668,7 @@ import org.slf4j.LoggerFactory;
         }
         org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
         org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
-        (new Client(prot)).recv_finishTableNamespaceOperation();
+        (new Client(prot)).recv_finishNamespaceOperation();
       }
     }
 
@@ -1689,8 +1689,8 @@ import org.slf4j.LoggerFactory;
       processMap.put("waitForFlush", new waitForFlush());
       processMap.put("setTableProperty", new setTableProperty());
       processMap.put("removeTableProperty", new removeTableProperty());
-      processMap.put("setTableNamespaceProperty", new setTableNamespaceProperty());
-      processMap.put("removeTableNamespaceProperty", new removeTableNamespaceProperty());
+      processMap.put("setNamespaceProperty", new setNamespaceProperty());
+      processMap.put("removeNamespaceProperty", new removeNamespaceProperty());
       processMap.put("setMasterGoalState", new setMasterGoalState());
       processMap.put("shutdown", new shutdown());
       processMap.put("shutdownTabletServer", new shutdownTabletServer());
@@ -1703,10 +1703,10 @@ import org.slf4j.LoggerFactory;
       processMap.put("executeTableOperation", new executeTableOperation());
       processMap.put("waitForTableOperation", new waitForTableOperation());
       processMap.put("finishTableOperation", new finishTableOperation());
-      processMap.put("beginTableNamespaceOperation", new beginTableNamespaceOperation());
-      processMap.put("executeTableNamespaceOperation", new executeTableNamespaceOperation());
-      processMap.put("waitForTableNamespaceOperation", new waitForTableNamespaceOperation());
-      processMap.put("finishTableNamespaceOperation", new finishTableNamespaceOperation());
+      processMap.put("beginNamespaceOperation", new beginNamespaceOperation());
+      processMap.put("executeNamespaceOperation", new executeNamespaceOperation());
+      processMap.put("waitForNamespaceOperation", new waitForNamespaceOperation());
+      processMap.put("finishNamespaceOperation", new finishNamespaceOperation());
       return processMap;
     }
 
@@ -1815,23 +1815,23 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public static class setTableNamespaceProperty<I extends Iface> extends org.apache.thrift.ProcessFunction<I, setTableNamespaceProperty_args> {
-      public setTableNamespaceProperty() {
-        super("setTableNamespaceProperty");
+    public static class setNamespaceProperty<I extends Iface> extends org.apache.thrift.ProcessFunction<I, setNamespaceProperty_args> {
+      public setNamespaceProperty() {
+        super("setNamespaceProperty");
       }
 
-      public setTableNamespaceProperty_args getEmptyArgsInstance() {
-        return new setTableNamespaceProperty_args();
+      public setNamespaceProperty_args getEmptyArgsInstance() {
+        return new setNamespaceProperty_args();
       }
 
       protected boolean isOneway() {
         return false;
       }
 
-      public setTableNamespaceProperty_result getResult(I iface, setTableNamespaceProperty_args args) throws org.apache.thrift.TException {
-        setTableNamespaceProperty_result result = new setTableNamespaceProperty_result();
+      public setNamespaceProperty_result getResult(I iface, setNamespaceProperty_args args) throws org.apache.thrift.TException {
+        setNamespaceProperty_result result = new setNamespaceProperty_result();
         try {
-          iface.setTableNamespaceProperty(args.tinfo, args.credentials, args.ns, args.property, args.value);
+          iface.setNamespaceProperty(args.tinfo, args.credentials, args.ns, args.property, args.value);
         } catch (org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         } catch (org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException tope) {
@@ -1841,23 +1841,23 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public static class removeTableNamespaceProperty<I extends Iface> extends org.apache.thrift.ProcessFunction<I, removeTableNamespaceProperty_args> {
-      public removeTableNamespaceProperty() {
-        super("removeTableNamespaceProperty");
+    public static class removeNamespaceProperty<I extends Iface> extends org.apache.thrift.ProcessFunction<I, removeNamespaceProperty_args> {
+      public removeNamespaceProperty() {
+        super("removeNamespaceProperty");
       }
 
-      public removeTableNamespaceProperty_args getEmptyArgsInstance() {
-        return new removeTableNamespaceProperty_args();
+      public removeNamespaceProperty_args getEmptyArgsInstance() {
+        return new removeNamespaceProperty_args();
       }
 
       protected boolean isOneway() {
         return false;
       }
 
-      public removeTableNamespaceProperty_result getResult(I iface, removeTableNamespaceProperty_args args) throws org.apache.thrift.TException {
-        removeTableNamespaceProperty_result result = new removeTableNamespaceProperty_result();
+      public removeNamespaceProperty_result getResult(I iface, removeNamespaceProperty_args args) throws org.apache.thrift.TException {
+        removeNamespaceProperty_result result = new removeNamespaceProperty_result();
         try {
-          iface.removeTableNamespaceProperty(args.tinfo, args.credentials, args.ns, args.property);
+          iface.removeNamespaceProperty(args.tinfo, args.credentials, args.ns, args.property);
         } catch (org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         } catch (org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException tope) {
@@ -2150,23 +2150,23 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public static class beginTableNamespaceOperation<I extends Iface> extends org.apache.thrift.ProcessFunction<I, beginTableNamespaceOperation_args> {
-      public beginTableNamespaceOperation() {
-        super("beginTableNamespaceOperation");
+    public static class beginNamespaceOperation<I extends Iface> extends org.apache.thrift.ProcessFunction<I, beginNamespaceOperation_args> {
+      public beginNamespaceOperation() {
+        super("beginNamespaceOperation");
       }
 
-      public beginTableNamespaceOperation_args getEmptyArgsInstance() {
-        return new beginTableNamespaceOperation_args();
+      public beginNamespaceOperation_args getEmptyArgsInstance() {
+        return new beginNamespaceOperation_args();
       }
 
       protected boolean isOneway() {
         return false;
       }
 
-      public beginTableNamespaceOperation_result getResult(I iface, beginTableNamespaceOperation_args args) throws org.apache.thrift.TException {
-        beginTableNamespaceOperation_result result = new beginTableNamespaceOperation_result();
+      public beginNamespaceOperation_result getResult(I iface, beginNamespaceOperation_args args) throws org.apache.thrift.TException {
+        beginNamespaceOperation_result result = new beginNamespaceOperation_result();
         try {
-          result.success = iface.beginTableNamespaceOperation(args.tinfo, args.credentials);
+          result.success = iface.beginNamespaceOperation(args.tinfo, args.credentials);
           result.setSuccessIsSet(true);
         } catch (org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
@@ -2175,23 +2175,23 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public static class executeTableNamespaceOperation<I extends Iface> extends org.apache.thrift.ProcessFunction<I, executeTableNamespaceOperation_args> {
-      public executeTableNamespaceOperation() {
-        super("executeTableNamespaceOperation");
+    public static class executeNamespaceOperation<I extends Iface> extends org.apache.thrift.ProcessFunction<I, executeNamespaceOperation_args> {
+      public executeNamespaceOperation() {
+        super("executeNamespaceOperation");
       }
 
-      public executeTableNamespaceOperation_args getEmptyArgsInstance() {
-        return new executeTableNamespaceOperation_args();
+      public executeNamespaceOperation_args getEmptyArgsInstance() {
+        return new executeNamespaceOperation_args();
       }
 
       protected boolean isOneway() {
         return false;
       }
 
-      public executeTableNamespaceOperation_result getResult(I iface, executeTableNamespaceOperation_args args) throws org.apache.thrift.TException {
-        executeTableNamespaceOperation_result result = new executeTableNamespaceOperation_result();
+      public executeNamespaceOperation_result getResult(I iface, executeNamespaceOperation_args args) throws org.apache.thrift.TException {
+        executeNamespaceOperation_result result = new executeNamespaceOperation_result();
         try {
-          iface.executeTableNamespaceOperation(args.tinfo, args.credentials, args.opid, args.op, args.arguments, args.options, args.autoClean);
+          iface.executeNamespaceOperation(args.tinfo, args.credentials, args.opid, args.op, args.arguments, args.options, args.autoClean);
         } catch (org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         } catch (org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException tope) {
@@ -2201,23 +2201,23 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public static class waitForTableNamespaceOperation<I extends Iface> extends org.apache.thrift.ProcessFunction<I, waitForTableNamespaceOperation_args> {
-      public waitForTableNamespaceOperation() {
-        super("waitForTableNamespaceOperation");
+    public static class waitForNamespaceOperation<I extends Iface> extends org.apache.thrift.ProcessFunction<I, waitForNamespaceOperation_args> {
+      public waitForNamespaceOperation() {
+        super("waitForNamespaceOperation");
       }
 
-      public waitForTableNamespaceOperation_args getEmptyArgsInstance() {
-        return new waitForTableNamespaceOperation_args();
+      public waitForNamespaceOperation_args getEmptyArgsInstance() {
+        return new waitForNamespaceOperation_args();
       }
 
       protected boolean isOneway() {
         return false;
       }
 
-      public waitForTableNamespaceOperation_result getResult(I iface, waitForTableNamespaceOperation_args args) throws org.apache.thrift.TException {
-        waitForTableNamespaceOperation_result result = new waitForTableNamespaceOperation_result();
+      public waitForNamespaceOperation_result getResult(I iface, waitForNamespaceOperation_args args) throws org.apache.thrift.TException {
+        waitForNamespaceOperation_result result = new waitForNamespaceOperation_result();
         try {
-          result.success = iface.waitForTableNamespaceOperation(args.tinfo, args.credentials, args.opid);
+          result.success = iface.waitForNamespaceOperation(args.tinfo, args.credentials, args.opid);
         } catch (org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         } catch (org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException tope) {
@@ -2227,23 +2227,23 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public static class finishTableNamespaceOperation<I extends Iface> extends org.apache.thrift.ProcessFunction<I, finishTableNamespaceOperation_args> {
-      public finishTableNamespaceOperation() {
-        super("finishTableNamespaceOperation");
+    public static class finishNamespaceOperation<I extends Iface> extends org.apache.thrift.ProcessFunction<I, finishNamespaceOperation_args> {
+      public finishNamespaceOperation() {
+        super("finishNamespaceOperation");
       }
 
-      public finishTableNamespaceOperation_args getEmptyArgsInstance() {
-        return new finishTableNamespaceOperation_args();
+      public finishNamespaceOperation_args getEmptyArgsInstance() {
+        return new finishNamespaceOperation_args();
       }
 
       protected boolean isOneway() {
         return false;
       }
 
-      public finishTableNamespaceOperation_result getResult(I iface, finishTableNamespaceOperation_args args) throws org.apache.thrift.TException {
-        finishTableNamespaceOperation_result result = new finishTableNamespaceOperation_result();
+      public finishNamespaceOperation_result getResult(I iface, finishNamespaceOperation_args args) throws org.apache.thrift.TException {
+        finishNamespaceOperation_result result = new finishNamespaceOperation_result();
         try {
-          iface.finishTableNamespaceOperation(args.tinfo, args.credentials, args.opid);
+          iface.finishNamespaceOperation(args.tinfo, args.credentials, args.opid);
         } catch (org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         }
@@ -7155,8 +7155,8 @@ import org.slf4j.LoggerFactory;
 
   }
 
-  public static class setTableNamespaceProperty_args implements org.apache.thrift.TBase<setTableNamespaceProperty_args, setTableNamespaceProperty_args._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("setTableNamespaceProperty_args");
+  public static class setNamespaceProperty_args implements org.apache.thrift.TBase<setNamespaceProperty_args, setNamespaceProperty_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("setNamespaceProperty_args");
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)5);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
@@ -7166,8 +7166,8 @@ import org.slf4j.LoggerFactory;
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
-      schemes.put(StandardScheme.class, new setTableNamespaceProperty_argsStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new setTableNamespaceProperty_argsTupleSchemeFactory());
+      schemes.put(StandardScheme.class, new setNamespaceProperty_argsStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new setNamespaceProperty_argsTupleSchemeFactory());
     }
 
     public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
@@ -7261,13 +7261,13 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.VALUE, new org.apache.thrift.meta_data.FieldMetaData("value", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(setTableNamespaceProperty_args.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(setNamespaceProperty_args.class, metaDataMap);
     }
 
-    public setTableNamespaceProperty_args() {
+    public setNamespaceProperty_args() {
     }
 
-    public setTableNamespaceProperty_args(
+    public setNamespaceProperty_args(
       org.apache.accumulo.trace.thrift.TInfo tinfo,
       org.apache.accumulo.core.security.thrift.TCredentials credentials,
       String ns,
@@ -7285,7 +7285,7 @@ import org.slf4j.LoggerFactory;
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public setTableNamespaceProperty_args(setTableNamespaceProperty_args other) {
+    public setNamespaceProperty_args(setNamespaceProperty_args other) {
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
       }
@@ -7303,8 +7303,8 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public setTableNamespaceProperty_args deepCopy() {
-      return new setTableNamespaceProperty_args(this);
+    public setNamespaceProperty_args deepCopy() {
+      return new setNamespaceProperty_args(this);
     }
 
     @Override
@@ -7320,7 +7320,7 @@ import org.slf4j.LoggerFactory;
       return this.tinfo;
     }
 
-    public setTableNamespaceProperty_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
+    public setNamespaceProperty_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
@@ -7344,7 +7344,7 @@ import org.slf4j.LoggerFactory;
       return this.credentials;
     }
 
-    public setTableNamespaceProperty_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+    public setNamespaceProperty_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -7368,7 +7368,7 @@ import org.slf4j.LoggerFactory;
       return this.ns;
     }
 
-    public setTableNamespaceProperty_args setNs(String ns) {
+    public setNamespaceProperty_args setNs(String ns) {
       this.ns = ns;
       return this;
     }
@@ -7392,7 +7392,7 @@ import org.slf4j.LoggerFactory;
       return this.property;
     }
 
-    public setTableNamespaceProperty_args setProperty(String property) {
+    public setNamespaceProperty_args setProperty(String property) {
       this.property = property;
       return this;
     }
@@ -7416,7 +7416,7 @@ import org.slf4j.LoggerFactory;
       return this.value;
     }
 
-    public setTableNamespaceProperty_args setValue(String value) {
+    public setNamespaceProperty_args setValue(String value) {
       this.value = value;
       return this;
     }
@@ -7527,12 +7527,12 @@ import org.slf4j.LoggerFactory;
     public boolean equals(Object that) {
       if (that == null)
         return false;
-      if (that instanceof setTableNamespaceProperty_args)
-        return this.equals((setTableNamespaceProperty_args)that);
+      if (that instanceof setNamespaceProperty_args)
+        return this.equals((setNamespaceProperty_args)that);
       return false;
     }
 
-    public boolean equals(setTableNamespaceProperty_args that) {
+    public boolean equals(setNamespaceProperty_args that) {
       if (that == null)
         return false;
 
@@ -7589,13 +7589,13 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
-    public int compareTo(setTableNamespaceProperty_args other) {
+    public int compareTo(setNamespaceProperty_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
 
       int lastComparison = 0;
-      setTableNamespaceProperty_args typedOther = (setTableNamespaceProperty_args)other;
+      setNamespaceProperty_args typedOther = (setNamespaceProperty_args)other;
 
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
@@ -7664,7 +7664,7 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public String toString() {
-      StringBuilder sb = new StringBuilder("setTableNamespaceProperty_args(");
+      StringBuilder sb = new StringBuilder("setNamespaceProperty_args(");
       boolean first = true;
 
       sb.append("tinfo:");
@@ -7737,15 +7737,15 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    private static class setTableNamespaceProperty_argsStandardSchemeFactory implements SchemeFactory {
-      public setTableNamespaceProperty_argsStandardScheme getScheme() {
-        return new setTableNamespaceProperty_argsStandardScheme();
+    private static class setNamespaceProperty_argsStandardSchemeFactory implements SchemeFactory {
+      public setNamespaceProperty_argsStandardScheme getScheme() {
+        return new setNamespaceProperty_argsStandardScheme();
       }
     }
 
-    private static class setTableNamespaceProperty_argsStandardScheme extends StandardScheme<setTableNamespaceProperty_args> {
+    private static class setNamespaceProperty_argsStandardScheme extends StandardScheme<setNamespaceProperty_args> {
 
-      public void read(org.apache.thrift.protocol.TProtocol iprot, setTableNamespaceProperty_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, setNamespaceProperty_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -7808,7 +7808,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
-      public void write(org.apache.thrift.protocol.TProtocol oprot, setTableNamespaceProperty_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, setNamespaceProperty_args struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -7843,16 +7843,16 @@ import org.slf4j.LoggerFactory;
 
     }
 
-    private static class setTableNamespaceProperty_argsTupleSchemeFactory implements SchemeFactory {
-      public setTableNamespaceProperty_argsTupleScheme getScheme() {
-        return new setTableNamespaceProperty_argsTupleScheme();
+    private static class setNamespaceProperty_argsTupleSchemeFactory implements SchemeFactory {
+      public setNamespaceProperty_argsTupleScheme getScheme() {
+        return new setNamespaceProperty_argsTupleScheme();
       }
     }
 
-    private static class setTableNamespaceProperty_argsTupleScheme extends TupleScheme<setTableNamespaceProperty_args> {
+    private static class setNamespaceProperty_argsTupleScheme extends TupleScheme<setNamespaceProperty_args> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, setTableNamespaceProperty_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, setNamespaceProperty_args struct) throws org.apache.thrift.TException {
         TTupleProtocol oprot = (TTupleProtocol) prot;
         BitSet optionals = new BitSet();
         if (struct.isSetTinfo()) {
@@ -7889,7 +7889,7 @@ import org.slf4j.LoggerFactory;
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, setTableNamespaceProperty_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, setNamespaceProperty_args struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(5);
         if (incoming.get(0)) {
@@ -7919,16 +7919,16 @@ import org.slf4j.LoggerFactory;
 
   }
 
-  public static class setTableNamespaceProperty_result implements org.apache.thrift.TBase<setTableNamespaceProperty_result, setTableNamespaceProperty_result._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("setTableNamespaceProperty_result");
+  public static class setNamespaceProperty_result implements org.apache.thrift.TBase<setNamespaceProperty_result, setNamespaceProperty_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("setNamespaceProperty_result");
 
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TOPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tope", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
-      schemes.put(StandardScheme.class, new setTableNamespaceProperty_resultStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new setTableNamespaceProperty_resultTupleSchemeFactory());
+      schemes.put(StandardScheme.class, new setNamespaceProperty_resultStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new setNamespaceProperty_resultTupleSchemeFactory());
     }
 
     public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec; // required
@@ -8004,13 +8004,13 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.TOPE, new org.apache.thrift.meta_data.FieldMetaData("tope", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(setTableNamespaceProperty_result.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(setNamespaceProperty_result.class, metaDataMap);
     }
 
-    public setTableNamespaceProperty_result() {
+    public setNamespaceProperty_result() {
     }
 
-    public setTableNamespaceProperty_result(
+    public setNamespaceProperty_result(
       org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec,
       org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException tope)
     {
@@ -8022,7 +8022,7 @@ import org.slf4j.LoggerFactory;
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public setTableNamespaceProperty_result(setTableNamespaceProperty_result other) {
+    public setNamespaceProperty_result(setNamespaceProperty_result other) {
       if (other.isSetSec()) {
         this.sec = new org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException(other.sec);
       }
@@ -8031,8 +8031,8 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public setTableNamespaceProperty_result deepCopy() {
-      return new setTableNamespaceProperty_result(this);
+    public setNamespaceProperty_result deepCopy() {
+      return new setNamespaceProperty_result(this);
     }
 
     @Override
@@ -8045,7 +8045,7 @@ import org.slf4j.LoggerFactory;
       return this.sec;
     }
 
-    public setTableNamespaceProperty_result setSec(org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
+    public setNamespaceProperty_result setSec(org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
       this.sec = sec;
       return this;
     }
@@ -8069,7 +8069,7 @@ import org.slf4j.LoggerFactory;
       return this.tope;
     }
 
-    public setTableNamespaceProperty_result setTope(org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException tope) {
+    public setNamespaceProperty_result setTope(org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException tope) {
       this.tope = tope;
       return this;
     }
@@ -8141,12 +8141,12 @@ import org.slf4j.LoggerFactory;
     public boolean equals(Object that) {
       if (that == null)
         return false;
-      if (that instanceof setTableNamespaceProperty_result)
-        return this.equals((setTableNamespaceProperty_result)that);
+      if (that instanceof setNamespaceProperty_result)
+        return this.equals((setNamespaceProperty_result)that);
       return false;
     }
 
-    public boolean equals(setTableNamespaceProperty_result that) {
+    public boolean equals(setNamespaceProperty_result that) {
       if (that == null)
         return false;
 
@@ -8176,13 +8176,13 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
-    public int compareTo(setTableNamespaceProperty_result other) {
+    public int compareTo(setNamespaceProperty_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
 
       int lastComparison = 0;
-      setTableNamespaceProperty_result typedOther = (setTableNamespaceProperty_result)other;
+      setNamespaceProperty_result typedOther = (setNamespaceProperty_result)other;
 
       lastComparison = Boolean.valueOf(isSetSec()).compareTo(typedOther.isSetSec());
       if (lastComparison != 0) {
@@ -8221,7 +8221,7 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public String toString() {
-      StringBuilder sb = new StringBuilder("setTableNamespaceProperty_result(");
+      StringBuilder sb = new StringBuilder("setNamespaceProperty_result(");
       boolean first = true;
 
       sb.append("sec:");
@@ -8264,15 +8264,15 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    private static class setTableNamespaceProperty_resultStandardSchemeFactory implements SchemeFactory {
-      public setTableNamespaceProperty_resultStandardScheme getScheme() {
-        return new setTableNamespaceProperty_resultStandardScheme();
+    private static class setNamespaceProperty_resultStandardSchemeFactory implements SchemeFactory {
+      public setNamespaceProperty_resultStandardScheme getScheme() {
+        return new setNamespaceProperty_resultStandardScheme();
       }
     }
 
-    private static class setTableNamespaceProperty_resultStandardScheme extends StandardScheme<setTableNamespaceProperty_result> {
+    private static class setNamespaceProperty_resultStandardScheme extends StandardScheme<setNamespaceProperty_result> {
 
-      public void read(org.apache.thrift.protocol.TProtocol iprot, setTableNamespaceProperty_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, setNamespaceProperty_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -8311,7 +8311,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
-      public void write(org.apache.thrift.protocol.TProtocol oprot, setTableNamespaceProperty_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, setNamespaceProperty_result struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -8331,16 +8331,16 @@ import org.slf4j.LoggerFactory;
 
     }
 
-    private static class setTableNamespaceProperty_resultTupleSchemeFactory implements SchemeFactory {
-      public setTableNamespaceProperty_resultTupleScheme getScheme() {
-        return new setTableNamespaceProperty_resultTupleScheme();
+    private static class setNamespaceProperty_resultTupleSchemeFactory implements SchemeFactory {
+      public setNamespaceProperty_resultTupleScheme getScheme() {
+        return new setNamespaceProperty_resultTupleScheme();
       }
     }
 
-    private static class setTableNamespaceProperty_resultTupleScheme extends TupleScheme<setTableNamespaceProperty_result> {
+    private static class setNamespaceProperty_resultTupleScheme extends TupleScheme<setNamespaceProperty_result> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, setTableNamespaceProperty_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, setNamespaceProperty_result struct) throws org.apache.thrift.TException {
         TTupleProtocol oprot = (TTupleProtocol) prot;
         BitSet optionals = new BitSet();
         if (struct.isSetSec()) {
@@ -8359,7 +8359,7 @@ import org.slf4j.LoggerFactory;
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, setTableNamespaceProperty_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, setNamespaceProperty_result struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
@@ -8377,8 +8377,8 @@ import org.slf4j.LoggerFactory;
 
   }
 
-  public static class removeTableNamespaceProperty_args implements org.apache.thrift.TBase<removeTableNamespaceProperty_args, removeTableNamespaceProperty_args._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("removeTableNamespaceProperty_args");
+  public static class removeNamespaceProperty_args implements org.apache.thrift.TBase<removeNamespaceProperty_args, removeNamespaceProperty_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("removeNamespaceProperty_args");
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)4);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
@@ -8387,8 +8387,8 @@ import org.slf4j.LoggerFactory;
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
-      schemes.put(StandardScheme.class, new removeTableNamespaceProperty_argsStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new removeTableNamespaceProperty_argsTupleSchemeFactory());
+      schemes.put(StandardScheme.class, new removeNamespaceProperty_argsStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new removeNamespaceProperty_argsTupleSchemeFactory());
     }
 
     public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
@@ -8476,13 +8476,13 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.PROPERTY, new org.apache.thrift.meta_data.FieldMetaData("property", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(removeTableNamespaceProperty_args.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(removeNamespaceProperty_args.class, metaDataMap);
     }
 
-    public removeTableNamespaceProperty_args() {
+    public removeNamespaceProperty_args() {
     }
 
-    public removeTableNamespaceProperty_args(
+    public removeNamespaceProperty_args(
       org.apache.accumulo.trace.thrift.TInfo tinfo,
       org.apache.accumulo.core.security.thrift.TCredentials credentials,
       String ns,
@@ -8498,7 +8498,7 @@ import org.slf4j.LoggerFactory;
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public removeTableNamespaceProperty_args(removeTableNamespaceProperty_args other) {
+    public removeNamespaceProperty_args(removeNamespaceProperty_args other) {
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
       }
@@ -8513,8 +8513,8 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public removeTableNamespaceProperty_args deepCopy() {
-      return new removeTableNamespaceProperty_args(this);
+    public removeNamespaceProperty_args deepCopy() {
+      return new removeNamespaceProperty_args(this);
     }
 
     @Override
@@ -8529,7 +8529,7 @@ import org.slf4j.LoggerFactory;
       return this.tinfo;
     }
 
-    public removeTableNamespaceProperty_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
+    public removeNamespaceProperty_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
@@ -8553,7 +8553,7 @@ import org.slf4j.LoggerFactory;
       return this.credentials;
     }
 
-    public removeTableNamespaceProperty_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+    public removeNamespaceProperty_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -8577,7 +8577,7 @@ import org.slf4j.LoggerFactory;
       return this.ns;
     }
 
-    public removeTableNamespaceProperty_args setNs(String ns) {
+    public removeNamespaceProperty_args setNs(String ns) {
       this.ns = ns;
       return this;
     }
@@ -8601,7 +8601,7 @@ import org.slf4j.LoggerFactory;
       return this.property;
     }
 
-    public removeTableNamespaceProperty_args setProperty(String property) {
+    public removeNamespaceProperty_args setProperty(String property) {
       this.property = property;
       return this;
     }
@@ -8699,12 +8699,12 @@ import org.slf4j.LoggerFactory;
     public boolean equals(Object that) {
       if (that == null)
         return false;
-      if (that instanceof removeTableNamespaceProperty_args)
-        return this.equals((removeTableNamespaceProperty_args)that);
+      if (that instanceof removeNamespaceProperty_args)
+        return this.equals((removeNamespaceProperty_args)that);
       return false;
     }
 
-    public boolean equals(removeTableNamespaceProperty_args that) {
+    public boolean equals(removeNamespaceProperty_args that) {
       if (that == null)
         return false;
 
@@ -8752,13 +8752,13 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
-    public int compareTo(removeTableNamespaceProperty_args other) {
+    public int compareTo(removeNamespaceProperty_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
 
       int lastComparison = 0;
-      removeTableNamespaceProperty_args typedOther = (removeTableNamespaceProperty_args)other;
+      removeNamespaceProperty_args typedOther = (removeNamespaceProperty_args)other;
 
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
@@ -8817,7 +8817,7 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public String toString() {
-      StringBuilder sb = new StringBuilder("removeTableNamespaceProperty_args(");
+      StringBuilder sb = new StringBuilder("removeNamespaceProperty_args(");
       boolean first = true;
 
       sb.append("tinfo:");
@@ -8882,15 +8882,15 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    private static class removeTableNamespaceProperty_argsStandardSchemeFactory implements SchemeFactory {
-      public removeTableNamespaceProperty_argsStandardScheme getScheme() {
-        return new removeTableNamespaceProperty_argsStandardScheme();
+    private static class removeNamespaceProperty_argsStandardSchemeFactory implements SchemeFactory {
+      public removeNamespaceProperty_argsStandardScheme getScheme() {
+        return new removeNamespaceProperty_argsStandardScheme();
       }
     }
 
-    private static class removeTableNamespaceProperty_argsStandardScheme extends StandardScheme<removeTableNamespaceProperty_args> {
+    private static class removeNamespaceProperty_argsStandardScheme extends StandardScheme<removeNamespaceProperty_args> {
 
-      public void read(org.apache.thrift.protocol.TProtocol iprot, removeTableNamespaceProperty_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, removeNamespaceProperty_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -8945,7 +8945,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
-      public void write(org.apache.thrift.protocol.TProtocol oprot, removeTableNamespaceProperty_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, removeNamespaceProperty_args struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -8975,16 +8975,16 @@ import org.slf4j.LoggerFactory;
 
     }
 
-    private static class removeTableNamespaceProperty_argsTupleSchemeFactory implements SchemeFactory {
-      public removeTableNamespaceProperty_argsTupleScheme getScheme() {
-        return new removeTableNamespaceProperty_argsTupleScheme();
+    private static class removeNamespaceProperty_argsTupleSchemeFactory implements SchemeFactory {
+      public removeNamespaceProperty_argsTupleScheme getScheme() {
+        return new removeNamespaceProperty_argsTupleScheme();
       }
     }
 
-    private static class removeTableNamespaceProperty_argsTupleScheme extends TupleScheme<removeTableNamespaceProperty_args> {
+    private static class removeNamespaceProperty_argsTupleScheme extends TupleScheme<removeNamespaceProperty_args> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, removeTableNamespaceProperty_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, removeNamespaceProperty_args struct) throws org.apache.thrift.TException {
         TTupleProtocol oprot = (TTupleProtocol) prot;
         BitSet optionals = new BitSet();
         if (struct.isSetTinfo()) {
@@ -9015,7 +9015,7 @@ import org.slf4j.LoggerFactory;
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, removeTableNamespaceProperty_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, removeNamespaceProperty_args struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(4);
         if (incoming.get(0)) {
@@ -9041,16 +9041,16 @@ import org.slf4j.LoggerFactory;
 
   }
 
-  public static class removeTableNamespaceProperty_result implements org.apache.thrift.TBase<removeTableNamespaceProperty_result, removeTableNamespaceProperty_result._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("removeTableNamespaceProperty_result");
+  public static class removeNamespaceProperty_result implements org.apache.thrift.TBase<removeNamespaceProperty_result, removeNamespaceProperty_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("removeNamespaceProperty_result");
 
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TOPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tope", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
-      schemes.put(StandardScheme.class, new removeTableNamespaceProperty_resultStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new removeTableNamespaceProperty_resultTupleSchemeFactory());
+      schemes.put(StandardScheme.class, new removeNamespaceProperty_resultStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new removeNamespaceProperty_resultTupleSchemeFactory());
     }
 
     public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec; // required
@@ -9126,13 +9126,13 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.TOPE, new org.apache.thrift.meta_data.FieldMetaData("tope", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(removeTableNamespaceProperty_result.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(removeNamespaceProperty_result.class, metaDataMap);
     }
 
-    public removeTableNamespaceProperty_result() {
+    public removeNamespaceProperty_result() {
     }
 
-    public removeTableNamespaceProperty_result(
+    public removeNamespaceProperty_result(
       org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec,
       org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException tope)
     {
@@ -9144,7 +9144,7 @@ import org.slf4j.LoggerFactory;
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public removeTableNamespaceProperty_result(removeTableNamespaceProperty_result other) {
+    public removeNamespaceProperty_result(removeNamespaceProperty_result other) {
       if (other.isSetSec()) {
         this.sec = new org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException(other.sec);
       }
@@ -9153,8 +9153,8 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public removeTableNamespaceProperty_result deepCopy() {
-      return new removeTableNamespaceProperty_result(this);
+    public removeNamespaceProperty_result deepCopy() {
+      return new removeNamespaceProperty_result(this);
     }
 
     @Override
@@ -9167,7 +9167,7 @@ import org.slf4j.LoggerFactory;
       return this.sec;
     }
 
-    public removeTableNamespaceProperty_result setSec(org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
+    public removeNamespaceProperty_result setSec(org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
       this.sec = sec;
       return this;
     }
@@ -9191,7 +9191,7 @@ import org.slf4j.LoggerFactory;
       return this.tope;
     }
 
-    public removeTableNamespaceProperty_result setTope(org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException tope) {
+    public removeNamespaceProperty_result setTope(org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException tope) {
       this.tope = tope;
       return this;
     }
@@ -9263,12 +9263,12 @@ import org.slf4j.LoggerFactory;
     public boolean equals(Object that) {
       if (that == null)
         return false;
-      if (that instanceof removeTableNamespaceProperty_result)
-        return this.equals((removeTableNamespaceProperty_result)that);
+      if (that instanceof removeNamespaceProperty_result)
+        return this.equals((removeNamespaceProperty_result)that);
       return false;
     }
 
-    public boolean equals(removeTableNamespaceProperty_result that) {
+    public boolean equals(removeNamespaceProperty_result that) {
       if (that == null)
         return false;
 
@@ -9298,13 +9298,13 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
-    public int compareTo(removeTableNamespaceProperty_result other) {
+    public int compareTo(removeNamespaceProperty_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
 
       int lastComparison = 0;
-      removeTableNamespaceProperty_result typedOther = (removeTableNamespaceProperty_result)other;
+      removeNamespaceProperty_result typedOther = (removeNamespaceProperty_result)other;
 
       lastComparison = Boolean.valueOf(isSetSec()).compareTo(typedOther.isSetSec());
       if (lastComparison != 0) {
@@ -9343,7 +9343,7 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public String toString() {
-      StringBuilder sb = new StringBuilder("removeTableNamespaceProperty_result(");
+      StringBuilder sb = new StringBuilder("removeNamespaceProperty_result(");
       boolean first = true;
 
       sb.append("sec:");
@@ -9386,15 +9386,15 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    private static class removeTableNamespaceProperty_resultStandardSchemeFactory implements SchemeFactory {
-      public removeTableNamespaceProperty_resultStandardScheme getScheme() {
-        return new removeTableNamespaceProperty_resultStandardScheme();
+    private static class removeNamespaceProperty_resultStandardSchemeFactory implements SchemeFactory {
+      public removeNamespaceProperty_resultStandardScheme getScheme() {
+        return new removeNamespaceProperty_resultStandardScheme();
       }
     }
 
-    private static class removeTableNamespaceProperty_resultStandardScheme extends StandardScheme<removeTableNamespaceProperty_result> {
+    private static class removeNamespaceProperty_resultStandardScheme extends StandardScheme<removeNamespaceProperty_result> {
 
-      public void read(org.apache.thrift.protocol.TProtocol iprot, removeTableNamespaceProperty_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, removeNamespaceProperty_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -9433,7 +9433,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
-      public void write(org.apache.thrift.protocol.TProtocol oprot, removeTableNamespaceProperty_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, removeNamespaceProperty_result struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -9453,16 +9453,16 @@ import org.slf4j.LoggerFactory;
 
     }
 
-    private static class removeTableNamespaceProperty_resultTupleSchemeFactory implements SchemeFactory {
-      public removeTableNamespaceProperty_resultTupleScheme getScheme() {
-        return new removeTableNamespaceProperty_resultTupleScheme();
+    private static class removeNamespaceProperty_resultTupleSchemeFactory implements SchemeFactory {
+      public removeNamespaceProperty_resultTupleScheme getScheme() {
+        return new removeNamespaceProperty_resultTupleScheme();
       }
     }
 
-    private static class removeTableNamespaceProperty_resultTupleScheme extends TupleScheme<removeTableNamespaceProperty_result> {
+    private static class removeNamespaceProperty_resultTupleScheme extends TupleScheme<removeNamespaceProperty_result> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, removeTableNamespaceProperty_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, removeNamespaceProperty_result struct) throws org.apache.thrift.TException {
         TTupleProtocol oprot = (TTupleProtocol) prot;
         BitSet optionals = new BitSet();
         if (struct.isSetSec()) {
@@ -9481,7 +9481,7 @@ import org.slf4j.LoggerFactory;
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, removeTableNamespaceProperty_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, removeNamespaceProperty_result struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
@@ -21195,16 +21195,16 @@ import org.slf4j.LoggerFactory;
 
   }
 
-  public static class beginTableNamespaceOperation_args implements org.apache.thrift.TBase<beginTableNamespaceOperation_args, beginTableNamespaceOperation_args._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("beginTableNamespaceOperation_args");
+  public static class beginNamespaceOperation_args implements org.apache.thrift.TBase<beginNamespaceOperation_args, beginNamespaceOperation_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("beginNamespaceOperation_args");
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
-      schemes.put(StandardScheme.class, new beginTableNamespaceOperation_argsStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new beginTableNamespaceOperation_argsTupleSchemeFactory());
+      schemes.put(StandardScheme.class, new beginNamespaceOperation_argsStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new beginNamespaceOperation_argsTupleSchemeFactory());
     }
 
     public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
@@ -21280,13 +21280,13 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(beginTableNamespaceOperation_args.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(beginNamespaceOperation_args.class, metaDataMap);
     }
 
-    public beginTableNamespaceOperation_args() {
+    public beginNamespaceOperation_args() {
     }
 
-    public beginTableNamespaceOperation_args(
+    public beginNamespaceOperation_args(
       org.apache.accumulo.trace.thrift.TInfo tinfo,
       org.apache.accumulo.core.security.thrift.TCredentials credentials)
     {
@@ -21298,7 +21298,7 @@ import org.slf4j.LoggerFactory;
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public beginTableNamespaceOperation_args(beginTableNamespaceOperation_args other) {
+    public beginNamespaceOperation_args(beginNamespaceOperation_args other) {
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
       }
@@ -21307,8 +21307,8 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public beginTableNamespaceOperation_args deepCopy() {
-      return new beginTableNamespaceOperation_args(this);
+    public beginNamespaceOperation_args deepCopy() {
+      return new beginNamespaceOperation_args(this);
     }
 
     @Override
@@ -21321,7 +21321,7 @@ import org.slf4j.LoggerFactory;
       return this.tinfo;
     }
 
-    public beginTableNamespaceOperation_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
+    public beginNamespaceOperation_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
@@ -21345,7 +21345,7 @@ import org.slf4j.LoggerFactory;
       return this.credentials;
     }
 
-    public beginTableNamespaceOperation_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+    public beginNamespaceOperation_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -21417,12 +21417,12 @@ import org.slf4j.LoggerFactory;
     public boolean equals(Object that) {
       if (that == null)
         return false;
-      if (that instanceof beginTableNamespaceOperation_args)
-        return this.equals((beginTableNamespaceOperation_args)that);
+      if (that instanceof beginNamespaceOperation_args)
+        return this.equals((beginNamespaceOperation_args)that);
       return false;
     }
 
-    public boolean equals(beginTableNamespaceOperation_args that) {
+    public boolean equals(beginNamespaceOperation_args that) {
       if (that == null)
         return false;
 
@@ -21452,13 +21452,13 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
-    public int compareTo(beginTableNamespaceOperation_args other) {
+    public int compareTo(beginNamespaceOperation_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
 
       int lastComparison = 0;
-      beginTableNamespaceOperation_args typedOther = (beginTableNamespaceOperation_args)other;
+      beginNamespaceOperation_args typedOther = (beginNamespaceOperation_args)other;
 
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
@@ -21497,7 +21497,7 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public String toString() {
-      StringBuilder sb = new StringBuilder("beginTableNamespaceOperation_args(");
+      StringBuilder sb = new StringBuilder("beginNamespaceOperation_args(");
       boolean first = true;
 
       sb.append("tinfo:");
@@ -21546,15 +21546,15 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    private static class beginTableNamespaceOperation_argsStandardSchemeFactory implements SchemeFactory {
-      public beginTableNamespaceOperation_argsStandardScheme getScheme() {
-        return new beginTableNamespaceOperation_argsStandardScheme();
+    private static class beginNamespaceOperation_argsStandardSchemeFactory implements SchemeFactory {
+      public beginNamespaceOperation_argsStandardScheme getScheme() {
+        return new beginNamespaceOperation_argsStandardScheme();
       }
     }
 
-    private static class beginTableNamespaceOperation_argsStandardScheme extends StandardScheme<beginTableNamespaceOperation_args> {
+    private static class beginNamespaceOperation_argsStandardScheme extends StandardScheme<beginNamespaceOperation_args> {
 
-      public void read(org.apache.thrift.protocol.TProtocol iprot, beginTableNamespaceOperation_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, beginNamespaceOperation_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -21593,7 +21593,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
-      public void write(org.apache.thrift.protocol.TProtocol oprot, beginTableNamespaceOperation_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, beginNamespaceOperation_args struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -21613,16 +21613,16 @@ import org.slf4j.LoggerFactory;
 
     }
 
-    private static class beginTableNamespaceOperation_argsTupleSchemeFactory implements SchemeFactory {
-      public beginTableNamespaceOperation_argsTupleScheme getScheme() {
-        return new beginTableNamespaceOperation_argsTupleScheme();
+    private static class beginNamespaceOperation_argsTupleSchemeFactory implements SchemeFactory {
+      public beginNamespaceOperation_argsTupleScheme getScheme() {
+        return new beginNamespaceOperation_argsTupleScheme();
       }
     }
 
-    private static class beginTableNamespaceOperation_argsTupleScheme extends TupleScheme<beginTableNamespaceOperation_args> {
+    private static class beginNamespaceOperation_argsTupleScheme extends TupleScheme<beginNamespaceOperation_args> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, beginTableNamespaceOperation_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, beginNamespaceOperation_args struct) throws org.apache.thrift.TException {
         TTupleProtocol oprot = (TTupleProtocol) prot;
         BitSet optionals = new BitSet();
         if (struct.isSetTinfo()) {
@@ -21641,7 +21641,7 @@ import org.slf4j.LoggerFactory;
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, beginTableNamespaceOperation_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, beginNamespaceOperation_args struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
@@ -21659,16 +21659,16 @@ import org.slf4j.LoggerFactory;
 
   }
 
-  public static class beginTableNamespaceOperation_result implements org.apache.thrift.TBase<beginTableNamespaceOperation_result, beginTableNamespaceOperation_result._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("beginTableNamespaceOperation_result");
+  public static class beginNamespaceOperation_result implements org.apache.thrift.TBase<beginNamespaceOperation_result, beginNamespaceOperation_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("beginNamespaceOperation_result");
 
     private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.I64, (short)0);
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
-      schemes.put(StandardScheme.class, new beginTableNamespaceOperation_resultStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new beginTableNamespaceOperation_resultTupleSchemeFactory());
+      schemes.put(StandardScheme.class, new beginNamespaceOperation_resultStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new beginNamespaceOperation_resultTupleSchemeFactory());
     }
 
     public long success; // required
@@ -21746,13 +21746,13 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(beginTableNamespaceOperation_result.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(beginNamespaceOperation_result.class, metaDataMap);
     }
 
-    public beginTableNamespaceOperation_result() {
+    public beginNamespaceOperation_result() {
     }
 
-    public beginTableNamespaceOperation_result(
+    public beginNamespaceOperation_result(
       long success,
       org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec)
     {
@@ -21765,7 +21765,7 @@ import org.slf4j.LoggerFactory;
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public beginTableNamespaceOperation_result(beginTableNamespaceOperation_result other) {
+    public beginNamespaceOperation_result(beginNamespaceOperation_result other) {
       __isset_bitfield = other.__isset_bitfield;
       this.success = other.success;
       if (other.isSetSec()) {
@@ -21773,8 +21773,8 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public beginTableNamespaceOperation_result deepCopy() {
-      return new beginTableNamespaceOperation_result(this);
+    public beginNamespaceOperation_result deepCopy() {
+      return new beginNamespaceOperation_result(this);
     }
 
     @Override
@@ -21788,7 +21788,7 @@ import org.slf4j.LoggerFactory;
       return this.success;
     }
 
-    public beginTableNamespaceOperation_result setSuccess(long success) {
+    public beginNamespaceOperation_result setSuccess(long success) {
       this.success = success;
       setSuccessIsSet(true);
       return this;
@@ -21811,7 +21811,7 @@ import org.slf4j.LoggerFactory;
       return this.sec;
     }
 
-    public beginTableNamespaceOperation_result setSec(org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
+    public beginNamespaceOperation_result setSec(org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
       this.sec = sec;
       return this;
     }
@@ -21883,12 +21883,12 @@ import org.slf4j.LoggerFactory;
     public boolean equals(Object that) {
       if (that == null)
         return false;
-      if (that instanceof beginTableNamespaceOperation_result)
-        return this.equals((beginTableNamespaceOperation_result)that);
+      if (that instanceof beginNamespaceOperation_result)
+        return this.equals((beginNamespaceOperation_result)that);
       return false;
     }
 
-    public boolean equals(beginTableNamespaceOperation_result that) {
+    public boolean equals(beginNamespaceOperation_result that) {
       if (that == null)
         return false;
 
@@ -21918,13 +21918,13 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
-    public int compareTo(beginTableNamespaceOperation_result other) {
+    public int compareTo(beginNamespaceOperation_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
 
       int lastComparison = 0;
-      beginTableNamespaceOperation_result typedOther = (beginTableNamespaceOperation_result)other;
+      beginNamespaceOperation_result typedOther = (beginNamespaceOperation_result)other;
 
       lastComparison = Boolean.valueOf(isSetSuccess()).compareTo(typedOther.isSetSuccess());
       if (lastComparison != 0) {
@@ -21963,7 +21963,7 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public String toString() {
-      StringBuilder sb = new StringBuilder("beginTableNamespaceOperation_result(");
+      StringBuilder sb = new StringBuilder("beginNamespaceOperation_result(");
       boolean first = true;
 
       sb.append("success:");
@@ -22004,15 +22004,15 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    private static class beginTableNamespaceOperation_resultStandardSchemeFactory implements SchemeFactory {
-      public beginTableNamespaceOperation_resultStandardScheme getScheme() {
-        return new beginTableNamespaceOperation_resultStandardScheme();
+    private static class beginNamespaceOperation_resultStandardSchemeFactory implements SchemeFactory {
+      public beginNamespaceOperation_resultStandardScheme getScheme() {
+        return new beginNamespaceOperation_resultStandardScheme();
       }
     }
 
-    private static class beginTableNamespaceOperation_resultStandardScheme extends StandardScheme<beginTableNamespaceOperation_result> {
+    private static class beginNamespaceOperation_resultStandardScheme extends StandardScheme<beginNamespaceOperation_result> {
 
-      public void read(org.apache.thrift.protocol.TProtocol iprot, beginTableNamespaceOperation_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, beginNamespaceOperation_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -22050,7 +22050,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
-      public void write(org.apache.thrift.protocol.TProtocol oprot, beginTableNamespaceOperation_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, beginNamespaceOperation_result struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -22070,16 +22070,16 @@ import org.slf4j.LoggerFactory;
 
     }
 
-    private static class beginTableNamespaceOperation_resultTupleSchemeFactory implements SchemeFactory {
-      public beginTableNamespaceOperation_resultTupleScheme getScheme() {
-        return new beginTableNamespaceOperation_resultTupleScheme();
+    private static class beginNamespaceOperation_resultTupleSchemeFactory implements SchemeFactory {
+      public beginNamespaceOperation_resultTupleScheme getScheme() {
+        return new beginNamespaceOperation_resultTupleScheme();
       }
     }
 
-    private static class beginTableNamespaceOperation_resultTupleScheme extends TupleScheme<beginTableNamespaceOperation_result> {
+    private static class beginNamespaceOperation_resultTupleScheme extends TupleScheme<beginNamespaceOperation_result> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, beginTableNamespaceOperation_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, beginNamespaceOperation_result struct) throws org.apache.thrift.TException {
         TTupleProtocol oprot = (TTupleProtocol) prot;
         BitSet optionals = new BitSet();
         if (struct.isSetSuccess()) {
@@ -22098,7 +22098,7 @@ import org.slf4j.LoggerFactory;
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, beginTableNamespaceOperation_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, beginNamespaceOperation_result struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
@@ -22115,8 +22115,8 @@ import org.slf4j.LoggerFactory;
 
   }
 
-  public static class executeTableNamespaceOperation_args implements org.apache.thrift.TBase<executeTableNamespaceOperation_args, executeTableNamespaceOperation_args._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("executeTableNamespaceOperation_args");
+  public static class executeNamespaceOperation_args implements org.apache.thrift.TBase<executeNamespaceOperation_args, executeNamespaceOperation_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("executeNamespaceOperation_args");
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
@@ -22128,8 +22128,8 @@ import org.slf4j.LoggerFactory;
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
-      schemes.put(StandardScheme.class, new executeTableNamespaceOperation_argsStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new executeTableNamespaceOperation_argsTupleSchemeFactory());
+      schemes.put(StandardScheme.class, new executeNamespaceOperation_argsStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new executeNamespaceOperation_argsTupleSchemeFactory());
     }
 
     public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
@@ -22249,13 +22249,13 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.AUTO_CLEAN, new org.apache.thrift.meta_data.FieldMetaData("autoClean", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(executeTableNamespaceOperation_args.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(executeNamespaceOperation_args.class, metaDataMap);
     }
 
-    public executeTableNamespaceOperation_args() {
+    public executeNamespaceOperation_args() {
     }
 
-    public executeTableNamespaceOperation_args(
+    public executeNamespaceOperation_args(
       org.apache.accumulo.trace.thrift.TInfo tinfo,
       org.apache.accumulo.core.security.thrift.TCredentials credentials,
       long opid,
@@ -22279,7 +22279,7 @@ import org.slf4j.LoggerFactory;
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public executeTableNamespaceOperation_args(executeTableNamespaceOperation_args other) {
+    public executeNamespaceOperation_args(executeNamespaceOperation_args other) {
       __isset_bitfield = other.__isset_bitfield;
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
@@ -22318,8 +22318,8 @@ import org.slf4j.LoggerFactory;
       this.autoClean = other.autoClean;
     }
 
-    public executeTableNamespaceOperation_args deepCopy() {
-      return new executeTableNamespaceOperation_args(this);
+    public executeNamespaceOperation_args deepCopy() {
+      return new executeNamespaceOperation_args(this);
     }
 
     @Override
@@ -22339,7 +22339,7 @@ import org.slf4j.LoggerFactory;
       return this.tinfo;
     }
 
-    public executeTableNamespaceOperation_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
+    public executeNamespaceOperation_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
@@ -22363,7 +22363,7 @@ import org.slf4j.LoggerFactory;
       return this.credentials;
     }
 
-    public executeTableNamespaceOperation_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+    public executeNamespaceOperation_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -22387,7 +22387,7 @@ import org.slf4j.LoggerFactory;
       return this.opid;
     }
 
-    public executeTableNamespaceOperation_args setOpid(long opid) {
+    public executeNamespaceOperation_args setOpid(long opid) {
       this.opid = opid;
       setOpidIsSet(true);
       return this;
@@ -22418,7 +22418,7 @@ import org.slf4j.LoggerFactory;
      * 
      * @see TableOperation
      */
-    public executeTableNamespaceOperation_args setOp(TableOperation op) {
+    public executeNamespaceOperation_args setOp(TableOperation op) {
       this.op = op;
       return this;
     }
@@ -22457,7 +22457,7 @@ import org.slf4j.LoggerFactory;
       return this.arguments;
     }
 
-    public executeTableNamespaceOperation_args setArguments(List<ByteBuffer> arguments) {
+    public executeNamespaceOperation_args setArguments(List<ByteBuffer> arguments) {
       this.arguments = arguments;
       return this;
     }
@@ -22492,7 +22492,7 @@ import org.slf4j.LoggerFactory;
       return this.options;
     }
 
-    public executeTableNamespaceOperation_args setOptions(Map<String,String> options) {
+    public executeNamespaceOperation_args setOptions(Map<String,String> options) {
       this.options = options;
       return this;
     }
@@ -22516,7 +22516,7 @@ import org.slf4j.LoggerFactory;
       return this.autoClean;
     }
 
-    public executeTableNamespaceOperation_args setAutoClean(boolean autoClean) {
+    public executeNamespaceOperation_args setAutoClean(boolean autoClean) {
       this.autoClean = autoClean;
       setAutoCleanIsSet(true);
       return this;
@@ -22652,12 +22652,12 @@ import org.slf4j.LoggerFactory;
     public boolean equals(Object that) {
       if (that == null)
         return false;
-      if (that instanceof executeTableNamespaceOperation_args)
-        return this.equals((executeTableNamespaceOperation_args)that);
+      if (that instanceof executeNamespaceOperation_args)
+        return this.equals((executeNamespaceOperation_args)that);
       return false;
     }
 
-    public boolean equals(executeTableNamespaceOperation_args that) {
+    public boolean equals(executeNamespaceOperation_args that) {
       if (that == null)
         return false;
 
@@ -22732,13 +22732,13 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
-    public int compareTo(executeTableNamespaceOperation_args other) {
+    public int compareTo(executeNamespaceOperation_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
 
       int lastComparison = 0;
-      executeTableNamespaceOperation_args typedOther = (executeTableNamespaceOperation_args)other;
+      executeNamespaceOperation_args typedOther = (executeNamespaceOperation_args)other;
 
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
@@ -22827,7 +22827,7 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public String toString() {
-      StringBuilder sb = new StringBuilder("executeTableNamespaceOperation_args(");
+      StringBuilder sb = new StringBuilder("executeNamespaceOperation_args(");
       boolean first = true;
 
       sb.append("tinfo:");
@@ -22910,15 +22910,15 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    private static class executeTableNamespaceOperation_argsStandardSchemeFactory implements SchemeFactory {
-      public executeTableNamespaceOperation_argsStandardScheme getScheme() {
-        return new executeTableNamespaceOperation_argsStandardScheme();
+    private static class executeNamespaceOperation_argsStandardSchemeFactory implements SchemeFactory {
+      public executeNamespaceOperation_argsStandardScheme getScheme() {
+        return new executeNamespaceOperation_argsStandardScheme();
       }
     }
 
-    private static class executeTableNamespaceOperation_argsStandardScheme extends StandardScheme<executeTableNamespaceOperation_args> {
+    private static class executeNamespaceOperation_argsStandardScheme extends StandardScheme<executeNamespaceOperation_args> {
 
-      public void read(org.apache.thrift.protocol.TProtocol iprot, executeTableNamespaceOperation_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, executeNamespaceOperation_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -23019,7 +23019,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
-      public void write(org.apache.thrift.protocol.TProtocol oprot, executeTableNamespaceOperation_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, executeNamespaceOperation_args struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -23075,16 +23075,16 @@ import org.slf4j.LoggerFactory;
 
     }
 
-    private static class executeTableNamespaceOperation_argsTupleSchemeFactory implements SchemeFactory {
-      public executeTableNamespaceOperation_argsTupleScheme getScheme() {
-        return new executeTableNamespaceOperation_argsTupleScheme();
+    private static class executeNamespaceOperation_argsTupleSchemeFactory implements SchemeFactory {
+      public executeNamespaceOperation_argsTupleScheme getScheme() {
+        return new executeNamespaceOperation_argsTupleScheme();
       }
     }
 
-    private static class executeTableNamespaceOperation_argsTupleScheme extends TupleScheme<executeTableNamespaceOperation_args> {
+    private static class executeNamespaceOperation_argsTupleScheme extends TupleScheme<executeNamespaceOperation_args> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, executeTableNamespaceOperation_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, executeNamespaceOperation_args struct) throws org.apache.thrift.TException {
         TTupleProtocol oprot = (TTupleProtocol) prot;
         BitSet optionals = new BitSet();
         if (struct.isSetTinfo()) {
@@ -23146,7 +23146,7 @@ import org.slf4j.LoggerFactory;
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, executeTableNamespaceOperation_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, executeNamespaceOperation_args struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(7);
         if (incoming.get(0)) {
@@ -23204,16 +23204,16 @@ import org.slf4j.LoggerFactory;
 
   }
 
-  public static class executeTableNamespaceOperation_result implements org.apache.thrift.TBase<executeTableNamespaceOperation_result, executeTableNamespaceOperation_result._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("executeTableNamespaceOperation_result");
+  public static class executeNamespaceOperation_result implements org.apache.thrift.TBase<executeNamespaceOperation_result, executeNamespaceOperation_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("executeNamespaceOperation_result");
 
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TOPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tope", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
-      schemes.put(StandardScheme.class, new executeTableNamespaceOperation_resultStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new executeTableNamespaceOperation_resultTupleSchemeFactory());
+      schemes.put(StandardScheme.class, new executeNamespaceOperation_resultStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new executeNamespaceOperation_resultTupleSchemeFactory());
     }
 
     public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec; // required
@@ -23289,13 +23289,13 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.TOPE, new org.apache.thrift.meta_data.FieldMetaData("tope", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(executeTableNamespaceOperation_result.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(executeNamespaceOperation_result.class, metaDataMap);
     }
 
-    public executeTableNamespaceOperation_result() {
+    public executeNamespaceOperation_result() {
     }
 
-    public executeTableNamespaceOperation_result(
+    public executeNamespaceOperation_result(
       org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec,
       org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException tope)
     {
@@ -23307,7 +23307,7 @@ import org.slf4j.LoggerFactory;
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public executeTableNamespaceOperation_result(executeTableNamespaceOperation_result other) {
+    public executeNamespaceOperation_result(executeNamespaceOperation_result other) {
       if (other.isSetSec()) {
         this.sec = new org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException(other.sec);
       }
@@ -23316,8 +23316,8 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public executeTableNamespaceOperation_result deepCopy() {
-      return new executeTableNamespaceOperation_result(this);
+    public executeNamespaceOperation_result deepCopy() {
+      return new executeNamespaceOperation_result(this);
     }
 
     @Override
@@ -23330,7 +23330,7 @@ import org.slf4j.LoggerFactory;
       return this.sec;
     }
 
-    public executeTableNamespaceOperation_result setSec(org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
+    public executeNamespaceOperation_result setSec(org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
       this.sec = sec;
       return this;
     }
@@ -23354,7 +23354,7 @@ import org.slf4j.LoggerFactory;
       return this.tope;
     }
 
-    public executeTableNamespaceOperation_result setTope(org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException tope) {
+    public executeNamespaceOperation_result setTope(org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException tope) {
       this.tope = tope;
       return this;
     }
@@ -23426,12 +23426,12 @@ import org.slf4j.LoggerFactory;
     public boolean equals(Object that) {
       if (that == null)
         return false;
-      if (that instanceof executeTableNamespaceOperation_result)
-        return this.equals((executeTableNamespaceOperation_result)that);
+      if (that instanceof executeNamespaceOperation_result)
+        return this.equals((executeNamespaceOperation_result)that);
       return false;
     }
 
-    public boolean equals(executeTableNamespaceOperation_result that) {
+    public boolean equals(executeNamespaceOperation_result that) {
       if (that == null)
         return false;
 
@@ -23461,13 +23461,13 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
-    public int compareTo(executeTableNamespaceOperation_result other) {
+    public int compareTo(executeNamespaceOperation_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
 
       int lastComparison = 0;
-      executeTableNamespaceOperation_result typedOther = (executeTableNamespaceOperation_result)other;
+      executeNamespaceOperation_result typedOther = (executeNamespaceOperation_result)other;
 
       lastComparison = Boolean.valueOf(isSetSec()).compareTo(typedOther.isSetSec());
       if (lastComparison != 0) {
@@ -23506,7 +23506,7 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public String toString() {
-      StringBuilder sb = new StringBuilder("executeTableNamespaceOperation_result(");
+      StringBuilder sb = new StringBuilder("executeNamespaceOperation_result(");
       boolean first = true;
 
       sb.append("sec:");
@@ -23549,15 +23549,15 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    private static class executeTableNamespaceOperation_resultStandardSchemeFactory implements SchemeFactory {
-      public executeTableNamespaceOperation_resultStandardScheme getScheme() {
-        return new executeTableNamespaceOperation_resultStandardScheme();
+    private static class executeNamespaceOperation_resultStandardSchemeFactory implements SchemeFactory {
+      public executeNamespaceOperation_resultStandardScheme getScheme() {
+        return new executeNamespaceOperation_resultStandardScheme();
       }
     }
 
-    private static class executeTableNamespaceOperation_resultStandardScheme extends StandardScheme<executeTableNamespaceOperation_result> {
+    private static class executeNamespaceOperation_resultStandardScheme extends StandardScheme<executeNamespaceOperation_result> {
 
-      public void read(org.apache.thrift.protocol.TProtocol iprot, executeTableNamespaceOperation_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, executeNamespaceOperation_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -23596,7 +23596,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
-      public void write(org.apache.thrift.protocol.TProtocol oprot, executeTableNamespaceOperation_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, executeNamespaceOperation_result struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -23616,16 +23616,16 @@ import org.slf4j.LoggerFactory;
 
     }
 
-    private static class executeTableNamespaceOperation_resultTupleSchemeFactory implements SchemeFactory {
-      public executeTableNamespaceOperation_resultTupleScheme getScheme() {
-        return new executeTableNamespaceOperation_resultTupleScheme();
+    private static class executeNamespaceOperation_resultTupleSchemeFactory implements SchemeFactory {
+      public executeNamespaceOperation_resultTupleScheme getScheme() {
+        return new executeNamespaceOperation_resultTupleScheme();
       }
     }
 
-    private static class executeTableNamespaceOperation_resultTupleScheme extends TupleScheme<executeTableNamespaceOperation_result> {
+    private static class executeNamespaceOperation_resultTupleScheme extends TupleScheme<executeNamespaceOperation_result> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, executeTableNamespaceOperation_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, executeNamespaceOperation_result struct) throws org.apache.thrift.TException {
         TTupleProtocol oprot = (TTupleProtocol) prot;
         BitSet optionals = new BitSet();
         if (struct.isSetSec()) {
@@ -23644,7 +23644,7 @@ import org.slf4j.LoggerFactory;
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, executeTableNamespaceOperation_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, executeNamespaceOperation_result struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
@@ -23662,8 +23662,8 @@ import org.slf4j.LoggerFactory;
 
   }
 
-  public static class waitForTableNamespaceOperation_args implements org.apache.thrift.TBase<waitForTableNamespaceOperation_args, waitForTableNamespaceOperation_args._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("waitForTableNamespaceOperation_args");
+  public static class waitForNamespaceOperation_args implements org.apache.thrift.TBase<waitForNamespaceOperation_args, waitForNamespaceOperation_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("waitForNamespaceOperation_args");
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
@@ -23671,8 +23671,8 @@ import org.slf4j.LoggerFactory;
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
-      schemes.put(StandardScheme.class, new waitForTableNamespaceOperation_argsStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new waitForTableNamespaceOperation_argsTupleSchemeFactory());
+      schemes.put(StandardScheme.class, new waitForNamespaceOperation_argsStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new waitForNamespaceOperation_argsTupleSchemeFactory());
     }
 
     public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
@@ -23756,13 +23756,13 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.OPID, new org.apache.thrift.meta_data.FieldMetaData("opid", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(waitForTableNamespaceOperation_args.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(waitForNamespaceOperation_args.class, metaDataMap);
     }
 
-    public waitForTableNamespaceOperation_args() {
+    public waitForNamespaceOperation_args() {
     }
 
-    public waitForTableNamespaceOperation_args(
+    public waitForNamespaceOperation_args(
       org.apache.accumulo.trace.thrift.TInfo tinfo,
       org.apache.accumulo.core.security.thrift.TCredentials credentials,
       long opid)
@@ -23777,7 +23777,7 @@ import org.slf4j.LoggerFactory;
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public waitForTableNamespaceOperation_args(waitForTableNamespaceOperation_args other) {
+    public waitForNamespaceOperation_args(waitForNamespaceOperation_args other) {
       __isset_bitfield = other.__isset_bitfield;
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
@@ -23788,8 +23788,8 @@ import org.slf4j.LoggerFactory;
       this.opid = other.opid;
     }
 
-    public waitForTableNamespaceOperation_args deepCopy() {
-      return new waitForTableNamespaceOperation_args(this);
+    public waitForNamespaceOperation_args deepCopy() {
+      return new waitForNamespaceOperation_args(this);
     }
 
     @Override
@@ -23804,7 +23804,7 @@ import org.slf4j.LoggerFactory;
       return this.tinfo;
     }
 
-    public waitForTableNamespaceOperation_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
+    public waitForNamespaceOperation_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
@@ -23828,7 +23828,7 @@ import org.slf4j.LoggerFactory;
       return this.credentials;
     }
 
-    public waitForTableNamespaceOperation_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+    public waitForNamespaceOperation_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -23852,7 +23852,7 @@ import org.slf4j.LoggerFactory;
       return this.opid;
     }
 
-    public waitForTableNamespaceOperation_args setOpid(long opid) {
+    public waitForNamespaceOperation_args setOpid(long opid) {
       this.opid = opid;
       setOpidIsSet(true);
       return this;
@@ -23936,12 +23936,12 @@ import org.slf4j.LoggerFactory;
     public boolean equals(Object that) {
       if (that == null)
         return false;
-      if (that instanceof waitForTableNamespaceOperation_args)
-        return this.equals((waitForTableNamespaceOperation_args)that);
+      if (that instanceof waitForNamespaceOperation_args)
+        return this.equals((waitForNamespaceOperation_args)that);
       return false;
     }
 
-    public boolean equals(waitForTableNamespaceOperation_args that) {
+    public boolean equals(waitForNamespaceOperation_args that) {
       if (that == null)
         return false;
 
@@ -23980,13 +23980,13 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
-    public int compareTo(waitForTableNamespaceOperation_args other) {
+    public int compareTo(waitForNamespaceOperation_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
 
       int lastComparison = 0;
-      waitForTableNamespaceOperation_args typedOther = (waitForTableNamespaceOperation_args)other;
+      waitForNamespaceOperation_args typedOther = (waitForNamespaceOperation_args)other;
 
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
@@ -24035,7 +24035,7 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public String toString() {
-      StringBuilder sb = new StringBuilder("waitForTableNamespaceOperation_args(");
+      StringBuilder sb = new StringBuilder("waitForNamespaceOperation_args(");
       boolean first = true;
 
       sb.append("tinfo:");
@@ -24090,15 +24090,15 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    private static class waitForTableNamespaceOperation_argsStandardSchemeFactory implements SchemeFactory {
-      public waitForTableNamespaceOperation_argsStandardScheme getScheme() {
-        return new waitForTableNamespaceOperation_argsStandardScheme();
+    private static class waitForNamespaceOperation_argsStandardSchemeFactory implements SchemeFactory {
+      public waitForNamespaceOperation_argsStandardScheme getScheme() {
+        return new waitForNamespaceOperation_argsStandardScheme();
       }
     }
 
-    private static class waitForTableNamespaceOperation_argsStandardScheme extends StandardScheme<waitForTableNamespaceOperation_args> {
+    private static class waitForNamespaceOperation_argsStandardScheme extends StandardScheme<waitForNamespaceOperation_args> {
 
-      public void read(org.apache.thrift.protocol.TProtocol iprot, waitForTableNamespaceOperation_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, waitForNamespaceOperation_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -24145,7 +24145,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
-      public void write(org.apache.thrift.protocol.TProtocol oprot, waitForTableNamespaceOperation_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, waitForNamespaceOperation_args struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -24168,16 +24168,16 @@ import org.slf4j.LoggerFactory;
 
     }
 
-    private static class waitForTableNamespaceOperation_argsTupleSchemeFactory implements SchemeFactory {
-      public waitForTableNamespaceOperation_argsTupleScheme getScheme() {
-        return new waitForTableNamespaceOperation_argsTupleScheme();
+    private static class waitForNamespaceOperation_argsTupleSchemeFactory implements SchemeFactory {
+      public waitForNamespaceOperation_argsTupleScheme getScheme() {
+        return new waitForNamespaceOperation_argsTupleScheme();
       }
     }
 
-    private static class waitForTableNamespaceOperation_argsTupleScheme extends TupleScheme<waitForTableNamespaceOperation_args> {
+    private static class waitForNamespaceOperation_argsTupleScheme extends TupleScheme<waitForNamespaceOperation_args> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, waitForTableNamespaceOperation_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, waitForNamespaceOperation_args struct) throws org.apache.thrift.TException {
         TTupleProtocol oprot = (TTupleProtocol) prot;
         BitSet optionals = new BitSet();
         if (struct.isSetTinfo()) {
@@ -24202,7 +24202,7 @@ import org.slf4j.LoggerFactory;
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, waitForTableNamespaceOperation_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, waitForNamespaceOperation_args struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
@@ -24224,8 +24224,8 @@ import org.slf4j.LoggerFactory;
 
   }
 
-  public static class waitForTableNamespaceOperation_result implements org.apache.thrift.TBase<waitForTableNamespaceOperation_result, waitForTableNamespaceOperation_result._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("waitForTableNamespaceOperation_result");
+  public static class waitForNamespaceOperation_result implements org.apache.thrift.TBase<waitForNamespaceOperation_result, waitForNamespaceOperation_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("waitForNamespaceOperation_result");
 
     private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRING, (short)0);
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
@@ -24233,8 +24233,8 @@ import org.slf4j.LoggerFactory;
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
-      schemes.put(StandardScheme.class, new waitForTableNamespaceOperation_resultStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new waitForTableNamespaceOperation_resultTupleSchemeFactory());
+      schemes.put(StandardScheme.class, new waitForNamespaceOperation_resultStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new waitForNamespaceOperation_resultTupleSchemeFactory());
     }
 
     public String success; // required
@@ -24316,13 +24316,13 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.TOPE, new org.apache.thrift.meta_data.FieldMetaData("tope", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(waitForTableNamespaceOperation_result.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(waitForNamespaceOperation_result.class, metaDataMap);
     }
 
-    public waitForTableNamespaceOperation_result() {
+    public waitForNamespaceOperation_result() {
     }
 
-    public waitForTableNamespaceOperation_result(
+    public waitForNamespaceOperation_result(
       String success,
       org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec,
       org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException tope)
@@ -24336,7 +24336,7 @@ import org.slf4j.LoggerFactory;
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public waitForTableNamespaceOperation_result(waitForTableNamespaceOperation_result other) {
+    public waitForNamespaceOperation_result(waitForNamespaceOperation_result other) {
       if (other.isSetSuccess()) {
         this.success = other.success;
       }
@@ -24348,8 +24348,8 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public waitForTableNamespaceOperation_result deepCopy() {
-      return new waitForTableNamespaceOperation_result(this);
+    public waitForNamespaceOperation_result deepCopy() {
+      return new waitForNamespaceOperation_result(this);
     }
 
     @Override
@@ -24363,7 +24363,7 @@ import org.slf4j.LoggerFactory;
       return this.success;
     }
 
-    public waitForTableNamespaceOperation_result setSuccess(String success) {
+    public waitForNamespaceOperation_result setSuccess(String success) {
       this.success = success;
       return this;
     }
@@ -24387,7 +24387,7 @@ import org.slf4j.LoggerFactory;
       return this.sec;
     }
 
-    public waitForTableNamespaceOperation_result setSec(org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
+    public waitForNamespaceOperation_result setSec(org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
       this.sec = sec;
       return this;
     }
@@ -24411,7 +24411,7 @@ import org.slf4j.LoggerFactory;
       return this.tope;
     }
 
-    public waitForTableNamespaceOperation_result setTope(org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException tope) {
+    public waitForNamespaceOperation_result setTope(org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException tope) {
       this.tope = tope;
       return this;
     }
@@ -24496,12 +24496,12 @@ import org.slf4j.LoggerFactory;
     public boolean equals(Object that) {
       if (that == null)
         return false;
-      if (that instanceof waitForTableNamespaceOperation_result)
-        return this.equals((waitForTableNamespaceOperation_result)that);
+      if (that instanceof waitForNamespaceOperation_result)
+        return this.equals((waitForNamespaceOperation_result)that);
       return false;
     }
 
-    public boolean equals(waitForTableNamespaceOperation_result that) {
+    public boolean equals(waitForNamespaceOperation_result that) {
       if (that == null)
         return false;
 
@@ -24540,13 +24540,13 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
-    public int compareTo(waitForTableNamespaceOperation_result other) {
+    public int compareTo(waitForNamespaceOperation_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
 
       int lastComparison = 0;
-      waitForTableNamespaceOperation_result typedOther = (waitForTableNamespaceOperation_result)other;
+      waitForNamespaceOperation_result typedOther = (waitForNamespaceOperation_result)other;
 
       lastComparison = Boolean.valueOf(isSetSuccess()).compareTo(typedOther.isSetSuccess());
       if (lastComparison != 0) {
@@ -24595,7 +24595,7 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public String toString() {
-      StringBuilder sb = new StringBuilder("waitForTableNamespaceOperation_result(");
+      StringBuilder sb = new StringBuilder("waitForNamespaceOperation_result(");
       boolean first = true;
 
       sb.append("success:");
@@ -24646,15 +24646,15 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    private static class waitForTableNamespaceOperation_resultStandardSchemeFactory implements SchemeFactory {
-      public waitForTableNamespaceOperation_resultStandardScheme getScheme() {
-        return new waitForTableNamespaceOperation_resultStandardScheme();
+    private static class waitForNamespaceOperation_resultStandardSchemeFactory implements SchemeFactory {
+      public waitForNamespaceOperation_resultStandardScheme getScheme() {
+        return new waitForNamespaceOperation_resultStandardScheme();
       }
     }
 
-    private static class waitForTableNamespaceOperation_resultStandardScheme extends StandardScheme<waitForTableNamespaceOperation_result> {
+    private static class waitForNamespaceOperation_resultStandardScheme extends StandardScheme<waitForNamespaceOperation_result> {
 
-      public void read(org.apache.thrift.protocol.TProtocol iprot, waitForTableNamespaceOperation_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, waitForNamespaceOperation_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -24701,7 +24701,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
-      public void write(org.apache.thrift.protocol.TProtocol oprot, waitForTableNamespaceOperation_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, waitForNamespaceOperation_result struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -24726,16 +24726,16 @@ import org.slf4j.LoggerFactory;
 
     }
 
-    private static class waitForTableNamespaceOperation_resultTupleSchemeFactory implements SchemeFactory {
-      public waitForTableNamespaceOperation_resultTupleScheme getScheme() {
-        return new waitForTableNamespaceOperation_resultTupleScheme();
+    private static class waitForNamespaceOperation_resultTupleSchemeFactory implements SchemeFactory {
+      public waitForNamespaceOperation_resultTupleScheme getScheme() {
+        return new waitForNamespaceOperation_resultTupleScheme();
       }
     }
 
-    private static class waitForTableNamespaceOperation_resultTupleScheme extends TupleScheme<waitForTableNamespaceOperation_result> {
+    private static class waitForNamespaceOperation_resultTupleScheme extends TupleScheme<waitForNamespaceOperation_result> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, waitForTableNamespaceOperation_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, waitForNamespaceOperation_result struct) throws org.apache.thrift.TException {
         TTupleProtocol oprot = (TTupleProtocol) prot;
         BitSet optionals = new BitSet();
         if (struct.isSetSuccess()) {
@@ -24760,7 +24760,7 @@ import org.slf4j.LoggerFactory;
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, waitForTableNamespaceOperation_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, waitForNamespaceOperation_result struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
@@ -24782,8 +24782,8 @@ import org.slf4j.LoggerFactory;
 
   }
 
-  public static class finishTableNamespaceOperation_args implements org.apache.thrift.TBase<finishTableNamespaceOperation_args, finishTableNamespaceOperation_args._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("finishTableNamespaceOperation_args");
+  public static class finishNamespaceOperation_args implements org.apache.thrift.TBase<finishNamespaceOperation_args, finishNamespaceOperation_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("finishNamespaceOperation_args");
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
@@ -24791,8 +24791,8 @@ import org.slf4j.LoggerFactory;
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
-      schemes.put(StandardScheme.class, new finishTableNamespaceOperation_argsStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new finishTableNamespaceOperation_argsTupleSchemeFactory());
+      schemes.put(StandardScheme.class, new finishNamespaceOperation_argsStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new finishNamespaceOperation_argsTupleSchemeFactory());
     }
 
     public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
@@ -24876,13 +24876,13 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.OPID, new org.apache.thrift.meta_data.FieldMetaData("opid", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(finishTableNamespaceOperation_args.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(finishNamespaceOperation_args.class, metaDataMap);
     }
 
-    public finishTableNamespaceOperation_args() {
+    public finishNamespaceOperation_args() {
     }
 
-    public finishTableNamespaceOperation_args(
+    public finishNamespaceOperation_args(
       org.apache.accumulo.trace.thrift.TInfo tinfo,
       org.apache.accumulo.core.security.thrift.TCredentials credentials,
       long opid)
@@ -24897,7 +24897,7 @@ import org.slf4j.LoggerFactory;
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public finishTableNamespaceOperation_args(finishTableNamespaceOperation_args other) {
+    public finishNamespaceOperation_args(finishNamespaceOperation_args other) {
       __isset_bitfield = other.__isset_bitfield;
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
@@ -24908,8 +24908,8 @@ import org.slf4j.LoggerFactory;
       this.opid = other.opid;
     }
 
-    public finishTableNamespaceOperation_args deepCopy() {
-      return new finishTableNamespaceOperation_args(this);
+    public finishNamespaceOperation_args deepCopy() {
+      return new finishNamespaceOperation_args(this);
     }
 
     @Override
@@ -24924,7 +24924,7 @@ import org.slf4j.LoggerFactory;
       return this.tinfo;
     }
 
-    public finishTableNamespaceOperation_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
+    public finishNamespaceOperation_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
@@ -24948,7 +24948,7 @@ import org.slf4j.LoggerFactory;
       return this.credentials;
     }
 
-    public finishTableNamespaceOperation_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+    public finishNamespaceOperation_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -24972,7 +24972,7 @@ import org.slf4j.LoggerFactory;
       return this.opid;
     }
 
-    public finishTableNamespaceOperation_args setOpid(long opid) {
+    public finishNamespaceOperation_args setOpid(long opid) {
       this.opid = opid;
       setOpidIsSet(true);
       return this;
@@ -25056,12 +25056,12 @@ import org.slf4j.LoggerFactory;
     public boolean equals(Object that) {
       if (that == null)
         return false;
-      if (that instanceof finishTableNamespaceOperation_args)
-        return this.equals((finishTableNamespaceOperation_args)that);
+      if (that instanceof finishNamespaceOperation_args)
+        return this.equals((finishNamespaceOperation_args)that);
       return false;
     }
 
-    public boolean equals(finishTableNamespaceOperation_args that) {
+    public boolean equals(finishNamespaceOperation_args that) {
       if (that == null)
         return false;
 
@@ -25100,13 +25100,13 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
-    public int compareTo(finishTableNamespaceOperation_args other) {
+    public int compareTo(finishNamespaceOperation_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
 
       int lastComparison = 0;
-      finishTableNamespaceOperation_args typedOther = (finishTableNamespaceOperation_args)other;
+      finishNamespaceOperation_args typedOther = (finishNamespaceOperation_args)other;
 
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
@@ -25155,7 +25155,7 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public String toString() {
-      StringBuilder sb = new StringBuilder("finishTableNamespaceOperation_args(");
+      StringBuilder sb = new StringBuilder("finishNamespaceOperation_args(");
       boolean first = true;
 
       sb.append("tinfo:");
@@ -25210,15 +25210,15 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    private static class finishTableNamespaceOperation_argsStandardSchemeFactory implements SchemeFactory {
-      public finishTableNamespaceOperation_argsStandardScheme getScheme() {
-        return new finishTableNamespaceOperation_argsStandardScheme();
+    private static class finishNamespaceOperation_argsStandardSchemeFactory implements SchemeFactory {
+      public finishNamespaceOperation_argsStandardScheme getScheme() {
+        return new finishNamespaceOperation_argsStandardScheme();
       }
     }
 
-    private static class finishTableNamespaceOperation_argsStandardScheme extends StandardScheme<finishTableNamespaceOperation_args> {
+    private static class finishNamespaceOperation_argsStandardScheme extends StandardScheme<finishNamespaceOperation_args> {
 
-      public void read(org.apache.thrift.protocol.TProtocol iprot, finishTableNamespaceOperation_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, finishNamespaceOperation_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -25265,7 +25265,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
-      public void write(org.apache.thrift.protocol.TProtocol oprot, finishTableNamespaceOperation_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, finishNamespaceOperation_args struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -25288,16 +25288,16 @@ import org.slf4j.LoggerFactory;
 
     }
 
-    private static class finishTableNamespaceOperation_argsTupleSchemeFactory implements SchemeFactory {
-      public finishTableNamespaceOperation_argsTupleScheme getScheme() {
-        return new finishTableNamespaceOperation_argsTupleScheme();
+    private static class finishNamespaceOperation_argsTupleSchemeFactory implements SchemeFactory {
+      public finishNamespaceOperation_argsTupleScheme getScheme() {
+        return new finishNamespaceOperation_argsTupleScheme();
       }
     }
 
-    private static class finishTableNamespaceOperation_argsTupleScheme extends TupleScheme<finishTableNamespaceOperation_args> {
+    private static class finishNamespaceOperation_argsTupleScheme extends TupleScheme<finishNamespaceOperation_args> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, finishTableNamespaceOperation_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, finishNamespaceOperation_args struct) throws org.apache.thrift.TException {
         TTupleProtocol oprot = (TTupleProtocol) prot;
         BitSet optionals = new BitSet();
         if (struct.isSetTinfo()) {
@@ -25322,7 +25322,7 @@ import org.slf4j.LoggerFactory;
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, finishTableNamespaceOperation_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, finishNamespaceOperation_args struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
@@ -25344,15 +25344,15 @@ import org.slf4j.LoggerFactory;
 
   }
 
-  public static class finishTableNamespaceOperation_result implements org.apache.thrift.TBase<finishTableNamespaceOperation_result, finishTableNamespaceOperation_result._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("finishTableNamespaceOperation_result");
+  public static class finishNamespaceOperation_result implements org.apache.thrift.TBase<finishNamespaceOperation_result, finishNamespaceOperation_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("finishNamespaceOperation_result");
 
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
-      schemes.put(StandardScheme.class, new finishTableNamespaceOperation_resultStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new finishTableNamespaceOperation_resultTupleSchemeFactory());
+      schemes.put(StandardScheme.class, new finishNamespaceOperation_resultStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new finishNamespaceOperation_resultTupleSchemeFactory());
     }
 
     public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec; // required
@@ -25422,13 +25422,13 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(finishTableNamespaceOperation_result.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(finishNamespaceOperation_result.class, metaDataMap);
     }
 
-    public finishTableNamespaceOperation_result() {
+    public finishNamespaceOperation_result() {
     }
 
-    public finishTableNamespaceOperation_result(
+    public finishNamespaceOperation_result(
       org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec)
     {
       this();
@@ -25438,14 +25438,14 @@ import org.slf4j.LoggerFactory;
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public finishTableNamespaceOperation_result(finishTableNamespaceOperation_result other) {
+    public finishNamespaceOperation_result(finishNamespaceOperation_result other) {
       if (other.isSetSec()) {
         this.sec = new org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException(other.sec);
       }
     }
 
-    public finishTableNamespaceOperation_result deepCopy() {
-      return new finishTableNamespaceOperation_result(this);
+    public finishNamespaceOperation_result deepCopy() {
+      return new finishNamespaceOperation_result(this);
     }
 
     @Override
@@ -25457,7 +25457,7 @@ import org.slf4j.LoggerFactory;
       return this.sec;
     }
 
-    public finishTableNamespaceOperation_result setSec(org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
+    public finishNamespaceOperation_result setSec(org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
       this.sec = sec;
       return this;
     }
@@ -25516,12 +25516,12 @@ import org.slf4j.LoggerFactory;
     public boolean equals(Object that) {
       if (that == null)
         return false;
-      if (that instanceof finishTableNamespaceOperation_result)
-        return this.equals((finishTableNamespaceOperation_result)that);
+      if (that instanceof finishNamespaceOperation_result)
+        return this.equals((finishNamespaceOperation_result)that);
       return false;
     }
 
-    public boolean equals(finishTableNamespaceOperation_result that) {
+    public boolean equals(finishNamespaceOperation_result that) {
       if (that == null)
         return false;
 
@@ -25542,13 +25542,13 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
-    public int compareTo(finishTableNamespaceOperation_result other) {
+    public int compareTo(finishNamespaceOperation_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
 
       int lastComparison = 0;
-      finishTableNamespaceOperation_result typedOther = (finishTableNamespaceOperation_result)other;
+      finishNamespaceOperation_result typedOther = (finishNamespaceOperation_result)other;
 
       lastComparison = Boolean.valueOf(isSetSec()).compareTo(typedOther.isSetSec());
       if (lastComparison != 0) {
@@ -25577,7 +25577,7 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public String toString() {
-      StringBuilder sb = new StringBuilder("finishTableNamespaceOperation_result(");
+      StringBuilder sb = new StringBuilder("finishNamespaceOperation_result(");
       boolean first = true;
 
       sb.append("sec:");
@@ -25612,15 +25612,15 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    private static class finishTableNamespaceOperation_resultStandardSchemeFactory implements SchemeFactory {
-      public finishTableNamespaceOperation_resultStandardScheme getScheme() {
-        return new finishTableNamespaceOperation_resultStandardScheme();
+    private static class finishNamespaceOperation_resultStandardSchemeFactory implements SchemeFactory {
+      public finishNamespaceOperation_resultStandardScheme getScheme() {
+        return new finishNamespaceOperation_resultStandardScheme();
       }
     }
 
-    private static class finishTableNamespaceOperation_resultStandardScheme extends StandardScheme<finishTableNamespaceOperation_result> {
+    private static class finishNamespaceOperation_resultStandardScheme extends StandardScheme<finishNamespaceOperation_result> {
 
-      public void read(org.apache.thrift.protocol.TProtocol iprot, finishTableNamespaceOperation_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, finishNamespaceOperation_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -25650,7 +25650,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
-      public void write(org.apache.thrift.protocol.TProtocol oprot, finishTableNamespaceOperation_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, finishNamespaceOperation_result struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -25665,16 +25665,16 @@ import org.slf4j.LoggerFactory;
 
     }
 
-    private static class finishTableNamespaceOperation_resultTupleSchemeFactory implements SchemeFactory {
-      public finishTableNamespaceOperation_resultTupleScheme getScheme() {
-        return new finishTableNamespaceOperation_resultTupleScheme();
+    private static class finishNamespaceOperation_resultTupleSchemeFactory implements SchemeFactory {
+      public finishNamespaceOperation_resultTupleScheme getScheme() {
+        return new finishNamespaceOperation_resultTupleScheme();
       }
     }
 
-    private static class finishTableNamespaceOperation_resultTupleScheme extends TupleScheme<finishTableNamespaceOperation_result> {
+    private static class finishNamespaceOperation_resultTupleScheme extends TupleScheme<finishNamespaceOperation_result> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, finishTableNamespaceOperation_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, finishNamespaceOperation_result struct) throws org.apache.thrift.TException {
         TTupleProtocol oprot = (TTupleProtocol) prot;
         BitSet optionals = new BitSet();
         if (struct.isSetSec()) {
@@ -25687,7 +25687,7 @@ import org.slf4j.LoggerFactory;
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, finishTableNamespaceOperation_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, finishNamespaceOperation_result struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(1);
         if (incoming.get(0)) {

@@ -35,22 +35,22 @@ import org.apache.log4j.Logger;
 
 public class TableConfiguration extends AccumuloConfiguration {
   private static final Logger log = Logger.getLogger(TableConfiguration.class);
-  
+
   private static ZooCache tablePropCache = null;
   private final String instanceId;
-  private final TableNamespaceConfiguration parent;
-  
+  private final NamespaceConfiguration parent;
+
   private String table = null;
   private Set<ConfigurationObserver> observers;
-  
-  public TableConfiguration(String instanceId, String table, TableNamespaceConfiguration parent) {
+
+  public TableConfiguration(String instanceId, String table, NamespaceConfiguration parent) {
     this.instanceId = instanceId;
     this.table = table;
     this.parent = parent;
-    
+
     this.observers = Collections.synchronizedSet(new HashSet<ConfigurationObserver>());
   }
-  
+
   private static ZooCache getTablePropCache() {
     Instance inst = HdfsZooInstance.getInstance();
     if (tablePropCache == null)
@@ -60,7 +60,7 @@ public class TableConfiguration extends AccumuloConfiguration {
       }
     return tablePropCache;
   }
-  
+
   public void addObserver(ConfigurationObserver co) {
     if (table == null) {
       String err = "Attempt to add observer for non-table configuration";
@@ -70,7 +70,7 @@ public class TableConfiguration extends AccumuloConfiguration {
     iterator();
     observers.add(co);
   }
-  
+
   public void removeObserver(ConfigurationObserver configObserver) {
     if (table == null) {
       String err = "Attempt to remove observer for non-table configuration";
@@ -79,30 +79,30 @@ public class TableConfiguration extends AccumuloConfiguration {
     }
     observers.remove(configObserver);
   }
-  
+
   public void expireAllObservers() {
     Collection<ConfigurationObserver> copy = Collections.unmodifiableCollection(observers);
     for (ConfigurationObserver co : copy)
       co.sessionExpired();
   }
-  
+
   public void propertyChanged(String key) {
     Collection<ConfigurationObserver> copy = Collections.unmodifiableCollection(observers);
     for (ConfigurationObserver co : copy)
       co.propertyChanged(key);
   }
-  
+
   public void propertiesChanged(String key) {
     Collection<ConfigurationObserver> copy = Collections.unmodifiableCollection(observers);
     for (ConfigurationObserver co : copy)
       co.propertiesChanged();
   }
-  
+
   @Override
   public String get(Property property) {
     String key = property.getKey();
     String value = get(getTablePropCache(), key);
-    
+
     if (value == null || !property.getType().isValidFormat(value)) {
       if (value != null)
         log.error("Using default value for " + key + " due to improperly formatted " + property.getType() + ": " + value);
@@ -110,7 +110,7 @@ public class TableConfiguration extends AccumuloConfiguration {
     }
     return value;
   }
-  
+
   private String get(ZooCache zc, String key) {
     String zPath = ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + table + Constants.ZTABLE_CONF + "/" + key;
     byte[] v = zc.get(zPath);
@@ -137,22 +137,22 @@ public class TableConfiguration extends AccumuloConfiguration {
       }
     }
   }
-  
+
   public String getTableId() {
     return table;
   }
-  
-  /** 
-   * returns the actual TableNamespaceConfiguration that corresponds to the current parent namespace.
+
+  /**
+   * returns the actual NamespaceConfiguration that corresponds to the current parent namespace.
    */
-  public TableNamespaceConfiguration getNamespaceConfiguration() {
-    return ServerConfiguration.getTableNamespaceConfiguration(parent.inst, parent.namespaceId);
+  public NamespaceConfiguration getNamespaceConfiguration() {
+    return ServerConfiguration.getNamespaceConfiguration(parent.inst, parent.namespaceId);
   }
-  
+
   /**
    * returns the parent, which is actually a TableParentConfiguration that can change which namespace it references
    */
-  public TableNamespaceConfiguration getParentConfiguration() {
+  public NamespaceConfiguration getParentConfiguration() {
     return parent;
   }
 }

@@ -22,10 +22,10 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DiskUsage;
-import org.apache.accumulo.core.client.impl.TableNamespaces;
+import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
@@ -34,13 +34,15 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 public class DUCommand extends Command {
-  
-  private Option optTablePattern, optHumanReadble, optTableNamespace;
-  
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException, TableNotFoundException, TableNamespaceNotFoundException {
-    
+
+  private Option optTablePattern, optHumanReadble, optNamespace;
+
+  @Override
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException, TableNotFoundException,
+      NamespaceNotFoundException {
+
     final SortedSet<String> tables = new TreeSet<String>(Arrays.asList(cl.getArgs()));
-    
+
     if (cl.hasOption(Shell.tableOption)) {
       String tableName = cl.getOptionValue(Shell.tableOption);
       if (!shellState.getConnector().tableOperations().exists(tableName)) {
@@ -48,15 +50,15 @@ public class DUCommand extends Command {
       }
       tables.add(tableName);
     }
-    
-    if (cl.hasOption(optTableNamespace.getOpt())) {
+
+    if (cl.hasOption(optNamespace.getOpt())) {
       Instance instance = shellState.getInstance();
-      String namespaceId = TableNamespaces.getNamespaceId(instance, cl.getOptionValue(optTableNamespace.getOpt()));
-      tables.addAll(TableNamespaces.getTableNames(instance, namespaceId));
+      String namespaceId = Namespaces.getNamespaceId(instance, cl.getOptionValue(optNamespace.getOpt()));
+      tables.addAll(Namespaces.getTableNames(instance, namespaceId));
     }
-    
+
     boolean prettyPrint = cl.hasOption(optHumanReadble.getOpt()) ? true : false;
-    
+
     if (cl.hasOption(optTablePattern.getOpt())) {
       for (String table : shellState.getConnector().tableOperations().list()) {
         if (table.matches(cl.getOptionValue(optTablePattern.getOpt()))) {
@@ -80,39 +82,39 @@ public class DUCommand extends Command {
     }
     return 0;
   }
-  
+
   @Override
   public String description() {
     return "prints how much space, in bytes, is used by files referenced by a table.  When multiple tables are specified it prints how much space, in bytes, is used by files shared between tables, if any.";
   }
-  
+
   @Override
   public Options getOptions() {
     final Options o = new Options();
-    
+
     optTablePattern = new Option("p", "pattern", true, "regex pattern of table names");
     optTablePattern.setArgName("pattern");
-    
+
     optHumanReadble = new Option("h", "human-readable", false, "format large sizes to human readable units");
     optHumanReadble.setArgName("human readable output");
-    
-    optTableNamespace = new Option(Shell.tableNamespaceOption, "table-namespace", true, "name of a table namespace");
-    optTableNamespace.setArgName("table-namespace");
-    
+
+    optNamespace = new Option(Shell.namespaceOption, "namespace", true, "name of a namespace");
+    optNamespace.setArgName("namespace");
+
     o.addOption(OptUtil.tableOpt("table to examine"));
-    
+
     o.addOption(optTablePattern);
     o.addOption(optHumanReadble);
-    o.addOption(optTableNamespace);
-    
+    o.addOption(optNamespace);
+
     return o;
   }
-  
+
   @Override
   public String usage() {
     return getName() + " <table>{ <table>}";
   }
-  
+
   @Override
   public int numArgs() {
     return Shell.NO_FIXED_ARG_LENGTH_CHECK;

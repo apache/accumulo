@@ -38,7 +38,7 @@ public class RenameTableCommand extends Command {
     if (shellState.getTableName().equals(cl.getArgs()[0])) {
       String tableName = cl.getArgs()[1];
       String n = Tables.extractNamespace(tableName);
-      if (n.equals(Constants.DEFAULT_TABLE_NAMESPACE) || n.equals(Constants.SYSTEM_TABLE_NAMESPACE)) {
+      if (n.equals(Constants.DEFAULT_NAMESPACE) || n.equals(Constants.SYSTEM_NAMESPACE)) {
         tableName = Tables.extractTableName(tableName);
       }
       shellState.setTableName(tableName);

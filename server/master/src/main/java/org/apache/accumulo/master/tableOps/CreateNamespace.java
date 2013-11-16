@@ -24,7 +24,7 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.security.TableNamespacePermission;
+import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.master.Master;
@@ -35,7 +35,7 @@ import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.NamespacePropUtil;
 import org.apache.log4j.Logger;
 
-class TableNamespaceInfo implements Serializable {
+class NamespaceInfo implements Serializable {
 
   private static final long serialVersionUID = 1L;
 
@@ -46,14 +46,14 @@ class TableNamespaceInfo implements Serializable {
   public Map<String,String> props;
 }
 
-class FinishCreateTableNamespace extends MasterRepo {
+class FinishCreateNamespace extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private TableNamespaceInfo tableNamespaceInfo;
+  private NamespaceInfo namespaceInfo;
 
-  public FinishCreateTableNamespace(TableNamespaceInfo ti) {
-    this.tableNamespaceInfo = ti;
+  public FinishCreateNamespace(NamespaceInfo ti) {
+    this.namespaceInfo = ti;
   }
 
   @Override
@@ -64,18 +64,18 @@ class FinishCreateTableNamespace extends MasterRepo {
   @Override
   public Repo<Master> call(long id, Master env) throws Exception {
 
-    Utils.unreserveTableNamespace(tableNamespaceInfo.namespaceId, id, true);
+    Utils.unreserveNamespace(namespaceInfo.namespaceId, id, true);
 
-    env.getEventCoordinator().event("Created table namespace %s ", tableNamespaceInfo.namespaceName);
+    env.getEventCoordinator().event("Created namespace %s ", namespaceInfo.namespaceName);
 
-    Logger.getLogger(FinishCreateTableNamespace.class).debug("Created table " + tableNamespaceInfo.namespaceId + " " + tableNamespaceInfo.namespaceName);
+    Logger.getLogger(FinishCreateNamespace.class).debug("Created table " + namespaceInfo.namespaceId + " " + namespaceInfo.namespaceName);
 
     return null;
   }
 
   @Override
   public String getReturn() {
-    return tableNamespaceInfo.namespaceId;
+    return namespaceInfo.namespaceId;
   }
 
   @Override
@@ -87,15 +87,15 @@ class PopulateZookeeperWithNamespace extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private TableNamespaceInfo tableNamespaceInfo;
+  private NamespaceInfo namespaceInfo;
 
-  PopulateZookeeperWithNamespace(TableNamespaceInfo ti) {
-    this.tableNamespaceInfo = ti;
+  PopulateZookeeperWithNamespace(NamespaceInfo ti) {
+    this.namespaceInfo = ti;
   }
 
   @Override
   public long isReady(long id, Master environment) throws Exception {
-    return Utils.reserveTableNamespace(tableNamespaceInfo.namespaceId, id, true, false, TableOperation.CREATE);
+    return Utils.reserveNamespace(namespaceInfo.namespaceId, id, true, false, TableOperation.CREATE);
   }
 
   @Override
@@ -105,16 +105,16 @@ class PopulateZookeeperWithNamespace extends MasterRepo {
     try {
       Instance instance = master.getInstance();
 
-      Utils.checkTableNamespaceDoesNotExist(instance, tableNamespaceInfo.namespaceName, tableNamespaceInfo.namespaceId, TableOperation.CREATE);
+      Utils.checkNamespaceDoesNotExist(instance, namespaceInfo.namespaceName, namespaceInfo.namespaceId, TableOperation.CREATE);
 
-      TableManager.getInstance().addNamespace(tableNamespaceInfo.namespaceId, tableNamespaceInfo.namespaceName, NodeExistsPolicy.OVERWRITE);
+      TableManager.getInstance().addNamespace(namespaceInfo.namespaceId, namespaceInfo.namespaceName, NodeExistsPolicy.OVERWRITE);
 
-      for (Entry<String,String> entry : tableNamespaceInfo.props.entrySet())
-        NamespacePropUtil.setNamespaceProperty(tableNamespaceInfo.namespaceId, entry.getKey(), entry.getValue());
+      for (Entry<String,String> entry : namespaceInfo.props.entrySet())
+        NamespacePropUtil.setNamespaceProperty(namespaceInfo.namespaceId, entry.getKey(), entry.getValue());
 
       Tables.clearCache(instance);
 
-      return new FinishCreateTableNamespace(tableNamespaceInfo);
+      return new FinishCreateNamespace(namespaceInfo);
     } finally {
       Utils.tableNameLock.unlock();
     }
@@ -122,9 +122,9 @@ class PopulateZookeeperWithNamespace extends MasterRepo {
 
   @Override
   public void undo(long tid, Master master) throws Exception {
-    TableManager.getInstance().removeNamespace(tableNamespaceInfo.namespaceId);
+    TableManager.getInstance().removeNamespace(namespaceInfo.namespaceId);
     Tables.clearCache(master.getInstance());
-    Utils.unreserveTableNamespace(tableNamespaceInfo.namespaceId, tid, true);
+    Utils.unreserveNamespace(namespaceInfo.namespaceId, tid, true);
   }
 
 }
@@ -133,22 +133,21 @@ class SetupNamespacePermissions extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private TableNamespaceInfo tableNamespaceInfo;
+  private NamespaceInfo namespaceInfo;
 
-  public SetupNamespacePermissions(TableNamespaceInfo ti) {
-    this.tableNamespaceInfo = ti;
+  public SetupNamespacePermissions(NamespaceInfo ti) {
+    this.namespaceInfo = ti;
   }
 
   @Override
   public Repo<Master> call(long tid, Master env) throws Exception {
-    // give all table namespace permissions to the creator
+    // give all namespace permissions to the creator
     SecurityOperation security = AuditedSecurityOperation.getInstance();
-    for (TableNamespacePermission permission : TableNamespacePermission.values()) {
+    for (NamespacePermission permission : NamespacePermission.values()) {
       try {
-        security.grantTableNamespacePermission(SystemCredentials.get().toThrift(env.getInstance()), tableNamespaceInfo.user, tableNamespaceInfo.namespaceId,
-            permission);
+        security.grantNamespacePermission(SystemCredentials.get().toThrift(env.getInstance()), namespaceInfo.user, namespaceInfo.namespaceId, permission);
       } catch (ThriftSecurityException e) {
-        Logger.getLogger(FinishCreateTableNamespace.class).error(e.getMessage(), e);
+        Logger.getLogger(FinishCreateNamespace.class).error(e.getMessage(), e);
         throw e;
       }
     }
@@ -156,20 +155,20 @@ class SetupNamespacePermissions extends MasterRepo {
     // setup permissions in zookeeper before table info in zookeeper
     // this way concurrent users will not get a spurious permission denied
     // error
-    return new PopulateZookeeperWithNamespace(tableNamespaceInfo);
+    return new PopulateZookeeperWithNamespace(namespaceInfo);
   }
 }
 
-public class CreateTableNamespace extends MasterRepo {
+public class CreateNamespace extends MasterRepo {
   private static final long serialVersionUID = 1L;
 
-  private TableNamespaceInfo tableNamespaceInfo;
+  private NamespaceInfo namespaceInfo;
 
-  public CreateTableNamespace(String user, String namespaceName, Map<String,String> props) {
-    tableNamespaceInfo = new TableNamespaceInfo();
-    tableNamespaceInfo.namespaceName = namespaceName;
-    tableNamespaceInfo.user = user;
-    tableNamespaceInfo.props = props;
+  public CreateNamespace(String user, String namespaceName, Map<String,String> props) {
+    namespaceInfo = new NamespaceInfo();
+    namespaceInfo.namespaceName = namespaceName;
+    namespaceInfo.user = user;
+    namespaceInfo.props = props;
   }
 
   @Override
@@ -181,8 +180,8 @@ public class CreateTableNamespace extends MasterRepo {
   public Repo<Master> call(long tid, Master master) throws Exception {
     Utils.idLock.lock();
     try {
-      tableNamespaceInfo.namespaceId = Utils.getNextTableId(tableNamespaceInfo.namespaceName, master.getInstance());
-      return new SetupNamespacePermissions(tableNamespaceInfo);
+      namespaceInfo.namespaceId = Utils.getNextTableId(namespaceInfo.namespaceName, master.getInstance());
+      return new SetupNamespacePermissions(namespaceInfo);
     } finally {
       Utils.idLock.unlock();
     }

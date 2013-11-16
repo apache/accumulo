@@ -18,7 +18,7 @@ package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.UnsupportedEncodingException;
 
-import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.commons.cli.CommandLine;
@@ -29,10 +29,10 @@ import org.apache.hadoop.io.Text;
 public abstract class OptUtil {
   public static final String START_ROW_OPT = "b";
   public static final String END_ROW_OPT = "e";
-  
+
   public static String getTableOpt(final CommandLine cl, final Shell shellState) throws TableNotFoundException {
     String tableName;
-    
+
     if (cl.hasOption(Shell.tableOption)) {
       tableName = cl.getOptionValue(Shell.tableOption);
       if (!shellState.getConnector().tableOperations().exists(tableName)) {
@@ -42,55 +42,55 @@ public abstract class OptUtil {
       shellState.checkTableState();
       tableName = shellState.getTableName();
     }
-    
+
     return tableName;
   }
-  
-  public static String getTableNamespaceOpt(final CommandLine cl, final Shell shellState) throws TableNamespaceNotFoundException {
+
+  public static String getNamespaceOpt(final CommandLine cl, final Shell shellState) throws NamespaceNotFoundException {
     String namespace = null;
-    if (cl.hasOption(Shell.tableNamespaceOption)) {
-      namespace = cl.getOptionValue(Shell.tableNamespaceOption);
-      if (!shellState.getConnector().tableNamespaceOperations().exists(namespace)) {
-        throw new TableNamespaceNotFoundException(namespace, namespace, "specified table namespace that doesn't exist");
+    if (cl.hasOption(Shell.namespaceOption)) {
+      namespace = cl.getOptionValue(Shell.namespaceOption);
+      if (!shellState.getConnector().namespaceOperations().exists(namespace)) {
+        throw new NamespaceNotFoundException(namespace, namespace, "specified namespace that doesn't exist");
       }
     } else {
-      throw new TableNamespaceNotFoundException(null, null, "no table namespace specified");
+      throw new NamespaceNotFoundException(null, null, "no namespace specified");
     }
     return namespace;
   }
-  
+
   public static Option tableOpt() {
     return tableOpt("tableName");
   }
-  
+
   public static Option tableOpt(final String description) {
     final Option tableOpt = new Option(Shell.tableOption, "table", true, description);
     tableOpt.setArgName("table");
     tableOpt.setRequired(false);
     return tableOpt;
   }
-  
-  public static Option tableNamespaceOpt() {
-    return tableNamespaceOpt("tableNamespace");
+
+  public static Option namespaceOpt() {
+    return namespaceOpt("namespace");
   }
-  
-  public static Option tableNamespaceOpt(final String description) {
-    final Option tableNamespaceOpt = new Option(Shell.tableNamespaceOption, "tableNamespace", true, description);
-    tableNamespaceOpt.setArgName("tableNamespace");
-    tableNamespaceOpt.setRequired(false);
-    return tableNamespaceOpt;
+
+  public static Option namespaceOpt(final String description) {
+    final Option namespaceOpt = new Option(Shell.namespaceOption, "namespace", true, description);
+    namespaceOpt.setArgName("namespace");
+    namespaceOpt.setRequired(false);
+    return namespaceOpt;
   }
-  
+
   public static enum AdlOpt {
     ADD("a"), DELETE("d"), LIST("l");
-    
+
     public final String opt;
-    
+
     private AdlOpt(String opt) {
       this.opt = opt;
     }
   }
-  
+
   public static AdlOpt getAldOpt(final CommandLine cl) {
     if (cl.hasOption(AdlOpt.ADD.opt)) {
       return AdlOpt.ADD;
@@ -100,7 +100,7 @@ public abstract class OptUtil {
       return AdlOpt.LIST;
     }
   }
-  
+
   public static OptionGroup addListDeleteGroup(final String name) {
     final Option addOpt = new Option(AdlOpt.ADD.opt, "add", false, "add " + name);
     final Option deleteOpt = new Option(AdlOpt.DELETE.opt, "delete", false, "delete " + name);
@@ -112,19 +112,19 @@ public abstract class OptUtil {
     og.setRequired(true);
     return og;
   }
-  
+
   public static Option startRowOpt() {
     final Option o = new Option(START_ROW_OPT, "begin-row", true, "begin row (inclusive)");
     o.setArgName("begin-row");
     return o;
   }
-  
+
   public static Option endRowOpt() {
     final Option o = new Option(END_ROW_OPT, "end-row", true, "end row (inclusive)");
     o.setArgName("end-row");
     return o;
   }
-  
+
   public static Text getStartRow(final CommandLine cl) throws UnsupportedEncodingException {
     if (cl.hasOption(START_ROW_OPT)) {
       return new Text(cl.getOptionValue(START_ROW_OPT).getBytes(Shell.CHARSET));
@@ -132,7 +132,7 @@ public abstract class OptUtil {
       return null;
     }
   }
-  
+
   public static Text getEndRow(final CommandLine cl) throws UnsupportedEncodingException {
     if (cl.hasOption(END_ROW_OPT)) {
       return new Text(cl.getOptionValue(END_ROW_OPT).getBytes(Shell.CHARSET));

@@ -24,16 +24,16 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 
-class TableNamespaceConfWatcher implements Watcher {
+class NamespaceConfWatcher implements Watcher {
   static {
     Logger.getLogger("org.apache.zookeeper").setLevel(Level.WARN);
     Logger.getLogger("org.apache.hadoop.io.compress").setLevel(Level.WARN);
   }
 
-  private static final Logger log = Logger.getLogger(TableNamespaceConfWatcher.class);
+  private static final Logger log = Logger.getLogger(NamespaceConfWatcher.class);
   private Instance instance = null;
 
-  TableNamespaceConfWatcher(Instance instance) {
+  NamespaceConfWatcher(Instance instance) {
     this.instance = instance;
   }
 
@@ -69,10 +69,10 @@ class TableNamespaceConfWatcher implements Watcher {
         if (log.isTraceEnabled())
           log.trace("EventNodeDataChanged " + event.getPath());
         if (key != null)
-          ServerConfiguration.getTableNamespaceConfiguration(instance, namespaceId).propertyChanged(key);
+          ServerConfiguration.getNamespaceConfiguration(instance, namespaceId).propertyChanged(key);
         break;
       case NodeChildrenChanged:
-        ServerConfiguration.getTableNamespaceConfiguration(instance, namespaceId).propertiesChanged(key);
+        ServerConfiguration.getNamespaceConfiguration(instance, namespaceId).propertiesChanged(key);
         break;
       case NodeDeleted:
         if (key == null) {

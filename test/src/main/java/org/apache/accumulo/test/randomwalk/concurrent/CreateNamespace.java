@@ -21,12 +21,11 @@ import java.util.Properties;
 import java.util.Random;
 
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.TableNamespaceExistsException;
-import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
+import org.apache.accumulo.core.client.NamespaceExistsException;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
-public class RenameTableNamespace extends Test {
+public class CreateNamespace extends Test {
 
   @Override
   public void visit(State state, Properties props) throws Exception {
@@ -37,16 +36,13 @@ public class RenameTableNamespace extends Test {
     @SuppressWarnings("unchecked")
     List<String> namespaces = (List<String>) state.get("namespaces");
 
-    String srcName = namespaces.get(rand.nextInt(namespaces.size()));
-    String newName = namespaces.get(rand.nextInt(namespaces.size()));
+    String namespace = namespaces.get(rand.nextInt(namespaces.size()));
 
     try {
-      conn.tableNamespaceOperations().rename(srcName, newName);
-      log.debug("Renamed table namespace " + srcName + " " + newName);
-    } catch (TableNamespaceExistsException e) {
-      log.debug("Rename namespace " + srcName + " failed, " + newName + " exists");
-    } catch (TableNamespaceNotFoundException e) {
-      log.debug("Rename namespace " + srcName + " failed, doesnt exist");
+      conn.namespaceOperations().create(namespace);
+      log.debug("Created namespace " + namespace);
+    } catch (NamespaceExistsException e) {
+      log.debug("Create namespace " + namespace + " failed, it exists");
     }
   }
 }

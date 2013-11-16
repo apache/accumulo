@@ -21,11 +21,11 @@ import java.util.Properties;
 import java.util.Random;
 
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
-public class DeleteTableNamespace extends Test {
+public class DeleteNamespace extends Test {
 
   @Override
   public void visit(State state, Properties props) throws Exception {
@@ -39,9 +39,9 @@ public class DeleteTableNamespace extends Test {
     String namespace = namespaces.get(rand.nextInt(namespaces.size()));
 
     try {
-      conn.tableNamespaceOperations().delete(namespace, true);
-      log.debug("Deleted table namespace " + namespace);
-    } catch (TableNamespaceNotFoundException e) {
+      conn.namespaceOperations().delete(namespace, true);
+      log.debug("Deleted namespace " + namespace);
+    } catch (NamespaceNotFoundException e) {
       log.debug("Delete namespace " + namespace + " failed, doesnt exist");
     }
   }

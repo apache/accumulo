@@ -21,12 +21,12 @@ import java.util.Properties;
 import java.util.Random;
 
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.client.NamespaceExistsException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
-public class OfflineTableNamespace extends Test {
+public class RenameNamespace extends Test {
 
   @Override
   public void visit(State state, Properties props) throws Exception {
@@ -37,17 +37,16 @@ public class OfflineTableNamespace extends Test {
     @SuppressWarnings("unchecked")
     List<String> namespaces = (List<String>) state.get("namespaces");
 
-    String namespace = namespaces.get(rand.nextInt(namespaces.size()));
+    String srcName = namespaces.get(rand.nextInt(namespaces.size()));
+    String newName = namespaces.get(rand.nextInt(namespaces.size()));
 
     try {
-      conn.tableNamespaceOperations().offline(namespace);
-      log.debug("Offlined namespace " + namespace);
-      UtilWaitThread.sleep(rand.nextInt(200));
-      conn.tableNamespaceOperations().online(namespace);
-      log.debug("Onlined namespace " + namespace);
-    } catch (TableNamespaceNotFoundException tne) {
-      log.debug("offline or online failed " + namespace + ", doesnt exist");
+      conn.namespaceOperations().rename(srcName, newName);
+      log.debug("Renamed namespace " + srcName + " " + newName);
+    } catch (NamespaceExistsException e) {
+      log.debug("Rename namespace " + srcName + " failed, " + newName + " exists");
+    } catch (NamespaceNotFoundException e) {
+      log.debug("Rename namespace " + srcName + " failed, doesnt exist");
     }
-
   }
 }

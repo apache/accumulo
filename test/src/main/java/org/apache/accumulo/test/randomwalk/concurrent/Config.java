@@ -140,10 +140,10 @@ public class Config extends Test {
       String namespace = parts[0];
       int choice = Integer.parseInt(parts[1]);
       Property property = tableSettings[choice].property;
-      if (state.getConnector().tableNamespaceOperations().exists(namespace)) {
+      if (state.getConnector().namespaceOperations().exists(namespace)) {
         log.debug("Setting " + property.getKey() + " on " + namespace + " back to " + property.getDefaultValue());
         try {
-          state.getConnector().tableNamespaceOperations().setProperty(namespace, property.getKey(), property.getDefaultValue());
+          state.getConnector().namespaceOperations().setProperty(namespace, property.getKey(), property.getDefaultValue());
         } catch (AccumuloException ex) {
           if (ex.getCause() instanceof ThriftTableOperationException) {
             ThriftTableOperationException ttoe = (ThriftTableOperationException) ex.getCause();
@@ -162,7 +162,7 @@ public class Config extends Test {
     if (dice == 0) {
       changeTableSetting(random, state, props);
     } else if (dice == 1) {
-      changeTableNamespaceSetting(random, state, props);
+      changeNamespaceSetting(random, state, props);
     } else {
       changeSetting(random, state, props);
     }
@@ -195,13 +195,13 @@ public class Config extends Test {
     }
   }
 
-  private void changeTableNamespaceSetting(RandomData random, State state, Properties props) throws Exception {
+  private void changeNamespaceSetting(RandomData random, State state, Properties props) throws Exception {
     // pick a random property
     int choice = random.nextInt(0, tableSettings.length - 1);
     Setting setting = tableSettings[choice];
 
     // pick a random table
-    SortedSet<String> namespaces = state.getConnector().tableNamespaceOperations().list();
+    SortedSet<String> namespaces = state.getConnector().namespaceOperations().list();
     if (namespaces.isEmpty())
       return;
     String namespace = random.nextSample(namespaces, 1)[0].toString();
@@ -209,9 +209,9 @@ public class Config extends Test {
     // generate a random value
     long newValue = random.nextLong(setting.min, setting.max);
     state.getMap().put(LAST_NAMESPACE_SETTING, namespace + "," + choice);
-    log.debug("Setting " + setting.property.getKey() + " on table namespace " + namespace + " to " + newValue);
+    log.debug("Setting " + setting.property.getKey() + " on namespace " + namespace + " to " + newValue);
     try {
-      state.getConnector().tableNamespaceOperations().setProperty(namespace, setting.property.getKey(), "" + newValue);
+      state.getConnector().namespaceOperations().setProperty(namespace, setting.property.getKey(), "" + newValue);
     } catch (AccumuloException ex) {
       if (ex.getCause() instanceof ThriftTableOperationException) {
         ThriftTableOperationException ttoe = (ThriftTableOperationException) ex.getCause();

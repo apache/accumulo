@@ -22,9 +22,9 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.admin.TimeType;
-import org.apache.accumulo.core.client.impl.TableNamespaces;
+import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
@@ -82,7 +82,7 @@ class FinishCreateTable extends MasterRepo {
   public Repo<Master> call(long tid, Master env) throws Exception {
     TableManager.getInstance().transitionTableState(tableInfo.tableId, TableState.ONLINE);
     
-    Utils.unreserveTableNamespace(tableInfo.namespaceId, tid, false);
+    Utils.unreserveNamespace(tableInfo.namespaceId, tid, false);
     Utils.unreserveTable(tableInfo.tableId, tid, true);
     
     env.getEventCoordinator().event("Created table %s ", tableInfo.tableName);
@@ -281,20 +281,20 @@ public class CreateTable extends MasterRepo {
   
   private TableInfo tableInfo;
   
-  public CreateTable(String user, String tableName, TimeType timeType, Map<String,String> props) throws TableNamespaceNotFoundException {
+  public CreateTable(String user, String tableName, TimeType timeType, Map<String,String> props) throws NamespaceNotFoundException {
     tableInfo = new TableInfo();
     tableInfo.tableName = tableName;
     tableInfo.timeType = TabletTime.getTimeID(timeType);
     tableInfo.user = user;
     tableInfo.props = props;
     Instance inst = HdfsZooInstance.getInstance();
-    tableInfo.namespaceId = TableNamespaces.getNamespaceId(inst, Tables.extractNamespace(tableInfo.tableName));
+    tableInfo.namespaceId = Namespaces.getNamespaceId(inst, Tables.extractNamespace(tableInfo.tableName));
   }
   
   @Override
   public long isReady(long tid, Master environment) throws Exception {
     // reserve the table's namespace to make sure it doesn't change while the table is created
-    return Utils.reserveTableNamespace(tableInfo.namespaceId, tid, false, true, TableOperation.CREATE);
+    return Utils.reserveNamespace(tableInfo.namespaceId, tid, false, true, TableOperation.CREATE);
   }
   
   @Override
@@ -317,7 +317,7 @@ public class CreateTable extends MasterRepo {
   
   @Override
   public void undo(long tid, Master env) throws Exception {
-    Utils.unreserveTableNamespace(tableInfo.namespaceId, tid, false);
+    Utils.unreserveNamespace(tableInfo.namespaceId, tid, false);
   }
   
 }

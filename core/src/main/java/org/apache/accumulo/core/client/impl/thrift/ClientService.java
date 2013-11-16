@@ -84,7 +84,7 @@ import org.slf4j.LoggerFactory;
 
     public boolean hasTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableName, byte tblPerm) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
-    public boolean hasTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte tblNspcPerm) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
+    public boolean hasNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String ns, byte tblNspcPerm) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
     public void grantSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, byte permission) throws ThriftSecurityException, org.apache.thrift.TException;
 
@@ -94,21 +94,21 @@ import org.slf4j.LoggerFactory;
 
     public void revokeTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableName, byte permission) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
-    public void grantTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte permission) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
+    public void grantNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String ns, byte permission) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
-    public void revokeTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte permission) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
+    public void revokeNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String ns, byte permission) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
     public Map<String,String> getConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, ConfigurationType type) throws org.apache.thrift.TException;
 
     public Map<String,String> getTableConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String tableName) throws ThriftTableOperationException, org.apache.thrift.TException;
 
-    public Map<String,String> getTableNamespaceConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns) throws ThriftTableOperationException, org.apache.thrift.TException;
+    public Map<String,String> getNamespaceConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns) throws ThriftTableOperationException, org.apache.thrift.TException;
 
     public boolean checkClass(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String className, String interfaceMatch) throws org.apache.thrift.TException;
 
     public boolean checkTableClass(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String tableId, String className, String interfaceMatch) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
-    public boolean checkTableNamespaceClass(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String namespaceId, String className, String interfaceMatch) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
+    public boolean checkNamespaceClass(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String namespaceId, String className, String interfaceMatch) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
   }
 
@@ -148,7 +148,7 @@ import org.slf4j.LoggerFactory;
 
     public void hasTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableName, byte tblPerm, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.hasTablePermission_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void hasTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte tblNspcPerm, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.hasTableNamespacePermission_call> resultHandler) throws org.apache.thrift.TException;
+    public void hasNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String ns, byte tblNspcPerm, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.hasNamespacePermission_call> resultHandler) throws org.apache.thrift.TException;
 
     public void grantSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, byte permission, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.grantSystemPermission_call> resultHandler) throws org.apache.thrift.TException;
 
@@ -158,21 +158,21 @@ import org.slf4j.LoggerFactory;
 
     public void revokeTablePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableName, byte permission, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.revokeTablePermission_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void grantTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte permission, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.grantTableNamespacePermission_call> resultHandler) throws org.apache.thrift.TException;
+    public void grantNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String ns, byte permission, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.grantNamespacePermission_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void revokeTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte permission, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.revokeTableNamespacePermission_call> resultHandler) throws org.apache.thrift.TException;
+    public void revokeNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String ns, byte permission, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.revokeNamespacePermission_call> resultHandler) throws org.apache.thrift.TException;
 
     public void getConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, ConfigurationType type, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getConfiguration_call> resultHandler) throws org.apache.thrift.TException;
 
     public void getTableConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String tableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getTableConfiguration_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void getTableNamespaceConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getTableNamespaceConfiguration_call> resultHandler) throws org.apache.thrift.TException;
+    public void getNamespaceConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getNamespaceConfiguration_call> resultHandler) throws org.apache.thrift.TException;
 
     public void checkClass(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String className, String interfaceMatch, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.checkClass_call> resultHandler) throws org.apache.thrift.TException;
 
     public void checkTableClass(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String tableId, String className, String interfaceMatch, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.checkTableClass_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void checkTableNamespaceClass(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String namespaceId, String className, String interfaceMatch, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.checkTableNamespaceClass_call> resultHandler) throws org.apache.thrift.TException;
+    public void checkNamespaceClass(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String namespaceId, String className, String interfaceMatch, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.checkNamespaceClass_call> resultHandler) throws org.apache.thrift.TException;
 
   }
 
@@ -649,27 +649,27 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "hasTablePermission failed: unknown result");
     }
 
-    public boolean hasTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte tblNspcPerm) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
+    public boolean hasNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String ns, byte tblNspcPerm) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
-      send_hasTableNamespacePermission(tinfo, credentials, principal, tableNamespace, tblNspcPerm);
-      return recv_hasTableNamespacePermission();
+      send_hasNamespacePermission(tinfo, credentials, principal, ns, tblNspcPerm);
+      return recv_hasNamespacePermission();
     }
 
-    public void send_hasTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte tblNspcPerm) throws org.apache.thrift.TException
+    public void send_hasNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String ns, byte tblNspcPerm) throws org.apache.thrift.TException
     {
-      hasTableNamespacePermission_args args = new hasTableNamespacePermission_args();
+      hasNamespacePermission_args args = new hasNamespacePermission_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
       args.setPrincipal(principal);
-      args.setTableNamespace(tableNamespace);
+      args.setNs(ns);
       args.setTblNspcPerm(tblNspcPerm);
-      sendBase("hasTableNamespacePermission", args);
+      sendBase("hasNamespacePermission", args);
     }
 
-    public boolean recv_hasTableNamespacePermission() throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
+    public boolean recv_hasNamespacePermission() throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
-      hasTableNamespacePermission_result result = new hasTableNamespacePermission_result();
-      receiveBase(result, "hasTableNamespacePermission");
+      hasNamespacePermission_result result = new hasNamespacePermission_result();
+      receiveBase(result, "hasNamespacePermission");
       if (result.isSetSuccess()) {
         return result.success;
       }
@@ -679,7 +679,7 @@ import org.slf4j.LoggerFactory;
       if (result.tope != null) {
         throw result.tope;
       }
-      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "hasTableNamespacePermission failed: unknown result");
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "hasNamespacePermission failed: unknown result");
     }
 
     public void grantSystemPermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, byte permission) throws ThriftSecurityException, org.apache.thrift.TException
@@ -794,27 +794,27 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void grantTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte permission) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
+    public void grantNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String ns, byte permission) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
-      send_grantTableNamespacePermission(tinfo, credentials, principal, tableNamespace, permission);
-      recv_grantTableNamespacePermission();
+      send_grantNamespacePermission(tinfo, credentials, principal, ns, permission);
+      recv_grantNamespacePermission();
     }
 
-    public void send_grantTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte permission) throws org.apache.thrift.TException
+    public void send_grantNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String ns, byte permission) throws org.apache.thrift.TException
     {
-      grantTableNamespacePermission_args args = new grantTableNamespacePermission_args();
+      grantNamespacePermission_args args = new grantNamespacePermission_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
       args.setPrincipal(principal);
-      args.setTableNamespace(tableNamespace);
+      args.setNs(ns);
       args.setPermission(permission);
-      sendBase("grantTableNamespacePermission", args);
+      sendBase("grantNamespacePermission", args);
     }
 
-    public void recv_grantTableNamespacePermission() throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
+    public void recv_grantNamespacePermission() throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
-      grantTableNamespacePermission_result result = new grantTableNamespacePermission_result();
-      receiveBase(result, "grantTableNamespacePermission");
+      grantNamespacePermission_result result = new grantNamespacePermission_result();
+      receiveBase(result, "grantNamespacePermission");
       if (result.sec != null) {
         throw result.sec;
       }
@@ -824,27 +824,27 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void revokeTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte permission) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
+    public void revokeNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String ns, byte permission) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
-      send_revokeTableNamespacePermission(tinfo, credentials, principal, tableNamespace, permission);
-      recv_revokeTableNamespacePermission();
+      send_revokeNamespacePermission(tinfo, credentials, principal, ns, permission);
+      recv_revokeNamespacePermission();
     }
 
-    public void send_revokeTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte permission) throws org.apache.thrift.TException
+    public void send_revokeNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String ns, byte permission) throws org.apache.thrift.TException
     {
-      revokeTableNamespacePermission_args args = new revokeTableNamespacePermission_args();
+      revokeNamespacePermission_args args = new revokeNamespacePermission_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
       args.setPrincipal(principal);
-      args.setTableNamespace(tableNamespace);
+      args.setNs(ns);
       args.setPermission(permission);
-      sendBase("revokeTableNamespacePermission", args);
+      sendBase("revokeNamespacePermission", args);
     }
 
-    public void recv_revokeTableNamespacePermission() throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
+    public void recv_revokeNamespacePermission() throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
-      revokeTableNamespacePermission_result result = new revokeTableNamespacePermission_result();
-      receiveBase(result, "revokeTableNamespacePermission");
+      revokeNamespacePermission_result result = new revokeNamespacePermission_result();
+      receiveBase(result, "revokeNamespacePermission");
       if (result.sec != null) {
         throw result.sec;
       }
@@ -907,32 +907,32 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getTableConfiguration failed: unknown result");
     }
 
-    public Map<String,String> getTableNamespaceConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns) throws ThriftTableOperationException, org.apache.thrift.TException
+    public Map<String,String> getNamespaceConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns) throws ThriftTableOperationException, org.apache.thrift.TException
     {
-      send_getTableNamespaceConfiguration(tinfo, credentials, ns);
-      return recv_getTableNamespaceConfiguration();
+      send_getNamespaceConfiguration(tinfo, credentials, ns);
+      return recv_getNamespaceConfiguration();
     }
 
-    public void send_getTableNamespaceConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns) throws org.apache.thrift.TException
+    public void send_getNamespaceConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns) throws org.apache.thrift.TException
     {
-      getTableNamespaceConfiguration_args args = new getTableNamespaceConfiguration_args();
+      getNamespaceConfiguration_args args = new getNamespaceConfiguration_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
       args.setNs(ns);
-      sendBase("getTableNamespaceConfiguration", args);
+      sendBase("getNamespaceConfiguration", args);
     }
 
-    public Map<String,String> recv_getTableNamespaceConfiguration() throws ThriftTableOperationException, org.apache.thrift.TException
+    public Map<String,String> recv_getNamespaceConfiguration() throws ThriftTableOperationException, org.apache.thrift.TException
     {
-      getTableNamespaceConfiguration_result result = new getTableNamespaceConfiguration_result();
-      receiveBase(result, "getTableNamespaceConfiguration");
+      getNamespaceConfiguration_result result = new getNamespaceConfiguration_result();
+      receiveBase(result, "getNamespaceConfiguration");
       if (result.isSetSuccess()) {
         return result.success;
       }
       if (result.tope != null) {
         throw result.tope;
       }
-      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getTableNamespaceConfiguration failed: unknown result");
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getNamespaceConfiguration failed: unknown result");
     }
 
     public boolean checkClass(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String className, String interfaceMatch) throws org.apache.thrift.TException
@@ -994,27 +994,27 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "checkTableClass failed: unknown result");
     }
 
-    public boolean checkTableNamespaceClass(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String namespaceId, String className, String interfaceMatch) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
+    public boolean checkNamespaceClass(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String namespaceId, String className, String interfaceMatch) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
-      send_checkTableNamespaceClass(tinfo, credentials, namespaceId, className, interfaceMatch);
-      return recv_checkTableNamespaceClass();
+      send_checkNamespaceClass(tinfo, credentials, namespaceId, className, interfaceMatch);
+      return recv_checkNamespaceClass();
     }
 
-    public void send_checkTableNamespaceClass(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String namespaceId, String className, String interfaceMatch) throws org.apache.thrift.TException
+    public void send_checkNamespaceClass(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String namespaceId, String className, String interfaceMatch) throws org.apache.thrift.TException
     {
-      checkTableNamespaceClass_args args = new checkTableNamespaceClass_args();
+      checkNamespaceClass_args args = new checkNamespaceClass_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
       args.setNamespaceId(namespaceId);
       args.setClassName(className);
       args.setInterfaceMatch(interfaceMatch);
-      sendBase("checkTableNamespaceClass", args);
+      sendBase("checkNamespaceClass", args);
     }
 
-    public boolean recv_checkTableNamespaceClass() throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
+    public boolean recv_checkNamespaceClass() throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
-      checkTableNamespaceClass_result result = new checkTableNamespaceClass_result();
-      receiveBase(result, "checkTableNamespaceClass");
+      checkNamespaceClass_result result = new checkNamespaceClass_result();
+      receiveBase(result, "checkNamespaceClass");
       if (result.isSetSuccess()) {
         return result.success;
       }
@@ -1024,7 +1024,7 @@ import org.slf4j.LoggerFactory;
       if (result.tope != null) {
         throw result.tope;
       }
-      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "checkTableNamespaceClass failed: unknown result");
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "checkNamespaceClass failed: unknown result");
     }
 
   }
@@ -1676,35 +1676,35 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void hasTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte tblNspcPerm, org.apache.thrift.async.AsyncMethodCallback<hasTableNamespacePermission_call> resultHandler) throws org.apache.thrift.TException {
+    public void hasNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String ns, byte tblNspcPerm, org.apache.thrift.async.AsyncMethodCallback<hasNamespacePermission_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      hasTableNamespacePermission_call method_call = new hasTableNamespacePermission_call(tinfo, credentials, principal, tableNamespace, tblNspcPerm, resultHandler, this, ___protocolFactory, ___transport);
+      hasNamespacePermission_call method_call = new hasNamespacePermission_call(tinfo, credentials, principal, ns, tblNspcPerm, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
-    public static class hasTableNamespacePermission_call extends org.apache.thrift.async.TAsyncMethodCall {
+    public static class hasNamespacePermission_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.trace.thrift.TInfo tinfo;
       private org.apache.accumulo.core.security.thrift.TCredentials credentials;
       private String principal;
-      private String tableNamespace;
+      private String ns;
       private byte tblNspcPerm;
-      public hasTableNamespacePermission_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte tblNspcPerm, org.apache.thrift.async.AsyncMethodCallback<hasTableNamespacePermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public hasNamespacePermission_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String ns, byte tblNspcPerm, org.apache.thrift.async.AsyncMethodCallback<hasNamespacePermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
         this.principal = principal;
-        this.tableNamespace = tableNamespace;
+        this.ns = ns;
         this.tblNspcPerm = tblNspcPerm;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
-        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("hasTableNamespacePermission", org.apache.thrift.protocol.TMessageType.CALL, 0));
-        hasTableNamespacePermission_args args = new hasTableNamespacePermission_args();
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("hasNamespacePermission", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        hasNamespacePermission_args args = new hasNamespacePermission_args();
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
         args.setPrincipal(principal);
-        args.setTableNamespace(tableNamespace);
+        args.setNs(ns);
         args.setTblNspcPerm(tblNspcPerm);
         args.write(prot);
         prot.writeMessageEnd();
@@ -1716,7 +1716,7 @@ import org.slf4j.LoggerFactory;
         }
         org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
         org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
-        return (new Client(prot)).recv_hasTableNamespacePermission();
+        return (new Client(prot)).recv_hasNamespacePermission();
       }
     }
 
@@ -1890,35 +1890,35 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void grantTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte permission, org.apache.thrift.async.AsyncMethodCallback<grantTableNamespacePermission_call> resultHandler) throws org.apache.thrift.TException {
+    public void grantNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String ns, byte permission, org.apache.thrift.async.AsyncMethodCallback<grantNamespacePermission_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      grantTableNamespacePermission_call method_call = new grantTableNamespacePermission_call(tinfo, credentials, principal, tableNamespace, permission, resultHandler, this, ___protocolFactory, ___transport);
+      grantNamespacePermission_call method_call = new grantNamespacePermission_call(tinfo, credentials, principal, ns, permission, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
-    public static class grantTableNamespacePermission_call extends org.apache.thrift.async.TAsyncMethodCall {
+    public static class grantNamespacePermission_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.trace.thrift.TInfo tinfo;
       private org.apache.accumulo.core.security.thrift.TCredentials credentials;
       private String principal;
-      private String tableNamespace;
+      private String ns;
       private byte permission;
-      public grantTableNamespacePermission_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte permission, org.apache.thrift.async.AsyncMethodCallback<grantTableNamespacePermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public grantNamespacePermission_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String ns, byte permission, org.apache.thrift.async.AsyncMethodCallback<grantNamespacePermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
         this.principal = principal;
-        this.tableNamespace = tableNamespace;
+        this.ns = ns;
         this.permission = permission;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
-        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("grantTableNamespacePermission", org.apache.thrift.protocol.TMessageType.CALL, 0));
-        grantTableNamespacePermission_args args = new grantTableNamespacePermission_args();
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("grantNamespacePermission", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        grantNamespacePermission_args args = new grantNamespacePermission_args();
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
         args.setPrincipal(principal);
-        args.setTableNamespace(tableNamespace);
+        args.setNs(ns);
         args.setPermission(permission);
         args.write(prot);
         prot.writeMessageEnd();
@@ -1930,39 +1930,39 @@ import org.slf4j.LoggerFactory;
         }
         org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
         org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
-        (new Client(prot)).recv_grantTableNamespacePermission();
+        (new Client(prot)).recv_grantNamespacePermission();
       }
     }
 
-    public void revokeTableNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte permission, org.apache.thrift.async.AsyncMethodCallback<revokeTableNamespacePermission_call> resultHandler) throws org.apache.thrift.TException {
+    public void revokeNamespacePermission(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String ns, byte permission, org.apache.thrift.async.AsyncMethodCallback<revokeNamespacePermission_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      revokeTableNamespacePermission_call method_call = new revokeTableNamespacePermission_call(tinfo, credentials, principal, tableNamespace, permission, resultHandler, this, ___protocolFactory, ___transport);
+      revokeNamespacePermission_call method_call = new revokeNamespacePermission_call(tinfo, credentials, principal, ns, permission, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
-    public static class revokeTableNamespacePermission_call extends org.apache.thrift.async.TAsyncMethodCall {
+    public static class revokeNamespacePermission_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.trace.thrift.TInfo tinfo;
       private org.apache.accumulo.core.security.thrift.TCredentials credentials;
       private String principal;
-      private String tableNamespace;
+      private String ns;
       private byte permission;
-      public revokeTableNamespacePermission_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String tableNamespace, byte permission, org.apache.thrift.async.AsyncMethodCallback<revokeTableNamespacePermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public revokeNamespacePermission_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String principal, String ns, byte permission, org.apache.thrift.async.AsyncMethodCallback<revokeNamespacePermission_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
         this.principal = principal;
-        this.tableNamespace = tableNamespace;
+        this.ns = ns;
         this.permission = permission;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
-        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("revokeTableNamespacePermission", org.apache.thrift.protocol.TMessageType.CALL, 0));
-        revokeTableNamespacePermission_args args = new revokeTableNamespacePermission_args();
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("revokeNamespacePermission", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        revokeNamespacePermission_args args = new revokeNamespacePermission_args();
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
         args.setPrincipal(principal);
-        args.setTableNamespace(tableNamespace);
+        args.setNs(ns);
         args.setPermission(permission);
         args.write(prot);
         prot.writeMessageEnd();
@@ -1974,7 +1974,7 @@ import org.slf4j.LoggerFactory;
         }
         org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
         org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
-        (new Client(prot)).recv_revokeTableNamespacePermission();
+        (new Client(prot)).recv_revokeNamespacePermission();
       }
     }
 
@@ -2054,18 +2054,18 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void getTableNamespaceConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, org.apache.thrift.async.AsyncMethodCallback<getTableNamespaceConfiguration_call> resultHandler) throws org.apache.thrift.TException {
+    public void getNamespaceConfiguration(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, org.apache.thrift.async.AsyncMethodCallback<getNamespaceConfiguration_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      getTableNamespaceConfiguration_call method_call = new getTableNamespaceConfiguration_call(tinfo, credentials, ns, resultHandler, this, ___protocolFactory, ___transport);
+      getNamespaceConfiguration_call method_call = new getNamespaceConfiguration_call(tinfo, credentials, ns, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
-    public static class getTableNamespaceConfiguration_call extends org.apache.thrift.async.TAsyncMethodCall {
+    public static class getNamespaceConfiguration_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.trace.thrift.TInfo tinfo;
       private org.apache.accumulo.core.security.thrift.TCredentials credentials;
       private String ns;
-      public getTableNamespaceConfiguration_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, org.apache.thrift.async.AsyncMethodCallback<getTableNamespaceConfiguration_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public getNamespaceConfiguration_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String ns, org.apache.thrift.async.AsyncMethodCallback<getNamespaceConfiguration_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -2073,8 +2073,8 @@ import org.slf4j.LoggerFactory;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
-        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getTableNamespaceConfiguration", org.apache.thrift.protocol.TMessageType.CALL, 0));
-        getTableNamespaceConfiguration_args args = new getTableNamespaceConfiguration_args();
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getNamespaceConfiguration", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        getNamespaceConfiguration_args args = new getNamespaceConfiguration_args();
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
         args.setNs(ns);
@@ -2088,7 +2088,7 @@ import org.slf4j.LoggerFactory;
         }
         org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
         org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
-        return (new Client(prot)).recv_getTableNamespaceConfiguration();
+        return (new Client(prot)).recv_getNamespaceConfiguration();
       }
     }
 
@@ -2177,20 +2177,20 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void checkTableNamespaceClass(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String namespaceId, String className, String interfaceMatch, org.apache.thrift.async.AsyncMethodCallback<checkTableNamespaceClass_call> resultHandler) throws org.apache.thrift.TException {
+    public void checkNamespaceClass(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String namespaceId, String className, String interfaceMatch, org.apache.thrift.async.AsyncMethodCallback<checkNamespaceClass_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      checkTableNamespaceClass_call method_call = new checkTableNamespaceClass_call(tinfo, credentials, namespaceId, className, interfaceMatch, resultHandler, this, ___protocolFactory, ___transport);
+      checkNamespaceClass_call method_call = new checkNamespaceClass_call(tinfo, credentials, namespaceId, className, interfaceMatch, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
-    public static class checkTableNamespaceClass_call extends org.apache.thrift.async.TAsyncMethodCall {
+    public static class checkNamespaceClass_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.trace.thrift.TInfo tinfo;
       private org.apache.accumulo.core.security.thrift.TCredentials credentials;
       private String namespaceId;
       private String className;
       private String interfaceMatch;
-      public checkTableNamespaceClass_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String namespaceId, String className, String interfaceMatch, org.apache.thrift.async.AsyncMethodCallback<checkTableNamespaceClass_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public checkNamespaceClass_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String namespaceId, String className, String interfaceMatch, org.apache.thrift.async.AsyncMethodCallback<checkNamespaceClass_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -2200,8 +2200,8 @@ import org.slf4j.LoggerFactory;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
-        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("checkTableNamespaceClass", org.apache.thrift.protocol.TMessageType.CALL, 0));
-        checkTableNamespaceClass_args args = new checkTableNamespaceClass_args();
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("checkNamespaceClass", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        checkNamespaceClass_args args = new checkNamespaceClass_args();
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
         args.setNamespaceId(namespaceId);
@@ -2217,7 +2217,7 @@ import org.slf4j.LoggerFactory;
         }
         org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
         org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
-        return (new Client(prot)).recv_checkTableNamespaceClass();
+        return (new Client(prot)).recv_checkNamespaceClass();
       }
     }
 
@@ -2251,19 +2251,19 @@ import org.slf4j.LoggerFactory;
       processMap.put("getUserAuthorizations", new getUserAuthorizations());
       processMap.put("hasSystemPermission", new hasSystemPermission());
       processMap.put("hasTablePermission", new hasTablePermission());
-      processMap.put("hasTableNamespacePermission", new hasTableNamespacePermission());
+      processMap.put("hasNamespacePermission", new hasNamespacePermission());
       processMap.put("grantSystemPermission", new grantSystemPermission());
       processMap.put("revokeSystemPermission", new revokeSystemPermission());
       processMap.put("grantTablePermission", new grantTablePermission());
       processMap.put("revokeTablePermission", new revokeTablePermission());
-      processMap.put("grantTableNamespacePermission", new grantTableNamespacePermission());
-      processMap.put("revokeTableNamespacePermission", new revokeTableNamespacePermission());
+      processMap.put("grantNamespacePermission", new grantNamespacePermission());
+      processMap.put("revokeNamespacePermission", new revokeNamespacePermission());
       processMap.put("getConfiguration", new getConfiguration());
       processMap.put("getTableConfiguration", new getTableConfiguration());
-      processMap.put("getTableNamespaceConfiguration", new getTableNamespaceConfiguration());
+      processMap.put("getNamespaceConfiguration", new getNamespaceConfiguration());
       processMap.put("checkClass", new checkClass());
       processMap.put("checkTableClass", new checkTableClass());
-      processMap.put("checkTableNamespaceClass", new checkTableNamespaceClass());
+      processMap.put("checkNamespaceClass", new checkNamespaceClass());
       return processMap;
     }
 
@@ -2670,23 +2670,23 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public static class hasTableNamespacePermission<I extends Iface> extends org.apache.thrift.ProcessFunction<I, hasTableNamespacePermission_args> {
-      public hasTableNamespacePermission() {
-        super("hasTableNamespacePermission");
+    public static class hasNamespacePermission<I extends Iface> extends org.apache.thrift.ProcessFunction<I, hasNamespacePermission_args> {
+      public hasNamespacePermission() {
+        super("hasNamespacePermission");
       }
 
-      public hasTableNamespacePermission_args getEmptyArgsInstance() {
-        return new hasTableNamespacePermission_args();
+      public hasNamespacePermission_args getEmptyArgsInstance() {
+        return new hasNamespacePermission_args();
       }
 
       protected boolean isOneway() {
         return false;
       }
 
-      public hasTableNamespacePermission_result getResult(I iface, hasTableNamespacePermission_args args) throws org.apache.thrift.TException {
-        hasTableNamespacePermission_result result = new hasTableNamespacePermission_result();
+      public hasNamespacePermission_result getResult(I iface, hasNamespacePermission_args args) throws org.apache.thrift.TException {
+        hasNamespacePermission_result result = new hasNamespacePermission_result();
         try {
-          result.success = iface.hasTableNamespacePermission(args.tinfo, args.credentials, args.principal, args.tableNamespace, args.tblNspcPerm);
+          result.success = iface.hasNamespacePermission(args.tinfo, args.credentials, args.principal, args.ns, args.tblNspcPerm);
           result.setSuccessIsSet(true);
         } catch (ThriftSecurityException sec) {
           result.sec = sec;
@@ -2797,23 +2797,23 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public static class grantTableNamespacePermission<I extends Iface> extends org.apache.thrift.ProcessFunction<I, grantTableNamespacePermission_args> {
-      public grantTableNamespacePermission() {
-        super("grantTableNamespacePermission");
+    public static class grantNamespacePermission<I extends Iface> extends org.apache.thrift.ProcessFunction<I, grantNamespacePermission_args> {
+      public grantNamespacePermission() {
+        super("grantNamespacePermission");
       }
 
-      public grantTableNamespacePermission_args getEmptyArgsInstance() {
-        return new grantTableNamespacePermission_args();
+      public grantNamespacePermission_args getEmptyArgsInstance() {
+        return new grantNamespacePermission_args();
       }
 
       protected boolean isOneway() {
         return false;
       }
 
-      public grantTableNamespacePermission_result getResult(I iface, grantTableNamespacePermission_args args) throws org.apache.thrift.TException {
-        grantTableNamespacePermission_result result = new grantTableNamespacePermission_result();
+      public grantNamespacePermission_result getResult(I iface, grantNamespacePermission_args args) throws org.apache.thrift.TException {
+        grantNamespacePermission_result result = new grantNamespacePermission_result();
         try {
-          iface.grantTableNamespacePermission(args.tinfo, args.credentials, args.principal, args.tableNamespace, args.permission);
+          iface.grantNamespacePermission(args.tinfo, args.credentials, args.principal, args.ns, args.permission);
         } catch (ThriftSecurityException sec) {
           result.sec = sec;
         } catch (ThriftTableOperationException tope) {
@@ -2823,23 +2823,23 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public static class revokeTableNamespacePermission<I extends Iface> extends org.apache.thrift.ProcessFunction<I, revokeTableNamespacePermission_args> {
-      public revokeTableNamespacePermission() {
-        super("revokeTableNamespacePermission");
+    public static class revokeNamespacePermission<I extends Iface> extends org.apache.thrift.ProcessFunction<I, revokeNamespacePermission_args> {
+      public revokeNamespacePermission() {
+        super("revokeNamespacePermission");
       }
 
-      public revokeTableNamespacePermission_args getEmptyArgsInstance() {
-        return new revokeTableNamespacePermission_args();
+      public revokeNamespacePermission_args getEmptyArgsInstance() {
+        return new revokeNamespacePermission_args();
       }
 
       protected boolean isOneway() {
         return false;
       }
 
-      public revokeTableNamespacePermission_result getResult(I iface, revokeTableNamespacePermission_args args) throws org.apache.thrift.TException {
-        revokeTableNamespacePermission_result result = new revokeTableNamespacePermission_result();
+      public revokeNamespacePermission_result getResult(I iface, revokeNamespacePermission_args args) throws org.apache.thrift.TException {
+        revokeNamespacePermission_result result = new revokeNamespacePermission_result();
         try {
-          iface.revokeTableNamespacePermission(args.tinfo, args.credentials, args.principal, args.tableNamespace, args.permission);
+          iface.revokeNamespacePermission(args.tinfo, args.credentials, args.principal, args.ns, args.permission);
         } catch (ThriftSecurityException sec) {
           result.sec = sec;
         } catch (ThriftTableOperationException tope) {
@@ -2893,23 +2893,23 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public static class getTableNamespaceConfiguration<I extends Iface> extends org.apache.thrift.ProcessFunction<I, getTableNamespaceConfiguration_args> {
-      public getTableNamespaceConfiguration() {
-        super("getTableNamespaceConfiguration");
+    public static class getNamespaceConfiguration<I extends Iface> extends org.apache.thrift.ProcessFunction<I, getNamespaceConfiguration_args> {
+      public getNamespaceConfiguration() {
+        super("getNamespaceConfiguration");
       }
 
-      public getTableNamespaceConfiguration_args getEmptyArgsInstance() {
-        return new getTableNamespaceConfiguration_args();
+      public getNamespaceConfiguration_args getEmptyArgsInstance() {
+        return new getNamespaceConfiguration_args();
       }
 
       protected boolean isOneway() {
         return false;
       }
 
-      public getTableNamespaceConfiguration_result getResult(I iface, getTableNamespaceConfiguration_args args) throws org.apache.thrift.TException {
-        getTableNamespaceConfiguration_result result = new getTableNamespaceConfiguration_result();
+      public getNamespaceConfiguration_result getResult(I iface, getNamespaceConfiguration_args args) throws org.apache.thrift.TException {
+        getNamespaceConfiguration_result result = new getNamespaceConfiguration_result();
         try {
-          result.success = iface.getTableNamespaceConfiguration(args.tinfo, args.credentials, args.ns);
+          result.success = iface.getNamespaceConfiguration(args.tinfo, args.credentials, args.ns);
         } catch (ThriftTableOperationException tope) {
           result.tope = tope;
         }
@@ -2965,23 +2965,23 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public static class checkTableNamespaceClass<I extends Iface> extends org.apache.thrift.ProcessFunction<I, checkTableNamespaceClass_args> {
-      public checkTableNamespaceClass() {
-        super("checkTableNamespaceClass");
+    public static class checkNamespaceClass<I extends Iface> extends org.apache.thrift.ProcessFunction<I, checkNamespaceClass_args> {
+      public checkNamespaceClass() {
+        super("checkNamespaceClass");
       }
 
-      public checkTableNamespaceClass_args getEmptyArgsInstance() {
-        return new checkTableNamespaceClass_args();
+      public checkNamespaceClass_args getEmptyArgsInstance() {
+        return new checkNamespaceClass_args();
       }
 
       protected boolean isOneway() {
         return false;
       }
 
-      public checkTableNamespaceClass_result getResult(I iface, checkTableNamespaceClass_args args) throws org.apache.thrift.TException {
-        checkTableNamespaceClass_result result = new checkTableNamespaceClass_result();
+      public checkNamespaceClass_result getResult(I iface, checkNamespaceClass_args args) throws org.apache.thrift.TException {
+        checkNamespaceClass_result result = new checkNamespaceClass_result();
         try {
-          result.success = iface.checkTableNamespaceClass(args.tinfo, args.credentials, args.namespaceId, args.className, args.interfaceMatch);
+          result.success = iface.checkNamespaceClass(args.tinfo, args.credentials, args.namespaceId, args.className, args.interfaceMatch);
           result.setSuccessIsSet(true);
         } catch (ThriftSecurityException sec) {
           result.sec = sec;
@@ -19546,25 +19546,25 @@ import org.slf4j.LoggerFactory;
 
   }
 
-  public static class hasTableNamespacePermission_args implements org.apache.thrift.TBase<hasTableNamespacePermission_args, hasTableNamespacePermission_args._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("hasTableNamespacePermission_args");
+  public static class hasNamespacePermission_args implements org.apache.thrift.TBase<hasNamespacePermission_args, hasNamespacePermission_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("hasNamespacePermission_args");
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
     private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)3);
-    private static final org.apache.thrift.protocol.TField TABLE_NAMESPACE_FIELD_DESC = new org.apache.thrift.protocol.TField("tableNamespace", org.apache.thrift.protocol.TType.STRING, (short)4);
+    private static final org.apache.thrift.protocol.TField NS_FIELD_DESC = new org.apache.thrift.protocol.TField("ns", org.apache.thrift.protocol.TType.STRING, (short)4);
     private static final org.apache.thrift.protocol.TField TBL_NSPC_PERM_FIELD_DESC = new org.apache.thrift.protocol.TField("tblNspcPerm", org.apache.thrift.protocol.TType.BYTE, (short)5);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
-      schemes.put(StandardScheme.class, new hasTableNamespacePermission_argsStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new hasTableNamespacePermission_argsTupleSchemeFactory());
+      schemes.put(StandardScheme.class, new hasNamespacePermission_argsStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new hasNamespacePermission_argsTupleSchemeFactory());
     }
 
     public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
     public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
     public String principal; // required
-    public String tableNamespace; // required
+    public String ns; // required
     public byte tblNspcPerm; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -19572,7 +19572,7 @@ import org.slf4j.LoggerFactory;
       TINFO((short)1, "tinfo"),
       CREDENTIALS((short)2, "credentials"),
       PRINCIPAL((short)3, "principal"),
-      TABLE_NAMESPACE((short)4, "tableNamespace"),
+      NS((short)4, "ns"),
       TBL_NSPC_PERM((short)5, "tblNspcPerm");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -19594,8 +19594,8 @@ import org.slf4j.LoggerFactory;
             return CREDENTIALS;
           case 3: // PRINCIPAL
             return PRINCIPAL;
-          case 4: // TABLE_NAMESPACE
-            return TABLE_NAMESPACE;
+          case 4: // NS
+            return NS;
           case 5: // TBL_NSPC_PERM
             return TBL_NSPC_PERM;
           default:
@@ -19649,29 +19649,29 @@ import org.slf4j.LoggerFactory;
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
       tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-      tmpMap.put(_Fields.TABLE_NAMESPACE, new org.apache.thrift.meta_data.FieldMetaData("tableNamespace", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.NS, new org.apache.thrift.meta_data.FieldMetaData("ns", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.TBL_NSPC_PERM, new org.apache.thrift.meta_data.FieldMetaData("tblNspcPerm", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BYTE)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(hasTableNamespacePermission_args.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(hasNamespacePermission_args.class, metaDataMap);
     }
 
-    public hasTableNamespacePermission_args() {
+    public hasNamespacePermission_args() {
     }
 
-    public hasTableNamespacePermission_args(
+    public hasNamespacePermission_args(
       org.apache.accumulo.trace.thrift.TInfo tinfo,
       org.apache.accumulo.core.security.thrift.TCredentials credentials,
       String principal,
-      String tableNamespace,
+      String ns,
       byte tblNspcPerm)
     {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
       this.principal = principal;
-      this.tableNamespace = tableNamespace;
+      this.ns = ns;
       this.tblNspcPerm = tblNspcPerm;
       setTblNspcPermIsSet(true);
     }
@@ -19679,7 +19679,7 @@ import org.slf4j.LoggerFactory;
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public hasTableNamespacePermission_args(hasTableNamespacePermission_args other) {
+    public hasNamespacePermission_args(hasNamespacePermission_args other) {
       __isset_bitfield = other.__isset_bitfield;
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
@@ -19690,14 +19690,14 @@ import org.slf4j.LoggerFactory;
       if (other.isSetPrincipal()) {
         this.principal = other.principal;
       }
-      if (other.isSetTableNamespace()) {
-        this.tableNamespace = other.tableNamespace;
+      if (other.isSetNs()) {
+        this.ns = other.ns;
       }
       this.tblNspcPerm = other.tblNspcPerm;
     }
 
-    public hasTableNamespacePermission_args deepCopy() {
-      return new hasTableNamespacePermission_args(this);
+    public hasNamespacePermission_args deepCopy() {
+      return new hasNamespacePermission_args(this);
     }
 
     @Override
@@ -19705,7 +19705,7 @@ import org.slf4j.LoggerFactory;
       this.tinfo = null;
       this.credentials = null;
       this.principal = null;
-      this.tableNamespace = null;
+      this.ns = null;
       setTblNspcPermIsSet(false);
       this.tblNspcPerm = 0;
     }
@@ -19714,7 +19714,7 @@ import org.slf4j.LoggerFactory;
       return this.tinfo;
     }
 
-    public hasTableNamespacePermission_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
+    public hasNamespacePermission_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
@@ -19738,7 +19738,7 @@ import org.slf4j.LoggerFactory;
       return this.credentials;
     }
 
-    public hasTableNamespacePermission_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+    public hasNamespacePermission_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -19762,7 +19762,7 @@ import org.slf4j.LoggerFactory;
       return this.principal;
     }
 
-    public hasTableNamespacePermission_args setPrincipal(String principal) {
+    public hasNamespacePermission_args setPrincipal(String principal) {
       this.principal = principal;
       return this;
     }
@@ -19782,27 +19782,27 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public String getTableNamespace() {
-      return this.tableNamespace;
+    public String getNs() {
+      return this.ns;
     }
 
-    public hasTableNamespacePermission_args setTableNamespace(String tableNamespace) {
-      this.tableNamespace = tableNamespace;
+    public hasNamespacePermission_args setNs(String ns) {
+      this.ns = ns;
       return this;
     }
 
-    public void unsetTableNamespace() {
-      this.tableNamespace = null;
+    public void unsetNs() {
+      this.ns = null;
     }
 
-    /** Returns true if field tableNamespace is set (has been assigned a value) and false otherwise */
-    public boolean isSetTableNamespace() {
-      return this.tableNamespace != null;
+    /** Returns true if field ns is set (has been assigned a value) and false otherwise */
+    public boolean isSetNs() {
+      return this.ns != null;
     }
 
-    public void setTableNamespaceIsSet(boolean value) {
+    public void setNsIsSet(boolean value) {
       if (!value) {
-        this.tableNamespace = null;
+        this.ns = null;
       }
     }
 
@@ -19810,7 +19810,7 @@ import org.slf4j.LoggerFactory;
       return this.tblNspcPerm;
     }
 
-    public hasTableNamespacePermission_args setTblNspcPerm(byte tblNspcPerm) {
+    public hasNamespacePermission_args setTblNspcPerm(byte tblNspcPerm) {
       this.tblNspcPerm = tblNspcPerm;
       setTblNspcPermIsSet(true);
       return this;
@@ -19855,11 +19855,11 @@ import org.slf4j.LoggerFactory;
         }
         break;
 
-      case TABLE_NAMESPACE:
+      case NS:
         if (value == null) {
-          unsetTableNamespace();
+          unsetNs();
         } else {
-          setTableNamespace((String)value);
+          setNs((String)value);
         }
         break;
 
@@ -19885,8 +19885,8 @@ import org.slf4j.LoggerFactory;
       case PRINCIPAL:
         return getPrincipal();
 
-      case TABLE_NAMESPACE:
-        return getTableNamespace();
+      case NS:
+        return getNs();
 
       case TBL_NSPC_PERM:
         return Byte.valueOf(getTblNspcPerm());
@@ -19908,8 +19908,8 @@ import org.slf4j.LoggerFactory;
         return isSetCredentials();
       case PRINCIPAL:
         return isSetPrincipal();
-      case TABLE_NAMESPACE:
-        return isSetTableNamespace();
+      case NS:
+        return isSetNs();
       case TBL_NSPC_PERM:
         return isSetTblNspcPerm();
       }
@@ -19920,12 +19920,12 @@ import org.slf4j.LoggerFactory;
     public boolean equals(Object that) {
       if (that == null)
         return false;
-      if (that instanceof hasTableNamespacePermission_args)
-        return this.equals((hasTableNamespacePermission_args)that);
+      if (that instanceof hasNamespacePermission_args)
+        return this.equals((hasNamespacePermission_args)that);
       return false;
     }
 
-    public boolean equals(hasTableNamespacePermission_args that) {
+    public boolean equals(hasNamespacePermission_args that) {
       if (that == null)
         return false;
 
@@ -19956,12 +19956,12 @@ import org.slf4j.LoggerFactory;
           return false;
       }
 
-      boolean this_present_tableNamespace = true && this.isSetTableNamespace();
-      boolean that_present_tableNamespace = true && that.isSetTableNamespace();
-      if (this_present_tableNamespace || that_present_tableNamespace) {
-        if (!(this_present_tableNamespace && that_present_tableNamespace))
+      boolean this_present_ns = true && this.isSetNs();
+      boolean that_present_ns = true && that.isSetNs();
+      if (this_present_ns || that_present_ns) {
+        if (!(this_present_ns && that_present_ns))
           return false;
-        if (!this.tableNamespace.equals(that.tableNamespace))
+        if (!this.ns.equals(that.ns))
           return false;
       }
 
@@ -19982,13 +19982,13 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
-    public int compareTo(hasTableNamespacePermission_args other) {
+    public int compareTo(hasNamespacePermission_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
 
       int lastComparison = 0;
-      hasTableNamespacePermission_args typedOther = (hasTableNamespacePermission_args)other;
+      hasNamespacePermission_args typedOther = (hasNamespacePermission_args)other;
 
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
@@ -20020,12 +20020,12 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
-      lastComparison = Boolean.valueOf(isSetTableNamespace()).compareTo(typedOther.isSetTableNamespace());
+      lastComparison = Boolean.valueOf(isSetNs()).compareTo(typedOther.isSetNs());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTableNamespace()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tableNamespace, typedOther.tableNamespace);
+      if (isSetNs()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.ns, typedOther.ns);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -20057,7 +20057,7 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public String toString() {
-      StringBuilder sb = new StringBuilder("hasTableNamespacePermission_args(");
+      StringBuilder sb = new StringBuilder("hasNamespacePermission_args(");
       boolean first = true;
 
       sb.append("tinfo:");
@@ -20084,11 +20084,11 @@ import org.slf4j.LoggerFactory;
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("tableNamespace:");
-      if (this.tableNamespace == null) {
+      sb.append("ns:");
+      if (this.ns == null) {
         sb.append("null");
       } else {
-        sb.append(this.tableNamespace);
+        sb.append(this.ns);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -20128,15 +20128,15 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    private static class hasTableNamespacePermission_argsStandardSchemeFactory implements SchemeFactory {
-      public hasTableNamespacePermission_argsStandardScheme getScheme() {
-        return new hasTableNamespacePermission_argsStandardScheme();
+    private static class hasNamespacePermission_argsStandardSchemeFactory implements SchemeFactory {
+      public hasNamespacePermission_argsStandardScheme getScheme() {
+        return new hasNamespacePermission_argsStandardScheme();
       }
     }
 
-    private static class hasTableNamespacePermission_argsStandardScheme extends StandardScheme<hasTableNamespacePermission_args> {
+    private static class hasNamespacePermission_argsStandardScheme extends StandardScheme<hasNamespacePermission_args> {
 
-      public void read(org.apache.thrift.protocol.TProtocol iprot, hasTableNamespacePermission_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, hasNamespacePermission_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -20172,10 +20172,10 @@ import org.slf4j.LoggerFactory;
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 4: // TABLE_NAMESPACE
+            case 4: // NS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-                struct.tableNamespace = iprot.readString();
-                struct.setTableNamespaceIsSet(true);
+                struct.ns = iprot.readString();
+                struct.setNsIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -20199,7 +20199,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
-      public void write(org.apache.thrift.protocol.TProtocol oprot, hasTableNamespacePermission_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, hasNamespacePermission_args struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -20218,9 +20218,9 @@ import org.slf4j.LoggerFactory;
           oprot.writeString(struct.principal);
           oprot.writeFieldEnd();
         }
-        if (struct.tableNamespace != null) {
-          oprot.writeFieldBegin(TABLE_NAMESPACE_FIELD_DESC);
-          oprot.writeString(struct.tableNamespace);
+        if (struct.ns != null) {
+          oprot.writeFieldBegin(NS_FIELD_DESC);
+          oprot.writeString(struct.ns);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldBegin(TBL_NSPC_PERM_FIELD_DESC);
@@ -20232,16 +20232,16 @@ import org.slf4j.LoggerFactory;
 
     }
 
-    private static class hasTableNamespacePermission_argsTupleSchemeFactory implements SchemeFactory {
-      public hasTableNamespacePermission_argsTupleScheme getScheme() {
-        return new hasTableNamespacePermission_argsTupleScheme();
+    private static class hasNamespacePermission_argsTupleSchemeFactory implements SchemeFactory {
+      public hasNamespacePermission_argsTupleScheme getScheme() {
+        return new hasNamespacePermission_argsTupleScheme();
       }
     }
 
-    private static class hasTableNamespacePermission_argsTupleScheme extends TupleScheme<hasTableNamespacePermission_args> {
+    private static class hasNamespacePermission_argsTupleScheme extends TupleScheme<hasNamespacePermission_args> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, hasTableNamespacePermission_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, hasNamespacePermission_args struct) throws org.apache.thrift.TException {
         TTupleProtocol oprot = (TTupleProtocol) prot;
         BitSet optionals = new BitSet();
         if (struct.isSetTinfo()) {
@@ -20253,7 +20253,7 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetPrincipal()) {
           optionals.set(2);
         }
-        if (struct.isSetTableNamespace()) {
+        if (struct.isSetNs()) {
           optionals.set(3);
         }
         if (struct.isSetTblNspcPerm()) {
@@ -20269,8 +20269,8 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetPrincipal()) {
           oprot.writeString(struct.principal);
         }
-        if (struct.isSetTableNamespace()) {
-          oprot.writeString(struct.tableNamespace);
+        if (struct.isSetNs()) {
+          oprot.writeString(struct.ns);
         }
         if (struct.isSetTblNspcPerm()) {
           oprot.writeByte(struct.tblNspcPerm);
@@ -20278,7 +20278,7 @@ import org.slf4j.LoggerFactory;
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, hasTableNamespacePermission_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, hasNamespacePermission_args struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(5);
         if (incoming.get(0)) {
@@ -20296,8 +20296,8 @@ import org.slf4j.LoggerFactory;
           struct.setPrincipalIsSet(true);
         }
         if (incoming.get(3)) {
-          struct.tableNamespace = iprot.readString();
-          struct.setTableNamespaceIsSet(true);
+          struct.ns = iprot.readString();
+          struct.setNsIsSet(true);
         }
         if (incoming.get(4)) {
           struct.tblNspcPerm = iprot.readByte();
@@ -20308,8 +20308,8 @@ import org.slf4j.LoggerFactory;
 
   }
 
-  public static class hasTableNamespacePermission_result implements org.apache.thrift.TBase<hasTableNamespacePermission_result, hasTableNamespacePermission_result._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("hasTableNamespacePermission_result");
+  public static class hasNamespacePermission_result implements org.apache.thrift.TBase<hasNamespacePermission_result, hasNamespacePermission_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("hasNamespacePermission_result");
 
     private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.BOOL, (short)0);
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
@@ -20317,8 +20317,8 @@ import org.slf4j.LoggerFactory;
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
-      schemes.put(StandardScheme.class, new hasTableNamespacePermission_resultStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new hasTableNamespacePermission_resultTupleSchemeFactory());
+      schemes.put(StandardScheme.class, new hasNamespacePermission_resultStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new hasNamespacePermission_resultTupleSchemeFactory());
     }
 
     public boolean success; // required
@@ -20402,13 +20402,13 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.TOPE, new org.apache.thrift.meta_data.FieldMetaData("tope", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(hasTableNamespacePermission_result.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(hasNamespacePermission_result.class, metaDataMap);
     }
 
-    public hasTableNamespacePermission_result() {
+    public hasNamespacePermission_result() {
     }
 
-    public hasTableNamespacePermission_result(
+    public hasNamespacePermission_result(
       boolean success,
       ThriftSecurityException sec,
       ThriftTableOperationException tope)
@@ -20423,7 +20423,7 @@ import org.slf4j.LoggerFactory;
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public hasTableNamespacePermission_result(hasTableNamespacePermission_result other) {
+    public hasNamespacePermission_result(hasNamespacePermission_result other) {
       __isset_bitfield = other.__isset_bitfield;
       this.success = other.success;
       if (other.isSetSec()) {
@@ -20434,8 +20434,8 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public hasTableNamespacePermission_result deepCopy() {
-      return new hasTableNamespacePermission_result(this);
+    public hasNamespacePermission_result deepCopy() {
+      return new hasNamespacePermission_result(this);
     }
 
     @Override
@@ -20450,7 +20450,7 @@ import org.slf4j.LoggerFactory;
       return this.success;
     }
 
-    public hasTableNamespacePermission_result setSuccess(boolean success) {
+    public hasNamespacePermission_result setSuccess(boolean success) {
       this.success = success;
       setSuccessIsSet(true);
       return this;
@@ -20473,7 +20473,7 @@ import org.slf4j.LoggerFactory;
       return this.sec;
     }
 
-    public hasTableNamespacePermission_result setSec(ThriftSecurityException sec) {
+    public hasNamespacePermission_result setSec(ThriftSecurityException sec) {
       this.sec = sec;
       return this;
     }
@@ -20497,7 +20497,7 @@ import org.slf4j.LoggerFactory;
       return this.tope;
     }
 
-    public hasTableNamespacePermission_result setTope(ThriftTableOperationException tope) {
+    public hasNamespacePermission_result setTope(ThriftTableOperationException tope) {
       this.tope = tope;
       return this;
     }
@@ -20582,12 +20582,12 @@ import org.slf4j.LoggerFactory;
     public boolean equals(Object that) {
       if (that == null)
         return false;
-      if (that instanceof hasTableNamespacePermission_result)
-        return this.equals((hasTableNamespacePermission_result)that);
+      if (that instanceof hasNamespacePermission_result)
+        return this.equals((hasNamespacePermission_result)that);
       return false;
     }
 
-    public boolean equals(hasTableNamespacePermission_result that) {
+    public boolean equals(hasNamespacePermission_result that) {
       if (that == null)
         return false;
 
@@ -20626,13 +20626,13 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
-    public int compareTo(hasTableNamespacePermission_result other) {
+    public int compareTo(hasNamespacePermission_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
 
       int lastComparison = 0;
-      hasTableNamespacePermission_result typedOther = (hasTableNamespacePermission_result)other;
+      hasNamespacePermission_result typedOther = (hasNamespacePermission_result)other;
 
       lastComparison = Boolean.valueOf(isSetSuccess()).compareTo(typedOther.isSetSuccess());
       if (lastComparison != 0) {
@@ -20681,7 +20681,7 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public String toString() {
-      StringBuilder sb = new StringBuilder("hasTableNamespacePermission_result(");
+      StringBuilder sb = new StringBuilder("hasNamespacePermission_result(");
       boolean first = true;
 
       sb.append("success:");
@@ -20730,15 +20730,15 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    private static class hasTableNamespacePermission_resultStandardSchemeFactory implements SchemeFactory {
-      public hasTableNamespacePermission_resultStandardScheme getScheme() {
-        return new hasTableNamespacePermission_resultStandardScheme();
+    private static class hasNamespacePermission_resultStandardSchemeFactory implements SchemeFactory {
+      public hasNamespacePermission_resultStandardScheme getScheme() {
+        return new hasNamespacePermission_resultStandardScheme();
       }
     }
 
-    private static class hasTableNamespacePermission_resultStandardScheme extends StandardScheme<hasTableNamespacePermission_result> {
+    private static class hasNamespacePermission_resultStandardScheme extends StandardScheme<hasNamespacePermission_result> {
 
-      public void read(org.apache.thrift.protocol.TProtocol iprot, hasTableNamespacePermission_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, hasNamespacePermission_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -20785,7 +20785,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
-      public void write(org.apache.thrift.protocol.TProtocol oprot, hasTableNamespacePermission_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, hasNamespacePermission_result struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -20810,16 +20810,16 @@ import org.slf4j.LoggerFactory;
 
     }
 
-    private static class hasTableNamespacePermission_resultTupleSchemeFactory implements SchemeFactory {
-      public hasTableNamespacePermission_resultTupleScheme getScheme() {
-        return new hasTableNamespacePermission_resultTupleScheme();
+    private static class hasNamespacePermission_resultTupleSchemeFactory implements SchemeFactory {
+      public hasNamespacePermission_resultTupleScheme getScheme() {
+        return new hasNamespacePermission_resultTupleScheme();
       }
     }
 
-    private static class hasTableNamespacePermission_resultTupleScheme extends TupleScheme<hasTableNamespacePermission_result> {
+    private static class hasNamespacePermission_resultTupleScheme extends TupleScheme<hasNamespacePermission_result> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, hasTableNamespacePermission_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, hasNamespacePermission_result struct) throws org.apache.thrift.TException {
         TTupleProtocol oprot = (TTupleProtocol) prot;
         BitSet optionals = new BitSet();
         if (struct.isSetSuccess()) {
@@ -20844,7 +20844,7 @@ import org.slf4j.LoggerFactory;
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, hasTableNamespacePermission_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, hasNamespacePermission_result struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
@@ -25342,25 +25342,25 @@ import org.slf4j.LoggerFactory;
 
   }
 
-  public static class grantTableNamespacePermission_args implements org.apache.thrift.TBase<grantTableNamespacePermission_args, grantTableNamespacePermission_args._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("grantTableNamespacePermission_args");
+  public static class grantNamespacePermission_args implements org.apache.thrift.TBase<grantNamespacePermission_args, grantNamespacePermission_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("grantNamespacePermission_args");
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
     private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)3);
-    private static final org.apache.thrift.protocol.TField TABLE_NAMESPACE_FIELD_DESC = new org.apache.thrift.protocol.TField("tableNamespace", org.apache.thrift.protocol.TType.STRING, (short)4);
+    private static final org.apache.thrift.protocol.TField NS_FIELD_DESC = new org.apache.thrift.protocol.TField("ns", org.apache.thrift.protocol.TType.STRING, (short)4);
     private static final org.apache.thrift.protocol.TField PERMISSION_FIELD_DESC = new org.apache.thrift.protocol.TField("permission", org.apache.thrift.protocol.TType.BYTE, (short)5);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
-      schemes.put(StandardScheme.class, new grantTableNamespacePermission_argsStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new grantTableNamespacePermission_argsTupleSchemeFactory());
+      schemes.put(StandardScheme.class, new grantNamespacePermission_argsStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new grantNamespacePermission_argsTupleSchemeFactory());
     }
 
     public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
     public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
     public String principal; // required
-    public String tableNamespace; // required
+    public String ns; // required
     public byte permission; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -25368,7 +25368,7 @@ import org.slf4j.LoggerFactory;
       TINFO((short)1, "tinfo"),
       CREDENTIALS((short)2, "credentials"),
       PRINCIPAL((short)3, "principal"),
-      TABLE_NAMESPACE((short)4, "tableNamespace"),
+      NS((short)4, "ns"),
       PERMISSION((short)5, "permission");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -25390,8 +25390,8 @@ import org.slf4j.LoggerFactory;
             return CREDENTIALS;
           case 3: // PRINCIPAL
             return PRINCIPAL;
-          case 4: // TABLE_NAMESPACE
-            return TABLE_NAMESPACE;
+          case 4: // NS
+            return NS;
           case 5: // PERMISSION
             return PERMISSION;
           default:
@@ -25445,29 +25445,29 @@ import org.slf4j.LoggerFactory;
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
       tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-      tmpMap.put(_Fields.TABLE_NAMESPACE, new org.apache.thrift.meta_data.FieldMetaData("tableNamespace", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.NS, new org.apache.thrift.meta_data.FieldMetaData("ns", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.PERMISSION, new org.apache.thrift.meta_data.FieldMetaData("permission", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BYTE)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(grantTableNamespacePermission_args.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(grantNamespacePermission_args.class, metaDataMap);
     }
 
-    public grantTableNamespacePermission_args() {
+    public grantNamespacePermission_args() {
     }
 
-    public grantTableNamespacePermission_args(
+    public grantNamespacePermission_args(
       org.apache.accumulo.trace.thrift.TInfo tinfo,
       org.apache.accumulo.core.security.thrift.TCredentials credentials,
       String principal,
-      String tableNamespace,
+      String ns,
       byte permission)
     {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
       this.principal = principal;
-      this.tableNamespace = tableNamespace;
+      this.ns = ns;
       this.permission = permission;
       setPermissionIsSet(true);
     }
@@ -25475,7 +25475,7 @@ import org.slf4j.LoggerFactory;
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public grantTableNamespacePermission_args(grantTableNamespacePermission_args other) {
+    public grantNamespacePermission_args(grantNamespacePermission_args other) {
       __isset_bitfield = other.__isset_bitfield;
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
@@ -25486,14 +25486,14 @@ import org.slf4j.LoggerFactory;
       if (other.isSetPrincipal()) {
         this.principal = other.principal;
       }
-      if (other.isSetTableNamespace()) {
-        this.tableNamespace = other.tableNamespace;
+      if (other.isSetNs()) {
+        this.ns = other.ns;
       }
       this.permission = other.permission;
     }
 
-    public grantTableNamespacePermission_args deepCopy() {
-      return new grantTableNamespacePermission_args(this);
+    public grantNamespacePermission_args deepCopy() {
+      return new grantNamespacePermission_args(this);
     }
 
     @Override
@@ -25501,7 +25501,7 @@ import org.slf4j.LoggerFactory;
       this.tinfo = null;
       this.credentials = null;
       this.principal = null;
-      this.tableNamespace = null;
+      this.ns = null;
       setPermissionIsSet(false);
       this.permission = 0;
     }
@@ -25510,7 +25510,7 @@ import org.slf4j.LoggerFactory;
       return this.tinfo;
     }
 
-    public grantTableNamespacePermission_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
+    public grantNamespacePermission_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
@@ -25534,7 +25534,7 @@ import org.slf4j.LoggerFactory;
       return this.credentials;
     }
 
-    public grantTableNamespacePermission_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+    public grantNamespacePermission_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -25558,7 +25558,7 @@ import org.slf4j.LoggerFactory;
       return this.principal;
     }
 
-    public grantTableNamespacePermission_args setPrincipal(String principal) {
+    public grantNamespacePermission_args setPrincipal(String principal) {
       this.principal = principal;
       return this;
     }
@@ -25578,27 +25578,27 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public String getTableNamespace() {
-      return this.tableNamespace;
+    public String getNs() {
+      return this.ns;
     }
 
-    public grantTableNamespacePermission_args setTableNamespace(String tableNamespace) {
-      this.tableNamespace = tableNamespace;
+    public grantNamespacePermission_args setNs(String ns) {
+      this.ns = ns;
       return this;
     }
 
-    public void unsetTableNamespace() {
-      this.tableNamespace = null;
+    public void unsetNs() {
+      this.ns = null;
     }
 
-    /** Returns true if field tableNamespace is set (has been assigned a value) and false otherwise */
-    public boolean isSetTableNamespace() {
-      return this.tableNamespace != null;
+    /** Returns true if field ns is set (has been assigned a value) and false otherwise */
+    public boolean isSetNs() {
+      return this.ns != null;
     }
 
-    public void setTableNamespaceIsSet(boolean value) {
+    public void setNsIsSet(boolean value) {
       if (!value) {
-        this.tableNamespace = null;
+        this.ns = null;
       }
     }
 
@@ -25606,7 +25606,7 @@ import org.slf4j.LoggerFactory;
       return this.permission;
     }
 
-    public grantTableNamespacePermission_args setPermission(byte permission) {
+    public grantNamespacePermission_args setPermission(byte permission) {
       this.permission = permission;
       setPermissionIsSet(true);
       return this;
@@ -25651,11 +25651,11 @@ import org.slf4j.LoggerFactory;
         }
         break;
 
-      case TABLE_NAMESPACE:
+      case NS:
         if (value == null) {
-          unsetTableNamespace();
+          unsetNs();
         } else {
-          setTableNamespace((String)value);
+          setNs((String)value);
         }
         break;
 
@@ -25681,8 +25681,8 @@ import org.slf4j.LoggerFactory;
       case PRINCIPAL:
         return getPrincipal();
 
-      case TABLE_NAMESPACE:
-        return getTableNamespace();
+      case NS:
+        return getNs();
 
       case PERMISSION:
         return Byte.valueOf(getPermission());
@@ -25704,8 +25704,8 @@ import org.slf4j.LoggerFactory;
         return isSetCredentials();
       case PRINCIPAL:
         return isSetPrincipal();
-      case TABLE_NAMESPACE:
-        return isSetTableNamespace();
+      case NS:
+        return isSetNs();
       case PERMISSION:
         return isSetPermission();
       }
@@ -25716,12 +25716,12 @@ import org.slf4j.LoggerFactory;
     public boolean equals(Object that) {
       if (that == null)
         return false;
-      if (that instanceof grantTableNamespacePermission_args)
-        return this.equals((grantTableNamespacePermission_args)that);
+      if (that instanceof grantNamespacePermission_args)
+        return this.equals((grantNamespacePermission_args)that);
       return false;
     }
 
-    public boolean equals(grantTableNamespacePermission_args that) {
+    public boolean equals(grantNamespacePermission_args that) {
       if (that == null)
         return false;
 
@@ -25752,12 +25752,12 @@ import org.slf4j.LoggerFactory;
           return false;
       }
 
-      boolean this_present_tableNamespace = true && this.isSetTableNamespace();
-      boolean that_present_tableNamespace = true && that.isSetTableNamespace();
-      if (this_present_tableNamespace || that_present_tableNamespace) {
-        if (!(this_present_tableNamespace && that_present_tableNamespace))
+      boolean this_present_ns = true && this.isSetNs();
+      boolean that_present_ns = true && that.isSetNs();
+      if (this_present_ns || that_present_ns) {
+        if (!(this_present_ns && that_present_ns))
           return false;
-        if (!this.tableNamespace.equals(that.tableNamespace))
+        if (!this.ns.equals(that.ns))
           return false;
       }
 
@@ -25778,13 +25778,13 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
-    public int compareTo(grantTableNamespacePermission_args other) {
+    public int compareTo(grantNamespacePermission_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
 
       int lastComparison = 0;
-      grantTableNamespacePermission_args typedOther = (grantTableNamespacePermission_args)other;
+      grantNamespacePermission_args typedOther = (grantNamespacePermission_args)other;
 
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
@@ -25816,12 +25816,12 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
-      lastComparison = Boolean.valueOf(isSetTableNamespace()).compareTo(typedOther.isSetTableNamespace());
+      lastComparison = Boolean.valueOf(isSetNs()).compareTo(typedOther.isSetNs());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTableNamespace()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tableNamespace, typedOther.tableNamespace);
+      if (isSetNs()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.ns, typedOther.ns);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -25853,7 +25853,7 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public String toString() {
-      StringBuilder sb = new StringBuilder("grantTableNamespacePermission_args(");
+      StringBuilder sb = new StringBuilder("grantNamespacePermission_args(");
       boolean first = true;
 
       sb.append("tinfo:");
@@ -25880,11 +25880,11 @@ import org.slf4j.LoggerFactory;
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("tableNamespace:");
-      if (this.tableNamespace == null) {
+      sb.append("ns:");
+      if (this.ns == null) {
         sb.append("null");
       } else {
-        sb.append(this.tableNamespace);
+        sb.append(this.ns);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -25924,15 +25924,15 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    private static class grantTableNamespacePermission_argsStandardSchemeFactory implements SchemeFactory {
-      public grantTableNamespacePermission_argsStandardScheme getScheme() {
-        return new grantTableNamespacePermission_argsStandardScheme();
+    private static class grantNamespacePermission_argsStandardSchemeFactory implements SchemeFactory {
+      public grantNamespacePermission_argsStandardScheme getScheme() {
+        return new grantNamespacePermission_argsStandardScheme();
       }
     }
 
-    private static class grantTableNamespacePermission_argsStandardScheme extends StandardScheme<grantTableNamespacePermission_args> {
+    private static class grantNamespacePermission_argsStandardScheme extends StandardScheme<grantNamespacePermission_args> {
 
-      public void read(org.apache.thrift.protocol.TProtocol iprot, grantTableNamespacePermission_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, grantNamespacePermission_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -25968,10 +25968,10 @@ import org.slf4j.LoggerFactory;
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 4: // TABLE_NAMESPACE
+            case 4: // NS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-                struct.tableNamespace = iprot.readString();
-                struct.setTableNamespaceIsSet(true);
+                struct.ns = iprot.readString();
+                struct.setNsIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -25995,7 +25995,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
-      public void write(org.apache.thrift.protocol.TProtocol oprot, grantTableNamespacePermission_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, grantNamespacePermission_args struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -26014,9 +26014,9 @@ import org.slf4j.LoggerFactory;
           oprot.writeString(struct.principal);
           oprot.writeFieldEnd();
         }
-        if (struct.tableNamespace != null) {
-          oprot.writeFieldBegin(TABLE_NAMESPACE_FIELD_DESC);
-          oprot.writeString(struct.tableNamespace);
+        if (struct.ns != null) {
+          oprot.writeFieldBegin(NS_FIELD_DESC);
+          oprot.writeString(struct.ns);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldBegin(PERMISSION_FIELD_DESC);
@@ -26028,16 +26028,16 @@ import org.slf4j.LoggerFactory;
 
     }
 
-    private static class grantTableNamespacePermission_argsTupleSchemeFactory implements SchemeFactory {
-      public grantTableNamespacePermission_argsTupleScheme getScheme() {
-        return new grantTableNamespacePermission_argsTupleScheme();
+    private static class grantNamespacePermission_argsTupleSchemeFactory implements SchemeFactory {
+      public grantNamespacePermission_argsTupleScheme getScheme() {
+        return new grantNamespacePermission_argsTupleScheme();
       }
     }
 
-    private static class grantTableNamespacePermission_argsTupleScheme extends TupleScheme<grantTableNamespacePermission_args> {
+    private static class grantNamespacePermission_argsTupleScheme extends TupleScheme<grantNamespacePermission_args> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, grantTableNamespacePermission_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, grantNamespacePermission_args struct) throws org.apache.thrift.TException {
         TTupleProtocol oprot = (TTupleProtocol) prot;
         BitSet optionals = new BitSet();
         if (struct.isSetTinfo()) {
@@ -26049,7 +26049,7 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetPrincipal()) {
           optionals.set(2);
         }
-        if (struct.isSetTableNamespace()) {
+        if (struct.isSetNs()) {
           optionals.set(3);
         }
         if (struct.isSetPermission()) {
@@ -26065,8 +26065,8 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetPrincipal()) {
           oprot.writeString(struct.principal);
         }
-        if (struct.isSetTableNamespace()) {
-          oprot.writeString(struct.tableNamespace);
+        if (struct.isSetNs()) {
+          oprot.writeString(struct.ns);
         }
         if (struct.isSetPermission()) {
           oprot.writeByte(struct.permission);
@@ -26074,7 +26074,7 @@ import org.slf4j.LoggerFactory;
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, grantTableNamespacePermission_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, grantNamespacePermission_args struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(5);
         if (incoming.get(0)) {
@@ -26092,8 +26092,8 @@ import org.slf4j.LoggerFactory;
           struct.setPrincipalIsSet(true);
         }
         if (incoming.get(3)) {
-          struct.tableNamespace = iprot.readString();
-          struct.setTableNamespaceIsSet(true);
+          struct.ns = iprot.readString();
+          struct.setNsIsSet(true);
         }
         if (incoming.get(4)) {
           struct.permission = iprot.readByte();
@@ -26104,16 +26104,16 @@ import org.slf4j.LoggerFactory;
 
   }
 
-  public static class grantTableNamespacePermission_result implements org.apache.thrift.TBase<grantTableNamespacePermission_result, grantTableNamespacePermission_result._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("grantTableNamespacePermission_result");
+  public static class grantNamespacePermission_result implements org.apache.thrift.TBase<grantNamespacePermission_result, grantNamespacePermission_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("grantNamespacePermission_result");
 
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TOPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tope", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
-      schemes.put(StandardScheme.class, new grantTableNamespacePermission_resultStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new grantTableNamespacePermission_resultTupleSchemeFactory());
+      schemes.put(StandardScheme.class, new grantNamespacePermission_resultStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new grantNamespacePermission_resultTupleSchemeFactory());
     }
 
     public ThriftSecurityException sec; // required
@@ -26189,13 +26189,13 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.TOPE, new org.apache.thrift.meta_data.FieldMetaData("tope", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(grantTableNamespacePermission_result.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(grantNamespacePermission_result.class, metaDataMap);
     }
 
-    public grantTableNamespacePermission_result() {
+    public grantNamespacePermission_result() {
     }
 
-    public grantTableNamespacePermission_result(
+    public grantNamespacePermission_result(
       ThriftSecurityException sec,
       ThriftTableOperationException tope)
     {
@@ -26207,7 +26207,7 @@ import org.slf4j.LoggerFactory;
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public grantTableNamespacePermission_result(grantTableNamespacePermission_result other) {
+    public grantNamespacePermission_result(grantNamespacePermission_result other) {
       if (other.isSetSec()) {
         this.sec = new ThriftSecurityException(other.sec);
       }
@@ -26216,8 +26216,8 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public grantTableNamespacePermission_result deepCopy() {
-      return new grantTableNamespacePermission_result(this);
+    public grantNamespacePermission_result deepCopy() {
+      return new grantNamespacePermission_result(this);
     }
 
     @Override
@@ -26230,7 +26230,7 @@ import org.slf4j.LoggerFactory;
       return this.sec;
     }
 
-    public grantTableNamespacePermission_result setSec(ThriftSecurityException sec) {
+    public grantNamespacePermission_result setSec(ThriftSecurityException sec) {
       this.sec = sec;
       return this;
     }
@@ -26254,7 +26254,7 @@ import org.slf4j.LoggerFactory;
       return this.tope;
     }
 
-    public grantTableNamespacePermission_result setTope(ThriftTableOperationException tope) {
+    public grantNamespacePermission_result setTope(ThriftTableOperationException tope) {
       this.tope = tope;
       return this;
     }
@@ -26326,12 +26326,12 @@ import org.slf4j.LoggerFactory;
     public boolean equals(Object that) {
       if (that == null)
         return false;
-      if (that instanceof grantTableNamespacePermission_result)
-        return this.equals((grantTableNamespacePermission_result)that);
+      if (that instanceof grantNamespacePermission_result)
+        return this.equals((grantNamespacePermission_result)that);
       return false;
     }
 
-    public boolean equals(grantTableNamespacePermission_result that) {
+    public boolean equals(grantNamespacePermission_result that) {
       if (that == null)
         return false;
 
@@ -26361,13 +26361,13 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
-    public int compareTo(grantTableNamespacePermission_result other) {
+    public int compareTo(grantNamespacePermission_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
 
       int lastComparison = 0;
-      grantTableNamespacePermission_result typedOther = (grantTableNamespacePermission_result)other;
+      grantNamespacePermission_result typedOther = (grantNamespacePermission_result)other;
 
       lastComparison = Boolean.valueOf(isSetSec()).compareTo(typedOther.isSetSec());
       if (lastComparison != 0) {
@@ -26406,7 +26406,7 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public String toString() {
-      StringBuilder sb = new StringBuilder("grantTableNamespacePermission_result(");
+      StringBuilder sb = new StringBuilder("grantNamespacePermission_result(");
       boolean first = true;
 
       sb.append("sec:");
@@ -26449,15 +26449,15 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    private static class grantTableNamespacePermission_resultStandardSchemeFactory implements SchemeFactory {
-      public grantTableNamespacePermission_resultStandardScheme getScheme() {
-        return new grantTableNamespacePermission_resultStandardScheme();
+    private static class grantNamespacePermission_resultStandardSchemeFactory implements SchemeFactory {
+      public grantNamespacePermission_resultStandardScheme getScheme() {
+        return new grantNamespacePermission_resultStandardScheme();
       }
     }
 
-    private static class grantTableNamespacePermission_resultStandardScheme extends StandardScheme<grantTableNamespacePermission_result> {
+    private static class grantNamespacePermission_resultStandardScheme extends StandardScheme<grantNamespacePermission_result> {
 
-      public void read(org.apache.thrift.protocol.TProtocol iprot, grantTableNamespacePermission_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, grantNamespacePermission_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -26496,7 +26496,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
-      public void write(org.apache.thrift.protocol.TProtocol oprot, grantTableNamespacePermission_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, grantNamespacePermission_result struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -26516,16 +26516,16 @@ import org.slf4j.LoggerFactory;
 
     }
 
-    private static class grantTableNamespacePermission_resultTupleSchemeFactory implements SchemeFactory {
-      public grantTableNamespacePermission_resultTupleScheme getScheme() {
-        return new grantTableNamespacePermission_resultTupleScheme();
+    private static class grantNamespacePermission_resultTupleSchemeFactory implements SchemeFactory {
+      public grantNamespacePermission_resultTupleScheme getScheme() {
+        return new grantNamespacePermission_resultTupleScheme();
       }
     }
 
-    private static class grantTableNamespacePermission_resultTupleScheme extends TupleScheme<grantTableNamespacePermission_result> {
+    private static class grantNamespacePermission_resultTupleScheme extends TupleScheme<grantNamespacePermission_result> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, grantTableNamespacePermission_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, grantNamespacePermission_result struct) throws org.apache.thrift.TException {
         TTupleProtocol oprot = (TTupleProtocol) prot;
         BitSet optionals = new BitSet();
         if (struct.isSetSec()) {
@@ -26544,7 +26544,7 @@ import org.slf4j.LoggerFactory;
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, grantTableNamespacePermission_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, grantNamespacePermission_result struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
@@ -26562,25 +26562,25 @@ import org.slf4j.LoggerFactory;
 
   }
 
-  public static class revokeTableNamespacePermission_args implements org.apache.thrift.TBase<revokeTableNamespacePermission_args, revokeTableNamespacePermission_args._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("revokeTableNamespacePermission_args");
+  public static class revokeNamespacePermission_args implements org.apache.thrift.TBase<revokeNamespacePermission_args, revokeNamespacePermission_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("revokeNamespacePermission_args");
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
     private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)3);
-    private static final org.apache.thrift.protocol.TField TABLE_NAMESPACE_FIELD_DESC = new org.apache.thrift.protocol.TField("tableNamespace", org.apache.thrift.protocol.TType.STRING, (short)4);
+    private static final org.apache.thrift.protocol.TField NS_FIELD_DESC = new org.apache.thrift.protocol.TField("ns", org.apache.thrift.protocol.TType.STRING, (short)4);
     private static final org.apache.thrift.protocol.TField PERMISSION_FIELD_DESC = new org.apache.thrift.protocol.TField("permission", org.apache.thrift.protocol.TType.BYTE, (short)5);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
-      schemes.put(StandardScheme.class, new revokeTableNamespacePermission_argsStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new revokeTableNamespacePermission_argsTupleSchemeFactory());
+      schemes.put(StandardScheme.class, new revokeNamespacePermission_argsStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new revokeNamespacePermission_argsTupleSchemeFactory());
     }
 
     public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
     public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
     public String principal; // required
-    public String tableNamespace; // required
+    public String ns; // required
     public byte permission; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -26588,7 +26588,7 @@ import org.slf4j.LoggerFactory;
       TINFO((short)1, "tinfo"),
       CREDENTIALS((short)2, "credentials"),
       PRINCIPAL((short)3, "principal"),
-      TABLE_NAMESPACE((short)4, "tableNamespace"),
+      NS((short)4, "ns"),
       PERMISSION((short)5, "permission");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -26610,8 +26610,8 @@ import org.slf4j.LoggerFactory;
             return CREDENTIALS;
           case 3: // PRINCIPAL
             return PRINCIPAL;
-          case 4: // TABLE_NAMESPACE
-            return TABLE_NAMESPACE;
+          case 4: // NS
+            return NS;
           case 5: // PERMISSION
             return PERMISSION;
           default:
@@ -26665,29 +26665,29 @@ import org.slf4j.LoggerFactory;
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
       tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-      tmpMap.put(_Fields.TABLE_NAMESPACE, new org.apache.thrift.meta_data.FieldMetaData("tableNamespace", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.NS, new org.apache.thrift.meta_data.FieldMetaData("ns", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.PERMISSION, new org.apache.thrift.meta_data.FieldMetaData("permission", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BYTE)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(revokeTableNamespacePermission_args.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(revokeNamespacePermission_args.class, metaDataMap);
     }
 
-    public revokeTableNamespacePermission_args() {
+    public revokeNamespacePermission_args() {
     }
 
-    public revokeTableNamespacePermission_args(
+    public revokeNamespacePermission_args(
       org.apache.accumulo.trace.thrift.TInfo tinfo,
       org.apache.accumulo.core.security.thrift.TCredentials credentials,
       String principal,
-      String tableNamespace,
+      String ns,
       byte permission)
     {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
       this.principal = principal;
-      this.tableNamespace = tableNamespace;
+      this.ns = ns;
       this.permission = permission;
       setPermissionIsSet(true);
     }
@@ -26695,7 +26695,7 @@ import org.slf4j.LoggerFactory;
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public revokeTableNamespacePermission_args(revokeTableNamespacePermission_args other) {
+    public revokeNamespacePermission_args(revokeNamespacePermission_args other) {
       __isset_bitfield = other.__isset_bitfield;
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
@@ -26706,14 +26706,14 @@ import org.slf4j.LoggerFactory;
       if (other.isSetPrincipal()) {
         this.principal = other.principal;
       }
-      if (other.isSetTableNamespace()) {
-        this.tableNamespace = other.tableNamespace;
+      if (other.isSetNs()) {
+        this.ns = other.ns;
       }
       this.permission = other.permission;
     }
 
-    public revokeTableNamespacePermission_args deepCopy() {
-      return new revokeTableNamespacePermission_args(this);
+    public revokeNamespacePermission_args deepCopy() {
+      return new revokeNamespacePermission_args(this);
     }
 
     @Override
@@ -26721,7 +26721,7 @@ import org.slf4j.LoggerFactory;
       this.tinfo = null;
       this.credentials = null;
       this.principal = null;
-      this.tableNamespace = null;
+      this.ns = null;
       setPermissionIsSet(false);
       this.permission = 0;
     }
@@ -26730,7 +26730,7 @@ import org.slf4j.LoggerFactory;
       return this.tinfo;
     }
 
-    public revokeTableNamespacePermission_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
+    public revokeNamespacePermission_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
@@ -26754,7 +26754,7 @@ import org.slf4j.LoggerFactory;
       return this.credentials;
     }
 
-    public revokeTableNamespacePermission_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+    public revokeNamespacePermission_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -26778,7 +26778,7 @@ import org.slf4j.LoggerFactory;
       return this.principal;
     }
 
-    public revokeTableNamespacePermission_args setPrincipal(String principal) {
+    public revokeNamespacePermission_args setPrincipal(String principal) {
       this.principal = principal;
       return this;
     }
@@ -26798,27 +26798,27 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public String getTableNamespace() {
-      return this.tableNamespace;
+    public String getNs() {
+      return this.ns;
     }
 
-    public revokeTableNamespacePermission_args setTableNamespace(String tableNamespace) {
-      this.tableNamespace = tableNamespace;
+    public revokeNamespacePermission_args setNs(String ns) {
+      this.ns = ns;
       return this;
     }
 
-    public void unsetTableNamespace() {
-      this.tableNamespace = null;
+    public void unsetNs() {
+      this.ns = null;
     }
 
-    /** Returns true if field tableNamespace is set (has been assigned a value) and false otherwise */
-    public boolean isSetTableNamespace() {
-      return this.tableNamespace != null;
+    /** Returns true if field ns is set (has been assigned a value) and false otherwise */
+    public boolean isSetNs() {
+      return this.ns != null;
     }
 
-    public void setTableNamespaceIsSet(boolean value) {
+    public void setNsIsSet(boolean value) {
       if (!value) {
-        this.tableNamespace = null;
+        this.ns = null;
       }
     }
 
@@ -26826,7 +26826,7 @@ import org.slf4j.LoggerFactory;
       return this.permission;
     }
 
-    public revokeTableNamespacePermission_args setPermission(byte permission) {
+    public revokeNamespacePermission_args setPermission(byte permission) {
       this.permission = permission;
       setPermissionIsSet(true);
       return this;
@@ -26871,11 +26871,11 @@ import org.slf4j.LoggerFactory;
         }
         break;
 
-      case TABLE_NAMESPACE:
+      case NS:
         if (value == null) {
-          unsetTableNamespace();
+          unsetNs();
         } else {
-          setTableNamespace((String)value);
+          setNs((String)value);
         }
         break;
 
@@ -26901,8 +26901,8 @@ import org.slf4j.LoggerFactory;
       case PRINCIPAL:
         return getPrincipal();
 
-      case TABLE_NAMESPACE:
-        return getTableNamespace();
+      case NS:
+        return getNs();
 
       case PERMISSION:
         return Byte.valueOf(getPermission());
@@ -26924,8 +26924,8 @@ import org.slf4j.LoggerFactory;
         return isSetCredentials();
       case PRINCIPAL:
         return isSetPrincipal();
-      case TABLE_NAMESPACE:
-        return isSetTableNamespace();
+      case NS:
+        return isSetNs();
       case PERMISSION:
         return isSetPermission();
       }
@@ -26936,12 +26936,12 @@ import org.slf4j.LoggerFactory;
     public boolean equals(Object that) {
       if (that == null)
         return false;
-      if (that instanceof revokeTableNamespacePermission_args)
-        return this.equals((revokeTableNamespacePermission_args)that);
+      if (that instanceof revokeNamespacePermission_args)
+        return this.equals((revokeNamespacePermission_args)that);
       return false;
     }
 
-    public boolean equals(revokeTableNamespacePermission_args that) {
+    public boolean equals(revokeNamespacePermission_args that) {
       if (that == null)
         return false;
 
@@ -26972,12 +26972,12 @@ import org.slf4j.LoggerFactory;
           return false;
       }
 
-      boolean this_present_tableNamespace = true && this.isSetTableNamespace();
-      boolean that_present_tableNamespace = true && that.isSetTableNamespace();
-      if (this_present_tableNamespace || that_present_tableNamespace) {
-        if (!(this_present_tableNamespace && that_present_tableNamespace))
+      boolean this_present_ns = true && this.isSetNs();
+      boolean that_present_ns = true && that.isSetNs();
+      if (this_present_ns || that_present_ns) {
+        if (!(this_present_ns && that_present_ns))
           return false;
-        if (!this.tableNamespace.equals(that.tableNamespace))
+        if (!this.ns.equals(that.ns))
           return false;
       }
 
@@ -26998,13 +26998,13 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
-    public int compareTo(revokeTableNamespacePermission_args other) {
+    public int compareTo(revokeNamespacePermission_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
 
       int lastComparison = 0;
-      revokeTableNamespacePermission_args typedOther = (revokeTableNamespacePermission_args)other;
+      revokeNamespacePermission_args typedOther = (revokeNamespacePermission_args)other;
 
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
@@ -27036,12 +27036,12 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
-      lastComparison = Boolean.valueOf(isSetTableNamespace()).compareTo(typedOther.isSetTableNamespace());
+      lastComparison = Boolean.valueOf(isSetNs()).compareTo(typedOther.isSetNs());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTableNamespace()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tableNamespace, typedOther.tableNamespace);
+      if (isSetNs()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.ns, typedOther.ns);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -27073,7 +27073,7 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public String toString() {
-      StringBuilder sb = new StringBuilder("revokeTableNamespacePermission_args(");
+      StringBuilder sb = new StringBuilder("revokeNamespacePermission_args(");
       boolean first = true;
 
       sb.append("tinfo:");
@@ -27100,11 +27100,11 @@ import org.slf4j.LoggerFactory;
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("tableNamespace:");
-      if (this.tableNamespace == null) {
+      sb.append("ns:");
+      if (this.ns == null) {
         sb.append("null");
       } else {
-        sb.append(this.tableNamespace);
+        sb.append(this.ns);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -27144,15 +27144,15 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    private static class revokeTableNamespacePermission_argsStandardSchemeFactory implements SchemeFactory {
-      public revokeTableNamespacePermission_argsStandardScheme getScheme() {
-        return new revokeTableNamespacePermission_argsStandardScheme();
+    private static class revokeNamespacePermission_argsStandardSchemeFactory implements SchemeFactory {
+      public revokeNamespacePermission_argsStandardScheme getScheme() {
+        return new revokeNamespacePermission_argsStandardScheme();
       }
     }
 
-    private static class revokeTableNamespacePermission_argsStandardScheme extends StandardScheme<revokeTableNamespacePermission_args> {
+    private static class revokeNamespacePermission_argsStandardScheme extends StandardScheme<revokeNamespacePermission_args> {
 
-      public void read(org.apache.thrift.protocol.TProtocol iprot, revokeTableNamespacePermission_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, revokeNamespacePermission_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -27188,10 +27188,10 @@ import org.slf4j.LoggerFactory;
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 4: // TABLE_NAMESPACE
+            case 4: // NS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-                struct.tableNamespace = iprot.readString();
-                struct.setTableNamespaceIsSet(true);
+                struct.ns = iprot.readString();
+                struct.setNsIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -27215,7 +27215,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
-      public void write(org.apache.thrift.protocol.TProtocol oprot, revokeTableNamespacePermission_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, revokeNamespacePermission_args struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -27234,9 +27234,9 @@ import org.slf4j.LoggerFactory;
           oprot.writeString(struct.principal);
           oprot.writeFieldEnd();
         }
-        if (struct.tableNamespace != null) {
-          oprot.writeFieldBegin(TABLE_NAMESPACE_FIELD_DESC);
-          oprot.writeString(struct.tableNamespace);
+        if (struct.ns != null) {
+          oprot.writeFieldBegin(NS_FIELD_DESC);
+          oprot.writeString(struct.ns);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldBegin(PERMISSION_FIELD_DESC);
@@ -27248,16 +27248,16 @@ import org.slf4j.LoggerFactory;
 
     }
 
-    private static class revokeTableNamespacePermission_argsTupleSchemeFactory implements SchemeFactory {
-      public revokeTableNamespacePermission_argsTupleScheme getScheme() {
-        return new revokeTableNamespacePermission_argsTupleScheme();
+    private static class revokeNamespacePermission_argsTupleSchemeFactory implements SchemeFactory {
+      public revokeNamespacePermission_argsTupleScheme getScheme() {
+        return new revokeNamespacePermission_argsTupleScheme();
       }
     }
 
-    private static class revokeTableNamespacePermission_argsTupleScheme extends TupleScheme<revokeTableNamespacePermission_args> {
+    private static class revokeNamespacePermission_argsTupleScheme extends TupleScheme<revokeNamespacePermission_args> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, revokeTableNamespacePermission_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, revokeNamespacePermission_args struct) throws org.apache.thrift.TException {
         TTupleProtocol oprot = (TTupleProtocol) prot;
         BitSet optionals = new BitSet();
         if (struct.isSetTinfo()) {
@@ -27269,7 +27269,7 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetPrincipal()) {
           optionals.set(2);
         }
-        if (struct.isSetTableNamespace()) {
+        if (struct.isSetNs()) {
           optionals.set(3);
         }
         if (struct.isSetPermission()) {
@@ -27285,8 +27285,8 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetPrincipal()) {
           oprot.writeString(struct.principal);
         }
-        if (struct.isSetTableNamespace()) {
-          oprot.writeString(struct.tableNamespace);
+        if (struct.isSetNs()) {
+          oprot.writeString(struct.ns);
         }
         if (struct.isSetPermission()) {
           oprot.writeByte(struct.permission);
@@ -27294,7 +27294,7 @@ import org.slf4j.LoggerFactory;
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, revokeTableNamespacePermission_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, revokeNamespacePermission_args struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(5);
         if (incoming.get(0)) {
@@ -27312,8 +27312,8 @@ import org.slf4j.LoggerFactory;
           struct.setPrincipalIsSet(true);
         }
         if (incoming.get(3)) {
-          struct.tableNamespace = iprot.readString();
-          struct.setTableNamespaceIsSet(true);
+          struct.ns = iprot.readString();
+          struct.setNsIsSet(true);
         }
         if (incoming.get(4)) {
           struct.permission = iprot.readByte();
@@ -27324,16 +27324,16 @@ import org.slf4j.LoggerFactory;
 
   }
 
-  public static class revokeTableNamespacePermission_result implements org.apache.thrift.TBase<revokeTableNamespacePermission_result, revokeTableNamespacePermission_result._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("revokeTableNamespacePermission_result");
+  public static class revokeNamespacePermission_result implements org.apache.thrift.TBase<revokeNamespacePermission_result, revokeNamespacePermission_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("revokeNamespacePermission_result");
 
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TOPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tope", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
-      schemes.put(StandardScheme.class, new revokeTableNamespacePermission_resultStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new revokeTableNamespacePermission_resultTupleSchemeFactory());
+      schemes.put(StandardScheme.class, new revokeNamespacePermission_resultStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new revokeNamespacePermission_resultTupleSchemeFactory());
     }
 
     public ThriftSecurityException sec; // required
@@ -27409,13 +27409,13 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.TOPE, new org.apache.thrift.meta_data.FieldMetaData("tope", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(revokeTableNamespacePermission_result.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(revokeNamespacePermission_result.class, metaDataMap);
     }
 
-    public revokeTableNamespacePermission_result() {
+    public revokeNamespacePermission_result() {
     }
 
-    public revokeTableNamespacePermission_result(
+    public revokeNamespacePermission_result(
       ThriftSecurityException sec,
       ThriftTableOperationException tope)
     {
@@ -27427,7 +27427,7 @@ import org.slf4j.LoggerFactory;
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public revokeTableNamespacePermission_result(revokeTableNamespacePermission_result other) {
+    public revokeNamespacePermission_result(revokeNamespacePermission_result other) {
       if (other.isSetSec()) {
         this.sec = new ThriftSecurityException(other.sec);
       }
@@ -27436,8 +27436,8 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public revokeTableNamespacePermission_result deepCopy() {
-      return new revokeTableNamespacePermission_result(this);
+    public revokeNamespacePermission_result deepCopy() {
+      return new revokeNamespacePermission_result(this);
     }
 
     @Override
@@ -27450,7 +27450,7 @@ import org.slf4j.LoggerFactory;
       return this.sec;
     }
 
-    public revokeTableNamespacePermission_result setSec(ThriftSecurityException sec) {
+    public revokeNamespacePermission_result setSec(ThriftSecurityException sec) {
       this.sec = sec;
       return this;
     }
@@ -27474,7 +27474,7 @@ import org.slf4j.LoggerFactory;
       return this.tope;
     }
 
-    public revokeTableNamespacePermission_result setTope(ThriftTableOperationException tope) {
+    public revokeNamespacePermission_result setTope(ThriftTableOperationException tope) {
       this.tope = tope;
       return this;
     }
@@ -27546,12 +27546,12 @@ import org.slf4j.LoggerFactory;
     public boolean equals(Object that) {
       if (that == null)
         return false;
-      if (that instanceof revokeTableNamespacePermission_result)
-        return this.equals((revokeTableNamespacePermission_result)that);
+      if (that instanceof revokeNamespacePermission_result)
+        return this.equals((revokeNamespacePermission_result)that);
       return false;
     }
 
-    public boolean equals(revokeTableNamespacePermission_result that) {
+    public boolean equals(revokeNamespacePermission_result that) {
       if (that == null)
         return false;
 
@@ -27581,13 +27581,13 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
-    public int compareTo(revokeTableNamespacePermission_result other) {
+    public int compareTo(revokeNamespacePermission_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
 
       int lastComparison = 0;
-      revokeTableNamespacePermission_result typedOther = (revokeTableNamespacePermission_result)other;
+      revokeNamespacePermission_result typedOther = (revokeNamespacePermission_result)other;
 
       lastComparison = Boolean.valueOf(isSetSec()).compareTo(typedOther.isSetSec());
       if (lastComparison != 0) {
@@ -27626,7 +27626,7 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public String toString() {
-      StringBuilder sb = new StringBuilder("revokeTableNamespacePermission_result(");
+      StringBuilder sb = new StringBuilder("revokeNamespacePermission_result(");
       boolean first = true;
 
       sb.append("sec:");
@@ -27669,15 +27669,15 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    private static class revokeTableNamespacePermission_resultStandardSchemeFactory implements SchemeFactory {
-      public revokeTableNamespacePermission_resultStandardScheme getScheme() {
-        return new revokeTableNamespacePermission_resultStandardScheme();
+    private static class revokeNamespacePermission_resultStandardSchemeFactory implements SchemeFactory {
+      public revokeNamespacePermission_resultStandardScheme getScheme() {
+        return new revokeNamespacePermission_resultStandardScheme();
       }
     }
 
-    private static class revokeTableNamespacePermission_resultStandardScheme extends StandardScheme<revokeTableNamespacePermission_result> {
+    private static class revokeNamespacePermission_resultStandardScheme extends StandardScheme<revokeNamespacePermission_result> {
 
-      public void read(org.apache.thrift.protocol.TProtocol iprot, revokeTableNamespacePermission_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, revokeNamespacePermission_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -27716,7 +27716,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
-      public void write(org.apache.thrift.protocol.TProtocol oprot, revokeTableNamespacePermission_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, revokeNamespacePermission_result struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -27736,16 +27736,16 @@ import org.slf4j.LoggerFactory;
 
     }
 
-    private static class revokeTableNamespacePermission_resultTupleSchemeFactory implements SchemeFactory {
-      public revokeTableNamespacePermission_resultTupleScheme getScheme() {
-        return new revokeTableNamespacePermission_resultTupleScheme();
+    private static class revokeNamespacePermission_resultTupleSchemeFactory implements SchemeFactory {
+      public revokeNamespacePermission_resultTupleScheme getScheme() {
+        return new revokeNamespacePermission_resultTupleScheme();
       }
     }
 
-    private static class revokeTableNamespacePermission_resultTupleScheme extends TupleScheme<revokeTableNamespacePermission_result> {
+    private static class revokeNamespacePermission_resultTupleScheme extends TupleScheme<revokeNamespacePermission_result> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, revokeTableNamespacePermission_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, revokeNamespacePermission_result struct) throws org.apache.thrift.TException {
         TTupleProtocol oprot = (TTupleProtocol) prot;
         BitSet optionals = new BitSet();
         if (struct.isSetSec()) {
@@ -27764,7 +27764,7 @@ import org.slf4j.LoggerFactory;
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, revokeTableNamespacePermission_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, revokeNamespacePermission_result struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
@@ -29862,8 +29862,8 @@ import org.slf4j.LoggerFactory;
 
   }
 
-  public static class getTableNamespaceConfiguration_args implements org.apache.thrift.TBase<getTableNamespaceConfiguration_args, getTableNamespaceConfiguration_args._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getTableNamespaceConfiguration_args");
+  public static class getNamespaceConfiguration_args implements org.apache.thrift.TBase<getNamespaceConfiguration_args, getNamespaceConfiguration_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getNamespaceConfiguration_args");
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
@@ -29871,8 +29871,8 @@ import org.slf4j.LoggerFactory;
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
-      schemes.put(StandardScheme.class, new getTableNamespaceConfiguration_argsStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new getTableNamespaceConfiguration_argsTupleSchemeFactory());
+      schemes.put(StandardScheme.class, new getNamespaceConfiguration_argsStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new getNamespaceConfiguration_argsTupleSchemeFactory());
     }
 
     public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
@@ -29954,13 +29954,13 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.NS, new org.apache.thrift.meta_data.FieldMetaData("ns", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getTableNamespaceConfiguration_args.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getNamespaceConfiguration_args.class, metaDataMap);
     }
 
-    public getTableNamespaceConfiguration_args() {
+    public getNamespaceConfiguration_args() {
     }
 
-    public getTableNamespaceConfiguration_args(
+    public getNamespaceConfiguration_args(
       org.apache.accumulo.trace.thrift.TInfo tinfo,
       org.apache.accumulo.core.security.thrift.TCredentials credentials,
       String ns)
@@ -29974,7 +29974,7 @@ import org.slf4j.LoggerFactory;
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public getTableNamespaceConfiguration_args(getTableNamespaceConfiguration_args other) {
+    public getNamespaceConfiguration_args(getNamespaceConfiguration_args other) {
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
       }
@@ -29986,8 +29986,8 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public getTableNamespaceConfiguration_args deepCopy() {
-      return new getTableNamespaceConfiguration_args(this);
+    public getNamespaceConfiguration_args deepCopy() {
+      return new getNamespaceConfiguration_args(this);
     }
 
     @Override
@@ -30001,7 +30001,7 @@ import org.slf4j.LoggerFactory;
       return this.tinfo;
     }
 
-    public getTableNamespaceConfiguration_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
+    public getNamespaceConfiguration_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
@@ -30025,7 +30025,7 @@ import org.slf4j.LoggerFactory;
       return this.credentials;
     }
 
-    public getTableNamespaceConfiguration_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+    public getNamespaceConfiguration_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -30049,7 +30049,7 @@ import org.slf4j.LoggerFactory;
       return this.ns;
     }
 
-    public getTableNamespaceConfiguration_args setNs(String ns) {
+    public getNamespaceConfiguration_args setNs(String ns) {
       this.ns = ns;
       return this;
     }
@@ -30134,12 +30134,12 @@ import org.slf4j.LoggerFactory;
     public boolean equals(Object that) {
       if (that == null)
         return false;
-      if (that instanceof getTableNamespaceConfiguration_args)
-        return this.equals((getTableNamespaceConfiguration_args)that);
+      if (that instanceof getNamespaceConfiguration_args)
+        return this.equals((getNamespaceConfiguration_args)that);
       return false;
     }
 
-    public boolean equals(getTableNamespaceConfiguration_args that) {
+    public boolean equals(getNamespaceConfiguration_args that) {
       if (that == null)
         return false;
 
@@ -30178,13 +30178,13 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
-    public int compareTo(getTableNamespaceConfiguration_args other) {
+    public int compareTo(getNamespaceConfiguration_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
 
       int lastComparison = 0;
-      getTableNamespaceConfiguration_args typedOther = (getTableNamespaceConfiguration_args)other;
+      getNamespaceConfiguration_args typedOther = (getNamespaceConfiguration_args)other;
 
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
@@ -30233,7 +30233,7 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public String toString() {
-      StringBuilder sb = new StringBuilder("getTableNamespaceConfiguration_args(");
+      StringBuilder sb = new StringBuilder("getNamespaceConfiguration_args(");
       boolean first = true;
 
       sb.append("tinfo:");
@@ -30290,15 +30290,15 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    private static class getTableNamespaceConfiguration_argsStandardSchemeFactory implements SchemeFactory {
-      public getTableNamespaceConfiguration_argsStandardScheme getScheme() {
-        return new getTableNamespaceConfiguration_argsStandardScheme();
+    private static class getNamespaceConfiguration_argsStandardSchemeFactory implements SchemeFactory {
+      public getNamespaceConfiguration_argsStandardScheme getScheme() {
+        return new getNamespaceConfiguration_argsStandardScheme();
       }
     }
 
-    private static class getTableNamespaceConfiguration_argsStandardScheme extends StandardScheme<getTableNamespaceConfiguration_args> {
+    private static class getNamespaceConfiguration_argsStandardScheme extends StandardScheme<getNamespaceConfiguration_args> {
 
-      public void read(org.apache.thrift.protocol.TProtocol iprot, getTableNamespaceConfiguration_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, getNamespaceConfiguration_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -30345,7 +30345,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
-      public void write(org.apache.thrift.protocol.TProtocol oprot, getTableNamespaceConfiguration_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, getNamespaceConfiguration_args struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -30370,16 +30370,16 @@ import org.slf4j.LoggerFactory;
 
     }
 
-    private static class getTableNamespaceConfiguration_argsTupleSchemeFactory implements SchemeFactory {
-      public getTableNamespaceConfiguration_argsTupleScheme getScheme() {
-        return new getTableNamespaceConfiguration_argsTupleScheme();
+    private static class getNamespaceConfiguration_argsTupleSchemeFactory implements SchemeFactory {
+      public getNamespaceConfiguration_argsTupleScheme getScheme() {
+        return new getNamespaceConfiguration_argsTupleScheme();
       }
     }
 
-    private static class getTableNamespaceConfiguration_argsTupleScheme extends TupleScheme<getTableNamespaceConfiguration_args> {
+    private static class getNamespaceConfiguration_argsTupleScheme extends TupleScheme<getNamespaceConfiguration_args> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, getTableNamespaceConfiguration_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, getNamespaceConfiguration_args struct) throws org.apache.thrift.TException {
         TTupleProtocol oprot = (TTupleProtocol) prot;
         BitSet optionals = new BitSet();
         if (struct.isSetTinfo()) {
@@ -30404,7 +30404,7 @@ import org.slf4j.LoggerFactory;
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, getTableNamespaceConfiguration_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, getNamespaceConfiguration_args struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
@@ -30426,16 +30426,16 @@ import org.slf4j.LoggerFactory;
 
   }
 
-  public static class getTableNamespaceConfiguration_result implements org.apache.thrift.TBase<getTableNamespaceConfiguration_result, getTableNamespaceConfiguration_result._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getTableNamespaceConfiguration_result");
+  public static class getNamespaceConfiguration_result implements org.apache.thrift.TBase<getNamespaceConfiguration_result, getNamespaceConfiguration_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getNamespaceConfiguration_result");
 
     private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.MAP, (short)0);
     private static final org.apache.thrift.protocol.TField TOPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tope", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
-      schemes.put(StandardScheme.class, new getTableNamespaceConfiguration_resultStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new getTableNamespaceConfiguration_resultTupleSchemeFactory());
+      schemes.put(StandardScheme.class, new getNamespaceConfiguration_resultStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new getNamespaceConfiguration_resultTupleSchemeFactory());
     }
 
     public Map<String,String> success; // required
@@ -30513,13 +30513,13 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.TOPE, new org.apache.thrift.meta_data.FieldMetaData("tope", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getTableNamespaceConfiguration_result.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getNamespaceConfiguration_result.class, metaDataMap);
     }
 
-    public getTableNamespaceConfiguration_result() {
+    public getNamespaceConfiguration_result() {
     }
 
-    public getTableNamespaceConfiguration_result(
+    public getNamespaceConfiguration_result(
       Map<String,String> success,
       ThriftTableOperationException tope)
     {
@@ -30531,7 +30531,7 @@ import org.slf4j.LoggerFactory;
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public getTableNamespaceConfiguration_result(getTableNamespaceConfiguration_result other) {
+    public getNamespaceConfiguration_result(getNamespaceConfiguration_result other) {
       if (other.isSetSuccess()) {
         Map<String,String> __this__success = new HashMap<String,String>();
         for (Map.Entry<String, String> other_element : other.success.entrySet()) {
@@ -30552,8 +30552,8 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public getTableNamespaceConfiguration_result deepCopy() {
-      return new getTableNamespaceConfiguration_result(this);
+    public getNamespaceConfiguration_result deepCopy() {
+      return new getNamespaceConfiguration_result(this);
     }
 
     @Override
@@ -30577,7 +30577,7 @@ import org.slf4j.LoggerFactory;
       return this.success;
     }
 
-    public getTableNamespaceConfiguration_result setSuccess(Map<String,String> success) {
+    public getNamespaceConfiguration_result setSuccess(Map<String,String> success) {
       this.success = success;
       return this;
     }
@@ -30601,7 +30601,7 @@ import org.slf4j.LoggerFactory;
       return this.tope;
     }
 
-    public getTableNamespaceConfiguration_result setTope(ThriftTableOperationException tope) {
+    public getNamespaceConfiguration_result setTope(ThriftTableOperationException tope) {
       this.tope = tope;
       return this;
     }
@@ -30673,12 +30673,12 @@ import org.slf4j.LoggerFactory;
     public boolean equals(Object that) {
       if (that == null)
         return false;
-      if (that instanceof getTableNamespaceConfiguration_result)
-        return this.equals((getTableNamespaceConfiguration_result)that);
+      if (that instanceof getNamespaceConfiguration_result)
+        return this.equals((getNamespaceConfiguration_result)that);
       return false;
     }
 
-    public boolean equals(getTableNamespaceConfiguration_result that) {
+    public boolean equals(getNamespaceConfiguration_result that) {
       if (that == null)
         return false;
 
@@ -30708,13 +30708,13 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
-    public int compareTo(getTableNamespaceConfiguration_result other) {
+    public int compareTo(getNamespaceConfiguration_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
 
       int lastComparison = 0;
-      getTableNamespaceConfiguration_result typedOther = (getTableNamespaceConfiguration_result)other;
+      getNamespaceConfiguration_result typedOther = (getNamespaceConfiguration_result)other;
 
       lastComparison = Boolean.valueOf(isSetSuccess()).compareTo(typedOther.isSetSuccess());
       if (lastComparison != 0) {
@@ -30753,7 +30753,7 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public String toString() {
-      StringBuilder sb = new StringBuilder("getTableNamespaceConfiguration_result(");
+      StringBuilder sb = new StringBuilder("getNamespaceConfiguration_result(");
       boolean first = true;
 
       sb.append("success:");
@@ -30796,15 +30796,15 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    private static class getTableNamespaceConfiguration_resultStandardSchemeFactory implements SchemeFactory {
-      public getTableNamespaceConfiguration_resultStandardScheme getScheme() {
-        return new getTableNamespaceConfiguration_resultStandardScheme();
+    private static class getNamespaceConfiguration_resultStandardSchemeFactory implements SchemeFactory {
+      public getNamespaceConfiguration_resultStandardScheme getScheme() {
+        return new getNamespaceConfiguration_resultStandardScheme();
       }
     }
 
-    private static class getTableNamespaceConfiguration_resultStandardScheme extends StandardScheme<getTableNamespaceConfiguration_result> {
+    private static class getNamespaceConfiguration_resultStandardScheme extends StandardScheme<getNamespaceConfiguration_result> {
 
-      public void read(org.apache.thrift.protocol.TProtocol iprot, getTableNamespaceConfiguration_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, getNamespaceConfiguration_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -30854,7 +30854,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
-      public void write(org.apache.thrift.protocol.TProtocol oprot, getTableNamespaceConfiguration_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, getNamespaceConfiguration_result struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -30882,16 +30882,16 @@ import org.slf4j.LoggerFactory;
 
     }
 
-    private static class getTableNamespaceConfiguration_resultTupleSchemeFactory implements SchemeFactory {
-      public getTableNamespaceConfiguration_resultTupleScheme getScheme() {
-        return new getTableNamespaceConfiguration_resultTupleScheme();
+    private static class getNamespaceConfiguration_resultTupleSchemeFactory implements SchemeFactory {
+      public getNamespaceConfiguration_resultTupleScheme getScheme() {
+        return new getNamespaceConfiguration_resultTupleScheme();
       }
     }
 
-    private static class getTableNamespaceConfiguration_resultTupleScheme extends TupleScheme<getTableNamespaceConfiguration_result> {
+    private static class getNamespaceConfiguration_resultTupleScheme extends TupleScheme<getNamespaceConfiguration_result> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, getTableNamespaceConfiguration_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, getNamespaceConfiguration_result struct) throws org.apache.thrift.TException {
         TTupleProtocol oprot = (TTupleProtocol) prot;
         BitSet optionals = new BitSet();
         if (struct.isSetSuccess()) {
@@ -30917,7 +30917,7 @@ import org.slf4j.LoggerFactory;
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, getTableNamespaceConfiguration_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, getNamespaceConfiguration_result struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
@@ -33285,8 +33285,8 @@ import org.slf4j.LoggerFactory;
 
   }
 
-  public static class checkTableNamespaceClass_args implements org.apache.thrift.TBase<checkTableNamespaceClass_args, checkTableNamespaceClass_args._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("checkTableNamespaceClass_args");
+  public static class checkNamespaceClass_args implements org.apache.thrift.TBase<checkNamespaceClass_args, checkNamespaceClass_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("checkNamespaceClass_args");
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
@@ -33296,8 +33296,8 @@ import org.slf4j.LoggerFactory;
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
-      schemes.put(StandardScheme.class, new checkTableNamespaceClass_argsStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new checkTableNamespaceClass_argsTupleSchemeFactory());
+      schemes.put(StandardScheme.class, new checkNamespaceClass_argsStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new checkNamespaceClass_argsTupleSchemeFactory());
     }
 
     public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
@@ -33391,13 +33391,13 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.INTERFACE_MATCH, new org.apache.thrift.meta_data.FieldMetaData("interfaceMatch", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(checkTableNamespaceClass_args.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(checkNamespaceClass_args.class, metaDataMap);
     }
 
-    public checkTableNamespaceClass_args() {
+    public checkNamespaceClass_args() {
     }
 
-    public checkTableNamespaceClass_args(
+    public checkNamespaceClass_args(
       org.apache.accumulo.trace.thrift.TInfo tinfo,
       org.apache.accumulo.core.security.thrift.TCredentials credentials,
       String namespaceId,
@@ -33415,7 +33415,7 @@ import org.slf4j.LoggerFactory;
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public checkTableNamespaceClass_args(checkTableNamespaceClass_args other) {
+    public checkNamespaceClass_args(checkNamespaceClass_args other) {
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.trace.thrift.TInfo(other.tinfo);
       }
@@ -33433,8 +33433,8 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public checkTableNamespaceClass_args deepCopy() {
-      return new checkTableNamespaceClass_args(this);
+    public checkNamespaceClass_args deepCopy() {
+      return new checkNamespaceClass_args(this);
     }
 
     @Override
@@ -33450,7 +33450,7 @@ import org.slf4j.LoggerFactory;
       return this.tinfo;
     }
 
-    public checkTableNamespaceClass_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
+    public checkNamespaceClass_args setTinfo(org.apache.accumulo.trace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
@@ -33474,7 +33474,7 @@ import org.slf4j.LoggerFactory;
       return this.credentials;
     }
 
-    public checkTableNamespaceClass_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+    public checkNamespaceClass_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -33498,7 +33498,7 @@ import org.slf4j.LoggerFactory;
       return this.namespaceId;
     }
 
-    public checkTableNamespaceClass_args setNamespaceId(String namespaceId) {
+    public checkNamespaceClass_args setNamespaceId(String namespaceId) {
       this.namespaceId = namespaceId;
       return this;
     }
@@ -33522,7 +33522,7 @@ import org.slf4j.LoggerFactory;
       return this.className;
     }
 
-    public checkTableNamespaceClass_args setClassName(String className) {
+    public checkNamespaceClass_args setClassName(String className) {
       this.className = className;
       return this;
     }
@@ -33546,7 +33546,7 @@ import org.slf4j.LoggerFactory;
       return this.interfaceMatch;
     }
 
-    public checkTableNamespaceClass_args setInterfaceMatch(String interfaceMatch) {
+    public checkNamespaceClass_args setInterfaceMatch(String interfaceMatch) {
       this.interfaceMatch = interfaceMatch;
       return this;
     }
@@ -33657,12 +33657,12 @@ import org.slf4j.LoggerFactory;
     public boolean equals(Object that) {
       if (that == null)
         return false;
-      if (that instanceof checkTableNamespaceClass_args)
-        return this.equals((checkTableNamespaceClass_args)that);
+      if (that instanceof checkNamespaceClass_args)
+        return this.equals((checkNamespaceClass_args)that);
       return false;
     }
 
-    public boolean equals(checkTableNamespaceClass_args that) {
+    public boolean equals(checkNamespaceClass_args that) {
       if (that == null)
         return false;
 
@@ -33719,13 +33719,13 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
-    public int compareTo(checkTableNamespaceClass_args other) {
+    public int compareTo(checkNamespaceClass_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
 
       int lastComparison = 0;
-      checkTableNamespaceClass_args typedOther = (checkTableNamespaceClass_args)other;
+      checkNamespaceClass_args typedOther = (checkNamespaceClass_args)other;
 
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
@@ -33794,7 +33794,7 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public String toString() {
-      StringBuilder sb = new StringBuilder("checkTableNamespaceClass_args(");
+      StringBuilder sb = new StringBuilder("checkNamespaceClass_args(");
       boolean first = true;
 
       sb.append("tinfo:");
@@ -33867,15 +33867,15 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    private static class checkTableNamespaceClass_argsStandardSchemeFactory implements SchemeFactory {
-      public checkTableNamespaceClass_argsStandardScheme getScheme() {
-        return new checkTableNamespaceClass_argsStandardScheme();
+    private static class checkNamespaceClass_argsStandardSchemeFactory implements SchemeFactory {
+      public checkNamespaceClass_argsStandardScheme getScheme() {
+        return new checkNamespaceClass_argsStandardScheme();
       }
     }
 
-    private static class checkTableNamespaceClass_argsStandardScheme extends StandardScheme<checkTableNamespaceClass_args> {
+    private static class checkNamespaceClass_argsStandardScheme extends StandardScheme<checkNamespaceClass_args> {
 
-      public void read(org.apache.thrift.protocol.TProtocol iprot, checkTableNamespaceClass_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, checkNamespaceClass_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -33938,7 +33938,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
-      public void write(org.apache.thrift.protocol.TProtocol oprot, checkTableNamespaceClass_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, checkNamespaceClass_args struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -33973,16 +33973,16 @@ import org.slf4j.LoggerFactory;
 
     }
 
-    private static class checkTableNamespaceClass_argsTupleSchemeFactory implements SchemeFactory {
-      public checkTableNamespaceClass_argsTupleScheme getScheme() {
-        return new checkTableNamespaceClass_argsTupleScheme();
+    private static class checkNamespaceClass_argsTupleSchemeFactory implements SchemeFactory {
+      public checkNamespaceClass_argsTupleScheme getScheme() {
+        return new checkNamespaceClass_argsTupleScheme();
       }
     }
 
-    private static class checkTableNamespaceClass_argsTupleScheme extends TupleScheme<checkTableNamespaceClass_args> {
+    private static class checkNamespaceClass_argsTupleScheme extends TupleScheme<checkNamespaceClass_args> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, checkTableNamespaceClass_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, checkNamespaceClass_args struct) throws org.apache.thrift.TException {
         TTupleProtocol oprot = (TTupleProtocol) prot;
         BitSet optionals = new BitSet();
         if (struct.isSetTinfo()) {
@@ -34019,7 +34019,7 @@ import org.slf4j.LoggerFactory;
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, checkTableNamespaceClass_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, checkNamespaceClass_args struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(5);
         if (incoming.get(0)) {
@@ -34049,8 +34049,8 @@ import org.slf4j.LoggerFactory;
 
   }
 
-  public static class checkTableNamespaceClass_result implements org.apache.thrift.TBase<checkTableNamespaceClass_result, checkTableNamespaceClass_result._Fields>, java.io.Serializable, Cloneable   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("checkTableNamespaceClass_result");
+  public static class checkNamespaceClass_result implements org.apache.thrift.TBase<checkNamespaceClass_result, checkNamespaceClass_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("checkNamespaceClass_result");
 
     private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.BOOL, (short)0);
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
@@ -34058,8 +34058,8 @@ import org.slf4j.LoggerFactory;
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
-      schemes.put(StandardScheme.class, new checkTableNamespaceClass_resultStandardSchemeFactory());
-      schemes.put(TupleScheme.class, new checkTableNamespaceClass_resultTupleSchemeFactory());
+      schemes.put(StandardScheme.class, new checkNamespaceClass_resultStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new checkNamespaceClass_resultTupleSchemeFactory());
     }
 
     public boolean success; // required
@@ -34143,13 +34143,13 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.TOPE, new org.apache.thrift.meta_data.FieldMetaData("tope", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(checkTableNamespaceClass_result.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(checkNamespaceClass_result.class, metaDataMap);
     }
 
-    public checkTableNamespaceClass_result() {
+    public checkNamespaceClass_result() {
     }
 
-    public checkTableNamespaceClass_result(
+    public checkNamespaceClass_result(
       boolean success,
       ThriftSecurityException sec,
       ThriftTableOperationException tope)
@@ -34164,7 +34164,7 @@ import org.slf4j.LoggerFactory;
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public checkTableNamespaceClass_result(checkTableNamespaceClass_result other) {
+    public checkNamespaceClass_result(checkNamespaceClass_result other) {
       __isset_bitfield = other.__isset_bitfield;
       this.success = other.success;
       if (other.isSetSec()) {
@@ -34175,8 +34175,8 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public checkTableNamespaceClass_result deepCopy() {
-      return new checkTableNamespaceClass_result(this);
+    public checkNamespaceClass_result deepCopy() {
+      return new checkNamespaceClass_result(this);
     }
 
     @Override
@@ -34191,7 +34191,7 @@ import org.slf4j.LoggerFactory;
       return this.success;
     }
 
-    public checkTableNamespaceClass_result setSuccess(boolean success) {
+    public checkNamespaceClass_result setSuccess(boolean success) {
       this.success = success;
       setSuccessIsSet(true);
       return this;
@@ -34214,7 +34214,7 @@ import org.slf4j.LoggerFactory;
       return this.sec;
     }
 
-    public checkTableNamespaceClass_result setSec(ThriftSecurityException sec) {
+    public checkNamespaceClass_result setSec(ThriftSecurityException sec) {
       this.sec = sec;
       return this;
     }
@@ -34238,7 +34238,7 @@ import org.slf4j.LoggerFactory;
       return this.tope;
     }
 
-    public checkTableNamespaceClass_result setTope(ThriftTableOperationException tope) {
+    public checkNamespaceClass_result setTope(ThriftTableOperationException tope) {
       this.tope = tope;
       return this;
     }
@@ -34323,12 +34323,12 @@ import org.slf4j.LoggerFactory;
     public boolean equals(Object that) {
       if (that == null)
         return false;
-      if (that instanceof checkTableNamespaceClass_result)
-        return this.equals((checkTableNamespaceClass_result)that);
+      if (that instanceof checkNamespaceClass_result)
+        return this.equals((checkNamespaceClass_result)that);
       return false;
     }
 
-    public boolean equals(checkTableNamespaceClass_result that) {
+    public boolean equals(checkNamespaceClass_result that) {
       if (that == null)
         return false;
 
@@ -34367,13 +34367,13 @@ import org.slf4j.LoggerFactory;
       return 0;
     }
 
-    public int compareTo(checkTableNamespaceClass_result other) {
+    public int compareTo(checkNamespaceClass_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
 
       int lastComparison = 0;
-      checkTableNamespaceClass_result typedOther = (checkTableNamespaceClass_result)other;
+      checkNamespaceClass_result typedOther = (checkNamespaceClass_result)other;
 
       lastComparison = Boolean.valueOf(isSetSuccess()).compareTo(typedOther.isSetSuccess());
       if (lastComparison != 0) {
@@ -34422,7 +34422,7 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public String toString() {
-      StringBuilder sb = new StringBuilder("checkTableNamespaceClass_result(");
+      StringBuilder sb = new StringBuilder("checkNamespaceClass_result(");
       boolean first = true;
 
       sb.append("success:");
@@ -34471,15 +34471,15 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    private static class checkTableNamespaceClass_resultStandardSchemeFactory implements SchemeFactory {
-      public checkTableNamespaceClass_resultStandardScheme getScheme() {
-        return new checkTableNamespaceClass_resultStandardScheme();
+    private static class checkNamespaceClass_resultStandardSchemeFactory implements SchemeFactory {
+      public checkNamespaceClass_resultStandardScheme getScheme() {
+        return new checkNamespaceClass_resultStandardScheme();
       }
     }
 
-    private static class checkTableNamespaceClass_resultStandardScheme extends StandardScheme<checkTableNamespaceClass_result> {
+    private static class checkNamespaceClass_resultStandardScheme extends StandardScheme<checkNamespaceClass_result> {
 
-      public void read(org.apache.thrift.protocol.TProtocol iprot, checkTableNamespaceClass_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, checkNamespaceClass_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -34526,7 +34526,7 @@ import org.slf4j.LoggerFactory;
         struct.validate();
       }
 
-      public void write(org.apache.thrift.protocol.TProtocol oprot, checkTableNamespaceClass_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, checkNamespaceClass_result struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -34551,16 +34551,16 @@ import org.slf4j.LoggerFactory;
 
     }
 
-    private static class checkTableNamespaceClass_resultTupleSchemeFactory implements SchemeFactory {
-      public checkTableNamespaceClass_resultTupleScheme getScheme() {
-        return new checkTableNamespaceClass_resultTupleScheme();
+    private static class checkNamespaceClass_resultTupleSchemeFactory implements SchemeFactory {
+      public checkNamespaceClass_resultTupleScheme getScheme() {
+        return new checkNamespaceClass_resultTupleScheme();
       }
     }
 
-    private static class checkTableNamespaceClass_resultTupleScheme extends TupleScheme<checkTableNamespaceClass_result> {
+    private static class checkNamespaceClass_resultTupleScheme extends TupleScheme<checkNamespaceClass_result> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, checkTableNamespaceClass_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, checkNamespaceClass_result struct) throws org.apache.thrift.TException {
         TTupleProtocol oprot = (TTupleProtocol) prot;
         BitSet optionals = new BitSet();
         if (struct.isSetSuccess()) {
@@ -34585,7 +34585,7 @@ import org.slf4j.LoggerFactory;
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, checkTableNamespaceClass_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, checkNamespaceClass_result struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {

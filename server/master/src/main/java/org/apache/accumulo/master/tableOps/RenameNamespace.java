@@ -30,7 +30,7 @@ import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.log4j.Logger;
 
-public class RenameTableNamespace extends MasterRepo {
+public class RenameNamespace extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
   private String namespaceId;
@@ -39,10 +39,10 @@ public class RenameTableNamespace extends MasterRepo {
 
   @Override
   public long isReady(long id, Master environment) throws Exception {
-    return Utils.reserveTableNamespace(namespaceId, id, true, true, TableOperation.RENAME);
+    return Utils.reserveNamespace(namespaceId, id, true, true, TableOperation.RENAME);
   }
 
-  public RenameTableNamespace(String namespaceId, String oldName, String newName) {
+  public RenameNamespace(String namespaceId, String oldName, String newName) {
     this.namespaceId = namespaceId;
     this.oldName = oldName;
     this.newName = newName;
@@ -57,11 +57,12 @@ public class RenameTableNamespace extends MasterRepo {
 
     Utils.tableNameLock.lock();
     try {
-      Utils.checkTableNamespaceDoesNotExist(instance, newName, namespaceId, TableOperation.RENAME);
+      Utils.checkNamespaceDoesNotExist(instance, newName, namespaceId, TableOperation.RENAME);
 
       final String tap = ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZNAMESPACE_NAME;
 
       zoo.mutate(tap, null, null, new Mutator() {
+        @Override
         public byte[] mutate(byte[] current) throws Exception {
           final String currentName = new String(current);
           if (currentName.equals(newName))
@@ -75,17 +76,17 @@ public class RenameTableNamespace extends MasterRepo {
       Tables.clearCache(instance);
     } finally {
       Utils.tableNameLock.unlock();
-      Utils.unreserveTableNamespace(namespaceId, id, true);
+      Utils.unreserveNamespace(namespaceId, id, true);
     }
 
-    Logger.getLogger(RenameTableNamespace.class).debug("Renamed table namespace " + namespaceId + " " + oldName + " " + newName);
+    Logger.getLogger(RenameNamespace.class).debug("Renamed namespace " + namespaceId + " " + oldName + " " + newName);
 
     return null;
   }
 
   @Override
   public void undo(long tid, Master env) throws Exception {
-    Utils.unreserveTableNamespace(namespaceId, tid, true);
+    Utils.unreserveNamespace(namespaceId, tid, true);
   }
 
 }

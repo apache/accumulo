@@ -18,7 +18,7 @@ package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.IOException;
 
-import org.apache.accumulo.core.security.TableNamespacePermission;
+import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -26,7 +26,7 @@ import org.apache.commons.cli.CommandLine;
 public class NamespacePermissionsCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException {
-    for (String p : TableNamespacePermission.printableValues()) {
+    for (String p : NamespacePermission.printableValues()) {
       shellState.getReader().println(p);
     }
     return 0;
@@ -34,7 +34,7 @@ public class NamespacePermissionsCommand extends Command {
 
   @Override
   public String description() {
-    return "displays a list of valid table namespace permissions";
+    return "displays a list of valid namespace permissions";
   }
 
   @Override

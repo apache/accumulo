@@ -114,7 +114,7 @@ public class CreateTableCommand extends Command {
 
     String n = Tables.extractNamespace(tableName);
     String table = tableName;
-    if (n.equals(Constants.DEFAULT_TABLE_NAMESPACE) || n.equals(Constants.SYSTEM_TABLE_NAMESPACE)) {
+    if (n.equals(Constants.DEFAULT_NAMESPACE) || n.equals(Constants.SYSTEM_NAMESPACE)) {
       table = Tables.extractTableName(tableName);
     }
     shellState.setTableName(table); // switch shell to new table context
@@ -216,6 +216,6 @@ public class CreateTableCommand extends Command {
 
   @Override
   public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> special) {
-    registerCompletionForTableNamespaces(root, special);
+    registerCompletionForNamespaces(root, special);
   }
 }

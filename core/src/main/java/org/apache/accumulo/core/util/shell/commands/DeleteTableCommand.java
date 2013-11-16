@@ -47,7 +47,7 @@ public class DeleteTableCommand extends TableOperation {
     
     String n = Tables.extractNamespace(tableName);
     String checkTable = tableName;
-    if (n.equals(Constants.DEFAULT_TABLE_NAMESPACE) || n.equals(Constants.SYSTEM_TABLE_NAMESPACE)) {
+    if (n.equals(Constants.DEFAULT_NAMESPACE) || n.equals(Constants.SYSTEM_NAMESPACE)) {
       checkTable = Tables.extractTableName(tableName);
     }
     if (shellState.getTableName().equals(checkTable)) {

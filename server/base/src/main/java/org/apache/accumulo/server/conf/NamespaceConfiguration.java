@@ -33,8 +33,8 @@ import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.log4j.Logger;
 
-public class TableNamespaceConfiguration extends AccumuloConfiguration {
-  private static final Logger log = Logger.getLogger(TableNamespaceConfiguration.class);
+public class NamespaceConfiguration extends AccumuloConfiguration {
+  private static final Logger log = Logger.getLogger(NamespaceConfiguration.class);
 
   private final AccumuloConfiguration parent;
   private static ZooCache propCache = null;
@@ -42,7 +42,7 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
   protected Instance inst = null;
   private Set<ConfigurationObserver> observers;
 
-  public TableNamespaceConfiguration(String namespaceId, AccumuloConfiguration parent) {
+  public NamespaceConfiguration(String namespaceId, AccumuloConfiguration parent) {
     inst = HdfsZooInstance.getInstance();
     this.parent = parent;
     this.namespaceId = namespaceId;
@@ -57,7 +57,7 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
     if (value == null || !property.getType().isValidFormat(value)) {
       if (value != null)
         log.error("Using default value for " + key + " due to improperly formatted " + property.getType() + ": " + value);
-      if (!(namespaceId.equals(Constants.SYSTEM_TABLE_NAMESPACE_ID) && isIteratorOrConstraint(property.getKey()))) {
+      if (!(namespaceId.equals(Constants.SYSTEM_NAMESPACE_ID) && isIteratorOrConstraint(property.getKey()))) {
         // ignore iterators from parent if system namespace
         value = parent.get(property);
       }
@@ -77,9 +77,9 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
   private static ZooCache getPropCache() {
     Instance inst = HdfsZooInstance.getInstance();
     if (propCache == null)
-      synchronized (TableNamespaceConfiguration.class) {
+      synchronized (NamespaceConfiguration.class) {
         if (propCache == null)
-          propCache = new ZooCache(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), new TableNamespaceConfWatcher(inst));
+          propCache = new ZooCache(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), new NamespaceConfWatcher(inst));
       }
     return propCache;
   }
@@ -108,7 +108,7 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
 
     // exclude system iterators/constraints from the system namespace
     // so they don't affect the metadata or root tables.
-    if (this.namespaceId.equals(Constants.SYSTEM_TABLE_NAMESPACE_ID))
+    if (this.namespaceId.equals(Constants.SYSTEM_NAMESPACE_ID))
       parentFilter = new SystemNamespaceFilter(filter);
 
     parent.getProperties(props, parentFilter);
@@ -133,7 +133,7 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
 
   public void addObserver(ConfigurationObserver co) {
     if (namespaceId == null) {
-      String err = "Attempt to add observer for non-table-namespace configuration";
+      String err = "Attempt to add observer for non-namespace configuration";
       log.error(err);
       throw new RuntimeException(err);
     }
@@ -143,7 +143,7 @@ public class TableNamespaceConfiguration extends AccumuloConfiguration {
 
   public void removeObserver(ConfigurationObserver configObserver) {
     if (namespaceId == null) {
-      String err = "Attempt to remove observer for non-table-namespace configuration";
+      String err = "Attempt to remove observer for non-namespace configuration";
       log.error(err);
       throw new RuntimeException(err);
     }

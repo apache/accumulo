@@ -104,7 +104,7 @@ public class MockTableOperations extends TableOperationsHelper {
       throw new TableExistsException(tableName, tableName, "");
 
     if (!namespaceExists(namespace)) {
-      throw new IllegalArgumentException("Table namespace (" + namespace + ") does not exist, create it first");
+      throw new IllegalArgumentException("Namespace (" + namespace + ") does not exist, create it first");
     }
     acu.createTable(username, tableName, versioningIter, timeType);
   }
@@ -156,9 +156,9 @@ public class MockTableOperations extends TableOperationsHelper {
       throw new TableExistsException(newTableName, newTableName, "");
     MockTable t = acu.tables.remove(oldTableName);
     String namespace = Tables.extractNamespace(newTableName);
-    MockTableNamespace n = acu.namespaces.get(namespace);
+    MockNamespace n = acu.namespaces.get(namespace);
     if (n == null) {
-      n = new MockTableNamespace();
+      n = new MockNamespace();
     }
     t.setNamespaceName(namespace);
     t.setNamespace(n);
@@ -185,7 +185,7 @@ public class MockTableOperations extends TableOperationsHelper {
     String namespace = Tables.extractNamespace(tableName);
 
     if (!namespaceExists(namespace)) {
-      throw new IllegalArgumentException("Table namespace (" + namespace + ") does not exist");
+      throw new IllegalArgumentException("Namespace (" + namespace + ") does not exist");
     }
 
     Set<Entry<String,String>> props = new HashSet<Entry<String,String>>(acu.namespaces.get(namespace).settings.entrySet());

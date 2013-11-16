@@ -24,11 +24,11 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 
-public class TableNamespaces {
+public class Namespaces {
   private static SecurityPermission TABLES_PERMISSION = new SecurityPermission("tablesPermission");
 
   private static ZooCache getZooCache(Instance instance) {
@@ -58,17 +58,17 @@ public class TableNamespaces {
     return namespaceMap;
   }
 
-  public static String getNamespaceId(Instance instance, String namespace) throws TableNamespaceNotFoundException {
+  public static String getNamespaceId(Instance instance, String namespace) throws NamespaceNotFoundException {
     String id = getNameToIdMap(instance).get(namespace);
     if (id == null)
-      throw new TableNamespaceNotFoundException(null, namespace, "getNamespaceId() failed to find namespace");
+      throw new NamespaceNotFoundException(null, namespace, "getNamespaceId() failed to find namespace");
     return id;
   }
 
-  public static String getNamespaceName(Instance instance, String namespaceId) throws TableNamespaceNotFoundException {
+  public static String getNamespaceName(Instance instance, String namespaceId) throws NamespaceNotFoundException {
     String namespaceName = getIdToNameMap(instance).get(namespaceId);
     if (namespaceName == null)
-      throw new TableNamespaceNotFoundException(namespaceId, null, "getNamespaceName() failed to find namespace");
+      throw new NamespaceNotFoundException(namespaceId, null, "getNamespaceName() failed to find namespace");
     return namespaceName;
   }
 
@@ -80,7 +80,7 @@ public class TableNamespaces {
     return getMap(instance, false);
   }
 
-  public static List<String> getTableIds(Instance instance, String namespaceId) throws TableNamespaceNotFoundException {
+  public static List<String> getTableIds(Instance instance, String namespaceId) throws NamespaceNotFoundException {
     List<String> l = new LinkedList<String>();
     for (String id : Tables.getIdToNameMap(instance).keySet()) {
       if (Tables.getNamespace(instance, id).equals(namespaceId)) {
@@ -90,12 +90,12 @@ public class TableNamespaces {
     return l;
   }
 
-  public static List<String> getTableNames(Instance instance, String namespaceId) throws TableNamespaceNotFoundException {
+  public static List<String> getTableNames(Instance instance, String namespaceId) throws NamespaceNotFoundException {
     ZooCache zc = getZooCache(instance);
     List<String> ids = getTableIds(instance, namespaceId);
     List<String> names = new LinkedList<String>();
     String namespace = getNamespaceName(instance, namespaceId) + ".";
-    if (namespaceId.equals(Constants.DEFAULT_TABLE_NAMESPACE_ID) || namespaceId.equals(Constants.SYSTEM_TABLE_NAMESPACE_ID)) {
+    if (namespaceId.equals(Constants.DEFAULT_NAMESPACE_ID) || namespaceId.equals(Constants.SYSTEM_NAMESPACE_ID)) {
       // default and system namespaces aren't displayed for backwards compatibility
       namespace = "";
     }

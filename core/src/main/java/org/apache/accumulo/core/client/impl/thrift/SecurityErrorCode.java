@@ -46,7 +46,7 @@ import org.apache.thrift.TEnum;
   TOKEN_EXPIRED(15),
   SERIALIZATION_ERROR(16),
   INSUFFICIENT_PROPERTIES(17),
-  TABLE_NAMESPACE_DOESNT_EXIST(18);
+  NAMESPACE_DOESNT_EXIST(18);
 
   private final int value;
 
@@ -104,7 +104,7 @@ import org.apache.thrift.TEnum;
       case 17:
         return INSUFFICIENT_PROPERTIES;
       case 18:
-        return TABLE_NAMESPACE_DOESNT_EXIST;
+        return NAMESPACE_DOESNT_EXIST;
       default:
         return null;
     }

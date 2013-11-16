@@ -21,8 +21,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
-import org.apache.accumulo.core.client.impl.TableNamespaces;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.accumulo.core.util.shell.Token;
@@ -55,29 +55,29 @@ public class DeleteNamespaceCommand extends Command {
 
   @Override
   public String description() {
-    return "deletes a table namespace";
+    return "deletes a namespace";
   }
 
   protected void doTableOp(final Shell shellState, final String namespace, boolean force) throws Exception {
     boolean resetContext = false;
     String currentTable = shellState.getTableName();
-    if (!TableNamespaces.getNameToIdMap(shellState.getInstance()).containsKey(namespace)) {
-      throw new TableNamespaceNotFoundException(null, namespace, null);
+    if (!Namespaces.getNameToIdMap(shellState.getInstance()).containsKey(namespace)) {
+      throw new NamespaceNotFoundException(null, namespace, null);
     }
 
-    String namespaceId = TableNamespaces.getNamespaceId(shellState.getInstance(), namespace);
-    List<String> tables = TableNamespaces.getTableNames(shellState.getInstance(), namespaceId);
+    String namespaceId = Namespaces.getNamespaceId(shellState.getInstance(), namespace);
+    List<String> tables = Namespaces.getTableNames(shellState.getInstance(), namespaceId);
     resetContext = tables.contains(currentTable);
 
     if (force) {
-      shellState.getConnector().tableNamespaceOperations().delete(namespace, true);
+      shellState.getConnector().namespaceOperations().delete(namespace, true);
     } else {
-      shellState.getConnector().tableNamespaceOperations().delete(namespace);
+      shellState.getConnector().namespaceOperations().delete(namespace);
     }
-    if (namespace.equals(Constants.SYSTEM_TABLE_NAMESPACE)) {
-      shellState.getReader().println("Table namespace: [" + namespace + "], can't delete system or default namespace.");
+    if (namespace.equals(Constants.SYSTEM_NAMESPACE)) {
+      shellState.getReader().println("Namespace: [" + namespace + "], can't delete system or default namespace.");
     } else {
-      shellState.getReader().println("Table namespace: [" + namespace + "] has been deleted.");
+      shellState.getReader().println("Namespace: [" + namespace + "] has been deleted.");
     }
     if (resetContext) {
       shellState.setTableName("");
@@ -100,6 +100,6 @@ public class DeleteNamespaceCommand extends Command {
 
   @Override
   public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> special) {
-    registerCompletionForTableNamespaces(root, special);
+    registerCompletionForNamespaces(root, special);
   }
 }

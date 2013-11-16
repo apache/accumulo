@@ -21,9 +21,9 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.NamespaceExistsException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableExistsException;
-import org.apache.accumulo.core.client.TableNamespaceExistsException;
-import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.shell.Shell;
@@ -34,12 +34,12 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
 public class CreateNamespaceCommand extends Command {
-  private Option createTableOptCopyConfig, createTableNamespaceOptCopyConfig;
+  private Option createTableOptCopyConfig, createNamespaceOptCopyConfig;
   private Option base64Opt;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
-      TableExistsException, TableNotFoundException, IOException, ClassNotFoundException, TableNamespaceExistsException, TableNamespaceNotFoundException {
+      TableExistsException, TableNotFoundException, IOException, ClassNotFoundException, NamespaceExistsException, NamespaceNotFoundException {
 
     if (createTableOptCopyConfig == null) {
       getOptions();
@@ -47,25 +47,25 @@ public class CreateNamespaceCommand extends Command {
 
     String namespace = cl.getArgs()[0];
 
-    shellState.getConnector().tableNamespaceOperations().create(namespace);
+    shellState.getConnector().namespaceOperations().create(namespace);
 
     // Copy options if flag was set
     Iterable<Entry<String,String>> configuration = null;
-    if (cl.hasOption(createTableNamespaceOptCopyConfig.getOpt())) {
-      String copy = cl.getOptionValue(createTableNamespaceOptCopyConfig.getOpt());
-      if (shellState.getConnector().tableNamespaceOperations().exists(namespace)) {
-        configuration = shellState.getConnector().tableNamespaceOperations().getProperties(copy);
+    if (cl.hasOption(createNamespaceOptCopyConfig.getOpt())) {
+      String copy = cl.getOptionValue(createNamespaceOptCopyConfig.getOpt());
+      if (shellState.getConnector().namespaceOperations().exists(namespace)) {
+        configuration = shellState.getConnector().namespaceOperations().getProperties(copy);
       }
     } else if (cl.hasOption(createTableOptCopyConfig.getOpt())) {
       String copy = cl.getOptionValue(createTableOptCopyConfig.getOpt());
-      if (shellState.getConnector().tableNamespaceOperations().exists(namespace)) {
+      if (shellState.getConnector().namespaceOperations().exists(namespace)) {
         configuration = shellState.getConnector().tableOperations().getProperties(copy);
       }
     }
     if (configuration != null) {
       for (Entry<String,String> entry : configuration) {
         if (Property.isValidTablePropertyKey(entry.getKey())) {
-          shellState.getConnector().tableNamespaceOperations().setProperty(namespace, entry.getKey(), entry.getValue());
+          shellState.getConnector().namespaceOperations().setProperty(namespace, entry.getKey(), entry.getValue());
         }
       }
     }
@@ -75,7 +75,7 @@ public class CreateNamespaceCommand extends Command {
 
   @Override
   public String description() {
-    return "creates a new table namespace";
+    return "creates a new namespace";
   }
 
   @Override
@@ -87,8 +87,8 @@ public class CreateNamespaceCommand extends Command {
   public Options getOptions() {
     final Options o = new Options();
 
-    createTableNamespaceOptCopyConfig = new Option("cc", "copy-config", true, "table namespace to copy configuration from");
-    createTableNamespaceOptCopyConfig.setArgName("tableNamespace");
+    createNamespaceOptCopyConfig = new Option("cc", "copy-config", true, "namespace to copy configuration from");
+    createNamespaceOptCopyConfig.setArgName("namespace");
 
     createTableOptCopyConfig = new Option("ctc", "copy-table-config", true, "table to copy configuration from");
     createTableOptCopyConfig.setArgName("tableName");
@@ -97,7 +97,7 @@ public class CreateNamespaceCommand extends Command {
     o.addOption(base64Opt);
     OptionGroup ogp = new OptionGroup();
     ogp.addOption(createTableOptCopyConfig);
-    ogp.addOption(createTableNamespaceOptCopyConfig);
+    ogp.addOption(createNamespaceOptCopyConfig);
 
     o.addOptionGroup(ogp);
 

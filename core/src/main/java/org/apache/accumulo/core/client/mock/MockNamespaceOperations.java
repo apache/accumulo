@@ -27,22 +27,22 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.TableNamespaceExistsException;
-import org.apache.accumulo.core.client.TableNamespaceNotEmptyException;
-import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
+import org.apache.accumulo.core.client.NamespaceExistsException;
+import org.apache.accumulo.core.client.NamespaceNotEmptyException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DiskUsage;
-import org.apache.accumulo.core.client.admin.TableNamespaceOperationsHelper;
+import org.apache.accumulo.core.client.admin.NamespaceOperationsHelper;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 
-public class MockTableNamespaceOperations extends TableNamespaceOperationsHelper {
+public class MockNamespaceOperations extends NamespaceOperationsHelper {
 
   final private MockAccumulo acu;
   final private String username;
 
-  MockTableNamespaceOperations(MockAccumulo acu, String username) {
+  MockNamespaceOperations(MockAccumulo acu, String username) {
     this.acu = acu;
     this.username = username;
   }
@@ -58,24 +58,24 @@ public class MockTableNamespaceOperations extends TableNamespaceOperationsHelper
   }
 
   @Override
-  public void create(String tableName) throws AccumuloException, AccumuloSecurityException, TableNamespaceExistsException {
+  public void create(String tableName) throws AccumuloException, AccumuloSecurityException, NamespaceExistsException {
     create(tableName, true, TimeType.MILLIS);
   }
 
   @Override
-  public void create(String tableName, boolean versioningIter) throws AccumuloException, AccumuloSecurityException, TableNamespaceExistsException {
+  public void create(String tableName, boolean versioningIter) throws AccumuloException, AccumuloSecurityException, NamespaceExistsException {
     create(tableName, versioningIter, TimeType.MILLIS);
   }
 
   @Override
   public void create(String namespace, boolean versioningIter, TimeType timeType) throws AccumuloException, AccumuloSecurityException,
-      TableNamespaceExistsException {
-    if (!namespace.matches(Constants.VALID_TABLE_NAMESPACE_REGEX)) {
+      NamespaceExistsException {
+    if (!namespace.matches(Constants.VALID_NAMESPACE_REGEX)) {
       throw new IllegalArgumentException();
     }
 
     if (exists(namespace))
-      throw new TableNamespaceExistsException(namespace, namespace, "");
+      throw new NamespaceExistsException(namespace, namespace, "");
 
     if (!exists(namespace)) {
       acu.createNamespace(username, namespace);
@@ -84,21 +84,21 @@ public class MockTableNamespaceOperations extends TableNamespaceOperationsHelper
   }
 
   @Override
-  public void delete(String namespace) throws AccumuloException, AccumuloSecurityException, TableNamespaceNotFoundException, TableNamespaceNotEmptyException,
+  public void delete(String namespace) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException, NamespaceNotEmptyException,
       TableNotFoundException {
     delete(namespace, false);
   }
 
   @Override
-  public void delete(String namespace, boolean deleteTables) throws AccumuloException, AccumuloSecurityException, TableNamespaceNotFoundException,
-      TableNamespaceNotEmptyException, TableNotFoundException {
+  public void delete(String namespace, boolean deleteTables) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException,
+      NamespaceNotEmptyException, TableNotFoundException {
     if (!exists(namespace))
-      throw new TableNamespaceNotFoundException(namespace, namespace, "");
+      throw new NamespaceNotFoundException(namespace, namespace, "");
 
-    MockTableNamespace n = acu.namespaces.get(namespace);
+    MockNamespace n = acu.namespaces.get(namespace);
     if (!deleteTables) {
       if (n.getTables(acu).size() > 0) {
-        throw new TableNamespaceNotEmptyException(null, namespace, null);
+        throw new NamespaceNotEmptyException(null, namespace, null);
       }
     } else {
       for (String t : n.getTables(acu)) {
@@ -109,14 +109,14 @@ public class MockTableNamespaceOperations extends TableNamespaceOperationsHelper
   }
 
   @Override
-  public void rename(String oldNamespaceName, String newNamespaceName) throws AccumuloSecurityException, TableNamespaceNotFoundException, AccumuloException,
-      TableNamespaceExistsException {
+  public void rename(String oldNamespaceName, String newNamespaceName) throws AccumuloSecurityException, NamespaceNotFoundException, AccumuloException,
+      NamespaceExistsException {
     if (!exists(oldNamespaceName))
-      throw new TableNamespaceNotFoundException(oldNamespaceName, oldNamespaceName, "");
+      throw new NamespaceNotFoundException(oldNamespaceName, oldNamespaceName, "");
     if (exists(newNamespaceName))
-      throw new TableNamespaceExistsException(newNamespaceName, newNamespaceName, "");
+      throw new NamespaceExistsException(newNamespaceName, newNamespaceName, "");
 
-    MockTableNamespace n = acu.namespaces.get(oldNamespaceName);
+    MockNamespace n = acu.namespaces.get(oldNamespaceName);
     for (String t : n.getTables(acu)) {
       String tt = newNamespaceName + "." + Tables.extractTableName(t);
       acu.tables.put(tt, acu.tables.remove(t));
@@ -135,24 +135,24 @@ public class MockTableNamespaceOperations extends TableNamespaceOperationsHelper
   }
 
   @Override
-  public Iterable<Entry<String,String>> getProperties(String namespace) throws TableNamespaceNotFoundException {
+  public Iterable<Entry<String,String>> getProperties(String namespace) throws NamespaceNotFoundException {
     if (!exists(namespace)) {
-      throw new TableNamespaceNotFoundException(namespace, namespace, "");
+      throw new NamespaceNotFoundException(namespace, namespace, "");
     }
 
     return acu.namespaces.get(namespace).settings.entrySet();
   }
 
   @Override
-  public void offline(String namespace) throws AccumuloSecurityException, AccumuloException, TableNamespaceNotFoundException {
+  public void offline(String namespace) throws AccumuloSecurityException, AccumuloException, NamespaceNotFoundException {
     if (!exists(namespace))
-      throw new TableNamespaceNotFoundException(namespace, namespace, "");
+      throw new NamespaceNotFoundException(namespace, namespace, "");
   }
 
   @Override
-  public void online(String namespace) throws AccumuloSecurityException, AccumuloException, TableNamespaceNotFoundException {
+  public void online(String namespace) throws AccumuloSecurityException, AccumuloException, NamespaceNotFoundException {
     if (!exists(namespace))
-      throw new TableNamespaceNotFoundException(namespace, namespace, "");
+      throw new NamespaceNotFoundException(namespace, namespace, "");
   }
 
   @Override
@@ -175,7 +175,7 @@ public class MockTableNamespaceOperations extends TableNamespaceOperationsHelper
 
   @Override
   public boolean testClassLoad(String namespace, String className, String asTypeName) throws AccumuloException, AccumuloSecurityException,
-      TableNamespaceNotFoundException {
+      NamespaceNotFoundException {
 
     try {
       AccumuloVFSClassLoader.loadClass(className, Class.forName(asTypeName));

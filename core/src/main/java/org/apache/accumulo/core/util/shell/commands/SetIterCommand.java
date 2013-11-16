@@ -28,7 +28,7 @@ import jline.console.ConsoleReader;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.TableNamespaceNotFoundException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -52,19 +52,19 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.vfs2.FileSystemException;
 
 public class SetIterCommand extends Command {
-  
+
   private Option allScopeOpt, mincScopeOpt, majcScopeOpt, scanScopeOpt, nameOpt, priorityOpt;
   private Option aggTypeOpt, ageoffTypeOpt, regexTypeOpt, versionTypeOpt, reqvisTypeOpt, classnameTypeOpt;
-  
+
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException, IOException, ShellCommandException {
-    
+
     boolean tables = cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty();
-    boolean namespaces = cl.hasOption(OptUtil.tableNamespaceOpt().getOpt());
-    
+    boolean namespaces = cl.hasOption(OptUtil.namespaceOpt().getOpt());
+
     final int priority = Integer.parseInt(cl.getOptionValue(priorityOpt.getOpt()));
-    
+
     final Map<String,String> options = new HashMap<String,String>();
     String classname = cl.getOptionValue(classnameTypeOpt.getOpt());
     if (cl.hasOption(aggTypeOpt.getOpt())) {
@@ -81,56 +81,56 @@ public class SetIterCommand extends Command {
     } else if (cl.hasOption(reqvisTypeOpt.getOpt())) {
       classname = ReqVisFilter.class.getName();
     }
-    
+
     ClassLoader classloader = getClassLoader(cl, shellState);
-    
+
     final String name = cl.getOptionValue(nameOpt.getOpt(), setUpOptions(classloader, shellState.getReader(), classname, options));
-    
+
     if (namespaces) {
       try {
-        setTableNamespaceProperties(cl, shellState, priority, options, classname, name);
-      } catch (TableNamespaceNotFoundException e) {
+        setNamespaceProperties(cl, shellState, priority, options, classname, name);
+      } catch (NamespaceNotFoundException e) {
         throw new IllegalArgumentException(e);
       }
     } else if (tables) {
       setTableProperties(cl, shellState, priority, options, classname, name);
     } else {
-      throw new IllegalArgumentException("No table or table namespace specified");
+      throw new IllegalArgumentException("No table or namespace specified");
     }
     return 0;
   }
-  
+
   private ClassLoader getClassLoader(final CommandLine cl, final Shell shellState) throws AccumuloException, TableNotFoundException, AccumuloSecurityException,
       IOException, FileSystemException {
-    
+
     boolean tables = cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty();
-    boolean namespaces = cl.hasOption(OptUtil.tableNamespaceOpt().getOpt());
-    
+    boolean namespaces = cl.hasOption(OptUtil.namespaceOpt().getOpt());
+
     String classpath = null;
     Iterable<Entry<String,String>> tableProps;
-    
+
     if (namespaces) {
       try {
-        tableProps = shellState.getConnector().tableNamespaceOperations().getProperties(OptUtil.getTableNamespaceOpt(cl, shellState));
-      } catch (TableNamespaceNotFoundException e) {
+        tableProps = shellState.getConnector().namespaceOperations().getProperties(OptUtil.getNamespaceOpt(cl, shellState));
+      } catch (NamespaceNotFoundException e) {
         throw new IllegalArgumentException(e);
       }
     } else if (tables) {
       tableProps = shellState.getConnector().tableOperations().getProperties(OptUtil.getTableOpt(cl, shellState));
     } else {
-      throw new IllegalArgumentException("No table or table namespace specified");
+      throw new IllegalArgumentException("No table or namespace specified");
     }
     for (Entry<String,String> entry : tableProps) {
       if (entry.getKey().equals(Property.TABLE_CLASSPATH.getKey())) {
         classpath = entry.getValue();
       }
     }
-    
+
     ClassLoader classloader;
-    
+
     if (classpath != null && !classpath.equals("")) {
       shellState.getConnector().instanceOperations().getSystemConfiguration().get(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + classpath);
-      
+
       try {
         AccumuloVFSClassLoader.getContextManager().setContextConfig(new ContextManager.DefaultContextsConfig(new Iterable<Map.Entry<String,String>>() {
           @Override
@@ -145,25 +145,25 @@ public class SetIterCommand extends Command {
           }
         }));
       } catch (IllegalStateException ise) {}
-      
+
       classloader = AccumuloVFSClassLoader.getContextManager().getClassLoader(classpath);
     } else {
       classloader = AccumuloVFSClassLoader.getClassLoader();
     }
     return classloader;
   }
-  
+
   protected void setTableProperties(final CommandLine cl, final Shell shellState, final int priority, final Map<String,String> options, final String classname,
       final String name) throws AccumuloException, AccumuloSecurityException, ShellCommandException, TableNotFoundException {
     // remove empty values
-    
+
     final String tableName = OptUtil.getTableOpt(cl, shellState);
-    
+
     if (!shellState.getConnector().tableOperations().testClassLoad(tableName, classname, SortedKeyValueIterator.class.getName())) {
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + classname + " as type "
           + SortedKeyValueIterator.class.getName());
     }
-    
+
     final String aggregatorClass = options.get("aggregatorClass");
     @SuppressWarnings("deprecation")
     String deprecatedAggregatorClassName = org.apache.accumulo.core.iterators.aggregation.Aggregator.class.getName();
@@ -171,7 +171,7 @@ public class SetIterCommand extends Command {
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + aggregatorClass + " as type "
           + deprecatedAggregatorClassName);
     }
-    
+
     for (Iterator<Entry<String,String>> i = options.entrySet().iterator(); i.hasNext();) {
       final Entry<String,String> entry = i.next();
       if (entry.getValue() == null || entry.getValue().isEmpty()) {
@@ -194,27 +194,26 @@ public class SetIterCommand extends Command {
     final IteratorSetting setting = new IteratorSetting(priority, name, classname, options);
     shellState.getConnector().tableOperations().attachIterator(tableName, setting, scopes);
   }
-  
-  protected void setTableNamespaceProperties(final CommandLine cl, final Shell shellState, final int priority, final Map<String,String> options,
-      final String classname, final String name) throws AccumuloException, AccumuloSecurityException, ShellCommandException, TableNamespaceNotFoundException {
+
+  protected void setNamespaceProperties(final CommandLine cl, final Shell shellState, final int priority, final Map<String,String> options,
+      final String classname, final String name) throws AccumuloException, AccumuloSecurityException, ShellCommandException, NamespaceNotFoundException {
     // remove empty values
-    
-    final String namespace = OptUtil.getTableNamespaceOpt(cl, shellState);
-    
-    if (!shellState.getConnector().tableNamespaceOperations().testClassLoad(namespace, classname, SortedKeyValueIterator.class.getName())) {
+
+    final String namespace = OptUtil.getNamespaceOpt(cl, shellState);
+
+    if (!shellState.getConnector().namespaceOperations().testClassLoad(namespace, classname, SortedKeyValueIterator.class.getName())) {
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + classname + " as type "
           + SortedKeyValueIterator.class.getName());
     }
-    
+
     final String aggregatorClass = options.get("aggregatorClass");
     @SuppressWarnings("deprecation")
     String deprecatedAggregatorClassName = org.apache.accumulo.core.iterators.aggregation.Aggregator.class.getName();
-    if (aggregatorClass != null
-        && !shellState.getConnector().tableNamespaceOperations().testClassLoad(namespace, aggregatorClass, deprecatedAggregatorClassName)) {
+    if (aggregatorClass != null && !shellState.getConnector().namespaceOperations().testClassLoad(namespace, aggregatorClass, deprecatedAggregatorClassName)) {
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + aggregatorClass + " as type "
           + deprecatedAggregatorClassName);
     }
-    
+
     for (Iterator<Entry<String,String>> i = options.entrySet().iterator(); i.hasNext();) {
       final Entry<String,String> entry = i.next();
       if (entry.getValue() == null || entry.getValue().isEmpty()) {
@@ -235,9 +234,9 @@ public class SetIterCommand extends Command {
       throw new IllegalArgumentException("You must select at least one scope to configure");
     }
     final IteratorSetting setting = new IteratorSetting(priority, name, classname, options);
-    shellState.getConnector().tableNamespaceOperations().attachIterator(namespace, setting, scopes);
+    shellState.getConnector().namespaceOperations().attachIterator(namespace, setting, scopes);
   }
-  
+
   private static String setUpOptions(ClassLoader classloader, final ConsoleReader reader, final String className, final Map<String,String> options)
       throws IOException, ShellCommandException {
     String input;
@@ -265,7 +264,7 @@ public class SetIterCommand extends Command {
       msg.append("; use 'config -s' instead.");
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, msg.toString());
     }
-    
+
     final IteratorOptions itopts = skvi.describeOptions();
     if (itopts.getName() == null) {
       throw new IllegalArgumentException(className + " described its default distinguishing name as null");
@@ -281,9 +280,9 @@ public class SetIterCommand extends Command {
         options.remove(key);
       }
       localOptions.clear();
-      
+
       reader.println(itopts.getDescription());
-      
+
       String prompt;
       if (itopts.getNamedOptions() != null) {
         for (Entry<String,String> e : itopts.getNamedOptions().entrySet()) {
@@ -302,14 +301,14 @@ public class SetIterCommand extends Command {
           localOptions.put(e.getKey(), input);
         }
       }
-      
+
       if (itopts.getUnnamedOptionDescriptions() != null) {
         for (String desc : itopts.getUnnamedOptionDescriptions()) {
           reader.println(Shell.repeat("-", 10) + "> entering options: " + desc);
           input = "start";
           while (true) {
             prompt = Shell.repeat("-", 10) + "> set " + shortClassName + " option (<name> <value>, hit enter to skip): ";
-            
+
             reader.flush();
             input = reader.readLine(prompt);
             if (input == null) {
@@ -318,45 +317,45 @@ public class SetIterCommand extends Command {
             } else {
               input = new String(input);
             }
-            
+
             if (input.length() == 0)
               break;
-            
+
             String[] sa = input.split(" ", 2);
             localOptions.put(sa[0], sa[1]);
           }
         }
       }
-      
+
       options.putAll(localOptions);
       if (!skvi.validateOptions(options))
         reader.println("invalid options for " + clazz.getName());
-      
+
     } while (!skvi.validateOptions(options));
     return itopts.getName();
   }
-  
+
   @Override
   public String description() {
-    return "sets a table-specific or table-namespace-specific iterator";
+    return "sets a table-specific or namespace-specific iterator";
   }
-  
+
   @Override
   public Options getOptions() {
     final Options o = new Options();
-    
+
     priorityOpt = new Option("p", "priority", true, "the order in which the iterator is applied");
     priorityOpt.setArgName("pri");
     priorityOpt.setRequired(true);
-    
+
     nameOpt = new Option("n", "name", true, "iterator to set");
     nameOpt.setArgName("itername");
-    
+
     allScopeOpt = new Option("all", "all-scopes", false, "applied at scan time, minor and major compactions");
     mincScopeOpt = new Option(IteratorScope.minc.name(), "minor-compaction", false, "applied at minor compaction");
     majcScopeOpt = new Option(IteratorScope.majc.name(), "major-compaction", false, "applied at major compaction");
     scanScopeOpt = new Option(IteratorScope.scan.name(), "scan-time", false, "applied at scan time");
-    
+
     final OptionGroup typeGroup = new OptionGroup();
     classnameTypeOpt = new Option("class", "class-name", true, "a java class that implements SortedKeyValueIterator");
     classnameTypeOpt.setArgName("name");
@@ -365,7 +364,7 @@ public class SetIterCommand extends Command {
     versionTypeOpt = new Option("vers", "version", false, "a versioning iterator");
     reqvisTypeOpt = new Option("reqvis", "require-visibility", false, "an iterator that omits entries with empty visibilities");
     ageoffTypeOpt = new Option("ageoff", "ageoff", false, "an aging off iterator");
-    
+
     typeGroup.addOption(classnameTypeOpt);
     typeGroup.addOption(aggTypeOpt);
     typeGroup.addOption(regexTypeOpt);
@@ -373,11 +372,11 @@ public class SetIterCommand extends Command {
     typeGroup.addOption(reqvisTypeOpt);
     typeGroup.addOption(ageoffTypeOpt);
     typeGroup.setRequired(true);
-    
+
     final OptionGroup tableGroup = new OptionGroup();
     tableGroup.addOption(OptUtil.tableOpt("table to configure iterators on"));
-    tableGroup.addOption(OptUtil.tableNamespaceOpt("tableNamespace to configure iterators on"));
-    
+    tableGroup.addOption(OptUtil.namespaceOpt("namespace to configure iterators on"));
+
     o.addOption(priorityOpt);
     o.addOption(nameOpt);
     o.addOption(allScopeOpt);
@@ -388,7 +387,7 @@ public class SetIterCommand extends Command {
     o.addOptionGroup(tableGroup);
     return o;
   }
-  
+
   @Override
   public int numArgs() {
     return 0;

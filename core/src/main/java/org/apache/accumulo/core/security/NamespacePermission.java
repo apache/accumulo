@@ -19,7 +19,7 @@ package org.apache.accumulo.core.security;
 import java.util.ArrayList;
 import java.util.List;
 
-public enum TableNamespacePermission {
+public enum NamespacePermission {
   // One can add new permissions, with new numbers, but please don't change or use numbers previously assigned
   READ((byte) 0),
   WRITE((byte) 1),
@@ -31,13 +31,13 @@ public enum TableNamespacePermission {
 
   final private byte permID;
 
-  final private static TableNamespacePermission mapping[] = new TableNamespacePermission[8];
+  final private static NamespacePermission mapping[] = new NamespacePermission[8];
   static {
-    for (TableNamespacePermission perm : TableNamespacePermission.values())
+    for (NamespacePermission perm : NamespacePermission.values())
       mapping[perm.permID] = perm;
   }
 
-  private TableNamespacePermission(byte id) {
+  private NamespacePermission(byte id) {
     this.permID = id;
   }
 
@@ -46,18 +46,18 @@ public enum TableNamespacePermission {
   }
 
   public static List<String> printableValues() {
-    TableNamespacePermission[] a = TableNamespacePermission.values();
+    NamespacePermission[] a = NamespacePermission.values();
 
     List<String> list = new ArrayList<String>(a.length);
 
-    for (TableNamespacePermission p : a)
+    for (NamespacePermission p : a)
       list.add("Namespace." + p);
 
     return list;
   }
 
-  public static TableNamespacePermission getPermissionById(byte id) {
-    TableNamespacePermission result = mapping[id];
+  public static NamespacePermission getPermissionById(byte id) {
+    NamespacePermission result = mapping[id];
     if (result != null)
       return result;
     throw new IndexOutOfBoundsException("No such permission");
