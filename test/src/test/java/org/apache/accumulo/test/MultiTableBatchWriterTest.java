@@ -341,7 +341,8 @@ public class MultiTableBatchWriterTest {
 
     Credentials creds = new Credentials("root", password);
     MultiTableBatchWriter mtbw = new MultiTableBatchWriterImpl(instance, creds, config, 60, TimeUnit.SECONDS);
-
+    boolean mutationsRejected = false;
+    
     try {
       final String table1 = "testTableDelete_table1", table2 = "testTableDelete_table2";
 
@@ -365,19 +366,27 @@ public class MultiTableBatchWriterTest {
       m2.put("col1", "", "val1");
       m2.put("col2", "", "val2");
 
-      bw1.addMutation(m2);
-      bw2.addMutation(m2);
+      try {
+        bw1.addMutation(m2);
+        bw2.addMutation(m2);
+      } catch (MutationsRejectedException e) {
+        // Pass - Mutations might flush immediately
+        mutationsRejected = true;
+      }
 
     } finally {
       if (null != mtbw) {
         try {
+          // Mutations might have flushed before the table offline occurred
           mtbw.close();
-          Assert.fail("Should not be able to close batch writers");
         } catch (MutationsRejectedException e) {
           // Pass
+          mutationsRejected = true;
         }
       }
     }
+    
+    Assert.assertTrue("Expected mutations to be rejected.", mutationsRejected);
   }
 
   @Test
@@ -390,6 +399,7 @@ public class MultiTableBatchWriterTest {
 
     Credentials creds = new Credentials("root", password);
     MultiTableBatchWriter mtbw = new MultiTableBatchWriterImpl(instance, creds, config, 60, TimeUnit.SECONDS);
+    boolean mutationsRejected = false;
 
     try {
       final String table1 = "testOfflineTable_table1", table2 = "testOfflineTable_table2";
@@ -414,19 +424,26 @@ public class MultiTableBatchWriterTest {
       m2.put("col1", "", "val1");
       m2.put("col2", "", "val2");
 
-      bw1.addMutation(m2);
-      bw2.addMutation(m2);
+      try {
+        bw1.addMutation(m2);
+        bw2.addMutation(m2);
+      } catch (MutationsRejectedException e) {
+        // Pass -- Mutations might flush immediately and fail because of offline table
+        mutationsRejected = true;
+      }
     } finally {
       if (null != mtbw) {
         try {
+          // Mutations might have flushed before the table offline occurred
           mtbw.close();
-          Assert.fail("Should not be able to close batch writers");
         } catch (MutationsRejectedException e) {
           // Pass
+          mutationsRejected = true;
         }
       }
-
     }
+    
+    Assert.assertTrue("Expected mutations to be rejected.", mutationsRejected);
   }
 
   @Test
@@ -439,6 +456,7 @@ public class MultiTableBatchWriterTest {
     
     Credentials creds = new Credentials("root", password);
     MultiTableBatchWriter mtbw = new MultiTableBatchWriterImpl(instance, creds, config, 60, TimeUnit.SECONDS);
+    boolean mutationsRejected = false;
 
     try {
       final String table1 = "testOfflineTableWithCache_table1", table2 = "testOfflineTableWithCache_table2";
@@ -462,6 +480,7 @@ public class MultiTableBatchWriterTest {
         bw1 = mtbw.getBatchWriter(table1);
       } catch (TableOfflineException e) {
         // pass
+        mutationsRejected = true;
       }
 
       tops.offline(table2);
@@ -470,17 +489,21 @@ public class MultiTableBatchWriterTest {
         bw2 = mtbw.getBatchWriter(table2);
       } catch (TableOfflineException e) {
         // pass
+        mutationsRejected = true;
       }
     } finally {
       if (null != mtbw) {
         try {
+          // Mutations might have flushed before the table offline occurred
           mtbw.close();
-          Assert.fail("Expecting close on MTBW to fail due to offline tables");
         } catch (MutationsRejectedException e) {
           // Pass
+          mutationsRejected = true;
         }
       }
     }
+
+    Assert.assertTrue("Expected mutations to be rejected.", mutationsRejected);
   }
 
   @Test
@@ -493,6 +516,7 @@ public class MultiTableBatchWriterTest {
 
     Credentials creds = new Credentials("root", password);
     MultiTableBatchWriter mtbw = new MultiTableBatchWriterImpl(instance, creds, config, 0, TimeUnit.SECONDS);
+    boolean mutationsRejected = false;
 
     try {
       final String table1 = "testOfflineTableWithoutCache_table1", table2 = "testOfflineTableWithoutCache_table2";
@@ -510,6 +534,7 @@ public class MultiTableBatchWriterTest {
       bw1.addMutation(m1);
       bw2.addMutation(m1);
 
+      // Mutations might or might not flush before tables goes offline
       tops.offline(table1);
       tops.offline(table2);
 
@@ -518,6 +543,7 @@ public class MultiTableBatchWriterTest {
         Assert.fail(table1 + " should be offline");
       } catch (TableOfflineException e) {
         // pass
+        mutationsRejected = true;
       }
 
       try {
@@ -525,16 +551,20 @@ public class MultiTableBatchWriterTest {
         Assert.fail(table1 + " should be offline");
       } catch (TableOfflineException e) {
         // pass
+        mutationsRejected = true;
       }
     } finally {
       if (null != mtbw) {
         try {
+          // Mutations might have flushed before the table offline occurred
           mtbw.close();
-          Assert.fail("Expecting close on MTBW to fail due to offline tables");
         } catch (MutationsRejectedException e) {
           // Pass
+          mutationsRejected = true;
         }
       }
     }
+
+    Assert.assertTrue("Expected mutations to be rejected.", mutationsRejected);
   }
 }
