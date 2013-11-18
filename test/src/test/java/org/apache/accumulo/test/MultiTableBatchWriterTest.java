@@ -39,7 +39,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
@@ -48,6 +48,7 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.mortbay.jetty.security.Credential;
 
 import com.google.common.collect.Maps;
 
@@ -77,7 +78,7 @@ public class MultiTableBatchWriterTest {
 
     BatchWriterConfig config = new BatchWriterConfig();
 
-    TCredentials creds = CredentialHelper.create("root", password, instance.getInstanceID());
+    Credentials creds = new Credentials("root", password);
     MultiTableBatchWriter mtbw = new MultiTableBatchWriterImpl(instance, creds, config, 60, TimeUnit.SECONDS);
 
     try {
@@ -145,7 +146,7 @@ public class MultiTableBatchWriterTest {
 
     BatchWriterConfig config = new BatchWriterConfig();
 
-    TCredentials creds = CredentialHelper.create("root", password, instance.getInstanceID());
+    Credentials creds = new Credentials("root", password);
     MultiTableBatchWriter mtbw = new MultiTableBatchWriterImpl(instance, creds, config, 60, TimeUnit.SECONDS);
 
     try {
@@ -207,7 +208,7 @@ public class MultiTableBatchWriterTest {
 
     BatchWriterConfig config = new BatchWriterConfig();
 
-    TCredentials creds = CredentialHelper.create("root", password, instance.getInstanceID());
+    Credentials creds = new Credentials("root", password);
     MultiTableBatchWriter mtbw = new MultiTableBatchWriterImpl(instance, creds, config, 60, TimeUnit.SECONDS);
 
     try {
@@ -289,7 +290,7 @@ public class MultiTableBatchWriterTest {
 
     BatchWriterConfig config = new BatchWriterConfig();
     
-    TCredentials creds = CredentialHelper.create("root", password, instance.getInstanceID());
+    Credentials creds = new Credentials("root", password);
     MultiTableBatchWriter mtbw = new MultiTableBatchWriterImpl(instance, creds, config, 0, TimeUnit.SECONDS);
 
     try {
@@ -338,7 +339,7 @@ public class MultiTableBatchWriterTest {
 
     BatchWriterConfig config = new BatchWriterConfig();
 
-    TCredentials creds = CredentialHelper.create("root", password, instance.getInstanceID());
+    Credentials creds = new Credentials("root", password);
     MultiTableBatchWriter mtbw = new MultiTableBatchWriterImpl(instance, creds, config, 60, TimeUnit.SECONDS);
 
     try {
@@ -387,7 +388,7 @@ public class MultiTableBatchWriterTest {
 
     BatchWriterConfig config = new BatchWriterConfig();
 
-    TCredentials creds = CredentialHelper.create("root", password, instance.getInstanceID());
+    Credentials creds = new Credentials("root", password);
     MultiTableBatchWriter mtbw = new MultiTableBatchWriterImpl(instance, creds, config, 60, TimeUnit.SECONDS);
 
     try {
@@ -436,7 +437,7 @@ public class MultiTableBatchWriterTest {
 
     BatchWriterConfig config = new BatchWriterConfig();
     
-    TCredentials creds = CredentialHelper.create("root", password, instance.getInstanceID());
+    Credentials creds = new Credentials("root", password);
     MultiTableBatchWriter mtbw = new MultiTableBatchWriterImpl(instance, creds, config, 60, TimeUnit.SECONDS);
 
     try {
@@ -490,7 +491,7 @@ public class MultiTableBatchWriterTest {
 
     BatchWriterConfig config = new BatchWriterConfig();
 
-    TCredentials creds = CredentialHelper.create("root", password, instance.getInstanceID());
+    Credentials creds = new Credentials("root", password);
     MultiTableBatchWriter mtbw = new MultiTableBatchWriterImpl(instance, creds, config, 0, TimeUnit.SECONDS);
 
     try {
