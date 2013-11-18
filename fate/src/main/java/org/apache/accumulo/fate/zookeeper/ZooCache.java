@@ -307,4 +307,11 @@ public class ZooCache {
     
     return zc;
   }
+  
+  public void close() throws InterruptedException {
+    cache.clear();
+    statCache.clear();
+    childrenCache.clear();
+    zReader.close();
+  }
 }

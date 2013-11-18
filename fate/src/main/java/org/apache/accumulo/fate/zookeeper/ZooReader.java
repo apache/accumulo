@@ -102,4 +102,8 @@ public class ZooReader implements IZooReader {
     this.keepers = keepers;
     this.timeout = timeout;
   }
+
+  public void close() throws InterruptedException {
+    getZooKeeper().close();
+  }
 }

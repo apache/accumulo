@@ -121,6 +121,11 @@ public class RandomBatchWriter {
     Opts opts = new Opts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(RandomBatchWriter.class.getName(), args, bwOpts);
+
+    if ((opts.max - opts.min) < opts.num) {
+      System.err.println(String.format("You must specify a min and a max that allow for at least num possible values. For example, you requested %d rows, but a min of %d and a max of %d only allows for %d rows.", opts.num, opts.min, opts.max, (opts.max - opts.min)));
+      System.exit(1);
+    }
     
     Random r;
     if (opts.seed == null)
@@ -135,14 +140,10 @@ public class RandomBatchWriter {
     // reuse the ColumnVisibility object to improve performance
     ColumnVisibility cv = opts.visiblity;
     
-    for (int i = 0; i < opts.num; i++) {
-      
+    for (int i = 0; i < opts.num; i++) {  
       long rowid = (Math.abs(r.nextLong()) % (opts.max - opts.min)) + opts.min;
-      
       Mutation m = createMutation(rowid, opts.size, cv);
-      
       bw.addMutation(m);
-      
     }
     
     try {
@@ -164,6 +165,7 @@ public class RandomBatchWriter {
       if (e.getConstraintViolationSummaries().size() > 0) {
         System.err.println("ERROR : Constraint violations occurred : " + e.getConstraintViolationSummaries());
       }
+      System.exit(1);
     }
   }
 }
