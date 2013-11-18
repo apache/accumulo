@@ -39,7 +39,7 @@ public class DeleteNamespace extends Test {
     String namespace = namespaces.get(rand.nextInt(namespaces.size()));
 
     try {
-      conn.namespaceOperations().delete(namespace, true);
+      conn.namespaceOperations().delete(namespace);
       log.debug("Deleted namespace " + namespace);
     } catch (NamespaceNotFoundException e) {
       log.debug("Delete namespace " + namespace + " failed, doesnt exist");

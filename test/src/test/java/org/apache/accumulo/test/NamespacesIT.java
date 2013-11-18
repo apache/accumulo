@@ -295,8 +295,8 @@ public class NamespacesIT {
 
     assertTrue(checkTableHasProp(c, t2, propKey, propVal2));
 
-    c.namespaceOperations().delete(n1, true);
-    c.namespaceOperations().delete(n2, true);
+    c.namespaceOperations().delete(n1);
+    c.namespaceOperations().delete(n2);
   }
 
   /**
@@ -564,7 +564,8 @@ public class NamespacesIT {
     return false;
   }
 
-  private boolean checkNamespaceHasProp(Connector c, String n, String propKey, String propVal) throws AccumuloException, NamespaceNotFoundException {
+  private boolean checkNamespaceHasProp(Connector c, String n, String propKey, String propVal) throws AccumuloException, NamespaceNotFoundException,
+      AccumuloSecurityException {
     for (Entry<String,String> e : c.namespaceOperations().getProperties(n)) {
       if (e.getKey().equals(propKey) && e.getValue().equals(propVal)) {
         return true;

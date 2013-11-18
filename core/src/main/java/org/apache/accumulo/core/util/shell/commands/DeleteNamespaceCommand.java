@@ -69,11 +69,12 @@ public class DeleteNamespaceCommand extends Command {
     List<String> tables = Namespaces.getTableNames(shellState.getInstance(), namespaceId);
     resetContext = tables.contains(currentTable);
 
-    if (force) {
-      shellState.getConnector().namespaceOperations().delete(namespace, true);
-    } else {
-      shellState.getConnector().namespaceOperations().delete(namespace);
-    }
+    if (force)
+      for (String table : shellState.getConnector().tableOperations().list())
+        if (table.startsWith(namespace + "."))
+          shellState.getConnector().tableOperations().delete(table);
+
+    shellState.getConnector().namespaceOperations().delete(namespace);
     if (namespace.equals(Constants.SYSTEM_NAMESPACE)) {
       shellState.getReader().println("Namespace: [" + namespace + "], can't delete system or default namespace.");
     } else {

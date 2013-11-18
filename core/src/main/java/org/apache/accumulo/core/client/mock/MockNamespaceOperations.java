@@ -16,9 +16,7 @@
  */
 package org.apache.accumulo.core.client.mock;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedSet;
@@ -30,10 +28,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceExistsException;
 import org.apache.accumulo.core.client.NamespaceNotEmptyException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
-import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.NamespaceOperationsHelper;
-import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 
@@ -53,57 +48,25 @@ public class MockNamespaceOperations extends NamespaceOperationsHelper {
   }
 
   @Override
-  public boolean exists(String tableName) {
-    return acu.namespaces.containsKey(tableName);
+  public boolean exists(String namespace) {
+    return acu.namespaces.containsKey(namespace);
   }
 
   @Override
-  public void create(String tableName) throws AccumuloException, AccumuloSecurityException, NamespaceExistsException {
-    create(tableName, true, TimeType.MILLIS);
-  }
-
-  @Override
-  public void create(String tableName, boolean versioningIter) throws AccumuloException, AccumuloSecurityException, NamespaceExistsException {
-    create(tableName, versioningIter, TimeType.MILLIS);
-  }
-
-  @Override
-  public void create(String namespace, boolean versioningIter, TimeType timeType) throws AccumuloException, AccumuloSecurityException,
-      NamespaceExistsException {
-    if (!namespace.matches(Constants.VALID_NAMESPACE_REGEX)) {
+  public void create(String namespace) throws AccumuloException, AccumuloSecurityException, NamespaceExistsException {
+    if (!namespace.matches(Constants.VALID_NAMESPACE_REGEX))
       throw new IllegalArgumentException();
-    }
 
     if (exists(namespace))
       throw new NamespaceExistsException(namespace, namespace, "");
-
-    if (!exists(namespace)) {
+    else
       acu.createNamespace(username, namespace);
-    }
-    acu.createTable(username, namespace, versioningIter, timeType);
   }
 
   @Override
-  public void delete(String namespace) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException, NamespaceNotEmptyException,
-      TableNotFoundException {
-    delete(namespace, false);
-  }
-
-  @Override
-  public void delete(String namespace, boolean deleteTables) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException,
-      NamespaceNotEmptyException, TableNotFoundException {
-    if (!exists(namespace))
-      throw new NamespaceNotFoundException(namespace, namespace, "");
-
-    MockNamespace n = acu.namespaces.get(namespace);
-    if (!deleteTables) {
-      if (n.getTables(acu).size() > 0) {
-        throw new NamespaceNotEmptyException(null, namespace, null);
-      }
-    } else {
-      for (String t : n.getTables(acu)) {
-        new MockTableOperations(acu, username).delete(t);
-      }
+  public void delete(String namespace) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException, NamespaceNotEmptyException {
+    if (acu.namespaces.get(namespace).getTables(acu).size() > 0) {
+      throw new NamespaceNotEmptyException(null, namespace, null);
     }
     acu.namespaces.remove(namespace);
   }
@@ -144,33 +107,12 @@ public class MockNamespaceOperations extends NamespaceOperationsHelper {
   }
 
   @Override
-  public void offline(String namespace) throws AccumuloSecurityException, AccumuloException, NamespaceNotFoundException {
-    if (!exists(namespace))
-      throw new NamespaceNotFoundException(namespace, namespace, "");
-  }
-
-  @Override
-  public void online(String namespace) throws AccumuloSecurityException, AccumuloException, NamespaceNotFoundException {
-    if (!exists(namespace))
-      throw new NamespaceNotFoundException(namespace, namespace, "");
-  }
-
-  @Override
   public Map<String,String> namespaceIdMap() {
     Map<String,String> result = new HashMap<String,String>();
     for (String table : acu.tables.keySet()) {
       result.put(table, table);
     }
     return result;
-  }
-
-  @Override
-  public List<DiskUsage> getDiskUsage(String namespace) throws AccumuloException, AccumuloSecurityException {
-
-    List<DiskUsage> diskUsages = new ArrayList<DiskUsage>();
-    diskUsages.add(new DiskUsage(new TreeSet<String>(acu.namespaces.get(namespace).getTables(acu)), 0l));
-
-    return diskUsages;
   }
 
   @Override

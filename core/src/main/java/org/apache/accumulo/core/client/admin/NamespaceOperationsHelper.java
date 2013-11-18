@@ -119,7 +119,7 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
 
   @Override
   public void checkIteratorConflicts(String namespace, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException,
-      NamespaceNotFoundException {
+      NamespaceNotFoundException, AccumuloSecurityException {
     if (!exists(namespace))
       throw new NamespaceNotFoundException(null, namespace, null);
     for (IteratorScope scope : scopes) {
@@ -179,12 +179,12 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
   }
 
   @Override
-  public void removeConstraint(String namespace, int number) throws AccumuloException, AccumuloSecurityException {
+  public void removeConstraint(String namespace, int number) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
     this.removeProperty(namespace, Property.TABLE_CONSTRAINT_PREFIX.toString() + number);
   }
 
   @Override
-  public Map<String,Integer> listConstraints(String namespace) throws AccumuloException, NamespaceNotFoundException {
+  public Map<String,Integer> listConstraints(String namespace) throws AccumuloException, NamespaceNotFoundException, AccumuloSecurityException {
     Map<String,Integer> constraints = new TreeMap<String,Integer>();
     for (Entry<String,String> property : this.getProperties(namespace)) {
       if (property.getKey().startsWith(Property.TABLE_CONSTRAINT_PREFIX.toString())) {

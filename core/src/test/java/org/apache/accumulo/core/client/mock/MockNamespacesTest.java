@@ -27,6 +27,7 @@ import java.util.Random;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -293,7 +294,8 @@ public class MockNamespacesTest {
     return false;
   }
 
-  private boolean checkNamespaceHasProp(Connector c, String n, String propKey, String propVal) throws AccumuloException, NamespaceNotFoundException {
+  private boolean checkNamespaceHasProp(Connector c, String n, String propKey, String propVal) throws AccumuloException, NamespaceNotFoundException,
+      AccumuloSecurityException {
     for (Entry<String,String> e : c.namespaceOperations().getProperties(n)) {
       if (e.getKey().equals(propKey) && e.getValue().equals(propVal)) {
         return true;

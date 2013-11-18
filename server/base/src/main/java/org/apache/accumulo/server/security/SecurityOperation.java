@@ -824,9 +824,4 @@ public class SecurityOperation {
         || hasSystemPermission(credentials, SystemPermission.ALTER_NAMESPACE, false);
   }
 
-  public boolean canCloneNamespace(TCredentials credentials, String namespaceId, String namespace) throws ThriftSecurityException {
-    authenticate(credentials);
-    return hasNamespacePermission(credentials, namespaceId, NamespacePermission.READ, false)
-        && hasSystemPermission(credentials, SystemPermission.CREATE_NAMESPACE, false);
-  }
 }

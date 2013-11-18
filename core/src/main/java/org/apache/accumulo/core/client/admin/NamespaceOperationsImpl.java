@@ -18,17 +18,14 @@ package org.apache.accumulo.core.client.admin;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-
-import jline.internal.Log;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -38,7 +35,6 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.NamespaceExistsException;
 import org.apache.accumulo.core.client.NamespaceNotEmptyException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.impl.ClientExec;
 import org.apache.accumulo.core.client.impl.ClientExecReturn;
@@ -51,7 +47,6 @@ import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.constraints.Constraint;
-import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
@@ -67,33 +62,18 @@ import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 
-/**
- * Provides a class for administering namespaces
- * 
- */
 public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   private Instance instance;
   private Credentials credentials;
 
   private static final Logger log = Logger.getLogger(TableOperations.class);
 
-  /**
-   * @param instance
-   *          the connection information for this instance
-   * @param credentials
-   *          the username/password for this connection
-   */
   public NamespaceOperationsImpl(Instance instance, Credentials credentials) {
     ArgumentChecker.notNull(instance, credentials);
     this.instance = instance;
     this.credentials = credentials;
   }
 
-  /**
-   * Retrieve a list of namespaces in Accumulo.
-   * 
-   * @return List of namespaces in accumulo
-   */
   @Override
   public SortedSet<String> list() {
     OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Fetching list of namespaces...");
@@ -102,13 +82,6 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     return namespaces;
   }
 
-  /**
-   * A method to check if a namespace exists in Accumulo.
-   * 
-   * @param namespace
-   *          the name of the namespace
-   * @return true if the namespace exists
-   */
   @Override
   public boolean exists(String namespace) {
     ArgumentChecker.notNull(namespace);
@@ -119,52 +92,12 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     return exists;
   }
 
-  /**
-   * Create a namespace with no special configuration
-   * 
-   * @param namespace
-   *          the name of the namespace
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws NamespaceExistsException
-   *           if the namespace already exists
-   */
   @Override
   public void create(String namespace) throws AccumuloException, AccumuloSecurityException, NamespaceExistsException {
-    create(namespace, true, TimeType.MILLIS);
-  }
-
-  /**
-   * @param namespace
-   *          the name of the namespace
-   * @param limitVersion
-   *          Enables/disables the versioning iterator, which will limit the number of Key versions kept.
-   */
-  @Override
-  public void create(String namespace, boolean limitVersion) throws AccumuloException, AccumuloSecurityException, NamespaceExistsException {
-    create(namespace, limitVersion, TimeType.MILLIS);
-  }
-
-  /**
-   * @param namespace
-   *          the name of the namespace
-   * @param timeType
-   *          specifies logical or real-time based time recording for entries in the table
-   * @param limitVersion
-   *          Enables/disables the versioning iterator, which will limit the number of Key versions kept.
-   */
-  @Override
-  public void create(String namespace, boolean limitVersion, TimeType timeType) throws AccumuloException, AccumuloSecurityException, NamespaceExistsException {
-    ArgumentChecker.notNull(namespace, timeType);
-
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(namespace.getBytes()), ByteBuffer.wrap(timeType.name().getBytes()));
-
-    Map<String,String> opts = IteratorUtil.generateInitialTableProperties(limitVersion);
+    ArgumentChecker.notNull(namespace);
 
     try {
-      doNamespaceOperation(TableOperation.CREATE, args, opts);
+      doNamespaceOperation(TableOperation.CREATE, Arrays.asList(ByteBuffer.wrap(namespace.getBytes())), Collections.<String,String> emptyMap());
     } catch (NamespaceNotFoundException e1) {
       // should not happen
       throw new RuntimeException(e1);
@@ -282,49 +215,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     }
   }
 
-  /**
-   * Delete a namespace if empty
-   * 
-   * @param namespace
-   *          the name of the namespace
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws NamespaceNotFoundException
-   *           if the namespace does not exist
-   * @throws NamespaceNotEmptyException
-   *           if the namespaces still contains tables
-   * @throws TableNotFoundException
-   *           if table not found while deleting
-   */
   @Override
-  public void delete(String namespace) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException, NamespaceNotEmptyException,
-      TableNotFoundException {
-    delete(namespace, false);
-  }
-
-  /**
-   * Delete a namespace
-   * 
-   * @param namespace
-   *          the name of the namespace
-   * @param deleteTables
-   *          boolean, if true deletes all the tables in the namespace in addition to deleting the namespace.
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws NamespaceNotFoundException
-   *           if the namespace does not exist
-   * @throws NamespaceNotEmptyException
-   *           if the namespaces still contains tables
-   * @throws TableNotFoundException
-   *           if table not found while deleting
-   */
-  @Override
-  public void delete(String namespace, boolean deleteTables) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException,
-      NamespaceNotEmptyException, TableNotFoundException {
+  public void delete(String namespace) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException, NamespaceNotEmptyException {
     ArgumentChecker.notNull(namespace);
     String namespaceId = Namespaces.getNamespaceId(instance, namespace);
 
@@ -334,16 +226,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     }
 
     if (Namespaces.getTableIds(instance, namespaceId).size() > 0) {
-      if (!deleteTables) {
-        throw new NamespaceNotEmptyException(namespaceId, namespace, null);
-      }
-      for (String table : Namespaces.getTableNames(instance, namespaceId)) {
-        try {
-          getTableOperations().delete(table);
-        } catch (TableNotFoundException e) {
-          log.debug("Table (" + table + ") not found while deleting namespace, probably deleted while we were deleting the rest of the tables");
-        }
-      }
+      throw new NamespaceNotEmptyException(namespaceId, namespace, null);
     }
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(namespace.getBytes()));
@@ -358,22 +241,6 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
   }
 
-  /**
-   * Rename a namespace
-   * 
-   * @param oldNamespaceName
-   *          the old namespace
-   * @param newNamespaceName
-   *          the new namespace
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws NamespaceNotFoundException
-   *           if the old namespace name does not exist
-   * @throws NamespaceExistsException
-   *           if the new namespace name already exists
-   */
   @Override
   public void rename(String oldNamespaceName, String newNamespaceName) throws AccumuloSecurityException, NamespaceNotFoundException, AccumuloException,
       NamespaceExistsException {
@@ -383,20 +250,6 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     doNamespaceOperation(TableOperation.RENAME, args, opts);
   }
 
-  /**
-   * Sets a property on a namespace which will apply to all tables in the namespace
-   * 
-   * @param namespace
-   *          the name of the namespace
-   * @param property
-   *          the name of a per-table property
-   * @param value
-   *          the value to set a per-table property to
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   */
   @Override
   public void setProperty(final String namespace, final String property, final String value) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(namespace, property, value);
@@ -409,18 +262,6 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     });
   }
 
-  /**
-   * Removes a property from a namespace
-   * 
-   * @param namespace
-   *          the name of the namespace
-   * @param property
-   *          the name of a per-table property
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   */
   @Override
   public void removeProperty(final String namespace, final String property) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(namespace, property);
@@ -433,15 +274,6 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     });
   }
 
-  /**
-   * Gets properties of a namespace
-   * 
-   * @param namespace
-   *          the name of the namespace
-   * @return all properties visible by this namespace (system and per-namespace properties)
-   * @throws NamespaceNotFoundException
-   *           if the namespace does not exist
-   */
   @Override
   public Iterable<Entry<String,String>> getProperties(final String namespace) throws AccumuloException, NamespaceNotFoundException {
     ArgumentChecker.notNull(namespace);
@@ -468,81 +300,9 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
   }
 
-  /**
-   * 
-   * @param namespace
-   *          the namespace to take offline
-   * @throws AccumuloException
-   *           when there is a general accumulo error
-   * @throws AccumuloSecurityException
-   *           when the user does not have the proper permissions
-   * @throws NamespaceNotFoundException
-   *           if the namespace does not exist
-   */
-  @Override
-  public void offline(String namespace) throws AccumuloSecurityException, AccumuloException, NamespaceNotFoundException {
-
-    ArgumentChecker.notNull(namespace);
-    String namespaceId = Namespaces.getNamespaceId(instance, namespace);
-    try {
-      for (String table : Namespaces.getTableNames(instance, namespaceId)) {
-        getTableOperations().offline(table);
-      }
-    } catch (TableNotFoundException e) {
-      Log.error("Namespace (" + namespaceId + ") contains reference to table that doesn't exist");
-    }
-  }
-
-  /**
-   * 
-   * @param namespace
-   *          the namespace to take online
-   * @throws AccumuloException
-   *           when there is a general accumulo error
-   * @throws AccumuloSecurityException
-   *           when the user does not have the proper permissions
-   * @throws NamespaceNotFoundException
-   *           if the namespace does not exist
-   */
-  @Override
-  public void online(String namespace) throws AccumuloSecurityException, AccumuloException, NamespaceNotFoundException {
-    ArgumentChecker.notNull(namespace);
-    String namespaceId = Namespaces.getNamespaceId(instance, namespace);
-    try {
-      for (String table : Namespaces.getTableNames(instance, namespaceId)) {
-        getTableOperations().online(table);
-      }
-    } catch (TableNotFoundException e) {
-      Log.warn("Namespace (" + namespaceId + ") contains a reference to a table that doesn't exist");
-    }
-  }
-
-  /**
-   * Get a mapping of namespace name to internal namespace id.
-   * 
-   * @return the map from namespace name to internal namespace id
-   */
   @Override
   public Map<String,String> namespaceIdMap() {
     return Namespaces.getNameToIdMap(instance);
-  }
-
-  @Override
-  public List<DiskUsage> getDiskUsage(String namespace) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
-    Set<String> tables = new HashSet<String>();
-    String namespaceId = Namespaces.getNamespaceId(instance, namespace);
-    tables.addAll(Namespaces.getTableNames(instance, namespaceId));
-    List<DiskUsage> du = null;
-    try {
-      du = getTableOperations().getDiskUsage(tables);
-    } catch (TableNotFoundException e) {
-      log.warn("Could not find table (" + e.getTableName() + ") reference in namespace (" + namespace + ")");
-    }
-    return du;
-  }
-
-  private TableOperations getTableOperations() throws AccumuloException, AccumuloSecurityException {
-    return new TableOperationsImpl(instance, credentials);
   }
 
   @Override

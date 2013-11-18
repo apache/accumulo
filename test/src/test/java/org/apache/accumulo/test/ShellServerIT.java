@@ -273,7 +273,7 @@ public class ShellServerIT extends SimpleMacIT {
     shell.execCommand("du -h", false, false);
     String o = output.get();
     // for some reason, there's a bit of fluctuation
-    assertTrue("Output did not match regex: '" + o + "'", o.matches(".*[1-9][0-9][0-9]\\s\\[t\\]\\n")); 
+    assertTrue("Output did not match regex: '" + o + "'", o.matches(".*[1-9][0-9][0-9]\\s\\[t\\]\\n"));
     exec("deletetable -f t");
   }
 
@@ -784,12 +784,12 @@ public class ShellServerIT extends SimpleMacIT {
     exec("config -t ptc -s " + Property.TABLE_CLASSPATH.getKey() + "=cx1", true);
 
     UtilWaitThread.sleep(200);
-    
-    // We can't use the setiter command as Filter implements OptionDescriber which 
+
+    // We can't use the setiter command as Filter implements OptionDescriber which
     // forces us to enter more input that I don't know how to input
     // Instead, we can just manually set the property on the table.
     exec("config -t ptc -s " + Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.foo=10,org.apache.accumulo.test.FooFilter");
-    
+
     exec("insert foo f q v", true);
 
     UtilWaitThread.sleep(100);
@@ -804,7 +804,7 @@ public class ShellServerIT extends SimpleMacIT {
     exec("table ptc", true);
     exec("insert foo f q v", false);
     exec("insert ok foo q v", true);
-    
+
     exec("deletetable -f ptc", true);
     exec("config -d " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
 
@@ -850,60 +850,55 @@ public class ShellServerIT extends SimpleMacIT {
     exec("y");
     exec("namespaces", true, "thing2", true);
 
-    exec("clonenamespace thing2 testers -e table.file.max", true);
-    exec("namespaces", true, "testers", true);
-    exec("tables", true, "testers.thingy", true);
-    exec("clonenamespace thing2 testers2 -s table.file.max=42", true);
-
-    exec("du -tn thing2", true, "thing2.thingy", true);
+    exec("du -ns thing2", true, "thing2.thingy", true);
 
     // all "TableOperation" commands can take a namespace
-    exec("offline -tn thing2", true);
-    exec("online -tn thing2", true);
-    exec("flush -tn thing2", true);
-    exec("compact -tn thing2", true);
+    exec("offline -ns thing2", true);
+    exec("online -ns thing2", true);
+    exec("flush -ns thing2", true);
+    exec("compact -ns thing2", true);
     exec("createnamespace testers3", true);
     exec("createtable testers3.1", true);
     exec("createtable testers3.2", true);
-    exec("deletetable -tn testers3 -f", true);
+    exec("deletetable -ns testers3 -f", true);
     exec("tables", true, "testers3.1", false);
     exec("namespaces", true, "testers3", true);
     exec("deletenamespace testers3 -f", true);
     input.set("true\n\n\nSTRING\n");
-    exec("setiter -tn thing2 -scan -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -n name", true);
-    exec("listiter -tn thing2 -scan", true, "Summing", true);
-    exec("deleteiter -tn thing2 -n name -scan", true);
+    exec("setiter -ns thing2 -scan -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -n name", true);
+    exec("listiter -ns thing2 -scan", true, "Summing", true);
+    exec("deleteiter -ns thing2 -n name -scan", true);
     exec("createuser dude");
     exec("pass");
     exec("pass");
-    exec("grant Namespace.CREATE_TABLE -tn thing2 -u dude", true);
-    exec("revoke Namespace.CREATE_TABLE -tn thing2 -u dude", true);
+    exec("grant Namespace.CREATE_TABLE -ns thing2 -u dude", true);
+    exec("revoke Namespace.CREATE_TABLE -ns thing2 -u dude", true);
 
     // properties override and such
-    exec("config -tn thing2 -s table.file.max=44444", true);
-    exec("config -tn thing2", true, "44444", true);
+    exec("config -ns thing2 -s table.file.max=44444", true);
+    exec("config -ns thing2", true, "44444", true);
     exec("config -t thing2.thingy", true, "44444", true);
     exec("config -t thing2.thingy -s table.file.max=55555", true);
     exec("config -t thing2.thingy", true, "55555", true);
 
     // can copy properties when creating
     exec("createnamespace thing3 -cc thing2", true);
-    exec("config -tn thing3", true, "44444", true);
+    exec("config -ns thing3", true, "44444", true);
     exec("createnamespace thing4 -ctc thing2.thingy", true);
-    exec("config -tn thing4", true, "55555", true);
+    exec("config -ns thing4", true, "55555", true);
 
     exec("deletenamespace -f thing2", true);
     exec("namespaces", true, "thing2", false);
     exec("tables", true, "thing2.thingy", false);
 
     // put constraints on a namespace
-    exec("constraint -tn thing4 -a org.apache.accumulo.examples.simple.constraints.NumericValueConstraint", true);
+    exec("constraint -ns thing4 -a org.apache.accumulo.examples.simple.constraints.NumericValueConstraint", true);
     exec("createtable thing4.constrained", true);
     exec("table thing4.constrained", true);
     // should fail
     exec("insert r cf cq abc", false);
     exec("constraint -l", true, "NumericValueConstraint", true);
-    exec("constraint -tn thing4 -d 2");
+    exec("constraint -ns thing4 -d 1");
     exec("sleep 1");
     exec("insert r cf cq abc", true);
   }

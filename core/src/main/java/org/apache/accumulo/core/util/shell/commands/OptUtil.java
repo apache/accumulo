@@ -18,6 +18,8 @@ package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.UnsupportedEncodingException;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.util.shell.Shell;
@@ -46,7 +48,8 @@ public abstract class OptUtil {
     return tableName;
   }
 
-  public static String getNamespaceOpt(final CommandLine cl, final Shell shellState) throws NamespaceNotFoundException {
+  public static String getNamespaceOpt(final CommandLine cl, final Shell shellState) throws NamespaceNotFoundException, AccumuloException,
+      AccumuloSecurityException {
     String namespace = null;
     if (cl.hasOption(Shell.namespaceOption)) {
       namespace = cl.getOptionValue(Shell.namespaceOption);
