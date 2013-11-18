@@ -123,6 +123,7 @@ public class RandomBatchWriter {
     opts.parseArgs(RandomBatchWriter.class.getName(), args, bwOpts);
     if ((opts.max - opts.min) < opts.num) {
       System.err.println(String.format("You must specify a min and a max that allow for at least num possible values. For example, you requested %d rows, but a min of %d and a max of %d only allows for %d rows.", opts.num, opts.min, opts.max, (opts.max - opts.min)));
+    }
     Random r;
     if (opts.seed == null)
       r = new Random();
