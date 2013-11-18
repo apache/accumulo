@@ -234,7 +234,11 @@ public class ZooKeeperInstance implements Instance {
   @Override
   @Deprecated
   public Connector getConnector(String principal, byte[] pass) throws AccumuloException, AccumuloSecurityException {
-    return getConnector(principal, new PasswordToken(pass));
+    if (closed) {
+      throw new RuntimeException("ZooKeeperInstance has been closed.");
+    } else {
+      return getConnector(principal, new PasswordToken(pass));
+    }
   }
 
   private AccumuloConfiguration conf = null;
