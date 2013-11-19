@@ -26,6 +26,8 @@ import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.hadoop.io.Text;
 
 /**
+ * A Mutation that contains a list of conditions that must all be met before the mutation is applied.
+ * 
  * @since 1.6.0
  */
 public class ConditionalMutation extends Mutation {
