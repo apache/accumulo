@@ -74,7 +74,7 @@ public class GarbageCollectWriteAheadLogs {
     Span span = Trace.start("scanServers");
     try {
       
-      Set<Path> sortedWALogs = getSortedWALogs();
+      Map<String, Path> sortedWALogs = getSortedWALogs();
       
       status.currentLog.started = System.currentTimeMillis();
       
@@ -132,7 +132,7 @@ public class GarbageCollectWriteAheadLogs {
     }
   }
   
-  private int removeFiles(Map<String,Path> nameToFileMap, Map<String,ArrayList<Path>> serverToFileMap, Set<Path> sortedWALogs, final GCStatus status) {
+  private int removeFiles(Map<String,Path> nameToFileMap, Map<String,ArrayList<Path>> serverToFileMap, Map<String, Path> sortedWALogs, final GCStatus status) {
     AccumuloConfiguration conf = instance.getConfiguration();
     for (Entry<String,ArrayList<Path>> entry : serverToFileMap.entrySet()) {
       if (entry.getKey().isEmpty()) {
@@ -182,7 +182,7 @@ public class GarbageCollectWriteAheadLogs {
       }
     }
     
-    for (Path swalog : sortedWALogs) {
+    for (Path swalog : sortedWALogs.values()) {
       log.debug("Removing sorted WAL " + swalog);
       try {
         if (!useTrash || !fs.moveToTrash(swalog)) {
@@ -226,7 +226,7 @@ public class GarbageCollectWriteAheadLogs {
     return result;
   }
   
-  private int removeMetadataEntries(Map<String,Path>  nameToFileMap, Set<Path> sortedWALogs, GCStatus status) throws IOException, KeeperException,
+  private int removeMetadataEntries(Map<String,Path>  nameToFileMap, Map<String, Path> sortedWALogs, GCStatus status) throws IOException, KeeperException,
       InterruptedException {
     int count = 0;
     Iterator<LogEntry> iterator = MetadataTableUtil.getLogEntries(SystemCredentials.get());
@@ -243,7 +243,7 @@ public class GarbageCollectWriteAheadLogs {
         Path pathFromNN = nameToFileMap.remove(path.getName());
         if (pathFromNN != null) {
           status.currentLog.inUse++;
-          sortedWALogs.remove(pathFromNN);
+          sortedWALogs.remove(path.getName());
         }
         count++;
       }
@@ -280,21 +280,20 @@ public class GarbageCollectWriteAheadLogs {
         }
       }
     }
-    log.debug("fileToServerMap " + fileToServerMap);
-    log.debug("nameToFileMap " + nameToFileMap);
     return servers.size();
   }
   
-  private Set<Path> getSortedWALogs() throws IOException {
-    Set<Path> result = new HashSet<Path>();
+  private Map<String, Path> getSortedWALogs() throws IOException {
+    Map<String, Path> result = new HashMap<String, Path>();
     
     for (String dir : ServerConstants.getRecoveryDirs()) {
       Path recoveryDir = new Path(dir);
       
       if (fs.exists(recoveryDir)) {
         for (FileStatus status : fs.listStatus(recoveryDir)) {
-          if (isUUID(status.getPath().getName())) {
-            result.add(status.getPath());
+          String name = status.getPath().getName();
+          if (isUUID(name)) {
+            result.put(name, status.getPath());
           } else {
             log.debug("Ignoring file " + status.getPath() + " because it doesn't look like a uuid");
           }
