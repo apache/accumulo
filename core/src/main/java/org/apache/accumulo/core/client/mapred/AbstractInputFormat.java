@@ -43,6 +43,7 @@ import org.apache.accumulo.core.client.mapreduce.InputTableConfig;
 import org.apache.accumulo.core.client.mapreduce.lib.util.InputConfigurator;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.conf.ClientConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
@@ -179,9 +180,24 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * @param zooKeepers
    *          a comma-separated list of zookeeper servers
    * @since 1.5.0
+   * @deprecated since 1.6.0; Use {@link #setZooKeeperInstance(JobConf, ClientConfiguration)} instead.
    */
+  @Deprecated
   public static void setZooKeeperInstance(JobConf job, String instanceName, String zooKeepers) {
     InputConfigurator.setZooKeeperInstance(CLASS, job, instanceName, zooKeepers);
+  }
+
+  /**
+   * Configures a {@link org.apache.accumulo.core.client.ZooKeeperInstance} for this job.
+   *
+   * @param job
+   *          the Hadoop job instance to be configured
+   * @param clientConfig
+   *          client configuration containing connection options
+   * @since 1.6.0
+   */
+  public static void setZooKeeperInstance(JobConf job, ClientConfiguration clientConfig) {
+    InputConfigurator.setZooKeeperInstance(CLASS, job, clientConfig);
   }
 
   /**

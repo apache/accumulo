@@ -16,7 +16,14 @@
  */
 package org.apache.accumulo.test.functional;
 
+import java.io.IOException;
+
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.TableExistsException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestIngest.Opts;
@@ -32,8 +39,11 @@ public class BulkIT extends SimpleMacIT {
 
   @Test(timeout = 4 * 60 * 1000)
   public void test() throws Exception {
-    Connector c = getConnector();
-    String tableName = getTableNames(1)[0];
+    runTest(getConnector(), getTableNames(1)[0]);
+  }
+
+  static void runTest(Connector c, String tableName) throws AccumuloException, AccumuloSecurityException, TableExistsException, IOException, TableNotFoundException,
+      MutationsRejectedException {
     c.tableOperations().create(tableName);
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     String base = "target/accumulo-maven-plugin";

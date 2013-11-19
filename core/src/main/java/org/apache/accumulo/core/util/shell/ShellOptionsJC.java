@@ -25,6 +25,9 @@ import java.util.Scanner;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.conf.ClientConfiguration;
+import org.apache.accumulo.core.conf.ClientConfiguration.ClientProperty;
+import org.apache.commons.configuration.ConfigurationException;
 import org.apache.log4j.Logger;
 
 import com.beust.jcommander.DynamicParameter;
@@ -161,6 +164,12 @@ public class ShellOptionsJC {
   @Parameter(names = {"-z", "--zooKeeperInstance"}, description = "use a zookeeper instance with the given instance name and list of zoo hosts", arity = 2)
   private List<String> zooKeeperInstance = new ArrayList<String>();
   
+  @Parameter(names = {"--ssl"}, description = "use ssl to connect to accumulo")
+  private boolean useSsl = false;
+
+  @Parameter(names = "--config-file", description = "read the given client config file.  If omitted, the path searched can be specified with $ACCUMULO_CLIENT_CONF_PATH, which defaults to ~/.accumulo/config:$ACCUMULO_CONF_DIR/client.conf:/etc/accumulo/client.conf")
+  private String clientConfigFile = null;
+
   @Parameter(names = {"-zi", "--zooKeeperInstanceName"}, description="use a zookeeper instance with the given instance name")
   private String zooKeeperInstanceName;
 
@@ -247,4 +256,22 @@ public class ShellOptionsJC {
   public List<String> getUnrecognizedOptions() {
     return unrecognizedOptions;
   }
+
+  public boolean useSsl() {
+    return useSsl;
+  }
+
+  public String getClientConfigFile() {
+    return clientConfigFile;
+  }
+
+  public ClientConfiguration getClientConfiguration() throws ConfigurationException,
+  FileNotFoundException {
+    ClientConfiguration clientConfig = ClientConfiguration.loadDefault(getClientConfigFile());
+    if (useSsl()) {
+      clientConfig.setProperty(ClientProperty.INSTANCE_RPC_SSL_ENABLED, "true");
+    }
+    return clientConfig;
+  }
+
 }

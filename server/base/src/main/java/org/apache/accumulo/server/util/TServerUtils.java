@@ -18,6 +18,7 @@ package org.apache.accumulo.server.util;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.net.BindException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -33,6 +34,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.SimpleThreadPool;
+import org.apache.accumulo.core.util.SslConnectionParams;
 import org.apache.accumulo.core.util.TBufferedSocket;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -47,6 +49,7 @@ import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TNonblockingSocket;
 import org.apache.thrift.transport.TServerTransport;
+import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
@@ -54,19 +57,19 @@ import com.google.common.net.HostAndPort;
 
 public class TServerUtils {
   private static final Logger log = Logger.getLogger(TServerUtils.class);
-  
+
   public static final ThreadLocal<String> clientAddress = new ThreadLocal<String>();
-  
+
   public static class ServerAddress {
     public final TServer server;
     public final HostAndPort address;
-    
+
     public ServerAddress(TServer server, HostAndPort address) {
       this.server = server;
       this.address = address;
     }
   }
-  
+
   /**
    * Start a server, at the given port, or higher, if that port is not available.
    * 
@@ -81,6 +84,7 @@ public class TServerUtils {
    * @param portSearchProperty
    * @param minThreadProperty
    * @param timeBetweenThreadChecksProperty
+   * @param generalSslEnabled
    * @return the server object created, and the port actually used
    * @throws UnknownHostException
    *           when we don't know our own address
@@ -105,12 +109,12 @@ public class TServerUtils {
     TServerUtils.TimedProcessor timedProcessor = new TServerUtils.TimedProcessor(processor, serverName, threadName);
     Random random = new Random();
     for (int j = 0; j < 100; j++) {
-      
+
       // Are we going to slide around, looking for an open port?
       int portsToSearch = 1;
       if (portSearch)
         portsToSearch = 1000;
-      
+
       for (int i = 0; i < portsToSearch; i++) {
         int port = portHint + i;
         if (portHint != 0 && i > 0)
@@ -119,22 +123,34 @@ public class TServerUtils {
           port = 1024 + port % (65535 - 1024);
         try {
           HostAndPort addr = HostAndPort.fromParts(address, port);
-          return TServerUtils.startTServer(addr, timedProcessor, serverName, threadName, minThreads, timeBetweenThreadChecks, maxMessageSize);
-        } catch (Exception ex) {
-          log.info("Unable to use port " + port + ", retrying. (Thread Name = " + threadName + ")");
-          UtilWaitThread.sleep(250);
+          return TServerUtils.startTServer(addr, timedProcessor, serverName, threadName, minThreads, timeBetweenThreadChecks, maxMessageSize,
+              SslConnectionParams.forServer(conf), conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
+        } catch (TTransportException ex) {
+          log.error("Unable to start TServer", ex);
+          if (ex.getCause() == null || ex.getCause().getClass() == BindException.class) {
+            // Note: with a TNonblockingServerSocket a "port taken" exception is a cause-less
+            // TTransportException, and with a TSocket created by TSSLTransportFactory, it
+            // comes through as caused by a BindException.
+            log.info("Unable to use port " + port + ", retrying. (Thread Name = " + threadName + ")");
+            UtilWaitThread.sleep(250);
+          } else {
+            // thrift is passing up a nested exception that isn't a BindException,
+            // so no reason to believe retrying on a different port would help.
+            log.error("Unable to start TServer", ex);
+            break;
+          }
         }
       }
     }
     throw new UnknownHostException("Unable to find a listen port");
   }
-  
+
   public static class TimedProcessor implements TProcessor {
-    
+
     final TProcessor other;
     ThriftMetrics metrics = null;
     long idleStart = 0;
-    
+
     TimedProcessor(TProcessor next, String serverName, String threadName) {
       this.other = next;
       // Register the metrics MBean
@@ -146,7 +162,7 @@ public class TServerUtils {
       }
       idleStart = System.currentTimeMillis();
     }
-    
+
     @Override
     public boolean process(TProtocol in, TProtocol out) throws TException {
       long now = 0;
@@ -169,41 +185,46 @@ public class TServerUtils {
       }
     }
   }
-  
+
   public static class ClientInfoProcessorFactory extends TProcessorFactory {
-    
+
     public ClientInfoProcessorFactory(TProcessor processor) {
       super(processor);
     }
-    
+
     @Override
     public TProcessor getProcessor(TTransport trans) {
       if (trans instanceof TBufferedSocket) {
         TBufferedSocket tsock = (TBufferedSocket) trans;
         clientAddress.set(tsock.getClientString());
+      } else if (trans instanceof TSocket) {
+        TSocket tsock = (TSocket) trans;
+        clientAddress.set(tsock.getSocket().getInetAddress().getHostAddress() + ":" + tsock.getSocket().getPort());
+      } else {
+        log.warn("Unable to extract clientAddress from transport of type " + trans.getClass());
       }
       return super.getProcessor(trans);
     }
   }
-  
+
   public static class THsHaServer extends org.apache.thrift.server.THsHaServer {
     public THsHaServer(Args args) {
       super(args);
     }
-    
+
     @Override
     protected Runnable getRunnable(FrameBuffer frameBuffer) {
       return new Invocation(frameBuffer);
     }
-    
+
     private class Invocation implements Runnable {
-      
+
       private final FrameBuffer frameBuffer;
-      
+
       public Invocation(final FrameBuffer frameBuffer) {
         this.frameBuffer = frameBuffer;
       }
-      
+
       @Override
       public void run() {
         if (frameBuffer.trans_ instanceof TNonblockingSocket) {
@@ -215,24 +236,10 @@ public class TServerUtils {
       }
     }
   }
-  
-  public static ServerAddress startHsHaServer(HostAndPort address, TProcessor processor, final String serverName, String threadName, final int numThreads,
+
+  public static ServerAddress createHsHaServer(HostAndPort address, TProcessor processor, final String serverName, String threadName, final int numThreads,
       long timeBetweenThreadChecks, long maxMessageSize) throws TTransportException {
     TNonblockingServerSocket transport = new TNonblockingServerSocket(new InetSocketAddress(address.getHostText(), address.getPort()));
-    // check for the special "bind to everything address"
-    String hostname = address.getHostText();
-    if (hostname.equals("0.0.0.0")) {
-      // can't get the address from the bind, so we'll do our best to invent our hostname
-      try {
-        hostname = InetAddress.getLocalHost().getHostName();
-      } catch (UnknownHostException e) {
-        throw new TTransportException(e);
-      }
-    }
-    int port = address.getPort();
-    if (port == 0) {
-      port = transport.getPort();
-    }
     THsHaServer.Args options = new THsHaServer.Args(transport);
     options.protocolFactory(ThriftUtil.protocolFactory());
     options.transportFactory(ThriftUtil.transportFactory(maxMessageSize));
@@ -267,12 +274,15 @@ public class TServerUtils {
     }, timeBetweenThreadChecks, timeBetweenThreadChecks);
     options.executorService(pool);
     options.processorFactory(new TProcessorFactory(processor));
-    return new ServerAddress(new THsHaServer(options), HostAndPort.fromParts(hostname, port));
+    if (address.getPort() == 0) {
+      address = HostAndPort.fromParts(address.getHostText(), transport.getPort());
+    }
+    return new ServerAddress(new THsHaServer(options), address);
   }
-  
-  public static ServerAddress startThreadPoolServer(HostAndPort address, TProcessor processor, String serverName, String threadName, int numThreads)
+
+  public static ServerAddress createThreadPoolServer(HostAndPort address, TProcessor processor, String serverName, String threadName, int numThreads)
       throws TTransportException {
-    
+
     // if port is zero, then we must bind to get the port number
     ServerSocket sock;
     try {
@@ -284,23 +294,52 @@ public class TServerUtils {
       throw new TTransportException(ex);
     }
     TServerTransport transport = new TBufferedServerSocket(sock, 32 * 1024);
+    return new ServerAddress(createThreadPoolServer(transport, processor), address);
+  }
+
+  public static TServer createThreadPoolServer(TServerTransport transport, TProcessor processor) {
     TThreadPoolServer.Args options = new TThreadPoolServer.Args(transport);
     options.protocolFactory(ThriftUtil.protocolFactory());
     options.transportFactory(ThriftUtil.transportFactory());
     options.processorFactory(new ClientInfoProcessorFactory(processor));
-    return new ServerAddress(new TThreadPoolServer(options), address);
+    return new TThreadPoolServer(options);
   }
-  
-  public static ServerAddress startTServer(HostAndPort address, TProcessor processor, String serverName, String threadName, int numThreads, long timeBetweenThreadChecks, long maxMessageSize)
+
+  public static ServerAddress createSslThreadPoolServer(HostAndPort address, TProcessor processor, long socketTimeout, SslConnectionParams sslParams)
       throws TTransportException {
-    return startTServer(address, new TimedProcessor(processor, serverName, threadName), serverName, threadName, numThreads, timeBetweenThreadChecks, maxMessageSize);
+    org.apache.thrift.transport.TServerSocket transport;
+    try {
+      transport = ThriftUtil.getServerSocket(address.getPort(), (int) socketTimeout, InetAddress.getByName(address.getHostText()), sslParams);
+    } catch (UnknownHostException e) {
+      throw new TTransportException(e);
+    }
+    if (address.getPort() == 0) {
+      address = HostAndPort.fromParts(address.getHostText(), transport.getServerSocket().getLocalPort());
+    }
+    return new ServerAddress(createThreadPoolServer(transport, processor), address);
   }
-  
-  public static ServerAddress startTServer(HostAndPort address, TimedProcessor processor, String serverName, String threadName, int numThreads, long timeBetweenThreadChecks, long maxMessageSize)
-      throws TTransportException {
-    ServerAddress result = startHsHaServer(address, processor, serverName, threadName, numThreads, timeBetweenThreadChecks, maxMessageSize);
-    //ServerAddress result = startThreadPoolServer(address, processor, serverName, threadName, -1);
-    final TServer finalServer = result.server;
+
+  public static ServerAddress startTServer(HostAndPort address, TProcessor processor, String serverName, String threadName, int numThreads,
+      long timeBetweenThreadChecks, long maxMessageSize) throws TTransportException {
+    return startTServer(address, processor, serverName, threadName, numThreads, timeBetweenThreadChecks, maxMessageSize, null, -1);
+  }
+
+  public static ServerAddress startTServer(HostAndPort address, TProcessor processor, String serverName, String threadName, int numThreads,
+      long timeBetweenThreadChecks, long maxMessageSize, SslConnectionParams sslParams, long sslSocketTimeout) throws TTransportException {
+    return startTServer(address, new TimedProcessor(processor, serverName, threadName), serverName, threadName, numThreads, timeBetweenThreadChecks,
+        maxMessageSize, sslParams, sslSocketTimeout);
+  }
+
+  public static ServerAddress startTServer(HostAndPort address, TimedProcessor processor, String serverName, String threadName, int numThreads,
+      long timeBetweenThreadChecks, long maxMessageSize, SslConnectionParams sslParams, long sslSocketTimeout) throws TTransportException {
+
+    ServerAddress serverAddress;
+    if (sslParams != null) {
+      serverAddress = createSslThreadPoolServer(address, processor, sslSocketTimeout, sslParams);
+    } else {
+      serverAddress = createHsHaServer(address, processor, serverName, threadName, numThreads, timeBetweenThreadChecks, maxMessageSize);
+    }
+    final TServer finalServer = serverAddress.server;
     Runnable serveTask = new Runnable() {
       @Override
       public void run() {
@@ -314,9 +353,18 @@ public class TServerUtils {
     serveTask = new LoggingRunnable(TServerUtils.log, serveTask);
     Thread thread = new Daemon(serveTask, threadName);
     thread.start();
-    return result;
+    // check for the special "bind to everything address"
+    if (serverAddress.address.getHostText().equals("0.0.0.0")) {
+      // can't get the address from the bind, so we'll do our best to invent our hostname
+      try {
+        serverAddress = new ServerAddress(finalServer, HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), serverAddress.address.getPort()));
+      } catch (UnknownHostException e) {
+        throw new TTransportException(e);
+      }
+    }
+    return serverAddress;
   }
-  
+
   // Existing connections will keep our thread running: reach in with reflection and insist that they shutdown.
   public static void stopTServer(TServer s) {
     if (s == null)

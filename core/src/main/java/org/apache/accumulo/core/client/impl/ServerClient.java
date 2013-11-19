@@ -32,6 +32,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
+import org.apache.accumulo.core.util.SslConnectionParams;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -141,7 +142,7 @@ public class ServerClient {
       if (data != null && !new String(data).equals("master"))
         servers.add(new ThriftTransportKey(
           new ServerServices(new String(data)).getAddressString(Service.TSERV_CLIENT),
-          rpcTimeout));
+          rpcTimeout, SslConnectionParams.forClient(instance.getConfiguration())));
     }
     
     boolean opened = false;

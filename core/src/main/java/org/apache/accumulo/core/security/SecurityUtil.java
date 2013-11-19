@@ -37,13 +37,11 @@ public class SecurityUtil {
   public static void serverLogin() {
     @SuppressWarnings("deprecation")
     AccumuloConfiguration acuConf = AccumuloConfiguration.getSiteConfiguration();
-    String keyTab = acuConf.get(Property.GENERAL_KERBEROS_KEYTAB);
+    String keyTab = acuConf.getPath(Property.GENERAL_KERBEROS_KEYTAB);
     if (keyTab == null || keyTab.length() == 0)
       return;
     
     usingKerberos = true;
-    if (keyTab.contains("$ACCUMULO_HOME") && System.getenv("ACCUMULO_HOME") != null)
-      keyTab = keyTab.replace("$ACCUMULO_HOME", System.getenv("ACCUMULO_HOME"));
     
     String principalConfig = acuConf.get(Property.GENERAL_KERBEROS_PRINCIPAL);
     if (principalConfig == null || principalConfig.length() == 0)

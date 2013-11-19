@@ -50,7 +50,10 @@ import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ClientConfiguration;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.thrift.TConstraintViolationSummary;
@@ -398,15 +401,25 @@ public class Shell extends ShellOptions {
         instanceName = options.getZooKeeperInstanceName();
         hosts = options.getZooKeeperHosts();
       }
-      instance = getZooInstance(instanceName, hosts);
+      try {
+        instance = getZooInstance(instanceName, hosts, options.getClientConfiguration());
+      } catch (Exception e) {
+        throw new IllegalArgumentException("Unable to load client config from " +  options.getClientConfigFile(), e);
+      }
     }
   }
   
-  private static Instance getZooInstance(String instanceName, String keepers) {
+  /*
+   * Takes instanceName and keepers as separate arguments, rather than just packaged into the clientConfig,
+   * so that we can fail over to accumulo-site.xml or HDFS config if they're unspecified.
+   */
+  private static Instance getZooInstance(String instanceName, String keepers, ClientConfiguration clientConfig) {
     UUID instanceId = null;
+    if (instanceName == null) {
+      instanceName = clientConfig.get(ClientProperty.INSTANCE_NAME);
+    }
     if (instanceName == null || keepers == null) {
-      @SuppressWarnings("deprecation")
-      AccumuloConfiguration conf = AccumuloConfiguration.getSiteConfiguration();
+      AccumuloConfiguration conf = SiteConfiguration.getInstance(clientConfig.getAccumuloConfiguration());
       if (instanceName == null) {
         Path instanceDir = new Path(conf.get(Property.INSTANCE_DFS_DIR), "instance_id");
         instanceId = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(instanceDir));
@@ -416,9 +429,9 @@ public class Shell extends ShellOptions {
       }
     }
     if (instanceId != null) {
-      return new ZooKeeperInstance(instanceId, keepers);
+      return new ZooKeeperInstance(clientConfig.withInstance(instanceId).withZkHosts(keepers));
     } else {
-      return new ZooKeeperInstance(instanceName, keepers);
+      return new ZooKeeperInstance(clientConfig.withInstance(instanceName).withZkHosts(keepers));
     }
   }
   

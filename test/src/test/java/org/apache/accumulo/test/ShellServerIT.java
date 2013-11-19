@@ -26,7 +26,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
 import java.util.Map.Entry;
 
 import jline.console.ConsoleReader;
@@ -46,8 +45,6 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.shell.Shell;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.apache.accumulo.tracer.TraceServer;
 import org.apache.commons.io.FileUtils;
@@ -59,9 +56,7 @@ import org.apache.hadoop.tools.DistCp;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 public class ShellServerIT extends SimpleMacIT {
   public static class TestOutputStream extends OutputStream {
@@ -99,8 +94,6 @@ public class ShellServerIT extends SimpleMacIT {
     }
   }
 
-  private static String secret = "superSecret";
-  public static MiniAccumuloCluster cluster;
   public static TestOutputStream output;
   public static StringInputStream input;
   public static Shell shell;
@@ -152,28 +145,21 @@ public class ShellServerIT extends SimpleMacIT {
 
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
-    folder.create();
-    MiniAccumuloConfig cfg = new MiniAccumuloConfig(folder.newFolder("miniAccumulo"), secret);
-    cluster = new MiniAccumuloCluster(cfg);
-    cluster.start();
-
     // history file is updated in $HOME
-    System.setProperty("HOME", folder.getRoot().getAbsolutePath());
+    System.setProperty("HOME", getFolder().getAbsolutePath());
 
     // start the shell
     output = new TestOutputStream();
     input = new StringInputStream();
     shell = new Shell(new ConsoleReader(input, output));
     shell.setLogErrorsToConsole();
-    shell.config("-u", "root", "-p", secret, "-z", cluster.getConfig().getInstanceName(), cluster.getConfig().getZooKeepers());
+    shell.config("-u", "root", "-p", ROOT_PASSWORD, "-z", getStaticCluster().getConfig().getInstanceName(), getStaticCluster().getConfig().getZooKeepers(),
+        "--config-file", getStaticCluster().getConfig().getClientConfFile().getAbsolutePath());
     exec("quit", true);
     shell.start();
     shell.setExit(false);
 
-    // use reflection to call this method so it does not need to be made public
-    Method method = cluster.getClass().getDeclaredMethod("exec", Class.class, String[].class);
-    method.setAccessible(true);
-    traceProcess = (Process) method.invoke(cluster, TraceServer.class, new String[0]);
+    traceProcess = getStaticCluster().exec(TraceServer.class);
 
     // give the tracer some time to start
     UtilWaitThread.sleep(1000);
@@ -181,14 +167,12 @@ public class ShellServerIT extends SimpleMacIT {
 
   @AfterClass
   public static void tearDownAfterClass() throws Exception {
-    cluster.stop();
     traceProcess.destroy();
-    folder.delete();
   }
 
   @After
-  public void tearDown() throws Exception {
-    Connector c = cluster.getConnector("root", secret);
+  public void deleteTables() throws Exception {
+    Connector c = getConnector();
     for (String table : c.tableOperations().list()) {
       if (!table.equals(MetadataTable.NAME) && !table.equals(RootTable.NAME) && !table.equals("trace"))
         try {
@@ -207,10 +191,10 @@ public class ShellServerIT extends SimpleMacIT {
     exec("addsplits row5", true);
     exec("config -t t -s table.split.threshold=345M", true);
     exec("offline t", true);
-    String export = "file://" + folder.newFolder().toString();
+    String export = "file://" + new File(getFolder(), "ShellServerIT.export").toString();
     exec("exporttable -t t " + export, true);
     DistCp cp = newDistCp();
-    String import_ = "file://" + folder.newFolder().toString();
+    String import_ = "file://" + new File(getFolder(), "ShellServerIT.import").toString();
     cp.run(new String[] {"-f", export + "/distcp.txt", import_});
     exec("importtable t2 " + import_, true);
     exec("config -t t2 -np", true, "345M", true);
@@ -260,7 +244,7 @@ public class ShellServerIT extends SimpleMacIT {
   @Test(timeout = 30 * 1000)
   public void execfile() throws Exception {
     // execfile
-    File file = folder.newFile();
+    File file = File.createTempFile("ShellServerIT.execfile", ".conf", getFolder());
     PrintWriter writer = new PrintWriter(file.getAbsolutePath());
     writer.println("about");
     writer.close();
@@ -326,7 +310,7 @@ public class ShellServerIT extends SimpleMacIT {
     exec("scan", true, "row1", true);
     exec("droptable -f t", true);
     exec("deleteuser xyzzy", false, "delete yourself", true);
-    input.set(secret + "\n" + secret + "\n");
+    input.set(ROOT_PASSWORD + "\n" + ROOT_PASSWORD + "\n");
     exec("user root", true);
     exec("revoke -u xyzzy -s System.CREATE_TABLE", true);
     exec("revoke -u xyzzy -s System.GOOFY", false);
@@ -598,10 +582,12 @@ public class ShellServerIT extends SimpleMacIT {
   public void importDirectory() throws Exception {
     Configuration conf = new Configuration();
     FileSystem fs = FileSystem.get(conf);
-    File importDir = folder.newFolder("import");
+    File importDir = new File(getFolder(), "import");
+    importDir.mkdir();
     String even = new File(importDir, "even.rf").toString();
     String odd = new File(importDir, "odd.rf").toString();
-    File errorsDir = folder.newFolder("errors");
+    File errorsDir = new File(getFolder(), "errors");
+    errorsDir.mkdir();
     fs.mkdirs(new Path(errorsDir.toString()));
     AccumuloConfiguration aconf = AccumuloConfiguration.getDefaultConfiguration();
     FileSKVWriter evenWriter = FileOperations.getInstance().openWriter(even, fs, conf, aconf);
@@ -751,7 +737,7 @@ public class ShellServerIT extends SimpleMacIT {
       @Override
       public void run() {
         try {
-          Connector connector = cluster.getConnector("root", secret);
+          Connector connector = getConnector();
           Scanner s = connector.createScanner("t", Authorizations.EMPTY);
           for (@SuppressWarnings("unused")
           Entry<Key,Value> kv : s)
@@ -769,20 +755,26 @@ public class ShellServerIT extends SimpleMacIT {
     assertTrue(last.contains("RUNNING"));
     String parts[] = last.split("\\|");
     assertEquals(13, parts.length);
+    String hostPortPattern = ".+:\\d+";
+    String tserver = parts[0].trim();
+    assertTrue(tserver.matches(hostPortPattern));
+    assertTrue(getConnector().instanceOperations().getTabletServers().contains(tserver));
+    String client = parts[1].trim();
+    assertTrue(client.matches(hostPortPattern));
+    // TODO: any way to tell if the client address is accurate? could be local IP, host, loopback...?
     thread.join();
     exec("deletetable -f t", true);
   }
 
-  @Rule
-  public TemporaryFolder folder2 = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
-
   @Test(timeout = 30 * 1000)
   public void testPertableClasspath() throws Exception {
-    File fooFilterJar = folder2.newFile("FooFilter.jar");
+    File fooFilterJar = File.createTempFile("FooFilter", ".jar");
     FileUtils.copyURLToFile(this.getClass().getResource("/FooFilter.jar"), fooFilterJar);
+    fooFilterJar.deleteOnExit();
 
-    File fooConstraintJar = folder2.newFile("FooConstraint.jar");
+    File fooConstraintJar = File.createTempFile("FooConstraint", ".jar");
     FileUtils.copyURLToFile(this.getClass().getResource("/FooConstraint.jar"), fooConstraintJar);
+    fooConstraintJar.deleteOnExit();
 
     exec(
         "config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1=" + fooFilterJar.toURI().toString() + "," + fooConstraintJar.toURI().toString(),
@@ -832,7 +824,7 @@ public class ShellServerIT extends SimpleMacIT {
 
   @Test(timeout = 30 * 1000)
   public void badLogin() throws Exception {
-    input.set(secret + "\n");
+    input.set(ROOT_PASSWORD + "\n");
     String err = exec("user NoSuchUser", false);
     assertTrue(err.contains("BAD_CREDENTIALS for user NoSuchUser"));
   }
@@ -872,7 +864,7 @@ public class ShellServerIT extends SimpleMacIT {
     input.set("secret\n");
     exec("user test_user", true);
     assertTrue(exec("whoami", true).contains("test_user"));
-    input.set(secret + "\n");
+    input.set(ROOT_PASSWORD + "\n");
     exec("user root", true);
   }
 
@@ -886,11 +878,4 @@ public class ShellServerIT extends SimpleMacIT {
     exec("scan -t !METADATA -np -c file");
     return output.get().split("\n").length - 1;
   }
-
-  public static TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target/"));
-
-  public MiniAccumuloCluster getCluster() {
-    return cluster;
-  }
-
 }

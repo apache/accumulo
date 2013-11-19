@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.conf.ClientConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
@@ -57,7 +58,7 @@ public class MetadataBatchScanTest {
   
   public static void main(String[] args) throws Exception {
     
-    final Connector connector = new ZooKeeperInstance("acu14", "localhost").getConnector(SystemCredentials.get().getPrincipal(), SystemCredentials.get()
+    final Connector connector = new ZooKeeperInstance(new ClientConfiguration().withInstance("acu14").withZkHosts("localhost")).getConnector(SystemCredentials.get().getPrincipal(), SystemCredentials.get()
         .getToken());
     
     TreeSet<Long> splits = new TreeSet<Long>();

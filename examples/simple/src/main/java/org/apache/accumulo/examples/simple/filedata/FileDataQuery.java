@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.conf.ClientConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -46,7 +47,7 @@ public class FileDataQuery {
   
   public FileDataQuery(String instanceName, String zooKeepers, String user, AuthenticationToken token, String tableName, Authorizations auths) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
-    ZooKeeperInstance instance = new ZooKeeperInstance(instanceName, zooKeepers);
+    ZooKeeperInstance instance = new ZooKeeperInstance(ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zooKeepers));
     conn = instance.getConnector(user, token);
     lastRefs = new ArrayList<Entry<Key,Value>>();
     cis = new ChunkInputStream();

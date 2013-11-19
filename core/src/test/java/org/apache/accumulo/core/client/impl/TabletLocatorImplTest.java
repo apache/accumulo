@@ -445,6 +445,7 @@ public class TabletLocatorImplTest extends TestCase {
     }
     
     @Override
+    @Deprecated
     public void setConfiguration(AccumuloConfiguration conf) {
       this.conf = conf;
     }

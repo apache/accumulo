@@ -34,6 +34,6 @@ public class ClientOpts extends org.apache.accumulo.core.cli.ClientOpts {
     if (instance == null) {
       return HdfsZooInstance.getInstance();
     }
-    return new ZooKeeperInstance(this.instance, this.zookeepers);
+    return new ZooKeeperInstance(this.getClientConfiguration());
   }
 }

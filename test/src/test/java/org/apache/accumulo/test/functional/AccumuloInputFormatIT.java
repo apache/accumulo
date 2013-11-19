@@ -64,7 +64,7 @@ public class AccumuloInputFormatIT extends SimpleMacIT {
     @SuppressWarnings("deprecation")
     Job job = new Job();
     AccumuloInputFormat.setInputTableName(job, table);
-    AccumuloInputFormat.setZooKeeperInstance(job, getConnector().getInstance().getInstanceName(), getConnector().getInstance().getZooKeepers());
+    AccumuloInputFormat.setZooKeeperInstance(job, getStaticCluster().getClientConfig());
     AccumuloInputFormat.setConnectorInfo(job, "root", new PasswordToken(ROOT_PASSWORD));
 
     // split table
@@ -100,7 +100,8 @@ public class AccumuloInputFormatIT extends SimpleMacIT {
 
     // auto adjust ranges
     ranges = new ArrayList<Range>();
-    for (int i = 0; i < 5; i++) // overlapping ranges
+    for (int i = 0; i < 5; i++)
+      // overlapping ranges
       ranges.add(new Range(String.format("%09d", i), String.format("%09d", i + 2)));
     AccumuloInputFormat.setRanges(job, ranges);
     splits = inputFormat.getSplits(job);

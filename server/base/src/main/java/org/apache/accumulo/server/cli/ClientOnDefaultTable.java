@@ -36,7 +36,7 @@ public class ClientOnDefaultTable extends org.apache.accumulo.core.cli.ClientOnD
     if (instance == null) {
       return cachedInstance = HdfsZooInstance.getInstance();
     }
-    return cachedInstance = new ZooKeeperInstance(this.instance, this.zookeepers);
+    return cachedInstance = new ZooKeeperInstance(this.getClientConfiguration());
   }
   public ClientOnDefaultTable(String table) {
     super(table);

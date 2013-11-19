@@ -19,6 +19,7 @@ package org.apache.accumulo.examples.simple.mapreduce;
 import java.io.IOException;
 
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
+import org.apache.accumulo.core.conf.ClientConfiguration;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.CachedConfiguration;
@@ -82,7 +83,7 @@ public class TokenFileWordCount extends Configured implements Tool {
     job.setOutputValueClass(Mutation.class);
     
     // AccumuloInputFormat not used here, but it uses the same functions.
-    AccumuloOutputFormat.setZooKeeperInstance(job, instance, zookeepers);
+    AccumuloOutputFormat.setZooKeeperInstance(job, ClientConfiguration.loadDefault().withInstance(instance).withZkHosts(zookeepers));
     AccumuloOutputFormat.setConnectorInfo(job, user, tokenFile);
     AccumuloOutputFormat.setCreateTables(job, true);
     AccumuloOutputFormat.setDefaultTableName(job, tableName);

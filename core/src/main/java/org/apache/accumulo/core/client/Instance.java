@@ -140,7 +140,9 @@ public interface Instance {
    * 
    * @param conf
    *          accumulo configuration
+   * @deprecated since 1.6.0
    */
+  @Deprecated
   public abstract void setConfiguration(AccumuloConfiguration conf);
   
   /**

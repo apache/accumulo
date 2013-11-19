@@ -145,6 +145,7 @@ public class MockInstance implements Instance {
   }
   
   @Override
+  @Deprecated
   public void setConfiguration(AccumuloConfiguration conf) {
     this.conf = conf;
   }

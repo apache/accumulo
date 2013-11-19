@@ -36,6 +36,6 @@ public class ClientOnRequiredTable extends org.apache.accumulo.core.cli.ClientOn
     if (instance == null) {
       return cachedInstance = HdfsZooInstance.getInstance();
     }
-    return cachedInstance = new ZooKeeperInstance(this.instance, this.zookeepers);
+    return cachedInstance = new ZooKeeperInstance(getClientConfiguration());
   }
 }

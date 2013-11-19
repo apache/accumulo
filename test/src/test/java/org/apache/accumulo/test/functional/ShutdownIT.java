@@ -19,11 +19,13 @@ package org.apache.accumulo.test.functional;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestRandomDeletes;
@@ -90,7 +92,10 @@ public class ShutdownIT extends ConfigurableMacIT {
   
   @Test(timeout = 2 * 60 * 1000)
   public void adminStop() throws Exception {
-    Connector c = getConnector();
+    runAdminStopTest(getConnector(), cluster);
+  }
+
+  static void runAdminStopTest(Connector c, MiniAccumuloCluster cluster) throws InterruptedException, IOException {
     assertEquals(0, cluster.exec(TestIngest.class, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD, "--createTable").waitFor());
     List<String> tabletServers = c.instanceOperations().getTabletServers();
     assertEquals(2, tabletServers.size());

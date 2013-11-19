@@ -77,6 +77,23 @@ public enum Property {
           + "of that file.  Sometimes, you change your strategy and want to use the new strategy, not the old one.  (Most commonly, this will be "
           + "because you have moved key material from one spot to another.)  If you want to override the recorded key strategy with the one in "
           + "the configuration file, set this property to true."),
+  // SSL properties local to each node (see also instance.ssl.enabled which must be consistent across all nodes in an instance)
+  RPC_PREFIX("rpc.", null, PropertyType.PREFIX, "Properties in this category related to the configuration of SSL keys for RPC.  See also instance.ssl.enabled"),
+  RPC_SSL_KEYSTORE_PATH("rpc.javax.net.ssl.keyStore", "$ACCUMULO_CONF_DIR/ssl/keystore.jks", PropertyType.PATH,
+      "Path of the keystore file for the servers' private SSL key"),
+  @Sensitive
+  RPC_SSL_KEYSTORE_PASSWORD("rpc.javax.net.ssl.keyStorePassword", "", PropertyType.STRING,
+      "Password used to encrypt the SSL private keystore.  Leave blank to use the Accumulo instance secret"),
+  RPC_SSL_KEYSTORE_TYPE("rpc.javax.net.ssl.keyStoreType", "jks", PropertyType.STRING,
+      "Type of SSL keystore"),
+  RPC_SSL_TRUSTSTORE_PATH("rpc.javax.net.ssl.trustStore", "$ACCUMULO_CONF_DIR/ssl/truststore.jks", PropertyType.PATH,
+      "Path of the truststore file for the root cert"),
+  @Sensitive
+  RPC_SSL_TRUSTSTORE_PASSWORD("rpc.javax.net.ssl.trustStorePassword", "", PropertyType.STRING,
+      "Password used to encrypt the SSL truststore.  Leave blank to use no password"),
+  RPC_SSL_TRUSTSTORE_TYPE("rpc.javax.net.ssl.trustStoreType", "jks", PropertyType.STRING,
+        "Type of SSL truststore"),
+  RPC_USE_JSSE("rpc.useJsse", "false", PropertyType.BOOLEAN, "Use JSSE system properties to configure SSL rather than general.javax.net.ssl.* Accumulo properties"),
   // instance properties (must be the same for every node in an instance)
   INSTANCE_PREFIX("instance.", null, PropertyType.PREFIX,
       "Properties in this category must be consistent throughout a cloud. This is enforced and servers won't be able to communicate if these differ."),
@@ -106,6 +123,8 @@ public enum Property {
       "The authorizor class that accumulo will use to determine what labels a user has privilege to see"),
   INSTANCE_SECURITY_PERMISSION_HANDLER("instance.security.permissionHandler", "org.apache.accumulo.server.security.handler.ZKPermHandler",
       PropertyType.CLASSNAME, "The permission handler class that accumulo will use to determine if a user has privilege to perform an action"),
+  INSTANCE_RPC_SSL_ENABLED("instance.rpc.ssl.enabled", "false", PropertyType.BOOLEAN, "Use SSL for socket connections from clients and among accumulo services"),
+  INSTANCE_RPC_SSL_CLIENT_AUTH("instance.rpc.ssl.clientAuth", "false", PropertyType.BOOLEAN, "Require clients to present certs signed by a trusted root"),
 
   // general properties
   GENERAL_PREFIX("general.", null, PropertyType.PREFIX,

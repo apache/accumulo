@@ -61,6 +61,7 @@ import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.ClientConfiguration;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.data.Key;
@@ -175,7 +176,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
     if (useMock != null && Boolean.parseBoolean(useMock))
       instance = new MockInstance();
     else
-      instance = new ZooKeeperInstance(props.getProperty("instance"), props.getProperty("zookeepers"));
+      instance = new ZooKeeperInstance(ClientConfiguration.loadDefault().withInstance(props.getProperty("instance")).withZkHosts(props.getProperty("zookeepers")));
     
     try {
       String tokenProp = props.getProperty("tokenClass", PasswordToken.class.getName());

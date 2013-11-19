@@ -38,6 +38,7 @@ import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
+import org.apache.accumulo.core.conf.ClientConfiguration;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
@@ -61,7 +62,7 @@ import org.apache.log4j.Logger;
  * <ul>
  * <li>{@link AccumuloOutputFormat#setConnectorInfo(JobConf, String, AuthenticationToken)}
  * <li>{@link AccumuloOutputFormat#setConnectorInfo(JobConf, String, String)}
- * <li>{@link AccumuloOutputFormat#setZooKeeperInstance(JobConf, String, String)} OR {@link AccumuloOutputFormat#setMockInstance(JobConf, String)}
+ * <li>{@link AccumuloOutputFormat#setZooKeeperInstance(JobConf, ClientConfiguration)} OR {@link AccumuloOutputFormat#setMockInstance(JobConf, String)}
  * </ul>
  * 
  * Other static methods are optional.
@@ -182,9 +183,29 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * @param zooKeepers
    *          a comma-separated list of zookeeper servers
    * @since 1.5.0
+   * @deprecated since 1.6.0; Use {@link #setZooKeeperInstance(JobConf, ClientConfiguration)} instead.
    */
+
+  @Deprecated
   public static void setZooKeeperInstance(JobConf job, String instanceName, String zooKeepers) {
     OutputConfigurator.setZooKeeperInstance(CLASS, job, instanceName, zooKeepers);
+  }
+
+  /**
+   * Configures a {@link ZooKeeperInstance} for this job.
+   *
+   * @param job
+   *          the Hadoop job instance to be configured
+   * @param instanceName
+   *          the Accumulo instance name
+   * @param zooKeepers
+   *          a comma-separated list of zookeeper servers
+   * @param clientConfig
+   *          client configuration for specifying connection timeouts, SSL connection options, etc.
+   * @since 1.6.0
+   */
+  public static void setZooKeeperInstance(JobConf job, ClientConfiguration clientConfig) {
+    OutputConfigurator.setZooKeeperInstance(CLASS, job, clientConfig);
   }
 
   /**

@@ -38,10 +38,14 @@ import jline.console.ConsoleReader;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ClientConfiguration;
+import org.apache.accumulo.core.conf.ClientConfiguration.ClientProperty;
+import org.apache.accumulo.core.conf.ConfigSanityCheck;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Level;
+import org.easymock.EasyMock;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -51,7 +55,7 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({Shell.class, AccumuloConfiguration.class, ZooUtil.class})
+@PrepareForTest({Shell.class, ZooUtil.class, ConfigSanityCheck.class})
 public class ShellSetInstanceTest {
   public static class TestOutputStream extends OutputStream {
     StringBuilder sb = new StringBuilder();
@@ -121,38 +125,49 @@ public class ShellSetInstanceTest {
     testSetInstance_HdfsZooInstance(false, false, false);
   }
   
-  @SuppressWarnings("deprecation")
   private void testSetInstance_HdfsZooInstance(boolean explicitHdfs, boolean onlyInstance, boolean onlyHosts)
     throws Exception {
+    ClientConfiguration clientConf = createMock(ClientConfiguration.class);
     ShellOptionsJC opts = createMock(ShellOptionsJC.class);
     expect(opts.isFake()).andReturn(false);
+    expect(opts.getClientConfiguration()).andReturn(clientConf);
     expect(opts.isHdfsZooInstance()).andReturn(explicitHdfs);
     if (!explicitHdfs) {
       expect(opts.getZooKeeperInstance())
         .andReturn(Collections.<String>emptyList());
       if (onlyInstance) {
         expect(opts.getZooKeeperInstanceName()).andReturn("instance");
+        expect(clientConf.withInstance("instance")).andReturn(clientConf);
       } else {
         expect(opts.getZooKeeperInstanceName()).andReturn(null);
       }
       if (onlyHosts) {
         expect(opts.getZooKeeperHosts()).andReturn("host3,host4");
+        expect(clientConf.withZkHosts("host3,host4")).andReturn(clientConf);
       } else {
         expect(opts.getZooKeeperHosts()).andReturn(null);
       }
     }
     replay(opts);
 
+    if (!onlyInstance) {
+      expect(clientConf.get(ClientProperty.INSTANCE_NAME)).andReturn(null);
+    }
+
     AccumuloConfiguration conf = createMock(AccumuloConfiguration.class);
-    mockStatic(AccumuloConfiguration.class);
-    expect(AccumuloConfiguration.getSiteConfiguration()).andReturn(conf);
-    replay(AccumuloConfiguration.class);
+    expect(clientConf.getAccumuloConfiguration()).andReturn(conf);
+
+    mockStatic(ConfigSanityCheck.class);
+    ConfigSanityCheck.validate(EasyMock.<AccumuloConfiguration>anyObject());
+    expectLastCall();
+    replay(ConfigSanityCheck.class);
 
     if (!onlyHosts) {
-      expect(conf.get(Property.INSTANCE_ZK_HOST)).andReturn("host1,host2");
+      expect(conf.get(Property.INSTANCE_ZK_HOST)).andReturn("host1,host2").atLeastOnce();
+      expect(clientConf.withZkHosts("host1,host2")).andReturn(clientConf);
     }
     if (!onlyInstance) {
-      expect(conf.get(Property.INSTANCE_DFS_DIR)).andReturn("/dfs");
+      expect(conf.get(Property.INSTANCE_DFS_DIR)).andReturn("/dfs").atLeastOnce();
     }
     replay(conf);
     UUID randomUUID = null;
@@ -162,21 +177,13 @@ public class ShellSetInstanceTest {
       expect(ZooUtil.getInstanceIDFromHdfs(anyObject(Path.class)))
         .andReturn(randomUUID.toString());
       replay(ZooUtil.class);
+      expect(clientConf.withInstance(randomUUID)).andReturn(clientConf);
     }
+    replay(clientConf);
 
     ZooKeeperInstance theInstance = createMock(ZooKeeperInstance.class);
     
-    String expectedHosts = "host1,host2";
-    if (onlyHosts)
-      expectedHosts = "host3,host4";
-
-    if (!onlyInstance) {
-      expectNew(ZooKeeperInstance.class, randomUUID, expectedHosts)
-        .andReturn(theInstance);
-    } else {
-      expectNew(ZooKeeperInstance.class, "instance", expectedHosts)
-        .andReturn(theInstance);
-    }
+    expectNew(ZooKeeperInstance.class, clientConf).andReturn(theInstance);
     replay(theInstance, ZooKeeperInstance.class);
 
     shell.setInstance(opts);
@@ -191,28 +198,31 @@ public class ShellSetInstanceTest {
     testSetInstance_ZKInstance(false);
   }
   private void testSetInstance_ZKInstance(boolean dashZ) throws Exception {
+    ClientConfiguration clientConf = createMock(ClientConfiguration.class);
     ShellOptionsJC opts = createMock(ShellOptionsJC.class);
     expect(opts.isFake()).andReturn(false);
+    expect(opts.getClientConfiguration()).andReturn(clientConf);
     expect(opts.isHdfsZooInstance()).andReturn(false);
     if (dashZ) {
+      expect(clientConf.withInstance("foo")).andReturn(clientConf);
+      expect(clientConf.withZkHosts("host1,host2")).andReturn(clientConf);
       List<String> zl = new java.util.ArrayList<String>();
       zl.add("foo");
       zl.add("host1,host2");
       expect(opts.getZooKeeperInstance()).andReturn(zl);
       expectLastCall().anyTimes();
     } else {
+      expect(clientConf.withInstance("bar")).andReturn(clientConf);
+      expect(clientConf.withZkHosts("host3,host4")).andReturn(clientConf);
       expect(opts.getZooKeeperInstance()).andReturn(Collections.<String>emptyList());
       expect(opts.getZooKeeperInstanceName()).andReturn("bar");
       expect(opts.getZooKeeperHosts()).andReturn("host3,host4");
     }
+    replay(clientConf);
     replay(opts);
 
     ZooKeeperInstance theInstance = createMock(ZooKeeperInstance.class);
-    if (dashZ)
-      expectNew(ZooKeeperInstance.class, "foo", "host1,host2").andReturn(theInstance);
-    else
-      expectNew(ZooKeeperInstance.class, "bar", "host3,host4")
-      .andReturn(theInstance);
+    expectNew(ZooKeeperInstance.class, clientConf).andReturn(theInstance);
     replay(theInstance, ZooKeeperInstance.class);
 
     shell.setInstance(opts);

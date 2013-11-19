@@ -26,6 +26,7 @@ import java.util.Map;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
+import org.apache.accumulo.core.conf.ClientConfiguration;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
@@ -120,6 +121,10 @@ public class IndexMeta extends Configured implements Tool {
   static class Opts extends ClientOpts {
     @Parameter(description = "<logfile> { <logfile> ...}")
     List<String> logFiles = new ArrayList<String>();
+    
+    public ClientConfiguration getConf() {
+      return this.getClientConfiguration();
+    }
   }
   
   @Override
@@ -146,7 +151,7 @@ public class IndexMeta extends Configured implements Tool {
     job.setNumReduceTasks(0);
     
     job.setOutputFormatClass(AccumuloOutputFormat.class);
-    AccumuloOutputFormat.setZooKeeperInstance(job, opts.instance, opts.zookeepers);
+    AccumuloOutputFormat.setZooKeeperInstance(job, opts.getConf());
     AccumuloOutputFormat.setConnectorInfo(job, opts.principal, opts.getToken());
     AccumuloOutputFormat.setCreateTables(job, false);
     

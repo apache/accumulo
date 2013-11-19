@@ -39,8 +39,8 @@ public class MiniAccumuloConfig {
   private Map<String,String> siteConfig = new HashMap<String,String>();
   private int numTservers = 2;
   private Map<ServerType,Long> memoryConfig = new HashMap<ServerType,Long>();
-
   private boolean jdwpEnabled = false;
+  private Map<String,String> systemProperties = new HashMap<String,String>();
 
   private String instanceName = "miniInstance";
 
@@ -360,6 +360,15 @@ public class MiniAccumuloConfig {
   }
 
   /**
+   * @return location of client conf file containing connection parameters for connecting to this minicluster
+   *
+   * @since 1.6.0
+   */
+  public File getClientConfFile() {
+    return new File(getConfDir(), "client.conf");
+  }
+
+  /**
    * Whether or not the Accumulo garbage collector proces will run
    */
   public boolean shouldRunGC() {
@@ -376,6 +385,24 @@ public class MiniAccumuloConfig {
   }
 
   /**
+   * @return sets system properties set for service processes
+   *
+   * @since 1.6.0
+   */
+  public void setSystemProperties(Map<String,String> systemProperties) {
+    this.systemProperties = new HashMap<String,String>(systemProperties);
+  }
+
+  /**
+   * @return a copy of the system properties for service processes
+   *
+   * @since 1.6.0
+   */
+  public Map<String,String> getSystemProperties() {
+    return new HashMap<String,String>(systemProperties);
+  }
+
+  /*
    * Gets the classpath elements to use when spawning processes.
    * 
    * @return the classpathItems, if set
