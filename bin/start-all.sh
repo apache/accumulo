@@ -52,7 +52,10 @@ do
     ${bin}/start-server.sh $master master
 done
 
-${bin}/start-server.sh $GC gc "garbage collector"
+for gc in `grep -v '^#' "$ACCUMULO_CONF_DIR/gc"`
+do
+    ${bin}/start-server.sh $gc gc "garbage collector"
+done
 
 ${bin}/start-server.sh $MONITOR monitor 
 
