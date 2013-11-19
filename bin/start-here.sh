@@ -57,8 +57,8 @@ for host in $HOSTS; do
 done
 
 for host in $HOSTS; do
-   if [ ${host} = "${GC}" ]; then
-      ${bin}/start-server.sh $GC gc "garbage collector"
+   if grep -q "^${host}\$" $ACCUMULO_CONF_DIR/gc; then
+      ${bin}/start-server.sh $host gc "garbage collector"
       break
    fi
 done
