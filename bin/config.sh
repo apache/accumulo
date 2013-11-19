@@ -26,7 +26,6 @@
 # 
 # Values always set by script.
 #  MALLOC_ARENA_MAX   To work around a memory management bug (see ACCUMULO-847)
-#  GC                 Machine to run GC daemon on.  Used by start-here.sh script
 #  MONITOR            Machine to run monitor daemon on. Used by start-here.sh script
 #  SSH                Default ssh parameters used to start daemons
 
@@ -121,11 +120,7 @@ then
     fi
 fi
 MASTER1=`grep -v '^#' "$ACCUMULO_CONF_DIR/masters" | head -1`
-GC=$MASTER1
 MONITOR=$MASTER1
-if [ -f "$ACCUMULO_CONF_DIR/gc" ]; then
-    GC=`grep -v '^#' "$ACCUMULO_CONF_DIR/gc" | head -1`
-fi
 if [ -f "$ACCUMULO_CONF_DIR/monitor" ]; then
     MONITOR=`grep -v '^#' "$ACCUMULO_CONF_DIR/monitor" | head -1`
 fi

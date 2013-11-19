@@ -47,9 +47,9 @@ done
 
 for host in $HOSTS
 do
-    if grep -q "^${host}\$" $ACCUMULO_CONF_DIR/slaves
+    if grep -q "^${host}\$" $ACCUMULO_CONF_DIR/gc
     then
-	${bin}/start-server.sh $GC gc "garbage collector"
+	${bin}/start-server.sh $host gc "garbage collector"
 	break
     fi
 done
