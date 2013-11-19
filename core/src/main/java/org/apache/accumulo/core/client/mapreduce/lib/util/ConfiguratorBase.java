@@ -289,15 +289,11 @@ public class ConfiguratorBase {
 
   /**
    * Configures a {@link ZooKeeperInstance} for this job.
-   *
+   * 
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
    *          the Hadoop configuration object to configure
-   * @param instanceName
-   *          the Accumulo instance name
-   * @param zooKeepers
-   *          a comma-separated list of zookeeper servers
    * @param clientConfig
    *          client configuration for specifying connection timeouts, SSL connection options, etc.
    * @since 1.5.0
@@ -342,7 +338,7 @@ public class ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @return an Accumulo instance
    * @since 1.5.0
-   * @see #setZooKeeperInstance(Class, Configuration, String, String, ClientConfiguration)
+   * @see #setZooKeeperInstance(Class, Configuration, ClientConfiguration)
    * @see #setMockInstance(Class, Configuration, String)
    */
   public static Instance getInstance(Class<?> implementingClass, Configuration conf) {
