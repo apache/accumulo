@@ -29,7 +29,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService;
@@ -69,10 +68,8 @@ import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.util.EmbeddedWebServer;
+import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooKeeper;
 
 /**
  * Serve master statistics with an embedded web server.
@@ -399,19 +396,13 @@ public class Monitor {
     GCStatus result = null;
     try {
       // Read the gc location from its lock
-      Instance instance = HdfsZooInstance.getInstance();
-      String zooKeepers = instance.getZooKeepers();
-      log.debug("connecting to zookeepers " + zooKeepers);
-      ZooKeeper zk = new ZooKeeper(zooKeepers, (int) ServerConfiguration.getSystemConfiguration().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), new Watcher() {
-        @Override
-        public void process(WatchedEvent event) {}
-      });
+      ZooReaderWriter zk = ZooReaderWriter.getInstance();
       try {
         String path = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZGC_LOCK;
         List<String> locks = zk.getChildren(path, null);
         if (locks != null && locks.size() > 0) {
           Collections.sort(locks);
-          InetSocketAddress address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0), null, null))).getAddress(Service.GC_CLIENT);
+          InetSocketAddress address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0), null))).getAddress(Service.GC_CLIENT);
           GCMonitorService.Iface client = ThriftUtil.getClient(new GCMonitorService.Client.Factory(), address, ServerConfiguration.getSystemConfiguration());
           try {
             result = client.getStatus(null, SecurityConstants.getSystemCredentials());
