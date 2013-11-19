@@ -58,7 +58,9 @@ for master in `egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/masters"`; do
    ${bin}/start-server.sh $master master
 done
 
-${bin}/start-server.sh $GC gc "garbage collector"
+for gc in `egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/gc"`; do
+   ${bin}/start-server.sh $gc gc "garbage collector"
+done
 
 for tracer in `egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/tracers"`; do
    ${bin}/start-server.sh $tracer tracer

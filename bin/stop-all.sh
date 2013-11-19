@@ -45,10 +45,12 @@ sleep 5
 #look for master and gc processes not killed by 'admin stopAll'
 for signal in TERM KILL ; do
    for master in `grep -v '^#' "$ACCUMULO_CONF_DIR/masters"`; do
-      ${bin}/stop-server.sh $master "$ACCUMULO_HOME/lib/accumulo-start.jar" master $signal
+      ${bin}/stop-server.sh $master "$ACCUMULO_HOME/lib/accumulo-start.*.jar" master $signal
    done
 
-   ${bin}/stop-server.sh "$GC" "$ACCUMULO_HOME/lib/accumulo-start.jar" gc $signal
+   for gc in `grep -v '^#' "$ACCUMULO_CONF_DIR/gc"`; do
+      ${bin}/stop-server.sh "$gc" "$ACCUMULO_HOME/lib/accumulo-start.*.jar" gc $signal
+   done
 
    ${bin}/stop-server.sh "$MONITOR" "$ACCUMULO_HOME/.*/accumulo-start.*.jar" monitor $signal
 
