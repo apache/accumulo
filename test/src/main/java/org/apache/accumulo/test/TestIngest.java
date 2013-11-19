@@ -49,7 +49,6 @@ import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.server.cli.ClientOnDefaultTable;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -180,8 +179,6 @@ public class TestIngest {
     Opts opts = new Opts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(TestIngest.class.getName(), args, bwOpts);
-    opts.getInstance().setConfiguration(ServerConfiguration.getSiteConfiguration());
-
     
     Instance instance = opts.getInstance();
     

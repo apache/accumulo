@@ -26,6 +26,8 @@ import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.minicluster.MiniAccumuloInstance;
 import org.apache.log4j.Logger;
+import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
 public class SimpleMacIT extends AbstractMacIT {
@@ -39,6 +41,7 @@ public class SimpleMacIT extends AbstractMacIT {
     if (getInstanceOneConnector() == null && cluster == null) {
       folder = createSharedTestDir(SimpleMacIT.class.getName());
       MiniAccumuloConfig cfg = new MiniAccumuloConfig(folder, ROOT_PASSWORD);
+      configureForEnvironment(cfg, SimpleMacIT.class, createSharedTestDir(SimpleMacIT.class.getName() + "-ssl"));
       cluster = new MiniAccumuloCluster(cfg);
       cluster.start();
       Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -60,6 +63,20 @@ public class SimpleMacIT extends AbstractMacIT {
   public String rootPath() {
     return (getInstanceOneConnector() == null ? cluster.getConfig().getDir() : getInstanceOnePath()).getAbsolutePath();
   }
+
+  public static MiniAccumuloCluster getStaticCluster() {
+    return cluster;
+  }
+
+  public static File getFolder() {
+    return folder;
+  }
+
+  @After
+  public void cleanUp() throws Exception {}
+
+  @AfterClass
+  public static void tearDown() throws Exception {}
 
   private static Connector getInstanceOneConnector() {
     try {

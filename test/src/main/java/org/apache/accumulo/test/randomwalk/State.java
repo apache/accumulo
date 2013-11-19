@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.ClientConfiguration;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.log4j.Logger;
 
@@ -124,7 +125,7 @@ public class State {
     if (instance == null) {
       String instance = props.getProperty("INSTANCE");
       String zookeepers = props.getProperty("ZOOKEEPERS");
-      this.instance = new ZooKeeperInstance(instance, zookeepers);
+      this.instance = new ZooKeeperInstance(new ClientConfiguration().withInstance(instance).withZkHosts(zookeepers));
     }
     return instance;
   }

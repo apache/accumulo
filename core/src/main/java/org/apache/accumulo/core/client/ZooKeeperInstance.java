@@ -27,7 +27,8 @@ import org.apache.accumulo.core.client.impl.ConnectorImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.ClientConfiguration;
+import org.apache.accumulo.core.conf.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
@@ -37,6 +38,7 @@ import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.commons.configuration.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -68,6 +70,9 @@ public class ZooKeeperInstance implements Instance {
 
   private final int zooKeepersSessionTimeOut;
 
+  private AccumuloConfiguration accumuloConf;
+  private ClientConfiguration clientConf;
+
   private volatile boolean closed = false;
 
   /**
@@ -76,10 +81,11 @@ public class ZooKeeperInstance implements Instance {
    *          The name of specific accumulo instance. This is set at initialization time.
    * @param zooKeepers
    *          A comma separated list of zoo keeper server locations. Each location can contain an optional port, of the format host:port.
+   * @deprecated since 1.6.0; Use {@link #ZooKeeperInstance(ClientConfiguration)} instead.
    */
-
+  @Deprecated
   public ZooKeeperInstance(String instanceName, String zooKeepers) {
-    this(instanceName, zooKeepers, (int) AccumuloConfiguration.getDefaultConfiguration().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT));
+    this(ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zooKeepers));
   }
 
   /**
@@ -90,16 +96,11 @@ public class ZooKeeperInstance implements Instance {
    *          A comma separated list of zoo keeper server locations. Each location can contain an optional port, of the format host:port.
    * @param sessionTimeout
    *          zoo keeper session time out in milliseconds.
+   * @deprecated since 1.6.0; Use {@link #ZooKeeperInstance(ClientConfiguration)} instead.
    */
-
+  @Deprecated
   public ZooKeeperInstance(String instanceName, String zooKeepers, int sessionTimeout) {
-    ArgumentChecker.notNull(instanceName, zooKeepers);
-    this.instanceName = instanceName;
-    this.zooKeepers = zooKeepers;
-    this.zooKeepersSessionTimeOut = sessionTimeout;
-    zooCache = ZooCache.getInstance(zooKeepers, sessionTimeout);
-    getInstanceID();
-    clientInstances.incrementAndGet();
+    this(ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zooKeepers).withZkTimeout(sessionTimeout));
   }
 
   /**
@@ -108,10 +109,11 @@ public class ZooKeeperInstance implements Instance {
    *          The UUID that identifies the accumulo instance you want to connect to.
    * @param zooKeepers
    *          A comma separated list of zoo keeper server locations. Each location can contain an optional port, of the format host:port.
+   * @deprecated since 1.6.0; Use {@link #ZooKeeperInstance(ClientConfiguration)} instead.
    */
-
+  @Deprecated
   public ZooKeeperInstance(UUID instanceId, String zooKeepers) {
-    this(instanceId, zooKeepers, (int) AccumuloConfiguration.getDefaultConfiguration().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT));
+    this(ClientConfiguration.loadDefault().withInstance(instanceId).withZkHosts(zooKeepers));
   }
 
   /**
@@ -122,14 +124,34 @@ public class ZooKeeperInstance implements Instance {
    *          A comma separated list of zoo keeper server locations. Each location can contain an optional port, of the format host:port.
    * @param sessionTimeout
    *          zoo keeper session time out in milliseconds.
+   * @deprecated since 1.6.0; Use {@link #ZooKeeperInstance(ClientConfiguration)} instead.
+   */
+  @Deprecated
+  public ZooKeeperInstance(UUID instanceId, String zooKeepers, int sessionTimeout) {
+    this(ClientConfiguration.loadDefault().withInstance(instanceId).withZkHosts(zooKeepers).withZkTimeout(sessionTimeout));
+  }
+
+  /**
+   * @param config
+   *          Client configuration for specifying connection options.
+   *          See {@link ClientConfiguration} which extends Configuration with convenience methods specific to Accumulo.
+   * @since 1.6.0
    */
 
-  public ZooKeeperInstance(UUID instanceId, String zooKeepers, int sessionTimeout) {
-    ArgumentChecker.notNull(instanceId, zooKeepers);
-    this.instanceId = instanceId.toString();
-    this.zooKeepers = zooKeepers;
-    this.zooKeepersSessionTimeOut = sessionTimeout;
-    zooCache = ZooCache.getInstance(zooKeepers, sessionTimeout);
+  public ZooKeeperInstance(Configuration config) {
+    ArgumentChecker.notNull(config);
+    if (config instanceof ClientConfiguration) {
+      this.clientConf = (ClientConfiguration)config;
+    } else {
+      this.clientConf = new ClientConfiguration(config);
+    }
+    this.instanceId = clientConf.get(ClientProperty.INSTANCE_ID);
+    this.instanceName = clientConf.get(ClientProperty.INSTANCE_NAME);
+    if ((instanceId == null) == (instanceName == null))
+      throw new IllegalArgumentException("Expected exactly one of instanceName and instanceId to be set");
+    this.zooKeepers = clientConf.get(ClientProperty.INSTANCE_ZK_HOST);
+    this.zooKeepersSessionTimeOut = (int) AccumuloConfiguration.getTimeInMillis(clientConf.get(ClientProperty.INSTANCE_ZK_TIMEOUT));
+    zooCache = ZooCache.getInstance(zooKeepers, zooKeepersSessionTimeOut);
     clientInstances.incrementAndGet();
   }
 
@@ -241,18 +263,18 @@ public class ZooKeeperInstance implements Instance {
     }
   }
 
-  private AccumuloConfiguration conf = null;
-
   @Override
   public AccumuloConfiguration getConfiguration() {
-    if (conf == null)
-      conf = AccumuloConfiguration.getDefaultConfiguration();
-    return conf;
+    if (accumuloConf == null) {
+      accumuloConf = clientConf.getAccumuloConfiguration();
+    }
+    return accumuloConf;
   }
 
   @Override
+  @Deprecated
   public void setConfiguration(AccumuloConfiguration conf) {
-    this.conf = conf;
+    this.accumuloConf = conf;
   }
 
   /**

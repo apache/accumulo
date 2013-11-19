@@ -36,6 +36,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.ClientConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -51,7 +52,7 @@ import org.apache.hadoop.io.Text;
  */
 public class IMMLGBenchmark {
   public static void main(String[] args) throws Exception {
-    ZooKeeperInstance zki = new ZooKeeperInstance("test16", "localhost");
+    ZooKeeperInstance zki = new ZooKeeperInstance(new ClientConfiguration().withInstance("test16").withZkHosts("localhost"));
     Connector conn = zki.getConnector("root", new PasswordToken("secret"));
     
     int numlg = Integer.parseInt(args[0]);

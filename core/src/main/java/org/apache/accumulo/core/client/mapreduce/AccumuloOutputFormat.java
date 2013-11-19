@@ -38,6 +38,7 @@ import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
+import org.apache.accumulo.core.conf.ClientConfiguration;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
@@ -62,7 +63,7 @@ import org.apache.log4j.Logger;
  * <ul>
  * <li>{@link AccumuloOutputFormat#setConnectorInfo(Job, String, AuthenticationToken)}
  * <li>{@link AccumuloOutputFormat#setConnectorInfo(Job, String, String)}
- * <li>{@link AccumuloOutputFormat#setZooKeeperInstance(Job, String, String)} OR {@link AccumuloOutputFormat#setMockInstance(Job, String)}
+ * <li>{@link AccumuloOutputFormat#setZooKeeperInstance(Job, ClientConfiguration)} OR {@link AccumuloOutputFormat#setMockInstance(Job, String)}
  * </ul>
  * 
  * Other static methods are optional.
@@ -183,9 +184,28 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @param zooKeepers
    *          a comma-separated list of zookeeper servers
    * @since 1.5.0
+   * @deprecated since 1.6.0; Use {@link #setZooKeeperInstance(Job, ClientConfiguration)} instead.
    */
+  @Deprecated
   public static void setZooKeeperInstance(Job job, String instanceName, String zooKeepers) {
     OutputConfigurator.setZooKeeperInstance(CLASS, job.getConfiguration(), instanceName, zooKeepers);
+  }
+
+  /**
+   * Configures a {@link ZooKeeperInstance} for this job.
+   *
+   * @param job
+   *          the Hadoop job instance to be configured
+   * @param instanceName
+   *          the Accumulo instance name
+   * @param zooKeepers
+   *          a comma-separated list of zookeeper servers
+   * @param clientConfig
+   *          client configuration for specifying connection timeouts, SSL connection options, etc.
+   * @since 1.6.0
+   */
+  public static void setZooKeeperInstance(Job job, ClientConfiguration clientConfig) {
+    OutputConfigurator.setZooKeeperInstance(CLASS, job.getConfiguration(), clientConfig);
   }
 
   /**
@@ -208,7 +228,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    *          the Hadoop context for the configured job
    * @return an Accumulo instance
    * @since 1.5.0
-   * @see #setZooKeeperInstance(Job, String, String)
+   * @see #setZooKeeperInstance(Job, String, String, ClientConfiguration)
    * @see #setMockInstance(Job, String)
    */
   protected static Instance getInstance(JobContext context) {

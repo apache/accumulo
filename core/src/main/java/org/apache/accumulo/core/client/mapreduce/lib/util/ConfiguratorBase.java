@@ -27,6 +27,7 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
+import org.apache.accumulo.core.conf.ClientConfiguration;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.commons.codec.binary.Base64;
@@ -72,7 +73,7 @@ public class ConfiguratorBase {
    * @since 1.5.0
    */
   protected static enum InstanceOpts {
-    TYPE, NAME, ZOO_KEEPERS;
+    TYPE, NAME, ZOO_KEEPERS, CLIENT_CONFIG;
   }
 
   /**
@@ -277,16 +278,38 @@ public class ConfiguratorBase {
    * @param zooKeepers
    *          a comma-separated list of zookeeper servers
    * @since 1.5.0
+   * @deprecated since 1.6.0; Use {@link #setZooKeeperInstance(Class, Configuration, ClientConfiguration)} instead.
    */
+
+  @Deprecated
   public static void setZooKeeperInstance(Class<?> implementingClass, Configuration conf, String instanceName, String zooKeepers) {
+    ArgumentChecker.notNull(instanceName, zooKeepers);
+    setZooKeeperInstance(implementingClass, conf, new ClientConfiguration().withInstance(instanceName).withZkHosts(zooKeepers));
+  }
+
+  /**
+   * Configures a {@link ZooKeeperInstance} for this job.
+   *
+   * @param implementingClass
+   *          the class whose name will be used as a prefix for the property configuration key
+   * @param conf
+   *          the Hadoop configuration object to configure
+   * @param instanceName
+   *          the Accumulo instance name
+   * @param zooKeepers
+   *          a comma-separated list of zookeeper servers
+   * @param clientConfig
+   *          client configuration for specifying connection timeouts, SSL connection options, etc.
+   * @since 1.5.0
+   */
+  public static void setZooKeeperInstance(Class<?> implementingClass, Configuration conf, ClientConfiguration clientConfig) {
     String key = enumToConfKey(implementingClass, InstanceOpts.TYPE);
     if (!conf.get(key, "").isEmpty())
       throw new IllegalStateException("Instance info can only be set once per job; it has already been configured with " + conf.get(key));
     conf.set(key, "ZooKeeperInstance");
-
-    ArgumentChecker.notNull(instanceName, zooKeepers);
-    conf.set(enumToConfKey(implementingClass, InstanceOpts.NAME), instanceName);
-    conf.set(enumToConfKey(implementingClass, InstanceOpts.ZOO_KEEPERS), zooKeepers);
+    if (clientConfig != null) {
+      conf.set(enumToConfKey(implementingClass, InstanceOpts.CLIENT_CONFIG), clientConfig.serialize());
+    }
   }
 
   /**
@@ -319,17 +342,23 @@ public class ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @return an Accumulo instance
    * @since 1.5.0
-   * @see #setZooKeeperInstance(Class, Configuration, String, String)
+   * @see #setZooKeeperInstance(Class, Configuration, String, String, ClientConfiguration)
    * @see #setMockInstance(Class, Configuration, String)
    */
   public static Instance getInstance(Class<?> implementingClass, Configuration conf) {
     String instanceType = conf.get(enumToConfKey(implementingClass, InstanceOpts.TYPE), "");
     if ("MockInstance".equals(instanceType))
       return new MockInstance(conf.get(enumToConfKey(implementingClass, InstanceOpts.NAME)));
-    else if ("ZooKeeperInstance".equals(instanceType))
-      return new ZooKeeperInstance(conf.get(enumToConfKey(implementingClass, InstanceOpts.NAME)), conf.get(enumToConfKey(implementingClass,
-          InstanceOpts.ZOO_KEEPERS)));
-    else if (instanceType.isEmpty())
+    else if ("ZooKeeperInstance".equals(instanceType)) {
+      String clientConfigString = conf.get(enumToConfKey(implementingClass, InstanceOpts.CLIENT_CONFIG));
+      if (clientConfigString == null) {
+        String instanceName = conf.get(enumToConfKey(implementingClass, InstanceOpts.NAME));
+        String zookeepers = conf.get(enumToConfKey(implementingClass, InstanceOpts.ZOO_KEEPERS));
+        return new ZooKeeperInstance(ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zookeepers));
+      } else {
+        return new ZooKeeperInstance(ClientConfiguration.deserialize(clientConfigString));
+      }
+    } else if (instanceType.isEmpty())
       throw new IllegalStateException("Instance has not been configured for " + implementingClass.getSimpleName());
     else
       throw new IllegalStateException("Unrecognized instance type " + instanceType);

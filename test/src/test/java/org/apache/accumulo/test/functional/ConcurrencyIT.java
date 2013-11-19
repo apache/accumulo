@@ -20,11 +20,16 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableExistsException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -75,13 +80,18 @@ public class ConcurrencyIT extends ConfigurableMacIT {
   @Test(timeout = 2 * 60 * 1000)
   public void run() throws Exception {
     Connector c = getConnector();
+    runTest(c);
+  }
+
+  static void runTest(Connector c) throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException,
+      MutationsRejectedException, Exception, InterruptedException {
     c.tableOperations().create("cct");
     IteratorSetting is = new IteratorSetting(10, SlowIterator.class);
     SlowIterator.setSleepTime(is, 50);
     c.tableOperations().attachIterator("cct", is, EnumSet.of(IteratorScope.minc, IteratorScope.majc));
     c.tableOperations().setProperty("cct", Property.TABLE_MAJC_RATIO.getKey(), "1.0");
     
-    BatchWriter bw = getConnector().createBatchWriter("cct", new BatchWriterConfig());
+    BatchWriter bw = c.createBatchWriter("cct", new BatchWriterConfig());
     for (int i = 0; i < 50; i++) {
       Mutation m = new Mutation(new Text(String.format("%06d", i)));
       m.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes()));
@@ -89,14 +99,14 @@ public class ConcurrencyIT extends ConfigurableMacIT {
     }
     bw.flush();
     
-    ScanTask st0 = new ScanTask(getConnector(), 300);
+    ScanTask st0 = new ScanTask(c, 300);
     st0.start();
     
-    ScanTask st1 = new ScanTask(getConnector(), 100);
+    ScanTask st1 = new ScanTask(c, 100);
     st1.start();
     
     UtilWaitThread.sleep(50);
-    getConnector().tableOperations().flush("cct", null, null, true);
+    c.tableOperations().flush("cct", null, null, true);
     
     for (int i = 0; i < 50; i++) {
       Mutation m = new Mutation(new Text(String.format("%06d", i)));
@@ -106,7 +116,7 @@ public class ConcurrencyIT extends ConfigurableMacIT {
     
     bw.flush();
     
-    ScanTask st2 = new ScanTask(getConnector(), 100);
+    ScanTask st2 = new ScanTask(c, 100);
     st2.start();
     
     st1.join();
@@ -117,11 +127,11 @@ public class ConcurrencyIT extends ConfigurableMacIT {
     if (st2.count != 50)
       throw new Exception("Thread 2 did not see 50, saw " + st2.count);
     
-    ScanTask st3 = new ScanTask(getConnector(), 150);
+    ScanTask st3 = new ScanTask(c, 150);
     st3.start();
     
     UtilWaitThread.sleep(50);
-    getConnector().tableOperations().flush("cct", null, null, false);
+    c.tableOperations().flush("cct", null, null, false);
     
     st3.join();
     if (st3.count != 50)

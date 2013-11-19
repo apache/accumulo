@@ -48,6 +48,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.ClientConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.util.Daemon;
@@ -60,6 +61,7 @@ import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.start.Main;
+import org.apache.commons.configuration.MapConfiguration;
 import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.commons.io.FileUtils;
@@ -70,6 +72,9 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
+
+import com.google.common.base.Predicate;
+import com.google.common.collect.Maps;
 
 /**
  * A utility class that will create Zookeeper and Accumulo processes that write all of their data to a single local directory. This class makes it easy to test
@@ -232,6 +237,9 @@ public class MiniAccumuloCluster {
     argList.addAll(Arrays.asList(javaBin, "-Dproc=" + clazz.getSimpleName(), "-cp", classpath));
     argList.add("-Djava.library.path=" + config.getLibDir());
     argList.addAll(extraJvmOpts);
+    for (Entry<String,String> sysProp : config.getSystemProperties().entrySet()) {
+      argList.add(String.format("-D%s=%s", sysProp.getKey(), sysProp.getValue()));
+    }
     argList.addAll(Arrays.asList("-XX:+UseConcMarkSweepGC", "-XX:CMSInitiatingOccupancyFraction=75", Main.class.getName(), className));
     argList.addAll(Arrays.asList(args));
 
@@ -239,6 +247,15 @@ public class MiniAccumuloCluster {
 
     builder.environment().put("ACCUMULO_HOME", config.getDir().getAbsolutePath());
     builder.environment().put("ACCUMULO_LOG_DIR", config.getLogDir().getAbsolutePath());
+    builder.environment().put("ACCUMULO_CLIENT_CONF_PATH", config.getClientConfFile().getAbsolutePath());
+
+    // if we're running under accumulo.start, we forward these env vars
+    String env = System.getenv("HADOOP_PREFIX");
+    if (env != null)
+      builder.environment().put("HADOOP_PREFIX", env);
+    env = System.getenv("ZOOKEEPER_HOME");
+    if (env != null)
+      builder.environment().put("ZOOKEEPER_HOME", env);
     builder.environment().put("ACCUMULO_CONF_DIR", config.getConfDir().getAbsolutePath());
     // hadoop-2.2 puts error messages in the logs if this is not set
     builder.environment().put("HADOOP_HOME", config.getDir().getAbsolutePath());
@@ -333,19 +350,19 @@ public class MiniAccumuloCluster {
       dfsUri = "file://";
     }
 
+    File clientConfFile = config.getClientConfFile();
+    // Write only the properties that correspond to ClientConfiguration properties
+    writeConfigProperties(clientConfFile, Maps.filterEntries(config.getSiteConfig(), new Predicate<Entry<String,String>>() {
+      public boolean apply(Entry<String,String> v) {
+        return ClientConfiguration.ClientProperty.getPropertyByKey(v.getKey()) != null;
+      }
+    }));
+
     File siteFile = new File(config.getConfDir(), "accumulo-site.xml");
     writeConfig(siteFile, config.getSiteConfig().entrySet());
 
-    FileWriter fileWriter = new FileWriter(siteFile);
-    fileWriter.append("<configuration>\n");
-
-    for (Entry<String,String> entry : config.getSiteConfig().entrySet())
-      fileWriter.append("<property><name>" + entry.getKey() + "</name><value>" + entry.getValue() + "</value></property>\n");
-    fileWriter.append("</configuration>\n");
-    fileWriter.close();
-
     zooCfgFile = new File(config.getConfDir(), "zoo.cfg");
-    fileWriter = new FileWriter(zooCfgFile);
+    FileWriter fileWriter = new FileWriter(zooCfgFile);
 
     // zookeeper uses Properties to read its config, so use that to write in order to properly escape things like Windows paths
     Properties zooCfg = new Properties();
@@ -381,6 +398,13 @@ public class MiniAccumuloCluster {
       fileWriter.append("<property><name>" + entry.getKey() + "</name><value>" + value + "</value></property>\n");
     }
     fileWriter.append("</configuration>\n");
+    fileWriter.close();
+  }
+  private void writeConfigProperties(File file, Map<String,String> settings) throws IOException {
+    FileWriter fileWriter = new FileWriter(file);
+
+    for (Entry<String,String> entry : settings.entrySet())
+      fileWriter.append(entry.getKey() + "=" + entry.getValue() + "\n");
     fileWriter.close();
   }
 
@@ -597,8 +621,12 @@ public class MiniAccumuloCluster {
    * @since 1.6.0
    */
   public Connector getConnector(String user, String passwd) throws AccumuloException, AccumuloSecurityException {
-    Instance instance = new ZooKeeperInstance(this.getInstanceName(), this.getZooKeepers());
+    Instance instance = new ZooKeeperInstance(getClientConfig());
     return instance.getConnector(user, new PasswordToken(passwd));
+  }
+
+  public ClientConfiguration getClientConfig() {
+    return new ClientConfiguration(Arrays.asList(new MapConfiguration(config.getSiteConfig()))).withInstance(this.getInstanceName()).withZkHosts(this.getZooKeepers());
   }
 
   public FileSystem getFileSystem() {

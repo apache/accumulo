@@ -42,6 +42,7 @@ public class ConfigurableMacIT extends AbstractMacIT {
   public void setUp() throws Exception {
     MiniAccumuloConfig cfg = new MiniAccumuloConfig(createTestDir(this.getClass().getName()), ROOT_PASSWORD);
     configure(cfg);
+    configureForEnvironment(cfg, getClass(), createSharedTestDir(this.getClass().getName() + "-ssl"));
     cluster = new MiniAccumuloCluster(cfg);
     cluster.start();
   }
@@ -70,7 +71,7 @@ public class ConfigurableMacIT extends AbstractMacIT {
   }
 
   public String getMonitor() throws KeeperException, InterruptedException {
-    Instance instance = new ZooKeeperInstance(getCluster().getInstanceName(), getCluster().getZooKeepers());
+    Instance instance = new ZooKeeperInstance(getCluster().getClientConfig());
     return MonitorUtil.getLocation(instance);
   }
 

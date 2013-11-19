@@ -17,6 +17,7 @@
 package org.apache.accumulo.test.functional;
 
 import java.io.File;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -25,7 +26,10 @@ import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
+import org.apache.accumulo.minicluster.MiniAccumuloConfig;
+import org.apache.accumulo.test.util.CertUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.junit.Rule;
@@ -81,8 +85,39 @@ public abstract class AbstractMacIT {
     return names;
   }
 
+  protected static void configureForEnvironment(MiniAccumuloConfig cfg, Class<?> testClass, File folder) {
+    if ("true".equals(System.getProperty("org.apache.accumulo.test.functional.useSslForIT"))) {
+      configureForSsl(cfg, folder);
+    }
+  }
+
+  protected static void configureForSsl(MiniAccumuloConfig cfg, File folder) {
+    Map<String,String> siteConfig = cfg.getSiteConfig();
+    if ("true".equals(siteConfig.get(Property.INSTANCE_RPC_SSL_ENABLED.getKey()))) {
+      // already enabled; don't mess with it
+      return;
+    }
+
+    File sslDir = new File(folder, "ssl");
+    sslDir.mkdirs();
+    File rootKeystoreFile = new File(sslDir, "root-" + cfg.getInstanceName() + ".jks");
+    File localKeystoreFile = new File(sslDir, "local-" + cfg.getInstanceName() + ".jks");
+    File publicTruststoreFile = new File(sslDir, "public-" + cfg.getInstanceName() + ".jks");
+    try {
+      new CertUtils(Property.RPC_SSL_KEYSTORE_TYPE.getDefaultValue(), "o=Apache Accumulo,cn=MiniAccumuloCluster", "RSA", 2048, "sha1WithRSAEncryption")
+          .createAll(rootKeystoreFile, localKeystoreFile, publicTruststoreFile, cfg.getInstanceName(), cfg.getRootPassword());
+    } catch (Exception e) {
+      throw new RuntimeException("error creating MAC keystore", e);
+    }
+
+    siteConfig.put(Property.INSTANCE_RPC_SSL_ENABLED.getKey(), "true");
+    siteConfig.put(Property.RPC_SSL_KEYSTORE_PATH.getKey(), localKeystoreFile.getAbsolutePath());
+    siteConfig.put(Property.RPC_SSL_KEYSTORE_PASSWORD.getKey(), cfg.getRootPassword());
+    siteConfig.put(Property.RPC_SSL_TRUSTSTORE_PATH.getKey(), publicTruststoreFile.getAbsolutePath());
+    cfg.setSiteConfig(siteConfig);
+  }
+
   public abstract Connector getConnector() throws AccumuloException, AccumuloSecurityException;
 
   public abstract String rootPath();
-
 }

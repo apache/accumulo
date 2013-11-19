@@ -22,6 +22,7 @@ import java.util.Iterator;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.ClientConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -86,10 +87,12 @@ public class MapRedVerifyTool extends Configured implements Tool {
       return 1;
     }
     
+    ClientConfiguration clientConf = new ClientConfiguration().withInstance(args[3]).withZkHosts(args[4]);
+
     job.setInputFormatClass(AccumuloInputFormat.class);
     AccumuloInputFormat.setConnectorInfo(job, args[0], new PasswordToken(args[1]));
     AccumuloInputFormat.setInputTableName(job, args[2]);
-    AccumuloInputFormat.setZooKeeperInstance(job, args[3], args[4]);
+    AccumuloInputFormat.setZooKeeperInstance(job, clientConf);
     
     job.setMapperClass(SeqMapClass.class);
     job.setMapOutputKeyClass(NullWritable.class);
@@ -102,7 +105,7 @@ public class MapRedVerifyTool extends Configured implements Tool {
     AccumuloOutputFormat.setConnectorInfo(job, args[0], new PasswordToken(args[1]));
     AccumuloOutputFormat.setCreateTables(job, true);
     AccumuloOutputFormat.setDefaultTableName(job, args[5]);
-    AccumuloOutputFormat.setZooKeeperInstance(job, args[3], args[4]);
+    AccumuloOutputFormat.setZooKeeperInstance(job, clientConf);
     
     job.waitForCompletion(true);
     return job.isSuccessful() ? 0 : 1;

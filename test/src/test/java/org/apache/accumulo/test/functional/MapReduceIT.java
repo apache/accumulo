@@ -18,18 +18,26 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.IOException;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableExistsException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.examples.simple.mapreduce.RowHash;
+import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.hadoop.io.Text;
 import org.codehaus.plexus.util.Base64;
 import org.junit.Test;
@@ -45,7 +53,11 @@ public class MapReduceIT extends ConfigurableMacIT {
 
   @Test(timeout = 60 * 1000)
   public void test() throws Exception {
-    Connector c = getConnector();
+    runTest(getConnector(), getCluster());
+  }
+
+  static void runTest(Connector c, MiniAccumuloCluster cluster) throws AccumuloException, AccumuloSecurityException, TableExistsException,
+      TableNotFoundException, MutationsRejectedException, IOException, InterruptedException, NoSuchAlgorithmException {
     c.tableOperations().create(tablename);
     BatchWriter bw = c.createBatchWriter(tablename, new BatchWriterConfig());
     for (int i = 0; i < 10; i++) {
@@ -54,9 +66,8 @@ public class MapReduceIT extends ConfigurableMacIT {
       bw.addMutation(m);
     }
     bw.close();
-
-    Process hash = exec(RowHash.class, "-i", c.getInstance().getInstanceName(), "-z", c.getInstance().getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD, "-t",
-        tablename, "--column", input_cfcq);
+    Process hash = cluster.exec(RowHash.class, "-i", c.getInstance().getInstanceName(), "-z", c.getInstance().getZooKeepers(), "-u", "root", "-p",
+        ROOT_PASSWORD, "-t", tablename, "--column", input_cfcq);
     assertEquals(0, hash.waitFor());
 
     Scanner s = c.createScanner(tablename, Authorizations.EMPTY);

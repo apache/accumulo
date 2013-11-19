@@ -35,6 +35,8 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ClientConfiguration;
+import org.apache.accumulo.core.conf.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.Authorizations;
@@ -160,6 +162,12 @@ public class ClientOpts extends Help {
   @Parameter(names = "--site-file", description = "Read the given accumulo site file to find the accumulo instance")
   public String siteFile = null;
   
+  @Parameter(names = "--ssl", description = "Connect to accumulo over SSL")
+  public boolean sslEnabled = false;
+
+  @Parameter(names = "--config-file", description = "Read the given client config file.  If omitted, the path searched can be specified with $ACCUMULO_CLIENT_CONF_PATH, which defaults to ~/.accumulo/config:$ACCUMULO_CONF_DIR/client.conf:/etc/accumulo/client.conf")
+  public String clientConfigFile = null;
+
   public void startDebugLogging() {
     if (debug)
       Logger.getLogger(Constants.CORE_PACKAGE_NAME).setLevel(Level.TRACE);
@@ -186,12 +194,39 @@ public class ClientOpts extends Help {
   }
   
   protected Instance cachedInstance = null;
+  protected ClientConfiguration cachedClientConfig = null;
   
   synchronized public Instance getInstance() {
     if (cachedInstance != null)
       return cachedInstance;
     if (mock)
       return cachedInstance = new MockInstance(instance);
+    return cachedInstance = new ZooKeeperInstance(this.getClientConfiguration());
+  }
+
+  public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
+    if (this.principal == null || this.getToken() == null)
+      throw new AccumuloSecurityException("You must provide a user (-u) and password (-p)", SecurityErrorCode.BAD_CREDENTIALS);
+    return getInstance().getConnector(principal, getToken());
+  }
+
+  public void setAccumuloConfigs(Job job) throws AccumuloSecurityException {
+    AccumuloInputFormat.setZooKeeperInstance(job, this.getClientConfiguration());
+    AccumuloOutputFormat.setZooKeeperInstance(job, this.getClientConfiguration());
+  }
+
+  protected ClientConfiguration getClientConfiguration() throws IllegalArgumentException {
+    if (cachedClientConfig != null)
+      return cachedClientConfig;
+
+    ClientConfiguration clientConfig;
+    try {
+      clientConfig = ClientConfiguration.loadDefault(clientConfigFile);
+    } catch (Exception e) {
+      throw new IllegalArgumentException(e);
+    }
+    if (sslEnabled)
+      clientConfig.setProperty(ClientProperty.INSTANCE_RPC_SSL_ENABLED, "true");
     if (siteFile != null) {
       AccumuloConfiguration config = new AccumuloConfiguration() {
         Configuration xml = new Configuration();
@@ -220,20 +255,11 @@ public class ClientOpts extends Help {
       this.zookeepers = config.get(Property.INSTANCE_ZK_HOST);
       Path instanceDir = new Path(config.get(Property.INSTANCE_DFS_DIR), "instance_id");
       String instanceIDFromFile = ZooUtil.getInstanceIDFromHdfs(instanceDir);
-      return cachedInstance = new ZooKeeperInstance(UUID.fromString(instanceIDFromFile), zookeepers);
+      if (config.getBoolean(Property.INSTANCE_RPC_SSL_ENABLED))
+        clientConfig.setProperty(ClientProperty.INSTANCE_RPC_SSL_ENABLED, "true");
+      return cachedClientConfig = clientConfig.withInstance(UUID.fromString(instanceIDFromFile)).withZkHosts(zookeepers);
     }
-    return cachedInstance = new ZooKeeperInstance(this.instance, this.zookeepers);
-  }
-  
-  public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
-    if (this.principal == null || this.getToken() == null)
-      throw new AccumuloSecurityException("You must provide a user (-u) and password (-p)", SecurityErrorCode.BAD_CREDENTIALS);
-    return getInstance().getConnector(principal, getToken());
-  }
-  
-  public void setAccumuloConfigs(Job job) throws AccumuloSecurityException {
-    AccumuloInputFormat.setZooKeeperInstance(job, instance, zookeepers);
-    AccumuloOutputFormat.setZooKeeperInstance(job, instance, zookeepers);
+    return cachedClientConfig = clientConfig.withInstance(instance).withZkHosts(zookeepers);
   }
   
 }

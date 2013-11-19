@@ -46,55 +46,55 @@ public class ScannerIT extends SimpleMacIT {
     final String table = "table";
     Connector c = getConnector();
     c.tableOperations().create(table);
-    
+
     BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
-    
+
     Mutation m = new Mutation("a");
     for (int i = 0; i < 10; i++) {
       m.put(Integer.toString(i), "", "");
     }
-    
+
     bw.addMutation(m);
     bw.close();
-    
+
     Scanner s = c.createScanner(table, new Authorizations());
-    
+
     IteratorSetting cfg = new IteratorSetting(100, SlowIterator.class);
     SlowIterator.setSleepTime(cfg, 100l);
     s.addScanIterator(cfg);
     s.setReadaheadThreshold(5);
     s.setBatchSize(1);
     s.setRange(new Range());
-    
+
     Stopwatch sw = new Stopwatch();
     Iterator<Entry<Key,Value>> iterator = s.iterator();
-    
+
     sw.start();
     while (iterator.hasNext()) {
       sw.stop();
-      
+
       // While we "do work" in the client, we should be fetching the next result
       UtilWaitThread.sleep(100l);
       iterator.next();
       sw.start();
     }
     sw.stop();
-    
+
     long millisWithWait = sw.elapsed(TimeUnit.MILLISECONDS);
-    
+
     s = c.createScanner(table, new Authorizations());
     s.addScanIterator(cfg);
     s.setRange(new Range());
     s.setBatchSize(1);
     s.setReadaheadThreshold(0l);
-    
+
     sw = new Stopwatch();
     iterator = s.iterator();
-    
+
     sw.start();
     while (iterator.hasNext()) {
       sw.stop();
-      
+
       // While we "do work" in the client, we should be fetching the next result
       UtilWaitThread.sleep(100l);
       iterator.next();
@@ -103,10 +103,10 @@ public class ScannerIT extends SimpleMacIT {
     sw.stop();
 
     long millisWithNoWait = sw.elapsed(TimeUnit.MILLISECONDS);
-    
+
     // The "no-wait" time should be much less than the "wait-time"
-    Assert.assertTrue("Expected less time to be taken with immediate readahead (" + millisWithNoWait 
-        + ") than without immediate readahead (" + millisWithWait + ")", millisWithNoWait < millisWithWait);
+    Assert.assertTrue("Expected less time to be taken with immediate readahead (" + millisWithNoWait + ") than without immediate readahead (" + millisWithWait
+        + ")", millisWithNoWait < millisWithWait);
   }
 
 }

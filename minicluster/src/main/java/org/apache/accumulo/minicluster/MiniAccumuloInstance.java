@@ -17,11 +17,15 @@
 package org.apache.accumulo.minicluster;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.net.MalformedURLException;
 
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.conf.ClientConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.commons.configuration.ConfigurationException;
+import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.hadoop.conf.Configuration;
 
 /**
@@ -32,11 +36,20 @@ public class MiniAccumuloInstance extends ZooKeeperInstance {
   /**
    * Construct an {@link Instance} entry point to Accumulo using a {@link MiniAccumuloCluster} directory
    */
-  public MiniAccumuloInstance(String instanceName, File directory) {
-    super(instanceName, getZooKeepersFromDir(directory));
+  public MiniAccumuloInstance(String instanceName, File directory) throws FileNotFoundException {
+    super(new ClientConfiguration(getConfigProperties(directory)).withInstance(instanceName).withZkHosts(getZooKeepersFromDir(directory)));
+  }
+
+  public static PropertiesConfiguration getConfigProperties(File directory) {
+    try {
+      return new PropertiesConfiguration(new File(new File(directory, "conf"), "client.conf"));
+    } catch (ConfigurationException e) {
+      // this should never happen since we wrote the config file ourselves
+      throw new IllegalArgumentException(e);
+    }
   }
   
-  private static String getZooKeepersFromDir(File directory) {
+  private static String getZooKeepersFromDir(File directory) throws FileNotFoundException {
     if (!directory.isDirectory())
       throw new IllegalArgumentException("Not a directory " + directory.getPath());
     File configFile = new File(new File(directory, "conf"), "accumulo-site.xml");
@@ -44,7 +57,7 @@ public class MiniAccumuloInstance extends ZooKeeperInstance {
     try {
       conf.addResource(configFile.toURI().toURL());
     } catch (MalformedURLException e) {
-      throw new IllegalStateException("Missing file: " + configFile.getPath());
+      throw new FileNotFoundException("Missing file: " + configFile.getPath());
     }
     return conf.get(Property.INSTANCE_ZK_HOST.getKey());
   }

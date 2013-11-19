@@ -18,6 +18,7 @@ package org.apache.accumulo.core.conf;
 
 import java.util.regex.Pattern;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.hadoop.fs.Path;
 
 public enum PropertyType {
@@ -50,7 +51,7 @@ public enum PropertyType {
           + "Examples of invalid fractions/percentages are '', '10 percent', 'Hulk Hogan'"),
   
   PATH("path", ".*",
-      "A string that represents a filesystem path, which can be either relative or absolute to some directory. The filesystem depends on the property."),
+      "A string that represents a filesystem path, which can be either relative or absolute to some directory. The filesystem depends on the property.  The following environment variables will be substituted: " + Constants.PATH_PROPERTY_ENV_VARS),
   ABSOLUTEPATH("absolute path", null,
       "An absolute filesystem path. The filesystem depends on the property. This is the same as path, but enforces that its root is explicitly specified.") {
     @Override

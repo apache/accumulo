@@ -27,6 +27,8 @@ import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.ClientConfiguration;
+import org.apache.accumulo.core.conf.ClientConfiguration.ClientProperty;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Level;
@@ -75,16 +77,47 @@ public class ConfiguratorBaseTest {
     assertEquals("file:testFile", conf.get(ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.ConnectorInfo.TOKEN)));
   }
 
+  @SuppressWarnings("deprecation")
+  @Test
+  public void testSetZooKeeperInstance_legacy() {
+    Configuration conf = new Configuration();
+    ConfiguratorBase.setZooKeeperInstance(this.getClass(), conf, "testInstanceName", "testZooKeepers");
+    ClientConfiguration clientConf = ClientConfiguration.deserialize(conf.get(ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.InstanceOpts.CLIENT_CONFIG)));
+    assertEquals("testInstanceName", clientConf.get(ClientProperty.INSTANCE_NAME));
+    assertEquals("testZooKeepers", clientConf.get(ClientProperty.INSTANCE_ZK_HOST));
+    assertEquals(ZooKeeperInstance.class.getSimpleName(), conf.get(ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.InstanceOpts.TYPE)));
+
+    Instance instance = ConfiguratorBase.getInstance(this.getClass(), conf);
+    assertEquals(ZooKeeperInstance.class.getName(), instance.getClass().getName());
+    assertEquals("testInstanceName", ((ZooKeeperInstance)instance).getInstanceName());
+    assertEquals("testZooKeepers", ((ZooKeeperInstance)instance).getZooKeepers());
+
+    // Also make sure we can still deserialize job configurations with the old keys
+    conf = new Configuration();
+    conf.set(ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.InstanceOpts.TYPE), ZooKeeperInstance.class.getSimpleName());
+    conf.set(ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.InstanceOpts.NAME), "testInstanceName");
+    conf.set(ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.InstanceOpts.ZOO_KEEPERS), "testZooKeepers");
+    instance = ConfiguratorBase.getInstance(this.getClass(), conf);
+    assertEquals("testInstanceName", ((ZooKeeperInstance)instance).getInstanceName());
+    assertEquals("testZooKeepers", ((ZooKeeperInstance)instance).getZooKeepers());
+  }
+
   @Test
   public void testSetZooKeeperInstance() {
     Configuration conf = new Configuration();
-    ConfiguratorBase.setZooKeeperInstance(this.getClass(), conf, "testInstanceName", "testZooKeepers");
-    assertEquals("testInstanceName", conf.get(ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.InstanceOpts.NAME)));
-    assertEquals("testZooKeepers", conf.get(ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.InstanceOpts.ZOO_KEEPERS)));
+    ConfiguratorBase.setZooKeeperInstance(this.getClass(), conf, new ClientConfiguration().withInstance("testInstanceName").withZkHosts("testZooKeepers").withSsl(true).withZkTimeout(1234));
+    ClientConfiguration clientConf = ClientConfiguration.deserialize(conf.get(ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.InstanceOpts.CLIENT_CONFIG)));
+    assertEquals("testInstanceName", clientConf.get(ClientProperty.INSTANCE_NAME));
+    assertEquals("testZooKeepers", clientConf.get(ClientProperty.INSTANCE_ZK_HOST));
+    assertEquals("true", clientConf.get(ClientProperty.INSTANCE_RPC_SSL_ENABLED));
+    assertEquals("1234", clientConf.get(ClientProperty.INSTANCE_ZK_TIMEOUT));
     assertEquals(ZooKeeperInstance.class.getSimpleName(), conf.get(ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.InstanceOpts.TYPE)));
-    // TODO uncomment this after ACCUMULO-1699
-    // Instance instance = ConfiguratorBase.getInstance(this.getClass(), conf);
-    // assertEquals(ZooKeeperInstance.class.getName(), instance.getClass().getName());
+
+    Instance instance = ConfiguratorBase.getInstance(this.getClass(), conf);
+    assertEquals(ZooKeeperInstance.class.getName(), instance.getClass().getName());
+    assertEquals("testInstanceName", ((ZooKeeperInstance)instance).getInstanceName());
+    assertEquals("testZooKeepers", ((ZooKeeperInstance)instance).getZooKeepers());
+    assertEquals(1234000, ((ZooKeeperInstance)instance).getZooKeepersSessionTimeOut());
   }
 
   @Test

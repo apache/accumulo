@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -180,6 +181,21 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     return Integer.parseInt(countString);
   }
   
+  public String getPath(Property property) {
+    checkType(property, PropertyType.PATH);
+
+    String pathString = get(property);
+    if (pathString == null) return null;
+
+    for (String replaceableEnvVar : Constants.PATH_PROPERTY_ENV_VARS) {
+      String envValue = System.getenv(replaceableEnvVar);
+      if (envValue != null)
+        pathString = pathString.replace("$" + replaceableEnvVar, envValue);
+    }
+
+    return pathString;
+  }
+
   public static synchronized DefaultConfiguration getDefaultConfiguration() {
     return DefaultConfiguration.getInstance();
   }

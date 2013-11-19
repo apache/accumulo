@@ -46,6 +46,7 @@ import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.mapreduce.lib.util.InputConfigurator;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.conf.ClientConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -189,9 +190,24 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @param zooKeepers
    *          a comma-separated list of zookeeper servers
    * @since 1.5.0
+   * @deprecated since 1.6.0; Use {@link #setZooKeeperInstance(Job, ClientConfiguration)} instead.
    */
+  @Deprecated
   public static void setZooKeeperInstance(Job job, String instanceName, String zooKeepers) {
     InputConfigurator.setZooKeeperInstance(CLASS, job.getConfiguration(), instanceName, zooKeepers);
+  }
+
+  /**
+   * Configures a {@link org.apache.accumulo.core.client.ZooKeeperInstance} for this job.
+   *
+   * @param job
+   *          the Hadoop job instance to be configured
+   * @param clientConfig
+   *          client configuration containing connection options
+   * @since 1.6.0
+   */
+  public static void setZooKeeperInstance(Job job, ClientConfiguration clientConfig) {
+    InputConfigurator.setZooKeeperInstance(CLASS, job.getConfiguration(), clientConfig);
   }
 
   /**
@@ -379,7 +395,6 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       // but the scanner will use the table id resolved at job setup time
       InputTableConfig tableConfig = getInputTableConfig(attempt, split.getTableName());
 
-
       try {
         log.debug("Creating connector with user: " + principal);
         log.debug("Creating scanner for table: " + split.getTableName());
@@ -456,7 +471,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
 
     return InputConfigurator.binOffline(tableId, ranges, instance, conn);
   }
-  
+
   /**
    * Gets the splits of the tables that have been set on the job.
    * 

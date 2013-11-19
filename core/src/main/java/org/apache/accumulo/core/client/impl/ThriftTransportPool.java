@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.client.impl;
 
-import java.io.IOException;
 import java.security.SecurityPermission;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,10 +34,9 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.TTimeoutTransport;
+import org.apache.accumulo.core.util.SslConnectionParams;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.log4j.Logger;
-import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
@@ -362,11 +360,11 @@ public class ThriftTransportPool {
   private ThriftTransportPool() {}
   
   public TTransport getTransportWithDefaultTimeout(HostAndPort addr, AccumuloConfiguration conf) throws TTransportException {
-    return getTransport(String.format("%s:%d", addr.getHostText(), addr.getPort()), conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
+    return getTransport(String.format("%s:%d", addr.getHostText(), addr.getPort()), conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT), SslConnectionParams.forClient(conf));
   }
   
-  public TTransport getTransport(String location, long milliseconds) throws TTransportException {
-    return getTransport(new ThriftTransportKey(location, milliseconds));
+  public TTransport getTransport(String location, long milliseconds, SslConnectionParams sslParams) throws TTransportException {
+    return getTransport(new ThriftTransportKey(location, milliseconds, sslParams));
   }
   
   private TTransport getTransport(ThriftTransportKey cacheKey) throws TTransportException {
@@ -456,19 +454,8 @@ public class ThriftTransportPool {
   }
   
   private TTransport createNewTransport(ThriftTransportKey cacheKey) throws TTransportException {
-    TTransport transport;
-    if (cacheKey.getTimeout() == 0) {
-      transport = new TSocket(cacheKey.getLocation(), cacheKey.getPort());
-    } else {
-      try {
-        transport = TTimeoutTransport.create(HostAndPort.fromParts(cacheKey.getLocation(), cacheKey.getPort()), cacheKey.getTimeout());
-      } catch (IOException ex) {
-        throw new TTransportException(ex);
-      }
-    }
-    transport = ThriftUtil.transportFactory().getTransport(transport);
-    transport.open();
-    
+    TTransport transport = ThriftUtil.createClientTransport(HostAndPort.fromParts(cacheKey.getLocation(), cacheKey.getPort()), (int)cacheKey.getTimeout(), cacheKey.getSslParams());
+
     if (log.isTraceEnabled())
       log.trace("Creating new connection to connection to " + cacheKey.getLocation() + ":" + cacheKey.getPort());
     

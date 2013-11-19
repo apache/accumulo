@@ -21,6 +21,7 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.conf.ClientConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
@@ -42,7 +43,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  * <li>{@link AccumuloRowInputFormat#setConnectorInfo(Job, String, AuthenticationToken)}
  * <li>{@link AccumuloRowInputFormat#setInputTableName(Job, String)}
  * <li>{@link AccumuloRowInputFormat#setScanAuthorizations(Job, Authorizations)}
- * <li>{@link AccumuloRowInputFormat#setZooKeeperInstance(Job, String, String)} OR {@link AccumuloRowInputFormat#setMockInstance(Job, String)}
+ * <li>{@link AccumuloRowInputFormat#setZooKeeperInstance(Job, String, String, ClientConfiguration)} OR {@link AccumuloRowInputFormat#setMockInstance(Job, String)}
  * </ul>
  * 
  * Other static methods are optional.

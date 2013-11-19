@@ -70,7 +70,7 @@ public class Credentials {
    * Converts the current object to a serialized form. The object returned from this contains a non-destroyable version of the {@link AuthenticationToken}, so
    * references to it should be tightly controlled.
    */
-  public final String serialize() throws AccumuloSecurityException {
+  public final String serialize() {
     return (getPrincipal() == null ? "-" : Base64.encodeBase64String(getPrincipal().getBytes(Constants.UTF8))) + ":"
         + (getToken() == null ? "-" : Base64.encodeBase64String(getToken().getClass().getName().getBytes(Constants.UTF8))) + ":"
         + (getToken() == null ? "-" : Base64.encodeBase64String(AuthenticationTokenSerializer.serialize(getToken())));

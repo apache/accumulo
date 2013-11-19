@@ -69,7 +69,6 @@ public class MiniAccumuloClusterGCTest {
     }
   }
 
-  
   private static File testDir = new File(System.getProperty("user.dir") + "/target/" + MiniAccumuloClusterGCTest.class.getName());
   private static MiniAccumuloConfig macConfig;
   private static MiniAccumuloCluster accumulo;
@@ -103,7 +102,7 @@ public class MiniAccumuloClusterGCTest {
   // This test seems to be a little too unstable for a unit test
   @Ignore
   public void test() throws Exception {
-    ZooKeeperInstance inst = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers());
+    ZooKeeperInstance inst = new ZooKeeperInstance(accumulo.getClientConfig());
     Connector c = inst.getConnector("root", new PasswordToken(passwd));
 
     final String table = "foobar";
