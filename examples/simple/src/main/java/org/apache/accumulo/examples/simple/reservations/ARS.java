@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.ClientConfiguration;
 import org.apache.accumulo.core.data.Condition;
 import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.data.Key;
@@ -219,8 +220,8 @@ public class ARS {
 
   public List<String> list(String what, String when) throws Exception {
     String row = what + ":" + when;
-    
-    //its important to use an isolated scanner so that only whole mutations are seen
+
+    // its important to use an isolated scanner so that only whole mutations are seen
     Scanner scanner = new IsolatedScanner(conn.createScanner(rTable, Authorizations.EMPTY));
     scanner.setRange(new Range(row));
     scanner.fetchColumnFamily(new Text("res"));
@@ -285,7 +286,7 @@ public class ARS {
       } else if (tokens[0].equals("quit") && tokens.length == 1) {
         break;
       } else if (tokens[0].equals("connect") && tokens.length == 6 && ars == null) {
-        ZooKeeperInstance zki = new ZooKeeperInstance(tokens[1], tokens[2]);
+        ZooKeeperInstance zki = new ZooKeeperInstance(new ClientConfiguration().withInstance(tokens[1]).withZkHosts(tokens[2]));
         Connector conn = zki.getConnector(tokens[3], new PasswordToken(tokens[4]));
         if (conn.tableOperations().exists(tokens[5])) {
           ars = new ARS(conn, tokens[5]);
@@ -304,5 +305,4 @@ public class ARS {
       }
     }
   }
-
 }

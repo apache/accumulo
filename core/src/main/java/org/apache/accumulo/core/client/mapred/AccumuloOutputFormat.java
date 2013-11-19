@@ -193,13 +193,9 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
 
   /**
    * Configures a {@link ZooKeeperInstance} for this job.
-   *
+   * 
    * @param job
    *          the Hadoop job instance to be configured
-   * @param instanceName
-   *          the Accumulo instance name
-   * @param zooKeepers
-   *          a comma-separated list of zookeeper servers
    * @param clientConfig
    *          client configuration for specifying connection timeouts, SSL connection options, etc.
    * @since 1.6.0

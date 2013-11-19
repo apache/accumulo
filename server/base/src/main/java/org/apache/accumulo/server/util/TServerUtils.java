@@ -81,10 +81,6 @@ public class TServerUtils {
    *          the name of the class that is providing the service
    * @param threadName
    *          name this service's thread for better debugging
-   * @param portSearchProperty
-   * @param minThreadProperty
-   * @param timeBetweenThreadChecksProperty
-   * @param generalSslEnabled
    * @return the server object created, and the port actually used
    * @throws UnknownHostException
    *           when we don't know our own address

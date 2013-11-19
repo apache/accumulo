@@ -193,13 +193,9 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
 
   /**
    * Configures a {@link ZooKeeperInstance} for this job.
-   *
+   * 
    * @param job
    *          the Hadoop job instance to be configured
-   * @param instanceName
-   *          the Accumulo instance name
-   * @param zooKeepers
-   *          a comma-separated list of zookeeper servers
    * @param clientConfig
    *          client configuration for specifying connection timeouts, SSL connection options, etc.
    * @since 1.6.0
@@ -228,7 +224,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    *          the Hadoop context for the configured job
    * @return an Accumulo instance
    * @since 1.5.0
-   * @see #setZooKeeperInstance(Job, String, String, ClientConfiguration)
+   * @see #setZooKeeperInstance(Job, ClientConfiguration)
    * @see #setMockInstance(Job, String)
    */
   protected static Instance getInstance(JobContext context) {
