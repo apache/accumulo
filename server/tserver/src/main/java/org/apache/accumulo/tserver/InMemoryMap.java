@@ -220,7 +220,7 @@ public class InMemoryMap {
   }
   
   private static SimpleMap newMap(boolean useNativeMap) {
-    if (useNativeMap && NativeMap.loadedNativeLibraries()) {
+    if (useNativeMap && NativeMap.isLoaded()) {
       try {
         return new NativeMapWrapper();
       } catch (Throwable t) {

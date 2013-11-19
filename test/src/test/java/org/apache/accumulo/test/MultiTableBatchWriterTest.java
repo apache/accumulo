@@ -68,8 +68,8 @@ public class MultiTableBatchWriterTest {
   public static void tearDownAfterClass() throws Exception {
     cluster.stop();
     folder.delete();
- }
-  
+  }
+
   @Test
   public void testTableRenameDataValidation() throws Exception {
     ZooKeeperInstance instance = new ZooKeeperInstance(new ClientConfiguration().withInstance(cluster.getInstanceName()).withZkHosts(cluster.getZooKeepers()));
@@ -97,7 +97,7 @@ public class MultiTableBatchWriterTest {
       tops.create(table1);
 
       BatchWriter bw2 = mtbw.getBatchWriter(table1);
-      
+
       Mutation m2 = new Mutation("bar");
       m2.put("col1", "", "val1");
 
@@ -130,7 +130,7 @@ public class MultiTableBatchWriterTest {
       }
 
       Assert.assertEquals("Differing results for " + table2, table2Expectations, actual);
-      
+
     } finally {
       if (null != mtbw) {
         mtbw.close();
@@ -239,14 +239,14 @@ public class MultiTableBatchWriterTest {
       }
 
       tops.rename(table2, newTable2);
-      
+
       try {
         bw2 = mtbw.getBatchWriter(table2);
         Assert.fail("Should not be able to find this table");
       } catch (TableNotFoundException e) {
-        //pass
+        // pass
       }
-      
+
       bw1 = mtbw.getBatchWriter(newTable1);
       bw2 = mtbw.getBatchWriter(newTable2);
 
@@ -288,7 +288,7 @@ public class MultiTableBatchWriterTest {
     Connector connector = instance.getConnector("root", password);
 
     BatchWriterConfig config = new BatchWriterConfig();
-    
+
     Credentials creds = new Credentials("root", password);
     MultiTableBatchWriter mtbw = new MultiTableBatchWriterImpl(instance, creds, config, 0, TimeUnit.SECONDS);
 
@@ -450,7 +450,7 @@ public class MultiTableBatchWriterTest {
     Connector connector = instance.getConnector("root", password);
 
     BatchWriterConfig config = new BatchWriterConfig();
-    
+
     Credentials creds = new Credentials("root", password);
     MultiTableBatchWriter mtbw = new MultiTableBatchWriterImpl(instance, creds, config, 60, TimeUnit.SECONDS);
     boolean mutationsRejected = false;

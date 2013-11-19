@@ -152,7 +152,7 @@ public class TabletServerResourceManager {
     final AccumuloConfiguration acuConf = conf.getConfiguration();
 
     long maxMemory = acuConf.getMemoryInBytes(Property.TSERV_MAXMEM);
-    boolean usingNativeMap = acuConf.getBoolean(Property.TSERV_NATIVEMAP_ENABLED) && NativeMap.loadedNativeLibraries();
+    boolean usingNativeMap = acuConf.getBoolean(Property.TSERV_NATIVEMAP_ENABLED) && NativeMap.isLoaded();
 
     long blockSize = acuConf.getMemoryInBytes(Property.TSERV_DEFAULT_BLOCKSIZE);
     long dCacheSize = acuConf.getMemoryInBytes(Property.TSERV_DATACACHE_SIZE);

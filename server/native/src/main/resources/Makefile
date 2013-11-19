@@ -26,7 +26,7 @@ endif
 
 ifeq ($(shell uname),Darwin)
 	JAVA_HOME=$(shell /usr/libexec/java_home)
-	NATIVE_LIB:= libNativeMap-Mac_OS_X-x86_64-64.dylib
+	NATIVE_LIB:= libaccumulo.dylib
 	# Update flags for OSX-10.9 and Xcode 5.0.1
 	# I think that we should be able to remove the `-undefined dynamic_lookup` option,
 	# but I don't know exactly how to go about this.
