@@ -253,7 +253,8 @@ public class ShellServerTest {
     output.clear();
     shell.execCommand("du -h", false, false);
     String o = output.get();
-    assertTrue(o.matches(".*26[0-9]B\\s\\[t\\]\\n")); // for some reason, there's 1-2 bytes of fluctuation
+    // for some reason, there's a bit of fluctuation
+    assertTrue("Output did not match regex: '" + o + "'", o.matches(".*2[6-7][0-9]B\\s\\[t\\]\\n")); 
     exec("deletetable -f t");
   }
   
