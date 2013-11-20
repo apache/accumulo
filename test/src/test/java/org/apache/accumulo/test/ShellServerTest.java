@@ -729,7 +729,10 @@ public class ShellServerTest {
     
     UtilWaitThread.sleep(200);
     
-    exec("setiter -scan -class org.apache.accumulo.test.FooFilter -p 10 -n foo", true);
+    // We can't use the setiter command as Filter implements OptionDescriber which 
+    // forces us to enter more input that I don't know how to input
+    // Instead, we can just manually set the property on the table.
+    exec("config -t ptc -s " + Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.foo=10,org.apache.accumulo.test.FooFilter");
     
     exec("insert foo f q v", true);
     
@@ -747,7 +750,7 @@ public class ShellServerTest {
     exec("insert foo f q v", false);
     exec("insert ok foo q v", true);
     
-    exec("deletetable ptc", true);
+    exec("deletetable -f ptc", true);
     exec("config -d " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
     
   }
