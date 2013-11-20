@@ -17,9 +17,9 @@ Notice:    Licensed to the Apache Software Foundation (ASF) under one
            under the License.
 
 This example shows running a simple reservation system implemented using
-conditional mutations.  This system garuntees that only one concurrent user can
+conditional mutations.  This system guarantees that only one concurrent user can
 reserve a resource.  The example's reserve command allows multiple users to be
-specified.  When this is done it creates a separate reservation thread for each
+specified.  When this is done, it creates a separate reservation thread for each
 user.  In the example below threads are spun up for alice, bob, eve, mallory,
 and trent to reserve room06 on 20140101.  Bob ends up getting the reservation
 and everyone else is put on a wait list.  The example code will take any string
@@ -60,7 +60,7 @@ following:
     room06:20140101 tx:seq []    6
 
 The tx:seq column is incremented for each update to the row allowing for
-detection of concurrent changes.  For an update to go through the sequence
-number must not have changed since the data was read.  If it does change then
+detection of concurrent changes.  For an update to go through, the sequence
+number must not have changed since the data was read.  If it does change,
 the conditional mutation will fail and the example code will retry.
 
