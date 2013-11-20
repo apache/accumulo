@@ -61,6 +61,8 @@ public class MiniAccumuloConfig {
 
   private String[] classpathItems = null;
 
+  private String[] nativePathItems = null;
+
   /**
    * @param dir
    *          An empty or nonexistant directory that Accumulo and Zookeeper can store data in. Creating the directory is left to the user. Java 7, Guava, and
@@ -422,6 +424,26 @@ public class MiniAccumuloConfig {
    */
   public void setClasspathItems(String... classpathItems) {
     this.classpathItems = classpathItems;
+  }
+
+  /**
+   * @return the paths to use for loading native libraries
+   * 
+   * @since 1.6.0
+   */
+  public String[] getNativeLibPaths() {
+    return this.nativePathItems == null ? new String[0] : this.nativePathItems;
+  }
+
+  /**
+   * Sets the path for processes to use for loading native libraries
+   * 
+   * @param nativePathItems
+   *          the nativePathItems to set
+   * @since 1.6.0
+   */
+  public void setNativeLibPaths(String... nativePathItems) {
+    this.nativePathItems = nativePathItems;
   }
 
   /**

@@ -62,11 +62,15 @@ public class NativeMapIT {
     return new Value(String.format("r%09d", v).getBytes());
   }
 
-  @BeforeClass
-  public static void setUp() {
+  public static File nativeMapLocation() {
     File projectDir = new File(System.getProperty("user.dir")).getParentFile();
     File nativeMapDir = new File(projectDir, "server/native/target/accumulo-native-" + Constants.VERSION + "/accumulo-native-" + Constants.VERSION);
-    NativeMap.loadNativeLib(Collections.singletonList(nativeMapDir));
+    return nativeMapDir;
+  }
+
+  @BeforeClass
+  public static void setUp() {
+    NativeMap.loadNativeLib(Collections.singletonList(nativeMapLocation()));
   }
 
   private void verifyIterator(int start, int end, int valueOffset, Iterator<Entry<Key,Value>> iter) {
