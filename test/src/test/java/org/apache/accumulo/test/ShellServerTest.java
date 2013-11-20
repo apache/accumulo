@@ -456,7 +456,9 @@ public class ShellServerTest {
     exec("constraint -l -t !METADATA", true, "MetadataConstraints=1", true);
     exec("createtable c -evc");
     exec("constraint -l -t c", true, "VisibilityConstraint=1", true);
+    Thread.sleep(250);
     exec("constraint -t c -d 1", true, "Removed constraint 1 from table c");
+    Thread.sleep(250);
     exec("constraint -l -t c", true, "VisibilityConstraint=1", false);
     exec("deletetable -f c");
   }
