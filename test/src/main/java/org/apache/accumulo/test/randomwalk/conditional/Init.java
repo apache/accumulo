@@ -57,26 +57,22 @@ public class Init extends Test {
     ConditionalWriter cw = (ConditionalWriter) state.get("cw");
 
     for (int i : banks) {
-      ConditionalMutation m = null;
+      ConditionalMutation m = new ConditionalMutation(Utils.getBank(i));
       int acceptedCount = 0;
       for (int j = 0; j < numAccts; j++) {
         String cf = Utils.getAccount(j);
-        if (m == null) {
-          m = new ConditionalMutation(Utils.getBank(i), new Condition(cf, "seq"));
-        } else {
-          m.addCondition(new Condition(cf, "seq"));
-        }
+        m.addCondition(new Condition(cf, "seq"));
         m.put(cf, "bal", "100");
         m.put(cf, "seq", Utils.getSeq(0));
 
-        if (j % 1000 == 0) {
+        if (j % 1000 == 0 && j > 0) {
           if (cw.write(m).getStatus() == Status.ACCEPTED)
             acceptedCount++;
-          m = null;
+          m = new ConditionalMutation(Utils.getBank(i));
         }
 
       }
-      if (m != null)
+      if (m.getConditions().size() > 0)
         cw.write(m);
 
       log.debug("Added bank " + Utils.getBank(i) + " " + acceptedCount);
