@@ -26,36 +26,38 @@ import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.hadoop.io.Text;
 
 /**
+ * A Mutation that contains a list of conditions that must all be met before the mutation is applied.
+ * 
  * @since 1.6.0
  */
 public class ConditionalMutation extends Mutation {
   
   private List<Condition> conditions = new ArrayList<Condition>();
 
-  public ConditionalMutation(byte[] row, Condition condition, Condition... conditions) {
+  public ConditionalMutation(byte[] row, Condition... conditions) {
     super(row);
-    init(condition, conditions);
+    init(conditions);
   }
   
-  public ConditionalMutation(byte[] row, int start, int length, Condition condition, Condition... conditions) {
+  public ConditionalMutation(byte[] row, int start, int length, Condition... conditions) {
     super(row, start, length);
-    init(condition, conditions);
+    init(conditions);
   }
   
-  public ConditionalMutation(Text row, Condition condition, Condition... conditions) {
+  public ConditionalMutation(Text row, Condition... conditions) {
     super(row);
-    init(condition, conditions);
+    init(conditions);
   }
   
-  public ConditionalMutation(CharSequence row, Condition condition, Condition... conditions) {
+  public ConditionalMutation(CharSequence row, Condition... conditions) {
     super(row);
-    init(condition, conditions);
+    init(conditions);
   }
   
-  public ConditionalMutation(ByteSequence row, Condition condition, Condition... conditions) {
+  public ConditionalMutation(ByteSequence row, Condition... conditions) {
     // TODO add ByteSequence methods to mutations
     super(row.toArray());
-    init(condition, conditions);
+    init(conditions);
   }
   
   public ConditionalMutation(ConditionalMutation cm) {
@@ -63,12 +65,9 @@ public class ConditionalMutation extends Mutation {
     this.conditions = new ArrayList<Condition>(cm.conditions);
   }
 
-  private void init(Condition condition, Condition... conditions) {
-    ArgumentChecker.notNull(condition);
-    this.conditions.add(condition);
-    if (conditions.length > 0) {
-      this.conditions.addAll(Arrays.asList(conditions));
-    }
+  private void init(Condition... conditions) {
+    ArgumentChecker.notNull(conditions);
+    this.conditions.addAll(Arrays.asList(conditions));
   }
   
   public void addCondition(Condition condition) {

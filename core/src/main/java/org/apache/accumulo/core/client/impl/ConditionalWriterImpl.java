@@ -405,6 +405,9 @@ class ConditionalWriterImpl implements ConditionalWriter {
       ConditionalMutation mut = mutations.next();
       count++;
       
+      if (mut.getConditions().size() == 0)
+        throw new IllegalArgumentException("ConditionalMutation had no conditions " + new String(mut.getRow()));
+
       for (Condition cond : mut.getConditions()) {
         if (!isVisible(cond.getVisibility())) {
           resultQueue.add(new Result(Status.INVISIBLE_VISIBILITY, mut, null));

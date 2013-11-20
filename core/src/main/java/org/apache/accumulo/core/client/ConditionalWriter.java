@@ -23,6 +23,9 @@ import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.data.ConditionalMutation;
 
 /**
+ * ConditionalWriter provides the ability to do efficient, atomic read-modify-write operations on rows. These operations are performed on the tablet server
+ * while a row lock is held.
+ * 
  * @since 1.6.0
  */
 public interface ConditionalWriter {

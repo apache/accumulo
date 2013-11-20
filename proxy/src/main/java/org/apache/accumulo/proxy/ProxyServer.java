@@ -1567,7 +1567,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       
       ArrayList<ConditionalMutation> cmuts = new ArrayList<ConditionalMutation>(updates.size());
       for (Entry<ByteBuffer,ConditionalUpdates> cu : updates.entrySet()) {
-        ConditionalMutation cmut = null;
+        ConditionalMutation cmut = new ConditionalMutation(ByteBufferUtil.toBytes(cu.getKey()));
         
         for (Condition tcond : cu.getValue().conditions) {
           org.apache.accumulo.core.data.Condition cond = new org.apache.accumulo.core.data.Condition(tcond.column.getColFamily(),
@@ -1587,10 +1587,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
             cond.setIterators(getIteratorSettings(tcond.getIterators()).toArray(new IteratorSetting[tcond.getIterators().size()]));
           }
           
-          if (cmut == null)
-            cmut = new ConditionalMutation(ByteBufferUtil.toBytes(cu.getKey()), cond);
-          else
-            cmut.addCondition(cond);
+          cmut.addCondition(cond);
         }
         
         addUpdatesToMutation(vizMap, cmut, cu.getValue().updates);

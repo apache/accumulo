@@ -61,6 +61,8 @@ public class MiniAccumuloConfig {
 
   private String[] classpathItems = null;
 
+  private String[] nativePathItems = null;
+
   /**
    * @param dir
    *          An empty or nonexistant directory that Accumulo and Zookeeper can store data in. Creating the directory is left to the user. Java 7, Guava, and
@@ -361,7 +363,7 @@ public class MiniAccumuloConfig {
 
   /**
    * @return location of client conf file containing connection parameters for connecting to this minicluster
-   *
+   * 
    * @since 1.6.0
    */
   public File getClientConfFile() {
@@ -385,8 +387,8 @@ public class MiniAccumuloConfig {
   }
 
   /**
-   * @return sets system properties set for service processes
-   *
+   * sets system properties set for service processes
+   * 
    * @since 1.6.0
    */
   public void setSystemProperties(Map<String,String> systemProperties) {
@@ -395,17 +397,18 @@ public class MiniAccumuloConfig {
 
   /**
    * @return a copy of the system properties for service processes
-   *
+   * 
    * @since 1.6.0
    */
   public Map<String,String> getSystemProperties() {
     return new HashMap<String,String>(systemProperties);
   }
 
-  /*
+  /**
    * Gets the classpath elements to use when spawning processes.
    * 
    * @return the classpathItems, if set
+   * 
    * @since 1.6.0
    */
   public String[] getClasspathItems() {
@@ -421,6 +424,26 @@ public class MiniAccumuloConfig {
    */
   public void setClasspathItems(String... classpathItems) {
     this.classpathItems = classpathItems;
+  }
+
+  /**
+   * @return the paths to use for loading native libraries
+   * 
+   * @since 1.6.0
+   */
+  public String[] getNativeLibPaths() {
+    return this.nativePathItems == null ? new String[0] : this.nativePathItems;
+  }
+
+  /**
+   * Sets the path for processes to use for loading native libraries
+   * 
+   * @param nativePathItems
+   *          the nativePathItems to set
+   * @since 1.6.0
+   */
+  public void setNativeLibPaths(String... nativePathItems) {
+    this.nativePathItems = nativePathItems;
   }
 
   /**

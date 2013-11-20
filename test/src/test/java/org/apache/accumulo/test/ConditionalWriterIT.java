@@ -48,6 +48,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableDeletedException;
+import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -910,7 +911,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
   public void testThreads() throws Exception {
     // test multiple threads using a single conditional writer
 
-    String table = "foo9";
+    String table = getTableNames(1)[0];
     Connector conn = getConnector();
 
     conn.tableOperations().create(table);
@@ -1032,7 +1033,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
   public void testTimeout() throws Exception {
     Connector conn = getConnector();
 
-    String table = "fooT";
+    String table = getTableNames(1)[0];
 
     conn.tableOperations().create(table);
 
@@ -1079,7 +1080,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
 
   @Test
   public void testDeleteTable() throws Exception {
-    String table = "foo12";
+    String table = getTableNames(1)[0];
     Connector conn = getConnector();
 
     try {
@@ -1109,7 +1110,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
 
   @Test
   public void testOffline() throws Exception {
-    String table = "foo11";
+    String table = getTableNames(1)[0];
     Connector conn = getConnector();
 
     conn.tableOperations().create(table);
@@ -1141,7 +1142,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
 
   @Test
   public void testError() throws Exception {
-    String table = "foo10";
+    String table = getTableNames(1)[0];
     Connector conn = getConnector();
 
     conn.tableOperations().create(table);
@@ -1166,4 +1167,19 @@ public class ConditionalWriterIT extends SimpleMacIT {
     cw.close();
   }
 
+  @Test(expected = IllegalArgumentException.class)
+  public void testNoConditions() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException {
+    String table = getTableNames(1)[0];
+    Connector conn = getConnector();
+
+    conn.tableOperations().create(table);
+
+    ConditionalWriter cw = conn.createConditionalWriter(table, new ConditionalWriterConfig());
+
+    ConditionalMutation cm1 = new ConditionalMutation("r1");
+    cm1.put("tx", "seq", "1");
+    cm1.put("data", "x", "a");
+
+    cw.write(cm1);
+  }
 }

@@ -53,6 +53,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.master.Master;
@@ -61,10 +62,9 @@ import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.start.Main;
-import org.apache.commons.configuration.MapConfiguration;
 import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
 import org.apache.accumulo.tserver.TabletServer;
-import org.apache.commons.io.FileUtils;
+import org.apache.commons.configuration.MapConfiguration;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
 import org.apache.hadoop.conf.Configuration;
@@ -235,7 +235,6 @@ public class MiniAccumuloCluster {
 
     ArrayList<String> argList = new ArrayList<String>();
     argList.addAll(Arrays.asList(javaBin, "-Dproc=" + clazz.getSimpleName(), "-cp", classpath));
-    argList.add("-Djava.library.path=" + config.getLibDir());
     argList.addAll(extraJvmOpts);
     for (Entry<String,String> sysProp : config.getSystemProperties().entrySet()) {
       argList.add(String.format("-D%s=%s", sysProp.getKey(), sysProp.getValue()));
@@ -248,6 +247,9 @@ public class MiniAccumuloCluster {
     builder.environment().put("ACCUMULO_HOME", config.getDir().getAbsolutePath());
     builder.environment().put("ACCUMULO_LOG_DIR", config.getLogDir().getAbsolutePath());
     builder.environment().put("ACCUMULO_CLIENT_CONF_PATH", config.getClientConfFile().getAbsolutePath());
+    String ldLibraryPath = StringUtil.join(Arrays.asList(config.getNativeLibPaths()), File.pathSeparator);
+    builder.environment().put("LD_LIBRARY_PATH", ldLibraryPath);
+    builder.environment().put("DYLD_LIBRARY_PATH", ldLibraryPath);
 
     // if we're running under accumulo.start, we forward these env vars
     String env = System.getenv("HADOOP_PREFIX");
@@ -353,6 +355,7 @@ public class MiniAccumuloCluster {
     File clientConfFile = config.getClientConfFile();
     // Write only the properties that correspond to ClientConfiguration properties
     writeConfigProperties(clientConfFile, Maps.filterEntries(config.getSiteConfig(), new Predicate<Entry<String,String>>() {
+      @Override
       public boolean apply(Entry<String,String> v) {
         return ClientConfiguration.ClientProperty.getPropertyByKey(v.getKey()) != null;
       }
@@ -375,18 +378,6 @@ public class MiniAccumuloCluster {
     zooCfg.store(fileWriter, null);
 
     fileWriter.close();
-
-    File nativeMap = new File(config.getLibDir().getAbsolutePath() + "/native/map");
-    nativeMap.mkdirs();
-    File testRoot = new File(new File(new File(System.getProperty("user.dir")).getParent() + "/server/src/main/c++/nativeMap").getAbsolutePath());
-
-    if (testRoot.exists()) {
-      for (String file : testRoot.list()) {
-        File src = new File(testRoot, file);
-        if (src.isFile() && file.startsWith("libNativeMap"))
-          FileUtils.copyFile(src, new File(nativeMap, file));
-      }
-    }
   }
 
   private void writeConfig(File file, Iterable<Map.Entry<String,String>> settings) throws IOException {
@@ -400,6 +391,7 @@ public class MiniAccumuloCluster {
     fileWriter.append("</configuration>\n");
     fileWriter.close();
   }
+
   private void writeConfigProperties(File file, Map<String,String> settings) throws IOException {
     FileWriter fileWriter = new FileWriter(file);
 
@@ -439,7 +431,7 @@ public class MiniAccumuloCluster {
     if (!initialized) {
       // sleep a little bit to let zookeeper come up before calling init, seems to work better
       long startTime = System.currentTimeMillis();
-      while (true) { 
+      while (true) {
         try {
           Socket s = new Socket("localhost", config.getZooKeeperPort());
           s.getOutputStream().write("ruok\n".getBytes());
@@ -449,7 +441,7 @@ public class MiniAccumuloCluster {
           if (n == 4 && new String(buffer, 0, n).equals("imok"))
             break;
         } catch (Exception e) {
-          if(System.currentTimeMillis() - startTime >= 10000) {
+          if (System.currentTimeMillis() - startTime >= 10000) {
             throw new RuntimeException("Zookeeper did not start within 10 seconds . Check the logs in " + config.getLogDir() + " for errors.");
           }
           UtilWaitThread.sleep(250);
@@ -626,7 +618,8 @@ public class MiniAccumuloCluster {
   }
 
   public ClientConfiguration getClientConfig() {
-    return new ClientConfiguration(Arrays.asList(new MapConfiguration(config.getSiteConfig()))).withInstance(this.getInstanceName()).withZkHosts(this.getZooKeepers());
+    return new ClientConfiguration(Arrays.asList(new MapConfiguration(config.getSiteConfig()))).withInstance(this.getInstanceName()).withZkHosts(
+        this.getZooKeepers());
   }
 
   public FileSystem getFileSystem() {

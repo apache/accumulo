@@ -26,6 +26,7 @@ import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.hadoop.io.Text;
 
 /**
+ * Conditions that must be met on a particular column in a row.
  * 
  * @since 1.6.0
  */
@@ -76,6 +77,13 @@ public class Condition {
     return cq;
   }
 
+  /**
+   * Sets the version for the column to check. If this is not set then the latest column will be checked, unless iterators do something different.
+   * 
+   * @param ts
+   * @return returns this
+   */
+
   public Condition setTimestamp(long ts) {
     this.ts = ts;
     return this;
@@ -85,11 +93,26 @@ public class Condition {
     return ts;
   }
 
+  /**
+   * see {@link #setValue(byte[])}
+   * 
+   * @param value
+   * @return returns this
+   */
+
   public Condition setValue(CharSequence value) {
     ArgumentChecker.notNull(value);
     this.val = new ArrayByteSequence(value.toString().getBytes(Constants.UTF8));
     return this;
   }
+
+  /**
+   * This method sets the expected value of a column. Inorder for the condition to pass the column must exist and have this value. If a value is not set, then
+   * the column must be absent for the condition to pass.
+   * 
+   * @param value
+   * @return returns this
+   */
 
   public Condition setValue(byte[] value) {
     ArgumentChecker.notNull(value);
@@ -97,12 +120,26 @@ public class Condition {
     return this;
   }
   
+  /**
+   * see {@link #setValue(byte[])}
+   * 
+   * @param value
+   * @return returns this
+   */
+
   public Condition setValue(Text value) {
     ArgumentChecker.notNull(value);
     this.val = new ArrayByteSequence(value.getBytes(), 0, value.getLength());
     return this;
   }
   
+  /**
+   * see {@link #setValue(byte[])}
+   * 
+   * @param value
+   * @return returns this
+   */
+
   public Condition setValue(ByteSequence value) {
     ArgumentChecker.notNull(value);
     this.val = value;
@@ -113,6 +150,13 @@ public class Condition {
     return val;
   }
 
+  /**
+   * Sets the visibility for the column to check. If not set it defaults to empty visibility.
+   * 
+   * @param cv
+   * @return returns this
+   */
+
   public Condition setVisibility(ColumnVisibility cv) {
     ArgumentChecker.notNull(cv);
     this.cv = new ArrayByteSequence(cv.getExpression());
@@ -122,6 +166,16 @@ public class Condition {
   public ByteSequence getVisibility() {
     return cv;
   }
+
+  /**
+   * Set iterators to use when reading the columns value. These iterators will be applied in addition to the iterators configured for the table. Using iterators
+   * its possible to test other conditions, besides equality and absence, like less than. On the server side the iterators will be seeked using a range that
+   * covers only the family, qualifier, and visibility (if the timestamp is set then it will be used to narrow the range). Value equality will be tested using
+   * the first entry returned by the iterator stack.
+   * 
+   * @param iterators
+   * @return returns this
+   */
 
   public Condition setIterators(IteratorSetting... iterators) {
     ArgumentChecker.notNull(iterators);
