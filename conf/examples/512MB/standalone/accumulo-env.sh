@@ -55,3 +55,9 @@ test -z "$ACCUMULO_OTHER_OPTS"   && export ACCUMULO_OTHER_OPTS="-Xmx128m -Xms64m
 export ACCUMULO_LOG_HOST=`(grep -v '^#' $ACCUMULO_HOME/conf/monitor ; echo localhost ) 2>/dev/null | head -1`
 # what do when the JVM runs out of heap memory
 export ACCUMULO_KILL_CMD='kill -9 %p'
+
+### Optionally look for hadoop and accumulo native libraries for your
+### platform in additional directories. (Use DYLD_LIBRARY_PATH on Mac OS X.)
+### May not be necessary for Hadoop 2.x or using an RPM that installs to
+### the correct system library directory.
+# export LD_LIBRARY_PATH=${HADOOP_PREFIX}/lib/native/${PLATFORM}:${LD_LIBRARY_PATH}
