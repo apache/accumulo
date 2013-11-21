@@ -51,7 +51,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -81,7 +80,6 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.security.SystemCredentials;
-import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileStatus;
@@ -100,8 +98,6 @@ public class MetadataTableUtil {
   private static Map<Credentials,Writer> metadata_tables = new HashMap<Credentials,Writer>();
   private static final Logger log = Logger.getLogger(MetadataTableUtil.class);
 
-  private static final int SAVE_ROOT_TABLET_RETRIES = 3;
-
   private MetadataTableUtil() {}
 
   public synchronized static Writer getMetadataTable(Credentials credentials) {
@@ -113,7 +109,7 @@ public class MetadataTableUtil {
     return metadataTable;
   }
 
-  public synchronized static Writer getRootTable(Credentials credentials) {
+  private synchronized static Writer getRootTable(Credentials credentials) {
     Writer rootTable = root_tables.get(credentials);
     if (rootTable == null) {
       rootTable = new Writer(HdfsZooInstance.getInstance(), credentials, RootTable.ID);
@@ -122,12 +118,12 @@ public class MetadataTableUtil {
     return rootTable;
   }
 
-  public static void putLockID(ZooLock zooLock, Mutation m) {
+  private static void putLockID(ZooLock zooLock, Mutation m) {
     TabletsSection.ServerColumnFamily.LOCK_COLUMN.put(m, new Value(zooLock.getLockID().serialize(ZooUtil.getRoot(HdfsZooInstance.getInstance()) + "/")
         .getBytes()));
   }
 
-  public static void update(Credentials credentials, Mutation m, KeyExtent extent) {
+  private static void update(Credentials credentials, Mutation m, KeyExtent extent) {
     update(credentials, null, m, extent);
   }
 
@@ -194,71 +190,6 @@ public class MetadataTableUtil {
   public static void updateTabletPrevEndRow(KeyExtent extent, Credentials credentials) {
     Mutation m = extent.getPrevRowUpdateMutation(); //
     update(credentials, m, extent);
-  }
-
-  /**
-   * convenience method for reading entries from the metadata table
-   */
-  public static SortedMap<KeyExtent,Text> getMetadataDirectoryEntries(SortedMap<Key,Value> entries) {
-    Key key;
-    Value val;
-    Text datafile = null;
-    Value prevRow = null;
-    KeyExtent ke;
-
-    SortedMap<KeyExtent,Text> results = new TreeMap<KeyExtent,Text>();
-
-    Text lastRowFromKey = new Text();
-
-    // text obj below is meant to be reused in loop for efficiency
-    Text colf = new Text();
-    Text colq = new Text();
-
-    for (Entry<Key,Value> entry : entries.entrySet()) {
-      key = entry.getKey();
-      val = entry.getValue();
-
-      if (key.compareRow(lastRowFromKey) != 0) {
-        prevRow = null;
-        datafile = null;
-        key.getRow(lastRowFromKey);
-      }
-
-      colf = key.getColumnFamily(colf);
-      colq = key.getColumnQualifier(colq);
-
-      // interpret the row id as a key extent
-      if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.equals(colf, colq))
-        datafile = new Text(val.toString());
-
-      else if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq))
-        prevRow = new Value(val);
-
-      if (datafile != null && prevRow != null) {
-        ke = new KeyExtent(key.getRow(), prevRow);
-        results.put(ke, datafile);
-
-        datafile = null;
-        prevRow = null;
-      }
-    }
-    return results;
-  }
-
-  public static boolean recordRootTabletLocation(String address) {
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-    for (int i = 0; i < SAVE_ROOT_TABLET_RETRIES; i++) {
-      try {
-        log.info("trying to write root tablet location to ZooKeeper as " + address);
-        String zRootLocPath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + RootTable.ZROOT_TABLET_LOCATION;
-        zoo.putPersistentData(zRootLocPath, address.getBytes(), NodeExistsPolicy.OVERWRITE);
-        return true;
-      } catch (Exception e) {
-        log.error("Master: unable to save root tablet location in zookeeper. exception: " + e, e);
-      }
-    }
-    log.error("Giving up after " + SAVE_ROOT_TABLET_RETRIES + " retries");
-    return false;
   }
 
   public static SortedMap<FileRef,DataFileValue> getDataFileSizes(KeyExtent extent, Credentials credentials) throws IOException {
@@ -621,7 +552,7 @@ public class MetadataTableUtil {
     return scanner;
   }
 
-  static class LogEntryIterator implements Iterator<LogEntry> {
+  private static class LogEntryIterator implements Iterator<LogEntry> {
 
     Iterator<LogEntry> zookeeperEntries = null;
     Iterator<LogEntry> rootTableEntries = null;
@@ -670,8 +601,8 @@ public class MetadataTableUtil {
   }
 
   public static void removeUnusedWALEntries(KeyExtent extent, List<LogEntry> logEntries, ZooLock zooLock) {
-    for (LogEntry entry : logEntries) {
-      if (entry.extent.isRootTablet()) {
+    if (extent.isRootTablet()) {
+      for (LogEntry entry : logEntries) {
         String root = getZookeeperLogLocation();
         while (true) {
           try {
@@ -684,11 +615,13 @@ public class MetadataTableUtil {
           }
           UtilWaitThread.sleep(1000);
         }
-      } else {
-        Mutation m = new Mutation(entry.extent.getMetadataEntry());
-        m.putDelete(LogColumnFamily.NAME, new Text(entry.toString()));
-        update(SystemCredentials.get(), zooLock, m, entry.extent);
       }
+    } else {
+      Mutation m = new Mutation(extent.getMetadataEntry());
+      for (LogEntry entry : logEntries) {
+        m.putDelete(LogColumnFamily.NAME, new Text(entry.toString()));
+      }
+      update(SystemCredentials.get(), zooLock, m, extent);
     }
   }
 
@@ -750,7 +683,7 @@ public class MetadataTableUtil {
     bw.flush();
   }
 
-  static int compareEndRows(Text endRow1, Text endRow2) {
+  private static int compareEndRows(Text endRow1, Text endRow2) {
     return new KeyExtent(new Text("0"), endRow1, null).compareTo(new KeyExtent(new Text("0"), endRow2, null));
   }
 
@@ -1023,12 +956,4 @@ public class MetadataTableUtil {
 
     return tabletEntries;
   }
-
-  public static void convertRootTabletToRootTable(Instance instance, SystemCredentials systemCredentials) throws KeeperException, InterruptedException {
-    ZooReaderWriter zoo = ZooReaderWriter.getInstance();
-    if (zoo.exists(ZooUtil.getRoot(instance) + "/tables/" + RootTable.ID))
-      return;
-    TableManager.prepareNewTableState(instance.getInstanceID(), RootTable.ID, RootTable.NAME, TableState.ONLINE, NodeExistsPolicy.FAIL);
-  }
-
 }
