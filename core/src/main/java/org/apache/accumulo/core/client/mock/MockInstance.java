@@ -51,17 +51,17 @@ import org.apache.hadoop.io.Text;
  */
 
 public class MockInstance implements Instance {
-  
+
   static final String genericAddress = "localhost:1234";
   static final Map<String,MockAccumulo> instances = new HashMap<String,MockAccumulo>();
   MockAccumulo acu;
   String instanceName;
-  
+
   public MockInstance() {
     acu = new MockAccumulo(getDefaultFileSystem());
     instanceName = "mock-instance";
   }
-  
+
   static FileSystem getDefaultFileSystem() {
     try {
       Configuration conf = CachedConfiguration.getInstance();
@@ -72,11 +72,11 @@ public class MockInstance implements Instance {
       throw new RuntimeException(ex);
     }
   }
-  
+
   public MockInstance(String instanceName) {
     this(instanceName, getDefaultFileSystem());
   }
-  
+
   public MockInstance(String instanceName, FileSystem fs) {
     synchronized (instances) {
       if (instances.containsKey(instanceName))
@@ -86,70 +86,71 @@ public class MockInstance implements Instance {
     }
     this.instanceName = instanceName;
   }
-  
+
   @Override
   public String getRootTabletLocation() {
     return genericAddress;
   }
-  
+
   @Override
   public List<String> getMasterLocations() {
     return Collections.singletonList(genericAddress);
   }
-  
+
   @Override
   public String getInstanceID() {
     return "mock-instance-id";
   }
-  
+
   @Override
   public String getInstanceName() {
     return instanceName;
   }
-  
+
   @Override
   public String getZooKeepers() {
     return "localhost";
   }
-  
+
   @Override
   public int getZooKeepersSessionTimeOut() {
     return 30 * 1000;
   }
-  
+
   @Override
   @Deprecated
   public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, new PasswordToken(pass));
   }
-  
+
   @Override
   @Deprecated
   public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, ByteBufferUtil.toBytes(pass));
   }
-  
+
   @Override
   @Deprecated
   public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, TextUtil.getBytes(new Text(pass.toString())));
   }
-  
+
   AccumuloConfiguration conf = null;
-  
+
+  @Deprecated
   @Override
   public AccumuloConfiguration getConfiguration() {
     if (conf == null)
       conf = AccumuloConfiguration.getDefaultConfiguration();
     return conf;
   }
-  
+
   @Override
   @Deprecated
   public void setConfiguration(AccumuloConfiguration conf) {
     this.conf = conf;
   }
-  
+
   @Override
   public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
     Connector conn = new MockConnector(new Credentials(principal, token), acu, this);

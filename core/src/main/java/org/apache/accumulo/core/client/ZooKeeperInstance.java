@@ -23,12 +23,13 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.impl.ConnectorImpl;
+import org.apache.accumulo.core.client.impl.ServerConfigurationUtil;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.ClientConfiguration;
-import org.apache.accumulo.core.conf.ClientConfiguration.ClientProperty;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
@@ -81,7 +82,7 @@ public class ZooKeeperInstance implements Instance {
    *          The name of specific accumulo instance. This is set at initialization time.
    * @param zooKeepers
    *          A comma separated list of zoo keeper server locations. Each location can contain an optional port, of the format host:port.
-   * @deprecated since 1.6.0; Use {@link #ZooKeeperInstance(ClientConfiguration)} instead.
+   * @deprecated since 1.6.0; Use {@link #ZooKeeperInstance(Configuration)} instead.
    */
   @Deprecated
   public ZooKeeperInstance(String instanceName, String zooKeepers) {
@@ -96,7 +97,7 @@ public class ZooKeeperInstance implements Instance {
    *          A comma separated list of zoo keeper server locations. Each location can contain an optional port, of the format host:port.
    * @param sessionTimeout
    *          zoo keeper session time out in milliseconds.
-   * @deprecated since 1.6.0; Use {@link #ZooKeeperInstance(ClientConfiguration)} instead.
+   * @deprecated since 1.6.0; Use {@link #ZooKeeperInstance(Configuration)} instead.
    */
   @Deprecated
   public ZooKeeperInstance(String instanceName, String zooKeepers, int sessionTimeout) {
@@ -109,7 +110,7 @@ public class ZooKeeperInstance implements Instance {
    *          The UUID that identifies the accumulo instance you want to connect to.
    * @param zooKeepers
    *          A comma separated list of zoo keeper server locations. Each location can contain an optional port, of the format host:port.
-   * @deprecated since 1.6.0; Use {@link #ZooKeeperInstance(ClientConfiguration)} instead.
+   * @deprecated since 1.6.0; Use {@link #ZooKeeperInstance(Configuration)} instead.
    */
   @Deprecated
   public ZooKeeperInstance(UUID instanceId, String zooKeepers) {
@@ -124,7 +125,7 @@ public class ZooKeeperInstance implements Instance {
    *          A comma separated list of zoo keeper server locations. Each location can contain an optional port, of the format host:port.
    * @param sessionTimeout
    *          zoo keeper session time out in milliseconds.
-   * @deprecated since 1.6.0; Use {@link #ZooKeeperInstance(ClientConfiguration)} instead.
+   * @deprecated since 1.6.0; Use {@link #ZooKeeperInstance(Configuration)} instead.
    */
   @Deprecated
   public ZooKeeperInstance(UUID instanceId, String zooKeepers, int sessionTimeout) {
@@ -264,11 +265,9 @@ public class ZooKeeperInstance implements Instance {
   }
 
   @Override
+  @Deprecated
   public AccumuloConfiguration getConfiguration() {
-    if (accumuloConf == null) {
-      accumuloConf = clientConf.getAccumuloConfiguration();
-    }
-    return accumuloConf;
+    return ServerConfigurationUtil.convertClientConfig(accumuloConf == null ? DefaultConfiguration.getInstance() : accumuloConf, clientConf);
   }
 
   @Override

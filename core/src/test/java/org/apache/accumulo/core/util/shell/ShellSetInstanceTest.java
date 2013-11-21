@@ -35,11 +35,11 @@ import java.util.UUID;
 
 import jline.console.ConsoleReader;
 
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.ClientConfiguration;
-import org.apache.accumulo.core.conf.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigSanityCheck;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -154,22 +154,21 @@ public class ShellSetInstanceTest {
       expect(clientConf.get(ClientProperty.INSTANCE_NAME)).andReturn(null);
     }
 
-    AccumuloConfiguration conf = createMock(AccumuloConfiguration.class);
-    expect(clientConf.getAccumuloConfiguration()).andReturn(conf);
-
     mockStatic(ConfigSanityCheck.class);
     ConfigSanityCheck.validate(EasyMock.<AccumuloConfiguration>anyObject());
-    expectLastCall();
+    expectLastCall().atLeastOnce();
     replay(ConfigSanityCheck.class);
 
     if (!onlyHosts) {
-      expect(conf.get(Property.INSTANCE_ZK_HOST)).andReturn("host1,host2").atLeastOnce();
+      expect(clientConf.containsKey(Property.INSTANCE_ZK_HOST.getKey())).andReturn(true).atLeastOnce();
+      expect(clientConf.getString(Property.INSTANCE_ZK_HOST.getKey())).andReturn("host1,host2").atLeastOnce();
       expect(clientConf.withZkHosts("host1,host2")).andReturn(clientConf);
     }
     if (!onlyInstance) {
-      expect(conf.get(Property.INSTANCE_DFS_DIR)).andReturn("/dfs").atLeastOnce();
+      expect(clientConf.containsKey(Property.INSTANCE_DFS_DIR.getKey())).andReturn(true).atLeastOnce();
+      expect(clientConf.getString(Property.INSTANCE_DFS_DIR.getKey())).andReturn("/dfs").atLeastOnce();
     }
-    replay(conf);
+
     UUID randomUUID = null;
     if (!onlyInstance) {
       mockStatic(ZooUtil.class);

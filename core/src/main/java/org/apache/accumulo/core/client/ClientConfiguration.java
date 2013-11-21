@@ -14,31 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.conf;
+package org.apache.accumulo.core.client;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.TreeMap;
 import java.util.UUID;
 
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.PropertyType;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.commons.configuration.CompositeConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.MapConfiguration;
 import org.apache.commons.configuration.PropertiesConfiguration;
 
 /**
  * Contains a list of property keys recognized by the Accumulo client and convenience methods for setting them.
+ * 
+ * @since 1.6.0
  */
 public class ClientConfiguration extends CompositeConfiguration {
   public static final String USER_ACCUMULO_DIR_NAME = ".accumulo";
@@ -258,53 +256,5 @@ public class ClientConfiguration extends CompositeConfiguration {
     if (type != null)
       setProperty(ClientProperty.RPC_SSL_KEYSTORE_TYPE, type);
     return this;
-  }
-
-  public AccumuloConfiguration getAccumuloConfiguration() {
-    final AccumuloConfiguration defaultConf = AccumuloConfiguration.getDefaultConfiguration();
-    return new AccumuloConfiguration() {
-
-      @Override
-      public Iterator<Entry<String,String>> iterator() {
-        TreeMap<String,String> entries = new TreeMap<String,String>();
-
-        for (Entry<String,String> parentEntry : defaultConf)
-          entries.put(parentEntry.getKey(), parentEntry.getValue());
-
-        @SuppressWarnings("unchecked")
-        Iterator<String> keyIter = getKeys();
-        while (keyIter.hasNext()) {
-          String key = keyIter.next();
-          entries.put(key, getString(key));
-        }
-
-        return entries.entrySet().iterator();
-      }
-
-      @Override
-      public String get(Property property) {
-        if (containsKey(property.getKey()))
-          return getString(property.getKey());
-        else
-          return defaultConf.get(property);
-      }
-
-      @Override
-      public void getProperties(Map<String,String> props, PropertyFilter filter) {
-        for (Entry<String,String> entry : this)
-          if (filter.accept(entry.getKey()))
-            props.put(entry.getKey(), entry.getValue());
-      }
-    };
-  }
-
-  public static ClientConfiguration fromAccumuloConfiguration(AccumuloConfiguration accumuloConf) {
-    Map<String,String> props = new HashMap<String,String>();
-    for (ClientProperty prop : ClientProperty.values()) {
-      if (prop.accumuloProperty == null)
-        continue;
-      props.put(prop.getKey(), accumuloConf.get(prop.accumuloProperty));
-    }
-    return new ClientConfiguration(new MapConfiguration(props));
   }
 }

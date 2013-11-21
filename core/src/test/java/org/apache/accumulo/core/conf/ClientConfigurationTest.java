@@ -20,7 +20,8 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
 
-import org.apache.accumulo.core.conf.ClientConfiguration.ClientProperty;
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.junit.Test;

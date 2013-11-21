@@ -125,7 +125,7 @@ public class ServerClient {
   }
   
   public static Pair<String,ClientService.Client> getConnection(Instance instance, boolean preferCachedConnections) throws TTransportException {
-    AccumuloConfiguration conf = ServerConfigurationFactory.getConfiguration(instance);
+    AccumuloConfiguration conf = ServerConfigurationUtil.getConfiguration(instance);
     return getConnection(instance, preferCachedConnections, conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
   }
   
@@ -142,7 +142,7 @@ public class ServerClient {
       if (data != null && !new String(data).equals("master"))
         servers.add(new ThriftTransportKey(
           new ServerServices(new String(data)).getAddressString(Service.TSERV_CLIENT),
-          rpcTimeout, SslConnectionParams.forClient(ServerConfigurationFactory.getConfiguration(instance))));
+          rpcTimeout, SslConnectionParams.forClient(ServerConfigurationUtil.getConfiguration(instance))));
     }
     
     boolean opened = false;
