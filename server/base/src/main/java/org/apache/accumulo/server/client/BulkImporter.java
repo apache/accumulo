@@ -36,6 +36,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.ServerClient;
+import org.apache.accumulo.core.client.impl.ServerConfigurationFactory;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.client.impl.Translator;
@@ -144,7 +145,7 @@ public class BulkImporter {
           public void run() {
             List<TabletLocation> tabletsToAssignMapFileTo = Collections.emptyList();
             try {
-              tabletsToAssignMapFileTo = findOverlappingTablets(instance.getConfiguration(), fs, locator, mapFile, credentials);
+              tabletsToAssignMapFileTo = findOverlappingTablets(ServerConfigurationFactory.getConfiguration(instance), fs, locator, mapFile, credentials);
             } catch (Exception ex) {
               log.warn("Unable to find tablets that overlap file " + mapFile.toString());
             }
@@ -207,7 +208,7 @@ public class BulkImporter {
             
             try {
               timer.start(Timers.QUERY_METADATA);
-              tabletsToAssignMapFileTo.addAll(findOverlappingTablets(instance.getConfiguration(), fs, locator, entry.getKey(), ke, credentials));
+              tabletsToAssignMapFileTo.addAll(findOverlappingTablets(ServerConfigurationFactory.getConfiguration(instance), fs, locator, entry.getKey(), ke, credentials));
               timer.stop(Timers.QUERY_METADATA);
               keListIter.remove();
             } catch (Exception ex) {
@@ -584,8 +585,8 @@ public class BulkImporter {
   private List<KeyExtent> assignMapFiles(Credentials credentials, String location, Map<KeyExtent,List<PathSize>> assignmentsPerTablet)
       throws AccumuloException, AccumuloSecurityException {
     try {
-      long timeInMillis = instance.getConfiguration().getTimeInMillis(Property.TSERV_BULK_TIMEOUT);
-      TabletClientService.Iface client = ThriftUtil.getTServerClient(location, instance.getConfiguration(), timeInMillis);
+      long timeInMillis = ServerConfigurationFactory.getConfiguration(instance).getTimeInMillis(Property.TSERV_BULK_TIMEOUT);
+      TabletClientService.Iface client = ThriftUtil.getTServerClient(location, ServerConfigurationFactory.getConfiguration(instance), timeInMillis);
       try {
         HashMap<KeyExtent,Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>> files = new HashMap<KeyExtent,Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>>();
         for (Entry<KeyExtent,List<PathSize>> entry : assignmentsPerTablet.entrySet()) {

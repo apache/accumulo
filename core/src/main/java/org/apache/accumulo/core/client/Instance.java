@@ -132,6 +132,7 @@ public interface Instance {
    * Returns the AccumuloConfiguration to use when interacting with this instance.
    * 
    * @return the AccumuloConfiguration that specifies properties related to interacting with this instance
+   * @deprecated since 1.6.0
    */
   public abstract AccumuloConfiguration getConfiguration();
   
