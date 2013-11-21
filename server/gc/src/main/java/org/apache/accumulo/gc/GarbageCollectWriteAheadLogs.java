@@ -30,7 +30,7 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.impl.ServerConfigurationFactory;
+import org.apache.accumulo.core.client.impl.ServerConfigurationUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
@@ -134,7 +134,7 @@ public class GarbageCollectWriteAheadLogs {
   }
   
   private int removeFiles(Map<String,Path> nameToFileMap, Map<String,ArrayList<Path>> serverToFileMap, Map<String, Path> sortedWALogs, final GCStatus status) {
-    AccumuloConfiguration conf = ServerConfigurationFactory.getConfiguration(instance);
+    AccumuloConfiguration conf = ServerConfigurationUtil.getConfiguration(instance);
     for (Entry<String,ArrayList<Path>> entry : serverToFileMap.entrySet()) {
       if (entry.getKey().isEmpty()) {
         // old-style log entry, just remove it

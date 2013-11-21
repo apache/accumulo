@@ -41,7 +41,7 @@ import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.impl.ServerConfigurationFactory;
+import org.apache.accumulo.core.client.impl.ServerConfigurationUtil;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -154,9 +154,9 @@ public class SimpleGarbageCollector implements Iface {
     this.credentials = credentials;
     this.instance = instance;
     
-    gcStartDelay = ServerConfigurationFactory.getConfiguration(instance).getTimeInMillis(Property.GC_CYCLE_START);
-    long gcDelay = ServerConfigurationFactory.getConfiguration(instance).getTimeInMillis(Property.GC_CYCLE_DELAY);
-    numDeleteThreads = ServerConfigurationFactory.getConfiguration(instance).getCount(Property.GC_DELETE_THREADS);
+    gcStartDelay = ServerConfigurationUtil.getConfiguration(instance).getTimeInMillis(Property.GC_CYCLE_START);
+    long gcDelay = ServerConfigurationUtil.getConfiguration(instance).getTimeInMillis(Property.GC_CYCLE_DELAY);
+    numDeleteThreads = ServerConfigurationUtil.getConfiguration(instance).getCount(Property.GC_DELETE_THREADS);
     log.info("start delay: " + gcStartDelay + " milliseconds");
     log.info("time delay: " + gcDelay + " milliseconds");
     log.info("safemode: " + opts.safeMode);
@@ -482,7 +482,7 @@ public class SimpleGarbageCollector implements Iface {
       
       Trace.offNoFlush();
       try {
-        long gcDelay = ServerConfigurationFactory.getConfiguration(instance).getTimeInMillis(Property.GC_CYCLE_DELAY);
+        long gcDelay = ServerConfigurationUtil.getConfiguration(instance).getTimeInMillis(Property.GC_CYCLE_DELAY);
         log.debug("Sleeping for " + gcDelay + " milliseconds");
         Thread.sleep(gcDelay);
       } catch (InterruptedException e) {
@@ -535,8 +535,8 @@ public class SimpleGarbageCollector implements Iface {
   
   private HostAndPort startStatsService() throws UnknownHostException {
     Processor<Iface> processor = new Processor<Iface>(TraceWrap.service(this));
-    int port = ServerConfigurationFactory.getConfiguration(instance).getPort(Property.GC_PORT);
-    long maxMessageSize = ServerConfigurationFactory.getConfiguration(instance).getMemoryInBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
+    int port = ServerConfigurationUtil.getConfiguration(instance).getPort(Property.GC_PORT);
+    long maxMessageSize = ServerConfigurationUtil.getConfiguration(instance).getMemoryInBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
     HostAndPort result = HostAndPort.fromParts(opts.getAddress(), port);
     try {
       port = TServerUtils.startTServer(result, processor, this.getClass().getSimpleName(), "GC Monitor Service", 2, 1000, maxMessageSize).address.getPort();

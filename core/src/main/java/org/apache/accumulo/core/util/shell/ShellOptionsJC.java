@@ -24,9 +24,9 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.conf.ClientConfiguration;
-import org.apache.accumulo.core.conf.ClientConfiguration.ClientProperty;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.log4j.Logger;
 

@@ -855,10 +855,10 @@ public class TabletServerBatchWriter {
       try {
         TabletClientService.Iface client;
         
-        if (timeoutTracker.getTimeOut() < ServerConfigurationFactory.getConfiguration(instance).getTimeInMillis(Property.GENERAL_RPC_TIMEOUT))
-          client = ThriftUtil.getTServerClient(location, ServerConfigurationFactory.getConfiguration(instance), timeoutTracker.getTimeOut());
+        if (timeoutTracker.getTimeOut() < ServerConfigurationUtil.getConfiguration(instance).getTimeInMillis(Property.GENERAL_RPC_TIMEOUT))
+          client = ThriftUtil.getTServerClient(location, ServerConfigurationUtil.getConfiguration(instance), timeoutTracker.getTimeOut());
         else
-          client = ThriftUtil.getTServerClient(location, ServerConfigurationFactory.getConfiguration(instance));
+          client = ThriftUtil.getTServerClient(location, ServerConfigurationUtil.getConfiguration(instance));
         
         try {
           MutationSet allFailures = new MutationSet();
