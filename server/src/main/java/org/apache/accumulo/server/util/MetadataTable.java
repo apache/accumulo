@@ -935,8 +935,8 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
   }
   
   public static void removeUnusedWALEntries(KeyExtent extent, List<LogEntry> logEntries, ZooLock zooLock) {
-    for (LogEntry entry : logEntries) {
-      if (entry.extent.isRootTablet()) {
+      if (extent.isRootTablet()) {
+        for (LogEntry entry : logEntries) {
         String root = getZookeeperLogLocation();
         while (true) {
           try {
@@ -949,11 +949,13 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
           }
           UtilWaitThread.sleep(1000);
         }
+        }
       } else {
-        Mutation m = new Mutation(entry.extent.getMetadataEntry());
-        m.putDelete(Constants.METADATA_LOG_COLUMN_FAMILY, new Text(entry.server + "/" + entry.filename));
+        Mutation m = new Mutation(extent.getMetadataEntry());
+        for (LogEntry entry : logEntries) {
+          m.putDelete(Constants.METADATA_LOG_COLUMN_FAMILY, new Text(entry.server + "/" + entry.filename));
+        }
         update(SecurityConstants.getSystemCredentials(), zooLock, m);
-      }
     }
   }
   
