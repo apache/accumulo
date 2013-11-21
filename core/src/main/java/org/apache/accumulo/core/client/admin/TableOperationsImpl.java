@@ -61,6 +61,7 @@ import org.apache.accumulo.core.client.impl.ClientExec;
 import org.apache.accumulo.core.client.impl.ClientExecReturn;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.ServerClient;
+import org.apache.accumulo.core.client.impl.ServerConfigurationFactory;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
@@ -469,7 +470,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         }
         
         try {
-          TabletClientService.Client client = ThriftUtil.getTServerClient(tl.tablet_location, instance.getConfiguration());
+          TabletClientService.Client client = ThriftUtil.getTServerClient(tl.tablet_location, ServerConfigurationFactory.getConfiguration(instance));
           try {
             OpTimer opTimer = null;
             if (log.isTraceEnabled())
@@ -1112,7 +1113,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       ret = new Path(dir);
       fs = ret.getFileSystem(CachedConfiguration.getInstance());
     } else {
-      fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), instance.getConfiguration());
+      fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfigurationFactory.getConfiguration(instance));
       ret = fs.makeQualified(new Path(dir));
     }
 

@@ -536,10 +536,10 @@ class ConditionalWriterImpl implements ConditionalWriter {
   
   private TabletClientService.Iface getClient(String location) throws TTransportException {
     TabletClientService.Iface client;
-    if (timeout < instance.getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT))
-      client = ThriftUtil.getTServerClient(location, instance.getConfiguration(), timeout);
+    if (timeout < ServerConfigurationFactory.getConfiguration(instance).getTimeInMillis(Property.GENERAL_RPC_TIMEOUT))
+      client = ThriftUtil.getTServerClient(location, ServerConfigurationFactory.getConfiguration(instance), timeout);
     else
-      client = ThriftUtil.getTServerClient(location, instance.getConfiguration());
+      client = ThriftUtil.getTServerClient(location, ServerConfigurationFactory.getConfiguration(instance));
     return client;
   }
   

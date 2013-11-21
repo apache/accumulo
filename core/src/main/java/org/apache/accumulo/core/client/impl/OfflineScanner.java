@@ -227,7 +227,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     if (currentExtent != null && !extent.isPreviousExtent(currentExtent))
       throw new AccumuloException(" " + currentExtent + " is not previous extent " + extent);
     
-    String tablesDir = instance.getConfiguration().get(Property.INSTANCE_DFS_DIR) + "/tables";
+    String tablesDir = ServerConfigurationFactory.getConfiguration(instance).get(Property.INSTANCE_DFS_DIR) + "/tables";
 
     List<String> absFiles = new ArrayList<String>();
     for (String relPath : relFiles) {
@@ -296,7 +296,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     
     Configuration conf = CachedConfiguration.getInstance();
     
-    FileSystem defaultFs = FileUtil.getFileSystem(conf, instance.getConfiguration());
+    FileSystem defaultFs = FileUtil.getFileSystem(conf, ServerConfigurationFactory.getConfiguration(instance));
     
     for (SortedKeyValueIterator<Key,Value> reader : readers) {
       ((FileSKVIterator) reader).close();

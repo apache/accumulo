@@ -362,7 +362,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           timeoutTrackers.put(tsLocation, timeoutTracker);
         }
         doLookup(instance, credentials, tsLocation, tabletsRanges, tsFailures, unscanned, receiver, columns, options, authorizations,
-            instance.getConfiguration(), timeoutTracker);
+            ServerConfigurationFactory.getConfiguration(instance), timeoutTracker);
         if (tsFailures.size() > 0) {
           locator.invalidateCache(tsFailures.keySet());
           synchronized (failures) {

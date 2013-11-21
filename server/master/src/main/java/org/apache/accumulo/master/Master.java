@@ -44,6 +44,7 @@ import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperationsImpl;
+import org.apache.accumulo.core.client.impl.ServerConfigurationFactory;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.ThriftTransportPool;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
@@ -786,7 +787,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
     private void updatePlugins(String property) {
       if (property.equals(Property.MASTER_TABLET_BALANCER.getKey())) {
-        TabletBalancer balancer = instance.getConfiguration().instantiateClassProperty(Property.MASTER_TABLET_BALANCER, TabletBalancer.class,
+        TabletBalancer balancer = ServerConfigurationFactory.getConfiguration(instance).instantiateClassProperty(Property.MASTER_TABLET_BALANCER, TabletBalancer.class,
             new DefaultLoadBalancer());
         balancer.init(serverConfig);
         tabletBalancer = balancer;
