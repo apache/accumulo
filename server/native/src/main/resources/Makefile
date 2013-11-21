@@ -17,6 +17,7 @@ SRCS=$(wildcard nativeMap/*.cc)
 HDRS=$(wildcard nativeMap/*.h) $(wildcard javah/*.h)
 TESTSRCS=$(wildcard testNativeMap/*.cc)
 CXX=g++
+MAVERICKFLAGS=
 
 ifeq ($(shell uname),Linux)
 	JAVA_HOME=$(shell dirname $$(dirname $$(readlink -ef $$(which javah))))
@@ -27,10 +28,10 @@ endif
 ifeq ($(shell uname),Darwin)
 	JAVA_HOME=$(shell /usr/libexec/java_home)
 	NATIVE_LIB:= libaccumulo.dylib
-	# Update flags for OSX-10.9 and Xcode 5.0.1
-	# I think that we should be able to remove the `-undefined dynamic_lookup` option,
-	# but I don't know exactly how to go about this.
-	CXXFLAGS=-m64 -dynamiclib -undefined dynamic_lookup -O3 -I/System/Library/Frameworks/JavaVM.framework/Headers -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/darwin -I/usr/include/c++/4.2.1 -Ijavah 
+ifneq (,$(findstring 10.9,$(shell sw_vers -productVersion)))
+	MAVERICKFLAGS=-stdlib=libstdc++
+endif
+	CXXFLAGS=-m64 -dynamiclib -undefined dynamic_lookup -O3 -I/System/Library/Frameworks/JavaVM.framework/Headers -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/darwin -Ijavah $(MAVERICK_FLAGS)
 endif
 
 all : $(NATIVE_LIB)
@@ -44,7 +45,7 @@ testJavaHome :
 	@echo JAVA_HOME is $(JAVA_HOME)
 
 runTests : $(NATIVE_LIB) $(TESTSRCS)
-	$(CXX) -g -Wall -I/System/Library/Frameworks/JavaVM.framework/Headers -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux -InativeMap -o $@ $(TESTSRCS) $(NATIVE_LIB)
+	$(CXX) -g -Wall -I/System/Library/Frameworks/JavaVM.framework/Headers -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux -InativeMap -o $@ $(TESTSRCS) $(NATIVE_LIB) $(MAVERICK_FLAGS)
 	LD_LIBRARY_PATH=./ ./$@ 20 20 20 20 20 20 20 20 true
 
 clean :

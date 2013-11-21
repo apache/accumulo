@@ -20,7 +20,6 @@
 #define _BLOCK_ALLOCATOR_H_ 1
 
 #include <new>
-#include <bits/functexcept.h>
 #include <iostream>
 #include <string>
 #include <vector>
