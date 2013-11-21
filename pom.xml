@@ -650,7 +650,7 @@
         </property>
       </activation>
       <properties>
-        <hadoop.version>1.0.4</hadoop.version>
+        <hadoop.version>0.20.203.0</hadoop.version>
         <slf4j.version>1.4.3</slf4j.version>
       </properties>
       <dependencyManagement>

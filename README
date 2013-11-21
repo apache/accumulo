@@ -18,12 +18,12 @@ have maven configured to get Accumulo prerequisites from repositories.  See
 the pom.xml file for the necessary components.
 
 Run "mvn package && mvn assembly:single -N". By default,
-Accumulo compiles against Hadoop 1.0.4.  To compile against a different version
+Accumulo compiles against Hadoop 0.20.203.0.  To compile against a different version
 that is compatible with Hadoop 1.0, specify hadoop.version on the command line,
 e.g. "-Dhadoop.version=0.20.205.0" or "-Dhadoop.version=1.1.0".  To compile 
 against Hadoop 2.0, specify "-Dhadoop.profile=2.0".  By default this uses
 2.0.2-alpha.  To compile against a different 2.0-compatible version, specify
-the profile and version, e.g. "-Dhadoop.profile=2.0 -Dhadoop.version=0.23.5".
+the profile and version, e.g. "-Dhadoop.profile=2.0 -Dhadoop.version=2.2.0".
 
 If you are running on another Unix-like operating system (OSX, etc) then
 you may wish to build the native libraries.  They are not strictly necessary
@@ -70,7 +70,8 @@ found in the same location on every machine in the cluster.  You will need to
 have password-less ssh set up as described in the hadoop documentation. 
 
 You will need to have hadoop installed and configured on your system.
-Accumulo 1.4.5-SNAPSHOT has been tested with hadoop version 0.20.2.
+Accumulo 1.4.5-SNAPSHOT has been tested with hadoop version 0.20.2 and
+0.20.203.0.
 
 The example accumulo configuration files are placed in directories based on the 
 memory footprint for the accumulo processes.  If you are using native libraries
