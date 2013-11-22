@@ -93,7 +93,7 @@ public class CredentialHelper {
     return new String(Base64.encodeBase64(toBytes(token)), Charset.forName("UTF-8"));
   }
   
-  private static byte[] toBytes(AuthenticationToken token) throws AccumuloSecurityException {
+  public static byte[] toBytes(AuthenticationToken token) throws AccumuloSecurityException {
     try {
       ByteArrayOutputStream bais = new ByteArrayOutputStream();
       token.write(new DataOutputStream(bais));

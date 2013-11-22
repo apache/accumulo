@@ -45,6 +45,7 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.OfflineScanner;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
+import org.apache.accumulo.core.client.mapreduce.RangeInputSplit;
 import org.apache.accumulo.core.client.mapreduce.lib.util.InputConfigurator;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -780,7 +781,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
       throw new IOException(e);
     }
     
-    ArrayList<InputSplit> splits = new ArrayList<InputSplit>(ranges.size());
+    ArrayList<RangeInputSplit> splits = new ArrayList<RangeInputSplit>(ranges.size());
     HashMap<Range,ArrayList<String>> splitsToAdd = null;
     
     if (!autoAdjust)
@@ -802,7 +803,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
         for (Range r : extentRanges.getValue()) {
           if (autoAdjust) {
             // divide ranges into smaller ranges, based on the tablets
-            splits.add(new RangeInputSplit(tableName, ke.clip(r), new String[] {location}));
+            splits.add(new RangeInputSplit(ke.clip(r), new String[] {location}));
           } else {
             // don't divide ranges
             ArrayList<String> locations = splitsToAdd.get(r);
@@ -817,27 +818,8 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
     
     if (!autoAdjust)
       for (Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet())
-        splits.add(new RangeInputSplit(tableName, entry.getKey(), entry.getValue().toArray(new String[0])));
+        splits.add(new RangeInputSplit(entry.getKey(), entry.getValue().toArray(new String[0])));
     return splits.toArray(new InputSplit[splits.size()]);
-  }
-  
-  /**
-   * The Class RangeInputSplit. Encapsulates an Accumulo range for use in Map Reduce jobs.
-   */
-  public static class RangeInputSplit extends org.apache.accumulo.core.client.mapreduce.InputFormatBase.RangeInputSplit implements InputSplit {
-    
-    public RangeInputSplit() {
-      super();
-    }
-    
-    public RangeInputSplit(RangeInputSplit split) throws IOException {
-      super(split);
-    }
-    
-    protected RangeInputSplit(String table, Range range, String[] locations) {
-      super(table, range, locations);
-    }
-    
   }
   
 }

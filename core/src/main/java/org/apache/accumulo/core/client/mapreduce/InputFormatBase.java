@@ -26,6 +26,7 @@ import java.net.InetAddress;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -562,8 +563,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
      * @param scanner
      *          the scanner to configure
      */
-    protected void setupIterators(TaskAttemptContext context, Scanner scanner) {
-      List<IteratorSetting> iterators = getIterators(context);
+    protected void setupIterators(List<IteratorSetting> iterators, Scanner scanner) {
       for (IteratorSetting iterator : iterators) {
         scanner.addScanIterator(iterator);
       }
@@ -576,39 +576,92 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     public void initialize(InputSplit inSplit, TaskAttemptContext attempt) throws IOException {
       Scanner scanner;
       split = (RangeInputSplit) inSplit;
-      log.debug("Initializing input split: " + split.range);
-      Instance instance = getInstance(attempt);
-      String principal = getPrincipal(attempt);
-      String tokenClass = getTokenClass(attempt);
-      byte[] token = getToken(attempt);
-      Authorizations authorizations = getScanAuthorizations(attempt);
+      log.debug("Initializing input split: " + split.getRange());
+
+      Instance instance = split.getInstance();
+      if (null == instance) {
+        instance = getInstance(attempt);
+      }
+
+      String principal = split.getPrincipal();
+      if (null == principal) {
+        principal = getPrincipal(attempt);
+      }
+
+      AuthenticationToken token = split.getToken();
+      if (null == token) {
+        String tokenClass = getTokenClass(attempt);
+        byte[] tokenBytes = getToken(attempt);
+        try {
+          token = CredentialHelper.extractToken(tokenClass, tokenBytes);
+        } catch (AccumuloSecurityException e) {
+          throw new IOException(e);
+        }
+      }
+
+      Authorizations authorizations = split.getAuths();
+      if (null == authorizations) {
+        authorizations = getScanAuthorizations(attempt);
+      }
+
+      String table = split.getTable();
+      if (null == table) {
+        table = getInputTableName(attempt);
+      }
+      
+      Boolean isOffline = split.isOffline();
+      if (null == isOffline) {
+        isOffline = isOfflineScan(attempt);
+      }
+
+      Boolean isIsolated = split.isIsolatedScan();
+      if (null == isIsolated) {
+        isIsolated = isIsolated(attempt);
+      }
+
+      Boolean usesLocalIterators = split.usesLocalIterators();
+      if (null == usesLocalIterators) {
+        usesLocalIterators = usesLocalIterators(attempt);
+      }
+      
+      List<IteratorSetting> iterators = split.getIterators();
+      if (null == iterators) {
+        iterators = getIterators(attempt);
+      }
+      
+      Set<Pair<Text,Text>> columns = split.getFetchedColumns();
+      if (null == columns) {
+        columns = getFetchedColumns(attempt);
+      }
       
       try {
         log.debug("Creating connector with user: " + principal);
-        Connector conn = instance.getConnector(principal, CredentialHelper.extractToken(tokenClass, token));
-        log.debug("Creating scanner for table: " + getInputTableName(attempt));
+        Connector conn = instance.getConnector(principal, token);
+        log.debug("Creating scanner for table: " + table);
         log.debug("Authorizations are: " + authorizations);
         if (isOfflineScan(attempt)) {
-          scanner = new OfflineScanner(instance, new TCredentials(principal, tokenClass, ByteBuffer.wrap(token), instance.getInstanceID()), Tables.getTableId(
-              instance, getInputTableName(attempt)), authorizations);
+          String tokenClass = token.getClass().getCanonicalName();
+          ByteBuffer tokenBuffer = ByteBuffer.wrap(CredentialHelper.toBytes(token));
+          scanner = new OfflineScanner(instance, new TCredentials(principal, tokenClass, tokenBuffer, instance.getInstanceID()), Tables.getTableId(
+              instance, table), authorizations);
         } else {
-          scanner = conn.createScanner(getInputTableName(attempt), authorizations);
+          scanner = conn.createScanner(table, authorizations);
         }
-        if (isIsolated(attempt)) {
+        if (isIsolated) {
           log.info("Creating isolated scanner");
           scanner = new IsolatedScanner(scanner);
         }
-        if (usesLocalIterators(attempt)) {
+        if (usesLocalIterators) {
           log.info("Using local iterators");
           scanner = new ClientSideIteratorScanner(scanner);
         }
-        setupIterators(attempt, scanner);
+        setupIterators(iterators, scanner);
       } catch (Exception e) {
         throw new IOException(e);
       }
       
       // setup a scanner within the bounds of this split
-      for (Pair<Text,Text> c : getFetchedColumns(attempt)) {
+      for (Pair<Text,Text> c : columns) {
         if (c.getSecond() != null) {
           log.debug("Fetching column " + c.getFirst() + ":" + c.getSecond());
           scanner.fetchColumn(c.getFirst(), c.getSecond());
@@ -618,7 +671,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
         }
       }
       
-      scanner.setRange(split.range);
+      scanner.setRange(split.getRange());
       
       numKeysRead = 0;
       
@@ -827,7 +880,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
         for (Range r : extentRanges.getValue()) {
           if (autoAdjust) {
             // divide ranges into smaller ranges, based on the tablets
-            splits.add(new RangeInputSplit(tableName, ke.clip(r), new String[] {location}));
+            splits.add(new RangeInputSplit(ke.clip(r), new String[] {location}));
           } else {
             // don't divide ranges
             ArrayList<String> locations = splitsToAdd.get(r);
@@ -842,129 +895,10 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     
     if (!autoAdjust)
       for (Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet())
-        splits.add(new RangeInputSplit(tableName, entry.getKey(), entry.getValue().toArray(new String[0])));
+        splits.add(new RangeInputSplit(entry.getKey(), entry.getValue().toArray(new String[0])));
     return splits;
   }
-  
-  /**
-   * The Class RangeInputSplit. Encapsulates an Accumulo range for use in Map Reduce jobs.
-   */
-  public static class RangeInputSplit extends InputSplit implements Writable {
-    private Range range;
-    private String[] locations;
-    
-    public RangeInputSplit() {
-      range = new Range();
-      locations = new String[0];
-    }
-    
-    public RangeInputSplit(RangeInputSplit split) throws IOException {
-      this.setRange(split.getRange());
-      this.setLocations(split.getLocations());
-    }
-    
-    protected RangeInputSplit(String table, Range range, String[] locations) {
-      this.range = range;
-      this.locations = locations;
-    }
-    
-    public Range getRange() {
-      return range;
-    }
-    
-    public void setRange(Range range) {
-      this.range = range;
-    }
-    
-    private static byte[] extractBytes(ByteSequence seq, int numBytes) {
-      byte[] bytes = new byte[numBytes + 1];
-      bytes[0] = 0;
-      for (int i = 0; i < numBytes; i++) {
-        if (i >= seq.length())
-          bytes[i + 1] = 0;
-        else
-          bytes[i + 1] = seq.byteAt(i);
-      }
-      return bytes;
-    }
-    
-    public static float getProgress(ByteSequence start, ByteSequence end, ByteSequence position) {
-      int maxDepth = Math.min(Math.max(end.length(), start.length()), position.length());
-      BigInteger startBI = new BigInteger(extractBytes(start, maxDepth));
-      BigInteger endBI = new BigInteger(extractBytes(end, maxDepth));
-      BigInteger positionBI = new BigInteger(extractBytes(position, maxDepth));
-      return (float) (positionBI.subtract(startBI).doubleValue() / endBI.subtract(startBI).doubleValue());
-    }
-    
-    public float getProgress(Key currentKey) {
-      if (currentKey == null)
-        return 0f;
-      if (range.getStartKey() != null && range.getEndKey() != null) {
-        if (!range.getStartKey().equals(range.getEndKey(), PartialKey.ROW)) {
-          // just look at the row progress
-          return getProgress(range.getStartKey().getRowData(), range.getEndKey().getRowData(), currentKey.getRowData());
-        } else if (!range.getStartKey().equals(range.getEndKey(), PartialKey.ROW_COLFAM)) {
-          // just look at the column family progress
-          return getProgress(range.getStartKey().getColumnFamilyData(), range.getEndKey().getColumnFamilyData(), currentKey.getColumnFamilyData());
-        } else if (!range.getStartKey().equals(range.getEndKey(), PartialKey.ROW_COLFAM_COLQUAL)) {
-          // just look at the column qualifier progress
-          return getProgress(range.getStartKey().getColumnQualifierData(), range.getEndKey().getColumnQualifierData(), currentKey.getColumnQualifierData());
-        }
-      }
-      // if we can't figure it out, then claim no progress
-      return 0f;
-    }
-    
-    /**
-     * This implementation of length is only an estimate, it does not provide exact values. Do not have your code rely on this return value.
-     */
-    @Override
-    public long getLength() throws IOException {
-      Text startRow = range.isInfiniteStartKey() ? new Text(new byte[] {Byte.MIN_VALUE}) : range.getStartKey().getRow();
-      Text stopRow = range.isInfiniteStopKey() ? new Text(new byte[] {Byte.MAX_VALUE}) : range.getEndKey().getRow();
-      int maxCommon = Math.min(7, Math.min(startRow.getLength(), stopRow.getLength()));
-      long diff = 0;
-      
-      byte[] start = startRow.getBytes();
-      byte[] stop = stopRow.getBytes();
-      for (int i = 0; i < maxCommon; ++i) {
-        diff |= 0xff & (start[i] ^ stop[i]);
-        diff <<= Byte.SIZE;
-      }
-      
-      if (startRow.getLength() != stopRow.getLength())
-        diff |= 0xff;
-      
-      return diff + 1;
-    }
-    
-    @Override
-    public String[] getLocations() throws IOException {
-      return locations;
-    }
-    
-    public void setLocations(String[] locations) {
-      this.locations = locations;
-    }
-    
-    @Override
-    public void readFields(DataInput in) throws IOException {
-      range.readFields(in);
-      int numLocs = in.readInt();
-      locations = new String[numLocs];
-      for (int i = 0; i < numLocs; ++i)
-        locations[i] = in.readUTF();
-    }
-    
-    @Override
-    public void write(DataOutput out) throws IOException {
-      range.write(out);
-      out.writeInt(locations.length);
-      for (int i = 0; i < locations.length; ++i)
-        out.writeUTF(locations[i]);
-    }
-  }
-  
+
   // ----------------------------------------------------------------------------------------------------
   // Everything below this line is deprecated and should go away in future versions
   // ----------------------------------------------------------------------------------------------------
