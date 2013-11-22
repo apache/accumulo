@@ -814,6 +814,24 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     String tableName = getInputTableName(context);
     boolean autoAdjust = getAutoAdjustRanges(context);
     List<Range> ranges = autoAdjust ? Range.mergeOverlapping(getRanges(context)) : getRanges(context);
+    Instance instance = getInstance(context);
+    boolean offline = isOfflineScan(context);
+    boolean isolated = isIsolated(context);
+    boolean localIterators = usesLocalIterators(context);
+    boolean mockInstance = (null != instance && MockInstance.class.equals(instance.getClass()));
+    Set<Pair<Text,Text>> fetchedColumns = getFetchedColumns(context);
+    Authorizations auths = getScanAuthorizations(context);
+    String principal = getPrincipal(context);
+    
+    AuthenticationToken token;
+    try {
+       token = CredentialHelper.extractToken(getTokenClass(context), getToken(context));
+    } catch (AccumuloSecurityException e) {
+      throw new IOException(e);
+    }
+    
+    List<IteratorSetting> iterators = getIterators(context);
+    Level logLevel = getLogLevel(context);
     
     if (ranges.isEmpty()) {
       ranges = new ArrayList<Range>(1);
@@ -832,7 +850,6 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
           binnedRanges = binOfflineTable(context, tableName, ranges);
         }
       } else {
-        Instance instance = getInstance(context);
         String tableId = null;
         tl = getTabletLocator(context);
         // its possible that the cache could contain complete, but old information about a tables tablets... so clear it
@@ -896,6 +913,25 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     if (!autoAdjust)
       for (Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet())
         splits.add(new RangeInputSplit(entry.getKey(), entry.getValue().toArray(new String[0])));
+    
+    for (InputSplit inputSplit : splits) {
+      RangeInputSplit split = (RangeInputSplit) inputSplit;
+
+      split.setTable(tableName);
+      split.setOffline(offline);
+      split.setIsolatedScan(isolated);
+      split.setUsesLocalIterators(localIterators);
+      split.setMockInstance(mockInstance);
+      split.setFetchedColumns(fetchedColumns);
+      split.setPrincipal(principal);
+      split.setToken(token);
+      split.setInstanceName(instance.getInstanceName());
+      split.setZooKeepers(instance.getZooKeepers());
+      split.setAuths(auths);
+      split.setIterators(iterators);
+      split.setLogLevel(logLevel);
+    }
+    
     return splits;
   }
 

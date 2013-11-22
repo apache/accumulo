@@ -53,7 +53,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
   private Range range;
   private String[] locations;
   private String table, instanceName, zooKeepers, principal;
-  private String rowRegex, colfamRegex, colqualRegex, valueRegex;
   private AuthenticationToken token;
   private Boolean offline, mockInstance, isolatedScan, localIterators;
   private Authorizations auths;
@@ -164,22 +163,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
     }
     
     if (in.readBoolean()) {
-      rowRegex = in.readUTF();
-    }
-    
-    if (in.readBoolean()) {
-      colfamRegex = in.readUTF();
-    }
-    
-    if (in.readBoolean()) {
-      colqualRegex = in.readUTF();
-    }
-    
-    if (in.readBoolean()) {
-      valueRegex = in.readUTF();
-    }
-    
-    if (in.readBoolean()) {
       int numColumns = in.readInt();
       List<String> columns = new ArrayList<String>(numColumns);
       for (int i = 0; i < numColumns; i++) {
@@ -246,26 +229,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
     out.writeBoolean(null != mockInstance);
     if (null != mockInstance) {
       out.writeBoolean(mockInstance);
-    }
-    
-    out.writeBoolean(null != rowRegex);
-    if (null != rowRegex) {
-      out.writeUTF(rowRegex);
-    }
-    
-    out.writeBoolean(null != colfamRegex);
-    if (null != colfamRegex) {
-      out.writeUTF(colfamRegex);
-    }
-    
-    out.writeBoolean(null != colqualRegex);
-    if (null != colqualRegex) {
-      out.writeUTF(colqualRegex);
-    }
-    
-    out.writeBoolean(null != valueRegex);
-    if (null != valueRegex) {
-      out.writeUTF(valueRegex);
     }
     
     out.writeBoolean(null != fetchedColumns);
@@ -389,38 +352,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
   public void setLocations(String[] locations) {
     this.locations = locations;
-  }
-
-  public String getRowRegex() {
-    return rowRegex;
-  }
-
-  public void setRowRegex(String rowRegex) {
-    this.rowRegex = rowRegex;
-  }
-
-  public String getColfamRegex() {
-    return colfamRegex;
-  }
-
-  public void setColfamRegex(String colfamRegex) {
-    this.colfamRegex = colfamRegex;
-  }
-
-  public String getColqualRegex() {
-    return colqualRegex;
-  }
-
-  public void setColqualRegex(String colqualRegex) {
-    this.colqualRegex = colqualRegex;
-  }
-
-  public String getValueRegex() {
-    return valueRegex;
-  }
-
-  public void setValueRegex(String valueRegex) {
-    this.valueRegex = valueRegex;
   }
 
   public Boolean isMockInstance() {
