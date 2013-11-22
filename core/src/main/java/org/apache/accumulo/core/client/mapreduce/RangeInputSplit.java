@@ -166,14 +166,15 @@ public class RangeInputSplit extends InputSplit implements Writable {
       int numColumns = in.readInt();
       List<String> columns = new ArrayList<String>(numColumns);
       for (int i = 0; i < numColumns; i++) {
-        columns.set(i, in.readUTF());
+        columns.add(in.readUTF());
       }
       
       fetchedColumns = InputConfigurator.deserializeFetchedColumns(columns);
     }
     
     if (in.readBoolean()) {
-      auths = new Authorizations(StringUtils.split(in.readUTF()));
+      String strAuths = in.readUTF();
+      auths = new Authorizations(strAuths.getBytes(Charset.forName("UTF-8")));
     }
     
     if (in.readBoolean()) {

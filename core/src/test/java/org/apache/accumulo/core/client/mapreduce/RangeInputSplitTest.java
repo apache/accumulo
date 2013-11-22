@@ -39,8 +39,6 @@ public class RangeInputSplitTest {
     Assert.assertTrue(Arrays.equals(split.getLocations(), newSplit.getLocations()));
   }
 
-
-
   @Test
   public void testAllFieldsWritable() throws IOException {
     RangeInputSplit split = new RangeInputSplit(new Range(new Key("a"), new Key("b")), new String[]{"localhost"});
