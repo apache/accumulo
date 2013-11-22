@@ -1057,25 +1057,18 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       }
     }
 
-    // Apply the configured iterators from the job to the scanner
-    /**
-     * @deprecated Use {@link #setupIterators(Configuration,Scanner)} instead
-     */
-    protected void setupIterators(TaskAttemptContext attempt, Scanner scanner, List<AccumuloIterator> iterators, List<AccumuloIteratorOption> options)
-        throws AccumuloException {
-      setupIterators(attempt.getConfiguration(), scanner, iterators, options);
-    }
-
     /**
      * Apply the configured iterators from the configuration to the scanner.
      * 
-     * @param conf
-     *          the Hadoop configuration object
      * @param scanner
      *          the scanner to configure
+     * @param iterators
+     *          the iterators to configure on the scanner
+     * @param options
+     *          options for each configured iterator
      * @throws AccumuloException
      */
-    protected void setupIterators(Configuration conf, Scanner scanner, List<AccumuloIterator> iterators, List<AccumuloIteratorOption> options)
+    protected void setupIterators(Scanner scanner, List<AccumuloIterator> iterators, List<AccumuloIteratorOption> options)
         throws AccumuloException {
 
       Map<String,IteratorSetting> scanIterators = new HashMap<String,IteratorSetting>();
@@ -1091,21 +1084,14 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     }
 
     /**
-     * @deprecated Use {@link #setupMaxVersions(Configuration,Scanner)} instead
-     */
-    protected void setupMaxVersions(TaskAttemptContext attempt, Scanner scanner, int maxVersions) {
-      setupMaxVersions(attempt.getConfiguration(), scanner, maxVersions);
-    }
-
-    /**
      * If maxVersions has been set, configure a {@link VersioningIterator} at priority 0 for this scanner.
      * 
-     * @param conf
-     *          the Hadoop configuration object
      * @param scanner
      *          the scanner to configure
+     * @param maxVersions
+     *          the number of versions to return
      */
-    protected void setupMaxVersions(Configuration conf, Scanner scanner, int maxVersions) {
+    protected void setupMaxVersions(Scanner scanner, int maxVersions) {
       // Check to make sure its a legit value
       if (maxVersions >= 1) {
         IteratorSetting vers = new IteratorSetting(0, "vers", VersioningIterator.class);
@@ -1222,13 +1208,13 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
           log.info("Using local iterators");
           scanner = new ClientSideIteratorScanner(scanner);
         }
-        setupMaxVersions(conf, scanner, maxVersions);
+        setupMaxVersions(scanner, maxVersions);
         if (rowRegex != null || colfRegex != null || colqRegex != null || valueRegex != null) {
           IteratorSetting is = new IteratorSetting(50, RegExFilter.class);
           RegExFilter.setRegexs(is, rowRegex, colfRegex, colqRegex, valueRegex, false);
           scanner.addScanIterator(is);
         }
-        setupIterators(conf, scanner, iterators, options);
+        setupIterators(scanner, iterators, options);
       } catch (Exception e) {
         throw new IOException(e);
       }
