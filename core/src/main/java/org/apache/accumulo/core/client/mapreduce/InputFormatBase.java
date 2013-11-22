@@ -16,17 +16,13 @@
  */
 package org.apache.accumulo.core.client.mapreduce;
 
-import java.io.DataInput;
-import java.io.DataOutput;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
-import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -58,7 +54,6 @@ import org.apache.accumulo.core.client.mapreduce.lib.util.InputConfigurator;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.PartialKey;
@@ -73,7 +68,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
@@ -808,7 +802,9 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Override
   public List<InputSplit> getSplits(JobContext context) throws IOException {
-    log.setLevel(getLogLevel(context));
+    Level logLevel = getLogLevel(context);
+    log.setLevel(logLevel);
+    
     validateOptions(context);
     
     String tableName = getInputTableName(context);
@@ -822,16 +818,17 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     Set<Pair<Text,Text>> fetchedColumns = getFetchedColumns(context);
     Authorizations auths = getScanAuthorizations(context);
     String principal = getPrincipal(context);
+    String tokenClass = getTokenClass(context);
+    byte[] tokenBytes = getToken(context);
     
     AuthenticationToken token;
     try {
-       token = CredentialHelper.extractToken(getTokenClass(context), getToken(context));
+       token = CredentialHelper.extractToken(tokenClass, tokenBytes);
     } catch (AccumuloSecurityException e) {
       throw new IOException(e);
     }
     
     List<IteratorSetting> iterators = getIterators(context);
-    Level logLevel = getLogLevel(context);
     
     if (ranges.isEmpty()) {
       ranges = new ArrayList<Range>(1);
@@ -854,9 +851,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
         tl = getTabletLocator(context);
         // its possible that the cache could contain complete, but old information about a tables tablets... so clear it
         tl.invalidateCache();
-        while (!tl.binRanges(ranges, binnedRanges,
-            new TCredentials(getPrincipal(context), getTokenClass(context), ByteBuffer.wrap(getToken(context)), getInstance(context).getInstanceID()))
-            .isEmpty()) {
+        while (!tl.binRanges(ranges, binnedRanges, new TCredentials(principal, tokenClass, ByteBuffer.wrap(tokenBytes), instance.getInstanceID())).isEmpty()) {
           if (!(instance instanceof MockInstance)) {
             if (tableId == null)
               tableId = Tables.getTableId(instance, tableName);

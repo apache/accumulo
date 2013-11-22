@@ -45,7 +45,7 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.OfflineScanner;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
-import org.apache.accumulo.core.client.mapreduce.RangeInputSplit;
+import org.apache.accumulo.core.client.mapred.RangeInputSplit;
 import org.apache.accumulo.core.client.mapreduce.lib.util.InputConfigurator;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -547,8 +547,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
      * @param scanner
      *          the scanner to configure
      */
-    protected void setupIterators(JobConf job, Scanner scanner) {
-      List<IteratorSetting> iterators = getIterators(job);
+    protected void setupIterators(List<IteratorSetting> iterators, Scanner scanner) {
       for (IteratorSetting iterator : iterators) {
         scanner.addScanIterator(iterator);
       }
@@ -561,38 +560,91 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
       Scanner scanner;
       split = (RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + split.getRange());
-      Instance instance = getInstance(job);
-      String user = getPrincipal(job);
-      String tokenClass = getTokenClass(job);
-      byte[] password = getToken(job);
-      Authorizations authorizations = getScanAuthorizations(job);
+
+      Instance instance = split.getInstance();
+      if (null == instance) {
+        instance = getInstance(job);
+      }
+
+      String principal = split.getPrincipal();
+      if (null == principal) {
+        principal = getPrincipal(job);
+      }
+
+      AuthenticationToken token = split.getToken();
+      if (null == token) {
+        String tokenClass = getTokenClass(job);
+        byte[] tokenBytes = getToken(job);
+        try {
+          token = CredentialHelper.extractToken(tokenClass, tokenBytes);
+        } catch (AccumuloSecurityException e) {
+          throw new IOException(e);
+        }
+      }
+
+      Authorizations authorizations = split.getAuths();
+      if (null == authorizations) {
+        authorizations = getScanAuthorizations(job);
+      }
+
+      String table = split.getTable();
+      if (null == table) {
+        table = getInputTableName(job);
+      }
+      
+      Boolean isOffline = split.isOffline();
+      if (null == isOffline) {
+        isOffline = isOfflineScan(job);
+      }
+
+      Boolean isIsolated = split.isIsolatedScan();
+      if (null == isIsolated) {
+        isIsolated = isIsolated(job);
+      }
+
+      Boolean usesLocalIterators = split.usesLocalIterators();
+      if (null == usesLocalIterators) {
+        usesLocalIterators = usesLocalIterators(job);
+      }
+      
+      List<IteratorSetting> iterators = split.getIterators();
+      if (null == iterators) {
+        iterators = getIterators(job);
+      }
+      
+      Set<Pair<Text,Text>> columns = split.getFetchedColumns();
+      if (null == columns) {
+        columns = getFetchedColumns(job);
+      }
       
       try {
-        log.debug("Creating connector with user: " + user);
-        Connector conn = instance.getConnector(user, CredentialHelper.extractToken(tokenClass, password));
-        log.debug("Creating scanner for table: " + getInputTableName(job));
+        log.debug("Creating connector with user: " + principal);
+        Connector conn = instance.getConnector(principal, token);
+        log.debug("Creating scanner for table: " + table);
         log.debug("Authorizations are: " + authorizations);
         if (isOfflineScan(job)) {
-          scanner = new OfflineScanner(instance, new TCredentials(user, tokenClass, ByteBuffer.wrap(password), instance.getInstanceID()), Tables.getTableId(
-              instance, getInputTableName(job)), authorizations);
+          String tokenClass = token.getClass().getCanonicalName();
+          ByteBuffer tokenBuffer = ByteBuffer.wrap(CredentialHelper.toBytes(token));
+          scanner = new OfflineScanner(instance, new TCredentials(principal, tokenClass, tokenBuffer, instance.getInstanceID()), Tables.getTableId(
+              instance, table), authorizations);
         } else {
-          scanner = conn.createScanner(getInputTableName(job), authorizations);
+          scanner = conn.createScanner(table, authorizations);
         }
-        if (isIsolated(job)) {
+        if (isIsolated) {
           log.info("Creating isolated scanner");
           scanner = new IsolatedScanner(scanner);
         }
-        if (usesLocalIterators(job)) {
+        if (usesLocalIterators) {
           log.info("Using local iterators");
           scanner = new ClientSideIteratorScanner(scanner);
         }
-        setupIterators(job, scanner);
+        setupIterators(iterators, scanner);
       } catch (Exception e) {
         throw new IOException(e);
       }
       
       // setup a scanner within the bounds of this split
-      for (Pair<Text,Text> c : getFetchedColumns(job)) {
+      for (Pair<Text,Text> c : columns) {
         if (c.getSecond() != null) {
           log.debug("Fetching column " + c.getFirst() + ":" + c.getSecond());
           scanner.fetchColumn(c.getFirst(), c.getSecond());
@@ -732,12 +784,33 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    */
   @Override
   public InputSplit[] getSplits(JobConf job, int numSplits) throws IOException {
-    log.setLevel(getLogLevel(job));
+    Level logLevel = getLogLevel(job);
+    log.setLevel(logLevel);
+    
     validateOptions(job);
     
     String tableName = getInputTableName(job);
     boolean autoAdjust = getAutoAdjustRanges(job);
     List<Range> ranges = autoAdjust ? Range.mergeOverlapping(getRanges(job)) : getRanges(job);
+    Instance instance = getInstance(job);
+    boolean offline = isOfflineScan(job);
+    boolean isolated = isIsolated(job);
+    boolean localIterators = usesLocalIterators(job);
+    boolean mockInstance = (null != instance && MockInstance.class.equals(instance.getClass()));
+    Set<Pair<Text,Text>> fetchedColumns = getFetchedColumns(job);
+    Authorizations auths = getScanAuthorizations(job);
+    String principal = getPrincipal(job);
+    String tokenClass = getTokenClass(job);
+    byte[] tokenBytes = getToken(job);
+    
+    AuthenticationToken token;
+    try {
+       token = CredentialHelper.extractToken(tokenClass, tokenBytes);
+    } catch (AccumuloSecurityException e) {
+      throw new IOException(e);
+    }
+    
+    List<IteratorSetting> iterators = getIterators(job);
     
     if (ranges.isEmpty()) {
       ranges = new ArrayList<Range>(1);
@@ -756,13 +829,11 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
           binnedRanges = binOfflineTable(job, tableName, ranges);
         }
       } else {
-        Instance instance = getInstance(job);
         String tableId = null;
         tl = getTabletLocator(job);
         // its possible that the cache could contain complete, but old information about a tables tablets... so clear it
         tl.invalidateCache();
-        while (!tl.binRanges(ranges, binnedRanges,
-            new TCredentials(getPrincipal(job), getTokenClass(job), ByteBuffer.wrap(getToken(job)), getInstance(job).getInstanceID())).isEmpty()) {
+        while (!tl.binRanges(ranges, binnedRanges, new TCredentials(principal, tokenClass, ByteBuffer.wrap(tokenBytes), instance.getInstanceID())).isEmpty()) {
           if (!(instance instanceof MockInstance)) {
             if (tableId == null)
               tableId = Tables.getTableId(instance, tableName);
@@ -819,6 +890,23 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
     if (!autoAdjust)
       for (Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet())
         splits.add(new RangeInputSplit(entry.getKey(), entry.getValue().toArray(new String[0])));
+    
+    for (RangeInputSplit split : splits) {
+      split.setTable(tableName);
+      split.setOffline(offline);
+      split.setIsolatedScan(isolated);
+      split.setUsesLocalIterators(localIterators);
+      split.setMockInstance(mockInstance);
+      split.setFetchedColumns(fetchedColumns);
+      split.setPrincipal(principal);
+      split.setToken(token);
+      split.setInstanceName(instance.getInstanceName());
+      split.setZooKeepers(instance.getZooKeepers());
+      split.setAuths(auths);
+      split.setIterators(iterators);
+      split.setLogLevel(logLevel);
+    }
+    
     return splits.toArray(new InputSplit[splits.size()]);
   }
   
