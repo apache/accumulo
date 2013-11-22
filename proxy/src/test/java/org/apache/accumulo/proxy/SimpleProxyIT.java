@@ -719,11 +719,8 @@ public class SimpleProxyIT {
 
     client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
     client.updateAndFlush(creds, TABLE_TEST, mutation("row0", "cf", "cq", "value"));
-    String scanner = client.createScanner(creds, TABLE_TEST, null);
-    ScanResult entries = client.nextK(scanner, 10);
-    client.closeScanner(scanner);
-    assertFalse(entries.more);
-    assertEquals(1, entries.results.size());
+
+    assertScan(new String[][] {{"row0", "cf", "cq", "value"}}, TABLE_TEST);
 
     ColumnUpdate upd = new ColumnUpdate(s2bb("cf"), s2bb("cq"));
     upd.setDeleteCell(true);
@@ -731,10 +728,7 @@ public class SimpleProxyIT {
 
     client.updateAndFlush(creds, TABLE_TEST, delete);
 
-    scanner = client.createScanner(creds, TABLE_TEST, null);
-    entries = client.nextK(scanner, 10);
-    client.closeScanner(scanner);
-    assertEquals(0, entries.results.size());
+    assertScan(new String[][] {}, TABLE_TEST);
   }
 
   @Test(timeout = 10000)
@@ -969,6 +963,8 @@ public class SimpleProxyIT {
 
     client.removeConstraint(creds, TABLE_TEST, 2);
 
+    assertScan(new String[][] {}, TABLE_TEST);
+
     writerOptions = new WriterOptions();
     writerOptions.setLatencyMs(10000);
     writerOptions.setMaxMemory(3000);
@@ -981,10 +977,7 @@ public class SimpleProxyIT {
     client.flush(batchWriter);
     client.closeWriter(batchWriter);
 
-    String scanner = client.createScanner(creds, TABLE_TEST, null);
-    ScanResult more = client.nextK(scanner, 2);
-    assertEquals(1, more.getResults().size());
-    client.closeScanner(scanner);
+    assertScan(new String[][] {{"row1", "cf", "cq", "x"}}, TABLE_TEST);
 
     client.deleteTable(creds, TABLE_TEST);
   }
@@ -1007,12 +1000,7 @@ public class SimpleProxyIT {
     client.removeConstraint(creds, TABLE_TEST, 2);
     assertEquals(1, client.listConstraints(creds, TABLE_TEST).size());
     client.updateAndFlush(creds, TABLE_TEST, mutation("row1", "cf", "cq", "x"));
-    String scanner = client.createScanner(creds, TABLE_TEST, null);
-    ScanResult more = client.nextK(scanner, 2);
-    client.closeScanner(scanner);
-    assertFalse(more.isMore());
-    assertEquals(1, more.getResults().size());
-    assertEquals(s2bb("x"), more.getResults().get(0).value);
+    assertScan(new String[][] {{"row1", "cf", "cq", "x"}}, TABLE_TEST);
     // splits, merge
     client.addSplits(creds, TABLE_TEST, new HashSet<ByteBuffer>(Arrays.asList(s2bb("a"), s2bb("m"), s2bb("z"))));
     List<ByteBuffer> splits = client.listSplits(creds, TABLE_TEST, 1);
@@ -1035,31 +1023,24 @@ public class SimpleProxyIT {
     for (int i = 0; i < 10; i++) {
       client.updateAndFlush(creds, TABLE_TEST, mutation("row1", "cf", "cq", "1"));
     }
-    scanner = client.createScanner(creds, TABLE_TEST, null);
-    more = client.nextK(scanner, 2);
-    client.closeScanner(scanner);
-    assertEquals("10", new String(more.getResults().get(0).getValue()));
+    assertScan(new String[][] {{"row1", "cf", "cq", "10"}}, TABLE_TEST);
     try {
       client.checkIteratorConflicts(creds, TABLE_TEST, setting, EnumSet.allOf(IteratorScope.class));
       fail("checkIteratorConflicts did not throw an exception");
     } catch (Exception ex) {}
     client.deleteRows(creds, TABLE_TEST, null, null);
     client.removeIterator(creds, TABLE_TEST, "test", EnumSet.allOf(IteratorScope.class));
+    String expected[][] = new String[10][];
     for (int i = 0; i < 10; i++) {
       client.updateAndFlush(creds, TABLE_TEST, mutation("row" + i, "cf", "cq", "" + i));
+      expected[i] = new String[] {"row" + i, "cf", "cq", "" + i};
       client.flushTable(creds, TABLE_TEST, null, null, true);
     }
-    scanner = client.createScanner(creds, TABLE_TEST, null);
-    more = client.nextK(scanner, 100);
-    client.closeScanner(scanner);
-    assertEquals(10, more.getResults().size());
+    assertScan(expected, TABLE_TEST);
     // clone
     final String TABLE_TEST2 = makeTableName();
     client.cloneTable(creds, TABLE_TEST, TABLE_TEST2, true, null, null);
-    scanner = client.createScanner(creds, TABLE_TEST2, null);
-    more = client.nextK(scanner, 100);
-    client.closeScanner(scanner);
-    assertEquals(10, more.getResults().size());
+    assertScan(expected, TABLE_TEST2);
     client.deleteTable(creds, TABLE_TEST2);
 
     // don't know how to test this, call it just for fun
@@ -1068,6 +1049,7 @@ public class SimpleProxyIT {
     // compact
     client.compactTable(creds, TABLE_TEST, null, null, null, true, true);
     assertEquals(1, countFiles(TABLE_TEST));
+    assertScan(expected, TABLE_TEST);
 
     // get disk usage
     client.cloneTable(creds, TABLE_TEST, TABLE_TEST2, true, null, null);
@@ -1107,10 +1089,8 @@ public class SimpleProxyIT {
     }
     client.deleteTable(creds, TABLE_TEST);
     client.importTable(creds, "testify", destDir.getAbsolutePath());
-    scanner = client.createScanner(creds, "testify", null);
-    more = client.nextK(scanner, 100);
-    client.closeScanner(scanner);
-    assertEquals(10, more.results.size());
+    assertScan(expected, "testify");
+    client.deleteTable(creds, "testify");
 
     try {
       // ACCUMULO-1558 a second import from the same dir should fail, the first import moved the files
@@ -1156,8 +1136,8 @@ public class SimpleProxyIT {
     writer.close();
     fs.mkdirs(new Path(dir + "/bulk/fail"));
     client.importDirectory(creds, "bar", dir + "/bulk/import", dir + "/bulk/fail", true);
-    scanner = client.createScanner(creds, "bar", null);
-    more = client.nextK(scanner, 100);
+    String scanner = client.createScanner(creds, "bar", null);
+    ScanResult more = client.nextK(scanner, 100);
     client.closeScanner(scanner);
     assertEquals(1, more.results.size());
     ByteBuffer maxRow = client.getMaxRow(creds, "bar", null, null, false, null, false);
