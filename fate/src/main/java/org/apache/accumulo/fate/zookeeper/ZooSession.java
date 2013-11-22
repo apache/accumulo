@@ -18,10 +18,7 @@ package org.apache.accumulo.fate.zookeeper;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 
 import org.apache.accumulo.fate.util.UtilWaitThread;
@@ -52,17 +49,7 @@ class ZooSession {
   
   private static class ZooWatcher implements Watcher {
     
-    private HashSet<Watcher> watchers = new HashSet<Watcher>();
-    
     public void process(WatchedEvent event) {
-      // copy the watchers, in case the callback adds() more Watchers
-      // otherwise we get a ConcurrentModificationException
-      Collection<Watcher> watcherCopy = new ArrayList<Watcher>(watchers);
-      
-      for (Watcher watcher : watcherCopy) {
-        watcher.process(event);
-      }
-      
       if (event.getState() == KeeperState.Expired) {
         log.debug("Session expired, state of current session : " + event.getState());
       }
@@ -131,7 +118,6 @@ class ZooSession {
     
     // a read-only session can use a session with authorizations, so cache a copy for it w/out auths
     String readOnlySessionKey = sessionKey(zooKeepers, timeout, null, null);
-    
     ZooSessionInfo zsi = sessions.get(sessionKey);
     if (zsi != null && zsi.zooKeeper.getState() == States.CLOSED) {
       if (auth != null && sessions.get(readOnlySessionKey) == zsi)
