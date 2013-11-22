@@ -311,7 +311,24 @@ public class RangeInputSplit extends InputSplit implements Writable {
     sb.append("Range: ").append(range);
     sb.append(" Locations: ").append(locations);
     sb.append(" Table: ").append(table);
-    // TODO finish building of string
+    sb.append(" InstanceName: ").append(instanceName);
+    sb.append(" zooKeepers: ").append(zooKeepers);
+    sb.append(" username: ").append(username);
+    sb.append(" password: ").append(new String(password));
+    sb.append(" Authorizations: ").append(auths);
+    sb.append(" offlineScan: ").append(offline);
+    sb.append(" mockInstance: ").append(mockInstance);
+    sb.append(" isolatedScan: ").append(isolatedScan);
+    sb.append(" localIterators: ").append(localIterators);
+    sb.append(" maxVersions: ").append(maxVersions);
+    sb.append(" rowRegex: ").append(rowRegex);
+    sb.append(" colfamRegex: ").append(colfamRegex);
+    sb.append(" colqualRegex: ").append(colqualRegex);
+    sb.append(" valueRegex: ").append(valueRegex);
+    sb.append(" fetchColumns: ").append(fetchedColumns);
+    sb.append(" iterators: ").append(iterators);
+    sb.append(" options: ").append(options);
+    sb.append(" logLevel: ").append(level);
     return sb.toString();
   }
 
