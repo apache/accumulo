@@ -363,21 +363,17 @@ public class Monitor {
     try {
       // Read the gc location from its lock
       ZooReaderWriter zk = ZooReaderWriter.getInstance();
-      try {
-        String path = ZooUtil.getRoot(instance) + Constants.ZGC_LOCK;
-        List<String> locks = zk.getChildren(path, null);
-        if (locks != null && locks.size() > 0) {
-          Collections.sort(locks);
-          address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0), null))).getAddress(Service.GC_CLIENT);
-          GCMonitorService.Client client = ThriftUtil.getClient(new GCMonitorService.Client.Factory(), address, config.getConfiguration());
-          try {
-            result = client.getStatus(Tracer.traceInfo(), SystemCredentials.get().toThrift(instance));
-          } finally {
-            ThriftUtil.returnClient(client);
-          }
+      String path = ZooUtil.getRoot(instance) + Constants.ZGC_LOCK;
+      List<String> locks = zk.getChildren(path, null);
+      if (locks != null && locks.size() > 0) {
+        Collections.sort(locks);
+        address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0), null))).getAddress(Service.GC_CLIENT);
+        GCMonitorService.Client client = ThriftUtil.getClient(new GCMonitorService.Client.Factory(), address, config.getConfiguration());
+        try {
+          result = client.getStatus(Tracer.traceInfo(), SystemCredentials.get().toThrift(instance));
+        } finally {
+          ThriftUtil.returnClient(client);
         }
-      } finally {
-        zk.close();
       }
     } catch (Exception ex) {
       log.warn("Unable to contact the garbage collector at " + address, ex);
