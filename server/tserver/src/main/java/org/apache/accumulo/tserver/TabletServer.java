@@ -2838,20 +2838,22 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       SortedMap<Key,Value> tabletsKeyValues = new TreeMap<Key,Value>();
       try {
         Pair<Text,KeyExtent> pair = verifyTabletInformation(extent, TabletServer.this.getTabletSession(), tabletsKeyValues, getClientAddressString(), getLock());
-        locationToOpen = pair.getFirst();
-        if (pair.getSecond() != null) {
-          synchronized (openingTablets) {
-            openingTablets.remove(extent);
-            openingTablets.notifyAll();
-            // it expected that the new extent will overlap the old one... if it does not, it should not be added to unopenedTablets
-            if (!KeyExtent.findOverlapping(extent, new TreeSet<KeyExtent>(Arrays.asList(pair.getSecond()))).contains(pair.getSecond())) {
-              throw new IllegalStateException("Fixed split does not overlap " + extent + " " + pair.getSecond());
+        if (pair != null) {
+          locationToOpen = pair.getFirst();
+          if (pair.getSecond() != null) {
+            synchronized (openingTablets) {
+              openingTablets.remove(extent);
+              openingTablets.notifyAll();
+              // it expected that the new extent will overlap the old one... if it does not, it should not be added to unopenedTablets
+              if (!KeyExtent.findOverlapping(extent, new TreeSet<KeyExtent>(Arrays.asList(pair.getSecond()))).contains(pair.getSecond())) {
+                throw new IllegalStateException("Fixed split does not overlap " + extent + " " + pair.getSecond());
+              }
+              unopenedTablets.add(pair.getSecond());
             }
-            unopenedTablets.add(pair.getSecond());
-          }
-          // split was rolled back... try again
+            // split was rolled back... try again
           new AssignmentHandler(pair.getSecond()).run();
           return;
+        }
         }
       } catch (Exception e) {
         synchronized (openingTablets) {
