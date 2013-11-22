@@ -56,7 +56,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
   private String rowRegex, colfamRegex, colqualRegex, valueRegex;
   private AuthenticationToken token;
   private Boolean offline, mockInstance, isolatedScan, localIterators;
-  private Integer maxVersions;
   private Authorizations auths;
   private Set<Pair<Text,Text>> fetchedColumns;
   private List<IteratorSetting> iterators;
@@ -165,10 +164,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
     }
     
     if (in.readBoolean()) {
-      maxVersions = in.readInt();
-    }
-    
-    if (in.readBoolean()) {
       rowRegex = in.readUTF();
     }
     
@@ -251,11 +246,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
     out.writeBoolean(null != mockInstance);
     if (null != mockInstance) {
       out.writeBoolean(mockInstance);
-    }
-    
-    out.writeBoolean(null != maxVersions);
-    if (null != maxVersions) {
-      out.writeInt(getMaxVersions());
     }
     
     out.writeBoolean(null != rowRegex);
@@ -447,14 +437,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
   public void setIsolatedScan(Boolean isolatedScan) {
     this.isolatedScan = isolatedScan;
-  }
-
-  public Integer getMaxVersions() {
-    return maxVersions;
-  }
-
-  public void setMaxVersions(Integer maxVersions) {
-    this.maxVersions = maxVersions;
   }
 
   public Authorizations getAuths() {
