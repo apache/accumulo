@@ -132,7 +132,7 @@ public class ZooKeeperStatus implements Runnable {
         }
       }
       status = update;
-      UtilWaitThread.sleep(1000);
+      UtilWaitThread.sleep(5 * 1000);
     }
   }
   
