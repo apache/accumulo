@@ -16,13 +16,11 @@
  */
 package org.apache.accumulo.core.client.mapreduce;
 
-import java.io.DataInput;
-import java.io.DataOutput;
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.math.BigInteger;
 import java.net.InetAddress;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -36,6 +34,7 @@ import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -47,10 +46,8 @@ import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.mapreduce.lib.util.InputConfigurator;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
-import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.master.state.tables.TableState;
@@ -60,7 +57,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
@@ -375,7 +371,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
      *          the table name for which the scanner is configured
      * @since 1.6.0
      */
-    protected abstract void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName);
+    protected abstract void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName, RangeInputSplit split);
 
     /**
      * Initialize a scanner over the given input split using this task attempt configuration.
@@ -386,41 +382,85 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       Scanner scanner;
       split = (RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + split.getRange());
-      Instance instance = getInstance(attempt);
-      String principal = getPrincipal(attempt);
-      AuthenticationToken token = getAuthenticationToken(attempt);
-      Authorizations authorizations = getScanAuthorizations(attempt);
+      
+      Instance instance = split.getInstance();
+      if (null == instance) {
+        instance = getInstance(attempt);
+      }
+
+      String principal = split.getPrincipal();
+      if (null == principal) {
+        principal = getPrincipal(attempt);
+      }
+
+      AuthenticationToken token = split.getToken();
+      if (null == token) {
+        token = getAuthenticationToken(attempt);
+      }
+
+      Authorizations authorizations = split.getAuths();
+      if (null == authorizations) {
+        authorizations = getScanAuthorizations(attempt);
+      }
+
+      String table = split.getTableName();
 
       // in case the table name changed, we can still use the previous name for terms of configuration,
       // but the scanner will use the table id resolved at job setup time
       InputTableConfig tableConfig = getInputTableConfig(attempt, split.getTableName());
+      
+      Boolean isOffline = split.isOffline();
+      if (null == isOffline) {
+        isOffline = tableConfig.isOfflineScan();
+      }
+
+      Boolean isIsolated = split.isIsolatedScan();
+      if (null == isIsolated) {
+        isIsolated = tableConfig.shouldUseIsolatedScanners();
+      }
+
+      Boolean usesLocalIterators = split.usesLocalIterators();
+      if (null == usesLocalIterators) {
+        usesLocalIterators = tableConfig.shouldUseLocalIterators();
+      }
+      
+      List<IteratorSetting> iterators = split.getIterators();
+      if (null == iterators) {
+        iterators = tableConfig.getIterators();
+      }
+      
+      Collection<Pair<Text,Text>> columns = split.getFetchedColumns();
+      if (null == columns) {
+        columns = tableConfig.getFetchedColumns();
+      }
 
       try {
         log.debug("Creating connector with user: " + principal);
-        log.debug("Creating scanner for table: " + split.getTableName());
+        log.debug("Creating scanner for table: " + table);
         log.debug("Authorizations are: " + authorizations);
-        if (tableConfig.isOfflineScan()) {
+        if (isOffline) {
           scanner = new OfflineScanner(instance, new Credentials(principal, token), split.getTableId(), authorizations);
         } else if (instance instanceof MockInstance) {
           scanner = instance.getConnector(principal, token).createScanner(split.getTableName(), authorizations);
         } else {
           scanner = new ScannerImpl(instance, new Credentials(principal, token), split.getTableId(), authorizations);
         }
-        if (tableConfig.shouldUseIsolatedScanners()) {
+        if (isIsolated) {
           log.info("Creating isolated scanner");
           scanner = new IsolatedScanner(scanner);
         }
-        if (tableConfig.shouldUseLocalIterators()) {
+        if (usesLocalIterators) {
           log.info("Using local iterators");
           scanner = new ClientSideIteratorScanner(scanner);
         }
-        setupIterators(attempt, scanner, split.getTableName());
+        
+        setupIterators(attempt, scanner, split.getTableName(), split);
       } catch (Exception e) {
         throw new IOException(e);
       }
 
       // setup a scanner within the bounds of this split
-      for (Pair<Text,Text> c : tableConfig.getFetchedColumns()) {
+      for (Pair<Text,Text> c : columns) {
         if (c.getSecond() != null) {
           log.debug("Fetching column " + c.getFirst() + ":" + c.getSecond());
           scanner.fetchColumn(c.getFirst(), c.getSecond());
@@ -482,7 +522,8 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    *           if a table set on the job doesn't exist or an error occurs initializing the tablet locator
    */
   public List<InputSplit> getSplits(JobContext context) throws IOException {
-    log.setLevel(getLogLevel(context));
+    Level logLevel = getLogLevel(context);
+    log.setLevel(logLevel);
     validateOptions(context);
 
     LinkedList<InputSplit> splits = new LinkedList<InputSplit>();
@@ -491,9 +532,28 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
 
       String tableName = tableConfigEntry.getKey();
       InputTableConfig tableConfig = tableConfigEntry.getValue();
+      
+      Instance instance = getInstance(context);
+      boolean mockInstance;
+      String tableId;
+      // resolve table name to id once, and use id from this point forward
+      if (instance instanceof MockInstance) {
+        tableId = "";
+        mockInstance = true;
+      } else {
+        try {
+          tableId = Tables.getTableId(instance, tableName);
+        } catch (TableNotFoundException e) {
+          throw new IOException(e);
+        }
+        mockInstance = false;
+      }
+      
+      Authorizations auths = getScanAuthorizations(context);
+      String principal = getPrincipal(context);
+      AuthenticationToken token = getAuthenticationToken(context);
 
       boolean autoAdjust = tableConfig.shouldAutoAdjustRanges();
-      String tableId = null;
       List<Range> ranges = autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges()) : tableConfig.getRanges();
       if (ranges.isEmpty()) {
         ranges = new ArrayList<Range>(1);
@@ -504,12 +564,6 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
       TabletLocator tl;
       try {
-        // resolve table name to id once, and use id from this point forward
-        Instance instance = getInstance(context);
-        if (instance instanceof MockInstance)
-          tableId = "";
-        else
-          tableId = Tables.getTableId(instance, tableName);
         if (tableConfig.isOfflineScan()) {
           binnedRanges = binOfflineTable(context, tableId, ranges);
           while (binnedRanges == null) {
@@ -560,7 +614,22 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
           for (Range r : extentRanges.getValue()) {
             if (autoAdjust) {
               // divide ranges into smaller ranges, based on the tablets
-              splits.add(new RangeInputSplit(tableName, tableId, ke.clip(r), new String[] {location}));
+              RangeInputSplit split = new RangeInputSplit(tableName, tableId, ke.clip(r), new String[] {location});
+              
+              split.setOffline(tableConfig.isOfflineScan());
+              split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());
+              split.setUsesLocalIterators(tableConfig.shouldUseLocalIterators());
+              split.setMockInstance(mockInstance);
+              split.setFetchedColumns(tableConfig.getFetchedColumns());
+              split.setPrincipal(principal);
+              split.setToken(token);
+              split.setInstanceName(instance.getInstanceName());
+              split.setZooKeepers(instance.getZooKeepers());
+              split.setAuths(auths);
+              split.setIterators(tableConfig.getIterators());
+              split.setLogLevel(logLevel);
+              
+              splits.add(split);
             } else {
               // don't divide ranges
               ArrayList<String> locations = splitsToAdd.get(r);
@@ -574,157 +643,26 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       }
 
       if (!autoAdjust)
-        for (Map.Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet())
-          splits.add(new RangeInputSplit(tableName, tableId, entry.getKey(), entry.getValue().toArray(new String[0])));
+        for (Map.Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet()) {
+          RangeInputSplit split = new RangeInputSplit(tableName, tableId, entry.getKey(), entry.getValue().toArray(new String[0]));
+
+          split.setOffline(tableConfig.isOfflineScan());
+          split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());
+          split.setUsesLocalIterators(tableConfig.shouldUseLocalIterators());
+          split.setMockInstance(mockInstance);
+          split.setFetchedColumns(tableConfig.getFetchedColumns());
+          split.setPrincipal(principal);
+          split.setToken(token);
+          split.setInstanceName(instance.getInstanceName());
+          split.setZooKeepers(instance.getZooKeepers());
+          split.setAuths(auths);
+          split.setIterators(tableConfig.getIterators());
+          split.setLogLevel(logLevel);
+          
+          splits.add(split);
+        }
     }
     return splits;
-  }
-
-  /**
-   * The Class RangeInputSplit. Encapsulates an Accumulo range for use in Map Reduce jobs.
-   */
-  public static class RangeInputSplit extends InputSplit implements Writable {
-    private Range range;
-    private String[] locations;
-    private String tableId;
-    private String tableName;
-
-    public RangeInputSplit() {
-      range = new Range();
-      locations = new String[0];
-      tableId = "";
-      tableName = "";
-    }
-
-    public RangeInputSplit(RangeInputSplit split) throws IOException {
-      this.setRange(split.getRange());
-      this.setLocations(split.getLocations());
-      this.setTableName(split.getTableName());
-      this.setTableId(split.getTableId());
-    }
-
-    protected RangeInputSplit(String table, String tableId, Range range, String[] locations) {
-      this.range = range;
-      this.locations = locations;
-      this.tableName = table;
-      this.tableId = tableId;
-    }
-
-    public Range getRange() {
-      return range;
-    }
-
-    public void setRange(Range range) {
-      this.range = range;
-    }
-
-    public String getTableName() {
-      return tableName;
-    }
-
-    public void setTableName(String tableName) {
-      this.tableName = tableName;
-    }
-
-    public void setTableId(String tableId) {
-      this.tableId = tableId;
-    }
-
-    public String getTableId() {
-      return tableId;
-    }
-
-    private static byte[] extractBytes(ByteSequence seq, int numBytes) {
-      byte[] bytes = new byte[numBytes + 1];
-      bytes[0] = 0;
-      for (int i = 0; i < numBytes; i++) {
-        if (i >= seq.length())
-          bytes[i + 1] = 0;
-        else
-          bytes[i + 1] = seq.byteAt(i);
-      }
-      return bytes;
-    }
-
-    public static float getProgress(ByteSequence start, ByteSequence end, ByteSequence position) {
-      int maxDepth = Math.min(Math.max(end.length(), start.length()), position.length());
-      BigInteger startBI = new BigInteger(extractBytes(start, maxDepth));
-      BigInteger endBI = new BigInteger(extractBytes(end, maxDepth));
-      BigInteger positionBI = new BigInteger(extractBytes(position, maxDepth));
-      return (float) (positionBI.subtract(startBI).doubleValue() / endBI.subtract(startBI).doubleValue());
-    }
-
-    public float getProgress(Key currentKey) {
-      if (currentKey == null)
-        return 0f;
-      if (range.getStartKey() != null && range.getEndKey() != null) {
-        if (!range.getStartKey().equals(range.getEndKey(), PartialKey.ROW)) {
-          // just look at the row progress
-          return getProgress(range.getStartKey().getRowData(), range.getEndKey().getRowData(), currentKey.getRowData());
-        } else if (!range.getStartKey().equals(range.getEndKey(), PartialKey.ROW_COLFAM)) {
-          // just look at the column family progress
-          return getProgress(range.getStartKey().getColumnFamilyData(), range.getEndKey().getColumnFamilyData(), currentKey.getColumnFamilyData());
-        } else if (!range.getStartKey().equals(range.getEndKey(), PartialKey.ROW_COLFAM_COLQUAL)) {
-          // just look at the column qualifier progress
-          return getProgress(range.getStartKey().getColumnQualifierData(), range.getEndKey().getColumnQualifierData(), currentKey.getColumnQualifierData());
-        }
-      }
-      // if we can't figure it out, then claim no progress
-      return 0f;
-    }
-
-    /**
-     * This implementation of length is only an estimate, it does not provide exact values. Do not have your code rely on this return value.
-     */
-    @Override
-    public long getLength() throws IOException {
-      Text startRow = range.isInfiniteStartKey() ? new Text(new byte[] {Byte.MIN_VALUE}) : range.getStartKey().getRow();
-      Text stopRow = range.isInfiniteStopKey() ? new Text(new byte[] {Byte.MAX_VALUE}) : range.getEndKey().getRow();
-      int maxCommon = Math.min(7, Math.min(startRow.getLength(), stopRow.getLength()));
-      long diff = 0;
-
-      byte[] start = startRow.getBytes();
-      byte[] stop = stopRow.getBytes();
-      for (int i = 0; i < maxCommon; ++i) {
-        diff |= 0xff & (start[i] ^ stop[i]);
-        diff <<= Byte.SIZE;
-      }
-
-      if (startRow.getLength() != stopRow.getLength())
-        diff |= 0xff;
-
-      return diff + 1;
-    }
-
-    @Override
-    public String[] getLocations() throws IOException {
-      return locations;
-    }
-
-    public void setLocations(String[] locations) {
-      this.locations = locations;
-    }
-
-    @Override
-    public void readFields(DataInput in) throws IOException {
-      range.readFields(in);
-      tableName = in.readUTF();
-      tableId = in.readUTF();
-      int numLocs = in.readInt();
-      locations = new String[numLocs];
-      for (int i = 0; i < numLocs; ++i)
-        locations[i] = in.readUTF();
-    }
-
-    @Override
-    public void write(DataOutput out) throws IOException {
-      range.write(out);
-      out.writeUTF(tableName);
-      out.writeUTF(tableId);
-      out.writeInt(locations.length);
-      for (int i = 0; i < locations.length; ++i)
-        out.writeUTF(locations[i]);
-    }
   }
 
   // use reflection to pull the Configuration out of the JobContext for Hadoop 1 and Hadoop 2 compatibility

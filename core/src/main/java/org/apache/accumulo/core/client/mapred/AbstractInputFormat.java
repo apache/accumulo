@@ -19,6 +19,7 @@ package org.apache.accumulo.core.client.mapred;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -32,6 +33,7 @@ import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -332,7 +334,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * @return the {@link InputTableConfig} for the given table
    * @since 1.6.0
    */
-  public static InputTableConfig getInputTableConfigs(JobConf job, String tableName) {
+  public static InputTableConfig getInputTableConfig(JobConf job, String tableName) {
     return InputConfigurator.getInputTableConfig(CLASS, job, tableName);
   }
 
@@ -362,7 +364,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
      *          the table name for which the scanner is configured
      * @since 1.6.0
      */
-    protected abstract void setupIterators(JobConf job, Scanner scanner, String tableName);
+    protected abstract void setupIterators(JobConf job, Scanner scanner, String tableName, RangeInputSplit split);
 
     /**
      * Initialize a scanner over the given input split using this task attempt configuration.
@@ -371,35 +373,78 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       Scanner scanner;
       split = (RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + split.getRange());
-      Instance instance = getInstance(job);
-      String principal = getPrincipal(job);
-      AuthenticationToken token = getAuthenticationToken(job);
-      Authorizations authorizations = getScanAuthorizations(job);
+      
+      Instance instance = split.getInstance();
+      if (null == instance) {
+        instance = getInstance(job);
+      }
+
+      String principal = split.getPrincipal();
+      if (null == principal) {
+        principal = getPrincipal(job);
+      }
+
+      AuthenticationToken token = split.getToken();
+      if (null == token) {
+        token = getAuthenticationToken(job);
+      }
+
+      Authorizations authorizations = split.getAuths();
+      if (null == authorizations) {
+        authorizations = getScanAuthorizations(job);
+      }
+
+      String table = split.getTableName();
 
       // in case the table name changed, we can still use the previous name for terms of configuration,
       // but the scanner will use the table id resolved at job setup time
-      InputTableConfig tableConfig = getInputTableConfigs(job, split.getTableName());
+      InputTableConfig tableConfig = getInputTableConfig(job, split.getTableName());
+      
+      Boolean isOffline = split.isOffline();
+      if (null == isOffline) {
+        isOffline = tableConfig.isOfflineScan();
+      }
+
+      Boolean isIsolated = split.isIsolatedScan();
+      if (null == isIsolated) {
+        isIsolated = tableConfig.shouldUseIsolatedScanners();
+      }
+
+      Boolean usesLocalIterators = split.usesLocalIterators();
+      if (null == usesLocalIterators) {
+        usesLocalIterators = tableConfig.shouldUseLocalIterators();
+      }
+      
+      List<IteratorSetting> iterators = split.getIterators();
+      if (null == iterators) {
+        iterators = tableConfig.getIterators();
+      }
+      
+      Collection<Pair<Text,Text>> columns = split.getFetchedColumns();
+      if (null == columns) {
+        columns = tableConfig.getFetchedColumns();
+      }
 
       try {
         log.debug("Creating connector with user: " + principal);
-        log.debug("Creating scanner for table: " + split.getTableName());
+        log.debug("Creating scanner for table: " + table);
         log.debug("Authorizations are: " + authorizations);
-        if (tableConfig.isOfflineScan()) {
+        if (isOffline) {
           scanner = new OfflineScanner(instance, new Credentials(principal, token), split.getTableId(), authorizations);
         } else if (instance instanceof MockInstance) {
           scanner = instance.getConnector(principal, token).createScanner(split.getTableName(), authorizations);
         } else {
           scanner = new ScannerImpl(instance, new Credentials(principal, token), split.getTableId(), authorizations);
         }
-        if (tableConfig.shouldUseIsolatedScanners()) {
+        if (isIsolated) {
           log.info("Creating isolated scanner");
           scanner = new IsolatedScanner(scanner);
         }
-        if (tableConfig.shouldUseLocalIterators()) {
+        if (usesLocalIterators) {
           log.info("Using local iterators");
           scanner = new ClientSideIteratorScanner(scanner);
         }
-        setupIterators(job, scanner, split.getTableName());
+        setupIterators(job, scanner, split.getTableName(), split);
       } catch (Exception e) {
         throw new IOException(e);
       }
@@ -456,7 +501,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    */
   @Override
   public InputSplit[] getSplits(JobConf job, int numSplits) throws IOException {
-    log.setLevel(getLogLevel(job));
+    Level logLevel = getLogLevel(job);
+    log.setLevel(logLevel);
     validateOptions(job);
 
     LinkedList<InputSplit> splits = new LinkedList<InputSplit>();
@@ -464,8 +510,28 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
     for (Map.Entry<String,InputTableConfig> tableConfigEntry : tableConfigs.entrySet()) {
       String tableName = tableConfigEntry.getKey();
       InputTableConfig tableConfig = tableConfigEntry.getValue();
+      
+      Instance instance = getInstance(job);
+      boolean mockInstance;
+      String tableId;
+      // resolve table name to id once, and use id from this point forward
+      if (instance instanceof MockInstance) {
+        tableId = "";
+        mockInstance = true;
+      } else {
+        try {
+          tableId = Tables.getTableId(instance, tableName);
+        } catch (TableNotFoundException e) {
+          throw new IOException(e);
+        }
+        mockInstance = false;
+      }
+      
+      Authorizations auths = getScanAuthorizations(job);
+      String principal = getPrincipal(job);
+      AuthenticationToken token = getAuthenticationToken(job);
+      
       boolean autoAdjust = tableConfig.shouldAutoAdjustRanges();
-      String tableId = null;
       List<Range> ranges = autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges()) : tableConfig.getRanges();
       if (ranges.isEmpty()) {
         ranges = new ArrayList<Range>(1);
@@ -476,12 +542,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
       TabletLocator tl;
       try {
-        // resolve table name to id once, and use id from this point forward
-        Instance instance = getInstance(job);
-        if (instance instanceof MockInstance)
-          tableId = "";
-        else
-          tableId = Tables.getTableId(instance, tableName);
         if (tableConfig.isOfflineScan()) {
           binnedRanges = binOfflineTable(job, tableId, ranges);
           while (binnedRanges == null) {
@@ -531,7 +591,22 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
           for (Range r : extentRanges.getValue()) {
             if (autoAdjust) {
               // divide ranges into smaller ranges, based on the tablets
-              splits.add(new RangeInputSplit(tableName, tableId, ke.clip(r), new String[] {location}));
+              RangeInputSplit split = new RangeInputSplit(tableName, tableId, ke.clip(r), new String[] {location});
+              
+              split.setOffline(tableConfig.isOfflineScan());
+              split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());
+              split.setUsesLocalIterators(tableConfig.shouldUseLocalIterators());
+              split.setMockInstance(mockInstance);
+              split.setFetchedColumns(tableConfig.getFetchedColumns());
+              split.setPrincipal(principal);
+              split.setToken(token);
+              split.setInstanceName(instance.getInstanceName());
+              split.setZooKeepers(instance.getZooKeepers());
+              split.setAuths(auths);
+              split.setIterators(tableConfig.getIterators());
+              split.setLogLevel(logLevel);
+              
+              splits.add(split);
             } else {
               // don't divide ranges
               ArrayList<String> locations = splitsToAdd.get(r);
@@ -545,28 +620,27 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       }
 
       if (!autoAdjust)
-        for (Map.Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet())
-          splits.add(new RangeInputSplit(tableName, tableId, entry.getKey(), entry.getValue().toArray(new String[0])));
+        for (Map.Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet()) {
+          RangeInputSplit split = new RangeInputSplit(tableName, tableId, entry.getKey(), entry.getValue().toArray(new String[0]));
+
+          split.setOffline(tableConfig.isOfflineScan());
+          split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());
+          split.setUsesLocalIterators(tableConfig.shouldUseLocalIterators());
+          split.setMockInstance(mockInstance);
+          split.setFetchedColumns(tableConfig.getFetchedColumns());
+          split.setPrincipal(principal);
+          split.setToken(token);
+          split.setInstanceName(instance.getInstanceName());
+          split.setZooKeepers(instance.getZooKeepers());
+          split.setAuths(auths);
+          split.setIterators(tableConfig.getIterators());
+          split.setLogLevel(logLevel);
+          
+          splits.add(split);
+        }
     }
 
     return splits.toArray(new InputSplit[splits.size()]);
   }
 
-  /**
-   * The Class RangeInputSplit. Encapsulates an Accumulo range for use in Map Reduce jobs.
-   */
-  public static class RangeInputSplit extends org.apache.accumulo.core.client.mapreduce.InputFormatBase.RangeInputSplit implements InputSplit {
-
-    public RangeInputSplit() {
-      super();
-    }
-
-    public RangeInputSplit(RangeInputSplit split) throws IOException {
-      super(split);
-    }
-
-    protected RangeInputSplit(String table, String tableId, Range range, String[] locations) {
-      super(table, tableId, range, locations);
-    }
-  }
 }

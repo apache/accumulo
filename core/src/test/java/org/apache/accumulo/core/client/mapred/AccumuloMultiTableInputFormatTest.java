@@ -67,7 +67,7 @@ public class AccumuloMultiTableInputFormatTest {
       @Override
       public void map(Key k, Value v, OutputCollector<Key,Value> output, Reporter reporter) throws IOException {
         try {
-          String tableName = ((InputFormatBase.RangeInputSplit) reporter.getInputSplit()).getTableName();
+          String tableName = ((RangeInputSplit) reporter.getInputSplit()).getTableName();
           if (key != null)
             assertEquals(key.getRow().toString(), new String(v.get()));
           assertEquals(new Text(String.format("%s_%09x", tableName, count + 1)), k.getRow());
@@ -182,7 +182,7 @@ public class AccumuloMultiTableInputFormatTest {
     configMap.put(TEST_TABLE_2, table2);
     AccumuloMultiTableInputFormat.setInputTableConfigs(job, configMap);
 
-    assertEquals(table1, AccumuloMultiTableInputFormat.getInputTableConfigs(job, TEST_TABLE_1));
-    assertEquals(table2, AccumuloMultiTableInputFormat.getInputTableConfigs(job, TEST_TABLE_2));
+    assertEquals(table1, AccumuloMultiTableInputFormat.getInputTableConfig(job, TEST_TABLE_1));
+    assertEquals(table2, AccumuloMultiTableInputFormat.getInputTableConfig(job, TEST_TABLE_2));
   }
 }
