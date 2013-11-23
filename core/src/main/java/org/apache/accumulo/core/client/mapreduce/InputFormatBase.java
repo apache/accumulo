@@ -323,10 +323,10 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
      * @since 1.6.0
      */
     @Override
-    protected void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName) {
-      setupIterators(context, scanner);
+    protected void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName, RangeInputSplit split) {
+      setupIterators(context, scanner, split);
     }
-
+    
     /**
      * Apply the configured iterators from the configuration to the scanner.
      * 
@@ -335,8 +335,11 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
      * @param scanner
      *          the scanner to configure
      */
-    protected void setupIterators(TaskAttemptContext context, Scanner scanner) {
-      List<IteratorSetting> iterators = getIterators(context);
+    protected void setupIterators(TaskAttemptContext context, Scanner scanner, RangeInputSplit split) {
+      List<IteratorSetting> iterators = split.getIterators(); 
+      if (null == iterators) {
+        iterators = getIterators(context);
+      }
       for (IteratorSetting iterator : iterators)
         scanner.addScanIterator(iterator);
     }

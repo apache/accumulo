@@ -64,7 +64,7 @@ public class AccumuloMultiTableInputFormatTest {
       @Override
       protected void map(Key k, Value v, Context context) throws IOException, InterruptedException {
         try {
-          String tableName = ((InputFormatBase.RangeInputSplit) context.getInputSplit()).getTableName();
+          String tableName = ((RangeInputSplit) context.getInputSplit()).getTableName();
           if (key != null)
             assertEquals(key.getRow().toString(), new String(v.get()));
           assertEquals(new Text(String.format("%s_%09x", tableName, count + 1)), k.getRow());

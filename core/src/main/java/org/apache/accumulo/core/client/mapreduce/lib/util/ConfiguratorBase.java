@@ -53,7 +53,7 @@ public class ConfiguratorBase {
     IS_CONFIGURED, PRINCIPAL, TOKEN,
   }
 
-  private static enum TokenSource {
+  public static enum TokenSource {
     FILE, INLINE;
 
     private String prefix;
@@ -72,7 +72,7 @@ public class ConfiguratorBase {
    * 
    * @since 1.5.0
    */
-  protected static enum InstanceOpts {
+  public static enum InstanceOpts {
     TYPE, NAME, ZOO_KEEPERS, CLIENT_CONFIG;
   }
 
@@ -81,7 +81,7 @@ public class ConfiguratorBase {
    * 
    * @since 1.5.0
    */
-  protected static enum GeneralOpts {
+  public static enum GeneralOpts {
     LOG_LEVEL
   }
 
@@ -231,7 +231,7 @@ public class ConfiguratorBase {
    * @since 1.6.0
    * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
    */
-  private static AuthenticationToken getTokenFromFile(Configuration conf, String principal, String tokenFile) {
+  public static AuthenticationToken getTokenFromFile(Configuration conf, String principal, String tokenFile) {
     FSDataInputStream in = null;
     try {
       URI[] uris = DistributedCacheHelper.getCacheFiles(conf);

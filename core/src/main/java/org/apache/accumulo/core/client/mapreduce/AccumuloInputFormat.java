@@ -30,6 +30,7 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.log4j.Level;
 
 /**
  * This class allows MapReduce jobs to use Accumulo as the source of data. This {@link InputFormat} provides keys and values of type {@link Key} and
@@ -50,6 +51,16 @@ public class AccumuloInputFormat extends InputFormatBase<Key,Value> {
   @Override
   public RecordReader<Key,Value> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
     log.setLevel(getLogLevel(context));
+    
+    // Override the log level from the configuration as if the RangeInputSplit has one it's the more correct one to use.
+    if (split instanceof RangeInputSplit) {
+      RangeInputSplit risplit = (RangeInputSplit) split;
+      Level level = risplit.getLogLevel();
+      if (null != level) {
+        log.setLevel(level);
+      }
+    }
+
     return new RecordReaderBase<Key,Value>() {
 
       @Override
