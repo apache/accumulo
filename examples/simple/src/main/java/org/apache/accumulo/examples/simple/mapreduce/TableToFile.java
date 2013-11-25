@@ -50,7 +50,7 @@ public class TableToFile extends Configured implements Tool {
     @Parameter(names = "--output", description = "output directory", required = true)
     String output;
     @Parameter(names = "--columns", description = "columns to extract, in cf:cq{,cf:cq,...} form")
-    String columns;
+    String columns = "";
   }
   
   /**
