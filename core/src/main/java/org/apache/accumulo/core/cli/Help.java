@@ -34,12 +34,20 @@ public class Help {
       commander.parse(args);
     } catch (ParameterException ex) {
       commander.usage();
-      System.err.println(ex.getMessage());
-      System.exit(0);
+      exitWithError(ex.getMessage(), 1);
     }
     if (help) {
       commander.usage();
-      System.exit(0);
+      exit(0);
     }
+  }
+  
+  public void exit(int status) {
+    System.exit(status);
+  }
+  
+  public void exitWithError(String message, int status) {
+    System.err.println(message);
+    exit(status);
   }
 }
