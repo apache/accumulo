@@ -2851,9 +2851,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
               unopenedTablets.add(pair.getSecond());
             }
             // split was rolled back... try again
-          new AssignmentHandler(pair.getSecond()).run();
-          return;
-        }
+            new AssignmentHandler(pair.getSecond()).run();
+            return;
+          }
         }
       } catch (Exception e) {
         synchronized (openingTablets) {
