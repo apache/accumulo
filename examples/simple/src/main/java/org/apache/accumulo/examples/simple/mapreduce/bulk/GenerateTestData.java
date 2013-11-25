@@ -45,7 +45,7 @@ public class GenerateTestData {
     PrintStream out = new PrintStream(new BufferedOutputStream(fs.create(new Path(opts.outputFile))));
     
     for (int i = 0; i < opts.numRows; i++) {
-      out.println(String.format("row_%08d\tvalue_%08d", i + opts.startRow, i + opts.startRow));
+      out.println(String.format("row_%010d\tvalue_%010d", i + opts.startRow, i + opts.startRow));
     }
     out.close();
   }
