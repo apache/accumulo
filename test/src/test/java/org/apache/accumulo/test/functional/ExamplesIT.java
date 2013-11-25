@@ -167,7 +167,7 @@ public class ExamplesIT extends ConfigurableMacIT {
     assertEquals(
         0,
         cluster.exec(RandomBatchWriter.class, "--seed", "7", "-i", instance, "-z", keepers, "-u", user, "-p", ROOT_PASSWORD, "--num", "100000", "--min", "0",
-            "--max", "1000000000", "--size", "50", "--batchMemmory", "2M", "--batchLatency", "60s", "--batchThreads", "3", "-t", "bloom_test").waitFor());
+            "--max", "1000000000", "--size", "50", "--batchMemory", "2M", "--batchLatency", "60s", "--batchThreads", "3", "-t", "bloom_test").waitFor());
     c.tableOperations().flush("bloom_test", null, null, true);
     long diff = 0, diff2 = 0;
     // try the speed test a couple times in case the system is loaded with other tests
@@ -178,7 +178,7 @@ public class ExamplesIT extends ConfigurableMacIT {
           "--scanThreads", "4","-t", "bloom_test").waitFor());
       diff = System.currentTimeMillis() - now;
       now = System.currentTimeMillis();
-      assertEquals(0,  cluster.exec(RandomBatchScanner.class,"--seed", "8", "-i", instance, "-z",
+      assertEquals(1,  cluster.exec(RandomBatchScanner.class,"--seed", "8", "-i", instance, "-z",
           keepers, "-u", user, "-p", ROOT_PASSWORD, "--num", "10000", "--min", "0", "--max", "1000000000", "--size", "50",
           "--scanThreads", "4","-t", "bloom_test").waitFor());
       diff2 = System.currentTimeMillis() - now;
@@ -204,11 +204,12 @@ public class ExamplesIT extends ConfigurableMacIT {
     }
     assertTrue(thisFile);
     // create a reverse index
-    assertEquals(0, cluster.exec(Reverse.class, "-i", instance, "-z", keepers, "-t", "shard", "--doc2Term", "-u", "root", "-p", passwd).waitFor());
+    c.tableOperations().create("doc2Term");
+    assertEquals(0, cluster.exec(Reverse.class, "-i", instance, "-z", keepers, "--shardTable", "shard", "--doc2Term", "doc2Term", "-u", "root", "-p", passwd).waitFor());
     // run some queries
     assertEquals(
         0,
-        cluster.exec(ContinuousQuery.class, "-i", instance, "-z", keepers, "-t", "shard", "--doc2Term", "-u", "root", "-p", passwd, "--term", "5", "--count",
+        cluster.exec(ContinuousQuery.class, "-i", instance, "-z", keepers, "--shardTable", "shard", "--doc2Term", "doc2Term", "-u", "root", "-p", passwd, "--terms", "5", "--count",
             "1000").waitFor());
 
     log.info("Testing MaxMutation constraint");
@@ -223,17 +224,10 @@ public class ExamplesIT extends ConfigurableMacIT {
       assertEquals(1, ex.getConstraintViolationSummaries().size());
     }
 
-    log.info("Starting build ingest example");
-    assertEquals(0, cluster.exec(GenerateTestData.class, "0", "10000", dir + "/tmp/input/data").waitFor());
-    assertEquals(0, cluster.exec(SetupTable.class, instance, keepers, user, passwd, "bulkTable").waitFor());
-    assertEquals(0, cluster.exec(BulkIngestExample.class, instance, keepers, user, passwd, "bulkTable", dir + "/tmp/input", dir + "/tmp").waitFor());
-    assertEquals(0, cluster.exec(VerifyIngest.class, instance, keepers, user, passwd, "bulkTable", "0", "1000000").waitFor());
-
     log.info("Starting bulk ingest example");
-    assertEquals(0, cluster.exec(GenerateTestData.class, "0", "1000000", dir + "/tmp/input/data").waitFor());
-    assertEquals(0, cluster.exec(SetupTable.class, instance, keepers, user, passwd, "bulkTable").waitFor());
-    assertEquals(0, cluster.exec(BulkIngestExample.class, instance, keepers, user, passwd, "bulkTable", dir + "/tmp/input", dir + "/tmp").waitFor());
-    assertEquals(0, cluster.exec(VerifyIngest.class, instance, keepers, user, passwd, "bulkTable", "0", "1000000").waitFor());
+    assertEquals(0, cluster.exec(GenerateTestData.class, "--start-row", "0", "--count", "10000", "--output", dir + "/tmp/input/data").waitFor());
+    assertEquals(0, cluster.exec(SetupTable.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", "bulkTable").waitFor());
+    assertEquals(0, cluster.exec(BulkIngestExample.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", "bulkTable", "--inputDir", dir + "/tmp/input", "--workDir", dir + "/tmp").waitFor());
 
     log.info("Running TeraSortIngest example");
     exec(TeraSortIngest.class, new String[] {"--count", (1000 * 1000) + "", "-nk", "10", "-xk", "10", "-nv", "10", "-xv", "10", "-t", "sorted", "-i", instance,
