@@ -17,14 +17,23 @@
 
 
 use POSIX qw(strftime);
+use Cwd qw();
 
 if(scalar(@ARGV) != 4 && scalar(@ARGV) != 2){
-	print "Usage : agitator.pl <min sleep before kill in minutes>[:max sleep before kill in minutes] <min sleep before tup in minutes>[:max sleep before tup in minutes] [<min kill> <max kill>]\n";
-	exit(1);
+  print "Usage : agitator.pl <min sleep before kill in minutes>[:max sleep before kill in minutes] <min sleep before tup in minutes>[:max sleep before tup in minutes] [<min kill> <max kill>]\n";
+  exit(1);
 }
 
-$ACCUMULO_HOME="../../..";
+$ACCUMULO_USER='accumulo';
+$HDFS_USER='hdfs';
+
+$cwd=Cwd::cwd();
+$ACCUMULO_HOME=$cwd . '/../../..';
 $HADOOP_PREFIX=$ENV{"HADOOP_PREFIX"};
+
+print STDERR "Current directory: $cwd\n";
+print STDERR "ACCUMULO_HOME=$ACCUMULO_HOME\n";
+print STDERR "HADOOP_PREFIX=$HADOOP_PREFIX\n";
 
 @sleeprange1 = split(/:/, $ARGV[0]);
 $sleep1 = $sleeprange1[0];
@@ -32,114 +41,116 @@ $sleep1 = $sleeprange1[0];
 @sleeprange2 = split(/:/, $ARGV[1]);
 $sleep2 = $sleeprange2[0];
 
-if(scalar(@sleeprange1) > 1){
-    $sleep1max = $sleeprange1[1] + 1;
-}else{
-    $sleep1max = $sleep1;
+if (scalar(@sleeprange1) > 1) {
+  $sleep1max = $sleeprange1[1] + 1;
+} else {
+  $sleep1max = $sleep1;
 }
 
-if($sleep1 > $sleep1max){
-	die("sleep1 > sleep1max $sleep1 > $sleep1max");
+if ($sleep1 > $sleep1max) {
+  die("sleep1 > sleep1max $sleep1 > $sleep1max");
 }
 
-if(scalar(@sleeprange2) > 1){
-    $sleep2max = $sleeprange2[1] + 1;
-}else{
-    $sleep2max = $sleep2;
+if (scalar(@sleeprange2) > 1) {
+  $sleep2max = $sleeprange2[1] + 1;
+} else {
+  $sleep2max = $sleep2;
 }
 
 if($sleep2 > $sleep2max){
-	die("sleep2 > sleep2max $sleep2 > $sleep2max");
+  die("sleep2 > sleep2max $sleep2 > $sleep2max");
 }
 
 if(defined $ENV{'ACCUMULO_CONF_DIR'}){
   $ACCUMULO_CONF_DIR = $ENV{'ACCUMULO_CONF_DIR'};
 }else{
-	$ACCUMULO_CONF_DIR = $ACCUMULO_HOME . '/conf';
+  $ACCUMULO_CONF_DIR = $ACCUMULO_HOME . '/conf';
 }
 
 if(scalar(@ARGV) == 4){
-	$minKill = $ARGV[2];
-	$maxKill = $ARGV[3];
+  $minKill = $ARGV[2];
+  $maxKill = $ARGV[3];
 }else{
-	$minKill = 1;
-	$maxKill = 1;
+  $minKill = 1;
+  $maxKill = 1;
 }
 
 if($minKill > $maxKill){
-	die("minKill > maxKill $minKill > $maxKill");
+  die("minKill > maxKill $minKill > $maxKill");
 }
 
 @slavesRaw = `cat $ACCUMULO_CONF_DIR/slaves`;
 chomp(@slavesRaw);
 
 for $slave (@slavesRaw){
-	if($slave eq "" || substr($slave,0,1) eq "#"){
-		next;
-	}
+  if($slave eq "" || substr($slave,0,1) eq "#"){
+    next;
+  }
 
-	push(@slaves, $slave);
+  push(@slaves, $slave);
 }
 
 
 if(scalar(@slaves) < $maxKill){
-	print STDERR "WARN setting maxKill to ".scalar(@slaves)."\n";
-	$maxKill = scalar(@slaves);
+  print STDERR "WARN setting maxKill to ".scalar(@slaves)."\n";
+  $maxKill = scalar(@slaves);
 }
 
 if ($minKill > $maxKill){
-    print STDERR "WARN setting minKill to equal maxKill\n";
-    $minKill = $maxKill;
+  print STDERR "WARN setting minKill to equal maxKill\n";
+  $minKill = $maxKill;
 }
 
 while(1){
 
+  $numToKill = int(rand($maxKill - $minKill + 1)) + $minKill;
+  %killed = {};
+  $server = "";
+  $kill_tserver = 0;
+  $kill_datanode = 0;
 
-	$numToKill = int(rand($maxKill - $minKill + 1)) + $minKill;
-	%killed = {};
+  for($i = 0; $i < $numToKill; $i++){
+    while($server eq "" || $killed{$server} != undef){
+      $index = int(rand(scalar(@slaves)));
+      $server = $slaves[$index];
+    }
 
-	for($i = 0; $i < $numToKill; $i++){
-		$server = "";	
-		while($server eq "" || $killed{$server} != undef){
-			$index = int(rand(scalar(@slaves)));
-			$server = $slaves[$index];
-		}
+    $killed{$server} = 1;
 
-		$killed{$server} = 1;
+    $t = strftime "%Y%m%d %H:%M:%S", localtime;
 
-		$t = strftime "%Y%m%d %H:%M:%S", localtime;
+    $rn = rand(1);
+    if ($rn <.33) {
+      $kill_tserver = 1;
+      $kill_datanode = 1;
+    } elsif ($rn < .66) {
+      $kill_tserver = 1;
+      $kill_datanode = 0;
+    } else {
+      $kill_tserver = 0;
+      $kill_datanode = 1;
+    }
 
-		$rn = rand(1);
-		$kill_tserver = 0;
-		$kill_datanode = 0;
-		if($rn <.33){
-			$kill_tserver = 1;
-			$kill_datanode = 1;
-		}elsif($rn < .66){
-			$kill_tserver = 1;
-			$kill_datanode = 0;
-		}else{
-			$kill_tserver = 0;
-			$kill_datanode = 1;
-		}
-	
-		print STDERR "$t Killing $server $kill_tserver $kill_datanode\n";
-	        if($kill_tserver) {
-			system("$ACCUMULO_HOME/bin/stop-server.sh $server \"accumulo-start.jar\" tserver KILL");
-		}
+    print STDERR "$t Killing $server $kill_tserver $kill_datanode\n";
+    if ($kill_tserver) {
+      system("su -c '$ACCUMULO_HOME/bin/stop-server.sh $server \"accumulo-start.jar\" tserver KILL' - $ACCUMULO_USER");
+    }
 
-	        if($kill_datanode) {
-		        system("ssh $server pkill -9 -f [p]roc_datanode");
-		}
-	}
+    if ($kill_datanode) {
+      system("ssh $server pkill -9 -f [p]roc_datanode");
+    }
+  }
 
   $nextsleep2 = int(rand($sleep2max - $sleep2)) + $sleep2;
-	sleep($nextsleep2 * 60);
-	$t = strftime "%Y%m%d %H:%M:%S", localtime;
-	print STDERR "$t Running tup\n";
-	system("$ACCUMULO_HOME/bin/tup.sh");
-	print STDERR "$t Running start-dfs\n";
-	system("$HADOOP_PREFIX/*bin/start-dfs.sh");
+  sleep($nextsleep2 * 60);
+  $t = strftime "%Y%m%d %H:%M:%S", localtime;
+  print STDERR "$t Running tup\n";
+  system("su -c $ACCUMULO_HOME/bin/tup.sh - $ACCUMULO_USER");
+
+  if ($kill_datanode) {
+    print STDERR "$t Starting datanode on $server\n";
+    system("ssh $server 'su -c \"$HADOOP_PREFIX/sbin/hadoop-daemon.sh start datanode\" - $HDFS_USER'");
+  }
 
   $nextsleep1 = int(rand($sleep1max - $sleep1)) + $sleep1;
   sleep($nextsleep1 * 60);
