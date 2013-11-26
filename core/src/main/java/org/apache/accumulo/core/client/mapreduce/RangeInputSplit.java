@@ -20,7 +20,6 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -132,6 +131,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
   /**
    * This implementation of length is only an estimate, it does not provide exact values. Do not have your code rely on this return value.
    */
+  @Override
   public long getLength() throws IOException {
     Text startRow = range.isInfiniteStartKey() ? new Text(new byte[] {Byte.MIN_VALUE}) : range.getStartKey().getRow();
     Text stopRow = range.isInfiniteStopKey() ? new Text(new byte[] {Byte.MAX_VALUE}) : range.getEndKey().getRow();
@@ -151,10 +151,12 @@ public class RangeInputSplit extends InputSplit implements Writable {
     return diff + 1;
   }
 
+  @Override
   public String[] getLocations() throws IOException {
     return locations;
   }
 
+  @Override
   public void readFields(DataInput in) throws IOException {
     range.readFields(in);
     tableName = in.readUTF();
@@ -163,42 +165,42 @@ public class RangeInputSplit extends InputSplit implements Writable {
     locations = new String[numLocs];
     for (int i = 0; i < numLocs; ++i)
       locations[i] = in.readUTF();
-    
+
     if (in.readBoolean()) {
       isolatedScan = in.readBoolean();
     }
-    
+
     if (in.readBoolean()) {
       offline = in.readBoolean();
     }
-    
+
     if (in.readBoolean()) {
       localIterators = in.readBoolean();
     }
-    
+
     if (in.readBoolean()) {
       mockInstance = in.readBoolean();
     }
-    
+
     if (in.readBoolean()) {
       int numColumns = in.readInt();
       List<String> columns = new ArrayList<String>(numColumns);
       for (int i = 0; i < numColumns; i++) {
         columns.add(in.readUTF());
       }
-      
+
       fetchedColumns = InputConfigurator.deserializeFetchedColumns(columns);
     }
-    
+
     if (in.readBoolean()) {
       String strAuths = in.readUTF();
       auths = new Authorizations(strAuths.getBytes(Constants.UTF8));
     }
-    
+
     if (in.readBoolean()) {
       principal = in.readUTF();
     }
-    
+
     if (in.readBoolean()) {
       int ordinal = in.readInt();
       this.tokenSource = TokenSource.values()[ordinal];
@@ -208,32 +210,33 @@ public class RangeInputSplit extends InputSplit implements Writable {
           String tokenClass = in.readUTF();
           byte[] base64TokenBytes = in.readUTF().getBytes(Constants.UTF8);
           byte[] tokenBytes = Base64.decodeBase64(base64TokenBytes);
-          
+
           this.token = AuthenticationTokenSerializer.deserialize(tokenClass, tokenBytes);
           break;
-          
+
         case FILE:
           this.tokenFile = in.readUTF();
-          
+
           break;
         default:
-          throw new IOException("Cannot parse unknown TokenSource ordinal");      
+          throw new IOException("Cannot parse unknown TokenSource ordinal");
       }
     }
-    
+
     if (in.readBoolean()) {
       instanceName = in.readUTF();
     }
-    
+
     if (in.readBoolean()) {
       zooKeepers = in.readUTF();
     }
-    
+
     if (in.readBoolean()) {
       level = Level.toLevel(in.readInt());
     }
   }
 
+  @Override
   public void write(DataOutput out) throws IOException {
     range.write(out);
     out.writeUTF(tableName);
@@ -241,27 +244,27 @@ public class RangeInputSplit extends InputSplit implements Writable {
     out.writeInt(locations.length);
     for (int i = 0; i < locations.length; ++i)
       out.writeUTF(locations[i]);
-    
+
     out.writeBoolean(null != isolatedScan);
     if (null != isolatedScan) {
       out.writeBoolean(isolatedScan);
     }
-    
+
     out.writeBoolean(null != offline);
     if (null != offline) {
       out.writeBoolean(offline);
     }
-    
+
     out.writeBoolean(null != localIterators);
     if (null != localIterators) {
       out.writeBoolean(localIterators);
     }
-    
+
     out.writeBoolean(null != mockInstance);
     if (null != mockInstance) {
       out.writeBoolean(mockInstance);
     }
-    
+
     out.writeBoolean(null != fetchedColumns);
     if (null != fetchedColumns) {
       String[] cols = InputConfigurator.serializeColumns(fetchedColumns);
@@ -270,21 +273,21 @@ public class RangeInputSplit extends InputSplit implements Writable {
         out.writeUTF(col);
       }
     }
-    
+
     out.writeBoolean(null != auths);
     if (null != auths) {
       out.writeUTF(auths.serialize());
     }
-    
+
     out.writeBoolean(null != principal);
     if (null != principal) {
       out.writeUTF(principal);
     }
-    
+
     out.writeBoolean(null != tokenSource);
     if (null != tokenSource) {
       out.writeInt(tokenSource.ordinal());
-      
+
       if (null != token && null != tokenFile) {
         throw new IOException("Cannot use both inline AuthenticationToken and file-based AuthenticationToken");
       } else if (null != token) {
@@ -294,17 +297,17 @@ public class RangeInputSplit extends InputSplit implements Writable {
         out.writeUTF(tokenFile);
       }
     }
-    
+
     out.writeBoolean(null != instanceName);
     if (null != instanceName) {
       out.writeUTF(instanceName);
     }
-    
+
     out.writeBoolean(null != zooKeepers);
     if (null != zooKeepers) {
       out.writeUTF(zooKeepers);
     }
-    
+
     out.writeBoolean(null != level);
     if (null != level) {
       out.writeInt(level.toInt());
@@ -350,20 +353,20 @@ public class RangeInputSplit extends InputSplit implements Writable {
   public String getTableId() {
     return tableId;
   }
-  
+
   public Instance getInstance() {
     if (null == instanceName) {
       return null;
     }
-    
-    if (isMockInstance()) {  
+
+    if (isMockInstance()) {
       return new MockInstance(getInstanceName());
     }
-    
+
     if (null == zooKeepers) {
       return null;
     }
-    
+
     return new ZooKeeperInstance(ClientConfiguration.loadDefault().withInstance(getInstanceName()).withZkHosts(getZooKeepers()));
   }
 
@@ -390,16 +393,16 @@ public class RangeInputSplit extends InputSplit implements Writable {
   public void setPrincipal(String principal) {
     this.principal = principal;
   }
-  
+
   public AuthenticationToken getToken() {
     return token;
   }
-  
+
   public void setToken(AuthenticationToken token) {
     this.tokenSource = TokenSource.INLINE;
     this.token = token;
   }
-  
+
   public void setToken(String tokenFile) {
     this.tokenSource = TokenSource.FILE;
     this.tokenFile = tokenFile;
@@ -456,7 +459,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
   public Set<Pair<Text,Text>> getFetchedColumns() {
     return fetchedColumns;
   }
-  
+
   public void setFetchedColumns(Collection<Pair<Text,Text>> fetchedColumns) {
     this.fetchedColumns = new HashSet<Pair<Text,Text>>();
     for (Pair<Text,Text> columns : fetchedColumns) {
@@ -479,7 +482,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
   public Level getLogLevel() {
     return level;
   }
-  
+
   public void setLogLevel(Level level) {
     this.level = level;
   }
