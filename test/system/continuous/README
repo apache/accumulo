@@ -34,7 +34,8 @@ service that continually collect statistics about accumulo and HDFS.
  start-stats.sh
  stop-stats.sh 
 
-Optionally, start the agitator to periodically kill random servers.  
+Optionally, start the agitator to periodically kill the tabletserver and/or datanode
+process(es) on random nodes. This must be run as root.
 
  start-agitator.sh
  stop-agitator.sh
