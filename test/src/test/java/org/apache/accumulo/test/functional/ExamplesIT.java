@@ -74,7 +74,6 @@ import org.apache.accumulo.minicluster.MiniAccumuloCluster.LogWriter;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.TestIngest;
-import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.tracer.TraceServer;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -173,14 +172,16 @@ public class ExamplesIT extends ConfigurableMacIT {
     // try the speed test a couple times in case the system is loaded with other tests
     for (int i = 0; i < 2; i++) {
       long now = System.currentTimeMillis();
-      assertEquals(0,  cluster.exec(RandomBatchScanner.class,"--seed", "7", "-i", instance, "-z",
-          keepers, "-u", user, "-p", ROOT_PASSWORD, "--num", "10000", "--min", "0", "--max", "1000000000", "--size", "50",
-          "--scanThreads", "4","-t", "bloom_test").waitFor());
+      assertEquals(
+          0,
+          cluster.exec(RandomBatchScanner.class, "--seed", "7", "-i", instance, "-z", keepers, "-u", user, "-p", ROOT_PASSWORD, "--num", "10000", "--min", "0",
+              "--max", "1000000000", "--size", "50", "--scanThreads", "4", "-t", "bloom_test").waitFor());
       diff = System.currentTimeMillis() - now;
       now = System.currentTimeMillis();
-      assertEquals(1,  cluster.exec(RandomBatchScanner.class,"--seed", "8", "-i", instance, "-z",
-          keepers, "-u", user, "-p", ROOT_PASSWORD, "--num", "10000", "--min", "0", "--max", "1000000000", "--size", "50",
-          "--scanThreads", "4","-t", "bloom_test").waitFor());
+      assertEquals(
+          1,
+          cluster.exec(RandomBatchScanner.class, "--seed", "8", "-i", instance, "-z", keepers, "-u", user, "-p", ROOT_PASSWORD, "--num", "10000", "--min", "0",
+              "--max", "1000000000", "--size", "50", "--scanThreads", "4", "-t", "bloom_test").waitFor());
       diff2 = System.currentTimeMillis() - now;
       if (diff2 < diff)
         break;
@@ -205,12 +206,13 @@ public class ExamplesIT extends ConfigurableMacIT {
     assertTrue(thisFile);
     // create a reverse index
     c.tableOperations().create("doc2Term");
-    assertEquals(0, cluster.exec(Reverse.class, "-i", instance, "-z", keepers, "--shardTable", "shard", "--doc2Term", "doc2Term", "-u", "root", "-p", passwd).waitFor());
+    assertEquals(0, cluster.exec(Reverse.class, "-i", instance, "-z", keepers, "--shardTable", "shard", "--doc2Term", "doc2Term", "-u", "root", "-p", passwd)
+        .waitFor());
     // run some queries
     assertEquals(
         0,
-        cluster.exec(ContinuousQuery.class, "-i", instance, "-z", keepers, "--shardTable", "shard", "--doc2Term", "doc2Term", "-u", "root", "-p", passwd, "--terms", "5", "--count",
-            "1000").waitFor());
+        cluster.exec(ContinuousQuery.class, "-i", instance, "-z", keepers, "--shardTable", "shard", "--doc2Term", "doc2Term", "-u", "root", "-p", passwd,
+            "--terms", "5", "--count", "1000").waitFor());
 
     log.info("Testing MaxMutation constraint");
     c.tableOperations().create("test_ingest");
@@ -227,7 +229,10 @@ public class ExamplesIT extends ConfigurableMacIT {
     log.info("Starting bulk ingest example");
     assertEquals(0, cluster.exec(GenerateTestData.class, "--start-row", "0", "--count", "10000", "--output", dir + "/tmp/input/data").waitFor());
     assertEquals(0, cluster.exec(SetupTable.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", "bulkTable").waitFor());
-    assertEquals(0, cluster.exec(BulkIngestExample.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", "bulkTable", "--inputDir", dir + "/tmp/input", "--workDir", dir + "/tmp").waitFor());
+    assertEquals(
+        0,
+        cluster.exec(BulkIngestExample.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", "bulkTable", "--inputDir",
+            dir + "/tmp/input", "--workDir", dir + "/tmp").waitFor());
 
     log.info("Running TeraSortIngest example");
     exec(TeraSortIngest.class, new String[] {"--count", (1000 * 1000) + "", "-nk", "10", "-xk", "10", "-nv", "10", "-xv", "10", "-t", "sorted", "-i", instance,

@@ -302,6 +302,7 @@ public class AccumuloInputFormatTest {
 
   @Test
   public void testCorrectRangeInputSplits() throws Exception {
+    @SuppressWarnings("deprecation")
     Job job = new Job(new Configuration(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
 
     String username = "user", table = "table", instance = "instance";
@@ -363,10 +364,13 @@ public class AccumuloInputFormatTest {
     }
     bw.close();
 
-    Assert.assertEquals(0, MRTester.main(new String[] {user, "", "testtable", "testPartialInputSplitDelegationToConfiguration",
-        EmptySplitsAccumuloInputFormat.class.getCanonicalName()}));
+    Assert.assertEquals(
+        0,
+        MRTester.main(new String[] {user, "", "testtable", "testPartialInputSplitDelegationToConfiguration",
+            EmptySplitsAccumuloInputFormat.class.getCanonicalName()}));
     assertNull(e1);
-    assertNull(e2);  }
+    assertNull(e2);
+  }
 
   @Test
   public void testPartialFailedInputSplitDelegationToConfiguration() throws Exception {
@@ -384,9 +388,11 @@ public class AccumuloInputFormatTest {
     }
     bw.close();
 
-    // We should fail before we even get into the Mapper because we can't make the RecordReader 
-    Assert.assertEquals(1, MRTester.main(new String[] {user, "", "testtable", "testPartialFailedInputSplitDelegationToConfiguration",
-        BadPasswordSplitsAccumuloInputFormat.class.getCanonicalName()}));
+    // We should fail before we even get into the Mapper because we can't make the RecordReader
+    Assert.assertEquals(
+        1,
+        MRTester.main(new String[] {user, "", "testtable", "testPartialFailedInputSplitDelegationToConfiguration",
+            BadPasswordSplitsAccumuloInputFormat.class.getCanonicalName()}));
     assertNull(e1);
     assertNull(e2);
   }
