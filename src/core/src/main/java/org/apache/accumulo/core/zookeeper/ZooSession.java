@@ -18,10 +18,7 @@ package org.apache.accumulo.core.zookeeper;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -52,17 +49,7 @@ class ZooSession {
   
   private static class AccumuloWatcher implements Watcher {
     
-    private HashSet<Watcher> watchers = new HashSet<Watcher>();
-    
     public void process(WatchedEvent event) {
-      // copy the watchers, in case the callback adds() more Watchers
-      // otherwise we get a ConcurrentModificationException
-      Collection<Watcher> watcherCopy = new ArrayList<Watcher>(watchers);
-      
-      for (Watcher watcher : watcherCopy) {
-        watcher.process(event);
-      }
-      
       if (event.getState() == KeeperState.Expired) {
         log.debug("Session expired, state of current session : " + event.getState());
       }

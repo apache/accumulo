@@ -397,21 +397,17 @@ public class Monitor {
     try {
       // Read the gc location from its lock
       ZooReaderWriter zk = ZooReaderWriter.getInstance();
-      try {
-        String path = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZGC_LOCK;
-        List<String> locks = zk.getChildren(path, null);
-        if (locks != null && locks.size() > 0) {
-          Collections.sort(locks);
-          InetSocketAddress address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0), null))).getAddress(Service.GC_CLIENT);
-          GCMonitorService.Iface client = ThriftUtil.getClient(new GCMonitorService.Client.Factory(), address, ServerConfiguration.getSystemConfiguration());
-          try {
-            result = client.getStatus(null, SecurityConstants.getSystemCredentials());
-          } finally {
-            ThriftUtil.returnClient(client);
-          }
+      String path = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZGC_LOCK;
+      List<String> locks = zk.getChildren(path, null);
+      if (locks != null && locks.size() > 0) {
+        Collections.sort(locks);
+        InetSocketAddress address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0), null))).getAddress(Service.GC_CLIENT);
+        GCMonitorService.Iface client = ThriftUtil.getClient(new GCMonitorService.Client.Factory(), address, ServerConfiguration.getSystemConfiguration());
+        try {
+          result = client.getStatus(null, SecurityConstants.getSystemCredentials());
+        } finally {
+          ThriftUtil.returnClient(client);
         }
-      } finally {
-        zk.close();
       }
     } catch (Exception ex) {
       log.warn("Unable to contact the garbage collector", ex);
