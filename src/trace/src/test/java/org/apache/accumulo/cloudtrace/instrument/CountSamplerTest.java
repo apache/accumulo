@@ -16,9 +16,9 @@
  */
 package org.apache.accumulo.cloudtrace.instrument;
 
-import junit.framework.Assert;
 
 import org.apache.accumulo.cloudtrace.instrument.CountSampler;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class CountSamplerTest {

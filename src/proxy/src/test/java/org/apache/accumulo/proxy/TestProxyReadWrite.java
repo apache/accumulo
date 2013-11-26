@@ -29,14 +29,12 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.proxy.thrift.BatchScanOptions;
 import org.apache.accumulo.proxy.thrift.ColumnUpdate;
 import org.apache.accumulo.proxy.thrift.IteratorSetting;
 import org.apache.accumulo.proxy.thrift.Key;
 import org.apache.accumulo.proxy.thrift.KeyValue;
-import org.apache.accumulo.proxy.thrift.MutationsRejectedException;
 import org.apache.accumulo.proxy.thrift.Range;
 import org.apache.accumulo.proxy.thrift.ScanColumn;
 import org.apache.accumulo.proxy.thrift.ScanOptions;
@@ -147,14 +145,6 @@ public class TestProxyReadWrite {
     }
     assertEquals(i, 50000);
   }
-
-    private class MyTest {
-
-        public void addMutation(Mutation m) throws MutationsRejectedException {
-            throw new MutationsRejectedException();
-        }
-    }
-
 
   /**
    * Insert 100000 cells which have as the row [0..99999] (padded with zeros). Set a columnFamily so only the entries with specified column family come back (there should be

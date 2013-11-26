@@ -411,11 +411,7 @@ public class SimpleTest {
 
   @Test(timeout = 10000)
   public void testInstanceOperations() throws Exception {
-    int tservers = 0;
-    for (String tserver : client.getTabletServers(creds)) {
-      tservers++;
-    }
-    assertTrue(tservers > 0);
+    assertTrue(client.getTabletServers(creds).size() > 0);
     
     // get something we know is in the site config
     Map<String,String> cfg = client.getSiteConfiguration(creds);

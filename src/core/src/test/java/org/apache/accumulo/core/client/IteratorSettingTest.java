@@ -1,10 +1,10 @@
 package org.apache.accumulo.core.client;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.DevNull;
-import org.apache.hadoop.io.Writable;
 import org.junit.Test;
 
 /**

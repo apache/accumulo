@@ -21,7 +21,7 @@ import java.util.TreeMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 
 import org.apache.accumulo.server.zookeeper.DistributedReadWriteLock;
 import org.apache.accumulo.server.zookeeper.DistributedReadWriteLock.QueueLock;

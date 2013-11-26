@@ -23,8 +23,6 @@ package org.apache.accumulo.server.tabletserver;
  * 
  */
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;

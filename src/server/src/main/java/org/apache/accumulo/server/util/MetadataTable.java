@@ -35,7 +35,6 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
-import java.util.TreeSet;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -66,7 +65,6 @@ import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.StringUtil;
-import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -333,47 +331,6 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
       } catch (AccumuloException e) {
         UtilWaitThread.sleep(100);
       }
-    }
-    
-  }
-  
-  /**
-   * convenience method for reading a metadata tablet's data file entries from the root tablet
-   * 
-   */
-  private static SortedMap<Key,Value> getRootMetadataDataFileEntries(KeyExtent extent, AuthInfo credentials) {
-    SortedSet<Column> columns = new TreeSet<Column>();
-    columns.add(new Column(TextUtil.getBytes(Constants.METADATA_DATAFILE_COLUMN_FAMILY), null, null));
-    return getRootMetadataDataEntries(extent, columns, credentials);
-  }
-  
-  private static SortedMap<Key,Value> getRootMetadataDataEntries(KeyExtent extent, SortedSet<Column> columns, AuthInfo credentials) {
-    
-    try {
-      SortedMap<Key,Value> entries = new TreeMap<Key,Value>();
-      
-      Text metadataEntry = extent.getMetadataEntry();
-      Text startRow;
-      boolean more = getBatchFromRootTablet(credentials, metadataEntry, entries, columns, false, Constants.SCAN_BATCH_SIZE);
-      
-      while (more) {
-        startRow = entries.lastKey().getRow(); // set end row
-        more = getBatchFromRootTablet(credentials, startRow, entries, columns, false, Constants.SCAN_BATCH_SIZE);
-      }
-      
-      Iterator<Key> iter = entries.keySet().iterator();
-      while (iter.hasNext()) {
-        Key key = iter.next();
-        if (key.compareRow(metadataEntry) != 0) {
-          iter.remove();
-        }
-      }
-      
-      return entries;
-      
-    } catch (AccumuloSecurityException e) {
-      log.warn("Unauthorized access...");
-      return new TreeMap<Key,Value>();
     }
     
   }
