@@ -20,28 +20,75 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
-import org.apache.accumulo.test.CreateTestTable;
+import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class TabletIT extends ConfigurableMacIT {
-  
+
   private static final int N = 1000;
 
   @Override
   public void configure(MiniAccumuloConfig cfg) {
-    Map<String, String> siteConfig = new HashMap<String,String>();
+    Map<String,String> siteConfig = new HashMap<String,String>();
     siteConfig.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "200");
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "128M");
+    cfg.setDefaultMemory(256, MemoryUnit.MEGABYTE);
     cfg.setSiteConfig(siteConfig);
   }
 
-  @Test(timeout = 30 * 1000)
-  public void test() throws Exception {
-    assertEquals(0, cluster.exec(CreateTestTable.class, "" + N).waitFor());
-    assertEquals(0, cluster.exec(CreateTestTable.class, "-readonly", "" + N).waitFor());
+  @Test(timeout = 2 * 60 * 1000)
+  public void createTableTest() throws Exception {
+    String tableName = getTableNames(1)[0];
+    createTableTest(tableName, false);
+    createTableTest(tableName, true);
   }
-  
+
+  public void createTableTest(String tableName, boolean readOnly) throws Exception {
+    // create the test table within accumulo
+    Connector connector = getConnector();
+
+    if (!readOnly) {
+      TreeSet<Text> keys = new TreeSet<Text>();
+      for (int i = N / 100; i < N; i += N / 100) {
+        keys.add(new Text(String.format("%05d", i)));
+      }
+
+      // presplit
+      connector.tableOperations().create(tableName);
+      connector.tableOperations().addSplits(tableName, keys);
+      BatchWriter b = connector.createBatchWriter(tableName, new BatchWriterConfig());
+
+      // populate
+      for (int i = 0; i < N; i++) {
+        Mutation m = new Mutation(new Text(String.format("%05d", i)));
+        m.put(new Text("col" + Integer.toString((i % 3) + 1)), new Text("qual"), new Value("junk".getBytes()));
+        b.addMutation(m);
+      }
+      b.close();
+    }
+
+    Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY);
+    int count = 0;
+    for (Entry<Key,Value> elt : scanner) {
+      String expected = String.format("%05d", count);
+      assert (elt.getKey().getRow().toString().equals(expected));
+      count++;
+    }
+    assertEquals(N, count);
+  }
+
 }
