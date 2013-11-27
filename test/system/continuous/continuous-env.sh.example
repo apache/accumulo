@@ -24,6 +24,7 @@ ZOOKEEPER_HOME=${ZOOKEEPER_HOME:-/opt/zookeeper}
 CONTINUOUS_LOG_DIR=$ACCUMULO_HOME/test/system/continuous/logs
 INSTANCE_NAME=instance
 ZOO_KEEPERS=zhost1,zhost2
+ACCUMULO_USER=accumulo
 USER=user
 PASS=pass
 TABLE=ci
