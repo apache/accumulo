@@ -2430,8 +2430,13 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
             
             if (openingOverlapping.contains(extent) || onlineOverlapping.contains(extent))
               return;
-            
-            if (!unopenedTablets.contains(extent) || unopenedOverlapping.size() != 1 || openingOverlapping.size() > 0 || onlineOverlapping.size() > 0) {
+
+            if (!unopenedOverlapping.contains(extent)) {
+              log.info("assignment " + extent + " no longer in the unopened set");
+              return;
+            }
+
+            if (unopenedOverlapping.size() != 1 || openingOverlapping.size() > 0 || onlineOverlapping.size() > 0) {
               throw new IllegalStateException("overlaps assigned " + extent + " " + !unopenedTablets.contains(extent) + " " + unopenedOverlapping + " "
                   + openingOverlapping + " " + onlineOverlapping);
             }
