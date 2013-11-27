@@ -133,7 +133,7 @@ public class MiniAccumuloCluster {
   private Process zooKeeperProcess = null;
   private Process masterProcess = null;
   private Process gcProcess = null;
-  private List<Process> tabletServerProcesses = new ArrayList<Process>();
+  private List<Process> tabletServerProcesses = Collections.synchronizedList(new ArrayList<Process>());
 
   private Set<Pair<ServerType,Integer>> debugPorts = new HashSet<Pair<ServerType,Integer>>();
 
