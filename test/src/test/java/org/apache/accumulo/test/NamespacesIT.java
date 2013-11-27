@@ -53,31 +53,12 @@ import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.NumericValueConstraint;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
-public class NamespacesIT {
+public class NamespacesIT extends SimpleMacIT {
 
   Random random = new Random();
-  public static TemporaryFolder folder = new TemporaryFolder();
-  static private MiniAccumuloCluster accumulo;
-  static private String secret = "secret";
-
-  @BeforeClass
-  static public void setUp() throws Exception {
-    folder.create();
-    accumulo = new MiniAccumuloCluster(folder.getRoot(), secret);
-    accumulo.start();
-  }
-
-  @AfterClass
-  static public void tearDown() throws Exception {
-    accumulo.stop();
-    folder.delete();
-  }
 
   /**
    * This test creates a table without specifying a namespace. In this case, it puts the table into the default namespace.
@@ -85,7 +66,7 @@ public class NamespacesIT {
   @Test
   public void testDefaultNamespace() throws Exception {
     String tableName = "test";
-    Connector c = accumulo.getConnector("root", secret);
+    Connector c = getConnector();
 
     assertTrue(c.namespaceOperations().exists(Constants.DEFAULT_NAMESPACE));
     c.tableOperations().create(tableName);
@@ -103,7 +84,7 @@ public class NamespacesIT {
     String tableName1 = namespace + ".table1";
     String tableName2 = namespace + ".table2";
 
-    Connector c = accumulo.getConnector("root", secret);
+    Connector c = getConnector();
 
     c.namespaceOperations().create(namespace);
     assertTrue(c.namespaceOperations().exists(namespace));
@@ -154,7 +135,7 @@ public class NamespacesIT {
     String propKey = Property.TABLE_SCAN_MAXMEM.getKey();
     String propVal = "42K";
 
-    Connector c = accumulo.getConnector("root", secret);
+    Connector c = getConnector();
 
     c.namespaceOperations().create(namespace);
     c.tableOperations().create(tableName1);
@@ -213,29 +194,24 @@ public class NamespacesIT {
    * 
    */
   @Test
-  public void testRenameAndCloneTableToNewNamespace() throws Exception {
-    String namespace1 = "renamed";
-    String namespace2 = "cloned";
-    String tableName = "table";
-    String tableName1 = "renamed.table1";
-    String tableName2 = "cloned.table2";
+  public void testCloneTableToNewNamespace() throws Exception {
+    Connector c = getConnector();
 
-    Connector c = accumulo.getConnector("root", secret);
+    String[] uniqueNames = getTableNames(2);
+    String namespace1 = uniqueNames[0];
+    String namespace2 = uniqueNames[1];
+    String tableName1 = namespace1 + ".table1";
+    String tableName2 = namespace2 + ".table2";
 
-    c.tableOperations().create(tableName);
     c.namespaceOperations().create(namespace1);
-    c.namespaceOperations().create(namespace2);
-
-    c.tableOperations().rename(tableName, tableName1);
-
+    c.tableOperations().create(tableName1);
     assertTrue(c.tableOperations().exists(tableName1));
-    assertTrue(!c.tableOperations().exists(tableName));
 
+    c.namespaceOperations().create(namespace2);
     c.tableOperations().clone(tableName1, tableName2, false, null, null);
 
     assertTrue(c.tableOperations().exists(tableName1));
     assertTrue(c.tableOperations().exists(tableName2));
-    return;
   }
 
   /**
@@ -247,7 +223,7 @@ public class NamespacesIT {
     String namespace2 = "n2";
     String table = "t";
 
-    Connector c = accumulo.getConnector("root", secret);
+    Connector c = getConnector();
     Instance instance = c.getInstance();
 
     c.namespaceOperations().create(namespace1);
@@ -269,8 +245,9 @@ public class NamespacesIT {
    */
   @Test
   public void testCloneTableProperties() throws Exception {
-    String n1 = "namespace1";
-    String n2 = "namespace2";
+    String[] uniqueNames = getTableNames(2);
+    String n1 = uniqueNames[0];
+    String n2 = uniqueNames[1];
     String t1 = n1 + ".table";
     String t2 = n2 + ".table";
 
@@ -278,7 +255,7 @@ public class NamespacesIT {
     String propVal1 = "55";
     String propVal2 = "66";
 
-    Connector c = accumulo.getConnector("root", secret);
+    Connector c = getConnector();
 
     c.namespaceOperations().create(n1);
     c.tableOperations().create(t1);
@@ -295,6 +272,8 @@ public class NamespacesIT {
 
     assertTrue(checkTableHasProp(c, t2, propKey, propVal2));
 
+    c.tableOperations().delete(t1);
+    c.tableOperations().delete(t2);
     c.namespaceOperations().delete(n1);
     c.namespaceOperations().delete(n2);
   }
@@ -304,7 +283,7 @@ public class NamespacesIT {
    */
   @Test
   public void testNamespaceIteratorsAndConstraints() throws Exception {
-    Connector c = accumulo.getConnector("root", secret);
+    Connector c = getConnector();
 
     String namespace = "iterator";
     String tableName = namespace + ".table";
@@ -349,42 +328,31 @@ public class NamespacesIT {
   }
 
   /**
-   * Tests that when a table moves to a new namespace that it's properties inherit from the new namespace and not the old one
+   * Tests disallowed rename across namespaces
    */
   @Test
-  public void testRenameToNewNamespaceProperties() throws Exception {
-    Connector c = accumulo.getConnector("root", secret);
+  public void testRenameTable() throws Exception {
+    Connector c = getConnector();
 
-    String namespace1 = "moveToNewNamespace1";
-    String namespace2 = "moveToNewNamespace2";
-    String tableName1 = namespace1 + ".table";
-    String tableName2 = namespace2 + ".table";
-
-    String propKey = Property.TABLE_FILE_MAX.getKey();
-    String propVal = "42";
+    String[] uniqueNames = getTableNames(4);
+    String namespace1 = uniqueNames[0];
+    String namespace2 = uniqueNames[1];
+    String tableName1 = namespace1 + "." + uniqueNames[2];
+    String tableName2 = namespace2 + "." + uniqueNames[3];
+    String tableName3 = namespace1 + "." + uniqueNames[3];
 
     c.namespaceOperations().create(namespace1);
     c.namespaceOperations().create(namespace2);
     c.tableOperations().create(tableName1);
 
-    c.namespaceOperations().setProperty(namespace1, propKey, propVal);
-    boolean hasProp = false;
-    for (Entry<String,String> p : c.tableOperations().getProperties(tableName1)) {
-      if (p.getKey().equals(propKey) && p.getValue().equals(propVal)) {
-        hasProp = true;
-      }
+    try {
+      c.tableOperations().rename(tableName1, tableName2);
+      fail();
+    } catch (AccumuloException e) {
+      // this is expected, because we don't allow renames across namespaces
     }
-    assertTrue(hasProp);
 
-    c.tableOperations().rename(tableName1, tableName2);
-
-    hasProp = false;
-    for (Entry<String,String> p : c.tableOperations().getProperties(tableName2)) {
-      if (p.getKey().equals(propKey) && p.getValue().equals(propVal)) {
-        hasProp = true;
-      }
-    }
-    assertTrue(!hasProp);
+    c.tableOperations().rename(tableName1, tableName3);
   }
 
   /**
@@ -393,53 +361,57 @@ public class NamespacesIT {
    */
   @Test
   public void testPermissions() throws Exception {
-    Connector c = accumulo.getConnector("root", secret);
+    Connector c = getConnector();
 
-    PasswordToken pass = new PasswordToken(secret);
-
-    String n1 = "spaceOfTheName";
-
-    String user1 = "dude";
+    String[] uniqueNames = getTableNames(8);
+    String user1 = uniqueNames[0];
+    String user2 = uniqueNames[1];
+    PasswordToken pass = new PasswordToken(uniqueNames[2]);
+    String n1 = uniqueNames[3];
+    String n2 = uniqueNames[4];
+    String t1 = uniqueNames[5];
+    String t2 = uniqueNames[6];
+    String t3 = uniqueNames[7];
 
     c.namespaceOperations().create(n1);
-    c.tableOperations().create(n1 + ".table1");
+    c.tableOperations().create(n1 + "." + t1);
 
     c.securityOperations().createLocalUser(user1, pass);
 
-    Connector user1Con = accumulo.getConnector(user1, secret);
+    Connector user1Con = getConnector().getInstance().getConnector(user1, pass);
 
     try {
-      user1Con.tableOperations().create(n1 + ".table2");
+      user1Con.tableOperations().create(n1 + "." + t2);
       fail();
     } catch (AccumuloSecurityException e) {
       // supposed to happen
     }
 
     c.securityOperations().grantNamespacePermission(user1, n1, NamespacePermission.CREATE_TABLE);
-    user1Con.tableOperations().create(n1 + ".table2");
-    assertTrue(c.tableOperations().list().contains(n1 + ".table2"));
+    user1Con.tableOperations().create(n1 + "." + t2);
+    assertTrue(c.tableOperations().list().contains(n1 + "." + t2));
     c.securityOperations().revokeNamespacePermission(user1, n1, NamespacePermission.CREATE_TABLE);
 
     try {
-      user1Con.tableOperations().delete(n1 + ".table1");
+      user1Con.tableOperations().delete(n1 + "." + t1);
       fail();
     } catch (AccumuloSecurityException e) {
       // should happen
     }
 
     c.securityOperations().grantNamespacePermission(user1, n1, NamespacePermission.DROP_TABLE);
-    user1Con.tableOperations().delete(n1 + ".table1");
-    assertTrue(!c.tableOperations().list().contains(n1 + ".table1"));
+    user1Con.tableOperations().delete(n1 + "." + t1);
+    assertTrue(!c.tableOperations().list().contains(n1 + "." + t1));
     c.securityOperations().revokeNamespacePermission(user1, n1, NamespacePermission.DROP_TABLE);
 
-    c.tableOperations().create(n1 + ".t");
-    BatchWriter bw = c.createBatchWriter(n1 + ".t", null);
+    c.tableOperations().create(n1 + "." + t3);
+    BatchWriter bw = c.createBatchWriter(n1 + "." + t3, null);
     Mutation m = new Mutation("row");
     m.put("cf", "cq", "value");
     bw.addMutation(m);
     bw.close();
 
-    Iterator<Entry<Key,Value>> i = user1Con.createScanner(n1 + ".t", new Authorizations()).iterator();
+    Iterator<Entry<Key,Value>> i = user1Con.createScanner(n1 + "." + t3, new Authorizations()).iterator();
     try {
       i.next();
       fail();
@@ -447,9 +419,9 @@ public class NamespacesIT {
       // yup
     }
 
-    m = new Mutation("user1");
+    m = new Mutation(user1);
     m.put("cf", "cq", "turtles");
-    bw = user1Con.createBatchWriter(n1 + ".t", null);
+    bw = user1Con.createBatchWriter(n1 + "." + t3, null);
     try {
       bw.addMutation(m);
       bw.close();
@@ -459,26 +431,26 @@ public class NamespacesIT {
     }
 
     c.securityOperations().grantNamespacePermission(user1, n1, NamespacePermission.READ);
-    i = user1Con.createScanner(n1 + ".t", new Authorizations()).iterator();
+    i = user1Con.createScanner(n1 + "." + t3, new Authorizations()).iterator();
     assertTrue(i.hasNext());
     c.securityOperations().revokeNamespacePermission(user1, n1, NamespacePermission.READ);
 
     c.securityOperations().grantNamespacePermission(user1, n1, NamespacePermission.WRITE);
-    m = new Mutation("user1");
+    m = new Mutation(user1);
     m.put("cf", "cq", "turtles");
-    bw = user1Con.createBatchWriter(n1 + ".t", null);
+    bw = user1Con.createBatchWriter(n1 + "." + t3, null);
     bw.addMutation(m);
     bw.close();
     c.securityOperations().revokeNamespacePermission(user1, n1, NamespacePermission.WRITE);
 
     try {
-      user1Con.tableOperations().setProperty(n1 + ".t", Property.TABLE_FILE_MAX.getKey(), "42");
+      user1Con.tableOperations().setProperty(n1 + "." + t3, Property.TABLE_FILE_MAX.getKey(), "42");
       fail();
     } catch (AccumuloSecurityException e) {}
 
     c.securityOperations().grantNamespacePermission(user1, n1, NamespacePermission.ALTER_TABLE);
-    user1Con.tableOperations().setProperty(n1 + ".t", Property.TABLE_FILE_MAX.getKey(), "42");
-    user1Con.tableOperations().removeProperty(n1 + ".t", Property.TABLE_FILE_MAX.getKey());
+    user1Con.tableOperations().setProperty(n1 + "." + t3, Property.TABLE_FILE_MAX.getKey(), "42");
+    user1Con.tableOperations().removeProperty(n1 + "." + t3, Property.TABLE_FILE_MAX.getKey());
     c.securityOperations().revokeNamespacePermission(user1, n1, NamespacePermission.ALTER_TABLE);
 
     try {
@@ -491,7 +463,6 @@ public class NamespacesIT {
     user1Con.namespaceOperations().removeProperty(n1, Property.TABLE_FILE_MAX.getKey());
     c.securityOperations().revokeNamespacePermission(user1, n1, NamespacePermission.ALTER_NAMESPACE);
 
-    String user2 = "guy";
     c.securityOperations().createLocalUser(user2, pass);
     try {
       user1Con.securityOperations().grantNamespacePermission(user2, n1, NamespacePermission.ALTER_NAMESPACE);
@@ -503,7 +474,6 @@ public class NamespacesIT {
     user1Con.securityOperations().revokeNamespacePermission(user2, n1, NamespacePermission.ALTER_NAMESPACE);
     c.securityOperations().revokeNamespacePermission(user1, n1, NamespacePermission.GRANT);
 
-    String n2 = "namespace2";
     try {
       user1Con.namespaceOperations().create(n2);
       fail();
@@ -538,7 +508,7 @@ public class NamespacesIT {
    */
   @Test
   public void excludeSystemIterConst() throws Exception {
-    Connector c = accumulo.getConnector("root", secret);
+    Connector c = getConnector();
 
     c.instanceOperations().setProperty("table.iterator.scan.sum", "20," + SimpleFilter.class.getName());
     assertTrue(c.instanceOperations().getSystemConfiguration().containsValue("20," + SimpleFilter.class.getName()));

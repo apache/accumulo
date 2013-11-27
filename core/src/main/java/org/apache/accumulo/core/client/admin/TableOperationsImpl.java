@@ -779,7 +779,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throw new IllegalArgumentException(new NamespaceNotFoundException(null, namespace, info));
     }
 
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldTableName.getBytes()), ByteBuffer.wrap(newTableName.getBytes()));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldTableName.getBytes(Constants.UTF8)), ByteBuffer.wrap(newTableName.getBytes(Constants.UTF8)));
     Map<String,String> opts = new HashMap<String,String>();
     doTableOperation(TableOperation.RENAME, args, opts);
   }

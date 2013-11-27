@@ -30,7 +30,6 @@ import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.log4j.Logger;
 
@@ -40,14 +39,11 @@ public class RenameTable extends MasterRepo {
   private String tableId;
   private String oldTableName;
   private String newTableName;
-  private String oldNamespaceId;
-  private String newNamespaceId;
+  private String namespaceId;
 
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-    return Utils.reserveNamespace(oldNamespaceId, tid, false, true, TableOperation.RENAME)
-        + Utils.reserveNamespace(newNamespaceId, tid, false, true, TableOperation.RENAME)
-        + Utils.reserveTable(tableId, tid, true, true, TableOperation.RENAME);
+    return Utils.reserveNamespace(namespaceId, tid, false, true, TableOperation.RENAME) + Utils.reserveTable(tableId, tid, true, true, TableOperation.RENAME);
   }
 
   public RenameTable(String tableId, String oldTableName, String newTableName) throws NamespaceNotFoundException {
@@ -55,19 +51,16 @@ public class RenameTable extends MasterRepo {
     this.oldTableName = oldTableName;
     this.newTableName = newTableName;
     Instance inst = HdfsZooInstance.getInstance();
-    this.oldNamespaceId = Tables.getNamespace(inst, tableId);
-    this.newNamespaceId = Namespaces.getNamespaceId(inst, Tables.extractNamespace(newTableName));
+    this.namespaceId = Tables.getNamespace(inst, tableId);
   }
 
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
 
     Instance instance = master.getInstance();
-
-    if (!newNamespaceId.equals(oldNamespaceId)) {
-      TableManager tm = TableManager.getInstance();
-      tm.addNamespaceToTable(tableId, newNamespaceId);
-    }
+    // ensure no attempt is made to rename across namespaces
+    if (newTableName.contains(".") && !namespaceId.equals(Namespaces.getNamespaceId(instance, Tables.extractNamespace(newTableName))))
+      throw new IllegalArgumentException("Namespace in new table name does not match the old table name");
 
     IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
 
@@ -97,8 +90,7 @@ public class RenameTable extends MasterRepo {
     } finally {
       Utils.tableNameLock.unlock();
       Utils.unreserveTable(tableId, tid, true);
-      Utils.unreserveNamespace(this.oldNamespaceId, tid, false);
-      Utils.unreserveNamespace(this.newNamespaceId, tid, false);
+      Utils.unreserveNamespace(this.namespaceId, tid, false);
     }
 
     Logger.getLogger(RenameTable.class).debug("Renamed table " + tableId + " " + oldTableName + " " + newTableName);
@@ -108,9 +100,8 @@ public class RenameTable extends MasterRepo {
 
   @Override
   public void undo(long tid, Master env) throws Exception {
-    Utils.unreserveNamespace(newNamespaceId, tid, false);
-    Utils.unreserveNamespace(oldNamespaceId, tid, false);
     Utils.unreserveTable(tableId, tid, true);
+    Utils.unreserveNamespace(namespaceId, tid, false);
   }
 
 }
