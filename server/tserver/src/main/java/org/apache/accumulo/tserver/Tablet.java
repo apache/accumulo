@@ -1387,8 +1387,6 @@ public class Tablet {
         }
         commitSession.updateMaxCommittedTime(tabletTime.getTime());
 
-        tabletMemory.updateMemoryUsageStats();
-
         if (count[0] == 0) {
           MetadataTableUtil.removeUnusedWALEntries(extent, logEntries, tabletServer.getLock());
           logEntries.clear();
