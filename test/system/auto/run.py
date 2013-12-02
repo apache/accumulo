@@ -22,11 +22,11 @@ import logging
 import unittest
 import glob
 import re
+import shutil
 import sys
 from subprocess import Popen, PIPE
 
-from TestUtils import ACCUMULO_HOME, ACCUMULO_DIR
-COBERTURA_HOME = os.path.join(ACCUMULO_HOME, 'lib', 'test', 'cobertura')
+from TestUtils import ACCUMULO_HOME, ACCUMULO_DIR, COBERTURA_HOME, findCoberturaJar
 import sleep
 
 log = logging.getLogger('test.auto')
@@ -108,26 +108,39 @@ def removeCoverageFromPreviousRun():
         except OSError:
             pass
 
+def classpath(dir):
+    return ':'.join([f for f in os.listdir(dir) if f.endswith('.jar')])
+
 def instrumentAccumuloJar(jar):
-    instrumented = jar[:-4] + "-instrumented" + ".jar"
-    try:
-        os.unlink(instrumented)
-    except OSError:
-        pass
-    os.link(jar, instrumented)
+    basedir = os.path.join(ACCUMULO_HOME, 'lib')
+    instpath = os.path.join(ACCUMULO_HOME, 'instrumented')
+    if not os.access(instpath, os.F_OK):
+        os.mkdir(instpath)
+    auxcp = classpath(basedir)
+    jarname = os.path.basename(jar)
+    destjar = os.path.join(instpath, jarname)
+    if os.access(destjar, os.F_OK):
+        print "%s already instrumented" % jarname
+        return destjar
     cmd = os.path.join(COBERTURA_HOME, "cobertura-instrument.sh")
-    run(['sh', '-c', '%s --includeClasses "accumulo.*" %s' % (
-        cmd, instrumented)])
+    print '- Instrumenting %s' % jarname
+    run(['sh', '-c', '%s --basedir %s --destination %s --auxClasspath %s %s' % (cmd, basedir, instpath, auxcp, jarname)])
     assert os.path.exists('cobertura.ser')
-    return instrumented
+    return destjar
+
+def removeInstrumentedAccumuloJars():
+    instpath = os.path.join(ACCUMULO_HOME, 'instrumented')
+    shutil.rmtree(instpath, ignore_errors=True)
 
 def mergeCoverage():
     "Most of the coverage ends up in $HOME due to ssh'ing around"
     fname = 'cobertura.ser'
-    run(['sh', '-c', ' '.join([
-        os.path.join(COBERTURA_HOME, "cobertura-merge.sh"),
-        os.path.join(os.environ['HOME'], fname),
-        fname])])
+    if os.access(os.path.join(os.environ['HOME'], fname), os.F_OK):
+        run(['sh', '-c', ' '.join([
+            os.path.join(COBERTURA_HOME, "cobertura-merge.sh"),
+            os.path.join(os.environ['HOME'], fname),
+            fname])])
+
 
 def produceCoverageReport(sourceDirectories):
     reporter = os.path.join(COBERTURA_HOME, 'cobertura-report.sh')
@@ -284,11 +297,21 @@ def main():
     map(suite.addTest, filtered)
 
     if options.coverage:
+        cobertura_jar = os.path.join(COBERTURA_HOME, findCoberturaJar())
+        if not cobertura_jar or not os.access(cobertura_jar, os.F_OK):
+            print "Install Cobertura under %s" % COBERTURA_HOME
+            sys.exit(1)
         fixCoberturaShellScripts()
         removeCoverageFromPreviousRun()
-        os.environ['HADOOP_CLASSPATH'] = os.path.join(COBERTURA_HOME,
-                                                      'cobertura.jar')
+        os.environ['HADOOP_CLASSPATH'] = cobertura_jar
         sleep.scale = 2.0
+        libpath = os.path.join(ACCUMULO_HOME,'lib')
+        libs = os.listdir(libpath)
+        for l in libs:
+          if re.search(r'^accumulo.*\.jar$', l):
+            instrumentAccumuloJar(os.path.join(libpath, l))
+    else:
+        removeInstrumentedAccumuloJars()
 
     for i in range(options.repeat):
         runner.run(suite)

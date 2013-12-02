@@ -24,6 +24,7 @@ import socket
 import signal
 import select
 import random
+import re
 import shutil
 import sleep
 
@@ -49,6 +50,13 @@ else:
 SITE = "test-" + ID
 SITE_PATH = os.path.join(ACCUMULO_CONF_DIR, SITE)
 
+COBERTURA_HOME = os.path.join(ACCUMULO_HOME, 'lib', 'test', 'cobertura')
+def findCoberturaJar():
+    jars = [f for f in os.listdir(COBERTURA_HOME) if re.search(r'cobertura.*\.jar', f)]
+    if len(jars) >= 1:
+        return jars[0]
+    return None
+
 WALOG = os.path.join(ACCUMULO_HOME, 'walogs', ID)
 
 LOG_PROPERTIES= os.path.join(ACCUMULO_CONF_DIR, 'log4j.properties')
@@ -63,6 +71,8 @@ $ACCUMULO_HOME/server/target/classes/,
     $ACCUMULO_HOME/fate/target/classes/,
     $ACCUMULO_HOME/examples/instamo/target/classes,
     $ACCUMULO_HOME/examples/simple/target/classes,
+        $ACCUMULO_HOME/instrumented/[^.].*.jar,
+        $ACCUMULO_HOME/lib/test/cobertura/cobertura.jar,
         $ACCUMULO_HOME/lib/[^.].*.jar,
         $ZOOKEEPER_HOME/zookeeper[^.].*.jar,
         $HADOOP_CONF_DIR,
@@ -262,8 +272,14 @@ class TestUtilsMixin:
             self.pkill(host, 'org.apache.accumulo.start', signal)
 
     def create_config_file(self, settings):
+        cobertura_jar = findCoberturaJar()
+        if cobertura_jar:
+            settings_classpath = General_CLASSPATH.replace('cobertura.jar', os.path.basename(cobertura_jar))
+        else:
+            settings_classpath = General_CLASSPATH
+
         fp = open(SITE_PATH, 'w')
-	fp.write('<configuration>\n')
+        fp.write('<configuration>\n')
         settings = self.settings.copy()
         settings.update({ 'instance.zookeeper.host': ZOOKEEPERS,
                           'instance.dfs.dir': ACCUMULO_DIR,
@@ -273,7 +289,7 @@ class TestUtilsMixin:
                           'logger.port.client':  44000 + FUZZ,
                           'gc.port.client':      45000 + FUZZ,
                           'logger.dir.walog': WALOG,
-                          'general.classpaths' :General_CLASSPATH,
+                          'general.classpaths':  settings_classpath,
                           'instance.secret': 'secret',
                          })
         for a, v in settings.items():
