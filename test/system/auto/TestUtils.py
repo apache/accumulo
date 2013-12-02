@@ -24,6 +24,7 @@ import socket
 import signal
 import select
 import random
+import re
 import shutil
 import sleep
 
@@ -49,6 +50,13 @@ else:
 SITE = "test-" + ID
 SITE_PATH = os.path.join(ACCUMULO_CONF_DIR, SITE)
 
+COBERTURA_HOME = os.path.join(ACCUMULO_HOME, 'lib', 'test', 'cobertura')
+def findCoberturaJar():
+    jars = [f for f in os.listdir(COBERTURA_HOME) if re.search(r'cobertura.*\.jar', f)]
+    if len(jars) >= 1:
+        return jars[0]
+    return None
+
 LOG_PROPERTIES= os.path.join(ACCUMULO_CONF_DIR, 'log4j.properties')
 LOG_GENERIC = os.path.join(ACCUMULO_CONF_DIR, 'generic_logger.xml')
 LOG_MONITOR = os.path.join(ACCUMULO_CONF_DIR, 'monitor_logger.xml')
@@ -63,6 +71,8 @@ $ACCUMULO_HOME/server/target/classes/,
     $ACCUMULO_HOME/lib/accumulo-fate.jar,
     $ACCUMULO_HOME/examples/simple/target/classes,
     $ACCUMULO_HOME/lib/accumulo-examples-simple.jar,
+        $ACCUMULO_HOME/instrumented/[^.].*.jar,
+        $ACCUMULO_HOME/lib/test/cobertura/cobertura.jar,
         $ACCUMULO_HOME/lib/[^.].*.jar,
         $ZOOKEEPER_HOME/zookeeper[^.].*.jar,
         $HADOOP_CONF_DIR,
@@ -256,8 +266,14 @@ class TestUtilsMixin:
             self.pkill(host, 'accumulo.config.file', signal)
 
     def create_config_file(self, settings):
+        cobertura_jar = findCoberturaJar()
+        if cobertura_jar:
+            settings_classpath = General_CLASSPATH.replace('cobertura.jar', os.path.basename(cobertura_jar))
+        else:
+            settings_classpath = General_CLASSPATH
+
         fp = open(SITE_PATH, 'w')
-	fp.write('<configuration>\n')
+        fp.write('<configuration>\n')
         settings = self.settings.copy()
         settings.update({ 'instance.zookeeper.host': ZOOKEEPERS,
                           'instance.dfs.dir': ACCUMULO_DIR,
@@ -265,7 +281,7 @@ class TestUtilsMixin:
                           'master.port.client':  41000 + FUZZ,
                           'monitor.port.client': 50099,
                           'gc.port.client':      45000 + FUZZ,
-                          'general.classpaths' :General_CLASSPATH,
+                          'general.classpaths':  settings_classpath,
                           'instance.secret': 'secret',
                          })
         for a, v in settings.items():
