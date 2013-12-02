@@ -73,6 +73,11 @@ You will need to have hadoop installed and configured on your system.
 Accumulo 1.4.5-SNAPSHOT has been tested with hadoop version 0.20.2 and
 0.20.203.0.
 
+Additionally, it is strongly recommended that you enable 'dfs.datanode.synconclose'
+(only available in Apache Hadoop >=1.1.1 or >=0.23) in your hdfs-site.xml configuration 
+file to ensure that, in the face of unexpected power loss to a datanode, files are 
+wholly synced to disk.
+
 The example accumulo configuration files are placed in directories based on the 
 memory footprint for the accumulo processes.  If you are using native libraries
 for you tablet server in-memory map, then you can use the files in "native-standalone".
