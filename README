@@ -94,6 +94,10 @@ Cloudera CDH               3u4            dfs.support.append    true
 Hortonworks HDP           `1.0            dfs.support.append    false
 Hortonworks HDP           `1.1            dfs.support.append    false
 
+Additionally, it is strongly recommended that you enable 'dfs.datanode.synconclose'
+in your hdfs-site.xml configuration file to ensure that, in the face of unexpected 
+power loss to a datanode, files are wholly synced to disk.
+
 The example accumulo configuration files are placed in directories based on the 
 memory footprint for the accumulo processes.  If you are using native libraries
 for you tablet server in-memory map, then you can use the files in "native-standalone".
