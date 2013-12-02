@@ -244,18 +244,23 @@ public class VolumeManagerImpl implements VolumeManager {
         }
         
         try {
-          // if this class exists
-          Class.forName("org.apache.hadoop.fs.CreateFlag");
-          // we're running hadoop 2.0, 1.1
+          // Check DFSConfigKeys to see if DFS_DATANODE_SYNCONCLOSE_KEY exists (should be everything >=1.1.1 and the 0.23 line)
+          Class<?> dfsConfigKeysClz = Class.forName("org.apache.hadoop.hdfs.DFSConfigKeys");
+          dfsConfigKeysClz.getDeclaredField("DFS_DATANODE_SYNCONCLOSE_KEY");
+        
+          // Everything else
           if (!fs.getConf().getBoolean("dfs.datanode.synconclose", false)) {
-            log.warn("dfs.datanode.synconclose set to false: data loss is possible on system reset or power loss on volume " + volumeName);
+            log.warn("dfs.datanode.synconclose set to false in hdfs-site.xml: data loss is possible on system reset or power loss");
           }
         } catch (ClassNotFoundException ex) {
-          // hadoop 1.0
+          // hadoop 1.0.X or hadoop 1.1.0
+        } catch (SecurityException e) {
+          // hadoop 1.0.X or hadoop 1.1.0
+        } catch (NoSuchFieldException e) {
+          // hadoop 1.0.X or hadoop 1.1.0
         }
       }
     }
-
   }
 
   @Override

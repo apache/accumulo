@@ -44,8 +44,6 @@ public class MultiReaderTest {
 
   @Before
   public void setUp() throws Exception {
-    // quiet log messages about compress.CodecPool
-    Logger.getRootLogger().setLevel(Level.ERROR);
     fs = VolumeManagerImpl.getLocal();
     root.create();
     String path = root.getRoot().getAbsolutePath();
