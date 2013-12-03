@@ -30,8 +30,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.MapFile.Writer;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,7 +49,7 @@ public class MultiReaderTest {
     fs.mkdirs(root);
     fs.create(new Path(root, "finished")).close();
     FileSystem ns = fs.getDefaultVolume();
-    
+
     @SuppressWarnings("deprecation")
     Writer oddWriter = new Writer(ns.getConf(), ns, new Path(root, "odd").toString(), IntWritable.class, BytesWritable.class);
     BytesWritable value = new BytesWritable("someValue".getBytes());
@@ -59,7 +57,7 @@ public class MultiReaderTest {
       oddWriter.append(new IntWritable(i), value);
     }
     oddWriter.close();
-    
+
     @SuppressWarnings("deprecation")
     Writer evenWriter = new Writer(ns.getConf(), ns, new Path(root, "even").toString(), IntWritable.class, BytesWritable.class);
     for (int i = 0; i < 1000; i += 2) {

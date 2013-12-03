@@ -27,7 +27,6 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.TabletLocator;
-import org.apache.accumulo.core.client.mapred.RangeInputSplit;
 import org.apache.accumulo.core.client.mapreduce.lib.util.InputConfigurator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -330,11 +329,11 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
      */
     protected void setupIterators(JobConf job, Scanner scanner, RangeInputSplit split) {
       List<IteratorSetting> iterators = split.getIterators();
-      
+
       if (null == iterators) {
         iterators = getIterators(job);
       }
-      
+
       for (IteratorSetting iterator : iterators)
         scanner.addScanIterator(iterator);
     }
