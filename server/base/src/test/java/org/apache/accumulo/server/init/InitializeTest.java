@@ -16,8 +16,15 @@
  */
 package org.apache.accumulo.server.init;
 
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.replay;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
-import java.net.URI;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -25,12 +32,10 @@ import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.easymock.Capture;
-import static org.easymock.EasyMock.*;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 /**
  * This test is not thread-safe.
@@ -100,7 +105,8 @@ public class InitializeTest {
     assertFalse(Initialize.checkInit(conf, fs, sconf));
   }
 
-/* Cannot test, need to mock static FileSystem.getDefaultUri()
+  // Cannot test, need to mock static FileSystem.getDefaultUri()
+  @Ignore
   @Test
   public void testCheckInit_AlreadyInit_DefaultUri() throws Exception {
     expect(sconf.get(Property.INSTANCE_DFS_URI)).andReturn("");
@@ -117,7 +123,6 @@ public class InitializeTest {
 
     assertFalse(Initialize.checkInit(conf, fs, sconf));
   }
-*/
 
   @Test(expected = IOException.class)
   public void testCheckInit_FSException() throws Exception {

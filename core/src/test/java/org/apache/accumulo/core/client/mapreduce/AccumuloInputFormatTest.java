@@ -249,8 +249,8 @@ public class AccumuloInputFormatTest {
 
       String instanceName = args[3];
       String inputFormatClassName = args[4];
-      @SuppressWarnings({"rawtypes", "unchecked"})
-      Class<? extends InputFormat> inputFormatClass = (Class<? extends InputFormat>) Class.forName(inputFormatClassName);
+      @SuppressWarnings("unchecked")
+      Class<? extends InputFormat<?,?>> inputFormatClass = (Class<? extends InputFormat<?,?>>) Class.forName(inputFormatClassName);
 
       @SuppressWarnings("deprecation")
       Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
