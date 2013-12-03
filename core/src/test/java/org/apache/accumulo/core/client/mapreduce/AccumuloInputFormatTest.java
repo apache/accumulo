@@ -23,7 +23,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -50,11 +49,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.RecordReader;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -288,7 +283,8 @@ public class AccumuloInputFormatTest {
       String table = args[2];
       String instanceName = args[3];
       String inputFormatClassName = args[4];
-      Class<? extends InputFormat> inputFormatClass = (Class<? extends InputFormat>) Class.forName(inputFormatClassName);
+      @SuppressWarnings("unchecked")
+      Class<? extends InputFormat<?,?>> inputFormatClass = (Class<? extends InputFormat<?,?>>) Class.forName(inputFormatClassName);
 
       Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
       job.setJarByClass(this.getClass());
@@ -415,8 +411,10 @@ public class AccumuloInputFormatTest {
     }
     bw.close();
 
-    Assert.assertEquals(0, MRTester.main(new String[] {user, "", "testtable", "testPartialInputSplitDelegationToConfiguration",
-        EmptySplitsAccumuloInputFormat.class.getCanonicalName()}));
+    Assert.assertEquals(
+        0,
+        MRTester.main(new String[] {user, "", "testtable", "testPartialInputSplitDelegationToConfiguration",
+            EmptySplitsAccumuloInputFormat.class.getCanonicalName()}));
     assertNull(e1);
     assertNull(e2);
   }
@@ -437,9 +435,11 @@ public class AccumuloInputFormatTest {
     }
     bw.close();
 
-    // We should fail before we even get into the Mapper because we can't make the RecordReader 
-    Assert.assertEquals(1, MRTester.main(new String[] {user, "", "testtable", "testPartialFailedInputSplitDelegationToConfiguration",
-        BadPasswordSplitsAccumuloInputFormat.class.getCanonicalName()}));
+    // We should fail before we even get into the Mapper because we can't make the RecordReader
+    Assert.assertEquals(
+        1,
+        MRTester.main(new String[] {user, "", "testtable", "testPartialFailedInputSplitDelegationToConfiguration",
+            BadPasswordSplitsAccumuloInputFormat.class.getCanonicalName()}));
     assertNull(e1);
     assertNull(e2);
   }
