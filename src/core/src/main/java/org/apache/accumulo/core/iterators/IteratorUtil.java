@@ -68,6 +68,7 @@ public class IteratorUtil {
    * 
    * @see TableOperations#attachIterator(String, IteratorSetting)
    */
+  @Deprecated
   public static Map<String,String> generateAggTableProperties(List<? extends PerColumnIteratorConfig> aggregators) {
     
     Map<String,String> props = new TreeMap<String,String>();

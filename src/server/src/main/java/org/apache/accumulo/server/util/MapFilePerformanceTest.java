@@ -46,6 +46,7 @@ import org.apache.hadoop.io.Text;
 /**
  * @deprecated since 1.4
  */
+@Deprecated
 public class MapFilePerformanceTest {
   
   public static String[] createMapFiles(String input, String output, int blocksize, int mapFiles) throws IOException {

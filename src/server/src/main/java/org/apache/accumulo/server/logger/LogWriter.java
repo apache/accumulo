@@ -75,51 +75,50 @@ import org.apache.hadoop.io.WritableName;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.thrift.TException;
 
-
 /**
  * Write log operations to open {@link org.apache.hadoop.io.SequenceFile}s referenced by log id's.
  */
 class LogWriter implements MutationLogger.Iface {
   static final org.apache.log4j.Logger log = org.apache.log4j.Logger.getLogger(LogWriter.class);
-  
+
   static {
     WritableName.setName(LogFileKey.class, Constants.OLD_PACKAGE_NAME + ".server.logger.LogFileKey");
     WritableName.setName(LogFileValue.class, Constants.OLD_PACKAGE_NAME + ".server.logger.LogFileValue");
   }
-  
+
   static class LogWriteException extends RuntimeException {
     /**
          * 
          */
     private static final long serialVersionUID = 1L;
-    
+
     public LogWriteException(Throwable why) {
       super(why);
     }
   }
-  
+
   /**
    * Generate log ids.
    */
   private static final SecureRandom random = new SecureRandom();
-  
+
   private final FileSystem fs;
   private final ExecutorService copyThreadPool;
   private final static Mutation empty[] = new Mutation[0];
   private boolean closed = false;
-  
+
   private static class Logger {
     SequenceFile.Writer seq;
     FSDataOutputStream out;
     LogFileKey key = new LogFileKey();
     LogFileValue value = new LogFileValue();
-    
+
     Logger(Configuration conf, String path) throws IOException {
       FileSystem local = TraceFileSystem.wrap(FileSystem.getLocal(conf).getRaw());
       out = local.create(new Path(path));
       seq = SequenceFile.createWriter(conf, out, LogFileKey.class, LogFileValue.class, CompressionType.NONE, null);
     }
-    
+
     void logEntry() throws IOException {
       try {
         long t1 = System.currentTimeMillis();
@@ -137,44 +136,44 @@ class LogWriter implements MutationLogger.Iface {
         throw ioe;
       }
     }
-    
+
     void close() throws IOException {
       seq.close();
       out.close();
     }
   }
-  
+
   /**
    * The current loggers in use.
    */
   private Map<Long,Logger> logs = new ConcurrentHashMap<Long,Logger>();
-  
+
   /**
    * Map from filename to open log id.
    */
   private Map<String,Long> file2id = new ConcurrentHashMap<String,Long>();
-  
+
   /**
    * Local directory where logs are created.
    */
   private final List<String> roots;
   private int nextRoot = 0;
-  
+
   private final String instanceId;
-  
+
   private LogArchiver logArchiver;
-  
+
   // Metrics MBean
   private static LogWriterMetrics metrics = new LogWriterMetrics();
-  
+
   private final AccumuloConfiguration acuConf;
-  
+
   /**
    * 
    * @param fs
    *          The HDFS instance shared by master/tservers.
-   * @param logDirectory
-   *          The local directory to write the recovery logs.
+   * @param logDirectories
+   *          The local directories to write the recovery logs.
    * @param instanceId
    *          The accumulo instance for which we are logging.
    */
@@ -189,7 +188,7 @@ class LogWriter implements MutationLogger.Iface {
     } catch (IOException e1) {
       throw new RuntimeException(e1);
     }
-    
+
     // Register the metrics MBean
     try {
       metrics.register();
@@ -197,7 +196,7 @@ class LogWriter implements MutationLogger.Iface {
       log.error("Exception registering MBean with MBean Server", e);
     }
   }
-  
+
   @Override
   synchronized public void close(TInfo info, long id) throws NoSuchLogIDException {
     long t1 = System.currentTimeMillis();
@@ -224,7 +223,7 @@ class LogWriter implements MutationLogger.Iface {
     }
     throw new RuntimeException("Unexpected failure to find a filename matching an id");
   }
-  
+
   private final String findLocalFilename(String localLog) throws FileNotFoundException {
     for (String root : roots) {
       String path = root + "/" + localLog;
@@ -233,7 +232,7 @@ class LogWriter implements MutationLogger.Iface {
     }
     throw new FileNotFoundException("No file " + localLog + " found in " + roots);
   }
-  
+
   @Override
   public LogCopyInfo startCopy(TInfo info, AuthInfo credentials, final String localLog, final String fullyQualifiedFileName, final boolean sort) {
     log.info("Copying " + localLog + " to " + fullyQualifiedFileName);
@@ -254,7 +253,7 @@ class LogWriter implements MutationLogger.Iface {
       throw new RuntimeException(ex);
     }
     long result = file.length();
-    
+
     copyThreadPool.execute(new Runnable() {
       @Override
       public void run() {
@@ -282,16 +281,16 @@ class LogWriter implements MutationLogger.Iface {
         if (metrics.isEnabled())
           metrics.add(LogWriterMetrics.copy, (t2 - t1));
       }
-      
+
       private void copySortLog(String localLog, String fullyQualifiedFileName) throws IOException {
         final long SORT_BUFFER_SIZE = acuConf.getMemoryInBytes(Property.LOGGER_SORT_BUFFER_SIZE);
-        
+
         FileSystem local = TraceFileSystem.wrap(FileSystem.getLocal(fs.getConf()).getRaw());
         Path dest = new Path(fullyQualifiedFileName + ".recovered");
         log.debug("Sorting log file to DSF " + dest);
         fs.mkdirs(dest);
         int part = 0;
-        
+
         Reader reader = new SequenceFile.Reader(local, new Path(findLocalFilename(localLog)), fs.getConf());
         try {
           final ArrayList<Pair<LogFileKey,LogFileValue>> kv = new ArrayList<Pair<LogFileKey,LogFileValue>>();
@@ -323,7 +322,7 @@ class LogWriter implements MutationLogger.Iface {
           reader.close();
         }
       }
-      
+
       private void writeSortedEntries(Path dest, int part, final List<Pair<LogFileKey,LogFileValue>> kv) throws IOException {
         String path = dest + String.format("/part-r-%05d", part);
         log.debug("Writing partial log file to DSF " + path);
@@ -351,7 +350,7 @@ class LogWriter implements MutationLogger.Iface {
           span.stop();
         }
       }
-      
+
       private void copyLog(final String localLog, final String fullyQualifiedFileName) throws IOException {
         Path dest = new Path(fullyQualifiedFileName + ".copy");
         log.debug("Copying log file to DSF " + dest);
@@ -384,7 +383,7 @@ class LogWriter implements MutationLogger.Iface {
     });
     return new LogCopyInfo(result, null);
   }
-  
+
   @Override
   public LogFile create(TInfo info, AuthInfo credentials, String tserverSession) throws ThriftSecurityException {
     if (closed)
@@ -422,13 +421,13 @@ class LogWriter implements MutationLogger.Iface {
     log.info("Created log " + result.name);
     return result;
   }
-  
+
   @Override
   public void log(TInfo info, long id, final long seq, final int tid, final TMutation mutation) throws NoSuchLogIDException {
     Logger out = logs.get(id);
     if (out == null)
       throw new NoSuchLogIDException();
-    
+
     out.key.event = MUTATION;
     out.key.seq = seq;
     out.key.tid = tid;
@@ -446,7 +445,7 @@ class LogWriter implements MutationLogger.Iface {
       throw new LogWriteException(e);
     }
   }
-  
+
   private void logMany(TInfo info, long id, final long seq, final int tid, Mutation muations[]) throws NoSuchLogIDException {
     Logger out = logs.get(id);
     if (out == null)
@@ -467,7 +466,7 @@ class LogWriter implements MutationLogger.Iface {
       throw new LogWriteException(e);
     }
   }
-  
+
   @Override
   public void minorCompactionFinished(TInfo info, long id, final long seq, final int tid, final String fqfn) throws NoSuchLogIDException {
     Logger out = logs.get(id);
@@ -490,7 +489,7 @@ class LogWriter implements MutationLogger.Iface {
       throw new LogWriteException(e);
     }
   }
-  
+
   @Override
   public void minorCompactionStarted(TInfo info, long id, final long seq, final int tid, final String fqfn) throws NoSuchLogIDException {
     Logger out = logs.get(id);
@@ -513,7 +512,7 @@ class LogWriter implements MutationLogger.Iface {
       throw new LogWriteException(e);
     }
   }
-  
+
   @Override
   public void defineTablet(TInfo info, long id, final long seq, final int tid, final TKeyExtent tablet) throws NoSuchLogIDException {
     Logger out = logs.get(id);
@@ -536,7 +535,7 @@ class LogWriter implements MutationLogger.Iface {
       throw new LogWriteException(e);
     }
   }
-  
+
   public void shutdown() {
     // Make sure everything is closed
     log.info("Shutting down");
@@ -550,7 +549,7 @@ class LogWriter implements MutationLogger.Iface {
       }
     }
   }
-  
+
   @Override
   public List<String> getClosedLogs(TInfo info, AuthInfo credentials) throws ThriftSecurityException {
     ArrayList<String> result = new ArrayList<String>();
@@ -574,7 +573,7 @@ class LogWriter implements MutationLogger.Iface {
     }
     return result;
   }
-  
+
   @Override
   public void remove(TInfo info, AuthInfo credentials, List<String> files) {
     log.info("Deleting " + files.size() + " log files");
@@ -590,10 +589,10 @@ class LogWriter implements MutationLogger.Iface {
       log.error("Unable to delete files", ex);
     }
   }
-  
+
   @Override
   public void logManyTablets(TInfo info, long id, List<TabletMutations> mutations) throws NoSuchLogIDException {
-    
+
     for (TabletMutations tm : mutations) {
       Mutation ma[] = new Mutation[tm.mutations.size()];
       int index = 0;
@@ -602,7 +601,7 @@ class LogWriter implements MutationLogger.Iface {
       logMany(info, id, tm.seq, tm.tabletID, ma);
     }
   }
-  
+
   @Override
   synchronized public void beginShutdown(TInfo tinfo, AuthInfo credentials) throws TException {
     closed = true;
@@ -618,8 +617,8 @@ class LogWriter implements MutationLogger.Iface {
       file2id.clear();
     }
   }
-  
+
   @Override
   public void halt(TInfo tinfo, AuthInfo credentials) throws TException {}
-  
+
 }

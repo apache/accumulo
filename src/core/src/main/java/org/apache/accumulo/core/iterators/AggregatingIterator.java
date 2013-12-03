@@ -38,6 +38,7 @@ import org.apache.log4j.Logger;
  * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.iterators.Combiner}
  */
 
+@Deprecated
 public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, OptionDescriber {
   
   private SortedKeyValueIterator<Key,Value> iterator;

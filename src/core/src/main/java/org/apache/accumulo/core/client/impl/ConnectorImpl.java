@@ -60,6 +60,7 @@ public class ConnectorImpl extends Connector {
      * @see Instance#getConnector(String user, byte[] password)
      * @deprecated Not for client use
      */
+  @Deprecated
   public ConnectorImpl(Instance instance, String user, byte[] password) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(instance, user, password);
     this.instance = instance;

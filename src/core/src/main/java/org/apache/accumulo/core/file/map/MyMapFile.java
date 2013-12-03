@@ -75,12 +75,14 @@ import org.apache.log4j.Logger;
  * 
  * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.file.rfile.RFile}
  */
+@Deprecated
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class MyMapFile {
   
   /**
    * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.Constants#MAPFILE_EXTENSION}
    */
+  @Deprecated
   public static final String EXTENSION = "map";
   
   private static final Logger log = Logger.getLogger(MyMapFile.class);

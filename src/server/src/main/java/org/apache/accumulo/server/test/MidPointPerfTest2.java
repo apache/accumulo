@@ -39,6 +39,7 @@ import org.apache.hadoop.io.WritableComparable;
 /**
  * @deprecated since 1.4
  */
+@Deprecated
 class MultipleIndexIterator2 {
   
   private MySequenceFile.Reader[] readers;
@@ -125,6 +126,7 @@ class MultipleIndexIterator2 {
 /**
  * @deprecated since 1.4
  */
+@Deprecated
 public class MidPointPerfTest2 {
   private static String dir;
   private static int numFiles;

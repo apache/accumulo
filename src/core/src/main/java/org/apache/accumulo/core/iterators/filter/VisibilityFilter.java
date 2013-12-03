@@ -31,6 +31,7 @@ import org.apache.log4j.Logger;
 /**
  * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.iterators.system.VisibilityFilter}
  **/
+@Deprecated
 public class VisibilityFilter implements Filter {
   private VisibilityEvaluator ve;
   private Text defaultVisibility;

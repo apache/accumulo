@@ -77,6 +77,7 @@ public class MockAccumulo {
   /**
    * @deprecated since 1.4
    */
+  @Deprecated
   public void addAggregators(String tableName, List<? extends PerColumnIteratorConfig> aggregators) {
     tables.get(tableName).addAggregators(aggregators);
   }

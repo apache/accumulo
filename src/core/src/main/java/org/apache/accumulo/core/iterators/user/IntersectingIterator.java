@@ -391,6 +391,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
    * @deprecated since 1.4. To be made protected. Do not interact with flags string directly, just use
    *             {@link #setColumnFamilies(IteratorSetting, Text[], boolean[])}.
    */
+  @Deprecated
   public static String encodeColumns(Text[] columns) {
     StringBuilder sb = new StringBuilder();
     for (int i = 0; i < columns.length; i++) {
@@ -406,6 +407,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
    * @deprecated since 1.4. To be made protected. Do not interact with flags string directly, just use
    *             {@link #setColumnFamilies(IteratorSetting, Text[], boolean[])}.
    */
+  @Deprecated
   public static String encodeBooleans(boolean[] flags) {
     byte[] bytes = new byte[flags.length];
     for (int i = 0; i < flags.length; i++) {
@@ -434,6 +436,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
    * @deprecated since 1.4. To be made protected. Do not interact with flags string directly, just use
    *             {@link #setColumnFamilies(IteratorSetting, Text[], boolean[])}.
    */
+  @Deprecated
   public static boolean[] decodeBooleans(String flags) {
     // return null of there were no flags
     if (flags == null)

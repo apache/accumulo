@@ -41,6 +41,7 @@ import org.apache.log4j.Logger;
 /**
  * @deprecated since 1.4
  */
+@Deprecated
 public class MapFileTest extends TestCase {
   private static final Logger log = Logger.getLogger(MapFileTest.class);
   

@@ -46,6 +46,7 @@ public class Connector {
    *           when a user's credentials are invalid
    * @see Instance#getConnector(String user, byte[] password)
    */
+  @Deprecated
   public Connector(Instance instance, String user, byte[] password) throws AccumuloException, AccumuloSecurityException {
     impl = instance.getConnector(user, password);
   }
@@ -54,6 +55,7 @@ public class Connector {
    * @see Instance#getConnector(String user, byte[] password)
    * @deprecated Not for client use
    */
+  @Deprecated
   public Connector() {
     impl = null;
   }

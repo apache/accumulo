@@ -24,6 +24,7 @@ import org.apache.accumulo.core.data.Value;
  * 
  * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.iterators.Filter} with negate flag set to <tt>true</tt>
  **/
+@Deprecated
 public class DeleteFilter extends RegExFilter {
   
   @Override

@@ -28,88 +28,95 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 
 public class NullScanner implements Scanner {
-  
+
+  @Deprecated
   @Override
   public void setScanIterators(int priority, String iteratorClass, String iteratorName) {}
-  
+
   @Override
   public void addScanIterator(IteratorSetting cfg) {}
-  
+
+  @Deprecated
   @Override
   public void setScanIteratorOption(String iteratorName, String key, String value) {}
-  
+
   @Override
   public void updateScanIteratorOption(String iteratorName, String key, String value) {}
-  
+
+  @Deprecated
   @Override
   public void setupRegex(String iteratorName, int iteratorPriority) throws IOException {}
-  
+
+  @Deprecated
   @Override
   public void setRowRegex(String regex) {}
-  
+
+  @Deprecated
   @Override
   public void setColumnFamilyRegex(String regex) {}
-  
+
+  @Deprecated
   @Override
   public void setColumnQualifierRegex(String regex) {}
-  
+
+  @Deprecated
   @Override
   public void setValueRegex(String regex) {}
-  
+
   @Override
   public void fetchColumnFamily(Text col) {}
-  
+
   @Override
   public void fetchColumn(Text colFam, Text colQual) {}
-  
+
   @Override
   public void clearColumns() {}
-  
+
   @Override
   public void clearScanIterators() {}
-  
+
   @Override
   public void setTimeOut(int timeOut) {}
-  
+
   @Override
   public int getTimeOut() {
     return 0;
   }
-  
+
   @Override
   public void setRange(Range range) {}
-  
+
   @Override
   public Range getRange() {
     return null;
   }
-  
+
   @Override
   public void setBatchSize(int size) {
-    
+
   }
-  
+
   @Override
   public int getBatchSize() {
     return 0;
   }
-  
+
   @Override
   public void enableIsolation() {
-    
+
   }
-  
+
   @Override
   public void disableIsolation() {
-    
+
   }
-  
+
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
     return new NullKeyValueIterator();
   }
-  
+
   @Override
   public void removeScanIterator(String iteratorName) {}
-  
+
 }

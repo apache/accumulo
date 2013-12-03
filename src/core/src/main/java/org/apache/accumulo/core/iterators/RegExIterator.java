@@ -27,6 +27,7 @@ import org.apache.accumulo.core.iterators.filter.RegExFilter;
 /**
  * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.iterators.user.RegExFilter}
  **/
+@Deprecated
 public class RegExIterator extends SkippingIterator implements OptionDescriber {
   
   private RegExFilter ref = new RegExFilter();

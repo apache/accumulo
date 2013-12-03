@@ -31,15 +31,14 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.mapreduce.InputFormatBase.AccumuloIterator;
 import org.apache.accumulo.core.client.mapreduce.InputFormatBase.AccumuloIteratorOption;
-import org.apache.accumulo.core.client.mapreduce.InputFormatBase.RegexType;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ContextFactory;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -100,7 +99,7 @@ public class AccumuloInputFormatTest {
   @Test
   public void testSetIterator() {
     JobContext job = ContextFactory.createJobContext();
-    
+
     AccumuloInputFormat.setIterator(job, 1, "org.apache.accumulo.core.iterators.WholeRowIterator", "WholeRow");
     Configuration conf = job.getConfiguration();
     String iterators = conf.get("AccumuloInputFormat.iterators");
@@ -110,7 +109,7 @@ public class AccumuloInputFormatTest {
   @Test
   public void testAddIterator() {
     JobContext job = ContextFactory.createJobContext();
-    
+
     AccumuloInputFormat.addIterator(job.getConfiguration(), new IteratorSetting(1, "WholeRow", WholeRowIterator.class));
     AccumuloInputFormat.addIterator(job.getConfiguration(), new IteratorSetting(2, "Versions", "org.apache.accumulo.core.iterators.VersioningIterator"));
     IteratorSetting iter = new IteratorSetting(3, "Count", "org.apache.accumulo.core.iterators.CountingIterator");
@@ -192,7 +191,7 @@ public class AccumuloInputFormatTest {
   @Test
   public void testGetIteratorSettings() {
     JobContext job = ContextFactory.createJobContext();
-    
+
     AccumuloInputFormat.setIterator(job, 1, "org.apache.accumulo.core.iterators.WholeRowIterator", "WholeRow");
     AccumuloInputFormat.setIterator(job, 2, "org.apache.accumulo.core.iterators.VersioningIterator", "Versions");
     AccumuloInputFormat.setIterator(job, 3, "org.apache.accumulo.core.iterators.CountingIterator", "Count");
@@ -241,7 +240,7 @@ public class AccumuloInputFormatTest {
   @Test
   public void testGetIteratorOption() {
     JobContext job = ContextFactory.createJobContext();
-    
+
     AccumuloInputFormat.setIteratorOption(job, "iterator1", "key1", "value1");
     AccumuloInputFormat.setIteratorOption(job, "iterator2", "key2", "value2");
     AccumuloInputFormat.setIteratorOption(job, "iterator3", "key3", "value3");
@@ -272,12 +271,12 @@ public class AccumuloInputFormatTest {
   @Test
   public void testSetRegex() {
     JobContext job = ContextFactory.createJobContext();
-    
+
     String regex = ">\"*%<>\'\\";
 
-    AccumuloInputFormat.setRegex(job, RegexType.ROW, regex);
+    AccumuloInputFormat.setRegex(job, org.apache.accumulo.core.client.mapreduce.InputFormatBase.RegexType.ROW, regex);
 
-    assertTrue(regex.equals(AccumuloInputFormat.getRegex(job, RegexType.ROW)));
+    assertTrue(regex.equals(AccumuloInputFormat.getRegex(job, org.apache.accumulo.core.client.mapreduce.InputFormatBase.RegexType.ROW)));
   }
 
   static class TestMapper extends Mapper<Key,Value,Key,Value> {
@@ -327,7 +326,7 @@ public class AccumuloInputFormatTest {
       Assert.assertEquals("testtable", risplit.getTable());
       Assert.assertEquals(new Authorizations(), risplit.getAuths());
       Assert.assertEquals("testmapinstance", risplit.getInstanceName());
-      
+
       TaskAttemptContext tac = ContextFactory.createTaskAttemptContext(job);
       RecordReader<Key,Value> reader = input.createRecordReader(split, tac);
       Mapper<Key,Value,Key,Value>.Context context = ContextFactory.createMapContext(mapper, tac, reader, null, split);
@@ -348,7 +347,7 @@ public class AccumuloInputFormatTest {
       bw.addMutation(m);
     }
     bw.close();
-    
+
     JobContext job = ContextFactory.createJobContext();
     AccumuloInputFormat.setInputInfo(job.getConfiguration(), "root", "".getBytes(), "testtable2", new Authorizations());
     AccumuloInputFormat.setMockInstance(job.getConfiguration(), "testmapinstance");
@@ -362,7 +361,7 @@ public class AccumuloInputFormatTest {
     Mapper<Key,Value,Key,Value>.Context context = ContextFactory.createMapContext(mapper, tac, rr, null, ris);
     rr.initialize(ris, tac);
     while (rr.nextKeyValue()) {
-      mapper.map(rr.getCurrentKey(), rr.getCurrentValue(), (TestMapper.Context) context);
+      mapper.map(rr.getCurrentKey(), rr.getCurrentValue(), context);
     }
   }
 
@@ -379,12 +378,12 @@ public class AccumuloInputFormatTest {
       bw.addMutation(m);
     }
     bw.close();
-    
+
     JobContext job = ContextFactory.createJobContext();
     AccumuloInputFormat.setInputInfo(job.getConfiguration(), "root", "".getBytes(), "testtable3", new Authorizations());
     AccumuloInputFormat.setMockInstance(job.getConfiguration(), "testmapinstance");
     final String regex = ".*1.*";
-    AccumuloInputFormat.setRegex(job, RegexType.ROW, regex);
+    AccumuloInputFormat.setRegex(job, org.apache.accumulo.core.client.mapreduce.InputFormatBase.RegexType.ROW, regex);
     AccumuloInputFormat input = new AccumuloInputFormat();
     RangeInputSplit ris = new RangeInputSplit();
     TaskAttemptContext tac = ContextFactory.createTaskAttemptContext(job);
@@ -417,28 +416,28 @@ public class AccumuloInputFormatTest {
 
     AccumuloInputFormat.setInputInfo(job, username, password, table, auths);
     AccumuloInputFormat.setMockInstance(job, instance);
-    AccumuloInputFormat.setRegex(job, RegexType.ROW, rowRegex);
-    AccumuloInputFormat.setRegex(job, RegexType.COLUMN_FAMILY, colfRegex);
-    AccumuloInputFormat.setRegex(job, RegexType.COLUMN_QUALIFIER, colqRegex);
-    AccumuloInputFormat.setRegex(job, RegexType.VALUE, valRegex);
+    AccumuloInputFormat.setRegex(job, org.apache.accumulo.core.client.mapreduce.InputFormatBase.RegexType.ROW, rowRegex);
+    AccumuloInputFormat.setRegex(job, org.apache.accumulo.core.client.mapreduce.InputFormatBase.RegexType.COLUMN_FAMILY, colfRegex);
+    AccumuloInputFormat.setRegex(job, org.apache.accumulo.core.client.mapreduce.InputFormatBase.RegexType.COLUMN_QUALIFIER, colqRegex);
+    AccumuloInputFormat.setRegex(job, org.apache.accumulo.core.client.mapreduce.InputFormatBase.RegexType.VALUE, valRegex);
     AccumuloInputFormat.setIsolated(job, isolated);
     AccumuloInputFormat.setLocalIterators(job, localIters);
     AccumuloInputFormat.setMaxVersions(job, maxVersions);
     AccumuloInputFormat.fetchColumns(job, fetchColumns);
     AccumuloInputFormat.setLogLevel(job, level);
-    
+
     AccumuloInputFormat aif = new AccumuloInputFormat();
-    
+
     List<InputSplit> splits = aif.getSplits(job);
-    
+
     Assert.assertEquals(1, splits.size());
-    
+
     InputSplit split = splits.get(0);
-    
+
     Assert.assertEquals(RangeInputSplit.class, split.getClass());
-    
+
     RangeInputSplit risplit = (RangeInputSplit) split;
-    
+
     Assert.assertEquals(username, risplit.getUsername());
     Assert.assertEquals(table, risplit.getTable());
     Assert.assertArrayEquals(password, risplit.getPassword());
@@ -480,9 +479,9 @@ public class AccumuloInputFormatTest {
     assertEquals(splits.size(), 1);
 
     TestMapper mapper = (TestMapper) job.getMapperClass().newInstance();
-    
+
     RangeInputSplit emptySplit = new RangeInputSplit();
-    
+
     // Using an empty split should fall back to the information in the Job's Configuration
     TaskAttemptContext tac = ContextFactory.createTaskAttemptContext(job);
     RecordReader<Key,Value> reader = input.createRecordReader(emptySplit, tac);
@@ -516,11 +515,11 @@ public class AccumuloInputFormatTest {
     assertEquals(splits.size(), 1);
 
     TestMapper mapper = (TestMapper) job.getMapperClass().newInstance();
-    
+
     RangeInputSplit emptySplit = new RangeInputSplit();
     emptySplit.setUsername("root");
     emptySplit.setPassword("anythingelse".getBytes());
-    
+
     // Using an empty split should fall back to the information in the Job's Configuration
     TaskAttemptContext tac = ContextFactory.createTaskAttemptContext(job);
     RecordReader<Key,Value> reader = input.createRecordReader(emptySplit, tac);

@@ -56,6 +56,7 @@ public class TableConfiguration extends AccumuloConfiguration {
   /**
    * @deprecated not for client use
    */
+  @Deprecated
   private static ZooCache getTablePropCache() {
     Instance inst = HdfsZooInstance.getInstance();
     if (tablePropCache == null)

@@ -37,6 +37,7 @@ public class MapFileUtil {
    * @param dirName
    * @return true if the attempt was successful, false otherwise
    */
+  @Deprecated
   public static boolean attemptToFixMapFile(Configuration conf, FileSystem fs, String dirName) {
     boolean fixed = true;
     try {
@@ -99,6 +100,7 @@ public class MapFileUtil {
    * @return a MapFile writer
    * @throws IOException
    */
+  @Deprecated
   public static MyMapFile.Writer openMapFileWriter(AccumuloConfiguration acuTableConf, Configuration conf, FileSystem fs, String dirname) throws IOException {
     MyMapFile.Writer mfw = null;
     int hbs = conf.getInt("io.seqfile.compress.blocksize", -1);

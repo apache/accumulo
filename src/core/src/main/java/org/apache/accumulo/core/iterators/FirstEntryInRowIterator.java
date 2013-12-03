@@ -50,6 +50,7 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
    * @param iteratorName
    * @param num
    */
+  @Deprecated
   public static void setNumScansBeforeSeek(Scanner scanner, String iteratorName, int num) {
     scanner.setScanIteratorOption(iteratorName, NUM_SCANS_STRING_NAME, Integer.toString(num));
   }

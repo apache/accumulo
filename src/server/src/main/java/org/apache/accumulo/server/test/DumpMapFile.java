@@ -29,6 +29,7 @@ import org.apache.log4j.Logger;
 /**
  * @deprecated since 1.4
  */
+@Deprecated
 public class DumpMapFile {
   private static final Logger log = Logger.getLogger(DumpMapFile.class);
   

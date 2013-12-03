@@ -146,6 +146,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * @deprecated Use {@link #setIsolated(Configuration,boolean)} instead
    */
+  @Deprecated
   public static void setIsolated(JobContext job, boolean enable) {
     setIsolated(job.getConfiguration(), enable);
   }
@@ -165,6 +166,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * @deprecated Use {@link #setLocalIterators(Configuration,boolean)} instead
    */
+  @Deprecated
   public static void setLocalIterators(JobContext job, boolean enable) {
     setLocalIterators(job.getConfiguration(), enable);
   }
@@ -184,6 +186,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * @deprecated Use {@link #setInputInfo(Configuration,String,byte[],String,Authorizations)} instead
    */
+  @Deprecated
   public static void setInputInfo(JobContext job, String user, byte[] passwd, String table, Authorizations auths) {
     setInputInfo(job.getConfiguration(), user, passwd, table, auths);
   }
@@ -218,6 +221,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * @deprecated Use {@link #setZooKeeperInstance(Configuration,String,String)} instead
    */
+  @Deprecated
   public static void setZooKeeperInstance(JobContext job, String instanceName, String zooKeepers) {
     setZooKeeperInstance(job.getConfiguration(), instanceName, zooKeepers);
   }
@@ -245,6 +249,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * @deprecated Use {@link #setMockInstance(Configuration,String)} instead
    */
+  @Deprecated
   public static void setMockInstance(JobContext job, String instanceName) {
     setMockInstance(job.getConfiguration(), instanceName);
   }
@@ -266,6 +271,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * @deprecated Use {@link #setRanges(Configuration,Collection)} instead
    */
+  @Deprecated
   public static void setRanges(JobContext job, Collection<Range> ranges) {
     setRanges(job.getConfiguration(), ranges);
   }
@@ -296,6 +302,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * @deprecated Use {@link #disableAutoAdjustRanges(Configuration)} instead
    */
+  @Deprecated
   public static void disableAutoAdjustRanges(JobContext job) {
     disableAutoAdjustRanges(job.getConfiguration());
   }
@@ -314,6 +321,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * @deprecated since 1.4 use {@link org.apache.accumulo.core.iterators.user.RegExFilter} and {@link #addIterator(Configuration, IteratorSetting)}
    */
+  @Deprecated
   public static enum RegexType {
     ROW, COLUMN_FAMILY, COLUMN_QUALIFIER, VALUE
   }
@@ -325,6 +333,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    * @param type
    * @param regex
    */
+  @Deprecated
   public static void setRegex(JobContext job, RegexType type, String regex) {
     ArgumentChecker.notNull(type, regex);
     String key = null;
@@ -355,6 +364,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * @deprecated Use {@link #setMaxVersions(Configuration,int)} instead
    */
+  @Deprecated
   public static void setMaxVersions(JobContext job, int maxVersions) throws IOException {
     setMaxVersions(job.getConfiguration(), maxVersions);
   }
@@ -410,6 +420,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * @deprecated Use {@link #fetchColumns(Configuration,Collection)} instead
    */
+  @Deprecated
   public static void fetchColumns(JobContext job, Collection<Pair<Text,Text>> columnFamilyColumnQualifierPairs) {
     fetchColumns(job.getConfiguration(), columnFamilyColumnQualifierPairs);
   }
@@ -447,6 +458,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * @deprecated Use {@link #setLogLevel(Configuration,Level)} instead
    */
+  @Deprecated
   public static void setLogLevel(JobContext job, Level level) {
     setLogLevel(job.getConfiguration(), level);
   }
@@ -468,6 +480,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * @deprecated Use {@link #addIterator(Configuration,IteratorSetting)} instead
    */
+  @Deprecated
   public static void addIterator(JobContext job, IteratorSetting cfg) {
     addIterator(job.getConfiguration(), cfg);
   }
@@ -527,6 +540,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    * 
    * @deprecated since 1.4, see {@link #addIterator(Configuration, IteratorSetting)}
    */
+  @Deprecated
   public static void setIterator(JobContext job, int priority, String iteratorClass, String iteratorName) {
     // First check to see if anything has been set already
     String iterators = job.getConfiguration().get(ITERATORS);
@@ -557,6 +571,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    * 
    * @deprecated since 1.4, see {@link #addIterator(Configuration, IteratorSetting)}
    */
+  @Deprecated
   public static void setIteratorOption(JobContext job, String iteratorName, String key, String value) {
     if (iteratorName == null || key == null || value == null)
       return;
@@ -578,6 +593,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * @deprecated Use {@link #isIsolated(Configuration)} instead
    */
+  @Deprecated
   protected static boolean isIsolated(JobContext job) {
     return isIsolated(job.getConfiguration());
   }
@@ -597,6 +613,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * @deprecated Use {@link #usesLocalIterators(Configuration)} instead
    */
+  @Deprecated
   protected static boolean usesLocalIterators(JobContext job) {
     return usesLocalIterators(job.getConfiguration());
   }
@@ -616,6 +633,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * @deprecated Use {@link #getUsername(Configuration)} instead
    */
+  @Deprecated
   protected static String getUsername(JobContext job) {
     return getUsername(job.getConfiguration());
   }
@@ -638,6 +656,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    * 
    * @deprecated Use {@link #getPassword(Configuration)} instead
    */
+  @Deprecated
   protected static byte[] getPassword(JobContext job) {
     return getPassword(job.getConfiguration());
   }
@@ -658,6 +677,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * @deprecated Use {@link #getTablename(Configuration)} instead
    */
+  @Deprecated
   protected static String getTablename(JobContext job) {
     return getTablename(job.getConfiguration());
   }
@@ -677,6 +697,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * @deprecated Use {@link #getAuthorizations(Configuration)} instead
    */
+  @Deprecated
   protected static Authorizations getAuthorizations(JobContext job) {
     return getAuthorizations(job.getConfiguration());
   }
@@ -697,6 +718,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * @deprecated Use {@link #getInstance(Configuration)} instead
    */
+  @Deprecated
   protected static Instance getInstance(JobContext job) {
     return getInstance(job.getConfiguration());
   }
@@ -719,6 +741,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * @deprecated Use {@link #getTabletLocator(Configuration)} instead
    */
+  @Deprecated
   protected static TabletLocator getTabletLocator(JobContext job) throws TableNotFoundException {
     return getTabletLocator(job.getConfiguration());
   }
@@ -746,6 +769,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * @deprecated Use {@link #getRanges(Configuration)} instead
    */
+  @Deprecated
   protected static List<Range> getRanges(JobContext job) throws IOException {
     return getRanges(job.getConfiguration());
   }
@@ -775,6 +799,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    * @deprecated since 1.4 use {@link org.apache.accumulo.core.iterators.user.RegExFilter} and {@link #addIterator(Configuration, IteratorSetting)}
    * @see #setRegex(JobContext, RegexType, String)
    */
+  @Deprecated
   protected static String getRegex(JobContext job, RegexType type) {
     String key = null;
     switch (type) {
@@ -807,6 +832,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * @deprecated Use {@link #getFetchedColumns(Configuration)} instead
    */
+  @Deprecated
   protected static Set<Pair<Text,Text>> getFetchedColumns(JobContext job) {
     return getFetchedColumns(job.getConfiguration());
   }
@@ -844,6 +870,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * @deprecated Use {@link #getAutoAdjustRanges(Configuration)} instead
    */
+  @Deprecated
   protected static boolean getAutoAdjustRanges(JobContext job) {
     return getAutoAdjustRanges(job.getConfiguration());
   }
@@ -863,6 +890,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * @deprecated Use {@link #getLogLevel(Configuration)} instead
    */
+  @Deprecated
   protected static Level getLogLevel(JobContext job) {
     return getLogLevel(job.getConfiguration());
   }
@@ -884,6 +912,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * @deprecated Use {@link #validateOptions(Configuration)} instead
    */
+  @Deprecated
   protected static void validateOptions(JobContext job) throws IOException {
     validateOptions(job.getConfiguration());
   }
@@ -929,6 +958,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * @deprecated Use {@link #getMaxVersions(Configuration)} instead
    */
+  @Deprecated
   protected static int getMaxVersions(JobContext job) {
     return getMaxVersions(job.getConfiguration());
   }
@@ -954,6 +984,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * @deprecated Use {@link #getIterators(Configuration)} instead
    */
+  @Deprecated
   protected static List<AccumuloIterator> getIterators(JobContext job) {
     return getIterators(job.getConfiguration());
   }
@@ -987,6 +1018,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * @deprecated Use {@link #getIteratorOptions(Configuration)} instead
    */
+  @Deprecated
   protected static List<AccumuloIteratorOption> getIteratorOptions(JobContext job) {
     return getIteratorOptions(job.getConfiguration());
   }
@@ -1025,6 +1057,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     /**
      * @deprecated since 1.4, configure {@link org.apache.accumulo.core.iterators.user.RegExFilter} instead.
      */
+    @Deprecated
     private void checkAndEnableRegex(String regex, Scanner scanner, String methodName) throws IllegalArgumentException, SecurityException,
         IllegalAccessException, InvocationTargetException, NoSuchMethodException, IOException {
       if (regex != null) {
@@ -1040,6 +1073,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     /**
      * @deprecated since 1.4, configure {@link org.apache.accumulo.core.iterators.user.RegExFilter} instead.
      */
+    @Deprecated
     protected boolean setupRegex(TaskAttemptContext attempt, Scanner scanner) throws AccumuloException {
       try {
         checkAndEnableRegex(getRegex(attempt, RegexType.ROW), scanner, "setRowRegex");

@@ -105,6 +105,7 @@ public class ScannerOptions implements ScannerBase {
   /**
    * @deprecated since 1.4, use {@link #addScanIterator(IteratorSetting)}
    */
+  @Deprecated
   @Override
   public void setScanIterators(int priority, String iteratorClass, String iteratorName) {
     addScanIterator(new IteratorSetting(priority, iteratorName, iteratorClass));
@@ -113,6 +114,7 @@ public class ScannerOptions implements ScannerBase {
   /**
    * @deprecated since 1.4, use {@link #updateScanIteratorOption(String, String, String)}
    */
+  @Deprecated
   @Override
   public synchronized void setScanIteratorOption(String iteratorName, String key, String value) {
     updateScanIteratorOption(iteratorName, key, value);
@@ -142,6 +144,7 @@ public class ScannerOptions implements ScannerBase {
    * @deprecated since 1.4, use {@link #addScanIterator(IteratorSetting)}
    * @see org.apache.accumulo.core.iterators.user.RegExFilter
    */
+  @Deprecated
   @Override
   public synchronized void setupRegex(String iteratorName, int iteratorPriority) throws IOException {
     ArgumentChecker.notNull(iteratorName);
@@ -166,6 +169,7 @@ public class ScannerOptions implements ScannerBase {
    * @deprecated since 1.4, use {@link #addScanIterator(IteratorSetting)}
    * @see org.apache.accumulo.core.iterators.user.RegExFilter
    */
+  @Deprecated
   @Override
   public synchronized void setRowRegex(String regex) {
     ArgumentChecker.notNull(regex);
@@ -180,6 +184,7 @@ public class ScannerOptions implements ScannerBase {
    * @deprecated since 1.4, use{@link #addScanIterator(IteratorSetting)}
    * @see org.apache.accumulo.core.iterators.user.RegExFilter
    */
+  @Deprecated
   @Override
   public synchronized void setColumnFamilyRegex(String regex) {
     ArgumentChecker.notNull(regex);
@@ -194,6 +199,7 @@ public class ScannerOptions implements ScannerBase {
    * @deprecated since 1.4, use {@link #addScanIterator(IteratorSetting)}
    * @see org.apache.accumulo.core.iterators.user.RegExFilter
    */
+  @Deprecated
   @Override
   public synchronized void setColumnQualifierRegex(String regex) {
     ArgumentChecker.notNull(regex);
@@ -208,6 +214,7 @@ public class ScannerOptions implements ScannerBase {
    * @deprecated since 1.4, use {@link #addScanIterator(IteratorSetting)}
    * @see org.apache.accumulo.core.iterators.user.RegExFilter
    */
+  @Deprecated
   @Override
   public synchronized void setValueRegex(String regex) {
     ArgumentChecker.notNull(regex);

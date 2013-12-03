@@ -37,6 +37,7 @@ import org.apache.hadoop.io.Text;
 /**
  * @deprecated since 1.4, use {@code scan -r <row> -c <columnfamily>[:<columnqualifier>]} instead.
  */
+@Deprecated
 public class SelectCommand extends Command {
   
   private Option selectOptAuths, timestampOpt, disablePaginationOpt, tableOpt;

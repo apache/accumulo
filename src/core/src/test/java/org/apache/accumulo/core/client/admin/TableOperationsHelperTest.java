@@ -191,6 +191,7 @@ public class TableOperationsHelperTest {
     /**
      * @deprecated since 1.4 {@link #attachIterator(String, IteratorSetting)}
      */
+    @Deprecated
     @Override
     public void addAggregators(String tableName, List<? extends PerColumnIteratorConfig> aggregators) throws AccumuloSecurityException, TableNotFoundException,
         AccumuloException {}

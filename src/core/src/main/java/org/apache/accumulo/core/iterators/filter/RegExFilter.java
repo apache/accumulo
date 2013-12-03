@@ -30,6 +30,7 @@ import org.apache.accumulo.core.util.ByteArrayBackedCharSequence;
 /**
  * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.iterators.user.RegExFilter}
  **/
+@Deprecated
 public class RegExFilter implements Filter, OptionDescriber {
   
   public static final String ROW_REGEX = "rowRegex";

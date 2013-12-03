@@ -33,6 +33,7 @@ import org.apache.hadoop.io.Text;
 /**
  * @deprecated since 1.4 (will become CreateRandomRFile)
  */
+@Deprecated
 public class CreateRandomMapFile {
   private static int num;
   private static String file;

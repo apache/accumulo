@@ -38,6 +38,7 @@ import org.apache.hadoop.io.Text;
 /**
  * @deprecated since 1.4
  */
+@Deprecated
 public class MMFITest {
   private static MyMapFile.Reader[] mapfiles = null;
   private static Text startRow;

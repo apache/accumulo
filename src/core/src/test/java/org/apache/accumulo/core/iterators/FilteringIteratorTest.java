@@ -43,6 +43,7 @@ import org.apache.hadoop.io.Text;
 /**
  * @deprecated since 1.4
  */
+@Deprecated
 public class FilteringIteratorTest extends TestCase {
   
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();

@@ -148,6 +148,7 @@ public class MapFileOperations extends FileOperations {
    * @deprecated since 1.4, MapFiles will no longer be written. Instead use {@link org.apache.accumulo.core.file.rfile.RFileOperations#openWriter}.
    * @see org.apache.hadoop.io.MapFile.Writer
    */
+  @Deprecated
   public FileSKVWriter openWriter(final String file, final FileSystem fs, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
     final MyMapFile.Writer mfw = MapFileUtil.openMapFileWriter(acuconf, conf, fs, file);
     return new FileSKVWriter() {

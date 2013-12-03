@@ -26,6 +26,7 @@ import org.apache.accumulo.core.iterators.OptionDescriber;
 /**
  * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.iterators.user.AgeOffFilter}
  **/
+@Deprecated
 public class AgeOffFilter implements Filter, OptionDescriber {
   private long threshold;
   private long currentTime;

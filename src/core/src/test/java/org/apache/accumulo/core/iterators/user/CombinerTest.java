@@ -796,6 +796,7 @@ public class CombinerTest {
    * @throws IOException
    * @deprecated since 1.4
    */
+  @Deprecated
   public void testCombinerCompatibility() throws IOException {
     long[] la = {1l, 2l, 3l};
     List<Long> ll = new ArrayList<Long>(Arrays.asList((Long) 1l, (Long) 2l, (Long) 3l));
@@ -811,6 +812,7 @@ public class CombinerTest {
    * @throws IOException
    * @deprecated since 1.4
    */
+  @Deprecated
   public void testLongEncoding(long l) throws IOException {
     assertEquals((Long) l, SummingCombiner.FIXED_LEN_ENCODER.decode(LongSummation.longToBytes(l)));
     assertEquals(l, LongSummation.bytesToLong(SummingCombiner.FIXED_LEN_ENCODER.encode(l)));

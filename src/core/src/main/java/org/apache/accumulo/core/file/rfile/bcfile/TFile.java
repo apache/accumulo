@@ -103,27 +103,27 @@ import org.apache.hadoop.io.serializer.JavaSerializationComparator;
  */
 public class TFile {
   static final Log LOG = LogFactory.getLog(TFile.class);
-  
+
   private static final String CHUNK_BUF_SIZE_ATTR = "tfile.io.chunk.size";
   private static final String FS_INPUT_BUF_SIZE_ATTR = "tfile.fs.input.buffer.size";
   private static final String FS_OUTPUT_BUF_SIZE_ATTR = "tfile.fs.output.buffer.size";
-  
+
   static int getChunkBufferSize(Configuration conf) {
     int ret = conf.getInt(CHUNK_BUF_SIZE_ATTR, 1024 * 1024);
     return (ret > 0) ? ret : 1024 * 1024;
   }
-  
+
   static int getFSInputBufferSize(Configuration conf) {
     return conf.getInt(FS_INPUT_BUF_SIZE_ATTR, 256 * 1024);
   }
-  
+
   static int getFSOutputBufferSize(Configuration conf) {
     return conf.getInt(FS_OUTPUT_BUF_SIZE_ATTR, 256 * 1024);
   }
-  
+
   private static final int MAX_KEY_SIZE = 64 * 1024; // 64KB
   static final Version API_VERSION = new Version((short) 1, (short) 0);
-  
+
   /** snappy codec **/
   public static final String COMPRESSION_SNAPPY = "snappy";
 
@@ -137,7 +137,7 @@ public class TFile {
   public static final String COMPARATOR_MEMCMP = "memcmp";
   /** comparator prefix: java class */
   public static final String COMPARATOR_JCLASS = "jclass:";
-  
+
   /**
    * Make a raw comparator from a string name.
    * 
@@ -148,12 +148,12 @@ public class TFile {
   static public Comparator<RawComparable> makeComparator(String name) {
     return TFileMeta.makeComparator(name);
   }
-  
+
   // Prevent the instantiation of TFiles
   private TFile() {
     // nothing
   }
-  
+
   /**
    * Get names of supported compression algorithms. The names are acceptable by TFile.Writer.
    * 
@@ -168,32 +168,32 @@ public class TFile {
   public static String[] getSupportedCompressionAlgorithms() {
     return Compression.getSupportedAlgorithms();
   }
-  
+
   /**
    * TFile Writer.
    */
   public static class Writer implements Closeable {
     // minimum compressed size for a block.
     private final int sizeMinBlock;
-    
+
     // Meta blocks.
     final TFileIndex tfileIndex;
     final TFileMeta tfileMeta;
-    
+
     // reference to the underlying BCFile.
     private BCFile.Writer writerBCF;
-    
+
     // current data block appender.
     BlockAppender blkAppender;
     long blkRecordCount;
-    
+
     // buffers for caching the key.
     BoundedByteArrayOutputStream currentKeyBufferOS;
     BoundedByteArrayOutputStream lastKeyBufferOS;
-    
+
     // buffer used by chunk codec
     private byte[] valueBuffer;
-    
+
     /**
      * Writer states. The state always transits in circles: READY -> IN_KEY -> END_KEY -> IN_VALUE -> READY.
      */
@@ -205,12 +205,12 @@ public class TFile {
       // ERROR, // Error encountered, cannot continue.
       CLOSED, // TFile already closed.
     }
-    
+
     // current state of Writer.
     State state = State.READY;
     Configuration conf;
     long errorCount = 0;
-    
+
     /**
      * Constructor
      * 
@@ -239,18 +239,19 @@ public class TFile {
       sizeMinBlock = minBlockSize;
       tfileMeta = new TFileMeta(comparator);
       tfileIndex = new TFileIndex(tfileMeta.getComparator());
-      
+
       writerBCF = new BCFile.Writer(fsdos, compressName, conf, true);
       currentKeyBufferOS = new BoundedByteArrayOutputStream(MAX_KEY_SIZE);
       lastKeyBufferOS = new BoundedByteArrayOutputStream(MAX_KEY_SIZE);
       this.conf = conf;
     }
-    
+
     /**
      * Close the Writer. Resources will be released regardless of the exceptions being thrown. Future close calls will have no effect.
      * 
      * The underlying FSDataOutputStream is not closed.
      */
+    @Override
     public void close() throws IOException {
       if ((state == State.CLOSED)) {
         return;
@@ -262,9 +263,9 @@ public class TFile {
           if (state != State.READY) {
             throw new IllegalStateException("Cannot close TFile in the middle of key-value insertion.");
           }
-          
+
           finishDataBlock(true);
-          
+
           // first, write out data:TFile.meta
           BlockAppender outMeta = writerBCF.prepareMetaBlock(TFileMeta.BLOCK_NAME, COMPRESSION_NONE);
           try {
@@ -272,7 +273,7 @@ public class TFile {
           } finally {
             outMeta.close();
           }
-          
+
           // second, write out data:TFile.index
           BlockAppender outIndex = writerBCF.prepareMetaBlock(TFileIndex.BLOCK_NAME);
           try {
@@ -280,7 +281,7 @@ public class TFile {
           } finally {
             outIndex.close();
           }
-          
+
           writerBCF.close();
         }
       } finally {
@@ -290,7 +291,7 @@ public class TFile {
         state = State.CLOSED;
       }
     }
-    
+
     /**
      * Adding a new key-value pair to the TFile. This is synonymous to append(key, 0, key.length, value, 0, value.length)
      * 
@@ -303,7 +304,7 @@ public class TFile {
     public void append(byte[] key, byte[] value) throws IOException {
       append(key, 0, key.length, value, 0, value.length);
     }
-    
+
     /**
      * Adding a new key-value pair to TFile.
      * 
@@ -328,11 +329,11 @@ public class TFile {
       if ((koff | klen | (koff + klen) | (key.length - (koff + klen))) < 0) {
         throw new IndexOutOfBoundsException("Bad key buffer offset-length combination.");
       }
-      
+
       if ((voff | vlen | (voff + vlen) | (value.length - (voff + vlen))) < 0) {
         throw new IndexOutOfBoundsException("Bad value buffer offset-length combination.");
       }
-      
+
       try {
         DataOutputStream dosKey = prepareAppendKey(klen);
         try {
@@ -342,7 +343,7 @@ public class TFile {
         } finally {
           dosKey.close();
         }
-        
+
         DataOutputStream dosValue = prepareAppendValue(vlen);
         try {
           ++errorCount;
@@ -355,14 +356,14 @@ public class TFile {
         state = State.READY;
       }
     }
-    
+
     /**
      * Helper class to register key after close call on key append stream.
      */
     private class KeyRegister extends DataOutputStream {
       private final int expectedLength;
       private boolean closed = false;
-      
+
       public KeyRegister(int len) {
         super(currentKeyBufferOS);
         if (len >= 0) {
@@ -372,13 +373,13 @@ public class TFile {
         }
         expectedLength = len;
       }
-      
+
       @Override
       public void close() throws IOException {
         if (closed == true) {
           return;
         }
-        
+
         try {
           ++errorCount;
           byte[] key = currentKeyBufferOS.getBuffer();
@@ -389,13 +390,13 @@ public class TFile {
           if (expectedLength >= 0 && expectedLength != len) {
             throw new IOException("Incorrect key length: expected=" + expectedLength + " actual=" + len);
           }
-          
+
           Utils.writeVInt(blkAppender, len);
           blkAppender.write(key, 0, len);
           if (tfileIndex.getFirstKey() == null) {
             tfileIndex.setFirstKey(key, 0, len);
           }
-          
+
           if (tfileMeta.isSorted()) {
             byte[] lastKey = lastKeyBufferOS.getBuffer();
             int lastLen = lastKeyBufferOS.size();
@@ -403,7 +404,7 @@ public class TFile {
               throw new IOException("Keys are not added in sorted order");
             }
           }
-          
+
           BoundedByteArrayOutputStream tmp = currentKeyBufferOS;
           currentKeyBufferOS = lastKeyBufferOS;
           lastKeyBufferOS = tmp;
@@ -414,29 +415,29 @@ public class TFile {
         }
       }
     }
-    
+
     /**
      * Helper class to register value after close call on value append stream.
      */
     private class ValueRegister extends DataOutputStream {
       private boolean closed = false;
-      
+
       public ValueRegister(OutputStream os) {
         super(os);
       }
-      
+
       // Avoiding flushing call to down stream.
       @Override
       public void flush() {
         // do nothing
       }
-      
+
       @Override
       public void close() throws IOException {
         if (closed == true) {
           return;
         }
-        
+
         try {
           ++errorCount;
           super.close();
@@ -451,7 +452,7 @@ public class TFile {
         }
       }
     }
-    
+
     /**
      * Obtain an output stream for writing a key into TFile. This may only be called when there is no active Key appending stream or value appending stream.
      * 
@@ -466,13 +467,13 @@ public class TFile {
       if (state != State.READY) {
         throw new IllegalStateException("Incorrect state to start a new key: " + state.name());
       }
-      
+
       initDataBlock();
       DataOutputStream ret = new KeyRegister(length);
       state = State.IN_KEY;
       return ret;
     }
-    
+
     /**
      * Obtain an output stream for writing a value into TFile. This may only be called right after a key appending operation (the key append stream must be
      * closed).
@@ -488,9 +489,9 @@ public class TFile {
       if (state != State.END_KEY) {
         throw new IllegalStateException("Incorrect state to start a new value: " + state.name());
       }
-      
+
       DataOutputStream ret;
-      
+
       // unknown length
       if (length < 0) {
         if (valueBuffer == null) {
@@ -500,11 +501,11 @@ public class TFile {
       } else {
         ret = new ValueRegister(new Chunk.SingleChunkEncoder(blkAppender, length));
       }
-      
+
       state = State.IN_VALUE;
       return ret;
     }
-    
+
     /**
      * Obtain an output stream for creating a meta block. This function may not be called when there is a key append stream or value append stream active. No
      * more key-value insertion is allowed after a meta data block has been added to TFile.
@@ -522,12 +523,12 @@ public class TFile {
       if (state != State.READY) {
         throw new IllegalStateException("Incorrect state to start a Meta Block: " + state.name());
       }
-      
+
       finishDataBlock(true);
       DataOutputStream outputStream = writerBCF.prepareMetaBlock(name, compressName);
       return outputStream;
     }
-    
+
     /**
      * Obtain an output stream for creating a meta block. This function may not be called when there is a key append stream or value append stream active. No
      * more key-value insertion is allowed after a meta data block has been added to TFile. Data will be compressed using the default compressor as defined in
@@ -544,11 +545,11 @@ public class TFile {
       if (state != State.READY) {
         throw new IllegalStateException("Incorrect state to start a Meta Block: " + state.name());
       }
-      
+
       finishDataBlock(true);
       return writerBCF.prepareMetaBlock(name);
     }
-    
+
     /**
      * Check if we need to start a new data block.
      * 
@@ -560,7 +561,7 @@ public class TFile {
         blkAppender = writerBCF.prepareDataBlock();
       }
     }
-    
+
     /**
      * Close the current data block if necessary.
      * 
@@ -572,7 +573,7 @@ public class TFile {
       if (blkAppender == null) {
         return;
       }
-      
+
       // exceeded the size limit, do the compression and finish the block
       if (bForceFinish || blkAppender.getCompressedSize() >= sizeMinBlock) {
         // keep tracks of the last key of each data block, no padding
@@ -586,7 +587,7 @@ public class TFile {
       }
     }
   }
-  
+
   /**
    * TFile Reader. Users may only read TFiles by creating TFile.Reader.Scanner. objects. A scanner may scan the whole TFile ({@link Reader#createScanner()} ) ,
    * a portion of TFile based on byte offsets ( {@link Reader#createScanner(long, long)}), or a portion of TFile with keys fall in a certain key range (for
@@ -595,16 +596,16 @@ public class TFile {
   public static class Reader implements Closeable {
     // The underlying BCFile reader.
     final BCFile.Reader readerBCF;
-    
+
     // TFile index, it is loaded lazily.
     TFileIndex tfileIndex = null;
     final TFileMeta tfileMeta;
     final BytesComparator comparator;
-    
+
     // global begin and end locations.
     private final Location begin;
     private final Location end;
-    
+
     /**
      * Location representing a virtual position in the TFile.
      */
@@ -612,27 +613,27 @@ public class TFile {
       private int blockIndex;
       // distance/offset from the beginning of the block
       private long recordIndex;
-      
+
       Location(int blockIndex, long recordIndex) {
         set(blockIndex, recordIndex);
       }
-      
+
       void incRecordIndex() {
         ++recordIndex;
       }
-      
+
       Location(Location other) {
         set(other);
       }
-      
+
       int getBlockIndex() {
         return blockIndex;
       }
-      
+
       long getRecordIndex() {
         return recordIndex;
       }
-      
+
       void set(int blockIndex, long recordIndex) {
         if ((blockIndex | recordIndex) < 0) {
           throw new IllegalArgumentException("Illegal parameter for BlockLocation.");
@@ -640,11 +641,11 @@ public class TFile {
         this.blockIndex = blockIndex;
         this.recordIndex = recordIndex;
       }
-      
+
       void set(Location other) {
         set(other.blockIndex, other.recordIndex);
       }
-      
+
       /**
        * @see java.lang.Comparable#compareTo(java.lang.Object)
        */
@@ -652,7 +653,7 @@ public class TFile {
       public int compareTo(Location other) {
         return compareTo(other.blockIndex, other.recordIndex);
       }
-      
+
       int compareTo(int bid, long rid) {
         if (this.blockIndex == bid) {
           long ret = this.recordIndex - rid;
@@ -664,7 +665,7 @@ public class TFile {
         }
         return this.blockIndex - bid;
       }
-      
+
       /**
        * @see java.lang.Object#clone()
        */
@@ -672,7 +673,7 @@ public class TFile {
       protected Location clone() {
         return new Location(blockIndex, recordIndex);
       }
-      
+
       /**
        * @see java.lang.Object#hashCode()
        */
@@ -683,7 +684,7 @@ public class TFile {
         result = (int) (prime * result + recordIndex);
         return result;
       }
-      
+
       /**
        * @see java.lang.Object#equals(java.lang.Object)
        */
@@ -703,7 +704,7 @@ public class TFile {
         return true;
       }
     }
-    
+
     /**
      * Constructor
      * 
@@ -716,7 +717,7 @@ public class TFile {
      */
     public Reader(FSDataInputStream fsdis, long fileLength, Configuration conf) throws IOException {
       readerBCF = new BCFile.Reader(fsdis, fileLength, conf);
-      
+
       // first, read TFile meta
       BlockReader brMeta = readerBCF.getMetaBlock(TFileMeta.BLOCK_NAME);
       try {
@@ -724,20 +725,21 @@ public class TFile {
       } finally {
         brMeta.close();
       }
-      
+
       comparator = tfileMeta.getComparator();
       // Set begin and end locations.
       begin = new Location(0, 0);
       end = new Location(readerBCF.getBlockCount(), 0);
     }
-    
+
     /**
      * Close the reader. The state of the Reader object is undefined after close. Calling close() for multiple times has no effect.
      */
+    @Override
     public void close() throws IOException {
       readerBCF.close();
     }
-    
+
     /**
      * Get the begin location of the TFile.
      * 
@@ -746,7 +748,7 @@ public class TFile {
     Location begin() {
       return begin;
     }
-    
+
     /**
      * Get the end location of the TFile.
      * 
@@ -755,7 +757,7 @@ public class TFile {
     Location end() {
       return end;
     }
-    
+
     /**
      * Get the string representation of the comparator.
      * 
@@ -765,7 +767,7 @@ public class TFile {
     public String getComparatorName() {
       return tfileMeta.getComparatorString();
     }
-    
+
     /**
      * Is the TFile sorted?
      * 
@@ -774,7 +776,7 @@ public class TFile {
     public boolean isSorted() {
       return tfileMeta.isSorted();
     }
-    
+
     /**
      * Get the number of key-value pair entries in TFile.
      * 
@@ -783,7 +785,7 @@ public class TFile {
     public long getEntryCount() {
       return tfileMeta.getRecordCount();
     }
-    
+
     /**
      * Lazily loading the TFile index.
      * 
@@ -799,7 +801,7 @@ public class TFile {
         }
       }
     }
-    
+
     /**
      * Get the first key in the TFile.
      * 
@@ -810,7 +812,7 @@ public class TFile {
       checkTFileDataIndex();
       return tfileIndex.getFirstKey();
     }
-    
+
     /**
      * Get the last key in the TFile.
      * 
@@ -821,7 +823,7 @@ public class TFile {
       checkTFileDataIndex();
       return tfileIndex.getLastKey();
     }
-    
+
     /**
      * Get a Comparator object to compare Entries. It is useful when you want stores the entries in a collection (such as PriorityQueue) and perform sorting or
      * comparison among entries based on the keys without copying out the key.
@@ -832,7 +834,7 @@ public class TFile {
       if (!isSorted()) {
         throw new RuntimeException("Entries are not comparable for unsorted TFiles");
       }
-      
+
       return new Comparator<Scanner.Entry>() {
         /**
          * Provide a customized comparator for Entries. This is useful if we have a collection of Entry objects. However, if the Entry objects come from
@@ -844,7 +846,7 @@ public class TFile {
         }
       };
     }
-    
+
     /**
      * Get an instance of the RawComparator that is constructed based on the string comparator representation.
      * 
@@ -853,7 +855,7 @@ public class TFile {
     public Comparator<RawComparable> getComparator() {
       return comparator;
     }
-    
+
     /**
      * Stream access to a meta block.``
      * 
@@ -868,7 +870,7 @@ public class TFile {
     public DataInputStream getMetaBlock(String name) throws IOException, MetaBlockDoesNotExist {
       return readerBCF.getMetaBlock(name);
     }
-    
+
     /**
      * if greater is true then returns the beginning location of the block containing the key strictly greater than input key. if greater is false then returns
      * the beginning location of the block greater than equal to the input key
@@ -877,7 +879,6 @@ public class TFile {
      *          the input key
      * @param greater
      *          boolean flag
-     * @return
      * @throws IOException
      */
     Location getBlockContainsKey(RawComparable key, boolean greater) throws IOException {
@@ -890,21 +891,21 @@ public class TFile {
         return end;
       return new Location(blkIndex, 0);
     }
-    
+
     int compareKeys(byte[] a, int o1, int l1, byte[] b, int o2, int l2) {
       if (!isSorted()) {
         throw new RuntimeException("Cannot compare keys for unsorted TFiles.");
       }
       return comparator.compare(a, o1, l1, b, o2, l2);
     }
-    
+
     int compareKeys(RawComparable a, RawComparable b) {
       if (!isSorted()) {
         throw new RuntimeException("Cannot compare keys for unsorted TFiles.");
       }
       return comparator.compare(a, b);
     }
-    
+
     /**
      * Get the location pointing to the beginning of the first key-value pair in a compressed block whose byte offset in the TFile is greater than or equal to
      * the specified offset.
@@ -919,7 +920,7 @@ public class TFile {
         return end;
       return new Location(blockIndex, 0);
     }
-    
+
     /**
      * Get a sample key that is within a block whose starting offset is greater than or equal to the specified offset.
      * 
@@ -935,7 +936,7 @@ public class TFile {
       checkTFileDataIndex();
       return new ByteArray(tfileIndex.getEntry(blockIndex).key);
     }
-    
+
     /**
      * Get a scanner than can scan the whole TFile.
      * 
@@ -945,7 +946,7 @@ public class TFile {
     public Scanner createScanner() throws IOException {
       return new Scanner(this, begin, end);
     }
-    
+
     /**
      * Get a scanner that covers a portion of TFile based on byte offsets.
      * 
@@ -960,7 +961,7 @@ public class TFile {
     public Scanner createScanner(long offset, long length) throws IOException {
       return new Scanner(this, offset, offset + length);
     }
-    
+
     /**
      * Get a scanner that covers a portion of TFile based on keys.
      * 
@@ -975,7 +976,7 @@ public class TFile {
       return createScanner((beginKey == null) ? null : new ByteArray(beginKey, 0, beginKey.length), (endKey == null) ? null : new ByteArray(endKey, 0,
           endKey.length));
     }
-    
+
     /**
      * Get a scanner that covers a specific key range.
      * 
@@ -992,7 +993,7 @@ public class TFile {
       }
       return new Scanner(this, beginKey, endKey);
     }
-    
+
     /**
      * The TFile Scanner. The Scanner has an implicit cursor, which, upon creation, points to the first key-value pair in the scan range. If the scan range is
      * empty, the cursor will point to the end of the scan range.
@@ -1010,27 +1011,27 @@ public class TFile {
       final Reader reader;
       // current block (null if reaching end)
       private BlockReader blkReader;
-      
+
       Location beginLocation;
       Location endLocation;
       Location currentLocation;
-      
+
       // flag to ensure value is only examined once.
       boolean valueChecked = false;
       // reusable buffer for keys.
       final byte[] keyBuffer;
       // length of key, -1 means key is invalid.
       int klen = -1;
-      
+
       static final int MAX_VAL_TRANSFER_BUF_SIZE = 128 * 1024;
       BytesWritable valTransferBuffer;
-      
+
       DataInputBuffer keyDataInputStream;
       ChunkDecoder valueBufferInputStream;
       DataInputStream valueDataInputStream;
       // vlen == -1 if unknown.
       int vlen;
-      
+
       /**
        * Constructor
        * 
@@ -1047,7 +1048,7 @@ public class TFile {
       protected Scanner(Reader reader, long offBegin, long offEnd) throws IOException {
         this(reader, reader.getLocationNear(offBegin), reader.getLocationNear(offEnd));
       }
-      
+
       /**
        * Constructor
        * 
@@ -1065,13 +1066,13 @@ public class TFile {
         reader.checkTFileDataIndex();
         beginLocation = begin;
         endLocation = end;
-        
+
         valTransferBuffer = new BytesWritable();
         keyBuffer = new byte[MAX_KEY_SIZE];
         keyDataInputStream = new DataInputBuffer();
         valueBufferInputStream = new ChunkDecoder();
         valueDataInputStream = new DataInputStream(valueBufferInputStream);
-        
+
         if (beginLocation.compareTo(endLocation) >= 0) {
           currentLocation = new Location(endLocation);
         } else {
@@ -1080,7 +1081,7 @@ public class TFile {
           inBlockAdvance(beginLocation.getRecordIndex());
         }
       }
-      
+
       /**
        * Constructor
        * 
@@ -1104,7 +1105,7 @@ public class TFile {
           seekTo(beginLocation);
         }
       }
-      
+
       /**
        * Move the cursor to the first entry whose key is greater than or equal to the input key. Synonymous to seekTo(key, 0, key.length). The entry returned by
        * the previous entry() call will be invalid.
@@ -1117,7 +1118,7 @@ public class TFile {
       public boolean seekTo(byte[] key) throws IOException {
         return seekTo(key, 0, key.length);
       }
-      
+
       /**
        * Move the cursor to the first entry whose key is greater than or equal to the input key. The entry returned by the previous entry() call will be
        * invalid.
@@ -1134,7 +1135,7 @@ public class TFile {
       public boolean seekTo(byte[] key, int keyOffset, int keyLen) throws IOException {
         return seekTo(new ByteArray(key, keyOffset, keyLen), false);
       }
-      
+
       private boolean seekTo(RawComparable key, boolean beyond) throws IOException {
         Location l = reader.getBlockContainsKey(key, beyond);
         if (l.compareTo(beginLocation) < 0) {
@@ -1143,17 +1144,17 @@ public class TFile {
           seekTo(endLocation);
           return false;
         }
-        
+
         // check if what we are seeking is in the later part of the current
         // block.
         if (atEnd() || (l.getBlockIndex() != currentLocation.getBlockIndex()) || (compareCursorKeyTo(key) >= 0)) {
           // sorry, we must seek to a different location first.
           seekTo(l);
         }
-        
+
         return inBlockAdvance(key, beyond);
       }
-      
+
       /**
        * Move the cursor to the new location. The entry returned by the previous entry() call will be invalid.
        * 
@@ -1165,16 +1166,16 @@ public class TFile {
         if (l.compareTo(beginLocation) < 0) {
           throw new IllegalArgumentException("Attempt to seek before the begin location.");
         }
-        
+
         if (l.compareTo(endLocation) > 0) {
           throw new IllegalArgumentException("Attempt to seek after the end location.");
         }
-        
+
         if (l.compareTo(endLocation) == 0) {
           parkCursorAtEnd();
           return;
         }
-        
+
         if (l.getBlockIndex() != currentLocation.getBlockIndex()) {
           // going to a totally different block
           initBlock(l.getBlockIndex());
@@ -1188,12 +1189,12 @@ public class TFile {
             initBlock(l.getBlockIndex());
           }
         }
-        
+
         inBlockAdvance(l.getRecordIndex() - currentLocation.getRecordIndex());
-        
+
         return;
       }
-      
+
       /**
        * Rewind to the first entry in the scanner. The entry returned by the previous entry() call will be invalid.
        * 
@@ -1202,7 +1203,7 @@ public class TFile {
       public void rewind() throws IOException {
         seekTo(beginLocation);
       }
-      
+
       /**
        * Seek to the end of the scanner. The entry returned by the previous entry() call will be invalid.
        * 
@@ -1211,7 +1212,7 @@ public class TFile {
       public void seekToEnd() throws IOException {
         parkCursorAtEnd();
       }
-      
+
       /**
        * Move the cursor to the first entry whose key is greater than or equal to the input key. Synonymous to lowerBound(key, 0, key.length). The entry
        * returned by the previous entry() call will be invalid.
@@ -1223,7 +1224,7 @@ public class TFile {
       public void lowerBound(byte[] key) throws IOException {
         lowerBound(key, 0, key.length);
       }
-      
+
       /**
        * Move the cursor to the first entry whose key is greater than or equal to the input key. The entry returned by the previous entry() call will be
        * invalid.
@@ -1239,7 +1240,7 @@ public class TFile {
       public void lowerBound(byte[] key, int keyOffset, int keyLen) throws IOException {
         seekTo(new ByteArray(key, keyOffset, keyLen), false);
       }
-      
+
       /**
        * Move the cursor to the first entry whose key is strictly greater than the input key. Synonymous to upperBound(key, 0, key.length). The entry returned
        * by the previous entry() call will be invalid.
@@ -1251,7 +1252,7 @@ public class TFile {
       public void upperBound(byte[] key) throws IOException {
         upperBound(key, 0, key.length);
       }
-      
+
       /**
        * Move the cursor to the first entry whose key is strictly greater than the input key. The entry returned by the previous entry() call will be invalid.
        * 
@@ -1266,7 +1267,7 @@ public class TFile {
       public void upperBound(byte[] key, int keyOffset, int keyLen) throws IOException {
         seekTo(new ByteArray(key, keyOffset, keyLen), true);
       }
-      
+
       /**
        * Move the cursor to the next key-value pair. The entry returned by the previous entry() call will be invalid.
        * 
@@ -1277,7 +1278,7 @@ public class TFile {
         if (atEnd()) {
           return false;
         }
-        
+
         int curBid = currentLocation.getBlockIndex();
         long curRid = currentLocation.getRecordIndex();
         long entriesInBlock = reader.getBlockEntryCount(curBid);
@@ -1294,7 +1295,7 @@ public class TFile {
         }
         return true;
       }
-      
+
       /**
        * Load a compressed block for reading. Expecting blockIndex is valid.
        * 
@@ -1312,7 +1313,7 @@ public class TFile {
         blkReader = reader.getBlockReader(blockIndex);
         currentLocation.set(blockIndex, 0);
       }
-      
+
       private void parkCursorAtEnd() throws IOException {
         klen = -1;
         currentLocation.set(endLocation);
@@ -1324,15 +1325,16 @@ public class TFile {
           }
         }
       }
-      
+
       /**
        * Close the scanner. Release all resources. The behavior of using the scanner after calling close is not defined. The entry returned by the previous
        * entry() call will be invalid.
        */
+      @Override
       public void close() throws IOException {
         parkCursorAtEnd();
       }
-      
+
       /**
        * Is cursor at the end location?
        * 
@@ -1341,7 +1343,7 @@ public class TFile {
       public boolean atEnd() {
         return (currentLocation.compareTo(endLocation) >= 0);
       }
-      
+
       /**
        * check whether we have already successfully obtained the key. It also initializes the valueInputStream.
        */
@@ -1354,7 +1356,7 @@ public class TFile {
         klen = -1;
         vlen = -1;
         valueChecked = false;
-        
+
         klen = Utils.readVInt(blkReader);
         blkReader.readFully(keyBuffer, 0, klen);
         valueBufferInputStream.reset(blkReader);
@@ -1362,7 +1364,7 @@ public class TFile {
           vlen = valueBufferInputStream.getRemain();
         }
       }
-      
+
       /**
        * Get an entry to access the key and value.
        * 
@@ -1373,7 +1375,7 @@ public class TFile {
         checkKey();
         return new Entry();
       }
-      
+
       /**
        * Internal API. Comparing the key at cursor to user-specified key.
        * 
@@ -1386,7 +1388,7 @@ public class TFile {
         checkKey();
         return reader.compareKeys(keyBuffer, 0, klen, other.buffer(), other.offset(), other.size());
       }
-      
+
       /**
        * Entry to a &lt;Key, Value&gt; pair.
        */
@@ -1399,11 +1401,11 @@ public class TFile {
         public int getKeyLength() {
           return klen;
         }
-        
+
         byte[] getKeyBuffer() {
           return keyBuffer;
         }
-        
+
         /**
          * Copy the key and value in one shot into BytesWritables. This is equivalent to getKey(key); getValue(value);
          * 
@@ -1417,7 +1419,7 @@ public class TFile {
           getKey(key);
           getValue(value);
         }
-        
+
         /**
          * Copy the key into BytesWritable. The input BytesWritable will be automatically resized to the actual key size.
          * 
@@ -1430,7 +1432,7 @@ public class TFile {
           getKey(key.getBytes());
           return key.getLength();
         }
-        
+
         /**
          * Copy the value into BytesWritable. The input BytesWritable will be automatically resized to the actual value size. The implementation directly uses
          * the buffer inside BytesWritable for storing the value. The call does not require the value length to be known.
@@ -1453,7 +1455,7 @@ public class TFile {
             dis.close();
           }
         }
-        
+
         /**
          * Writing the key to the output stream. This method avoids copying key buffer from Scanner into user buffer, then writing to the output stream.
          * 
@@ -1466,7 +1468,7 @@ public class TFile {
           out.write(keyBuffer, 0, klen);
           return klen;
         }
-        
+
         /**
          * Writing the value to the output stream. This method avoids copying value data from Scanner into user buffer, then writing to the output stream. It
          * does not require the value length to be known.
@@ -1493,7 +1495,7 @@ public class TFile {
             dis.close();
           }
         }
-        
+
         /**
          * Copy the key into user supplied buffer.
          * 
@@ -1506,7 +1508,7 @@ public class TFile {
         public int getKey(byte[] buf) throws IOException {
           return getKey(buf, 0);
         }
-        
+
         /**
          * Copy the key into user supplied buffer.
          * 
@@ -1525,7 +1527,7 @@ public class TFile {
           System.arraycopy(keyBuffer, 0, buf, offset, klen);
           return klen;
         }
-        
+
         /**
          * Streaming access to the key. Useful for desrializing the key into user objects.
          * 
@@ -1535,7 +1537,7 @@ public class TFile {
           keyDataInputStream.reset(keyBuffer, klen);
           return keyDataInputStream;
         }
-        
+
         /**
          * Get the length of the value. isValueLengthKnown() must be tested true.
          * 
@@ -1545,10 +1547,10 @@ public class TFile {
           if (vlen >= 0) {
             return vlen;
           }
-          
+
           throw new RuntimeException("Value length unknown.");
         }
-        
+
         /**
          * Copy value into user-supplied buffer. User supplied buffer must be large enough to hold the whole value. The value part of the key-value pair pointed
          * by the current cursor is not cached and can only be examined once. Calling any of the following functions more than once without moving the cursor
@@ -1561,7 +1563,7 @@ public class TFile {
         public int getValue(byte[] buf) throws IOException {
           return getValue(buf, 0);
         }
-        
+
         /**
          * Copy value into user-supplied buffer. User supplied buffer must be large enough to hold the whole value (starting from the offset). The value part of
          * the key-value pair pointed by the current cursor is not cached and can only be examined once. Calling any of the following functions more than once
@@ -1580,7 +1582,7 @@ public class TFile {
               dis.readFully(buf, offset, vlen);
               return vlen;
             }
-            
+
             int nextOffset = offset;
             while (nextOffset < buf.length) {
               int n = dis.read(buf, nextOffset, buf.length - nextOffset);
@@ -1600,7 +1602,7 @@ public class TFile {
             dis.close();
           }
         }
-        
+
         /**
          * Stream access to value. The value part of the key-value pair pointed by the current cursor is not cached and can only be examined once. Calling any
          * of the following functions more than once without moving the cursor will result in exception: {@link #getValue(byte[])},
@@ -1616,7 +1618,7 @@ public class TFile {
           valueChecked = true;
           return valueDataInputStream;
         }
-        
+
         /**
          * Check whether it is safe to call getValueLength().
          * 
@@ -1626,7 +1628,7 @@ public class TFile {
         public boolean isValueLengthKnown() {
           return (vlen >= 0);
         }
-        
+
         /**
          * Compare the entry key to another key. Synonymous to compareTo(key, 0, key.length).
          * 
@@ -1637,7 +1639,7 @@ public class TFile {
         public int compareTo(byte[] buf) {
           return compareTo(buf, 0, buf.length);
         }
-        
+
         /**
          * Compare the entry key to another key. Synonymous to compareTo(new ByteArray(buf, offset, length)
          * 
@@ -1652,7 +1654,7 @@ public class TFile {
         public int compareTo(byte[] buf, int offset, int length) {
           return compareTo(new ByteArray(buf, offset, length));
         }
-        
+
         /**
          * Compare an entry with a RawComparable object. This is useful when Entries are stored in a collection, and we want to compare a user supplied key.
          */
@@ -1660,7 +1662,7 @@ public class TFile {
         public int compareTo(RawComparable key) {
           return reader.compareKeys(keyBuffer, 0, getKeyLength(), key.buffer(), key.offset(), key.size());
         }
-        
+
         /**
          * Compare whether this and other points to the same key value.
          */
@@ -1672,13 +1674,13 @@ public class TFile {
             return false;
           return ((Entry) other).compareTo(keyBuffer, 0, getKeyLength()) == 0;
         }
-        
+
         @Override
         public int hashCode() {
           return WritableComparator.hashBytes(keyBuffer, getKeyLength());
         }
       }
-      
+
       /**
        * Advance cursor by n positions within the block.
        * 
@@ -1696,7 +1698,7 @@ public class TFile {
           currentLocation.incRecordIndex();
         }
       }
-      
+
       /**
        * Advance cursor in block until we find a key that is greater than or equal to the input key.
        * 
@@ -1713,7 +1715,7 @@ public class TFile {
         if (curBid == endLocation.getBlockIndex()) {
           entryInBlock = endLocation.getRecordIndex();
         }
-        
+
         while (currentLocation.getRecordIndex() < entryInBlock) {
           int cmp = compareCursorKeyTo(key);
           if (cmp > 0)
@@ -1726,20 +1728,20 @@ public class TFile {
           klen = -1;
           currentLocation.incRecordIndex();
         }
-        
+
         throw new RuntimeException("Cannot find matching key in block.");
       }
     }
-    
+
     long getBlockEntryCount(int curBid) {
       return tfileIndex.getEntry(curBid).entries();
     }
-    
+
     BlockReader getBlockReader(int blockIndex) throws IOException {
       return readerBCF.getDataBlock(blockIndex);
     }
   }
-  
+
   /**
    * Data structure representing "TFile.meta" meta block.
    */
@@ -1749,7 +1751,7 @@ public class TFile {
     private long recordCount;
     private final String strComparator;
     private final BytesComparator comparator;
-    
+
     // ctor for writes
     public TFileMeta(String comparator) {
       // set fileVersion to API version when we create it.
@@ -1758,7 +1760,7 @@ public class TFile {
       strComparator = (comparator == null) ? "" : comparator;
       this.comparator = makeComparator(strComparator);
     }
-    
+
     // ctor for reads
     public TFileMeta(DataInput in) throws IOException {
       version = new Version(in);
@@ -1769,7 +1771,7 @@ public class TFile {
       strComparator = Utils.readString(in);
       comparator = makeComparator(strComparator);
     }
-    
+
     @SuppressWarnings({"rawtypes", "unchecked"})
     static BytesComparator makeComparator(String comparator) {
       if (comparator.length() == 0) {
@@ -1792,38 +1794,38 @@ public class TFile {
         throw new IllegalArgumentException("Unsupported comparator: " + comparator);
       }
     }
-    
+
     public void write(DataOutput out) throws IOException {
       TFile.API_VERSION.write(out);
       Utils.writeVLong(out, recordCount);
       Utils.writeString(out, strComparator);
     }
-    
+
     public long getRecordCount() {
       return recordCount;
     }
-    
+
     public void incRecordCount() {
       ++recordCount;
     }
-    
+
     public boolean isSorted() {
       return !strComparator.equals("");
     }
-    
+
     public String getComparatorString() {
       return strComparator;
     }
-    
+
     public BytesComparator getComparator() {
       return comparator;
     }
-    
+
     public Version getVersion() {
       return version;
     }
   } // END: class MetaTFileMeta
-  
+
   /**
    * Data structure representing "TFile.index" meta block.
    */
@@ -1832,7 +1834,7 @@ public class TFile {
     private ByteArray firstKey;
     private final ArrayList<TFileIndexEntry> index;
     private final BytesComparator comparator;
-    
+
     /**
      * For reading from file.
      * 
@@ -1845,11 +1847,11 @@ public class TFile {
         byte[] buffer = new byte[size];
         in.readFully(buffer);
         DataInputStream firstKeyInputStream = new DataInputStream(new ByteArrayInputStream(buffer, 0, size));
-        
+
         int firstKeyLength = Utils.readVInt(firstKeyInputStream);
         firstKey = new ByteArray(new byte[firstKeyLength]);
         firstKeyInputStream.readFully(firstKey.buffer());
-        
+
         for (int i = 0; i < entryCount; i++) {
           size = Utils.readVInt(in);
           if (buffer.length < size) {
@@ -1866,7 +1868,7 @@ public class TFile {
       }
       this.comparator = comparator;
     }
-    
+
     /**
      * @param key
      *          input key.
@@ -1876,34 +1878,34 @@ public class TFile {
       if (comparator == null) {
         throw new RuntimeException("Cannot search in unsorted TFile");
       }
-      
+
       if (firstKey == null) {
         return -1; // not found
       }
-      
+
       int ret = Utils.lowerBound(index, key, comparator);
       if (ret == index.size()) {
         return -1;
       }
       return ret;
     }
-    
+
     public int upperBound(RawComparable key) {
       if (comparator == null) {
         throw new RuntimeException("Cannot search in unsorted TFile");
       }
-      
+
       if (firstKey == null) {
         return -1; // not found
       }
-      
+
       int ret = Utils.upperBound(index, key, comparator);
       if (ret == index.size()) {
         return -1;
       }
       return ret;
     }
-    
+
     /**
      * For writing to file.
      */
@@ -1911,43 +1913,43 @@ public class TFile {
       index = new ArrayList<TFileIndexEntry>();
       this.comparator = comparator;
     }
-    
+
     public RawComparable getFirstKey() {
       return firstKey;
     }
-    
+
     public void setFirstKey(byte[] key, int offset, int length) {
       firstKey = new ByteArray(new byte[length]);
       System.arraycopy(key, offset, firstKey.buffer(), 0, length);
     }
-    
+
     public RawComparable getLastKey() {
       if (index.size() == 0) {
         return null;
       }
       return new ByteArray(index.get(index.size() - 1).buffer());
     }
-    
+
     public void addEntry(TFileIndexEntry keyEntry) {
       index.add(keyEntry);
     }
-    
+
     public TFileIndexEntry getEntry(int bid) {
       return index.get(bid);
     }
-    
+
     public void write(DataOutput out) throws IOException {
       if (firstKey == null) {
         Utils.writeVInt(out, 0);
         return;
       }
-      
+
       DataOutputBuffer dob = new DataOutputBuffer();
       Utils.writeVInt(dob, firstKey.size());
       dob.write(firstKey.buffer());
       Utils.writeVInt(out, dob.size());
       out.write(dob.getData(), 0, dob.getLength());
-      
+
       for (TFileIndexEntry entry : index) {
         dob.reset();
         entry.write(dob);
@@ -1956,7 +1958,7 @@ public class TFile {
       }
     }
   }
-  
+
   /**
    * TFile Data Index entry. We should try to make the memory footprint of each index entry as small as possible.
    */
@@ -1964,47 +1966,47 @@ public class TFile {
     final byte[] key;
     // count of <key, value> entries in the block.
     final long kvEntries;
-    
+
     public TFileIndexEntry(DataInput in) throws IOException {
       int len = Utils.readVInt(in);
       key = new byte[len];
       in.readFully(key, 0, len);
       kvEntries = Utils.readVLong(in);
     }
-    
+
     // default entry, without any padding
     public TFileIndexEntry(byte[] newkey, int offset, int len, long entries) {
       key = new byte[len];
       System.arraycopy(newkey, offset, key, 0, len);
       this.kvEntries = entries;
     }
-    
+
     @Override
     public byte[] buffer() {
       return key;
     }
-    
+
     @Override
     public int offset() {
       return 0;
     }
-    
+
     @Override
     public int size() {
       return key.length;
     }
-    
+
     long entries() {
       return kvEntries;
     }
-    
+
     public void write(DataOutput out) throws IOException {
       Utils.writeVInt(out, key.length);
       out.write(key, 0, key.length);
       Utils.writeVLong(out, kvEntries);
     }
   }
-  
+
   /**
    * Dumping the TFile information.
    * 
@@ -2018,7 +2020,7 @@ public class TFile {
       System.exit(0);
     }
     Configuration conf = new Configuration();
-    
+
     for (String file : args) {
       System.out.println("===" + file + "===");
       try {

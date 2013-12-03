@@ -194,6 +194,7 @@ import org.apache.hadoop.util.ReflectionUtils;
  * @see CompressionCodec
  * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.file.rfile.RFile}
  */
+@Deprecated
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class MySequenceFile {
   private static final Log LOG = LogFactory.getLog(MySequenceFile.class);

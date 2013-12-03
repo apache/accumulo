@@ -50,7 +50,7 @@ public class AccumuloOutputFormatTest {
   static class TestMapper extends Mapper<Key,Value,Text,Mutation> {
     Key key = null;
     int count = 0;
-    
+
     @Override
     protected void map(Key k, Value v, Context context) throws IOException, InterruptedException {
       if (key != null)
@@ -60,7 +60,7 @@ public class AccumuloOutputFormatTest {
       key = new Key(k);
       count++;
     }
-    
+
     @Override
     protected void cleanup(Context context) throws IOException, InterruptedException {
       super.cleanup(context);
@@ -71,7 +71,7 @@ public class AccumuloOutputFormatTest {
       } catch (NullPointerException e) {}
     }
   }
-  
+
   @Test
   public void testMR() throws Exception {
     MockInstance mockInstance = new MockInstance("testmrinstance");
@@ -85,7 +85,7 @@ public class AccumuloOutputFormatTest {
       bw.addMutation(m);
     }
     bw.close();
-    
+
     Job job = new Job();
     job.setInputFormatClass(AccumuloInputFormat.class);
     job.setMapperClass(TestMapper.class);
@@ -95,15 +95,15 @@ public class AccumuloOutputFormatTest {
     job.setNumReduceTasks(0);
     AccumuloInputFormat.setInputInfo(job.getConfiguration(), "root", "".getBytes(), "testtable1", new Authorizations());
     AccumuloInputFormat.setMockInstance(job.getConfiguration(), "testmrinstance");
-    AccumuloOutputFormat.setOutputInfo(job, "root", "".getBytes(), false, "testtable2");
-    AccumuloOutputFormat.setMockInstance(job, "testmrinstance");
-    
+    AccumuloOutputFormat.setOutputInfo(job.getConfiguration(), "root", "".getBytes(), false, "testtable2");
+    AccumuloOutputFormat.setMockInstance(job.getConfiguration(), "testmrinstance");
+
     AccumuloInputFormat input = new AccumuloInputFormat();
     List<InputSplit> splits = input.getSplits(job);
     assertEquals(splits.size(), 1);
-    
+
     AccumuloOutputFormat output = new AccumuloOutputFormat();
-    
+
     TestMapper mapper = (TestMapper) job.getMapperClass().newInstance();
     for (InputSplit split : splits) {
       TaskAttemptContext tac = ContextFactory.createTaskAttemptContext(job);
@@ -114,7 +114,7 @@ public class AccumuloOutputFormatTest {
       mapper.run(context);
       writer.close(context);
     }
-    
+
     Scanner scanner = c.createScanner("testtable2", new Authorizations());
     Iterator<Entry<Key,Value>> iter = scanner.iterator();
     assertTrue(iter.hasNext());

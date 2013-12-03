@@ -18,7 +18,6 @@ package org.apache.accumulo.server.security;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -34,9 +33,6 @@ public class SecurityUtil {
   /**
    * This method is for logging a server in kerberos. If this is used in client code, it will fail unless run as the accumulo keytab's owner. Instead, use
    * {@link #login(String, String)}
-   * 
-   * @throws UnknownHostException
-   * @throws IOException
    */
   public static void serverLogin() {
     @SuppressWarnings("deprecation")
@@ -69,7 +65,6 @@ public class SecurityUtil {
    *          replaced by the systems host name.
    * @param keyTabPath
    * @return true if login succeeded, otherwise false
-   * @throws IOException
    */
   public static boolean login(String principalConfig, String keyTabPath) {
     try {

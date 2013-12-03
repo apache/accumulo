@@ -30,6 +30,7 @@ import org.apache.accumulo.core.data.Value;
 /**
  * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.iterators.system.ColumnQualifierFilter}
  **/
+@Deprecated
 public class ColumnQualifierFilter implements Filter {
   private boolean scanColumns;
   private HashSet<ByteSequence> columnFamilies;

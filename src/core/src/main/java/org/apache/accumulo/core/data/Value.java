@@ -251,6 +251,7 @@ public class Value implements WritableComparable<Object> {
    * 
    * @deprecated since 1.4.1. There is no replacement.
    */
+  @Deprecated
   public static byte[] longToBytes(long val) throws IOException {
     return getBytes(new LongWritable(val));
   }
@@ -260,6 +261,7 @@ public class Value implements WritableComparable<Object> {
    * 
    * @deprecated since 1.4.1. There is no replacement.
    */
+  @Deprecated
   public static long bytesToLong(byte[] bytes) throws IOException {
     if (bytes == null || bytes.length == 0) {
       return -1L;
@@ -272,6 +274,7 @@ public class Value implements WritableComparable<Object> {
    * 
    * @deprecated since 1.4.1. There is no replacement.
    */
+  @Deprecated
   public static byte[] stringToBytes(String s) throws UnsupportedEncodingException {
     if (s == null) {
       throw new IllegalArgumentException("string cannot be null");
@@ -284,6 +287,7 @@ public class Value implements WritableComparable<Object> {
    * 
    * @deprecated since 1.4.1. There is no replacement.
    */
+  @Deprecated
   public static String bytesToString(byte[] bytes) throws UnsupportedEncodingException {
     if (bytes == null || bytes.length == 0) {
       return "";
@@ -297,6 +301,7 @@ public class Value implements WritableComparable<Object> {
    * 
    * @deprecated since 1.4.1. There is no replacement.
    */
+  @Deprecated
   public static byte[] getBytes(final Writable w) throws IOException {
     if (w == null) {
       throw new IllegalArgumentException("Writable cannot be null");
@@ -325,6 +330,7 @@ public class Value implements WritableComparable<Object> {
    * 
    * @deprecated since 1.4.1. There is no replacement.
    */
+  @Deprecated
   public static Writable getWritable(final byte[] bytes, final Writable w) throws IOException {
     if (bytes == null || bytes.length == 0) {
       throw new IllegalArgumentException("Can't build a writable with empty " + "bytes array");

@@ -103,6 +103,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    *          the table to use when the tablename is null in the write call
    * @deprecated Use {@link #setOutputInfo(Configuration,String,byte[],boolean,String)} instead
    */
+  @Deprecated
   public static void setOutputInfo(JobContext job, String user, byte[] passwd, boolean createTables, String defaultTable) {
     setOutputInfo(job.getConfiguration(), user, passwd, createTables, defaultTable);
   }
@@ -137,6 +138,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   /**
    * @deprecated Use {@link #setZooKeeperInstance(Configuration,String,String)} instead
    */
+  @Deprecated
   public static void setZooKeeperInstance(JobContext job, String instanceName, String zooKeepers) {
     setZooKeeperInstance(job.getConfiguration(), instanceName, zooKeepers);
   }
@@ -154,6 +156,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   /**
    * @deprecated Use {@link #setMockInstance(Configuration,String)} instead
    */
+  @Deprecated
   public static void setMockInstance(JobContext job, String instanceName) {
     setMockInstance(job.getConfiguration(), instanceName);
   }
@@ -167,6 +170,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   /**
    * @deprecated Use {@link #setMaxMutationBufferSize(Configuration,long)} instead
    */
+  @Deprecated
   public static void setMaxMutationBufferSize(JobContext job, long numberOfBytes) {
     setMaxMutationBufferSize(job.getConfiguration(), numberOfBytes);
   }
@@ -178,6 +182,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   /**
    * @deprecated Use {@link #setMaxLatency(Configuration,int)} instead
    */
+  @Deprecated
   public static void setMaxLatency(JobContext job, int numberOfMilliseconds) {
     setMaxLatency(job.getConfiguration(), numberOfMilliseconds);
   }
@@ -189,6 +194,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   /**
    * @deprecated Use {@link #setMaxWriteThreads(Configuration,int)} instead
    */
+  @Deprecated
   public static void setMaxWriteThreads(JobContext job, int numberOfThreads) {
     setMaxWriteThreads(job.getConfiguration(), numberOfThreads);
   }
@@ -200,6 +206,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   /**
    * @deprecated Use {@link #setLogLevel(Configuration,Level)} instead
    */
+  @Deprecated
   public static void setLogLevel(JobContext job, Level level) {
     setLogLevel(job.getConfiguration(), level);
   }
@@ -212,6 +219,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   /**
    * @deprecated Use {@link #setSimulationMode(Configuration)} instead
    */
+  @Deprecated
   public static void setSimulationMode(JobContext job) {
     setSimulationMode(job.getConfiguration());
   }
@@ -223,6 +231,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   /**
    * @deprecated Use {@link #getUsername(Configuration)} instead
    */
+  @Deprecated
   protected static String getUsername(JobContext job) {
     return getUsername(job.getConfiguration());
   }
@@ -237,6 +246,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * 
    * @deprecated Use {@link #getPassword(Configuration)} instead
    */
+  @Deprecated
   protected static byte[] getPassword(JobContext job) {
     return getPassword(job.getConfiguration());
   }
@@ -252,6 +262,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   /**
    * @deprecated Use {@link #canCreateTables(Configuration)} instead
    */
+  @Deprecated
   protected static boolean canCreateTables(JobContext job) {
     return canCreateTables(job.getConfiguration());
   }
@@ -263,6 +274,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   /**
    * @deprecated Use {@link #getDefaultTableName(Configuration)} instead
    */
+  @Deprecated
   protected static String getDefaultTableName(JobContext job) {
     return getDefaultTableName(job.getConfiguration());
   }
@@ -274,6 +286,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   /**
    * @deprecated Use {@link #getInstance(Configuration)} instead
    */
+  @Deprecated
   protected static Instance getInstance(JobContext job) {
     return getInstance(job.getConfiguration());
   }
@@ -287,6 +300,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   /**
    * @deprecated Use {@link #getMaxMutationBufferSize(Configuration)} instead
    */
+  @Deprecated
   protected static long getMaxMutationBufferSize(JobContext job) {
     return getMaxMutationBufferSize(job.getConfiguration());
   }
@@ -298,6 +312,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   /**
    * @deprecated Use {@link #getMaxLatency(Configuration)} instead
    */
+  @Deprecated
   protected static int getMaxLatency(JobContext job) {
     return getMaxLatency(job.getConfiguration());
   }
@@ -309,6 +324,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   /**
    * @deprecated Use {@link #getMaxWriteThreads(Configuration)} instead
    */
+  @Deprecated
   protected static int getMaxWriteThreads(JobContext job) {
     return getMaxWriteThreads(job.getConfiguration());
   }
@@ -320,6 +336,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   /**
    * @deprecated Use {@link #getLogLevel(Configuration)} instead
    */
+  @Deprecated
   protected static Level getLogLevel(JobContext job) {
     return getLogLevel(job.getConfiguration());
   }
@@ -333,6 +350,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   /**
    * @deprecated Use {@link #getSimulationMode(Configuration)} instead
    */
+  @Deprecated
   protected static boolean getSimulationMode(JobContext job) {
     return getSimulationMode(job.getConfiguration());
   }

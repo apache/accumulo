@@ -560,6 +560,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   /**
    * @deprecated since 1.4 {@link #flush(String, Text, Text, boolean)}
    */
+  @Deprecated
   public void flush(String tableName) throws AccumuloException, AccumuloSecurityException {
     try {
       flush(tableName, null, null, false);
@@ -898,6 +899,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   /**
    * @deprecated since 1.4 {@link #importDirectory(String, String, String, boolean)}
    */
+  @Deprecated
   @Override
   public AssignmentStats importDirectory(String tableName, String dir, String failureDir, int numThreads, int numAssignThreads, boolean disableGC)
       throws IOException, AccumuloException, AccumuloSecurityException {
@@ -1043,6 +1045,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * 
    * @deprecated since 1.4 {@link #attachIterator(String, IteratorSetting)}
    */
+  @Deprecated
   @Override
   public void addAggregators(String tableName, List<? extends org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig> aggregators)
       throws AccumuloSecurityException, TableNotFoundException,

@@ -119,6 +119,7 @@ public class MockTable {
   /**
    * @deprecated Since 1.4, use {@link TableOperations#attachIterator(String tableName, IteratorSetting setting)}
    */
+  @Deprecated
   public void addAggregators(List<? extends org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig> aggregators) {
     for (Entry<String,String> entry : IteratorUtil.generateAggTableProperties(aggregators).entrySet()) {
       String key = entry.getKey();

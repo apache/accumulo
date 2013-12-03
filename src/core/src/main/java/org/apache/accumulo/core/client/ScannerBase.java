@@ -65,11 +65,13 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
   /**
    * @deprecated Since 1.4, use {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator}.
    */
+  @Deprecated
   public void setScanIterators(int priority, String iteratorClass, String iteratorName) throws IOException;
   
   /**
    * @deprecated Since 1.4, use {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator}.
    */
+  @Deprecated
   public void setScanIteratorOption(String iteratorName, String key, String value);
   
   /**
@@ -85,6 +87,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * @deprecated Since 1.4, use {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator} and
    *             {@link org.apache.accumulo.core.iterators.user.RegExFilter}
    */
+  @Deprecated
   public void setupRegex(String iteratorName, int iteratorPriority) throws IOException;
   
   /**
@@ -104,6 +107,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * scanner.addScanIterator(priority, cfg);
    * </pre>
    */
+  @Deprecated
   public void setRowRegex(String regex);
   
   /**
@@ -116,6 +120,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * @deprecated Since 1.4, use {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator} and
    *             {@link org.apache.accumulo.core.iterators.user.RegExFilter}
    */
+  @Deprecated
   public void setColumnFamilyRegex(String regex);
   
   /**
@@ -130,6 +135,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    *             {@link org.apache.accumulo.core.iterators.user.RegExFilter}
    * 
    */
+  @Deprecated
   public void setColumnQualifierRegex(String regex);
   
   /**
@@ -141,6 +147,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * @deprecated Since 1.4, use {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator} and
    *             {@link org.apache.accumulo.core.iterators.user.RegExFilter}
    */
+  @Deprecated
   public void setValueRegex(String regex);
   
   /**

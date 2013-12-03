@@ -114,6 +114,7 @@ public interface TableOperations {
    * 
    * @deprecated since 1.4 {@link #attachIterator(String, IteratorSetting)}
    */
+  @Deprecated
   public void addAggregators(String tableName, List<? extends PerColumnIteratorConfig> aggregators) throws AccumuloSecurityException, TableNotFoundException,
       AccumuloException;
   
@@ -282,6 +283,7 @@ public interface TableOperations {
    * 
    * @deprecated As of release 1.4, replaced by {@link #flush(String, Text, Text, boolean)}
    */
+  @Deprecated
   public void flush(String tableName) throws AccumuloException, AccumuloSecurityException;
   
   /**
@@ -416,6 +418,7 @@ public interface TableOperations {
   /**
    * @deprecated Since 1.4 use {@link #importDirectory(String, String, String, boolean)}
    */
+  @Deprecated
   public AssignmentStats importDirectory(String tableName, String dir, String failureDir, int numThreads, int numAssignThreads, boolean disableGC)
       throws IOException, AccumuloException, AccumuloSecurityException;
   

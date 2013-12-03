@@ -90,6 +90,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   /**
    * @deprecated Use {@link #handleBlockSize(Configuration)} instead
    */
+  @Deprecated
   protected static void handleBlockSize(JobContext job) {
     handleBlockSize(job.getConfiguration());
   }
@@ -108,6 +109,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   /**
    * @deprecated Use {@link #setFileType(Configuration,String)} instead
    */
+  @Deprecated
   public static void setFileType(JobContext job, String type) {
     setFileType(job.getConfiguration(), type);
   }
@@ -119,6 +121,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   /**
    * @deprecated Use {@link #setBlockSize(Configuration,int)} instead
    */
+  @Deprecated
   public static void setBlockSize(JobContext job, int blockSize) {
     setBlockSize(job.getConfiguration(), blockSize);
   }
@@ -132,22 +135,13 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   }
   
   /**
-   * 
-   * @param job
-   * @param instanceName
-   * @param zooKeepers
    * @deprecated since 1.4, use {@link #setZooKeeperInstance(Configuration conf, String instanceName, String zooKeepers)}
    */
+  @Deprecated
   public static void setZooKeeperInstance(JobContext job, String instanceName, String zooKeepers) {
     setZooKeeperInstance(job.getConfiguration(), instanceName, zooKeepers);
   }
   
-  /**
-   * 
-   * @param conf
-   * @param instanceName
-   * @param zooKeepers
-   */
   public static void setZooKeeperInstance(Configuration conf, String instanceName, String zooKeepers) {
     if (conf.getBoolean(INSTANCE_HAS_BEEN_SET, false))
       throw new IllegalStateException("Instance info can only be set once per job");
@@ -159,19 +153,16 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   }
   
   /**
-   * 
-   * @param job
    * @return The Accumulo instance.
    * 
    * @deprecated since 1.4, use {@link #getInstance(Configuration conf)} no other configurations are used by OutputFormat
    */
+  @Deprecated
   protected static Instance getInstance(JobContext job) {
     return getInstance(job.getConfiguration());
   }
   
   /**
-   * 
-   * @param conf
    * @return The Accumulo instance.
    */
   protected static Instance getInstance(Configuration conf) {

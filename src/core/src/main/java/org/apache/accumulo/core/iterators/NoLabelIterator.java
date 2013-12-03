@@ -26,6 +26,7 @@ import org.apache.accumulo.core.iterators.filter.NoLabelFilter;
 /**
  * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.iterators.user.ReqVisFilter}
  **/
+@Deprecated
 public class NoLabelIterator extends SkippingIterator implements OptionDescriber {
   
   private NoLabelFilter ref = new NoLabelFilter();

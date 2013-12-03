@@ -45,14 +45,13 @@ public class LogReader {
   public static void usage() {
     System.err.println("Usage : " + LogReader.class.getName() + " [-r <row>] [-m <maxColumns] [-t <key extent>] [-p <row regex>] <log file>");
   }
-  
+
   /**
    * Dump a Log File (Map or Sequence) to stdout. Will read from HDFS or local file system.
    * 
    * @param args
    *          - first argument is the file to print
    * @throws IOException
-   * @throws ParseException
    */
   public static void main(String[] args) throws IOException {
     Configuration conf = CachedConfiguration.getInstance();
@@ -74,7 +73,7 @@ public class LogReader {
       usage();
       return;
     }
-    
+
     Matcher rowMatcher = null;
     KeyExtent ke = null;
     Text row = null;
@@ -97,15 +96,15 @@ public class LogReader {
       Pattern pattern = Pattern.compile(cl.getOptionValue(rowPatternOpt.getOpt()));
       rowMatcher = pattern.matcher("");
     }
-    
+
     Set<Integer> tabletIds = new HashSet<Integer>();
 
     for (String file : files) {
-      
+
       Path path = new Path(file);
       LogFileKey key = new LogFileKey();
       LogFileValue value = new LogFileValue();
-      
+
       if (fs.isFile(path)) {
         // read log entries from a simple hdfs file
         org.apache.hadoop.io.SequenceFile.Reader reader = new SequenceFile.Reader(fs, new Path(file), conf);
@@ -134,9 +133,9 @@ public class LogReader {
       }
     }
   }
-  
+
   public static void printLogEvent(LogFileKey key, LogFileValue value, Text row, Matcher rowMatcher, KeyExtent ke, Set<Integer> tabletIds, int maxMutations) {
-    
+
     if (ke != null) {
       if (key.event == LogEvents.DEFINE_TABLET) {
         if (key.tablet.equals(ke)) {
@@ -157,7 +156,7 @@ public class LogReader {
             found = true;
             break;
           }
-          
+
           if (rowMatcher != null) {
             rowMatcher.reset(new String(m.getRow()));
             if (rowMatcher.matches()) {
@@ -166,17 +165,17 @@ public class LogReader {
             }
           }
         }
-        
+
         if (!found)
           return;
       } else {
         return;
       }
-      
+
     }
-    
+
     System.out.println(key);
     System.out.println(LogFileValue.format(value, maxMutations));
   }
-  
+
 }

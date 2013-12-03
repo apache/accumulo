@@ -82,11 +82,11 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
    * to a key in the middle of such a group (e.g. the middle of a row). Even if the client always seeks to a range containing an entire group (a,c), the tablet
    * server could send back a batch of entries corresponding to (a,b], then reseek the iterator to range (b,c) when the scan is continued.
    *
-   * {@link columnFamilies} is used, at the lowest level, to determine which data blocks inside of an RFile need to be opened for this iterator. This set of data
+   * {@code columnFamilies} is used, at the lowest level, to determine which data blocks inside of an RFile need to be opened for this iterator. This set of data
    * blocks is also the set of locality groups defined for the given table. If no columnFamilies are provided, the data blocks for all locality groups inside of
-   * the correct RFile will be opened and seeked in an attempt to find the correct start key, irregardless of the startKey in the {@link range}.
+   * the correct RFile will be opened and seeked in an attempt to find the correct start key, regardless of the startKey in the {@code range}.
    *
-   * In an Accumulo instance in which multiple locality groups exist for a table, it is important to ensure that {@link columnFamilies} is properly set to the
+   * In an Accumulo instance in which multiple locality groups exist for a table, it is important to ensure that {@code columnFamilies} is properly set to the
    * minimum required column families to ensure that data from separate locality groups is not inadvertently read.
    * 
    * @param range

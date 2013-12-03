@@ -56,10 +56,10 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 public class OfflineMetadataScanner extends ScannerOptions implements Scanner {
-  
+
   private Set<String> allFiles = new HashSet<String>();
   private Range range = new Range();
-  
+
   private List<SortedKeyValueIterator<Key,Value>> openMapFiles(Collection<String> files, FileSystem fs, Configuration conf) throws IOException {
     List<SortedKeyValueIterator<Key,Value>> readers = new ArrayList<SortedKeyValueIterator<Key,Value>>();
     for (String file : files) {
@@ -68,7 +68,7 @@ public class OfflineMetadataScanner extends ScannerOptions implements Scanner {
     }
     return readers;
   }
-  
+
   private SortedKeyValueIterator<Key,Value> createSystemIter(Range r, List<SortedKeyValueIterator<Key,Value>> readers, HashSet<Column> columns)
       throws IOException {
     MultiIterator multiIterator = new MultiIterator(readers, false);
@@ -76,77 +76,77 @@ public class OfflineMetadataScanner extends ScannerOptions implements Scanner {
     ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);
     ColumnQualifierFilter colFilter = new ColumnQualifierFilter(cfsi, columns);
     VisibilityFilter visFilter = new VisibilityFilter(colFilter, Constants.NO_AUTHS, new byte[0]);
-    
+
     visFilter.seek(r, LocalityGroupUtil.EMPTY_CF_SET, false);
-    
+
     VersioningIterator vi = new VersioningIterator();
     Map<String,String> opts = new HashMap<String,String>();
     opts.put("maxVersions", "1");
     vi.init(visFilter, opts, null);
-    
+
     return vi;
   }
-  
+
   private static class MyEntry implements Map.Entry<Key,Value> {
-    
+
     private Key k;
     private Value v;
-    
+
     MyEntry(Key k, Value v) {
       this.k = k;
       this.v = v;
     }
-    
+
     @Override
     public Key getKey() {
       return k;
     }
-    
+
     @Override
     public Value getValue() {
       return v;
     }
-    
+
     @Override
     public Value setValue(Value value) {
       throw new UnsupportedOperationException();
     }
-    
+
   }
-  
+
   public OfflineMetadataScanner() throws IOException {
     super();
-    
+
     List<LogEntry> rwal;
     try {
       rwal = MetadataTable.getLogEntries(null, Constants.ROOT_TABLET_EXTENT);
     } catch (Exception e) {
       throw new RuntimeException("Failed to check if root tablet has write ahead log entries", e);
     }
-    
+
     if (rwal.size() > 0) {
       throw new RuntimeException("Root tablet has write ahead logs, can not scan offline");
     }
-    
+
     Configuration conf = CachedConfiguration.getInstance();
     FileSystem fs = FileSystem.get(conf);
-    
+
     FileStatus[] rootFiles = fs.listStatus(new Path(ServerConstants.getRootTabletDir()));
-    
+
     for (FileStatus rootFile : rootFiles) {
       allFiles.add(rootFile.getPath().toString());
     }
-    
+
     List<SortedKeyValueIterator<Key,Value>> readers = openMapFiles(allFiles, fs, conf);
-    
+
     HashSet<Column> columns = new HashSet<Column>();
     columns.add(new Column(TextUtil.getBytes(Constants.METADATA_DATAFILE_COLUMN_FAMILY), null, null));
     columns.add(new Column(TextUtil.getBytes(Constants.METADATA_LOG_COLUMN_FAMILY), null, null));
-    
+
     SortedKeyValueIterator<Key,Value> ssi = createSystemIter(new Range(), readers, columns);
-    
+
     int walogs = 0;
-    
+
     while (ssi.hasTop()) {
       if (ssi.getTopKey().compareColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY) == 0) {
         allFiles.add(ServerConstants.getMetadataTableDir() + "/" + ssi.getTopKey().getColumnQualifier().toString());
@@ -155,38 +155,38 @@ public class OfflineMetadataScanner extends ScannerOptions implements Scanner {
       }
       ssi.next();
     }
-    
+
     closeReaders(readers);
-    
+
     if (walogs > 0) {
       throw new RuntimeException("Metadata tablets have write ahead logs, can not scan offline");
     }
   }
-  
+
   private void closeReaders(List<SortedKeyValueIterator<Key,Value>> readers) throws IOException {
     for (SortedKeyValueIterator<Key,Value> reader : readers) {
       ((FileSKVIterator) reader).close();
     }
   }
-  
+
   @Override
   public int getBatchSize() {
     throw new UnsupportedOperationException();
   }
-  
+
   @Override
   public Range getRange() {
     return range;
   }
-  
+
   @Override
   public int getTimeOut() {
     throw new UnsupportedOperationException();
   }
-  
+
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
-    
+
     final SortedKeyValueIterator<Key,Value> ssi;
     final List<SortedKeyValueIterator<Key,Value>> readers;
     try {
@@ -197,20 +197,20 @@ public class OfflineMetadataScanner extends ScannerOptions implements Scanner {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-    
+
     return new Iterator<Entry<Key,Value>>() {
-      
+
       @Override
       public boolean hasNext() {
         return ssi.hasTop() && range.contains(ssi.getTopKey());
       }
-      
+
       @Override
       public Entry<Key,Value> next() {
         if (!ssi.hasTop()) {
           throw new NoSuchElementException();
         }
-        
+
         MyEntry e = new MyEntry(new Key(ssi.getTopKey()), new Value(ssi.getTopValue()));
         try {
           ssi.next();
@@ -219,50 +219,51 @@ public class OfflineMetadataScanner extends ScannerOptions implements Scanner {
         }
         return e;
       }
-      
+
       @Override
       public void remove() {
         throw new UnsupportedOperationException();
       }
-      
+
     };
   }
-  
+
   @Override
   public void setBatchSize(int size) {
     throw new UnsupportedOperationException();
   }
-  
+
   @Override
   public void setRange(Range range) {
     this.range = range;
   }
-  
+
   @Override
   public void setTimeOut(int timeOut) {
     throw new UnsupportedOperationException();
   }
-  
+
+  @Deprecated
   @Override
   public void setScanIterators(int priority, String iteratorClass, String iteratorName) {
     throw new UnsupportedOperationException();
   }
-  
+
   @Override
   public void enableIsolation() {
     // should always give an isolated view since it is scanning immutable files
   }
-  
+
   @Override
   public void disableIsolation() {
-    
+
   }
-  
+
   public static void main(String[] args) throws IOException {
     OfflineMetadataScanner scanner = new OfflineMetadataScanner();
     scanner.setRange(Constants.METADATA_KEYSPACE);
     for (Entry<Key,Value> entry : scanner)
       System.out.println(entry.getKey() + " " + entry.getValue());
   }
-  
+
 }

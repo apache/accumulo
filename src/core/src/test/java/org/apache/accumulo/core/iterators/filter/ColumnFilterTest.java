@@ -28,6 +28,7 @@ import org.apache.hadoop.io.Text;
 /**
  * @deprecated since 1.4
  */
+@Deprecated
 public class ColumnFilterTest extends TestCase {
   
   Key nk(String row, String cf, String cq) {
