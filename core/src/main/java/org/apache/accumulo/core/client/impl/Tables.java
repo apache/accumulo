@@ -29,7 +29,7 @@ import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.log4j.Logger;
@@ -58,10 +58,10 @@ public class Tables {
       byte[] tblPath = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME);
       byte[] nId = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE);
       String name = "";
-      // create fully qualified table name if it's in a namespace other than default or system.
+      // create fully qualified table name
       if (nId != null) {
         String namespaceId = new String(nId, Constants.UTF8);
-        if (!namespaceId.equals(Constants.DEFAULT_NAMESPACE_ID) && !namespaceId.equals(Constants.SYSTEM_NAMESPACE_ID)) {
+        if (!namespaceId.equals(Constants.DEFAULT_NAMESPACE_ID)) {
           try {
             name += Namespaces.getNamespaceName(instance, namespaceId) + ".";
           } catch (NamespaceNotFoundException e) {
@@ -159,25 +159,33 @@ public class Tables {
   public static long getCacheResetCount() {
     return cacheResetCount.get();
   }
-  
-  public static String extractNamespace(String tableName) {
-    String[] s = tableName.split("\\.");
-    if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME)) {
-      return Constants.SYSTEM_NAMESPACE;
-    } else if (s.length == 2 && !s[0].isEmpty()) {
-      return s[0];
-    } else {
-      return Constants.DEFAULT_NAMESPACE;
-    }
+
+  public static String qualified(String tableName) {
+    return qualified(tableName, Constants.DEFAULT_NAMESPACE);
   }
 
-  public static String extractTableName(String tableName) {
-    String[] s = tableName.split("\\.");
-    if (s.length == 2 && !s[1].isEmpty() && !s[0].isEmpty()) {
-      return s[1];
-    } else {
-      return tableName;
+  public static String qualified(String tableName, String defaultNamespace) {
+    Pair<String,String> qualifiedTableName = Tables.qualify(tableName, defaultNamespace);
+    if (Constants.DEFAULT_NAMESPACE.equals(qualifiedTableName.getFirst()))
+      return qualifiedTableName.getSecond();
+    else
+      return qualifiedTableName.toString("", ".", "");
+  }
+
+  public static Pair<String,String> qualify(String tableName) {
+    return qualify(tableName, Constants.DEFAULT_NAMESPACE);
+  }
+
+  public static Pair<String,String> qualify(String tableName, String defaultNamespace) {
+    if (!tableName.matches(Constants.VALID_TABLE_NAME_REGEX))
+      throw new IllegalArgumentException("Improper table name format");
+    if (MetadataTable.OLD_NAME.equals(tableName))
+      tableName = MetadataTable.NAME;
+    if (tableName.contains(".")) {
+      String[] s = tableName.split("\\.", 2);
+      return new Pair<String,String>(s[0], s[1]);
     }
+    return new Pair<String,String>(defaultNamespace, tableName);
   }
 
   public static String getNamespace(Instance instance, String tableId) {

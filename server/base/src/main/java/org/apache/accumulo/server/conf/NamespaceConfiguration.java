@@ -57,7 +57,7 @@ public class NamespaceConfiguration extends AccumuloConfiguration {
     if (value == null || !property.getType().isValidFormat(value)) {
       if (value != null)
         log.error("Using default value for " + key + " due to improperly formatted " + property.getType() + ": " + value);
-      if (!(namespaceId.equals(Constants.SYSTEM_NAMESPACE_ID) && isIteratorOrConstraint(property.getKey()))) {
+      if (!(namespaceId.equals(Constants.ACCUMULO_NAMESPACE_ID) && isIteratorOrConstraint(property.getKey()))) {
         // ignore iterators from parent if system namespace
         value = parent.get(property);
       }
@@ -108,7 +108,7 @@ public class NamespaceConfiguration extends AccumuloConfiguration {
 
     // exclude system iterators/constraints from the system namespace
     // so they don't affect the metadata or root tables.
-    if (this.namespaceId.equals(Constants.SYSTEM_NAMESPACE_ID))
+    if (this.namespaceId.equals(Constants.ACCUMULO_NAMESPACE_ID))
       parentFilter = new SystemNamespaceFilter(filter);
 
     parent.getProperties(props, parentFilter);

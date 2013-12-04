@@ -386,8 +386,8 @@ public class ZKPermHandler implements PermissionHandler {
     tablePerms.put(MetadataTable.ID, Collections.singleton(TablePermission.ALTER_TABLE));
     // essentially the same but on the system namespace, the ALTER_TABLE permission is now redundant
     Map<String,Set<NamespacePermission>> namespacePerms = new HashMap<String,Set<NamespacePermission>>();
-    namespacePerms.put(Constants.SYSTEM_NAMESPACE_ID, Collections.singleton(NamespacePermission.ALTER_NAMESPACE));
-    namespacePerms.put(Constants.SYSTEM_NAMESPACE_ID, Collections.singleton(NamespacePermission.ALTER_TABLE));
+    namespacePerms.put(Constants.ACCUMULO_NAMESPACE_ID, Collections.singleton(NamespacePermission.ALTER_NAMESPACE));
+    namespacePerms.put(Constants.ACCUMULO_NAMESPACE_ID, Collections.singleton(NamespacePermission.ALTER_TABLE));
 
     try {
       // prep parent node of users with root username

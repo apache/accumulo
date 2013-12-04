@@ -17,9 +17,7 @@
 package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
@@ -27,17 +25,21 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
-import org.apache.accumulo.core.client.impl.Namespaces;
+import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.collections.MapUtils;
-import org.apache.commons.collections.iterators.AbstractIteratorDecorator;
+
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Maps;
 
 public class TablesCommand extends Command {
-  private static final String NAME_AND_ID_FORMAT = "%-15s => %10s%n";
+  static final String NAME_AND_ID_FORMAT = "%-20s => %9s%n";
 
   private Option tableIdOption;
   private Option sortByTableIdOption;
@@ -48,53 +50,36 @@ public class TablesCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException,
       NamespaceNotFoundException {
 
-    final Iterator<String> tableNames;
-    final Iterator<String> tableIds;
+    final String namespace = cl.hasOption(OptUtil.namespaceOpt().getOpt()) ? OptUtil.getNamespaceOpt(cl, shellState) : null;
+    Map<String,String> tables = shellState.getConnector().tableOperations().tableIdMap();
 
-    if (cl.hasOption(OptUtil.namespaceOpt().getOpt())) {
-      String namespace = shellState.getConnector().namespaceOperations().namespaceIdMap().get(OptUtil.getNamespaceOpt(cl, shellState));
-      tableNames = Namespaces.getTableNames(shellState.getConnector().getInstance(), namespace).iterator();
-      List<String> tableIdStrings = Namespaces.getTableIds(shellState.getConnector().getInstance(), namespace);
-      if (cl.hasOption(sortByTableIdOption.getOpt()))
-        Collections.sort(tableIdStrings);
-      tableIds = tableIdStrings.iterator();
-    } else {
-      tableNames = shellState.getConnector().tableOperations().list().iterator();
-      tableIds = new TableIdIterator(shellState.getConnector().tableOperations().tableIdMap(), cl.hasOption(sortByTableIdOption.getOpt()));
-    }
+    // filter only specified namespace
+    tables = Maps.filterKeys(tables, new Predicate<String>() {
+      @Override
+      public boolean apply(String tableName) {
+        return namespace == null || Tables.qualify(tableName).getFirst().equals(namespace);
+      }
+    });
 
-    Iterator<String> it = cl.hasOption(tableIdOption.getOpt()) ? tableIds : tableNames;
+    final boolean sortByTableId = cl.hasOption(sortByTableIdOption.getOpt());
+    tables = new TreeMap<String,String>((sortByTableId ? MapUtils.invertMap(tables) : tables));
+
+    Iterator<String> it = Iterators.transform(tables.entrySet().iterator(), new Function<Entry<String,String>,String>() {
+      @Override
+      public String apply(Map.Entry<String,String> entry) {
+        String tableName = String.valueOf(sortByTableId ? entry.getValue() : entry.getKey());
+        String tableId = String.valueOf(sortByTableId ? entry.getKey() : entry.getValue());
+        if (namespace != null)
+          tableName = Tables.qualify(tableName).getSecond();
+        if (cl.hasOption(tableIdOption.getOpt()))
+          return String.format(NAME_AND_ID_FORMAT, tableName, tableId);
+        else
+          return tableName;
+      };
+    });
+
     shellState.printLines(it, !cl.hasOption(disablePaginationOpt.getOpt()));
     return 0;
-  }
-
-  /**
-   * Decorator that formats table name and id for display.
-   */
-  private static final class TableIdIterator extends AbstractIteratorDecorator {
-    private final boolean sortByTableId;
-
-    /**
-     * @param tableIdMap
-     *          tableName -> tableId
-     * @param sortByTableId
-     */
-    @SuppressWarnings("unchecked")
-    public TableIdIterator(Map<String,String> tableIdMap, boolean sortByTableId) {
-      super(new TreeMap<String,String>((sortByTableId ? MapUtils.invertMap(tableIdMap) : tableIdMap)).entrySet().iterator());
-      this.sortByTableId = sortByTableId;
-    }
-
-    @SuppressWarnings("rawtypes")
-    @Override
-    public Object next() {
-      Entry entry = (Entry) super.next();
-      if (sortByTableId) {
-        return String.format(NAME_AND_ID_FORMAT, entry.getValue(), entry.getKey());
-      } else {
-        return String.format(NAME_AND_ID_FORMAT, entry.getKey(), entry.getValue());
-      }
-    }
   }
 
   @Override

@@ -514,14 +514,14 @@ public class NamespacesIT extends SimpleMacIT {
     assertTrue(c.instanceOperations().getSystemConfiguration().containsValue("20," + SimpleFilter.class.getName()));
 
     assertTrue(checkNamespaceHasProp(c, Constants.DEFAULT_NAMESPACE, "table.iterator.scan.sum", "20," + SimpleFilter.class.getName()));
-    assertTrue(!checkNamespaceHasProp(c, Constants.SYSTEM_NAMESPACE, "table.iterator.scan.sum", "20," + SimpleFilter.class.getName()));
+    assertTrue(!checkNamespaceHasProp(c, Constants.ACCUMULO_NAMESPACE, "table.iterator.scan.sum", "20," + SimpleFilter.class.getName()));
     c.instanceOperations().removeProperty("table.iterator.scan.sum");
 
     c.instanceOperations().setProperty("table.constraint.42", NumericValueConstraint.class.getName());
     assertTrue(c.instanceOperations().getSystemConfiguration().containsValue(NumericValueConstraint.class.getName()));
 
     assertTrue(checkNamespaceHasProp(c, Constants.DEFAULT_NAMESPACE, "table.constraint.42", NumericValueConstraint.class.getName()));
-    assertTrue(!checkNamespaceHasProp(c, Constants.SYSTEM_NAMESPACE, "table.constraint.42", NumericValueConstraint.class.getName()));
+    assertTrue(!checkNamespaceHasProp(c, Constants.ACCUMULO_NAMESPACE, "table.constraint.42", NumericValueConstraint.class.getName()));
     c.instanceOperations().removeProperty("table.constraint.42");
   }
 

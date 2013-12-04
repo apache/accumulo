@@ -31,7 +31,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TimeType;
-import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.security.VisibilityConstraint;
@@ -112,12 +111,7 @@ public class CreateTableCommand extends Command {
       shellState.getConnector().tableOperations().addSplits(tableName, partitions);
     }
 
-    String n = Tables.extractNamespace(tableName);
-    String table = tableName;
-    if (n.equals(Constants.DEFAULT_NAMESPACE) || n.equals(Constants.SYSTEM_NAMESPACE)) {
-      table = Tables.extractTableName(tableName);
-    }
-    shellState.setTableName(table); // switch shell to new table context
+    shellState.setTableName(tableName); // switch shell to new table context
 
     if (cl.hasOption(createTableNoDefaultIters.getOpt())) {
       for (String key : IteratorUtil.generateInitialTableProperties(true).keySet()) {

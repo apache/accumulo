@@ -24,6 +24,7 @@ import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
@@ -58,8 +59,11 @@ public class RenameTable extends MasterRepo {
   public Repo<Master> call(long tid, Master master) throws Exception {
 
     Instance instance = master.getInstance();
+    Pair<String,String> qualifiedOldTableName = Tables.qualify(oldTableName);
+    Pair<String,String> qualifiedNewTableName = Tables.qualify(newTableName);
+
     // ensure no attempt is made to rename across namespaces
-    if (newTableName.contains(".") && !namespaceId.equals(Namespaces.getNamespaceId(instance, Tables.extractNamespace(newTableName))))
+    if (newTableName.contains(".") && !namespaceId.equals(Namespaces.getNamespaceId(instance, qualifiedNewTableName.getFirst())))
       throw new IllegalArgumentException("Namespace in new table name does not match the old table name");
 
     IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
@@ -68,8 +72,8 @@ public class RenameTable extends MasterRepo {
     try {
       Utils.checkTableDoesNotExist(instance, newTableName, tableId, TableOperation.RENAME);
 
-      final String newName = Tables.extractTableName(newTableName);
-      final String oldName = Tables.extractTableName(oldTableName);
+      final String newName = qualifiedNewTableName.getSecond();
+      final String oldName = qualifiedOldTableName.getSecond();
 
       final String tap = ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME;
 

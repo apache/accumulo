@@ -295,14 +295,14 @@ public class ShellServerIT extends SimpleMacIT {
     exec("createuser xyzzy", true);
     exec("users", true, "xyzzy", true);
     String perms = exec("userpermissions -u xyzzy", true);
-    assertTrue(perms.contains("Table permissions (!METADATA): Table.READ"));
+    assertTrue(perms.contains("Table permissions (" + MetadataTable.NAME + "): Table.READ"));
     exec("grant -u xyzzy -s System.CREATE_TABLE", true);
     perms = exec("userpermissions -u xyzzy", true);
     assertTrue(perms.contains(""));
-    exec("grant -u root -t !METADATA Table.WRITE", true);
-    exec("grant -u root -t !METADATA Table.GOOFY", false);
+    exec("grant -u root -t " + MetadataTable.NAME + " Table.WRITE", true);
+    exec("grant -u root -t " + MetadataTable.NAME + " Table.GOOFY", false);
     exec("grant -u root -s foo", false);
-    exec("grant -u xyzzy -t !METADATA foo", false);
+    exec("grant -u xyzzy -t " + MetadataTable.NAME + " foo", false);
     input.set("secret\nsecret\n");
     exec("user xyzzy", true);
     exec("createtable t", true, "xyzzy@", true);
@@ -315,9 +315,9 @@ public class ShellServerIT extends SimpleMacIT {
     exec("revoke -u xyzzy -s System.CREATE_TABLE", true);
     exec("revoke -u xyzzy -s System.GOOFY", false);
     exec("revoke -u xyzzy -s foo", false);
-    exec("revoke -u xyzzy -t !METADATA Table.WRITE", true);
-    exec("revoke -u xyzzy -t !METADATA Table.GOOFY", false);
-    exec("revoke -u xyzzy -t !METADATA foo", false);
+    exec("revoke -u xyzzy -t " + MetadataTable.NAME + " Table.WRITE", true);
+    exec("revoke -u xyzzy -t " + MetadataTable.NAME + " Table.GOOFY", false);
+    exec("revoke -u xyzzy -t " + MetadataTable.NAME + " foo", false);
     exec("deleteuser xyzzy", true);
     exec("users", true, "xyzzy", false);
   }
@@ -486,7 +486,7 @@ public class ShellServerIT extends SimpleMacIT {
   @Test(timeout = 30 * 1000)
   public void constraint() throws Exception {
     // constraint
-    exec("constraint -l -t !METADATA", true, "MetadataConstraints=1", true);
+    exec("constraint -l -t " + MetadataTable.NAME + "", true, "MetadataConstraints=1", true);
     exec("createtable c -evc");
     exec("constraint -l -t c", true, "VisibilityConstraint=2", true);
     exec("constraint -t c -d 2", true, "Removed constraint 2 from table c");
@@ -672,12 +672,12 @@ public class ShellServerIT extends SimpleMacIT {
     exec("merge --all", true);
     exec("getsplits", true, "z", false);
     exec("deletetable -f t");
-    exec("getsplits -t !METADATA", true);
+    exec("getsplits -t " + MetadataTable.NAME + "", true);
     assertEquals(2, output.get().split("\n").length);
-    exec("getsplits -t !!ROOT", true);
+    exec("getsplits -t accumulo.root", true);
     assertEquals(1, output.get().split("\n").length);
-    exec("merge --all -t !METADATA");
-    exec("getsplits -t !METADATA", true);
+    exec("merge --all -t " + MetadataTable.NAME + "");
+    exec("getsplits -t " + MetadataTable.NAME + "", true);
     assertEquals(1, output.get().split("\n").length);
   }
 
@@ -949,7 +949,7 @@ public class ShellServerIT extends SimpleMacIT {
   }
 
   private int countFiles() throws IOException {
-    exec("scan -t !METADATA -np -c file");
+    exec("scan -t " + MetadataTable.NAME + " -np -c file");
     return output.get().split("\n").length - 1;
   }
 }

@@ -18,9 +18,11 @@ package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.util.shell.Shell;
@@ -28,40 +30,35 @@ import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.collections.iterators.AbstractIteratorDecorator;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
 
 public class NamespacesCommand extends Command {
   private Option disablePaginationOpt, namespaceIdOption;
 
-  @SuppressWarnings("unchecked")
+  private static final String DEFAULT_NAMESPACE_DISPLAY_NAME = "(default)";
+
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
-    Iterator<String> names = shellState.getConnector().namespaceOperations().list().iterator();
-    Iterator<String> ids = new NamespaceIdIterator(new TreeMap<String,String>(shellState.getConnector().namespaceOperations().namespaceIdMap()).entrySet()
-        .iterator());
+    Map<String,String> namespaces = new TreeMap<String,String>(shellState.getConnector().namespaceOperations().namespaceIdMap());
 
-    if (cl.hasOption(namespaceIdOption.getOpt())) {
-      shellState.printLines(ids, !cl.hasOption(disablePaginationOpt.getOpt()));
-    } else {
-      shellState.printLines(names, !cl.hasOption(disablePaginationOpt.getOpt()));
-    }
+    Iterator<String> it = Iterators.transform(namespaces.entrySet().iterator(), new Function<Entry<String,String>,String>() {
+      @Override
+      public String apply(Map.Entry<String,String> entry) {
+        String name = entry.getKey();
+        if (Constants.DEFAULT_NAMESPACE.equals(name))
+          name = DEFAULT_NAMESPACE_DISPLAY_NAME;
+        String id = entry.getValue();
+        if (cl.hasOption(namespaceIdOption.getOpt()))
+          return String.format(TablesCommand.NAME_AND_ID_FORMAT, name, id);
+        else
+          return name;
+      };
+    });
+
+    shellState.printLines(it, !cl.hasOption(disablePaginationOpt.getOpt()));
     return 0;
-  }
-
-  /**
-   * Decorator that formats the id and name for display.
-   */
-  private static final class NamespaceIdIterator extends AbstractIteratorDecorator {
-    public NamespaceIdIterator(Iterator<Entry<String,String>> iterator) {
-      super(iterator);
-    }
-
-    @SuppressWarnings("rawtypes")
-    @Override
-    public Object next() {
-      Entry entry = (Entry) super.next();
-      return String.format("%-15s => %10s%n", entry.getKey(), entry.getValue());
-    }
   }
 
   @Override

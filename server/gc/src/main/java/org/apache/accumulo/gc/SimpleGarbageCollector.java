@@ -305,16 +305,14 @@ public class SimpleGarbageCollector implements Iface {
                   ++status.current.deleted;
                 }
               } else if (fs.exists(fullPath)) {
-                // leave the entry in the METADATA table; we'll try again
-                // later
+                // leave the entry in the metadata; we'll try again later
                 removeFlag = false;
                 synchronized (SimpleGarbageCollector.this) {
                   ++status.current.errors;
                 }
                 log.warn("File exists, but was not deleted for an unknown reason: " + fullPath);
               } else {
-                // this failure, we still want to remove the METADATA table
-                // entry
+                // this failure, we still want to remove the metadata entry
                 removeFlag = true;
                 synchronized (SimpleGarbageCollector.this) {
                   ++status.current.errors;
@@ -470,7 +468,7 @@ public class SimpleGarbageCollector implements Iface {
       }
       gcSpan.stop();
       
-      // we just made a lot of changes to the !METADATA table: flush them out
+      // we just made a lot of metadata changes: flush them out
       try {
         Connector connector = instance.getConnector(credentials.getPrincipal(), credentials.getToken());
         connector.tableOperations().compact(MetadataTable.NAME, null, null, true, true);

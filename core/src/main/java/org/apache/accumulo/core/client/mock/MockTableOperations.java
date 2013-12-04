@@ -96,7 +96,7 @@ public class MockTableOperations extends TableOperationsHelper {
 
   @Override
   public void create(String tableName, boolean versioningIter, TimeType timeType) throws AccumuloException, AccumuloSecurityException, TableExistsException {
-    String namespace = Tables.extractNamespace(tableName);
+    String namespace = Tables.qualify(tableName).getFirst();
     if (!tableName.matches(Constants.VALID_TABLE_NAME_REGEX)) {
       throw new IllegalArgumentException();
     }
@@ -155,7 +155,7 @@ public class MockTableOperations extends TableOperationsHelper {
     if (exists(newTableName))
       throw new TableExistsException(newTableName, newTableName, "");
     MockTable t = acu.tables.remove(oldTableName);
-    String namespace = Tables.extractNamespace(newTableName);
+    String namespace = Tables.qualify(newTableName).getFirst();
     MockNamespace n = acu.namespaces.get(namespace);
     if (n == null) {
       n = new MockNamespace();
@@ -182,7 +182,7 @@ public class MockTableOperations extends TableOperationsHelper {
 
   @Override
   public Iterable<Entry<String,String>> getProperties(String tableName) throws TableNotFoundException {
-    String namespace = Tables.extractNamespace(tableName);
+    String namespace = Tables.qualify(tableName).getFirst();
 
     if (!namespaceExists(namespace)) {
       throw new IllegalArgumentException("Namespace (" + namespace + ") does not exist");

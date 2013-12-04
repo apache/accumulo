@@ -81,7 +81,7 @@ public class MockNamespaceOperations extends NamespaceOperationsHelper {
 
     MockNamespace n = acu.namespaces.get(oldNamespaceName);
     for (String t : n.getTables(acu)) {
-      String tt = newNamespaceName + "." + Tables.extractTableName(t);
+      String tt = newNamespaceName + "." + Tables.qualify(t).getSecond();
       acu.tables.put(tt, acu.tables.remove(t));
     }
     acu.namespaces.put(newNamespaceName, acu.namespaces.remove(oldNamespaceName));

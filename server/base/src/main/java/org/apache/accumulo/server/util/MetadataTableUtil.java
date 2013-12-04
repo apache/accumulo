@@ -346,7 +346,7 @@ public class MetadataTableUtil {
     Mutation m = null;
     ms.setRange(new KeyExtent(tableIdText, null, null).toMetadataRange());
 
-    // insert deletes before deleting data from !METADATA... this makes the code fault tolerant
+    // insert deletes before deleting data from metadata... this makes the code fault tolerant
     if (insertDeletes) {
 
       ms.fetchColumnFamily(DataFileColumnFamily.NAME);
@@ -528,7 +528,7 @@ public class MetadataTableUtil {
         LogEntry e = new LogEntry();
         try {
           e.fromBytes(zoo.getData(root + "/" + child, null));
-          // upgrade from !0;!0<< -> !!R<<
+          // upgrade from !0;!0<< -> +r<<
           e.extent = RootTable.EXTENT;
           result.add(e);
         } catch (KeeperException.NoNodeException ex) {

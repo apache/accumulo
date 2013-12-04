@@ -209,7 +209,7 @@ public class Merge {
   }
   
   protected Iterator<Size> getSizeIterator(Connector conn, String tablename, Text start, Text end) throws MergeException {
-    // open up the !METADATA table, walk through the tablets.
+    // open up metatadata, walk through the tablets.
     String tableId;
     Scanner scanner;
     try {

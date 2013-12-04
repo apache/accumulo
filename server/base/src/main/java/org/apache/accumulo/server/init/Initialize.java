@@ -417,12 +417,12 @@ public class Initialize {
     zoo.putPersistentData(zkInstanceRoot + Constants.ZNAMESPACES, new byte[0], NodeExistsPolicy.FAIL);
     
     createInitialNamespace(zoo, zkInstanceRoot, Constants.DEFAULT_NAMESPACE_ID, Constants.DEFAULT_NAMESPACE, true);
-    createInitialNamespace(zoo, zkInstanceRoot, Constants.SYSTEM_NAMESPACE_ID, Constants.SYSTEM_NAMESPACE, false);
+    createInitialNamespace(zoo, zkInstanceRoot, Constants.ACCUMULO_NAMESPACE_ID, Constants.ACCUMULO_NAMESPACE, false);
     
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTABLES + "/" + MetadataTable.ID + Constants.ZTABLE_NAMESPACE,
-        Constants.SYSTEM_NAMESPACE_ID.getBytes(Constants.UTF8), NodeExistsPolicy.OVERWRITE);
+        Constants.ACCUMULO_NAMESPACE_ID.getBytes(Constants.UTF8), NodeExistsPolicy.OVERWRITE);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTABLES + "/" + RootTable.ID + Constants.ZTABLE_NAMESPACE,
-        Constants.SYSTEM_NAMESPACE_ID.getBytes(Constants.UTF8), NodeExistsPolicy.OVERWRITE);
+        Constants.ACCUMULO_NAMESPACE_ID.getBytes(Constants.UTF8), NodeExistsPolicy.OVERWRITE);
   }
   
   private static void createInitialNamespace(IZooReaderWriter zoo, String root, String id, String namespace, boolean defaultOpts) throws KeeperException,

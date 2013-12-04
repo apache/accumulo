@@ -13,4 +13,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-Create and delete a large table (do this with !METADATA split alot) see #2381
+Create and delete a large table (do this with accumulo.metadata split alot) see #2381

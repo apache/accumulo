@@ -49,6 +49,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.ServerConfigurationUtil;
+import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -412,14 +413,14 @@ public class Shell extends ShellOptions {
       try {
         instance = getZooInstance(instanceName, hosts, options.getClientConfiguration());
       } catch (Exception e) {
-        throw new IllegalArgumentException("Unable to load client config from " +  options.getClientConfigFile(), e);
+        throw new IllegalArgumentException("Unable to load client config from " + options.getClientConfigFile(), e);
       }
     }
   }
 
   /*
-   * Takes instanceName and keepers as separate arguments, rather than just packaged into the clientConfig,
-   * so that we can fail over to accumulo-site.xml or HDFS config if they're unspecified.
+   * Takes instanceName and keepers as separate arguments, rather than just packaged into the clientConfig, so that we can fail over to accumulo-site.xml or
+   * HDFS config if they're unspecified.
    */
   private static Instance getZooInstance(String instanceName, String keepers, ClientConfiguration clientConfig) {
     UUID instanceId = null;
@@ -427,8 +428,7 @@ public class Shell extends ShellOptions {
       instanceName = clientConfig.get(ClientProperty.INSTANCE_NAME);
     }
     if (instanceName == null || keepers == null) {
-      AccumuloConfiguration conf = SiteConfiguration.getInstance(ServerConfigurationUtil.convertClientConfig(DefaultConfiguration.getInstance(),
-          clientConfig));
+      AccumuloConfiguration conf = SiteConfiguration.getInstance(ServerConfigurationUtil.convertClientConfig(DefaultConfiguration.getInstance(), clientConfig));
       if (instanceName == null) {
         Path instanceDir = new Path(conf.get(Property.INSTANCE_DFS_DIR), "instance_id");
         instanceId = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(instanceDir));
@@ -492,9 +492,6 @@ public class Shell extends ShellOptions {
     } catch (IOException e) {
       log.warn("Unable to load history file at " + historyPath);
     }
-
-    // This would be a nice feature but !METADATA screws it up
-    reader.setExpandEvents(false);
 
     // Turn Ctrl+C into Exception instead of JVM exit
     reader.setHandleUserInterrupt(true);
@@ -749,8 +746,11 @@ public class Shell extends ShellOptions {
       modifiedTablenames.add(a.replaceAll("([\\s'\"])", "\\\\$1"));
     for (String a : userlist)
       modifiedUserlist.add(a.replaceAll("([\\s'\"])", "\\\\$1"));
-    for (String a : namespaces)
-      modifiedNamespaces.add(a.replaceAll("([\\s'\"])", "\\\\$1"));
+    for (String a : namespaces) {
+      String b = a.replaceAll("([\\s'\"])", "\\\\$1");
+      if (!b.isEmpty())
+        modifiedNamespaces.add(b);
+    }
 
     options.put(Command.CompletionSet.USERNAMES, modifiedUserlist);
     options.put(Command.CompletionSet.TABLENAMES, modifiedTablenames);
@@ -1070,7 +1070,7 @@ public class Shell extends ShellOptions {
   }
 
   public void setTableName(String tableName) {
-    this.tableName = tableName;
+    this.tableName = (tableName == null || tableName.isEmpty()) ? "" : Tables.qualified(tableName);
   }
 
   public String getTableName() {

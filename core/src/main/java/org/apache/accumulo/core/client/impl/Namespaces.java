@@ -95,7 +95,7 @@ public class Namespaces {
     List<String> ids = getTableIds(instance, namespaceId);
     List<String> names = new LinkedList<String>();
     String namespace = getNamespaceName(instance, namespaceId) + ".";
-    if (namespaceId.equals(Constants.DEFAULT_NAMESPACE_ID) || namespaceId.equals(Constants.SYSTEM_NAMESPACE_ID)) {
+    if (namespaceId.equals(Constants.DEFAULT_NAMESPACE_ID) || namespaceId.equals(Constants.ACCUMULO_NAMESPACE_ID)) {
       // default and system namespaces aren't displayed for backwards compatibility
       namespace = "";
     }

@@ -220,15 +220,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     Map<String,String> opts = new HashMap<String,String>();
 
-    String namespace = Tables.extractNamespace(tableName);
-    if (!namespaceExists(namespace)) {
-      String info = "Namespace not found while trying to create table";
-      throw new IllegalArgumentException(new NamespaceNotFoundException(null, namespace, info));
-    } else if (namespace.equals(Constants.SYSTEM_NAMESPACE)) {
-      String info = "Can't create tables in the system namespace";
-      throw new IllegalArgumentException(info);
-    }
-
     try {
       doTableOperation(TableOperation.CREATE, args, opts);
     } catch (TableNotFoundException e1) {
@@ -685,7 +676,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     ArgumentChecker.notNull(srcTableName, newTableName);
 
-    String namespace = Tables.extractNamespace(newTableName);
+    String namespace = Tables.qualify(newTableName).getFirst();
     if (!namespaceExists(namespace)) {
       String info = "Namespace not found while cloning table";
       throw new IllegalArgumentException(new NamespaceNotFoundException(null, namespace, info));
@@ -772,12 +763,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void rename(String oldTableName, String newTableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException,
       TableExistsException {
-
-    String namespace = Tables.extractNamespace(newTableName);
-    if (!namespaceExists(namespace)) {
-      String info = "Namespace not found while renaming table";
-      throw new IllegalArgumentException(new NamespaceNotFoundException(null, namespace, info));
-    }
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldTableName.getBytes(Constants.UTF8)), ByteBuffer.wrap(newTableName.getBytes(Constants.UTF8)));
     Map<String,String> opts = new HashMap<String,String>();
@@ -1521,7 +1506,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       Logger.getLogger(this.getClass()).warn("Failed to check if imported table references external java classes : " + ioe.getMessage());
     }
 
-    String namespace = Tables.extractNamespace(tableName);
+    String namespace = Tables.qualify(tableName).getFirst();
     if (!namespaceExists(namespace)) {
       String info = "Namespace not found while importing to table";
       throw new RuntimeException(new NamespaceNotFoundException(null, namespace, info));

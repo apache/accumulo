@@ -48,7 +48,7 @@ import org.apache.hadoop.io.Text;
 import com.google.common.net.HostAndPort;
 
 /**
- * This little program can be used to write a lot of entries to the !METADATA table and measure the performance of varying numbers of threads doing !METADATA
+ * This little program can be used to write a lot of metadata entries and measure the performance of varying numbers of threads doing metadata
  * lookups using the batch scanner.
  * 
  * 

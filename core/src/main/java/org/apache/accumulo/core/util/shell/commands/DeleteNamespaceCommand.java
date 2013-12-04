@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.util.shell.Shell;
@@ -75,11 +74,6 @@ public class DeleteNamespaceCommand extends Command {
           shellState.getConnector().tableOperations().delete(table);
 
     shellState.getConnector().namespaceOperations().delete(namespace);
-    if (namespace.equals(Constants.SYSTEM_NAMESPACE)) {
-      shellState.getReader().println("Namespace: [" + namespace + "], can't delete system or default namespace.");
-    } else {
-      shellState.getReader().println("Namespace: [" + namespace + "] has been deleted.");
-    }
     if (resetContext) {
       shellState.setTableName("");
     }

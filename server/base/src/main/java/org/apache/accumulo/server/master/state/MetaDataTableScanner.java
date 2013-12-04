@@ -125,7 +125,7 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
     try {
       return fetch();
     } catch (RuntimeException ex) {
-      // something is wrong with the records in the !METADATA table, just skip over it
+      // something is wrong with the metadata records, just skip over it
       log.error(ex, ex);
       mdScanner.close();
       return null;

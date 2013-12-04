@@ -112,9 +112,9 @@ public class Constants {
   public static final String EXPORT_INFO_FILE = "accumulo_export_info.txt";
 
   // Variables that will be substituted with environment vars in PropertyType.PATH values
-  public static final String[] PATH_PROPERTY_ENV_VARS = new String[]{"$ACCUMULO_HOME", "$ACCUMULO_CONF_DIR"};
-  public static final String DEFAULT_NAMESPACE = "_default_";
-  public static final String SYSTEM_NAMESPACE = "_system_";
-  public static final String DEFAULT_NAMESPACE_ID = "!DEF";
-  public static final String SYSTEM_NAMESPACE_ID = "!SYS";
+  public static final String[] PATH_PROPERTY_ENV_VARS = new String[] {"$ACCUMULO_HOME", "$ACCUMULO_CONF_DIR"};
+  public static final String DEFAULT_NAMESPACE = "";
+  public static final String ACCUMULO_NAMESPACE = "accumulo";
+  public static final String DEFAULT_NAMESPACE_ID = "+default";
+  public static final String ACCUMULO_NAMESPACE_ID = "+accumulo";
 }

@@ -31,8 +31,8 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.NamespacePermission;
+import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
@@ -43,53 +43,53 @@ public class MockAccumulo {
   final Map<String,String> systemProperties = new HashMap<String,String>();
   Map<String,MockUser> users = new HashMap<String,MockUser>();
   final FileSystem fs;
-  
+
   MockAccumulo(FileSystem fs) {
     this.fs = fs;
   }
-  
+
   {
     MockUser root = new MockUser("root", new PasswordToken(new byte[0]), Authorizations.EMPTY);
     root.permissions.add(SystemPermission.SYSTEM);
     users.put(root.name, root);
     namespaces.put(Constants.DEFAULT_NAMESPACE, new MockNamespace());
-    namespaces.put(Constants.SYSTEM_NAMESPACE, new MockNamespace());
+    namespaces.put(Constants.ACCUMULO_NAMESPACE, new MockNamespace());
     createTable("root", RootTable.NAME, true, TimeType.LOGICAL);
     createTable("root", MetadataTable.NAME, true, TimeType.LOGICAL);
   }
-  
+
   public FileSystem getFileSystem() {
     return fs;
   }
-  
+
   void setProperty(String key, String value) {
     systemProperties.put(key, value);
   }
-  
+
   String removeProperty(String key) {
     return systemProperties.remove(key);
   }
-  
+
   void createTable(String user, String table) {
     createTable(user, table, true, TimeType.MILLIS);
   }
-  
+
   public void addMutation(String table, Mutation m) {
     MockTable t = tables.get(table);
     t.addMutation(m);
   }
-  
+
   public BatchScanner createBatchScanner(String tableName, Authorizations authorizations) {
     return new MockBatchScanner(tables.get(tableName), authorizations);
   }
-  
+
   public void createTable(String username, String tableName, boolean useVersions, TimeType timeType) {
-    String namespace = Tables.extractNamespace(tableName);
-    
+    String namespace = Tables.qualify(tableName).getFirst();
+
     if (!namespaceExists(namespace)) {
       return;
     }
-    
+
     MockNamespace n = namespaces.get(namespace);
     MockTable t = new MockTable(n, useVersions, timeType);
     t.userPermissions.put(username, EnumSet.allOf(TablePermission.class));
@@ -97,7 +97,7 @@ public class MockAccumulo {
     t.setNamespace(n);
     tables.put(tableName, t);
   }
-  
+
   public void createNamespace(String username, String namespace) {
     if (!namespaceExists(namespace)) {
       MockNamespace n = new MockNamespace();
@@ -105,19 +105,19 @@ public class MockAccumulo {
       namespaces.put(namespace, n);
     }
   }
-  
+
   public void addSplits(String tableName, SortedSet<Text> partitionKeys) {
     tables.get(tableName).addSplits(partitionKeys);
   }
-  
+
   public Collection<Text> getSplits(String tableName) {
     return tables.get(tableName).getSplits();
   }
-  
+
   public void merge(String tableName, Text start, Text end) {
     tables.get(tableName).merge(start, end);
   }
-  
+
   private boolean namespaceExists(String namespace) {
     return namespaces.containsKey(namespace);
   }

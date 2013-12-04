@@ -220,7 +220,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     ArgumentChecker.notNull(namespace);
     String namespaceId = Namespaces.getNamespaceId(instance, namespace);
 
-    if (namespaceId.equals(Constants.SYSTEM_NAMESPACE_ID) || namespaceId.equals(Constants.DEFAULT_NAMESPACE_ID)) {
+    if (namespaceId.equals(Constants.ACCUMULO_NAMESPACE_ID) || namespaceId.equals(Constants.DEFAULT_NAMESPACE_ID)) {
       log.debug(credentials.getPrincipal() + " attempted to delete the " + namespaceId + " namespace");
       throw new AccumuloSecurityException(credentials.getPrincipal(), SecurityErrorCode.UNSUPPORTED_OPERATION);
     }

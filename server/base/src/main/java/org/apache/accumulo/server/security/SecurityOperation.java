@@ -338,7 +338,7 @@ public class SecurityOperation {
    */
   protected boolean hasNamespacePermissionForTableName(TCredentials credentials, String tableName, NamespacePermission permission, boolean useCached)
       throws ThriftSecurityException {
-    String namespace = Tables.extractNamespace(tableName);
+    String namespace = Tables.qualify(tableName).getFirst();
     try {
       String namespaceId = Namespaces.getNamespaceId(HdfsZooInstance.getInstance(), namespace);
       return hasNamespacePermission(credentials, namespaceId, permission, useCached);
@@ -356,7 +356,7 @@ public class SecurityOperation {
   protected boolean _hasNamespacePermission(String user, String namespace, NamespacePermission permission, boolean useCached) throws ThriftSecurityException {
     targetUserExists(user);
 
-    if (namespace.equals(Constants.SYSTEM_NAMESPACE_ID) && permission.equals(NamespacePermission.READ))
+    if (namespace.equals(Constants.ACCUMULO_NAMESPACE_ID) && permission.equals(NamespacePermission.READ))
       return true;
 
     try {
