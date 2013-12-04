@@ -1506,13 +1506,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       Logger.getLogger(this.getClass()).warn("Failed to check if imported table references external java classes : " + ioe.getMessage());
     }
 
-    String namespace = Tables.qualify(tableName).getFirst();
-    if (!namespaceExists(namespace)) {
-      String info = "Namespace not found while importing to table";
-      throw new RuntimeException(new NamespaceNotFoundException(null, namespace, info));
-    }
-
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()), ByteBuffer.wrap(importDir.getBytes()));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(Constants.UTF8)), ByteBuffer.wrap(importDir.getBytes()));
 
     Map<String,String> opts = Collections.emptyMap();
 

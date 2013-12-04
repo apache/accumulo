@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.client.impl;
 
 import java.security.SecurityPermission;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
@@ -54,28 +55,34 @@ public class Tables {
 
     TreeMap<String,String> tableMap = new TreeMap<String,String>();
 
+    Map<String,String> namespaceIdToNameMap = new HashMap<String,String>();
+
     for (String tableId : tableIds) {
-      byte[] tblPath = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME);
+      byte[] tableName = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME);
       byte[] nId = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE);
-      String name = "";
+      String namespaceName = Constants.DEFAULT_NAMESPACE;
       // create fully qualified table name
       if (nId != null) {
         String namespaceId = new String(nId, Constants.UTF8);
         if (!namespaceId.equals(Constants.DEFAULT_NAMESPACE_ID)) {
           try {
-            name += Namespaces.getNamespaceName(instance, namespaceId) + ".";
+            namespaceName = namespaceIdToNameMap.get(namespaceId);
+            if (namespaceName == null) {
+              namespaceName = Namespaces.getNamespaceName(instance, namespaceId);
+              namespaceIdToNameMap.put(namespaceId, namespaceName);
+            }
           } catch (NamespaceNotFoundException e) {
             log.error("Table (" + tableId + ") contains reference to namespace (" + namespaceId + ") that doesn't exist");
             continue;
           }
         }
       }
-      if (tblPath != null) {
-        name += new String(tblPath, Constants.UTF8);
+      if (tableName != null) {
+        String tableNameStr = qualified(new String(tableName, Constants.UTF8), namespaceName);
         if (nameAsKey)
-          tableMap.put(name, tableId);
+          tableMap.put(tableNameStr, tableId);
         else
-          tableMap.put(tableId, name);
+          tableMap.put(tableId, tableNameStr);
       }
     }
 

@@ -35,7 +35,6 @@ import org.apache.commons.cli.Options;
 
 public class CreateNamespaceCommand extends Command {
   private Option createTableOptCopyConfig, createNamespaceOptCopyConfig;
-  private Option base64Opt;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
@@ -93,8 +92,6 @@ public class CreateNamespaceCommand extends Command {
     createTableOptCopyConfig = new Option("ctc", "copy-table-config", true, "table to copy configuration from");
     createTableOptCopyConfig.setArgName("tableName");
 
-    base64Opt = new Option("b64", "base64encoded", false, "decode encoded split points");
-    o.addOption(base64Opt);
     OptionGroup ogp = new OptionGroup();
     ogp.addOption(createTableOptCopyConfig);
     ogp.addOption(createNamespaceOptCopyConfig);

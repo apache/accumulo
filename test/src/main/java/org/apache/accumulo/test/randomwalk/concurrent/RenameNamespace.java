@@ -46,7 +46,7 @@ public class RenameNamespace extends Test {
     } catch (NamespaceExistsException e) {
       log.debug("Rename namespace " + srcName + " failed, " + newName + " exists");
     } catch (NamespaceNotFoundException e) {
-      log.debug("Rename namespace " + srcName + " failed, doesnt exist");
+      log.debug("Rename namespace " + srcName + " failed, doesn't exist");
     }
   }
 }

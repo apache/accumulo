@@ -98,9 +98,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
     try {
       doNamespaceOperation(TableOperation.CREATE, Arrays.asList(ByteBuffer.wrap(namespace.getBytes())), Collections.<String,String> emptyMap());
-    } catch (NamespaceNotFoundException e1) {
-      // should not happen
-      throw new RuntimeException(e1);
+    } catch (NamespaceNotFoundException e) {
+      throw new AssertionError("Shouldn't happen: " + e.getMessage());
     }
   }
 
@@ -235,8 +234,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     try {
       doNamespaceOperation(TableOperation.DELETE, args, opts);
     } catch (NamespaceExistsException e) {
-      // should not happen
-      throw new RuntimeException(e);
+      throw new AssertionError("Shouldn't happen: " + e.getMessage());
     }
 
   }

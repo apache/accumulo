@@ -32,6 +32,9 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 /**
  * Provides an API for administering namespaces
  * 
+ * All tables exist in a namespace. The default namespace has no name, and is used if an explicit namespace is not specified. Fully qualified table names look
+ * like "namespaceName.tableName". Tables in the default namespace are fully qualified simply as "tableName".
+ * 
  * @since 1.6.0
  */
 public interface NamespaceOperations {
@@ -63,7 +66,7 @@ public interface NamespaceOperations {
   public boolean exists(String namespace) throws AccumuloException, AccumuloSecurityException;
 
   /**
-   * Create an empty namespace with no initial configuration
+   * Create an empty namespace with no initial configuration. Valid names for a namespace contain letters, numbers, and the underscore character.
    * 
    * @param namespace
    *          the name of the namespace
