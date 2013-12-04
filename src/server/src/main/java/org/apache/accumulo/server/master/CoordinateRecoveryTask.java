@@ -407,11 +407,14 @@ public class CoordinateRecoveryTask implements Runnable {
   private void removeOldRecoverFiles() throws IOException {
     long now = System.currentTimeMillis();
     long maxAgeInMillis = ServerConfiguration.getSystemConfiguration().getTimeInMillis(Property.MASTER_RECOVERY_MAXAGE);
-    FileStatus[] children = fs.listStatus(new Path(ServerConstants.getRecoveryDir()));
-    if (children != null) {
-      for (FileStatus child : children) {
-        if (now - child.getModificationTime() > maxAgeInMillis && !delete(child.getPath())) {
-          log.warn("Unable to delete old recovery directory: " + child.getPath());
+    Path recoveryDir = new Path(ServerConstants.getRecoveryDir());
+    if (fs.exists(recoveryDir)) {
+      FileStatus[] children = fs.listStatus(recoveryDir);
+      if (children != null) {
+        for (FileStatus child : children) {
+          if (now - child.getModificationTime() > maxAgeInMillis && !delete(child.getPath())) {
+            log.warn("Unable to delete old recovery directory: " + child.getPath());
+          }
         }
       }
     }
