@@ -28,9 +28,6 @@
 #  HADOOP_HOME        Home dir for hadoop.
 #  MONITOR            Machine to run monitor daemon on. Used by start-here.sh script
 #
-# Values always set by script.
-#  MALLOC_ARENA_MAX   To work around a memory management bug (see ACCUMULO-847)
-#
 # Iff ACCUMULO_VERIFY_ONLY is not set, this script will
 #   * Check for standalone mode (lack of masters and slaves files)
 #     - Do appropriate set up
@@ -39,6 +36,7 @@
 #
 # Values always set by script.
 #  SSH                Default ssh parameters used to start daemons
+#  MALLOC_ARENA_MAX   To work around a memory management bug (see ACCUMULO-847)
 
 if [ -z "${ACCUMULO_HOME}" ] ; then
   this="$0"
