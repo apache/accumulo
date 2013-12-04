@@ -1,5 +1,4 @@
 #! /usr/bin/env bash
-
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -29,5 +28,10 @@ script=$( basename "${SOURCE}" )
 CONTINUOUS_CONF_DIR=${CONTINUOUS_CONF_DIR:-${bin}}
 . $CONTINUOUS_CONF_DIR/continuous-env.sh
 
-pkill -f agitator.pl
+# Try to use sudo when we wouldn't normally be able to kill the processes
+if [[ ("`whoami`" != "root") && ("`whoami`" != $ACCUMULO_USER) ]];  then
+  sudo -u $ACCUMULO_USER pkill -f agitator.pl
+else
+  pkill -f agitator.pl
+fi
 

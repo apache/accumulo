@@ -19,21 +19,22 @@
 use POSIX qw(strftime);
 use Cwd qw();
 
-if(scalar(@ARGV) != 4 && scalar(@ARGV) != 2){
-  print "Usage : agitator.pl <min sleep before kill in minutes>[:max sleep before kill in minutes] <min sleep before tup in minutes>[:max sleep before tup in minutes] [<min kill> <max kill>]\n";
+if(scalar(@ARGV) != 6 && scalar(@ARGV) != 4){
+  print "Usage : agitator.pl <min sleep before kill in minutes>[:max sleep before kill in minutes] <min sleep before tup in minutes>[:max sleep before tup in minutes] hdfs_user accumulo_user [<min kill> <max kill>]\n";
   exit(1);
 }
 
-$ACCUMULO_USER='accumulo';
-$HDFS_USER='hdfs';
+$myself=`whoami`;
+chomp($myself);
+$am_root=($myself eq 'root');
 
 $cwd=Cwd::cwd();
 $ACCUMULO_HOME=$cwd . '/../../..';
 $HADOOP_PREFIX=$ENV{"HADOOP_PREFIX"};
 
-print STDERR "Current directory: $cwd\n";
-print STDERR "ACCUMULO_HOME=$ACCUMULO_HOME\n";
-print STDERR "HADOOP_PREFIX=$HADOOP_PREFIX\n";
+print "Current directory: $cwd\n";
+print "ACCUMULO_HOME=$ACCUMULO_HOME\n";
+print "HADOOP_PREFIX=$HADOOP_PREFIX\n";
 
 @sleeprange1 = split(/:/, $ARGV[0]);
 $sleep1 = $sleeprange1[0];
@@ -67,9 +68,15 @@ if(defined $ENV{'ACCUMULO_CONF_DIR'}){
   $ACCUMULO_CONF_DIR = $ACCUMULO_HOME . '/conf';
 }
 
-if(scalar(@ARGV) == 4){
-  $minKill = $ARGV[2];
-  $maxKill = $ARGV[3];
+$HDFS_USER=$ARGV[2];
+$ACCUMULO_USER=$ARGV[3];
+
+$am_hdfs_user=($HDFS_USER eq $myself);
+$am_accumulo_user=($ACCUMULO_USER eq $myself);
+
+if(scalar(@ARGV) == 6){
+  $minKill = $ARGV[4];
+  $maxKill = $ARGV[5];
 }else{
   $minKill = 1;
   $maxKill = 1;
@@ -133,11 +140,29 @@ while(1){
 
     print STDERR "$t Killing $server $kill_tserver $kill_datanode\n";
     if ($kill_tserver) {
-      system("su -c '$ACCUMULO_HOME/bin/stop-server.sh $server \"accumulo-start.jar\" tserver KILL' - $ACCUMULO_USER");
+      if ($am_root) {
+        # We're root, switch to the Accumulo user and try to stop gracefully
+        system("su -c '$ACCUMULO_HOME/bin/stop-server.sh $server \"accumulo-start.jar\" tserver KILL' - $ACCUMULO_USER");
+      } elsif ($am_accumulo_user) {
+        # We're the accumulo user, just run the commandj
+        system("$ACCUMULO_HOME/bin/stop-server.sh $server 'accumulo-start.jar' tserver KILL");
+      } else {
+        # We're not the accumulo user, try to use sudo
+        system("sudo -u $ACCUMULO_USER $ACCUMULO_HOME/bin/stop-server.sh $server accumulo-start.jar tserver KILL");
+      }
     }
 
     if ($kill_datanode) {
-      system("ssh $server pkill -9 -f [p]roc_datanode");
+      if ($am_root) {
+        # We're root, switch to HDFS to ssh and kill the process
+        system("su -c 'ssh $server pkill -9 -f [p]roc_datanode' - $HDFS_USER");
+      } elsif ($am_hdfs_user) {
+        # We're the HDFS user, just kill the process
+        system("ssh $server \"pkill -9 -f '[p]roc_datanode'\"");
+      } else {
+        # We're not the hdfs user, try to use sudo
+        system("ssh $server 'sudo -u $HDFS_USER pkill -9 -f \'[p]roc_datanode\''");
+      }
     }
   }
 
@@ -145,11 +170,29 @@ while(1){
   sleep($nextsleep2 * 60);
   $t = strftime "%Y%m%d %H:%M:%S", localtime;
   print STDERR "$t Running tup\n";
-  system("su -c $ACCUMULO_HOME/bin/tup.sh - $ACCUMULO_USER");
+  if ($am_root) {
+    # Running as root, su to the accumulo user
+    system("su -c $ACCUMULO_HOME/bin/tup.sh - $ACCUMULO_USER");
+  } elsif ($am_accumulo_user) {
+    # restart the as them as the accumulo user
+    system("$ACCUMULO_HOME/bin/tup.sh");
+  } else {
+    # Not the accumulo user, try to sudo to the accumulo user
+    system("sudo -u $ACCUMULO_USER $ACCUMULO_HOME/bin/tup.sh");
+  }
 
   if ($kill_datanode) {
     print STDERR "$t Starting datanode on $server\n";
-    system("ssh $server 'su -c \"$HADOOP_PREFIX/sbin/hadoop-daemon.sh start datanode\" - $HDFS_USER'");
+    if ($am_root) {
+      # We're root, switch to the HDFS user
+      system("ssh $server 'su -c \"$HADOOP_PREFIX/sbin/hadoop-daemon.sh start datanode\" - $HDFS_USER 2>/dev/null 1>/dev/null'");
+    } elsif ($am_hdfs_user) {
+      # We can just start as we're the HDFS user
+      system("ssh $server '$HADOOP_PREFIX/sbin/hadoop-daemon.sh start datanode'");
+    } else {
+      # Not the HDFS user, have to try sudo
+      system("ssh $server 'sudo -u $HDFS_USER $HADOOP_PREFIX/sbin/hadoop-daemon.sh start datanode'");
+    }
   }
 
   $nextsleep1 = int(rand($sleep1max - $sleep1)) + $sleep1;

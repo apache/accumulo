@@ -35,7 +35,13 @@ service that continually collect statistics about accumulo and HDFS.
  stop-stats.sh 
 
 Optionally, start the agitator to periodically kill the tabletserver and/or datanode
-process(es) on random nodes. This must be run as root.
+process(es) on random nodes. You can run this script as root and it will properly start
+processes as the user you configured in continuous-env.sh (HDFS_USER for the Datanode and
+ACCUMULO_USER for Accumulo processes). If you run it as yourself and the HDFS_USER and 
+ACCUMULO_USER values are the same as your user, the agitator will not change users. In
+the case where you run the agitator as a non-privileged user which isn't the same as HDFS_USER
+nor ACCUMULO_USER, the agitator will attempt to `sudo` to these users which relies on correct 
+configuration of sudo.
 
  start-agitator.sh
  stop-agitator.sh
