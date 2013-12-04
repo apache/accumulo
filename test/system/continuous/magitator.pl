@@ -60,7 +60,7 @@ while(1){
 		$cmd = "pssh -h $ACCUMULO_CONF_DIR/masters \"pkill -f '[ ]org.apache.accumulo.start.*master'\" < /dev/null";
 		print "$t $cmd\n";
 		system($cmd);
-		$cmd = "pssh -h $ACCUMULO_CONF_DIR/masters \"pkill -f '[ ]org.apache.accumulo.start.*gc'\" < /dev/null";
+		$cmd = "pssh -h $ACCUMULO_CONF_DIR/gc \"pkill -f '[ ]org.apache.accumulo.start.*gc'\" < /dev/null";
 		print "$t $cmd\n";
 		system($cmd);
 	}
