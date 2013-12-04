@@ -77,7 +77,7 @@ import com.beust.jcommander.Parameter;
 import com.google.common.net.HostAndPort;
 
 /**
- * The purpose of this class is to server as fake tserver that is a data sink like /dev/null. NullTserver modifies the !METADATA location entries for a table to
+ * The purpose of this class is to server as fake tserver that is a data sink like /dev/null. NullTserver modifies the metadata location entries for a table to
  * point to it. This allows thrift performance to be measured by running any client code that writes to a table.
  * 
  */
@@ -247,7 +247,7 @@ public class NullTserver {
     
     HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);
     
-    // modify !METADATA
+    // modify metadata
     ZooKeeperInstance zki = new ZooKeeperInstance(new ClientConfiguration().withInstance(opts.iname).withZkHosts(opts.keepers));
     String tableId = Tables.getTableId(zki, opts.tableName);
     

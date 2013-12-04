@@ -42,7 +42,7 @@ public class Merge extends Test {
     tableNames = new ArrayList<String>(tableNames);
     tableNames.add(MetadataTable.NAME);
     String tableName = tableNames.get(rand.nextInt(tableNames.size()));
-        
+    
     List<Text> range = ConcurrentFixture.generateRange(rand);
     
     try {

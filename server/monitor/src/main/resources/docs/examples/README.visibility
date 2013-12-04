@@ -28,7 +28,7 @@ Notice:    Licensed to the Apache Software Foundation (ASF) under one
     username@instance> userpermissions
     System permissions: 
     
-    Table permissions (!METADATA): Table.READ
+    Table permissions (accumulo.metadata): Table.READ
     username@instance> 
 
 A user does not by default have permission to create a table.
@@ -44,7 +44,7 @@ A user does not by default have permission to create a table.
     username@instance> userpermissions
     System permissions: System.CREATE_TABLE
     
-    Table permissions (!METADATA): Table.READ
+    Table permissions (accumulo.metadata): Table.READ
     Table permissions (vistest): Table.READ, Table.WRITE, Table.BULK_IMPORT, Table.ALTER_TABLE, Table.GRANT, Table.DROP_TABLE
     username@instance vistest> 
 

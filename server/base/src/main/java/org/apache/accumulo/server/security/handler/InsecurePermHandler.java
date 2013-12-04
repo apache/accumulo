@@ -17,8 +17,10 @@
 package org.apache.accumulo.server.security.handler;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.security.SystemPermission;
+import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 
@@ -99,5 +101,34 @@ public class InsecurePermHandler implements PermissionHandler {
   
   @Override
   public void initTable(String table) throws AccumuloSecurityException {}
+
+  @Override
+  public boolean hasNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException,
+      NamespaceNotFoundException {
+    return true;
+  }
+
+  @Override
+  public boolean hasCachedNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException,
+      NamespaceNotFoundException {
+    return true;
+  }
+
+  @Override
+  public void grantNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException,
+      NamespaceNotFoundException {
+    return;
+  }
+
+  @Override
+  public void revokeNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException,
+      NamespaceNotFoundException {
+    return;
+  }
+
+  @Override
+  public void cleanNamespacePermissions(String namespace) throws AccumuloSecurityException, NamespaceNotFoundException {
+    return;
+  }
   
 }

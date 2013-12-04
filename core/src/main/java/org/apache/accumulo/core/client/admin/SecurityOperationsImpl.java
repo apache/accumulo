@@ -34,6 +34,7 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.ArgumentChecker;
@@ -41,10 +42,10 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.trace.instrument.Tracer;
 
 public class SecurityOperationsImpl implements SecurityOperations {
-  
+
   private Instance instance;
   private Credentials credentials;
-  
+
   private void execute(ClientExec<ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
     try {
       ServerClient.executeRaw(instance, exec);
@@ -62,7 +63,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
       throw new AccumuloException(e);
     }
   }
-  
+
   private <T> T execute(ClientExecReturn<T,ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
     try {
       return ServerClient.executeRaw(instance, exec);
@@ -80,20 +81,20 @@ public class SecurityOperationsImpl implements SecurityOperations {
       throw new AccumuloException(e);
     }
   }
-  
+
   public SecurityOperationsImpl(Instance instance, Credentials credentials) {
     ArgumentChecker.notNull(instance, credentials);
     this.instance = instance;
     this.credentials = credentials;
   }
-  
+
   @Deprecated
   @Override
   public void createUser(String user, byte[] password, final Authorizations authorizations) throws AccumuloException, AccumuloSecurityException {
     createLocalUser(user, new PasswordToken(password));
     changeUserAuthorizations(user, authorizations);
   }
-  
+
   @Override
   public void createLocalUser(final String principal, final PasswordToken password) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(principal, password);
@@ -104,13 +105,13 @@ public class SecurityOperationsImpl implements SecurityOperations {
       }
     });
   }
-  
+
   @Deprecated
   @Override
   public void dropUser(final String user) throws AccumuloException, AccumuloSecurityException {
     dropLocalUser(user);
   }
-  
+
   @Override
   public void dropLocalUser(final String principal) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(principal);
@@ -121,13 +122,13 @@ public class SecurityOperationsImpl implements SecurityOperations {
       }
     });
   }
-  
+
   @Deprecated
   @Override
   public boolean authenticateUser(String user, byte[] password) throws AccumuloException, AccumuloSecurityException {
     return authenticateUser(user, new PasswordToken(password));
   }
-  
+
   @Override
   public boolean authenticateUser(final String principal, final AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(principal, token);
@@ -139,13 +140,13 @@ public class SecurityOperationsImpl implements SecurityOperations {
       }
     });
   }
-  
+
   @Override
   @Deprecated
   public void changeUserPassword(String user, byte[] password) throws AccumuloException, AccumuloSecurityException {
     changeLocalUserPassword(user, new PasswordToken(password));
   }
-  
+
   @Override
   public void changeLocalUserPassword(final String principal, final PasswordToken token) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(principal, token);
@@ -160,7 +161,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
       this.credentials = toChange;
     }
   }
-  
+
   @Override
   public void changeUserAuthorizations(final String principal, final Authorizations authorizations) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(principal, authorizations);
@@ -172,7 +173,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
       }
     });
   }
-  
+
   @Override
   public Authorizations getUserAuthorizations(final String principal) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(principal);
@@ -183,7 +184,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
       }
     });
   }
-  
+
   @Override
   public boolean hasSystemPermission(final String principal, final SystemPermission perm) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(principal, perm);
@@ -194,7 +195,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
       }
     });
   }
-  
+
   @Override
   public boolean hasTablePermission(final String principal, final String table, final TablePermission perm) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(principal, table, perm);
@@ -205,7 +206,19 @@ public class SecurityOperationsImpl implements SecurityOperations {
       }
     });
   }
-  
+
+  @Override
+  public boolean hasNamespacePermission(final String principal, final String namespace, final NamespacePermission permission) throws AccumuloException,
+      AccumuloSecurityException {
+    ArgumentChecker.notNull(principal, namespace, permission);
+    return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
+      @Override
+      public Boolean execute(ClientService.Client client) throws Exception {
+        return client.hasNamespacePermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, namespace, permission.getId());
+      }
+    });
+  }
+
   @Override
   public void grantSystemPermission(final String principal, final SystemPermission permission) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(principal, permission);
@@ -216,7 +229,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
       }
     });
   }
-  
+
   @Override
   public void grantTablePermission(final String principal, final String table, final TablePermission permission) throws AccumuloException,
       AccumuloSecurityException {
@@ -228,7 +241,19 @@ public class SecurityOperationsImpl implements SecurityOperations {
       }
     });
   }
-  
+
+  @Override
+  public void grantNamespacePermission(final String principal, final String namespace, final NamespacePermission permission) throws AccumuloException,
+      AccumuloSecurityException {
+    ArgumentChecker.notNull(principal, namespace, permission);
+    execute(new ClientExec<ClientService.Client>() {
+      @Override
+      public void execute(ClientService.Client client) throws Exception {
+        client.grantNamespacePermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, namespace, permission.getId());
+      }
+    });
+  }
+
   @Override
   public void revokeSystemPermission(final String principal, final SystemPermission permission) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(principal, permission);
@@ -239,7 +264,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
       }
     });
   }
-  
+
   @Override
   public void revokeTablePermission(final String principal, final String table, final TablePermission permission) throws AccumuloException,
       AccumuloSecurityException {
@@ -251,13 +276,25 @@ public class SecurityOperationsImpl implements SecurityOperations {
       }
     });
   }
-  
+
+  @Override
+  public void revokeNamespacePermission(final String principal, final String namespace, final NamespacePermission permission) throws AccumuloException,
+      AccumuloSecurityException {
+    ArgumentChecker.notNull(principal, namespace, permission);
+    execute(new ClientExec<ClientService.Client>() {
+      @Override
+      public void execute(ClientService.Client client) throws Exception {
+        client.revokeNamespacePermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, namespace, permission.getId());
+      }
+    });
+  }
+
   @Deprecated
   @Override
   public Set<String> listUsers() throws AccumuloException, AccumuloSecurityException {
     return listLocalUsers();
   }
-  
+
   @Override
   public Set<String> listLocalUsers() throws AccumuloException, AccumuloSecurityException {
     return execute(new ClientExecReturn<Set<String>,ClientService.Client>() {
@@ -267,5 +304,5 @@ public class SecurityOperationsImpl implements SecurityOperations {
       }
     });
   }
-  
+
 }

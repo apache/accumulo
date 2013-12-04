@@ -79,10 +79,11 @@ preserved.
     table    |    @override ........... | 100M
     ---------+--------------------------+-------------------------------------------
     root@test15> tables -l
-    !METADATA       =>         !0
-    trace           =>          1
-    table1_copy     =>          5
-    root@test15 table1_copy> scan -t !METADATA -b 5 -c srv:time
+    accumulo.metadata    =>        !0
+    accumulo.root        =>        +r
+    table1_copy          =>         5
+    trace                =>         1
+    root@test15 table1_copy> scan -t accumulo.metadata -b 5 -c srv:time
     5;b srv:time []    M1343224500467
     5;r srv:time []    M1343224500467
     5< srv:time []    M1343224500467

@@ -92,7 +92,7 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
 
   @Test(timeout = 4 * 60 * 1000)
   public void gcLotsOfCandidatesIT() throws Exception {
-    log.info("Filling !METADATA table with bogus delete flags");
+    log.info("Filling metadata table with bogus delete flags");
     Connector c = getConnector();
     addEntries(c, new BatchWriterOpts());
     cluster.getConfig().setDefaultMemory(10, MemoryUnit.MEGABYTE);
@@ -105,7 +105,7 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
 
   @Test(timeout = 20 * 60 * 1000)
   public void dontGCRootLog() throws Exception {
-    // dirty !METADATA
+    // dirty metadata
     Connector c = getConnector();
     String table = getTableNames(1)[0];
     c.tableOperations().create(table);

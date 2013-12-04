@@ -23,7 +23,8 @@ import org.apache.commons.cli.Options;
 
 public class DeleteTableCommand extends TableOperation {
   private Option forceOpt;
-  
+
+  @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     if (cl.hasOption(forceOpt.getOpt())) {
       super.force();
@@ -32,26 +33,27 @@ public class DeleteTableCommand extends TableOperation {
     }
     return super.execute(fullCommand, cl, shellState);
   }
-  
+
   @Override
   public String description() {
     return "deletes a table";
   }
-  
+
   @Override
   protected void doTableOp(final Shell shellState, final String tableName) throws Exception {
     shellState.getConnector().tableOperations().delete(tableName);
     shellState.getReader().println("Table: [" + tableName + "] has been deleted.");
+
     if (shellState.getTableName().equals(tableName)) {
       shellState.setTableName("");
     }
   }
-  
+
   @Override
   public Options getOptions() {
     forceOpt = new Option("f", "force", false, "force deletion without prompting");
     final Options opts = super.getOptions();
-    
+
     opts.addOption(forceOpt);
     return opts;
   }

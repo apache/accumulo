@@ -31,6 +31,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
+import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.log4j.Logger;
 
@@ -146,6 +147,26 @@ class ZKSecurityTool {
     Set<TablePermission> toReturn = new HashSet<TablePermission>();
     for (byte b : tablepermissions)
       toReturn.add(TablePermission.getPermissionById(b));
+    return toReturn;
+  }
+  
+  public static byte[] convertNamespacePermissions(Set<NamespacePermission> namespacepermissions) {
+    ByteArrayOutputStream bytes = new ByteArrayOutputStream(namespacepermissions.size());
+    DataOutputStream out = new DataOutputStream(bytes);
+    try {
+      for (NamespacePermission tnp : namespacepermissions)
+        out.writeByte(tnp.getId());
+    } catch (IOException e) {
+      log.error(e, e);
+      throw new RuntimeException(e); // this is impossible with ByteArrayOutputStream; crash hard if this happens
+    }
+    return bytes.toByteArray();
+  }
+  
+  public static Set<NamespacePermission> convertNamespacePermissions(byte[] namespacepermissions) {
+    Set<NamespacePermission> toReturn = new HashSet<NamespacePermission>();
+    for (byte b : namespacepermissions)
+      toReturn.add(NamespacePermission.getPermissionById(b));
     return toReturn;
   }
   

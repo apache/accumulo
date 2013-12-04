@@ -235,7 +235,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   @Override
   public boolean canCreateTable(TCredentials c, String tableName) throws ThriftSecurityException {
     try {
-      boolean result = super.canCreateTable(c);
+      boolean result = super.canCreateTable(c, tableName);
       audit(c, result, CAN_CREATE_TABLE_AUDIT_TEMPLATE, tableName);
       return result;
     } catch (ThriftSecurityException ex) {

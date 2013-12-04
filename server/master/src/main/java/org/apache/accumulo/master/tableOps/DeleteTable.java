@@ -22,6 +22,7 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -40,6 +41,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
 import org.apache.accumulo.server.master.state.TabletLocationState;
@@ -59,7 +61,7 @@ class CleanUp extends MasterRepo {
   
   private static final long serialVersionUID = 1L;
   
-  private String tableId;
+  private String tableId, namespaceId;
   
   private long creationTime;
   
@@ -77,8 +79,9 @@ class CleanUp extends MasterRepo {
     
   }
   
-  public CleanUp(String tableId) {
+  public CleanUp(String tableId, String namespaceId) {
     this.tableId = tableId;
+    this.namespaceId = namespaceId;
     creationTime = System.currentTimeMillis();
   }
   
@@ -199,6 +202,7 @@ class CleanUp extends MasterRepo {
     }
     
     Utils.unreserveTable(tableId, tid, true);
+    Utils.unreserveNamespace(namespaceId, tid, false);
     
     Logger.getLogger(CleanUp.class).debug("Deleted table " + tableId);
     
@@ -216,26 +220,31 @@ public class DeleteTable extends MasterRepo {
   
   private static final long serialVersionUID = 1L;
   
-  private String tableId;
+  private String tableId, namespaceId;
   
   public DeleteTable(String tableId) {
     this.tableId = tableId;
+    Instance inst = HdfsZooInstance.getInstance();
+    this.namespaceId = Tables.getNamespace(inst, tableId);
   }
   
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-    return Utils.reserveTable(tableId, tid, true, true, TableOperation.DELETE);
+    
+    return Utils.reserveNamespace(namespaceId, tid, false, false, TableOperation.DELETE)
+        + Utils.reserveTable(tableId, tid, true, true, TableOperation.DELETE);
   }
   
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
     TableManager.getInstance().transitionTableState(tableId, TableState.DELETING);
     environment.getEventCoordinator().event("deleting table %s ", tableId);
-    return new CleanUp(tableId);
+    return new CleanUp(tableId, namespaceId);
   }
   
   @Override
   public void undo(long tid, Master environment) throws Exception {
+    Utils.unreserveNamespace(namespaceId, tid, false);
     Utils.unreserveTable(tableId, tid, true);
   }
   

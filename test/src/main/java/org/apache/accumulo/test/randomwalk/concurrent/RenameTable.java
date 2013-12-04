@@ -44,9 +44,11 @@ public class RenameTable extends Test {
       conn.tableOperations().rename(srcTableName, newTableName);
       log.debug("Renamed table " + srcTableName + " " + newTableName);
     } catch (TableExistsException e) {
-      log.debug("Rename " + srcTableName + " failed, " + newTableName + " exist");
+      log.debug("Rename " + srcTableName + " failed, " + newTableName + " exists");
     } catch (TableNotFoundException e) {
       log.debug("Rename " + srcTableName + " failed, doesnt exist");
+    } catch (IllegalArgumentException e) {
+      log.debug("Rename: " + e.toString());
     }
   }
 }

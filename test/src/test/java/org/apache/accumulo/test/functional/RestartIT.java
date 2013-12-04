@@ -58,14 +58,13 @@ public class RestartIT extends ConfigurableMacIT {
   static {
     OPTS.rows = VOPTS.rows = 10 * 1000;
   }
-  
+
   @Test(timeout = 2 * 60 * 1000)
   public void restartMaster() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
-    Process ingest = cluster.exec(TestIngest.class, 
-        "-u", "root", "-p", ROOT_PASSWORD, 
-        "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "--rows", ""+OPTS.rows);
+    Process ingest = cluster.exec(TestIngest.class, "-u", "root", "-p", ROOT_PASSWORD, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(),
+        "--rows", "" + OPTS.rows);
     for (ProcessReference master : cluster.getProcesses().get(ServerType.MASTER)) {
       cluster.killProcess(ServerType.MASTER, master);
     }
@@ -74,7 +73,7 @@ public class RestartIT extends ConfigurableMacIT {
     VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
     ingest.destroy();
   }
-  
+
   @Test(timeout = 8 * 60 * 1000)
   public void restartMasterRecovery() throws Exception {
     Connector c = getConnector();
@@ -99,9 +98,8 @@ public class RestartIT extends ConfigurableMacIT {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
     c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(), "5K");
-    Process ingest = cluster.exec(TestIngest.class, 
-        "-u", "root", "-p", ROOT_PASSWORD, 
-        "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "--rows", ""+VOPTS.rows);
+    Process ingest = cluster.exec(TestIngest.class, "-u", "root", "-p", ROOT_PASSWORD, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(),
+        "--rows", "" + VOPTS.rows);
     for (ProcessReference master : cluster.getProcesses().get(ServerType.MASTER)) {
       cluster.killProcess(ServerType.MASTER, master);
     }
@@ -110,7 +108,7 @@ public class RestartIT extends ConfigurableMacIT {
     VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
     ingest.destroy();
   }
-  
+
   @Test(timeout = 10 * 60 * 1000)
   public void killedTabletServer() throws Exception {
     Connector c = getConnector();
@@ -150,7 +148,7 @@ public class RestartIT extends ConfigurableMacIT {
     assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
   }
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Test(timeout = 10 * 60 * 1000)
   public void shutdownDuringCompactingSplitting() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
