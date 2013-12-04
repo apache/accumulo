@@ -21,6 +21,16 @@ export HADOOP_PREFIX
 
 mkdir -p $CONTINUOUS_LOG_DIR
 
-nohup ./agitator.pl $KILL_SLEEP_TIME $TUP_SLEEP_TIME $MIN_KILL $MAX_KILL >$CONTINUOUS_LOG_DIR/`date +%Y%m%d%H%M%S`_`hostname`_agitator.out 2>$CONTINUOUS_LOG_DIR/`date +%Y%m%d%H%M%S`_`hostname`_agitator.err &
+# Agitator needs to handle HDFS and Accumulo - can't switch to a single user and expect it to work
+nohup ./agitator.pl $KILL_SLEEP_TIME $TUP_SLEEP_TIME $HDFS_USER $ACCUMULO_USER $MIN_KILL $MAX_KILL >$CONTINUOUS_LOG_DIR/`date +%Y%m%d%H%M%S`_`hostname`_agitator.out 2>$CONTINUOUS_LOG_DIR/`date +%Y%m%d%H%M%S`_`hostname`_agitator.err &
 
-su -c "nohup $CONTINUOUS_CONF_DIR/magitator.pl $MASTER_KILL_SLEEP_TIME $MASTER_RESTART_SLEEP_TIME >$CONTINUOUS_LOG_DIR/`date +%Y%m%d%H%M%S`_`hostname`_magitator.out 2>$CONTINUOUS_LOG_DIR/`date +%Y%m%d%H%M%S`_`hostname`_magitator.err &" -m - $ACCUMULO_USER
+if [[ "`whoami`" == "root" ]];  then
+  # Change to the correct user if started as root
+  su -c "nohup $CONTINUOUS_CONF_DIR/magitator.pl $MASTER_KILL_SLEEP_TIME $MASTER_RESTART_SLEEP_TIME >$CONTINUOUS_LOG_DIR/`date +%Y%m%d%H%M%S`_`hostname`_magitator.out 2>$CONTINUOUS_LOG_DIR/`date +%Y%m%d%H%M%S`_`hostname`_magitator.err &" -m - $ACCUMULO_USER
+elif [[ "`whoami`" == $ACCUMULO_USER ]]; then
+  # Just run the magitator if we're the accumulo user
+  nohup $CONTINUOUS_CONF_DIR/magitator.pl $MASTER_KILL_SLEEP_TIME $MASTER_RESTART_SLEEP_TIME >$CONTINUOUS_LOG_DIR/`date +%Y%m%d%H%M%S`_`hostname`_magitator.out 2>$CONTINUOUS_LOG_DIR/`date +%Y%m%d%H%M%S`_`hostname`_magitator.err &
+else
+  # Not root, and not the accumulo user, hope you can sudo to it
+  sudo -m -u $ACCUMULO_USER "nohup $CONTINUOUS_CONF_DIR/magitator.pl $MASTER_KILL_SLEEP_TIME $MASTER_RESTART_SLEEP_TIME >$CONTINUOUS_LOG_DIR/`date +%Y%m%d%H%M%S`_`hostname`_magitator.out 2>$CONTINUOUS_LOG_DIR/`date +%Y%m%d%H%M%S`_`hostname`_magitator.err &"
+fi
