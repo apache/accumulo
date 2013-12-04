@@ -17,32 +17,43 @@
 
 # Guarantees that Accumulo and its environment variables are set.
 #
+# Parameters checked by script
+#  ACCUMULO_VERIFY_ONLY set to skip actions that would alter the local filesystem
+#
 # Values set by script that can be user provided.  If not provided script attempts to infer.
 #  ACCUMULO_CONF_DIR  Location where accumulo-env.sh, accumulo-site.xml and friends will be read from
 #  ACCUMULO_HOME      Home directory for Accumulo
 #  ACCUMULO_LOG_DIR   Directory for Accumulo daemon logs
 #  ACCUMULO_VERSION   Accumulo version name
 #  HADOOP_PREFIX      Prefix to the home dir for hadoop.
-# 
-# Values always set by script.
-#  MALLOC_ARENA_MAX   To work around a memory management bug (see ACCUMULO-847)
 #  MONITOR            Machine to run monitor daemon on. Used by start-here.sh script
+#
+# Iff ACCUMULO_VERIFY_ONLY is not set, this script will
+#   * Check for standalone mode (lack of masters and slaves files)
+#     - Do appropriate set up
+#   * Ensure the existence of ACCUMULO_LOG_DIR on the current host
+#   * Ensure the presense of local role files (masters, slaves, gc, tracers)
+#
+# Values always set by script.
 #  SSH                Default ssh parameters used to start daemons
+#  MALLOC_ARENA_MAX   To work around a memory management bug (see ACCUMULO-847)
 #  HADOOP_HOME        Home dir for hadoop.  TODO fix this.
 
-# Start: Resolve Script Directory
-SOURCE="${BASH_SOURCE[0]}"
-while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
-   bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-   SOURCE="$(readlink "$SOURCE")"
-   [[ $SOURCE != /* ]] && SOURCE="$bin/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
-done
-bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-script=$( basename "$SOURCE" )
-# Stop: Resolve Script Directory
+if [ -z "${ACCUMULO_HOME}" ] ; then
+  # Start: Resolve Script Directory
+  SOURCE="${BASH_SOURCE[0]}"
+  while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+     bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+     SOURCE="$(readlink "$SOURCE")"
+     [[ $SOURCE != /* ]] && SOURCE="$bin/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+  done
+  bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+  script=$( basename "$SOURCE" )
+  # Stop: Resolve Script Directory
 
-ACCUMULO_HOME=$( cd -P ${bin}/.. && pwd )
-export ACCUMULO_HOME
+  ACCUMULO_HOME=$( cd -P ${bin}/.. && pwd )
+  export ACCUMULO_HOME
+fi
 
 ACCUMULO_CONF_DIR="${ACCUMULO_CONF_DIR:-$ACCUMULO_HOME/conf}"
 export ACCUMULO_CONF_DIR
@@ -71,7 +82,9 @@ if [ -z ${ACCUMULO_LOG_DIR} ]; then
    ACCUMULO_LOG_DIR=$ACCUMULO_HOME/logs
 fi
 
-mkdir -p $ACCUMULO_LOG_DIR 2>/dev/null
+if [ -z "${ACCUMULO_VERIFY_ONLY}" ] ; then
+  mkdir -p $ACCUMULO_LOG_DIR 2>/dev/null
+fi
 
 export ACCUMULO_LOG_DIR
 
@@ -94,12 +107,24 @@ fi
 export HADOOP_PREFIX
 
 MASTER1=$(egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/masters" | head -1)
-MONITOR=$MASTER1
-if [ -f "$ACCUMULO_CONF_DIR/monitor" ]; then
-   MONITOR=$(egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/monitor" | head -1)
+if [ -z "${MONITOR}" ] ; then
+  MONITOR=$MASTER1
+  if [ -f "$ACCUMULO_CONF_DIR/monitor" ]; then
+      MONITOR=$(egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/monitor" | head -1)
+  fi
+  if [ -z "${MONITOR}" ] ; then
+    echo "Could not infer a Monitor role. You need to either define the MONITOR env variable, define \"${ACCUMULO_CONF_DIR}/monitor\", or make sure \"${ACCUMULO_CONF_DIR}/masters\" is non-empty."
+    exit 1
+  fi
 fi
-if [ ! -f "$ACCUMULO_CONF_DIR/tracers" ]; then
-   echo "$MASTER1" > "$ACCUMULO_CONF_DIR/tracers"
+if [ ! -f "$ACCUMULO_CONF_DIR/tracers" -a -z "${ACCUMULO_VERIFY_ONLY}" ]; then
+  if [ -z "${MASTER1}" ] ; then
+    echo "Could not find a master node to use as a default for the tracer role. Either set up \"${ACCUMULO_CONF_DIR}/tracers\" or make sure \"${ACCUMULO_CONF_DIR}/masters\" is non-empty."
+    exit 1
+  else
+    echo "$MASTER1" > "$ACCUMULO_CONF_DIR/tracers"
+  fi
+
 fi
 
 SSH='ssh -qnf -o ConnectTimeout=2'
