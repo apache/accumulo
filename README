@@ -37,9 +37,13 @@ e.g. "-Dhadoop.profile=1.2 -Dhadoop.version=0.20.205.0" or
 If you are running on another Unix-like operating system (OSX, etc) then
 you may wish to build the native libraries.  They are not strictly necessary
 but having them available suppresses a runtime warning and enables Accumulo
-to run faster:
+to run faster. Unpack the accumulo-native tarball in the $ACCUMULO_HOME/lib 
+directory. Change to the accumulo-native directory in the current directory
+and issue `make`. Copy the resulting 'libaccumulo' library into the 
+$ACCUMULO_HOME/lib/native/map.
 
-  $ ( cd ./server/src/main/c++ ; make )
+  $ mkdir -p $ACCUMULO_HOME/lib/native/map
+  $ cp libaccumulo.* $ACCUMULO_HOME/lib/native/map
 
 If you want to build the debian release, use the command "mvn package -Pdeb" to 
 generate the .deb files in the target/ directory. Please follow the steps at 
