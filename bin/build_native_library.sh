@@ -51,7 +51,7 @@ if [[ $? -ne 0 ]]; then
 fi
 
 # Move to the first (only) directory in our unpacked tarball
-native_dir=`find "${TMP_DIR}" -type d -depth 1`
+native_dir=`find "${TMP_DIR}" -maxdepth 1 -mindepth 1 -type d`
 
 cd "${native_dir}"
 
