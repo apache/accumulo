@@ -60,8 +60,12 @@ public class Value implements WritableComparable<Object> {
     this(toBytes(bytes), false);
   }
   
+  /**
+   * @deprecated A copy of the bytes in the buffer is always made. Use {@link #Value(ByteBuffer)} instead.
+   */
+  @Deprecated
   public Value(ByteBuffer bytes, boolean copy) {
-    this(toBytes(bytes), copy);
+    this(toBytes(bytes), false);
   }
   
   public Value(byte[] bytes, boolean copy) {
