@@ -40,7 +40,7 @@ import org.apache.hadoop.io.Text;
 import com.beust.jcommander.Parameter;
 
 /**
- * Takes a list of files and archives them into Accumulo keyed on the SHA1 hashes of the files. See docs/examples/README.filedata for instructions.
+ * Takes a list of files and archives them into Accumulo keyed on hashes of the files. See docs/examples/README.filedata for instructions.
  */
 public class FileDataIngest {
   public static final Text CHUNK_CF = new Text("~chunk");
