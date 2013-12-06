@@ -30,12 +30,27 @@ import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.log4j.Logger;
 
+/**
+ * A configuration object.
+ */
 public abstract class AccumuloConfiguration implements Iterable<Entry<String,String>> {
 
+  /**
+   * A filter for properties, based on key.
+   */
   public static interface PropertyFilter {
+    /**
+     * Determines whether to accept a property based on its key.
+     *
+     * @param key property key
+     * @return true to accept property (pass filter)
+     */
     boolean accept(String key);
   }
 
+  /**
+   * A filter that accepts all properties.
+   */
   public static class AllFilter implements PropertyFilter {
     @Override
     public boolean accept(String key) {
@@ -43,10 +58,18 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     }
   }
 
+  /**
+   * A filter that accepts properties whose keys begin with a prefix.
+   */
   public static class PrefixFilter implements PropertyFilter {
 
     private String prefix;
 
+    /**
+     * Creates a new filter.
+     *
+     * @param prefix prefix of property keys to accept
+     */
     public PrefixFilter(String prefix) {
       this.prefix = prefix;
     }
@@ -59,10 +82,30 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
 
   private static final Logger log = Logger.getLogger(AccumuloConfiguration.class);
   
+  /**
+   * Gets a property value from this configuration.
+   *
+   * @param property property to get
+   * @return property value
+   */
   public abstract String get(Property property);
   
+  /**
+   * Returns property key/value pairs in this configuration. The pairs include
+   * those defined in this configuration which pass the given filter, and those
+   * supplied from the parent configuration which are not included from here.
+   *
+   * @param props properties object to populate
+   * @param filter filter for accepting properties from this configuration
+   */
   public abstract void getProperties(Map<String,String> props, PropertyFilter filter);
 
+  /**
+   * Returns an iterator over property key/value pairs in this configuration.
+   * Some implementations may elect to omit properties.
+   *
+   * @return iterator over properties
+   */
   @Override
   public Iterator<Entry<String,String>> iterator() {
     TreeMap<String,String> entries = new TreeMap<String,String>();
@@ -80,11 +123,11 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
   
   /**
-   * This method returns all properties in a map of string->string under the given prefix property.
-   * 
-   * @param property
-   *          the prefix property, and must be of type PropertyType.PREFIX
-   * @return a map of strings to strings of the resulting properties
+   * Gets all properties under the given prefix in this configuration.
+   *
+   * @param property prefix property, must be of type PropertyType.PREFIX
+   * @return a map of property keys to values
+   * @throws IllegalArgumentException if property is not a prefix
    */
   public Map<String,String> getAllPropertiesWithPrefix(Property property) {
     checkType(property, PropertyType.PREFIX);
@@ -94,6 +137,15 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     return propMap;
   }
   
+  /**
+   * Gets a property of type {@link PropertyType#MEMORY}, interpreting the
+   * value properly.
+   *
+   * @param property property to get
+   * @return property value
+   * @throws IllegalArgumentException if the property is of the wrong type
+   * @see #getMemoryInBytes(String)
+   */
   public long getMemoryInBytes(Property property) {
     checkType(property, PropertyType.MEMORY);
     
@@ -101,6 +153,14 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     return getMemoryInBytes(memString);
   }
   
+  /**
+   * Interprets a string specifying a memory size. A memory size is specified
+   * as a long integer followed by an optional B (bytes), K (KB), M (MB), or
+   * G (GB).
+   *
+   * @param str string value
+   * @return interpreted memory size
+   */
   static public long getMemoryInBytes(String str) {
     int multiplier = 0;
     switch (str.charAt(str.length() - 1)) {
@@ -117,12 +177,30 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     }
   }
   
+  /**
+   * Gets a property of type {@link PropertyType#TIMEDURATION}, interpreting the
+   * value properly.
+   *
+   * @param property property to get
+   * @return property value
+   * @throws IllegalArgumentException if the property is of the wrong type
+   * @see #getTimeInMillis(String)
+   */
   public long getTimeInMillis(Property property) {
     checkType(property, PropertyType.TIMEDURATION);
     
     return getTimeInMillis(get(property));
   }
   
+  /**
+   * Interprets a string specifying a time duration. A time duration is
+   * specified as a long integer followed by an optional d (days), h (hours),
+   * m (minutes), s (seconds), or ms (milliseconds). A value without a unit
+   * is interpreted as seconds.
+   *
+   * @param str string value
+   * @return interpreted time duration in milliseconds
+   */
   static public long getTimeInMillis(String str) {
     int multiplier = 1;
     switch (str.charAt(str.length() - 1)) {
@@ -143,23 +221,56 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     }
   }
   
+  /**
+   * Gets a property of type {@link PropertyType#BOOLEAN}, interpreting the
+   * value properly (using <code>Boolean.parseBoolean()</code>).
+   *
+   * @param property property to get
+   * @return property value
+   * @throws IllegalArgumentException if the property is of the wrong type
+   */
   public boolean getBoolean(Property property) {
     checkType(property, PropertyType.BOOLEAN);
     return Boolean.parseBoolean(get(property));
   }
   
+  /**
+   * Gets a property of type {@link PropertyType#FRACTION}, interpreting the
+   * value properly.
+   *
+   * @param property property to get
+   * @return property value
+   * @throws IllegalArgumentException if the property is of the wrong type
+   * @see #getFraction(String)
+   */
   public double getFraction(Property property) {
     checkType(property, PropertyType.FRACTION);
     
     return getFraction(get(property));
   }
   
+  /**
+   * Interprets a string specifying a fraction. A fraction is specified as a
+   * double. An optional % at the end signifies a percentage.
+   *
+   * @param str string value
+   * @return interpreted fraction as a decimal value
+   */
   public double getFraction(String str) {
     if (str.charAt(str.length() - 1) == '%')
       return Double.parseDouble(str.substring(0, str.length() - 1)) / 100.0;
     return Double.parseDouble(str);
   }
   
+  /**
+   * Gets a property of type {@link PropertyType#PORT}, interpreting the
+   * value properly (as an integer within the range of non-privileged ports).
+   *
+   * @param property property to get
+   * @return property value
+   * @throws IllegalArgumentException if the property is of the wrong type
+   * @see #getTimeInMillis(String)
+   */
   public int getPort(Property property) {
     checkType(property, PropertyType.PORT);
     
@@ -174,6 +285,15 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     return port;
   }
   
+  /**
+   * Gets a property of type {@link PropertyType#COUNT}, interpreting the
+   * value properly (as an integer).
+   *
+   * @param property property to get
+   * @return property value
+   * @throws IllegalArgumentException if the property is of the wrong type
+   * @see #getTimeInMillis(String)
+   */
   public int getCount(Property property) {
     checkType(property, PropertyType.COUNT);
     
@@ -181,6 +301,15 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     return Integer.parseInt(countString);
   }
   
+  /**
+   * Gets a property of type {@link PropertyType#PATH}, interpreting the
+   * value properly, replacing supported environment variables.
+   *
+   * @param property property to get
+   * @return property value
+   * @throws IllegalArgumentException if the property is of the wrong type
+   * @see Constants#PATH_PROPERTY_ENV_VARS
+   */
   public String getPath(Property property) {
     checkType(property, PropertyType.PATH);
 
@@ -196,13 +325,21 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     return pathString;
   }
 
+  /**
+   * Gets the default configuration.
+   *
+   * @return default configuration
+   * @see DefaultConfiguration#getInstance()
+   */
   public static synchronized DefaultConfiguration getDefaultConfiguration() {
     return DefaultConfiguration.getInstance();
   }
   
   /**
-   * Only here for Shell option-free start-up
-   * 
+   * Gets a site configuration parented by a default configuration. Only here
+   * for shell option-free start-up.
+   *
+   * @return configuration
    * @deprecated not for client use
    */
   @Deprecated
@@ -210,11 +347,27 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     return SiteConfiguration.getInstance(getDefaultConfiguration());
   }
   
+  /**
+   * Gets the configuration specific to a table.
+   *
+   * @param conn connector (used to find table name)
+   * @param tableId table ID
+   * @return configuration containing table properties
+   * @throws TableNotFoundException if the table is not found
+   * @throws AccumuloException if there is a problem communicating to Accumulo
+   */
   public static AccumuloConfiguration getTableConfiguration(Connector conn, String tableId) throws TableNotFoundException, AccumuloException {
     String tableName = Tables.getTableName(conn.getInstance(), tableId);
     return new ConfigurationCopy(conn.tableOperations().getProperties(tableName));
   }
   
+  /**
+   * Gets the maximum number of files per tablet from this configuration.
+   *
+   * @return maximum number of files per tablet
+   * @see Property#TABLE_FILE_MAX
+   * @see Property#TSERV_SCAN_MAX_OPENFILES
+   */
   public int getMaxFilesPerTablet() {
     int maxFilesPerTablet = getCount(Property.TABLE_FILE_MAX);
     if (maxFilesPerTablet <= 0) {
@@ -228,6 +381,15 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   // overridden in ZooConfiguration
   public void invalidateCache() {}
   
+  /**
+   * Creates a new instance of a class specified in a configuration property.
+   *
+   * @param property property specifying class name
+   * @param base base class of type
+   * @param defaultInstance instance to use if creation fails
+   * @return new class instance, or default instance if creation failed
+   * @see AccumuloVFSClassLoader
+   */
   public <T> T instantiateClassProperty(Property property, Class<T> base, T defaultInstance) {
     String clazzName = get(property);
     T instance = null;

@@ -22,6 +22,17 @@ import java.util.Map.Entry;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
 
+/**
+ * An {@link AccumuloConfiguration} which loads properties from an XML file,
+ * usually accumulo-site.xml. This implementation supports defaulting undefined
+ * property values to a parent configuration's definitions.
+ * <p>
+ * The system property "org.apache.accumulo.config.file" can be used to specify
+ * the location of the XML configuration file on the classpath. If the system
+ * property is not defined, it defaults to "accumulo-site.xml".
+ * <p>
+ * This class is a singleton.
+ */
 public class SiteConfiguration extends AccumuloConfiguration {
   private static final Logger log = Logger.getLogger(SiteConfiguration.class);
   
@@ -34,6 +45,13 @@ public class SiteConfiguration extends AccumuloConfiguration {
     SiteConfiguration.parent = parent;
   }
   
+  /**
+   * Gets an instance of this class. A new instance is only created on the first
+   * call, and so the parent configuration cannot be changed later.
+   *
+   * @param parent parent (default) configuration
+   * @throws RuntimeException if the configuration is invalid
+   */
   synchronized public static SiteConfiguration getInstance(AccumuloConfiguration parent) {
     if (instance == null) {
       instance = new SiteConfiguration(parent);
@@ -79,7 +97,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
   }
 
   /**
-   * method here to support testing, do not call
+   * Clears the configuration properties in this configuration (but not the
+   * parent). This method supports testing and should not be called.
    */
   public void clear() {
     getXmlConfig().clear();
@@ -87,7 +106,9 @@ public class SiteConfiguration extends AccumuloConfiguration {
   
   
   /**
-   * method here to support testing, do not call
+   * Clears the configuration properties in this configuration (but not the
+   * parent) and nulls it. This method supports testing and should not be
+   * called.
    */
   public synchronized void clearAndNull() {
     if (xmlConfig != null) {
@@ -97,14 +118,20 @@ public class SiteConfiguration extends AccumuloConfiguration {
   }
   
   /**
-   * method here to support testing, do not call
+   * Sets a property. This method supports testing and should not be called.
+   *
+   * @param property property to set
+   * @param value property value
    */
   public void set(Property property, String value) {
     set(property.getKey(), value);
   }
   
   /**
-   * method here to support testing, do not call
+   * Sets a property. This method supports testing and should not be called.
+   *
+   * @param key key of property to set
+   * @param value property value
    */
   public void set(String key, String value) {
     getXmlConfig().set(key, value);

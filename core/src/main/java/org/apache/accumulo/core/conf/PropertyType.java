@@ -21,6 +21,10 @@ import java.util.regex.Pattern;
 import org.apache.accumulo.core.Constants;
 import org.apache.hadoop.fs.Path;
 
+/**
+ * Types of {@link Property} values. Each type has a short name, a description,
+ * and a regex which valid values match. All of these fields are optional.
+ */
 public enum PropertyType {
   PREFIX(null, null, null),
   
@@ -82,10 +86,20 @@ public enum PropertyType {
     return shortname;
   }
   
+  /**
+   * Gets the description of this type.
+   *
+   * @return description
+   */
   String getFormatDescription() {
     return format;
   }
   
+  /**
+   * Checks if the given value is valid for this type.
+   *
+   * @return true if value is valid or null, or if this type has no regex
+   */
   public boolean isValidFormat(String value) {
     return (regex == null && value == null) ? true : regex.matcher(value).matches();
   }

@@ -20,11 +20,24 @@ import java.util.Map.Entry;
 
 import org.apache.log4j.Logger;
 
+/**
+ * A utility class for validating {@link AccumuloConfiguration} instances.
+ */
 public class ConfigSanityCheck {
   
   private static final Logger log = Logger.getLogger(ConfigSanityCheck.class);
   private static final String PREFIX = "BAD CONFIG ";
   
+  /**
+   * Validates the given configuration. A valid configuration contains only
+   * valid properties (i.e., defined or otherwise valid) that are not prefixes
+   * and whose values are formatted correctly for their property types. A valid
+   * configuration also contains a value for property
+   * {@link Property#INSTANCE_ZK_TIMEOUT} within a valid range.
+   *
+   * @param acuconf configuration
+   * @throws RuntimeException if the configuration fails validation
+   */
   public static void validate(AccumuloConfiguration acuconf) {
     for (Entry<String,String> entry : acuconf) {
       String key = entry.getKey();

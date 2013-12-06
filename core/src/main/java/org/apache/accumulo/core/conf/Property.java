@@ -435,14 +435,32 @@ public enum Property {
     return this.key;
   }
 
+  /**
+   * Gets the key (string) for this property.
+   *
+   * @return keuy
+   */
   public String getKey() {
     return this.key;
   }
 
+  /**
+   * Gets the default value for this property exactly as provided in its
+   * definition (i.e., without interpolation or conversion to absolute paths).
+   *
+   * @return raw default value
+   */
   public String getRawDefaultValue() {
     return this.defaultValue;
   }
 
+  /**
+   * Gets the default value for this property. System properties are
+   * interpolated into the value if necessary.
+   *
+   * @return default value
+   * @see Interpolated
+   */
   public String getDefaultValue() {
     if (isInterpolated()) {
       PropertiesConfiguration pconf = new PropertiesConfiguration();
@@ -458,10 +476,20 @@ public enum Property {
     }
   }
 
+  /**
+   * Gets the type of this property.
+   *
+   * @return property type
+   */
   public PropertyType getType() {
     return this.type;
   }
 
+  /**
+   * Gets the description of this property.
+   *
+   * @return description
+   */
   public String getDescription() {
     return this.description;
   }
@@ -470,18 +498,44 @@ public enum Property {
     return hasAnnotation(Interpolated.class) || hasPrefixWithAnnotation(getKey(), Interpolated.class);
   }
 
+  /**
+   * Checks if this property is experimental.
+   *
+   * @return true if this property is experimental
+   * @see Experimental
+   */
   public boolean isExperimental() {
     return hasAnnotation(Experimental.class) || hasPrefixWithAnnotation(getKey(), Experimental.class);
   }
 
+  /**
+   * Checks if this property is deprecated.
+   *
+   * @return true if this property is deprecated
+   */
   public boolean isDeprecated() {
     return hasAnnotation(Deprecated.class) || hasPrefixWithAnnotation(getKey(), Deprecated.class);
   }
 
+  /**
+   * Checks if this property is sensitive.
+   *
+   * @return true if this property is sensitive
+   * @see Sensitive
+   */
   public boolean isSensitive() {
     return hasAnnotation(Sensitive.class) || hasPrefixWithAnnotation(getKey(), Sensitive.class);
   }
 
+  /**
+   * Checks if a property with the given key is sensitive. The key must be for
+   * a valid property, and must either itself be annotated as sensitive or have
+   * a prefix annotated as sensitive.
+   *
+   * @param key property key
+   * @return true if property is sensitive
+   * @see Sensitive
+   */
   public static boolean isSensitive(String key) {
     return hasPrefixWithAnnotation(key, Sensitive.class);
   }
@@ -529,6 +583,14 @@ public enum Property {
     return false;
   }
 
+  /**
+   * Checks if the given property key is valid. A valid property key is either
+   * equal to the key of some defined property or has a prefix matching some
+   * prefix defined in this class.
+   *
+   * @param key property key
+   * @return true if key is valid (recognized, or has a recognized prefix)
+   */
   public synchronized static boolean isValidPropertyKey(String key) {
     if (validProperties == null) {
       validProperties = new HashSet<String>();
@@ -546,6 +608,17 @@ public enum Property {
     return validProperties.contains(key) || isKeyValidlyPrefixed(key);
   }
 
+  /**
+   * Checks if the given property key is for a valid table property. A valid
+   * table property key is either equal to the key of some defined table
+   * property (which each start with {@link #TABLE_PREFIX}) or has a prefix
+   * matching {@link #TABLE_CONSTRAINT_PREFIX}, {@link #TABLE_ITERATOR_PREFIX},
+   * or {@link #TABLE_LOCALITY_GROUP_PREFIX}.
+   *
+   * @param key property key
+   * @return true if key is valid for a table property (recognized, or has a
+   * recognized prefix)
+   */
   public synchronized static boolean isValidTablePropertyKey(String key) {
     if (validTableProperties == null) {
       validTableProperties = new HashSet<String>();
@@ -564,14 +637,35 @@ public enum Property {
   private static final EnumSet<Property> fixedProperties = EnumSet.of(Property.TSERV_CLIENTPORT, Property.TSERV_NATIVEMAP_ENABLED,
       Property.TSERV_SCAN_MAX_OPENFILES, Property.MASTER_CLIENTPORT, Property.GC_PORT);
 
+  /**
+   * Checks if the given property may be changed via Zookeeper, but not
+   * recognized until the restart of some relevant daemon.
+   *
+   * @param key property key
+   * @return true if property may be changed via Zookeeper but only heeded upon
+   * some restart
+   */
   public static boolean isFixedZooPropertyKey(Property key) {
     return fixedProperties.contains(key);
   }
 
+  /**
+   * Gets the set of "fixed" valid Zookeeper properties.
+   *
+   * @return fixed Zookeeper properties
+   * @see #isFixedZooPropertyKey(Property)
+   */
   public static Set<Property> getFixedProperties() {
     return fixedProperties;
   }
 
+  /**
+   * Checks if the given property key is valid for a property that may be
+   * changed via Zookeeper.
+   *
+   * @param key property key
+   * @return true if key's property may be changed via Zookeeper
+   */
   public static boolean isValidZooPropertyKey(String key) {
     // white list prefixes
     return key.startsWith(Property.TABLE_PREFIX.getKey()) || key.startsWith(Property.TSERV_PREFIX.getKey()) || key.startsWith(Property.LOGGER_PREFIX.getKey())
@@ -580,6 +674,12 @@ public enum Property {
         || key.startsWith(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey());
   }
 
+  /**
+   * Gets a {@link Property} instance with the given key.
+   *
+   * @param key property key
+   * @return property, or null if not found
+   */
   public static Property getPropertyByKey(String key) {
     for (Property prop : Property.values())
       if (prop.getKey().equals(key))
@@ -588,7 +688,9 @@ public enum Property {
   }
 
   /**
-   * @return true if this is a property whose value is expected to be a java class
+   * Checks if this property is expected to have a Java class as a value.
+   *
+   * @return true if this is property is a class property
    */
   public static boolean isClassProperty(String key) {
     return (key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey()) && key.substring(Property.TABLE_CONSTRAINT_PREFIX.getKey().length()).split("\\.").length == 1)
@@ -599,6 +701,16 @@ public enum Property {
   // This is not a cache for loaded classes, just a way to avoid spamming the debug log
   static Map<String,Class<?>> loaded = Collections.synchronizedMap(new HashMap<String,Class<?>>());
 
+  /**
+   * Creates a new instance of a class specified in a configuration property.
+   *
+   * @param conf configuration containing property
+   * @param property property specifying class name
+   * @param base base class of type
+   * @param defaultInstance instance to use if creation fails
+   * @return new class instance, or default instance if creation failed
+   * @see AccumuloVFSClassLoader
+   */
   public static <T> T createInstanceFromPropertyName(AccumuloConfiguration conf, Property property, Class<T> base, T defaultInstance) {
     String clazzName = conf.get(property);
     T instance = null;
@@ -619,6 +731,16 @@ public enum Property {
     return instance;
   }
 
+  /**
+   * Collects together properties from the given configuration pertaining to
+   * compaction strategies. The relevant properties all begin with the prefix
+   * in {@link #TABLE_COMPACTION_STRATEGY_PREFIX}. In the returned map, the
+   * prefix is removed from each property's key.
+   *
+   * @param tableConf configuration
+   * @return map of compaction strategy property keys and values, with the
+   * detection prefix removed from each key
+   */
   public static Map<String,String> getCompactionStrategyOptions(AccumuloConfiguration tableConf) {
     Map<String,String> longNames = tableConf.getAllPropertiesWithPrefix(Property.TABLE_COMPACTION_STRATEGY_PREFIX);
     Map<String,String> result = new HashMap<String,String>();

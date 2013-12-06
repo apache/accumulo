@@ -28,11 +28,21 @@ import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 
+/**
+ * An {@link AccumuloConfiguration} that contains only default values for
+ * properties. This class is a singleton.
+ */
 public class DefaultConfiguration extends AccumuloConfiguration {
   private static DefaultConfiguration instance = null;
   private static Logger log = Logger.getLogger(DefaultConfiguration.class);
   private Map<String,String> resolvedProps = null;
 
+  /**
+   * Gets an instance of this class.
+   *
+   * @return default configuration
+   * @throws RuntimeException if the default configuration is invalid
+   */
   synchronized public static DefaultConfiguration getInstance() {
     if (instance == null) {
       instance = new DefaultConfiguration();
@@ -64,6 +74,11 @@ public class DefaultConfiguration extends AccumuloConfiguration {
         props.put(entry.getKey(), entry.getValue());
   }
 
+  /**
+   * Generates HTML documentation on the default configuration.
+   *
+   * @param doc stream to write HTML to
+   */
   protected static void generateDocumentation(PrintStream doc) {
     // read static content from resources and output
     InputStream data = DefaultConfiguration.class.getResourceAsStream("config.html");
@@ -184,7 +199,11 @@ public class DefaultConfiguration extends AccumuloConfiguration {
   }
 
   /*
-   * Generate documentation for conf/accumulo-site.xml file usage
+   * Generates documentation for conf/accumulo-site.xml file usage. Arguments
+   * are: "--generate-doc", file to write to.
+   *
+   * @param args command-line arguments
+   * @throws IllegalArgumentException if args is invalid
    */
   public static void main(String[] args) throws FileNotFoundException {
     if (args.length == 2 && args[0].equals("--generate-doc")) {
