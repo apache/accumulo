@@ -53,6 +53,16 @@ ask the master to shut down the tablet servers gracefully. If the tablet servers
 at the password prompt, and waiting 15 seconds for the script to force a shutdown. Normally, once the shutdown happens gracefully, unresponsive tablet servers are
 forcibly shut down after 5 seconds.
 
+<h3>Adding a Node</h3>
+
+<p>Update your <code>$ACCUMULO_HOME/conf/slaves</code> (or <code>$ACCUMULO_CONF_DIR/slaves</code>) file to account for the addition.</p>
+
+<pre>
+$ACCUMULO_HOME/bin/accumulo admin start &gt;hosts&gt; {&lt;host&gt; ...}
+</pre>
+
+<p>Make sure the host in question has the new configuration, else the tablet server won't start.</p>
+
 <h3>Decomissioning a Node</h3>
 
 <p>If you need to take a node out of operation, you can trigger a graceful shutdown of a tablet server. Accumulo will automatically rebalance the tablets across the available tablet servers.</p>
