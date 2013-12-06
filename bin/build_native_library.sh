@@ -29,7 +29,7 @@ script=$( basename "$SOURCE" )
 
 lib="${bin}/../lib"
 native_tarball="${lib}/accumulo-native.tar.gz"
-final_native_target="${lib}/native/map"
+final_native_target="${lib}/native"
 
 if [[ ! -f $native_tarball ]]; then
     echo "Could not find native code artifact: ${native_tarball}";
