@@ -190,10 +190,10 @@ take some time for particular configurations.
 Update your \texttt{\$ACCUMULO_HOME/conf/slaves} (or \texttt{\$ACCUMULO_CONF_DIR/slaves}) file to account for the addition.
 
 \begin{verbatim}
-$ACCUMULO_HOME/bin/accumulo admin start <hosts> {<host> ...}
+$ACCUMULO_HOME/bin/accumulo admin start <host(s)> {<host> ...}
 \end{verbatim}
 
-Make sure the host in question has the new configuration, else the tablet server won't start.
+Make sure the host in question has the new configuration, or else the tablet server won't start.
 
 \subsection{Decomissioning a Node}
 
@@ -201,7 +201,7 @@ If you need to take a node out of operation, you can trigger a graceful shutdown
 server. Accumulo will automatically rebalance the tablets across the available tablet servers.
 
 \begin{verbatim}
-$ACCUMULO_HOME/bin/accumulo admin stop <hosts> {<host> ...}
+$ACCUMULO_HOME/bin/accumulo admin stop <host(s)> {<host> ...}
 \end{verbatim}
 
 Alternatively, you can ssh to each of the hosts you want to remove and run 
@@ -209,7 +209,7 @@ Alternatively, you can ssh to each of the hosts you want to remove and run
 
 Be sure to update your \texttt{\$ACCUMULO_HOME/conf/slaves} (or \texttt{\$ACCUMULO_CONF_DIR/slaves}) file to 
 account for the removal of these hosts. Bear in mind that the monitor will not re-read the 
-slaves file automatically, so will report the decomissioned servers as down.
+slaves file automatically, so it will report the decomissioned servers as down.
 
 \section{Monitoring}
 
