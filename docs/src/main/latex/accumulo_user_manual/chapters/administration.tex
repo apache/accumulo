@@ -1,4 +1,3 @@
-
 % Licensed to the Apache Software Foundation (ASF) under one or more
 % contributor license agreements. See the NOTICE file distributed with
 % this work for additional information regarding copyright ownership.
@@ -185,6 +184,22 @@ tables via reading the !METADATA table.
 To shutdown cleanly, run \texttt{bin/stop-all.sh} and the master will orchestrate the
 shutdown of all the tablet servers. Shutdown waits for all minor compactions to finish, so it may
 take some time for particular configurations.
+
+\subsection{Decomissioning a Node}
+
+If you need to take a node out of operation, you can trigger a graceful shutdown of a tablet 
+server. Accumulo will automatically rebalance the tablets across the available tablet servers.
+
+\begin{verbatim}
+$ACCUMULO_HOME/bin/accumulo admin stop <hosts> {<host> ...}
+\end{verbatim}
+
+Alternatively, you can ssh to each of the hosts you want to remove and run 
+\texttt{$ACCUMULO_HOME/bin/stop-here.sh}.
+
+Be sure to update your \texttt{$ACCUMULO_HOME/conf/slaves} (or \texttt{$ACCUMULO_CONF_DIR/slaves}) file to 
+account for the removal of these hosts. Bear in mind that the monitor will not re-read the 
+slaves file automatically, so will report the decomissioned servers as down.
 
 \section{Monitoring}
 
