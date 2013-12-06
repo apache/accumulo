@@ -185,6 +185,16 @@ To shutdown cleanly, run \texttt{bin/stop-all.sh} and the master will orchestrat
 shutdown of all the tablet servers. Shutdown waits for all minor compactions to finish, so it may
 take some time for particular configurations.
 
+\subsection{Adding a Node}
+
+Update your \texttt{$ACCUMULO_HOME/conf/slaves} (or \texttt{$ACCUMULO_CONF_DIR/slaves}) file to account for the addition.
+
+\begin{verbatim}
+$ACCUMULO_HOME/bin/accumulo admin start <hosts> {<host> ...}
+\end{verbatim}
+
+Make sure the host in question has the new configuration, else the tablet server won't start.
+
 \subsection{Decomissioning a Node}
 
 If you need to take a node out of operation, you can trigger a graceful shutdown of a tablet 
