@@ -45,3 +45,8 @@ else
   # Not root, and not the accumulo user, hope you can sudo to it
   sudo -m -u $ACCUMULO_USER "nohup $CONTINUOUS_CONF_DIR/magitator.pl $MASTER_KILL_SLEEP_TIME $MASTER_RESTART_SLEEP_TIME >$CONTINUOUS_LOG_DIR/`date +%Y%m%d%H%M%S`_`hostname`_magitator.out 2>$CONTINUOUS_LOG_DIR/`date +%Y%m%d%H%M%S`_`hostname`_magitator.err &"
 fi
+
+if ${AGITATE_HDFS:-false} ; then
+  AGITATOR_LOG=${CONTINUOUS_LOG_DIR}/`date +%Y%m%d%H%M%S`_`hostname`_hdfs-agitator
+  nohup ./hdfs-agitator.pl --sleep ${AGITATE_HDFS_SLEEP_TIME} --hdfs-cmd ${AGITATE_HDFS_COMMAND} --superuser ${AGITATE_HDFS_SUPERUSER} --sudo ${AGITATE_HDFS_SUDO} >${AGITATOR_LOG}.out 2>${AGITATOR_LOG}.err &
+fi
