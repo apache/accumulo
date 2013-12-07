@@ -32,7 +32,7 @@ import org.apache.hadoop.conf.Configuration;
  * 
  */
 public class MiniAccumuloInstance extends ZooKeeperInstance {
-  
+
   /**
    * Construct an {@link Instance} entry point to Accumulo using a {@link MiniAccumuloCluster} directory
    */
@@ -48,7 +48,7 @@ public class MiniAccumuloInstance extends ZooKeeperInstance {
       throw new IllegalArgumentException(e);
     }
   }
-  
+
   private static String getZooKeepersFromDir(File directory) throws FileNotFoundException {
     if (!directory.isDirectory())
       throw new IllegalArgumentException("Not a directory " + directory.getPath());

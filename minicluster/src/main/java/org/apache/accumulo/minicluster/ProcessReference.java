@@ -26,17 +26,17 @@ public class ProcessReference {
   ProcessReference(Process process) {
     this.process = process;
   }
-  
+
   @Override
   public String toString() {
     return process.toString();
   }
-  
+
   @Override
   public int hashCode() {
     return process.hashCode();
   }
-  
+
   @Override
   public boolean equals(Object obj) {
     return process.equals(obj);
