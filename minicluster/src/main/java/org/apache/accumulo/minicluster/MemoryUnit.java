@@ -21,17 +21,17 @@ package org.apache.accumulo.minicluster;
  */
 
 public enum MemoryUnit {
-  
-  BYTE(1l,""), KILOBYTE(1024l,"K"), MEGABYTE(1024 * 1024l,"M"), GIGABYTE(1024 * 1024 * 1024l,"G");
-  
+
+  BYTE(1l, ""), KILOBYTE(1024l, "K"), MEGABYTE(1024 * 1024l, "M"), GIGABYTE(1024 * 1024 * 1024l, "G");
+
   private final long multiplier;
   private final String suffix;
-  
+
   private MemoryUnit(long multiplier, String suffix) {
     this.multiplier = multiplier;
     this.suffix = suffix;
   }
-  
+
   public long toBytes(long memory) {
     return memory * multiplier;
   }
@@ -41,8 +41,8 @@ public enum MemoryUnit {
   }
 
   public static MemoryUnit fromSuffix(String suffix) {
-    for(MemoryUnit memoryUnit : MemoryUnit.values()) {
-      if(memoryUnit.suffix .equals(suffix))
+    for (MemoryUnit memoryUnit : MemoryUnit.values()) {
+      if (memoryUnit.suffix.equals(suffix))
         return memoryUnit;
     }
     return null;

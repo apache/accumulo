@@ -19,5 +19,5 @@ package org.apache.accumulo.minicluster;
 public class ProcessNotFoundException extends Exception {
 
   private static final long serialVersionUID = 1L;
-  
+
 }

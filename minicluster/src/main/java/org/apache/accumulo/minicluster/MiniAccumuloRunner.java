@@ -77,14 +77,14 @@ public class MiniAccumuloRunner {
       return prop;
     }
   }
-  
+
   private static final String FORMAT_STRING = "  %-21s %s";
-  
+
   public static class Opts extends Help {
     @Parameter(names = "-p", required = false, description = "properties file name", converter = PropertiesConverter.class)
     Properties prop = new Properties();
   }
-  
+
   /**
    * Runs the {@link MiniAccumuloCluster} given a -p argument with a property file. Establishes a shutdown port for asynchronous operation.
    * 
@@ -96,14 +96,14 @@ public class MiniAccumuloRunner {
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(MiniAccumuloRunner.class.getName(), args);
-    
+
     int shutdownPort = 4445;
-    
+
     final File tempDir = Files.createTempDir();
     String rootPass = opts.prop.containsKey("rootPassword") ? opts.prop.getProperty("rootPassword") : "secret";
-    
+
     MiniAccumuloConfig config = new MiniAccumuloConfig(tempDir, rootPass);
-    
+
     if (opts.prop.containsKey("instanceName"))
       config.setInstanceName(opts.prop.getProperty("instanceName"));
     if (opts.prop.containsKey("numTServers"))
@@ -124,18 +124,18 @@ public class MiniAccumuloRunner {
       shutdownPort = Integer.parseInt(opts.prop.getProperty("shutdownPort"));
     if (opts.prop.containsKey("useMiniDFS"))
       config.useMiniDFS(Boolean.parseBoolean(opts.prop.getProperty("useMiniDFS")));
-    
+
     Map<String,String> siteConfig = new HashMap<String,String>();
     for (Map.Entry<Object,Object> entry : opts.prop.entrySet()) {
       String key = (String) entry.getKey();
       if (key.startsWith("site."))
         siteConfig.put(key.replaceFirst("site.", ""), (String) entry.getValue());
     }
-    
+
     config.setSiteConfig(siteConfig);
-    
+
     final MiniAccumuloCluster accumulo = new MiniAccumuloCluster(config);
-    
+
     Runtime.getRuntime().addShutdownHook(new Thread() {
       @Override
       public void run() {
@@ -150,18 +150,18 @@ public class MiniAccumuloRunner {
         }
       }
     });
-    
+
     accumulo.start();
-    
+
     printInfo(accumulo, shutdownPort);
-    
+
     // start a socket on the shutdown port and block- anything connected to this port will activate the shutdown
     ServerSocket shutdownServer = new ServerSocket(shutdownPort);
     shutdownServer.accept();
-    
+
     System.exit(0);
   }
-  
+
   private static boolean validateMemoryString(String memoryString) {
     String unitsRegex = "[";
     MemoryUnit[] units = MemoryUnit.values();
@@ -174,24 +174,24 @@ public class MiniAccumuloRunner {
     Pattern p = Pattern.compile("\\d+" + unitsRegex);
     return p.matcher(memoryString).matches();
   }
-  
+
   private static void setMemoryOnConfig(MiniAccumuloConfig config, String memoryString) {
     setMemoryOnConfig(config, memoryString, null);
   }
-  
+
   private static void setMemoryOnConfig(MiniAccumuloConfig config, String memoryString, ServerType serverType) {
     if (!validateMemoryString(memoryString))
       throw new IllegalArgumentException(memoryString + " is not a valid memory string");
-    
+
     long memSize = Long.parseLong(memoryString.substring(0, memoryString.length() - 1));
     MemoryUnit memUnit = MemoryUnit.fromSuffix(memoryString.substring(memoryString.length() - 1));
-    
+
     if (serverType != null)
       config.setMemory(serverType, memSize, memUnit);
     else
       config.setDefaultMemory(memSize, memUnit);
   }
-  
+
   private static void printInfo(MiniAccumuloCluster accumulo, int shutdownPort) {
     System.out.println("Mini Accumulo Cluster\n");
     System.out.println(String.format(FORMAT_STRING, "Directory:", accumulo.getConfig().getDir().getAbsoluteFile()));
@@ -199,13 +199,13 @@ public class MiniAccumuloRunner {
     System.out.println(String.format(FORMAT_STRING, "Instance Name:", accumulo.getConfig().getInstanceName()));
     System.out.println(String.format(FORMAT_STRING, "Root Password:", accumulo.getConfig().getRootPassword()));
     System.out.println(String.format(FORMAT_STRING, "ZooKeeper:", accumulo.getConfig().getZooKeepers()));
-    
+
     for (Pair<ServerType,Integer> pair : accumulo.getDebugPorts()) {
       System.out.println(String.format(FORMAT_STRING, pair.getFirst().prettyPrint() + " JDWP Host:", "localhost:" + pair.getSecond()));
     }
-    
+
     System.out.println(String.format(FORMAT_STRING, "Shutdown Port:", shutdownPort));
-    
+
     System.out.println("\n\nSuccessfully started on " + new Date());
   }
 }
