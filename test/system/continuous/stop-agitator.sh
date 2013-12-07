@@ -24,3 +24,7 @@ else
   pkill -f agitator.pl
 fi
 
+if ${AGITATE_HDFS:-false} ; then
+  pkill -f hdfs-agitator.pl
+fi
+
