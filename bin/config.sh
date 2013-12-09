@@ -134,3 +134,6 @@ export HADOOP_HOME_WARN_SUPPRESS=true
 
 # See HADOOP-7154 and ACCUMULO-847
 export MALLOC_ARENA_MAX=${MALLOC_ARENA_MAX:-1}
+
+# ACCUMULO-1985 provide a way to use the scripts and still bind to all network interfaces
+export ACCUMULO_MONITOR_BIND_ALL=${ACCUMULO_MONITOR_BIND_ALL:-"false"}
