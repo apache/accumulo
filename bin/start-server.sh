@@ -34,6 +34,7 @@ if [ $? -ne 0 ]; then
 else
    LOGHOST=$(host "$1" | head -1 | cut -d' ' -f1)
 fi
+ADDRESS="$1"
 SERVICE="$2"
 LONGNAME="$3"
 if [ -z "$LONGNAME" ]; then
@@ -44,6 +45,11 @@ SLAVES=$( wc -l < ${ACCUMULO_CONF_DIR}/slaves )
 IFCONFIG=/sbin/ifconfig
 if [ ! -x $IFCONFIG ]; then
    IFCONFIG='/bin/netstat -ie'
+fi
+
+# ACCUMULO-1985 Allow monitor to bind on all interfaces
+if [ ${SERVICE} == "monitor" -a ${ACCUMULO_MONITOR_BIND_ALL} == "true" ]; then
+    ADDRESS="0.0.0.0"
 fi
 
 ip=$($IFCONFIG 2>/dev/null| grep inet[^6] | awk '{print $2}' | sed 's/addr://' | grep -v 0.0.0.0 | grep -v 127.0.0.1 | head -n 1)
@@ -61,10 +67,10 @@ fi
 if [ -z $PID ]; then
    echo "Starting $LONGNAME on $HOST"
    if [ "$HOST" = "localhost" -o "$HOST" = "`hostname`" -o "$HOST" = "$ip" ]; then
-      ${bin}/accumulo ${SERVICE} --address $1 >${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out 2>${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err & 
+      ${bin}/accumulo ${SERVICE} --address ${ADDRESS} >${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out 2>${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err & 
       MAX_FILES_OPEN=$(ulimit -n)
    else
-      $SSH $HOST "bash -c 'exec nohup ${bin}/accumulo ${SERVICE} --address $1 >${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out 2>${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err' &"
+      $SSH $HOST "bash -c 'exec nohup ${bin}/accumulo ${SERVICE} --address ${ADDRESS} >${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out 2>${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err' &"
       MAX_FILES_OPEN=$($SSH $HOST "/usr/bin/env bash -c 'ulimit -n'") 
    fi
 
