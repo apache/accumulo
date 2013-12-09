@@ -664,7 +664,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         @Override
         public boolean contains(ByteSequence auth) {
           try {
-            return security.userHasAuthorizations(credentials, Collections.<ByteBuffer> singletonList(ByteBuffer.wrap(auth.getBackingArray())));
+            return security.userHasAuthorizations(credentials,
+                Collections.<ByteBuffer> singletonList(ByteBuffer.wrap(auth.getBackingArray(), auth.offset(), auth.length())));
           } catch (ThriftSecurityException e) {
             throw new RuntimeException(e);
           }
@@ -2819,7 +2820,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
             if (openingOverlapping.contains(extent) || onlineOverlapping.contains(extent))
               return;
-            
+
             if (!unopenedOverlapping.contains(extent)) {
               log.info("assignment " + extent + " no longer in the unopened set");
               return;
