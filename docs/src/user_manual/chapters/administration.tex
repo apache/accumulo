@@ -184,6 +184,38 @@ To shutdown cleanly, run \texttt{bin/stop-all.sh} and the master will orchestrat
 shutdown of all the tablet servers. Shutdown waits for all minor compactions to finish, so it may
 take some time for particular configurations.
 
+\subsection{Adding a Node}
+
+Update your \texttt{\$ACCUMULO_HOME/conf/slaves} (or \texttt{\$ACCUMULO_CONF_DIR/slaves}) file to account for the addition.
+
+\begin{verbatim}
+$ACCUMULO_HOME/bin/accumulo admin start <host(s)> {<host> ...}
+\end{verbatim}
+
+Alternatively, you can ssh to each of the hosts you want to add and run 
+\texttt{\$ACCUMULO_HOME/bin/start-here.sh}.
+
+Make sure the host in question has the new configuration, or else the tablet 
+server won't start; at a minimum this needs to be on the host(s) being added, 
+but in practice it's good to ensure consistent configuration across all nodes.
+
+\subsection{Decomissioning a Node}
+
+If you need to take a node out of operation, you can trigger a graceful shutdown of a tablet 
+server. Accumulo will automatically rebalance the tablets across the available tablet servers.
+
+\begin{verbatim}
+$ACCUMULO_HOME/bin/accumulo admin stop <host(s)> {<host> ...}
+\end{verbatim}
+
+Alternatively, you can ssh to each of the hosts you want to remove and run 
+\texttt{\$ACCUMULO_HOME/bin/stop-here.sh}.
+
+Be sure to update your \texttt{\$ACCUMULO_HOME/conf/slaves} (or \texttt{\$ACCUMULO_CONF_DIR/slaves}) file to 
+account for the removal of these hosts. Bear in mind that the monitor will not re-read the 
+slaves file automatically, so it will report the decomissioned servers as down; it's 
+recommended that you restart the monitor so that the node list is up to date.
+
 \section{Monitoring}
 
 The Accumulo Master provides an interface for monitoring the status and health of
