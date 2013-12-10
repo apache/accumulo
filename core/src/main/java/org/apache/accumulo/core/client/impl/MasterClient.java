@@ -57,6 +57,9 @@ public class MasterClient {
     }
     
     String master = locations.get(0);
+    if (master.endsWith(":0"))
+      return null;
+    
     int portHint = instance.getConfiguration().getPort(Property.MASTER_CLIENTPORT);
     
     try {

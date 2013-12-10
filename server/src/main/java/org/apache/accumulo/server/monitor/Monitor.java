@@ -50,6 +50,7 @@ import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
@@ -478,8 +479,17 @@ public class Monitor {
     server.addServlet(ShowTrace.class, "/trace/show");
     if (server.isUsingSsl())
       server.addServlet(ShellServlet.class, "/shell");
-    LogService.startLogListener(Monitor.getSystemConfiguration());
     server.start();
+    
+    try {
+      String monitorAddress = org.apache.accumulo.core.util.AddressUtil.toString(new InetSocketAddress(hostname, server.getPort()));
+      ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instance) + Constants.ZMONITOR, monitorAddress.getBytes(),
+          NodeExistsPolicy.OVERWRITE);
+      log.info("Set monitor address in zookeeper to " + monitorAddress);
+    } catch (Exception ex) {
+      log.error("Unable to set monitor address in zookeeper");
+    }
+    LogService.startLogListener(Monitor.getSystemConfiguration(), instance.getInstanceID());
     
     new Daemon(new LoggingRunnable(log, new ZooKeeperStatus()), "ZooKeeperStatus").start();
     

@@ -31,6 +31,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.Version;
+import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.util.time.SimpleTimer;
@@ -39,10 +40,14 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.apache.log4j.helpers.FileWatchdog;
 import org.apache.log4j.helpers.LogLog;
 import org.apache.log4j.xml.DOMConfigurator;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
 
 public class Accumulo {
   
@@ -82,6 +87,57 @@ public class Accumulo {
     }
   }
   
+  private static class LogMonitor extends FileWatchdog implements Watcher {
+    String path;
+    
+    protected LogMonitor(String instance, String filename, int delay) {
+      super(filename);
+      setDelay(delay);
+      this.path = ZooUtil.getRoot(instance) + Constants.ZMONITOR_LOG4J_PORT;
+    }
+    
+    private void setMonitorPort() {
+      try {
+        String port = new String(ZooReaderWriter.getInstance().getData(path, null));
+        System.setProperty("org.apache.accumulo.core.host.log.port", port);
+        log.info("Changing monitor log4j port to "+port);
+        doOnChange();
+      } catch (Exception e) {
+        log.error("Error reading zookeeper data for monitor log4j port", e);
+      }
+    }
+    
+    @Override
+    public void run() {
+      try {
+        if (ZooReaderWriter.getInstance().getZooKeeper().exists(path, this) != null)
+          setMonitorPort();
+        log.info("Set watch for monitor log4j port");
+      } catch (Exception e) {
+        log.error("Unable to set watch for monitor log4j port " + path);
+      }
+      super.run();
+    }
+    
+    @Override
+    protected void doOnChange() {
+      LogManager.resetConfiguration();
+      new DOMConfigurator().doConfigure(filename, LogManager.getLoggerRepository());
+    }
+    
+    @Override
+    public void process(WatchedEvent event) {
+      setMonitorPort();
+      if (event.getPath() != null) {
+        try {
+          ZooReaderWriter.getInstance().exists(event.getPath(), this);
+        } catch (Exception ex) {
+          log.error("Unable to reset watch for monitor log4j port", ex);
+        }
+      }
+    }
+  }
+  
   public static void init(FileSystem fs, ServerConfiguration config, String application) throws UnknownHostException {
     
     System.setProperty("org.apache.accumulo.core.application", application);
@@ -99,6 +155,9 @@ public class Accumulo {
     else
       System.setProperty("org.apache.accumulo.core.host.log", localhost);
     
+    int logPort = config.getConfiguration().getPort(Property.MONITOR_LOG4J_PORT);
+    System.setProperty("org.apache.accumulo.core.host.log.port", Integer.toString(logPort));
+    
     // Use a specific log config, if it exists
     String logConfig = String.format("%s/%s_logger.xml", System.getenv("ACCUMULO_CONF_DIR"), application);
     if (!new File(logConfig).exists()) {
@@ -109,7 +168,10 @@ public class Accumulo {
     LogLog.setQuietMode(true);
     
     // Configure logging
-    DOMConfigurator.configureAndWatch(logConfig, 5000);
+    if (logPort==0)
+      new LogMonitor(config.getInstance().getInstanceID(), logConfig, 5000).start();
+    else
+      DOMConfigurator.configureAndWatch(logConfig, 5000);
     
     log.info(application + " starting");
     log.info("Instance " + config.getInstance().getInstanceID());

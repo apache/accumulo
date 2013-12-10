@@ -334,6 +334,11 @@ public class ZooLock implements Watcher {
     return lock != null;
   }
   
+  public synchronized void replaceLockData(byte[] b) throws KeeperException, InterruptedException {
+    if (getLockPath()!=null)
+      zooKeeper.getZooKeeper().setData(getLockPath(), b, -1);
+  }
+  
   @Override
   public synchronized void process(WatchedEvent event) {
     log.debug("event " + event.getPath() + " " + event.getType() + " " + event.getState());

@@ -171,6 +171,15 @@ public class MiniAccumuloCluster {
     if (!siteConfig.containsKey(key))
       fileWriter.append("<property><name>" + key + "</name><value>" + value + "</value></property>\n");
   }
+
+  /**
+   * Sets a given key with a random port for the value on the site config if it doesn't already exist.
+   */
+  private void mergePropWithRandomPort(Map<String,String> siteConfig, String key) {
+    if (!siteConfig.containsKey(key)) {
+      siteConfig.put(key, "0");
+    }
+  }
   
   /**
    * 
@@ -228,8 +237,6 @@ public class MiniAccumuloCluster {
     appendProp(fileWriter, Property.INSTANCE_DFS_DIR, accumuloDir.getAbsolutePath(), siteConfig);
     appendProp(fileWriter, Property.INSTANCE_ZK_HOST, "localhost:" + zooKeeperPort, siteConfig);
     appendProp(fileWriter, Property.INSTANCE_SECRET, INSTANCE_SECRET, siteConfig);
-    appendProp(fileWriter, Property.MASTER_CLIENTPORT, "" + PortUtils.getRandomFreePort(), siteConfig);
-    appendProp(fileWriter, Property.TSERV_CLIENTPORT, "" + PortUtils.getRandomFreePort(), siteConfig);
     appendProp(fileWriter, Property.TSERV_PORTSEARCH, "true", siteConfig);
     appendProp(fileWriter, Property.LOGGER_DIR, walogDir.getAbsolutePath(), siteConfig);
     appendProp(fileWriter, Property.TSERV_DATACACHE_SIZE, "10M", siteConfig);
@@ -238,8 +245,12 @@ public class MiniAccumuloCluster {
     appendProp(fileWriter, Property.TSERV_WALOG_MAX_SIZE, "100M", siteConfig);
     appendProp(fileWriter, Property.TSERV_NATIVEMAP_ENABLED, "false", siteConfig);
     appendProp(fileWriter, Property.TRACE_TOKEN_PROPERTY_PREFIX + ".password", config.getRootPassword(), siteConfig);
-    appendProp(fileWriter, Property.TRACE_PORT, "" + PortUtils.getRandomFreePort(), siteConfig);
     appendProp(fileWriter, Property.GC_CYCLE_DELAY, "30s", siteConfig);
+    mergePropWithRandomPort(siteConfig, Property.MASTER_CLIENTPORT.getKey());
+    mergePropWithRandomPort(siteConfig, Property.TRACE_PORT.getKey());
+    mergePropWithRandomPort(siteConfig, Property.TSERV_CLIENTPORT.getKey());
+    mergePropWithRandomPort(siteConfig, Property.MONITOR_PORT.getKey());
+    mergePropWithRandomPort(siteConfig, Property.GC_PORT.getKey());
     
     // since there is a small amount of memory, check more frequently for majc... setting may not be needed in 1.5
     appendProp(fileWriter, Property.TSERV_MAJC_DELAY, "3", siteConfig);

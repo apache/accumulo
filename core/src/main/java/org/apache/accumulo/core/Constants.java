@@ -63,6 +63,9 @@ public class Constants {
   public static final String ZGC = "/gc";
   public static final String ZGC_LOCK = ZGC + "/lock";
   
+  public static final String ZMONITOR = "/monitor";
+  public static final String ZMONITOR_LOG4J_PORT = ZMONITOR + "/log4j_port";
+  
   public static final String ZCONFIG = "/config";
   
   public static final String ZTSERVERS = "/tservers";

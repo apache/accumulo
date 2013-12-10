@@ -44,7 +44,6 @@ import org.apache.thrift.TProcessorFactory;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TThreadPoolServer;
-import org.apache.thrift.transport.TNonblockingServerSocket;
 import org.apache.thrift.transport.TNonblockingSocket;
 import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TTransport;
@@ -111,7 +110,7 @@ public class TServerUtils {
       
       for (int i = 0; i < portsToSearch; i++) {
         int port = portHint + i;
-        if (portHint == 0)
+        if (portHint != 0 && i > 0)
           port = 1024 + random.nextInt(65535 - 1024);
         if (port > 65535)
           port = 1024 + port % (65535 - 1024);
@@ -213,6 +212,9 @@ public class TServerUtils {
   public static ServerPort startHsHaServer(int port, TProcessor processor, final String serverName, String threadName, final int numThreads,
       long timeBetweenThreadChecks, long maxMessageSize) throws TTransportException {
     TNonblockingServerSocket transport = new TNonblockingServerSocket(port);
+    if (port == 0) {
+      port = transport.getPort();
+    }
     THsHaServer.Args options = new THsHaServer.Args(transport);
     options.protocolFactory(ThriftUtil.protocolFactory());
     options.transportFactory(ThriftUtil.transportFactory(maxMessageSize));

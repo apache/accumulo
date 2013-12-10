@@ -72,9 +72,11 @@ public class Main {
       } else if (args[0].equals("rfile-info")) {
         runTMP = cl.loadClass("org.apache.accumulo.core.file.rfile.PrintInfo");
       } else if (args[0].equals("login-info")) {
-        runTMP = cl.loadClass("org.apache.accumulo.core.util.LoginProperties");
+        runTMP = cl.loadClass("org.apache.accumulo.server.util.LoginProperties");
       } else if (args[0].equals("zookeeper")) {
         runTMP = cl.loadClass("org.apache.accumulo.server.util.ZooKeeperMain");
+      } else if (args[0].equals("info")) {
+        runTMP = cl.loadClass("org.apache.accumulo.server.util.Info");
       } else {
         try {
           runTMP = cl.loadClass(args[0]);
@@ -118,6 +120,6 @@ public class Main {
   }
   
   private static void printUsage() {
-    System.out.println("accumulo init | master | tserver | monitor | shell | admin | gc | classpath | rfile-info | login-info | tracer | proxy | zookeeper | <accumulo class> args");
+    System.out.println("accumulo init | master | tserver | monitor | shell | admin | gc | classpath | rfile-info | login-info | tracer | proxy | zookeeper | info | version | <accumulo class> args");
   }
 }

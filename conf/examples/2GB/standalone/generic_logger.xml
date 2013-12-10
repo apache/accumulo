@@ -43,7 +43,7 @@
   <!-- Send all logging data to a centralized logger -->
   <appender name="N1" class="org.apache.log4j.net.SocketAppender">
      <param name="remoteHost"     value="${org.apache.accumulo.core.host.log}"/>
-     <param name="port"           value="4560"/>
+     <param name="port"           value="${org.apache.accumulo.core.host.log.port}"/>
      <param name="application"    value="${org.apache.accumulo.core.application}:${org.apache.accumulo.core.ip.localhost.hostname}"/>
      <param name="Threshold"      value="WARN"/>
   </appender>

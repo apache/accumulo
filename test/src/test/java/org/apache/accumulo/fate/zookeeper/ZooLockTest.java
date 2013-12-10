@@ -328,6 +328,24 @@ public class ZooLockTest {
     zl.unlock();
   }
   
+  @Test(timeout = 10000)
+  public void testChangeData() throws Exception {
+    String parent = "/zltest-" + this.hashCode() + "-l" + pdCount++;
+    ZooKeeper zk = new ZooKeeper(accumulo.getZooKeepers(), 1000, null);
+    zk.addAuthInfo("digest", "secret".getBytes());
+    zk.create(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+    
+    ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 1000, "digest", "secret".getBytes(), parent);
+    
+    TestALW lw = new TestALW();
+    
+    zl.lockAsync(lw, "test1".getBytes());
+    Assert.assertEquals("test1", new String(zk.getData(zl.getLockPath(), null, null)));
+    
+    zl.replaceLockData("test2".getBytes());
+    Assert.assertEquals("test2", new String(zk.getData(zl.getLockPath(), null, null)));
+  }
+  
   @AfterClass
   public static void tearDownMiniCluster() throws Exception {
     accumulo.stop();

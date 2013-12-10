@@ -149,6 +149,7 @@ import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.MetadataTable;
 import org.apache.accumulo.server.util.SystemPropUtil;
 import org.apache.accumulo.server.util.TServerUtils;
+import org.apache.accumulo.server.util.TServerUtils.ServerPort;
 import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.accumulo.server.util.TabletIterator.TabletDeletedException;
 import org.apache.accumulo.server.util.time.SimpleTimer;
@@ -2114,8 +2115,13 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
     
     Processor<Iface> processor = new Processor<Iface>(TraceWrap.service(new MasterClientServiceHandler()));
-    clientService = TServerUtils.startServer(getSystemConfiguration(), Property.MASTER_CLIENTPORT, processor, "Master", "Master Client Service Handler", null,
-        Property.MASTER_MINTHREADS, Property.MASTER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE).server;
+    ServerPort serverPort = TServerUtils.startServer(getSystemConfiguration(), Property.MASTER_CLIENTPORT, processor, "Master",
+        "Master Client Service Handler", null, Property.MASTER_MINTHREADS, Property.MASTER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
+    clientService = serverPort.server;
+    InetSocketAddress sock = org.apache.accumulo.core.util.AddressUtil.parseAddress(hostname, serverPort.port);
+    String address = org.apache.accumulo.core.util.AddressUtil.toString(sock);
+    log.info("Setting master lock data to " + address);
+    masterLock.replaceLockData(address.getBytes());
     
     while (!clientService.isServing()) {
       UtilWaitThread.sleep(100);
