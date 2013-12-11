@@ -31,9 +31,13 @@ but having them available suppresses a runtime warning:
 
   $ ( cd ./src/server/src/main/c++ ; make )
 
+If you want to build the redhat release, use the command "mvn package && mvn
+-N rpm:rpm" to generate the .rpm files in platform specific subfolders under
+target/rpm directory.
+
 If you want to build the debian release, use the command "mvn package && mvn 
-install" to generate the .deb files in the target/ directory. Please follow
-the steps at 
+-N install -Pdeb" to generate the .deb files in the target/ directory. Please
+follow the steps at
 https://cwiki.apache.org/BIGTOP/how-to-install-hadoop-distribution-from-bigtop.html
 to add bigtop to your debian sources list. This will make it substantially
 easier to install.
