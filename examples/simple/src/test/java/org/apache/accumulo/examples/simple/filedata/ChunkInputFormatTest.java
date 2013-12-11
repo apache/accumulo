@@ -16,13 +16,16 @@
  */
 package org.apache.accumulo.examples.simple.filedata;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
-
-import junit.framework.TestCase;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -42,8 +45,11 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
-public class ChunkInputFormatTest extends TestCase {
+public class ChunkInputFormatTest {
+
   private static AssertionError e0 = null;
   private static AssertionError e1 = null;
   private static AssertionError e2 = null;
@@ -54,7 +60,10 @@ public class ChunkInputFormatTest extends TestCase {
   private static List<Entry<Key,Value>> data;
   private static List<Entry<Key,Value>> baddata;
 
-  {
+  @BeforeClass
+  public static void setupClass() {
+    System.setProperty("hadoop.tmp.dir", System.getProperty("user.dir") + "/target/hadoop-tmp");
+
     data = new ArrayList<Entry<Key,Value>>();
     ChunkInputStreamTest.addData(data, "a", "refs", "ida\0ext", "A&B", "ext");
     ChunkInputStreamTest.addData(data, "a", "refs", "ida\0name", "A&B", "name");
@@ -219,11 +228,12 @@ public class ChunkInputFormatTest extends TestCase {
       return job.isSuccessful() ? 0 : 1;
     }
 
-    public static int main(String[] args) throws Exception {
+    public static int main(String... args) throws Exception {
       return ToolRunner.run(new Configuration(), new CIFTester(), args);
     }
   }
 
+  @Test
   public void test() throws Exception {
     MockInstance instance = new MockInstance("instance1");
     Connector conn = instance.getConnector("root", new PasswordToken(""));
@@ -238,11 +248,12 @@ public class ChunkInputFormatTest extends TestCase {
     }
     bw.close();
 
-    assertEquals(0, CIFTester.main(new String[] {"instance1", "root", "", "test", CIFTester.TestMapper.class.getName()}));
+    assertEquals(0, CIFTester.main("instance1", "root", "", "test", CIFTester.TestMapper.class.getName()));
     assertNull(e1);
     assertNull(e2);
   }
 
+  @Test
   public void testErrorOnNextWithoutClose() throws Exception {
     MockInstance instance = new MockInstance("instance2");
     Connector conn = instance.getConnector("root", new PasswordToken(""));
@@ -257,12 +268,13 @@ public class ChunkInputFormatTest extends TestCase {
     }
     bw.close();
 
-    assertEquals(1, CIFTester.main(new String[] {"instance2", "root", "", "test", CIFTester.TestNoClose.class.getName()}));
+    assertEquals(1, CIFTester.main("instance2", "root", "", "test", CIFTester.TestNoClose.class.getName()));
     assertNull(e1);
     assertNull(e2);
     assertNotNull(e3);
   }
 
+  @Test
   public void testInfoWithoutChunks() throws Exception {
     MockInstance instance = new MockInstance("instance3");
     Connector conn = instance.getConnector("root", new PasswordToken(""));
@@ -276,7 +288,7 @@ public class ChunkInputFormatTest extends TestCase {
     }
     bw.close();
 
-    assertEquals(0, CIFTester.main(new String[] {"instance3", "root", "", "test", CIFTester.TestBadData.class.getName()}));
+    assertEquals(0, CIFTester.main("instance3", "root", "", "test", CIFTester.TestBadData.class.getName()));
     assertNull(e0);
     assertNull(e1);
     assertNull(e2);

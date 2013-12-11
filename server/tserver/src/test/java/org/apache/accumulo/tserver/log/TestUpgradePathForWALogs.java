@@ -26,12 +26,14 @@ import java.io.OutputStream;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
@@ -39,22 +41,24 @@ public class TestUpgradePathForWALogs {
 
   private static final String WALOG_FROM_15 = "/walog-from-15.walog";
   private static final String WALOG_FROM_16 = "/walog-from-16.walog";
+  private static File testDir;
 
   VolumeManager fs;
 
-  TemporaryFolder root;
+  @BeforeClass
+  public static void createTestDirectory() {
+    File baseDir = new File(System.getProperty("user.dir") + "/target/upgrade-tests");
+    baseDir.mkdirs();
+    testDir = new File(baseDir,  TestUpgradePathForWALogs.class.getName());
+    FileUtils.deleteQuietly(testDir);
+    testDir.mkdir();
+  }
+
+  @Rule
+  public TemporaryFolder root = new TemporaryFolder(testDir);
 
   @Before
   public void setUp() throws Exception {
-    File tempFile = File.createTempFile("TestUpgradePathForWALogs", "");
-    String tempDirName = tempFile.getAbsolutePath() + "Dir";
-    tempFile.delete();
-
-    File tempDir = new File(tempDirName);
-    tempDir.mkdirs();
-
-    root = new TemporaryFolder(new File(tempDirName));
-
     // quiet log messages about compress.CodecPool
     Logger.getRootLogger().setLevel(Level.ERROR);
     fs = VolumeManagerImpl.getLocal();
@@ -63,20 +67,6 @@ public class TestUpgradePathForWALogs {
     Path manyMapsPath = new Path("file://" + path + "/manyMaps");
     fs.mkdirs(manyMapsPath);
     fs.create(new Path(manyMapsPath, "finished")).close();
-    // FileSystem ns = fs.getDefaultVolume();
-    // Writer writer = new Writer(ns.getConf(), ns, new Path(root, "odd").toString(), IntWritable.class, BytesWritable.class);
-    // BytesWritable value = new BytesWritable("someValue".getBytes());
-    // for (int i = 1; i < 1000; i += 2) {
-    // writer.append(new IntWritable(i), value);
-    // }
-    // writer.close();
-    // writer = new Writer(ns.getConf(), ns, new Path(root, "even").toString(), IntWritable.class, BytesWritable.class);
-    // for (int i = 0; i < 1000; i += 2) {
-    // if (i == 10)
-    // continue;
-    // writer.append(new IntWritable(i), value);
-    // }
-    // writer.close();
   }
 
   @Test
@@ -147,8 +137,4 @@ public class TestUpgradePathForWALogs {
     }
   }
 
-  @After
-  public void tearDown() throws Exception {
-    // root.delete();
-  }
 }
