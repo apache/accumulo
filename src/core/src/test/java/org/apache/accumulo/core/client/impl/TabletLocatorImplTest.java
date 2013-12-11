@@ -450,7 +450,7 @@ public class TabletLocatorImplTest extends TestCase {
     }
     
     @Override
-    public void close() throws AccumuloException {
+    public void close() {
       // NOOP
     }
   }

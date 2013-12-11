@@ -18,6 +18,7 @@ package org.apache.accumulo.core.zookeeper;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -40,7 +41,7 @@ import org.apache.zookeeper.data.Stat;
  * Caches values stored in zookeeper and keeps them up to date as they change in zookeeper.
  * 
  */
-public class ZooCache {
+public class ZooCache implements Closeable {
   private static final Logger log = Logger.getLogger(ZooCache.class);
   
   private ZCacheWatcher watcher = new ZCacheWatcher();
@@ -308,7 +309,8 @@ public class ZooCache {
     return zc;
   }
   
-  public void close() throws InterruptedException {
+  @Override
+  public void close() {
     cache.clear();
     statCache.clear();
     childrenCache.clear();
