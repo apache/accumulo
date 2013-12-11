@@ -766,7 +766,7 @@ public class TabletLocatorImplTest extends TestCase {
     locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver2", credentials);
     locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver3", credentials);
 
-    // simulate the !METADATA table splitting
+    // simulate the metadata table splitting
     KeyExtent mte1 = new KeyExtent(new Text(MetadataTable.ID), tab1e21.getMetadataEntry(), RTE.getEndRow());
     KeyExtent mte2 = new KeyExtent(new Text(MetadataTable.ID), null, tab1e21.getMetadataEntry());
 
@@ -805,14 +805,14 @@ public class TabletLocatorImplTest extends TestCase {
     locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver8", credentials);
     locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver9", credentials);
 
-    // simulate a hole in the !METADATA table, caused by a partial split
+    // simulate a hole in the metadata, caused by a partial split
     KeyExtent mte11 = new KeyExtent(new Text(MetadataTable.ID), tab1e1.getMetadataEntry(), RTE.getEndRow());
     KeyExtent mte12 = new KeyExtent(new Text(MetadataTable.ID), tab1e21.getMetadataEntry(), tab1e1.getMetadataEntry());
     deleteServer(tservers, "tserver10");
     setLocation(tservers, "tserver4", RTE, mte12, "tserver10");
     setLocation(tservers, "tserver10", mte12, tab1e21, "tserver12");
 
-    // at this point should be no info in !METADATA about tab1e1
+    // at this point should be no table1 metadata
     tab1TabletCache.invalidateCache(tab1e1);
     tab1TabletCache.invalidateCache(tab1e21);
     locateTabletTest(tab1TabletCache, "a", null, null, credentials);
@@ -1019,7 +1019,7 @@ public class TabletLocatorImplTest extends TestCase {
   }
 
   public void testBinRanges5() throws Exception {
-    // Test binning when there is a hole in the !METADATA information
+    // Test binning when there is a hole in the metadata
     Text tableName = new Text("foo");
 
     List<Range> ranges = nrl(new Range(new Text("1")));
@@ -1227,7 +1227,7 @@ public class TabletLocatorImplTest extends TestCase {
     setLocation(tservers, "tserver1", RTE, mte1, "tserver2");
     setLocation(tservers, "tserver1", RTE, mte2, "tserver3");
 
-    // create two tablets that straddle a !METADATA split point
+    // create two tablets that straddle a metadata split point
     KeyExtent ke1 = new KeyExtent(new Text("0"), new Text("0bbf20e"), null);
     KeyExtent ke2 = new KeyExtent(new Text("0"), new Text("0bc0756"), new Text("0bbf20e"));
 

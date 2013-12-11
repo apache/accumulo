@@ -273,7 +273,7 @@ public class ShellServerIT extends SimpleMacIT {
     shell.execCommand("du -h", false, false);
     String o = output.get();
     // for some reason, there's a bit of fluctuation
-    assertTrue("Output did not match regex: '" + o + "'", o.matches(".*[1-9][0-9][0-9]\\s\\[t\\]\\n")); 
+    assertTrue("Output did not match regex: '" + o + "'", o.matches(".*[1-9][0-9][0-9]\\s\\[t\\]\\n"));
     exec("deletetable -f t");
   }
 
@@ -295,14 +295,14 @@ public class ShellServerIT extends SimpleMacIT {
     exec("createuser xyzzy", true);
     exec("users", true, "xyzzy", true);
     String perms = exec("userpermissions -u xyzzy", true);
-    assertTrue(perms.contains("Table permissions (!METADATA): Table.READ"));
+    assertTrue(perms.contains("Table permissions (" + MetadataTable.NAME + "): Table.READ"));
     exec("grant -u xyzzy -s System.CREATE_TABLE", true);
     perms = exec("userpermissions -u xyzzy", true);
     assertTrue(perms.contains(""));
-    exec("grant -u root -t !METADATA Table.WRITE", true);
-    exec("grant -u root -t !METADATA Table.GOOFY", false);
+    exec("grant -u root -t " + MetadataTable.NAME + " Table.WRITE", true);
+    exec("grant -u root -t " + MetadataTable.NAME + " Table.GOOFY", false);
     exec("grant -u root -s foo", false);
-    exec("grant -u xyzzy -t !METADATA foo", false);
+    exec("grant -u xyzzy -t " + MetadataTable.NAME + " foo", false);
     input.set("secret\nsecret\n");
     exec("user xyzzy", true);
     exec("createtable t", true, "xyzzy@", true);
@@ -315,9 +315,9 @@ public class ShellServerIT extends SimpleMacIT {
     exec("revoke -u xyzzy -s System.CREATE_TABLE", true);
     exec("revoke -u xyzzy -s System.GOOFY", false);
     exec("revoke -u xyzzy -s foo", false);
-    exec("revoke -u xyzzy -t !METADATA Table.WRITE", true);
-    exec("revoke -u xyzzy -t !METADATA Table.GOOFY", false);
-    exec("revoke -u xyzzy -t !METADATA foo", false);
+    exec("revoke -u xyzzy -t " + MetadataTable.NAME + " Table.WRITE", true);
+    exec("revoke -u xyzzy -t " + MetadataTable.NAME + " Table.GOOFY", false);
+    exec("revoke -u xyzzy -t " + MetadataTable.NAME + " foo", false);
     exec("deleteuser xyzzy", true);
     exec("users", true, "xyzzy", false);
   }
@@ -486,7 +486,7 @@ public class ShellServerIT extends SimpleMacIT {
   @Test(timeout = 30 * 1000)
   public void constraint() throws Exception {
     // constraint
-    exec("constraint -l -t !METADATA", true, "MetadataConstraints=1", true);
+    exec("constraint -l -t " + MetadataTable.NAME + "", true, "MetadataConstraints=1", true);
     exec("createtable c -evc");
     exec("constraint -l -t c", true, "VisibilityConstraint=2", true);
     exec("constraint -t c -d 2", true, "Removed constraint 2 from table c");
@@ -672,12 +672,12 @@ public class ShellServerIT extends SimpleMacIT {
     exec("merge --all", true);
     exec("getsplits", true, "z", false);
     exec("deletetable -f t");
-    exec("getsplits -t !METADATA", true);
+    exec("getsplits -t " + MetadataTable.NAME + "", true);
     assertEquals(2, output.get().split("\n").length);
-    exec("getsplits -t !!ROOT", true);
+    exec("getsplits -t accumulo.root", true);
     assertEquals(1, output.get().split("\n").length);
-    exec("merge --all -t !METADATA");
-    exec("getsplits -t !METADATA", true);
+    exec("merge --all -t " + MetadataTable.NAME + "");
+    exec("getsplits -t " + MetadataTable.NAME + "", true);
     assertEquals(1, output.get().split("\n").length);
   }
 
@@ -704,7 +704,7 @@ public class ShellServerIT extends SimpleMacIT {
     exec("scan -t xyzzy", true, "value", true);
     exec("deletetable -f xyzzy", true);
   }
-  
+
   @Test(timeout = 30 * 1000)
   public void tables() throws Exception {
     exec("createtable zzzz");
@@ -719,7 +719,7 @@ public class ShellServerIT extends SimpleMacIT {
   @Test(timeout = 30 * 1000)
   public void systempermission() throws Exception {
     exec("systempermissions");
-    assertEquals(8, output.get().split("\n").length - 1);
+    assertEquals(11, output.get().split("\n").length - 1);
     exec("tablepermissions", true);
     assertEquals(6, output.get().split("\n").length - 1);
   }
@@ -784,12 +784,12 @@ public class ShellServerIT extends SimpleMacIT {
     exec("config -t ptc -s " + Property.TABLE_CLASSPATH.getKey() + "=cx1", true);
 
     UtilWaitThread.sleep(200);
-    
-    // We can't use the setiter command as Filter implements OptionDescriber which 
+
+    // We can't use the setiter command as Filter implements OptionDescriber which
     // forces us to enter more input that I don't know how to input
     // Instead, we can just manually set the property on the table.
     exec("config -t ptc -s " + Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.foo=10,org.apache.accumulo.test.FooFilter");
-    
+
     exec("insert foo f q v", true);
 
     UtilWaitThread.sleep(100);
@@ -804,7 +804,7 @@ public class ShellServerIT extends SimpleMacIT {
     exec("table ptc", true);
     exec("insert foo f q v", false);
     exec("insert ok foo q v", true);
-    
+
     exec("deletetable -f ptc", true);
     exec("config -d " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
 
@@ -830,6 +830,77 @@ public class ShellServerIT extends SimpleMacIT {
     input.set(ROOT_PASSWORD + "\n");
     String err = exec("user NoSuchUser", false);
     assertTrue(err.contains("BAD_CREDENTIALS for user NoSuchUser"));
+  }
+
+  @Test(timeout = 30 * 1000)
+  public void namespaces() throws Exception {
+    exec("namespaces", true, Constants.DEFAULT_NAMESPACE, true);
+    exec("createnamespace thing1", true);
+    String namespaces = exec("namespaces");
+    assertTrue(namespaces.contains("thing1"));
+
+    exec("renamenamespace thing1 thing2");
+    namespaces = exec("namespaces");
+    assertTrue(namespaces.contains("thing2"));
+    assertTrue(!namespaces.contains("thing1"));
+
+    // can't delete a namespace that still contains tables, unless you do -f
+    exec("createtable thing2.thingy", true);
+    exec("deletenamespace thing2");
+    exec("y");
+    exec("namespaces", true, "thing2", true);
+
+    exec("du -ns thing2", true, "thing2.thingy", true);
+
+    // all "TableOperation" commands can take a namespace
+    exec("offline -ns thing2", true);
+    exec("online -ns thing2", true);
+    exec("flush -ns thing2", true);
+    exec("compact -ns thing2", true);
+    exec("createnamespace testers3", true);
+    exec("createtable testers3.1", true);
+    exec("createtable testers3.2", true);
+    exec("deletetable -ns testers3 -f", true);
+    exec("tables", true, "testers3.1", false);
+    exec("namespaces", true, "testers3", true);
+    exec("deletenamespace testers3 -f", true);
+    input.set("true\n\n\nSTRING\n");
+    exec("setiter -ns thing2 -scan -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -n name", true);
+    exec("listiter -ns thing2 -scan", true, "Summing", true);
+    exec("deleteiter -ns thing2 -n name -scan", true);
+    exec("createuser dude");
+    exec("pass");
+    exec("pass");
+    exec("grant Namespace.CREATE_TABLE -ns thing2 -u dude", true);
+    exec("revoke Namespace.CREATE_TABLE -ns thing2 -u dude", true);
+
+    // properties override and such
+    exec("config -ns thing2 -s table.file.max=44444", true);
+    exec("config -ns thing2", true, "44444", true);
+    exec("config -t thing2.thingy", true, "44444", true);
+    exec("config -t thing2.thingy -s table.file.max=55555", true);
+    exec("config -t thing2.thingy", true, "55555", true);
+
+    // can copy properties when creating
+    exec("createnamespace thing3 -cc thing2", true);
+    exec("config -ns thing3", true, "44444", true);
+    exec("createnamespace thing4 -ctc thing2.thingy", true);
+    exec("config -ns thing4", true, "55555", true);
+
+    exec("deletenamespace -f thing2", true);
+    exec("namespaces", true, "thing2", false);
+    exec("tables", true, "thing2.thingy", false);
+
+    // put constraints on a namespace
+    exec("constraint -ns thing4 -a org.apache.accumulo.examples.simple.constraints.NumericValueConstraint", true);
+    exec("createtable thing4.constrained", true);
+    exec("table thing4.constrained", true);
+    // should fail
+    exec("insert r cf cq abc", false);
+    exec("constraint -l", true, "NumericValueConstraint", true);
+    exec("constraint -ns thing4 -d 1");
+    exec("sleep 1");
+    exec("insert r cf cq abc", true);
   }
 
   private int countkeys(String table) throws IOException {
@@ -878,7 +949,7 @@ public class ShellServerIT extends SimpleMacIT {
   }
 
   private int countFiles() throws IOException {
-    exec("scan -t !METADATA -np -c file");
+    exec("scan -t " + MetadataTable.NAME + " -np -c file");
     return output.get().split("\n").length - 1;
   }
 }

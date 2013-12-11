@@ -42,7 +42,9 @@ public class CreateTable extends Test {
       conn.tableOperations().create(tableName);
       log.debug("Created table " + tableName);
     } catch (TableExistsException e) {
-      log.debug("Create " + tableName + " failed, it exist");
+      log.debug("Create " + tableName + " failed, it exists");
+    } catch (IllegalArgumentException e) {
+      log.debug("Create: " + e.toString());
     }
   }
 }

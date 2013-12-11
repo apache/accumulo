@@ -57,8 +57,8 @@ public class DumpConfigIT extends ConfigurableMacIT {
     assertTrue(meta.contains(Property.TABLE_FILE_REPLICATION.getKey()));
     String systemPerm = FunctionalTestUtils.readAll(new FileInputStream(new File(folder.getRoot(), "system_perm.cfg")));
     assertTrue(systemPerm.contains("grant System.ALTER_USER -s -u root"));
-    String metaPerm = FunctionalTestUtils.readAll(new FileInputStream(new File(folder.getRoot(), "!METADATA_perm.cfg")));
-    assertTrue(metaPerm.contains("grant Table.READ -t !METADATA -u root"));
-    assertFalse(metaPerm.contains("grant Table.DROP -t !METADATA -u root"));
+    String metaPerm = FunctionalTestUtils.readAll(new FileInputStream(new File(folder.getRoot(), MetadataTable.NAME + "_perm.cfg")));
+    assertTrue(metaPerm.contains("grant Table.READ -t " + MetadataTable.NAME + " -u root"));
+    assertFalse(metaPerm.contains("grant Table.DROP -t " + MetadataTable.NAME + " -u root"));
   }
 }

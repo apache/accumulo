@@ -415,8 +415,8 @@ public class MultiTableBatchWriterTest {
       bw1.addMutation(m1);
       bw2.addMutation(m1);
 
-      tops.offline(table1);
-      tops.offline(table2);
+      tops.offline(table1, true);
+      tops.offline(table2, true);
 
       Mutation m2 = new Mutation("bar");
       m2.put("col1", "", "val1");
@@ -432,7 +432,6 @@ public class MultiTableBatchWriterTest {
     } finally {
       if (null != mtbw) {
         try {
-          // Mutations might have flushed before the table offline occurred
           mtbw.close();
         } catch (MutationsRejectedException e) {
           // Pass

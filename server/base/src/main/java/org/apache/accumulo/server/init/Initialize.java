@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
 
@@ -38,6 +39,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
+import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
@@ -85,15 +87,35 @@ public class Initialize {
   private static final Logger log = Logger.getLogger(Initialize.class);
   private static final String DEFAULT_ROOT_USER = "root";
   public static final String TABLE_TABLETS_TABLET_DIR = "/table_info";
-  
+
   private static ConsoleReader reader = null;
-  
+  private static IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+
   private static ConsoleReader getConsoleReader() throws IOException {
     if (reader == null)
       reader = new ConsoleReader();
     return reader;
   }
-  
+
+  /**
+   * Sets this class's ZooKeeper reader/writer.
+   * 
+   * @param izoo
+   *          reader/writer
+   */
+  static void setZooReaderWriter(IZooReaderWriter izoo) {
+    zoo = izoo;
+  }
+
+  /**
+   * Gets this class's ZooKeeper reader/writer.
+   * 
+   * @return reader/writer
+   */
+  static IZooReaderWriter getZooReaderWriter() {
+    return zoo;
+  }
+
   private static HashMap<String,String> initialMetadataConf = new HashMap<String,String>();
   static {
     initialMetadataConf.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "32K");
@@ -119,21 +141,22 @@ public class Initialize {
     initialMetadataConf.put(Property.TABLE_INDEXCACHE_ENABLED.getKey(), "true");
     initialMetadataConf.put(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true");
   }
-  
-  public static boolean doInit(Opts opts, Configuration conf, VolumeManager fs) throws IOException {
-    if (!ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_DFS_URI).equals(""))
-      log.info("Hadoop Filesystem is " + ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_DFS_URI));
+
+  static boolean checkInit(Configuration conf, VolumeManager fs, SiteConfiguration sconf) throws IOException {
+    String fsUri;
+    if (!sconf.get(Property.INSTANCE_DFS_URI).equals(""))
+      fsUri = sconf.get(Property.INSTANCE_DFS_URI);
     else
-      log.info("Hadoop Filesystem is " + FileSystem.getDefaultUri(conf));
-    
+      fsUri = FileSystem.getDefaultUri(conf).toString();
+    log.info("Hadoop Filesystem is " + fsUri);
     log.info("Accumulo data dirs are " + Arrays.asList(ServerConstants.getBaseDirs()));
-    log.info("Zookeeper server is " + ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_ZK_HOST));
+    log.info("Zookeeper server is " + sconf.get(Property.INSTANCE_ZK_HOST));
     log.info("Checking if Zookeeper is available. If this hangs, then you need to make sure zookeeper is running");
     if (!zookeeperAvailable()) {
       log.fatal("Zookeeper needs to be up and running in order to init. Exiting ...");
       return false;
     }
-    if (ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_SECRET).equals(Property.INSTANCE_SECRET.getDefaultValue())) {
+    if (sconf.get(Property.INSTANCE_SECRET).equals(Property.INSTANCE_SECRET.getDefaultValue())) {
       ConsoleReader c = getConsoleReader();
       c.beep();
       c.println();
@@ -145,16 +168,33 @@ public class Initialize {
       c.println("   bin/accumulo " + org.apache.accumulo.server.util.ChangeSecret.class.getName() + " oldPassword newPassword.");
       c.println("You will also need to edit your secret in your configuration file by adding the property instance.secret to your conf/accumulo-site.xml. Without this accumulo will not operate correctly");
     }
-    
     try {
       if (isInitialized(fs)) {
-        log.fatal("It appears this location was previously initialized, exiting ... ");
+        String instanceDfsDir = sconf.get(Property.INSTANCE_DFS_DIR);
+        log.fatal("It appears the directory " + fsUri + instanceDfsDir + " was previously initialized.");
+        String instanceDfsUri = sconf.get(Property.INSTANCE_DFS_URI);
+        if ("".equals(instanceDfsUri)) {
+          log.fatal("You are using the default URI for the filesystem. Set the property " + Property.INSTANCE_DFS_URI + " to use a different filesystem,");
+        } else {
+          log.fatal("Change the property " + Property.INSTANCE_DFS_URI + " to use a different filesystem,");
+        }
+        log.fatal("or change the property " + Property.INSTANCE_DFS_DIR + " to use a different directory.");
+        log.fatal("The current value of " + Property.INSTANCE_DFS_URI + " is |" + instanceDfsUri + "|");
+        log.fatal("The current value of " + Property.INSTANCE_DFS_DIR + " is |" + instanceDfsDir + "|");
         return false;
       }
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new IOException("Failed to check if filesystem already initialized", e);
     }
-    
+
+    return true;
+  }
+
+  public static boolean doInit(Opts opts, Configuration conf, VolumeManager fs) throws IOException {
+    if (!checkInit(conf, fs, ServerConfiguration.getSiteConfiguration())) {
+      return false;
+    }
+
     // prompt user for instance name and root password early, in case they
     // abort, we don't leave an inconsistent HDFS/ZooKeeper structure
     String instanceNamePath;
@@ -167,9 +207,9 @@ public class Initialize {
     opts.rootpass = getRootPassword(opts);
     return initialize(opts, instanceNamePath, fs);
   }
-  
+
   public static boolean initialize(Opts opts, String instanceNamePath, VolumeManager fs) {
-    
+
     UUID uuid = UUID.randomUUID();
     // the actual disk locations of the root table and tablets
     final Path rootTablet = new Path(fs.choose(ServerConstants.getTablesDirs()) + "/" + RootTable.ID + RootTable.ROOT_TABLET_LOCATION);
@@ -179,14 +219,14 @@ public class Initialize {
       log.fatal("Failed to initialize zookeeper", e);
       return false;
     }
-    
+
     try {
       initFileSystem(opts, fs, uuid, rootTablet);
     } catch (Exception e) {
       log.fatal("Failed to initialize filesystem", e);
       return false;
     }
-    
+
     try {
       initSecurity(opts, uuid.toString());
     } catch (Exception e) {
@@ -195,9 +235,8 @@ public class Initialize {
     }
     return true;
   }
-  
+
   private static boolean zookeeperAvailable() {
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     try {
       return zoo.exists("/");
     } catch (KeeperException e) {
@@ -206,7 +245,7 @@ public class Initialize {
       return false;
     }
   }
-  
+
   private static Path[] paths(String[] paths) {
     Path[] result = new Path[paths.length];
     for (int i = 0; i < paths.length; i++) {
@@ -214,27 +253,27 @@ public class Initialize {
     }
     return result;
   }
-  
-  //TODO Remove deprecation warning suppression when Hadoop1 support is dropped
+
+  // TODO Remove deprecation warning suppression when Hadoop1 support is dropped
   @SuppressWarnings("deprecation")
   private static void initFileSystem(Opts opts, VolumeManager fs, UUID uuid, Path rootTablet) throws IOException {
     FileStatus fstat;
 
     // the actual disk locations of the metadata table and tablets
     final Path[] metadataTableDirs = paths(ServerConstants.getMetadataTableDirs());
-    
+
     String tableMetadataTabletDir = fs.choose(ServerConstants.prefix(ServerConstants.getMetadataTableDirs(), TABLE_TABLETS_TABLET_DIR));
     String defaultMetadataTabletDir = fs.choose(ServerConstants.prefix(ServerConstants.getMetadataTableDirs(), Constants.DEFAULT_TABLET_LOCATION));
 
     fs.mkdirs(new Path(ServerConstants.getDataVersionLocation(), "" + ServerConstants.DATA_VERSION));
-    
+
     // create an instance id
     fs.mkdirs(ServerConstants.getInstanceIdLocation());
     fs.createNewFile(new Path(ServerConstants.getInstanceIdLocation(), uuid.toString()));
-    
+
     // initialize initial metadata config in zookeeper
     initMetadataConfig();
-    
+
     // create metadata table
     for (Path mtd : metadataTableDirs) {
       try {
@@ -250,7 +289,7 @@ public class Initialize {
         }
       }
     }
-    
+
     // create root table and tablet
     try {
       fstat = fs.getFileStatus(rootTablet);
@@ -264,7 +303,7 @@ public class Initialize {
         return;
       }
     }
-    
+
     // populate the root tablet with info about the default tablet
     // the root tablet contains the key extent and locations of all the
     // metadata tablets
@@ -272,44 +311,44 @@ public class Initialize {
     FileSystem ns = fs.getFileSystemByPath(new Path(initRootTabFile));
     FileSKVWriter mfw = FileOperations.getInstance().openWriter(initRootTabFile, ns, ns.getConf(), AccumuloConfiguration.getDefaultConfiguration());
     mfw.startDefaultLocalityGroup();
-    
+
     Text tableExtent = new Text(KeyExtent.getMetadataEntry(new Text(MetadataTable.ID), MetadataSchema.TabletsSection.getRange().getEndKey().getRow()));
-    
+
     // table tablet's directory
     Key tableDirKey = new Key(tableExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
         TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
     mfw.append(tableDirKey, new Value(tableMetadataTabletDir.getBytes()));
-    
+
     // table tablet time
     Key tableTimeKey = new Key(tableExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
         TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
     mfw.append(tableTimeKey, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes()));
-    
+
     // table tablet's prevrow
     Key tablePrevRowKey = new Key(tableExtent, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
         TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
     mfw.append(tablePrevRowKey, KeyExtent.encodePrevEndRow(null));
-    
+
     // ----------] default tablet info
     Text defaultExtent = new Text(KeyExtent.getMetadataEntry(new Text(MetadataTable.ID), null));
-    
+
     // default's directory
     Key defaultDirKey = new Key(defaultExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
         TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
     mfw.append(defaultDirKey, new Value(defaultMetadataTabletDir.getBytes()));
-    
+
     // default's time
     Key defaultTimeKey = new Key(defaultExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
         TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
     mfw.append(defaultTimeKey, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes()));
-    
+
     // default's prevrow
     Key defaultPrevRowKey = new Key(defaultExtent, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
         TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
     mfw.append(defaultPrevRowKey, KeyExtent.encodePrevEndRow(MetadataSchema.TabletsSection.getRange().getEndKey().getRow()));
-    
+
     mfw.close();
-    
+
     // create table and default tablets directories
     for (String s : Arrays.asList(tableMetadataTabletDir, defaultMetadataTabletDir)) {
       Path dir = new Path(s);
@@ -333,7 +372,7 @@ public class Initialize {
             return;
           }
         }
-        
+
         // create default dir
         if (!fs.mkdirs(dir)) {
           log.fatal("unable to create directory " + dir.toString());
@@ -342,18 +381,17 @@ public class Initialize {
       }
     }
   }
-  
+
   private static void initZooKeeper(Opts opts, String uuid, String instanceNamePath, Path rootTablet) throws KeeperException, InterruptedException {
     // setup basic data in zookeeper
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     ZooUtil.putPersistentData(zoo.getZooKeeper(), Constants.ZROOT, new byte[0], -1, NodeExistsPolicy.SKIP, Ids.OPEN_ACL_UNSAFE);
     ZooUtil.putPersistentData(zoo.getZooKeeper(), Constants.ZROOT + Constants.ZINSTANCES, new byte[0], -1, NodeExistsPolicy.SKIP, Ids.OPEN_ACL_UNSAFE);
-    
+
     // setup instance name
     if (opts.clearInstanceName)
       zoo.recursiveDelete(instanceNamePath, NodeMissingPolicy.SKIP);
     zoo.putPersistentData(instanceNamePath, uuid.getBytes(), NodeExistsPolicy.FAIL);
-    
+
     // setup the instance
     String zkInstanceRoot = Constants.ZROOT + "/" + uuid;
     zoo.putPersistentData(zkInstanceRoot, new byte[0], NodeExistsPolicy.FAIL);
@@ -376,8 +414,32 @@ public class Initialize {
     zoo.putPersistentData(zkInstanceRoot + Constants.ZHDFS_RESERVATIONS, new byte[0], NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZNEXT_FILE, new byte[] {'0'}, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZRECOVERY, new byte[] {'0'}, NodeExistsPolicy.FAIL);
+    zoo.putPersistentData(zkInstanceRoot + Constants.ZNAMESPACES, new byte[0], NodeExistsPolicy.FAIL);
+    
+    createInitialNamespace(zoo, zkInstanceRoot, Constants.DEFAULT_NAMESPACE_ID, Constants.DEFAULT_NAMESPACE, true);
+    createInitialNamespace(zoo, zkInstanceRoot, Constants.ACCUMULO_NAMESPACE_ID, Constants.ACCUMULO_NAMESPACE, false);
+    
+    zoo.putPersistentData(zkInstanceRoot + Constants.ZTABLES + "/" + MetadataTable.ID + Constants.ZTABLE_NAMESPACE,
+        Constants.ACCUMULO_NAMESPACE_ID.getBytes(Constants.UTF8), NodeExistsPolicy.OVERWRITE);
+    zoo.putPersistentData(zkInstanceRoot + Constants.ZTABLES + "/" + RootTable.ID + Constants.ZTABLE_NAMESPACE,
+        Constants.ACCUMULO_NAMESPACE_ID.getBytes(Constants.UTF8), NodeExistsPolicy.OVERWRITE);
   }
   
+  private static void createInitialNamespace(IZooReaderWriter zoo, String root, String id, String namespace, boolean defaultOpts) throws KeeperException,
+      InterruptedException {
+    String zPath = root + Constants.ZNAMESPACES + "/" + id;
+    zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.FAIL);
+    zoo.putPersistentData(zPath + Constants.ZNAMESPACE_NAME, namespace.getBytes(Constants.UTF8), NodeExistsPolicy.FAIL);
+    zoo.putPersistentData(zPath + Constants.ZNAMESPACE_CONF, new byte[0], NodeExistsPolicy.FAIL);
+    
+    if (defaultOpts) {
+      Map<String,String> opts = IteratorUtil.generateInitialTableProperties(true);
+      for (Entry<String,String> e : opts.entrySet()) {
+        zoo.putPersistentData(zPath + Constants.ZNAMESPACE_CONF + "/" + e.getKey(), e.getValue().getBytes(Constants.UTF8), NodeExistsPolicy.SKIP);
+      }
+    }
+  }
+
   private static String getInstanceNamePath(Opts opts) throws IOException, KeeperException, InterruptedException {
     // setup the instance name
     String instanceName, instanceNamePath = null;
@@ -397,7 +459,7 @@ public class Initialize {
       if (opts.clearInstanceName) {
         exists = false;
         break;
-      } else if (exists = ZooReaderWriter.getInstance().exists(instanceNamePath)) {
+      } else if (exists = zoo.exists(instanceNamePath)) {
         String decision = getConsoleReader().readLine("Instance name \"" + instanceName + "\" exists. Delete existing entry from zookeeper? [Y/N] : ");
         if (decision == null)
           System.exit(0);
@@ -409,7 +471,7 @@ public class Initialize {
     } while (exists);
     return instanceNamePath;
   }
-  
+
   private static byte[] getRootPassword(Opts opts) throws IOException {
     if (opts.cliPassword != null) {
       return opts.cliPassword.getBytes();
@@ -429,12 +491,12 @@ public class Initialize {
     } while (!rootpass.equals(confirmpass));
     return rootpass.getBytes();
   }
-  
+
   private static void initSecurity(Opts opts, String iid) throws AccumuloSecurityException, ThriftSecurityException {
     AuditedSecurityOperation.getInstance(iid, true).initializeSecurity(SystemCredentials.get().toThrift(HdfsZooInstance.getInstance()), DEFAULT_ROOT_USER,
         opts.rootpass);
   }
-  
+
   public static void initMetadataConfig(String tableId) throws IOException {
     try {
       Configuration conf = CachedConfiguration.getInstance();
@@ -456,12 +518,12 @@ public class Initialize {
       throw new IOException(e);
     }
   }
-  
+
   protected static void initMetadataConfig() throws IOException {
     initMetadataConfig(RootTable.ID);
     initMetadataConfig(MetadataTable.ID);
   }
-  
+
   private static void setMetadataReplication(int replication, String reason) throws IOException {
     String rep = getConsoleReader().readLine(
         "Your HDFS replication " + reason + " is not compatible with our default " + MetadataTable.NAME + " replication of 5. What do you want to set your "
@@ -473,11 +535,11 @@ public class Initialize {
       Integer.parseInt(rep);
     initialMetadataConf.put(Property.TABLE_FILE_REPLICATION.getKey(), rep);
   }
-  
+
   public static boolean isInitialized(VolumeManager fs) throws IOException {
     return (fs.exists(ServerConstants.getInstanceIdLocation()) || fs.exists(ServerConstants.getDataVersionLocation()));
   }
-  
+
   static class Opts extends Help {
     @Parameter(names = "--reset-security", description = "just update the security information")
     boolean resetSecurity = false;
@@ -487,21 +549,21 @@ public class Initialize {
     String cliInstanceName;
     @Parameter(names = "--password", description = "set the password on the command line")
     String cliPassword;
-    
+
     byte[] rootpass = null;
   }
-  
+
   public static void main(String[] args) {
     Opts opts = new Opts();
     opts.parseArgs(Initialize.class.getName(), args);
-    
+
     try {
       SecurityUtil.serverLogin();
       Configuration conf = CachedConfiguration.getInstance();
-      
+
       @SuppressWarnings("deprecation")
       VolumeManager fs = VolumeManagerImpl.get(SiteConfiguration.getSiteConfiguration());
-      
+
       if (opts.resetSecurity) {
         if (isInitialized(fs)) {
           opts.rootpass = getRootPassword(opts);

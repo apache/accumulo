@@ -26,6 +26,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.security.SystemPermission;
+import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
@@ -46,11 +47,18 @@ public class ChangePermissions extends Test {
     List<String> tableNames = (List<String>) state.get("tables");
     String tableName = tableNames.get(rand.nextInt(tableNames.size()));
     
+    @SuppressWarnings("unchecked")
+    List<String> namespaces = (List<String>) state.get("namespaces");
+    String namespace = namespaces.get(rand.nextInt(namespaces.size()));
+    
     try {
-      if (rand.nextBoolean())
+      int dice = rand.nextInt(2);
+      if (dice == 0)
         changeSystemPermission(conn, rand, userName);
-      else
+      else if (dice == 1)
         changeTablePermission(conn, rand, userName, tableName);
+      else if (dice == 2)
+        changeNamespacePermission(conn, rand, userName, namespace);
     } catch (AccumuloSecurityException ex) {
       log.debug("Unable to change user permissions: " + ex.getCause());
     }
@@ -108,4 +116,29 @@ public class ChangePermissions extends Test {
     }
   }
   
+  private void changeNamespacePermission(Connector conn, Random rand, String userName, String namespace) throws AccumuloException, AccumuloSecurityException {
+    
+    EnumSet<NamespacePermission> perms = EnumSet.noneOf(NamespacePermission.class);
+    for (NamespacePermission p : NamespacePermission.values()) {
+      if (conn.securityOperations().hasNamespacePermission(userName, namespace, p))
+        perms.add(p);
+    }
+    
+    EnumSet<NamespacePermission> more = EnumSet.allOf(NamespacePermission.class);
+    more.removeAll(perms);
+    
+    if (rand.nextBoolean() && more.size() > 0) {
+      List<NamespacePermission> moreList = new ArrayList<NamespacePermission>(more);
+      NamespacePermission choice = moreList.get(rand.nextInt(moreList.size()));
+      log.debug("adding permission " + choice);
+      conn.securityOperations().grantNamespacePermission(userName, namespace, choice);
+    } else {
+      if (perms.size() > 0) {
+        List<NamespacePermission> permList = new ArrayList<NamespacePermission>(perms);
+        NamespacePermission choice = permList.get(rand.nextInt(permList.size()));
+        log.debug("removing permission " + choice);
+        conn.securityOperations().revokeNamespacePermission(userName, namespace, choice);
+      }
+    }
+  }
 }

@@ -80,7 +80,7 @@ public class SplitRecoveryIT extends SimpleMacIT {
       while (!isOffline(tableName, connector))
         UtilWaitThread.sleep(200);
 
-      // poke a partial split into the !METADATA table
+      // poke a partial split into the metadata table
       connector.securityOperations().grantTablePermission("root", MetadataTable.NAME, TablePermission.WRITE);
       String tableId = connector.tableOperations().tableIdMap().get(tableName);
 

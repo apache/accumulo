@@ -40,7 +40,7 @@ if [ $? != 0 ]; then
    ip=$(python -c 'import socket as s; print s.gethostbyname(s.getfqdn())')
 fi
 
-HOSTS="`hostname -a` `hostname` localhost 127.0.0.1 $ip"
+HOSTS="$(hostname -a 2> /dev/null) $(hostname) localhost 127.0.0.1 $ip"
 for host in $HOSTS; do
    if grep -q "^${host}\$" $ACCUMULO_CONF_DIR/slaves; then
       ${bin}/start-server.sh $host tserver "tablet server"

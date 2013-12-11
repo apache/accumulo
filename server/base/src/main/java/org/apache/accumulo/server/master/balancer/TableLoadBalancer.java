@@ -30,34 +30,38 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.accumulo.server.security.SystemCredentials;
+import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.log4j.Logger;
 
 public class TableLoadBalancer extends TabletBalancer {
-  
+
   private static final Logger log = Logger.getLogger(TableLoadBalancer.class);
-  
+
   Map<String,TabletBalancer> perTableBalancers = new HashMap<String,TabletBalancer>();
-  
+
   private TabletBalancer constructNewBalancerForTable(String clazzName, String table) throws Exception {
     Class<? extends TabletBalancer> clazz = AccumuloVFSClassLoader.loadClass(clazzName, TabletBalancer.class);
     Constructor<? extends TabletBalancer> constructor = clazz.getConstructor(String.class);
     return constructor.newInstance(table);
   }
-  
+
   protected String getLoadBalancerClassNameForTable(String table) {
-    return configuration.getTableConfiguration(table).get(Property.TABLE_LOAD_BALANCER);
+    if (TableManager.getInstance().getTableState(table).equals(TableState.ONLINE))
+      return configuration.getTableConfiguration(table).get(Property.TABLE_LOAD_BALANCER);
+    return null;
   }
-  
+
   protected TabletBalancer getBalancerForTable(String table) {
     TabletBalancer balancer = perTableBalancers.get(table);
-    
+
     String clazzName = getLoadBalancerClassNameForTable(table);
-    
+
     if (clazzName == null)
       clazzName = DefaultLoadBalancer.class.getName();
     if (balancer != null) {
@@ -83,7 +87,7 @@ public class TableLoadBalancer extends TabletBalancer {
       } catch (Exception e) {
         log.warn("Failed to load table balancer class " + clazzName + " for table " + table, e);
       }
-      
+
       if (balancer == null) {
         log.info("Using balancer " + DefaultLoadBalancer.class.getName() + " for table " + table);
         balancer = new DefaultLoadBalancer(table);
@@ -93,7 +97,7 @@ public class TableLoadBalancer extends TabletBalancer {
     }
     return balancer;
   }
-  
+
   @Override
   public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current, Map<KeyExtent,TServerInstance> unassigned,
       Map<KeyExtent,TServerInstance> assignments) {
@@ -113,9 +117,9 @@ public class TableLoadBalancer extends TabletBalancer {
       assignments.putAll(newAssignments);
     }
   }
-  
+
   private TableOperations tops = null;
-  
+
   protected TableOperations getTableOperations() {
     if (tops == null)
       try {
@@ -127,7 +131,7 @@ public class TableLoadBalancer extends TabletBalancer {
       }
     return tops;
   }
-  
+
   @Override
   public long balance(SortedMap<TServerInstance,TabletServerStatus> current, Set<KeyExtent> migrations, List<TabletMigration> migrationsOut) {
     long minBalanceTime = 5 * 1000;

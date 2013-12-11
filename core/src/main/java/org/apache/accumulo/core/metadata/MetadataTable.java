@@ -16,10 +16,13 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import org.apache.accumulo.core.Constants;
 
 public class MetadataTable {
-  
+
+  public static final String OLD_NAME = "!METADATA";
+
   public static final String ID = "!0";
-  public static final String NAME = "!METADATA";
-  
+  public static final String NAME = Constants.ACCUMULO_NAMESPACE + ".metadata";
+
 }

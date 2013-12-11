@@ -1459,7 +1459,7 @@ public class SimpleProxyIT {
     assertEquals(val, ByteBufferUtil.toString(keyValue.value));
   }
 
-  // scan !METADATA table for file entries for the given table
+  // scan metadata for file entries for the given table
   private int countFiles(String table) throws Exception {
     Map<String,String> tableIdMap = client.tableIdMap(creds);
     String tableId = tableIdMap.get(table);

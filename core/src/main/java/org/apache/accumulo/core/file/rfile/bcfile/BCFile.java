@@ -73,7 +73,7 @@ public final class BCFile {
   }
 
   private static int getFSInputBufferSize(Configuration conf) {
-    return conf.getInt(FS_INPUT_BUF_SIZE_ATTR, 256 * 1024);
+    return conf.getInt(FS_INPUT_BUF_SIZE_ATTR, 32 * 1024);
   }
 
   /**

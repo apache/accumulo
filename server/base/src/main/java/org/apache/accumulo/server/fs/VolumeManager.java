@@ -123,7 +123,7 @@ public interface VolumeManager {
   // forward to the appropriate FileSystem object
   FileStatus[] globStatus(Path path) throws IOException;
 
-  // Convert a file or directory !METADATA reference into a path
+  // Convert a file or directory metadata reference into a path
   Path getFullPath(Key key);
   
   Path getFullPath(String tableId, String path);

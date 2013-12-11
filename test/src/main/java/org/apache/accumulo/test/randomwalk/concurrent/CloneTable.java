@@ -47,9 +47,11 @@ public class CloneTable extends Test {
       log.debug("Cloning table " + srcTableName + " " + newTableName + " " + flush);
       conn.tableOperations().clone(srcTableName, newTableName, flush, new HashMap<String,String>(), new HashSet<String>());
     } catch (TableExistsException e) {
-      log.debug("Clone " + srcTableName + " failed, " + newTableName + " exist");
+      log.debug("Clone " + srcTableName + " failed, " + newTableName + " exists");
     } catch (TableNotFoundException e) {
       log.debug("Clone " + srcTableName + " failed, doesnt exist");
+    } catch (IllegalArgumentException e) {
+      log.debug("Clone: " + e.toString());
     }
   }
 }

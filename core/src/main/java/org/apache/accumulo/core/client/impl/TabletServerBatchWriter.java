@@ -668,7 +668,7 @@ public class TabletServerBatchWriter {
       } catch (AccumuloServerException ase) {
         updateServerErrors(ase.getServer(), ase);
       } catch (AccumuloException ae) {
-        // assume an IOError communicating with !METADATA tablet
+        // assume an IOError communicating with metadata tablet
         failedMutations.add(mutationsToProcess);
       } catch (AccumuloSecurityException e) {
         updateAuthorizationFailures(Collections.singletonMap(new KeyExtent(new Text(MetadataTable.ID), null, null),

@@ -50,6 +50,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableDeletedException;
@@ -60,6 +61,7 @@ import org.apache.accumulo.core.client.impl.AccumuloServerException;
 import org.apache.accumulo.core.client.impl.ClientExec;
 import org.apache.accumulo.core.client.impl.ClientExecReturn;
 import org.apache.accumulo.core.client.impl.MasterClient;
+import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.ServerClient;
 import org.apache.accumulo.core.client.impl.ServerConfigurationUtil;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -125,11 +127,11 @@ import org.apache.thrift.transport.TTransportException;
 public class TableOperationsImpl extends TableOperationsHelper {
   private Instance instance;
   private Credentials credentials;
-  
+
   public static final String CLONE_EXCLUDE_PREFIX = "!";
 
   private static final Logger log = Logger.getLogger(TableOperations.class);
-  
+
   /**
    * @param instance
    *          the connection information for this instance
@@ -141,7 +143,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     this.instance = instance;
     this.credentials = credentials;
   }
-  
+
   /**
    * Retrieve a list of tables in Accumulo.
    * 
@@ -154,7 +156,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     opTimer.stop("Fetched " + tableNames.size() + " table names in %DURATION%");
     return tableNames;
   }
-  
+
   /**
    * A method to check if a table exists in Accumulo.
    * 
@@ -167,13 +169,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
     ArgumentChecker.notNull(tableName);
     if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME))
       return true;
-    
-    OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Checking if table " + tableName + "exists...");
+
+    OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Checking if table " + tableName + " exists...");
     boolean exists = Tables.getNameToIdMap(instance).containsKey(tableName);
     opTimer.stop("Checked existance of " + exists + " in %DURATION%");
     return exists;
   }
-  
+
   /**
    * Create a table with no special configuration
    * 
@@ -190,7 +192,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void create(String tableName) throws AccumuloException, AccumuloSecurityException, TableExistsException {
     create(tableName, true, TimeType.MILLIS);
   }
-  
+
   /**
    * @param tableName
    *          the name of the table
@@ -201,7 +203,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void create(String tableName, boolean limitVersion) throws AccumuloException, AccumuloSecurityException, TableExistsException {
     create(tableName, limitVersion, TimeType.MILLIS);
   }
-  
+
   /**
    * @param tableName
    *          the name of the table
@@ -213,11 +215,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void create(String tableName, boolean limitVersion, TimeType timeType) throws AccumuloException, AccumuloSecurityException, TableExistsException {
     ArgumentChecker.notNull(tableName, timeType);
-    
+
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()), ByteBuffer.wrap(timeType.name().getBytes()));
-    
-    Map<String,String> opts = IteratorUtil.generateInitialTableProperties(limitVersion);
-    
+
+    Map<String,String> opts = new HashMap<String,String>();
+
     try {
       doTableOperation(TableOperation.CREATE, args, opts);
     } catch (TableNotFoundException e1) {
@@ -225,7 +227,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throw new RuntimeException(e1);
     }
   }
-  
+
   private long beginTableOperation() throws ThriftSecurityException, TException {
     while (true) {
       MasterClientService.Iface client = null;
@@ -240,7 +242,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
     }
   }
-  
+
   private void executeTableOperation(long opid, TableOperation op, List<ByteBuffer> args, Map<String,String> opts, boolean autoCleanUp)
       throws ThriftSecurityException, TException, ThriftTableOperationException {
     while (true) {
@@ -257,7 +259,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
     }
   }
-  
+
   private String waitForTableOperation(long opid) throws ThriftSecurityException, TException, ThriftTableOperationException {
     while (true) {
       MasterClientService.Iface client = null;
@@ -272,7 +274,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
     }
   }
-  
+
   private void finishTableOperation(long opid) throws ThriftSecurityException, TException {
     while (true) {
       MasterClientService.Iface client = null;
@@ -288,16 +290,16 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
     }
   }
-  
+
   private String doTableOperation(TableOperation op, List<ByteBuffer> args, Map<String,String> opts) throws AccumuloSecurityException, TableExistsException,
       TableNotFoundException, AccumuloException {
     return doTableOperation(op, args, opts, true);
   }
-  
+
   private String doTableOperation(TableOperation op, List<ByteBuffer> args, Map<String,String> opts, boolean wait) throws AccumuloSecurityException,
       TableExistsException, TableNotFoundException, AccumuloException {
     Long opid = null;
-    
+
     try {
       opid = beginTableOperation();
       executeTableOperation(opid, op, args, opts, !wait);
@@ -336,14 +338,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
         }
     }
   }
-  
+
   private static class SplitEnv {
     private String tableName;
     private String tableId;
     private ExecutorService executor;
     private CountDownLatch latch;
     private AtomicReference<Exception> exception;
-    
+
     SplitEnv(String tableName, String tableId, ExecutorService executor, CountDownLatch latch, AtomicReference<Exception> exception) {
       this.tableName = tableName;
       this.tableId = tableId;
@@ -352,47 +354,47 @@ public class TableOperationsImpl extends TableOperationsHelper {
       this.exception = exception;
     }
   }
-  
+
   private class SplitTask implements Runnable {
-    
+
     private List<Text> splits;
     private SplitEnv env;
-    
+
     SplitTask(SplitEnv env, List<Text> splits) {
       this.env = env;
       this.splits = splits;
     }
-    
+
     @Override
     public void run() {
       try {
         if (env.exception.get() != null)
           return;
-        
+
         if (splits.size() <= 2) {
           addSplits(env.tableName, new TreeSet<Text>(splits), env.tableId);
           for (int i = 0; i < splits.size(); i++)
             env.latch.countDown();
           return;
         }
-        
+
         int mid = splits.size() / 2;
-        
+
         // split the middle split point to ensure that child task split different tablets and can therefore
         // run in parallel
         addSplits(env.tableName, new TreeSet<Text>(splits.subList(mid, mid + 1)), env.tableId);
         env.latch.countDown();
-        
+
         env.executor.submit(new SplitTask(env, splits.subList(0, mid)));
         env.executor.submit(new SplitTask(env, splits.subList(mid + 1, splits.size())));
-        
+
       } catch (Exception e) {
         env.exception.compareAndSet(null, e);
       }
     }
-    
+
   }
-  
+
   /**
    * @param tableName
    *          the name of the table
@@ -408,19 +410,19 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void addSplits(String tableName, SortedSet<Text> partitionKeys) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     String tableId = Tables.getTableId(instance, tableName);
-    
+
     List<Text> splits = new ArrayList<Text>(partitionKeys);
     // should be sorted because we copied from a sorted set, but that makes assumptions about
     // how the copy was done so resort to be sure.
     Collections.sort(splits);
-    
+
     CountDownLatch latch = new CountDownLatch(splits.size());
     AtomicReference<Exception> exception = new AtomicReference<Exception>(null);
-    
+
     ExecutorService executor = Executors.newFixedThreadPool(16, new NamingThreadFactory("addSplits"));
     try {
       executor.submit(new SplitTask(new SplitEnv(tableName, tableId, executor, latch, exception), splits));
-      
+
       while (!latch.await(100, TimeUnit.MILLISECONDS)) {
         if (exception.get() != null) {
           executor.shutdownNow();
@@ -443,24 +445,24 @@ public class TableOperationsImpl extends TableOperationsHelper {
       executor.shutdown();
     }
   }
-  
+
   private void addSplits(String tableName, SortedSet<Text> partitionKeys, String tableId) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException, AccumuloServerException {
     TabletLocator tabLocator = TabletLocator.getLocator(instance, new Text(tableId));
-    
+
     for (Text split : partitionKeys) {
       boolean successful = false;
       int attempt = 0;
-      
+
       while (!successful) {
-        
+
         if (attempt > 0)
           UtilWaitThread.sleep(100);
-        
+
         attempt++;
-        
+
         TabletLocation tl = tabLocator.locateTablet(credentials, split, false, false);
-        
+
         if (tl == null) {
           if (!Tables.exists(instance, tableId))
             throw new TableNotFoundException(tableId, tableName, null);
@@ -468,25 +470,25 @@ public class TableOperationsImpl extends TableOperationsHelper {
             throw new TableOfflineException(instance, tableId);
           continue;
         }
-        
+
         try {
           TabletClientService.Client client = ThriftUtil.getTServerClient(tl.tablet_location, ServerConfigurationUtil.getConfiguration(instance));
           try {
             OpTimer opTimer = null;
             if (log.isTraceEnabled())
               opTimer = new OpTimer(log, Level.TRACE).start("Splitting tablet " + tl.tablet_extent + " on " + tl.tablet_location + " at " + split);
-            
+
             client.splitTablet(Tracer.traceInfo(), credentials.toThrift(instance), tl.tablet_extent.toThrift(), TextUtil.getByteBuffer(split));
-            
+
             // just split it, might as well invalidate it in the cache
             tabLocator.invalidateCache(tl.tablet_extent);
-            
+
             if (opTimer != null)
               opTimer.stop("Split tablet in %DURATION%");
           } finally {
             ThriftUtil.returnClient(client);
           }
-          
+
         } catch (TApplicationException tae) {
           throw new AccumuloServerException(tl.tablet_location, tae);
         } catch (TTransportException e) {
@@ -504,15 +506,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
           tabLocator.invalidateCache(tl.tablet_location);
           continue;
         }
-        
+
         successful = true;
       }
     }
   }
-  
+
   @Override
   public void merge(String tableName, Text start, Text end) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    
+
     ArgumentChecker.notNull(tableName);
     ByteBuffer EMPTY = ByteBuffer.allocate(0);
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()), start == null ? EMPTY : TextUtil.getByteBuffer(start), end == null ? EMPTY
@@ -525,10 +527,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throw new RuntimeException(e);
     }
   }
-  
+
   @Override
   public void deleteRows(String tableName, Text start, Text end) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    
+
     ArgumentChecker.notNull(tableName);
     ByteBuffer EMPTY = ByteBuffer.allocate(0);
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()), start == null ? EMPTY : TextUtil.getByteBuffer(start), end == null ? EMPTY
@@ -541,7 +543,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throw new RuntimeException(e);
     }
   }
-  
+
   /**
    * @param tableName
    *          the name of the table
@@ -549,13 +551,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
    */
   @Override
   public Collection<Text> listSplits(String tableName) throws TableNotFoundException, AccumuloSecurityException {
-    
+
     ArgumentChecker.notNull(tableName);
-    
+
     String tableId = Tables.getTableId(instance, tableName);
-    
+
     TreeMap<KeyExtent,String> tabletLocations = new TreeMap<KeyExtent,String>();
-    
+
     while (true) {
       try {
         tabletLocations.clear();
@@ -568,25 +570,25 @@ public class TableOperationsImpl extends TableOperationsHelper {
         if (!Tables.exists(instance, tableId)) {
           throw new TableNotFoundException(tableId, tableName, null);
         }
-        
+
         if (e instanceof RuntimeException && e.getCause() instanceof AccumuloSecurityException) {
           throw (AccumuloSecurityException) e.getCause();
         }
-        
+
         log.info(e.getMessage() + " ... retrying ...");
         UtilWaitThread.sleep(3000);
       }
     }
-    
+
     ArrayList<Text> endRows = new ArrayList<Text>(tabletLocations.size());
-    
+
     for (KeyExtent ke : tabletLocations.keySet())
       if (ke.getEndRow() != null)
         endRows.add(ke.getEndRow());
-    
+
     return endRows;
   }
-  
+
   @Deprecated
   @Override
   public Collection<Text> getSplits(String tableName) throws TableNotFoundException {
@@ -596,7 +598,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throw new RuntimeException(e);
     }
   }
-  
+
   /**
    * @param tableName
    *          the name of the table
@@ -608,15 +610,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public Collection<Text> listSplits(String tableName, int maxSplits) throws TableNotFoundException, AccumuloSecurityException {
     Collection<Text> endRows = listSplits(tableName);
-    
+
     if (endRows.size() <= maxSplits)
       return endRows;
-    
+
     double r = (maxSplits + 1) / (double) (endRows.size());
     double pos = 0;
-    
+
     ArrayList<Text> subset = new ArrayList<Text>(maxSplits);
-    
+
     int j = 0;
     for (int i = 0; i < endRows.size() && j < maxSplits; i++) {
       pos += r;
@@ -626,10 +628,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
         pos -= 1;
       }
     }
-    
+
     return subset;
   }
-  
+
   @Deprecated
   @Override
   public Collection<Text> getSplits(String tableName, int maxSplits) throws TableNotFoundException {
@@ -639,7 +641,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throw new RuntimeException(e);
     }
   }
-  
+
   /**
    * Delete a table
    * 
@@ -655,39 +657,50 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void delete(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     ArgumentChecker.notNull(tableName);
-    
+
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()));
     Map<String,String> opts = new HashMap<String,String>();
-    
+
     try {
       doTableOperation(TableOperation.DELETE, args, opts);
     } catch (TableExistsException e) {
       // should not happen
       throw new RuntimeException(e);
     }
-    
+
   }
-  
+
   @Override
   public void clone(String srcTableName, String newTableName, boolean flush, Map<String,String> propertiesToSet, Set<String> propertiesToExclude)
       throws AccumuloSecurityException, TableNotFoundException, AccumuloException, TableExistsException {
-    
+
     ArgumentChecker.notNull(srcTableName, newTableName);
-    
+
+    String namespace = Tables.qualify(newTableName).getFirst();
+    if (!namespaceExists(namespace)) {
+      String info = "Namespace not found while cloning table";
+      throw new IllegalArgumentException(new NamespaceNotFoundException(null, namespace, info));
+    }
+
     String srcTableId = Tables.getTableId(instance, srcTableName);
-    
+
     if (flush)
       _flush(srcTableId, null, null, true);
-    
+
     if (propertiesToExclude == null)
       propertiesToExclude = Collections.emptySet();
-    
+
     if (propertiesToSet == null)
       propertiesToSet = Collections.emptyMap();
-    
-    if (!Collections.disjoint(propertiesToExclude, propertiesToSet.keySet()))
+
+    HashSet<String> excludeProps = getUniqueNamespaceProperties(namespace, srcTableName, propertiesToSet);
+    for (String p : propertiesToExclude) {
+      excludeProps.add(p);
+    }
+
+    if (!Collections.disjoint(excludeProps, propertiesToSet.keySet()))
       throw new IllegalArgumentException("propertiesToSet and propertiesToExclude not disjoint");
-    
+
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(srcTableId.getBytes()), ByteBuffer.wrap(newTableName.getBytes()));
     Map<String,String> opts = new HashMap<String,String>();
     for (Entry<String,String> entry : propertiesToSet.entrySet()) {
@@ -695,14 +708,42 @@ public class TableOperationsImpl extends TableOperationsHelper {
         throw new IllegalArgumentException("Property can not start with " + CLONE_EXCLUDE_PREFIX);
       opts.put(entry.getKey(), entry.getValue());
     }
-    
+
     for (String prop : propertiesToExclude) {
       opts.put(CLONE_EXCLUDE_PREFIX + prop, "");
     }
-    
+
     doTableOperation(TableOperation.CLONE, args, opts);
   }
-  
+
+  // get the properties that are only in the namespace so that we can exclude them when copying table properties.
+  // also, don't exclude properties that are going to be explicitly set.
+  private HashSet<String> getUniqueNamespaceProperties(String namespace, String table, Map<String,String> propsToSet) throws TableNotFoundException,
+      AccumuloException {
+    HashSet<String> props = new HashSet<String>();
+    try {
+      Iterable<Entry<String,String>> n = new NamespaceOperationsImpl(instance, credentials).getProperties(namespace);
+      Iterable<Entry<String,String>> t = getProperties(table);
+      Map<String,String> tmap = new HashMap<String,String>();
+      for (Entry<String,String> e : t) {
+        tmap.put(e.getKey(), e.getValue());
+      }
+      for (Entry<String,String> e : n) {
+        String val = tmap.get(e.getKey());
+        if (e.getValue().equals(val)) {
+          props.add(e.getKey());
+        }
+      }
+    } catch (NamespaceNotFoundException e) {
+      throw new IllegalStateException(new NamespaceNotFoundException(null, namespace, null));
+    }
+
+    for (Entry<String,String> e : propsToSet.entrySet()) {
+      props.remove(e.getKey());
+    }
+    return props;
+  }
+
   /**
    * Rename a table
    * 
@@ -722,12 +763,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void rename(String oldTableName, String newTableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException,
       TableExistsException {
-    
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldTableName.getBytes()), ByteBuffer.wrap(newTableName.getBytes()));
+
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldTableName.getBytes(Constants.UTF8)), ByteBuffer.wrap(newTableName.getBytes(Constants.UTF8)));
     Map<String,String> opts = new HashMap<String,String>();
     doTableOperation(TableOperation.RENAME, args, opts);
   }
-  
+
   /**
    * @deprecated since 1.4 {@link #flush(String, Text, Text, boolean)}
    */
@@ -740,7 +781,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throw new AccumuloException(e.getMessage(), e);
     }
   }
-  
+
   /**
    * Flush a table
    * 
@@ -755,31 +796,31 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void flush(String tableName, Text start, Text end, boolean wait) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     ArgumentChecker.notNull(tableName);
-    
+
     String tableId = Tables.getTableId(instance, tableName);
     _flush(tableId, start, end, wait);
   }
-  
+
   @Override
   public void compact(String tableName, Text start, Text end, boolean flush, boolean wait) throws AccumuloSecurityException, TableNotFoundException,
       AccumuloException {
     compact(tableName, start, end, new ArrayList<IteratorSetting>(), flush, wait);
   }
-  
+
   @Override
   public void compact(String tableName, Text start, Text end, List<IteratorSetting> iterators, boolean flush, boolean wait) throws AccumuloSecurityException,
       TableNotFoundException, AccumuloException {
     ArgumentChecker.notNull(tableName);
     ByteBuffer EMPTY = ByteBuffer.allocate(0);
-    
+
     String tableId = Tables.getTableId(instance, tableName);
-    
+
     if (flush)
       _flush(tableId, start, end, true);
-    
+
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes()), start == null ? EMPTY : TextUtil.getByteBuffer(start), end == null ? EMPTY
         : TextUtil.getByteBuffer(end), ByteBuffer.wrap(IteratorUtil.encodeIteratorSettings(iterators)));
-    
+
     Map<String,String> opts = new HashMap<String,String>();
     try {
       doTableOperation(TableOperation.COMPACT, args, opts, wait);
@@ -788,13 +829,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throw new RuntimeException(e);
     }
   }
-  
+
   @Override
   public void cancelCompaction(String tableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException {
     String tableId = Tables.getTableId(instance, tableName);
-    
+
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes()));
-    
+
     Map<String,String> opts = new HashMap<String,String>();
     try {
       doTableOperation(TableOperation.COMPACT_CANCEL, args, opts, true);
@@ -802,17 +843,17 @@ public class TableOperationsImpl extends TableOperationsHelper {
       // should not happen
       throw new RuntimeException(e);
     }
-    
+
   }
-  
+
   private void _flush(String tableId, Text start, Text end, boolean wait) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    
+
     try {
       long flushID;
-      
+
       // used to pass the table name. but the tableid associated with a table name could change between calls.
       // so pass the tableid to both calls
-      
+
       while (true) {
         MasterClientService.Iface client = null;
         try {
@@ -826,7 +867,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           MasterClient.close(client);
         }
       }
-      
+
       while (true) {
         MasterClientService.Iface client = null;
         try {
@@ -859,7 +900,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throw new AccumuloException(e);
     }
   }
-  
+
   /**
    * Sets a property on a table
    * 
@@ -884,7 +925,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
     });
   }
-  
+
   /**
    * Removes a property from a table
    * 
@@ -907,7 +948,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
     });
   }
-  
+
   /**
    * Gets properties of a table
    * 
@@ -940,9 +981,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     } catch (Exception e) {
       throw new AccumuloException(e);
     }
-    
+
   }
-  
+
   /**
    * Sets a tables locality groups. A tables locality groups can be changed at any time.
    * 
@@ -962,22 +1003,22 @@ public class TableOperationsImpl extends TableOperationsHelper {
     // ensure locality groups do not overlap
     HashSet<Text> all = new HashSet<Text>();
     for (Entry<String,Set<Text>> entry : groups.entrySet()) {
-      
+
       if (!Collections.disjoint(all, entry.getValue())) {
         throw new IllegalArgumentException("Group " + entry.getKey() + " overlaps with another group");
       }
-      
+
       all.addAll(entry.getValue());
     }
-    
+
     for (Entry<String,Set<Text>> entry : groups.entrySet()) {
       Set<Text> colFams = entry.getValue();
       String value = LocalityGroupUtil.encodeColumnFamilies(colFams);
       setProperty(tableName, Property.TABLE_LOCALITY_GROUP_PREFIX + entry.getKey(), value);
     }
-    
+
     setProperty(tableName, Property.TABLE_LOCALITY_GROUPS.getKey(), StringUtil.join(groups.keySet(), ","));
-    
+
     // remove anything extraneous
     String prefix = Property.TABLE_LOCALITY_GROUP_PREFIX.getKey();
     for (Entry<String,String> entry : getProperties(tableName)) {
@@ -987,14 +1028,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
         // one:
         String[] parts = property.split("\\.");
         String group = parts[parts.length - 1];
-        
+
         if (!groups.containsKey(group)) {
           removeProperty(tableName, property);
         }
       }
     }
   }
-  
+
   /**
    * 
    * Gets the locality groups currently set for a table.
@@ -1011,22 +1052,22 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public Map<String,Set<Text>> getLocalityGroups(String tableName) throws AccumuloException, TableNotFoundException {
     AccumuloConfiguration conf = new ConfigurationCopy(this.getProperties(tableName));
     Map<String,Set<ByteSequence>> groups = LocalityGroupUtil.getLocalityGroups(conf);
-    
+
     Map<String,Set<Text>> groups2 = new HashMap<String,Set<Text>>();
     for (Entry<String,Set<ByteSequence>> entry : groups.entrySet()) {
-      
+
       HashSet<Text> colFams = new HashSet<Text>();
-      
+
       for (ByteSequence bs : entry.getValue()) {
         colFams.add(new Text(bs.toArray()));
       }
-      
+
       groups2.put(entry.getKey(), colFams);
     }
-    
+
     return groups2;
   }
-  
+
   /**
    * @param tableName
    *          the name of the table
@@ -1050,7 +1091,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throw new IllegalArgumentException("maximum splits must be >= 1");
     if (maxSplits == 1)
       return Collections.singleton(range);
-    
+
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
     String tableId = Tables.getTableId(instance, tableName);
     TabletLocator tl = TabletLocator.getLocator(instance, new Text(tableId));
@@ -1061,24 +1102,24 @@ public class TableOperationsImpl extends TableOperationsHelper {
         throw new TableDeletedException(tableId);
       if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
         throw new TableOfflineException(instance, tableId);
-      
+
       log.warn("Unable to locate bins for specified range. Retrying.");
       // sleep randomly between 100 and 200ms
       UtilWaitThread.sleep(100 + (int) (Math.random() * 100));
       binnedRanges.clear();
       tl.invalidateCache();
     }
-    
+
     // group key extents to get <= maxSplits
     LinkedList<KeyExtent> unmergedExtents = new LinkedList<KeyExtent>();
     List<KeyExtent> mergedExtents = new ArrayList<KeyExtent>();
-    
+
     for (Map<KeyExtent,List<Range>> map : binnedRanges.values())
       unmergedExtents.addAll(map.keySet());
-    
+
     // the sort method is efficient for linked list
     Collections.sort(unmergedExtents);
-    
+
     while (unmergedExtents.size() + mergedExtents.size() > maxSplits) {
       if (unmergedExtents.size() >= 2) {
         KeyExtent first = unmergedExtents.removeFirst();
@@ -1091,15 +1132,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
         unmergedExtents.addAll(mergedExtents);
         mergedExtents.clear();
       }
-      
+
     }
-    
+
     mergedExtents.addAll(unmergedExtents);
-    
+
     Set<Range> ranges = new HashSet<Range>();
     for (KeyExtent k : mergedExtents)
       ranges.add(k.toDataRange().clip(range));
-    
+
     return ranges;
   }
 
@@ -1138,14 +1179,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void importDirectory(String tableName, String dir, String failureDir, boolean setTime) throws IOException, AccumuloSecurityException,
       TableNotFoundException, AccumuloException {
     ArgumentChecker.notNull(tableName, dir, failureDir);
-    
+
     Path dirPath = checkPath(dir, "Bulk", "");
     Path failPath = checkPath(failureDir, "Bulk", "failure");
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()), ByteBuffer.wrap(dirPath.toString().getBytes()),
         ByteBuffer.wrap(failPath.toString().getBytes()), ByteBuffer.wrap((setTime + "").getBytes()));
     Map<String,String> opts = new HashMap<String,String>();
-    
+
     try {
       doTableOperation(TableOperation.BULK_IMPORT, args, opts);
     } catch (TableExistsException e) {
@@ -1155,10 +1196,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
     // return new BulkImportHelper(instance, credentials, tableName).importDirectory(new Path(dir), new Path(failureDir), numThreads, numAssignThreads,
     // disableGC);
   }
-  
+
   private void waitForTableStateTransition(String tableId, TableState expectedState) throws AccumuloException, TableNotFoundException,
       AccumuloSecurityException {
-    
+
     Text startRow = null;
     Text lastRow = null;
 
@@ -1172,12 +1213,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
           throw new AccumuloException("Unexpected table state " + tableId + " " + Tables.getTableState(instance, tableId) + " != " + expectedState);
         }
       }
-      
+
       Range range = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
-      if (startRow == null || lastRow == null) 
+      if (startRow == null || lastRow == null)
         range = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
       else
         range = new Range(startRow, lastRow);
+
       String metaTable = MetadataTable.NAME;
       if (tableId.equals(MetadataTable.ID))
         metaTable = RootTable.NAME;
@@ -1186,83 +1228,84 @@ public class TableOperationsImpl extends TableOperationsHelper {
       TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
       scanner.setRange(range);
-      
+
       RowIterator rowIter = new RowIterator(scanner);
-      
+
       KeyExtent lastExtent = null;
-      
+
       int total = 0;
       int waitFor = 0;
       int holes = 0;
       Text continueRow = null;
       MapCounter<String> serverCounts = new MapCounter<String>();
-      
+
       while (rowIter.hasNext()) {
         Iterator<Entry<Key,Value>> row = rowIter.next();
-        
+
         total++;
 
         KeyExtent extent = null;
         String future = null;
         String current = null;
-        
+
         while (row.hasNext()) {
           Entry<Key,Value> entry = row.next();
           Key key = entry.getKey();
-          
+
           if (key.getColumnFamily().equals(TabletsSection.FutureLocationColumnFamily.NAME))
             future = entry.getValue().toString();
-          
+
           if (key.getColumnFamily().equals(TabletsSection.CurrentLocationColumnFamily.NAME))
             current = entry.getValue().toString();
-          
+
           if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key))
             extent = new KeyExtent(key.getRow(), entry.getValue());
         }
-        
+
         if ((expectedState == TableState.ONLINE && current == null) || (expectedState == TableState.OFFLINE && (future != null || current != null))) {
           if (continueRow == null)
             continueRow = extent.getMetadataEntry();
           waitFor++;
           lastRow = extent.getMetadataEntry();
-          
-          if(current != null)
+
+          if (current != null)
             serverCounts.increment(current, 1);
-          if(future != null)
+          if (future != null)
             serverCounts.increment(future, 1);
         }
-        
+
         if (!extent.getTableId().toString().equals(tableId)) {
           throw new AccumuloException("Saw unexpected table Id " + tableId + " " + extent);
         }
-        
+
         if (lastExtent != null && !extent.isPreviousExtent(lastExtent)) {
           holes++;
         }
-        
+
         lastExtent = extent;
       }
-      
+
       if (continueRow != null) {
         startRow = continueRow;
       }
-      
+
       if (holes > 0 || total == 0) {
         startRow = null;
         lastRow = null;
       }
-      
+
       if (waitFor > 0 || holes > 0 || total == 0) {
         long waitTime;
         long maxPerServer = 0;
-        if(serverCounts.size() > 0){
+        if (serverCounts.size() > 0) {
           maxPerServer = Collections.max(serverCounts.values());
           waitTime = maxPerServer * 10;
-        }else
+        } else
           waitTime = waitFor * 10;
         waitTime = Math.max(100, waitTime);
         waitTime = Math.min(5000, waitTime);
-        log.trace("Waiting for " + waitFor + "("+maxPerServer+") tablets, startRow = " + startRow + " lastRow = "+lastRow+", holes=" + holes+" sleeping:"+waitTime+"ms");
+        log.trace("Waiting for " + waitFor + "(" + maxPerServer + ") tablets, startRow = " + startRow + " lastRow = " + lastRow + ", holes=" + holes
+            + " sleeping:" + waitTime + "ms");
         UtilWaitThread.sleep(waitTime);
       } else {
         break;
@@ -1270,11 +1313,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     }
   }
+
   @Override
   public void offline(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     offline(tableName, false);
   }
-  
+
   /**
    * 
    * @param tableName
@@ -1287,28 +1331,28 @@ public class TableOperationsImpl extends TableOperationsHelper {
    */
   @Override
   public void offline(String tableName, boolean wait) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
-    
+
     ArgumentChecker.notNull(tableName);
     String tableId = Tables.getTableId(instance, tableName);
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes()));
     Map<String,String> opts = new HashMap<String,String>();
-    
+
     try {
       doTableOperation(TableOperation.OFFLINE, args, opts);
     } catch (TableExistsException e) {
       // should not happen
       throw new RuntimeException(e);
     }
-    
-    if(wait)
+
+    if (wait)
       waitForTableStateTransition(tableId, TableState.OFFLINE);
   }
-  
+
   @Override
   public void online(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     online(tableName, false);
   }
-  
+
   /**
    * 
    * @param tableName
@@ -1325,18 +1369,18 @@ public class TableOperationsImpl extends TableOperationsHelper {
     String tableId = Tables.getTableId(instance, tableName);
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes()));
     Map<String,String> opts = new HashMap<String,String>();
-    
+
     try {
       doTableOperation(TableOperation.ONLINE, args, opts);
     } catch (TableExistsException e) {
       // should not happen
       throw new RuntimeException(e);
     }
-    
-    if(wait)
+
+    if (wait)
       waitForTableStateTransition(tableId, TableState.ONLINE);
   }
-  
+
   /**
    * Clears the tablet locator cache for a specified table
    * 
@@ -1351,7 +1395,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     TabletLocator tabLocator = TabletLocator.getLocator(instance, new Text(Tables.getTableId(instance, tableName)));
     tabLocator.invalidateCache();
   }
-  
+
   /**
    * Get a mapping of table name to internal table id.
    * 
@@ -1361,7 +1405,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public Map<String,String> tableIdMap() {
     return Tables.getNameToIdMap(instance);
   }
-  
+
   @Override
   public Text getMaxRow(String tableName, Authorizations auths, Text startRow, boolean startInclusive, Text endRow, boolean endInclusive)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
@@ -1369,10 +1413,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Scanner scanner = instance.getConnector(credentials.getPrincipal(), credentials.getToken()).createScanner(tableName, auths);
     return FindMax.findMax(scanner, startRow, startInclusive, endRow, endInclusive);
   }
-  
+
   @Override
   public List<DiskUsage> getDiskUsage(Set<String> tableNames) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    
+
     List<TDiskUsage> diskUsages = null;
     while (diskUsages == null) {
       Pair<String,Client> pair = null;
@@ -1404,18 +1448,18 @@ public class TableOperationsImpl extends TableOperationsHelper {
           ServerClient.close(pair.getSecond());
       }
     }
-    
+
     List<DiskUsage> finalUsages = new ArrayList<DiskUsage>();
     for (TDiskUsage diskUsage : diskUsages) {
       finalUsages.add(new DiskUsage(new TreeSet<String>(diskUsage.getTables()), diskUsage.getUsage()));
     }
-    
+
     return finalUsages;
   }
-  
+
   public static Map<String,String> getExportedProps(FileSystem fs, Path path) throws IOException {
     HashMap<String,String> props = new HashMap<String,String>();
-    
+
     ZipInputStream zis = new ZipInputStream(fs.open(path));
     try {
       ZipEntry zipEntry;
@@ -1427,7 +1471,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
             String sa[] = line.split("=", 2);
             props.put(sa[0], sa[1]);
           }
-          
+
           break;
         }
       }
@@ -1436,11 +1480,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
     return props;
   }
-  
+
   @Override
   public void importTable(String tableName, String importDir) throws TableExistsException, AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(tableName, importDir);
-    
+
     try {
       importDir = checkPath(importDir, "Table", "").toString();
     } catch (IOException e) {
@@ -1450,39 +1494,39 @@ public class TableOperationsImpl extends TableOperationsHelper {
     try {
       FileSystem fs = new Path(importDir).getFileSystem(CachedConfiguration.getInstance());
       Map<String,String> props = getExportedProps(fs, new Path(importDir, Constants.EXPORT_FILE));
-      
+
       for (String propKey : props.keySet()) {
         if (Property.isClassProperty(propKey) && !props.get(propKey).contains(Constants.CORE_PACKAGE_NAME)) {
           Logger.getLogger(this.getClass()).info(
               "Imported table sets '" + propKey + "' to '" + props.get(propKey) + "'.  Ensure this class is on Accumulo classpath.");
         }
       }
-      
+
     } catch (IOException ioe) {
       Logger.getLogger(this.getClass()).warn("Failed to check if imported table references external java classes : " + ioe.getMessage());
     }
-    
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()), ByteBuffer.wrap(importDir.getBytes()));
-    
+
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(Constants.UTF8)), ByteBuffer.wrap(importDir.getBytes()));
+
     Map<String,String> opts = Collections.emptyMap();
-    
+
     try {
       doTableOperation(TableOperation.IMPORT, args, opts);
     } catch (TableNotFoundException e1) {
       // should not happen
       throw new RuntimeException(e1);
     }
-    
+
   }
-  
+
   @Override
   public void exportTable(String tableName, String exportDir) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(tableName, exportDir);
-    
+
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()), ByteBuffer.wrap(exportDir.getBytes()));
-    
+
     Map<String,String> opts = Collections.emptyMap();
-    
+
     try {
       doTableOperation(TableOperation.EXPORT, args, opts);
     } catch (TableExistsException e1) {
@@ -1490,12 +1534,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throw new RuntimeException(e1);
     }
   }
-  
+
   @Override
   public boolean testClassLoad(final String tableName, final String className, final String asTypeName) throws TableNotFoundException, AccumuloException,
       AccumuloSecurityException {
     ArgumentChecker.notNull(tableName, className, asTypeName);
-    
+
     try {
       return ServerClient.executeRaw(instance, new ClientExecReturn<Boolean,ClientService.Client>() {
         @Override
@@ -1519,17 +1563,21 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throw new AccumuloException(e);
     }
   }
-  
+
   @Override
   public void attachIterator(String tableName, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException,
       TableNotFoundException {
     testClassLoad(tableName, setting.getIteratorClass(), SortedKeyValueIterator.class.getName());
     super.attachIterator(tableName, setting, scopes);
   }
-  
+
   @Override
   public int addConstraint(String tableName, String constraintClassName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     testClassLoad(tableName, constraintClassName, Constraint.class.getName());
     return super.addConstraint(tableName, constraintClassName);
+  }
+
+  private boolean namespaceExists(String namespace) {
+    return Namespaces.getNameToIdMap(instance).containsKey(namespace);
   }
 }

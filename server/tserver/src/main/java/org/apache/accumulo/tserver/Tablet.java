@@ -849,14 +849,14 @@ public class Tablet {
         filesInUseByScans = Collections.singleton(absMergeFile);
 
       // very important to write delete entries outside of log lock, because
-      // this !METADATA write does not go up... it goes sideways or to itself
+      // this metadata write does not go up... it goes sideways or to itself
       if (absMergeFile != null)
         MetadataTableUtil.addDeleteEntries(extent, Collections.singleton(absMergeFile), SystemCredentials.get());
 
       Set<String> unusedWalLogs = beginClearingUnusedLogs();
       try {
-        // the order of writing to !METADATA and walog is important in the face of machine/process failures
-        // need to write to !METADATA before writing to walog, when things are done in the reverse order
+        // the order of writing to metadata and walog is important in the face of machine/process failures
+        // need to write to metadata before writing to walog, when things are done in the reverse order
         // data could be lost... the minor compaction start even should be written before the following metadata
         // write is made
 
@@ -1316,7 +1316,7 @@ public class Tablet {
     acuTableConf.addObserver(configObserver = new ConfigurationObserver() {
 
       private void reloadConstraints() {
-        constraintChecker.set(new ConstraintChecker(getTableConfiguration()));
+        constraintChecker.set(new ConstraintChecker(acuTableConf));
       }
 
       @Override
@@ -1351,6 +1351,9 @@ public class Tablet {
       }
 
     });
+    
+    acuTableConf.getNamespaceConfiguration().addObserver(configObserver);
+    
     // Force a load of any per-table properties
     configObserver.propertiesChanged();
 
@@ -2490,7 +2493,7 @@ public class Tablet {
     ConstraintChecker cc = constraintChecker.get();
 
     if (cc.classLoaderChanged()) {
-      ConstraintChecker ncc = new ConstraintChecker(getTableConfiguration());
+      ConstraintChecker ncc = new ConstraintChecker(acuTableConf);
       constraintChecker.compareAndSet(cc, ncc);
     }
   }
@@ -2748,6 +2751,7 @@ public class Tablet {
 
     log.log(TLevel.TABLET_HIST, extent + " closed");
 
+    acuTableConf.getNamespaceConfiguration().removeObserver(configObserver);
     acuTableConf.removeObserver(configObserver);
 
     closeComplete = completeClose;
@@ -3190,7 +3194,7 @@ public class Tablet {
 
       Pair<Long,List<IteratorSetting>> compactionId = null;
       if (!propogateDeletes) {
-        // compacting everything, so update the compaction id in !METADATA
+        // compacting everything, so update the compaction id in metadata
         try {
           compactionId = getCompactionID();
         } catch (NoNodeException e) {
@@ -3558,7 +3562,7 @@ public class Tablet {
 
       // it is possible that some of the bulk loading flags will be deleted after being read below because the bulk load
       // finishes.... therefore split could propogate load flags for a finished bulk load... there is a special iterator
-      // on the !METADATA table to clean up this type of garbage
+      // on the metadata table to clean up this type of garbage
       Map<FileRef,Long> bulkLoadedFiles = MetadataTableUtil.getBulkFilesLoaded(SystemCredentials.get(), extent);
 
       MetadataTableUtil.splitTablet(high, extent.getPrevEndRow(), splitRatio, SystemCredentials.get(), tabletServer.getLock());
@@ -3736,7 +3740,7 @@ public class Tablet {
   private Set<DfsLogger> otherLogs = Collections.emptySet();
   private boolean removingLogs = false;
 
-  // this lock is basically used to synchronize writing of log info to !METADATA
+  // this lock is basically used to synchronize writing of log info to metadata
   private final ReentrantLock logLock = new ReentrantLock();
 
   public synchronized int getLogCount() {
@@ -3772,7 +3776,7 @@ public class Tablet {
           if (otherLogs.size() != 0)
             throw new IllegalStateException("Expect other logs to be 0 when min finish, but its " + otherLogs);
 
-          // when writing a minc finish event, there is no need to add the log to !METADATA
+          // when writing a minc finish event, there is no need to add the log to metadata
           // if nothing has been logged for the tablet since the minor compaction started
           if (currentLogs.size() == 0)
             return false;
@@ -3861,6 +3865,6 @@ public class Tablet {
   }
 
   public TableConfiguration getTableConfiguration() {
-    return tabletServer.getTableConfiguration(extent);
+    return acuTableConf;
   }
 }

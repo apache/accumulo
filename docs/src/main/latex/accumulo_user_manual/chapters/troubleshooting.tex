@@ -367,7 +367,7 @@ Here's what the output means:
 An unassigned tablet with write-ahead logs is probably waiting for
 logs to be sorted for efficient recovery.
 
-Q. How can I be sure that the !METADATA table is up and consistent?
+Q. How can I be sure that the metadata tables are up and consistent?
 
 A. \texttt{CheckForMetadataProblems} will verify the start/end of
 every tablet matches, and the start and stop for the table is empty:
@@ -446,13 +446,14 @@ INFO : Using ZooKeepers localhost:2181
 \end{verbatim}
 \normalsize
 
-\section{METADATA Table}
+\section{System Metadata Tables}
 
-Accumulo tracks information about all other tables in the !METADATA
-table.  The !METADATA table information is tracked in a very simple
-table that always consists of a single tablet, called the !!ROOT table.
-The root table information, such as its location and write-ahead logs
-are stored in Zookeeper.
+Accumulo tracks information about tables in metadata tables. The metadata for
+most tables is contained within the metadata table in the accumulo namespace,
+while metadata for that table is contained in the root table in the accumulo
+namespace. The root table is composed of a single tablet, which does not
+split, so it is also called the root tablet. Information about the root
+table, such as its location and write-ahead logs, are stored in ZooKeeper.
 
 Let's create a table and put some data into it:
 
@@ -460,19 +461,20 @@ Let's create a table and put some data into it:
 \begin{verbatim}
 shell> createtable test
 shell> tables -l
-!METADATA       =>         !0
-test            =>          3
-trace           =>          1
+accumulo.metadata    =>        !0
+accumulo.root        =>        +r
+test                 =>         2
+trace                =>         1
 shell> insert a b c d
 shell> flush -w
 \end{verbatim}
 \normalsize
 
-Now let's take a look at the !METADATA table information for this table:
+Now let's take a look at the metadata for this table:
 
 \small
 \begin{verbatim}
-shell> table !METADATA
+shell> table accumulo.metadata
 shell> scan -b 3; -e 3<
 3< file:/default_tablet/F000009y.rf []    186,1
 3< last:13fe86cd27101e5 []    127.0.0.1:9997
@@ -496,7 +498,7 @@ Let's decode this little session:
 \item{\texttt{log:127.0.0.1+9997/0cb7ce52-ac46-4bf7-ae1d-acdcfaa97995 []    127.0.0.1+9997/0cb7ce52-ac46-4bf7-ae1d-acdcfaa97995|6} This tablet has a reference to a single write-ahead log.  This file can be found in /accumulo/wal/127.0.0.1+9997/0cb7ce52-ac46-4bf7-ae1d-acdcfaa97995.  The value of this entry could refer to multiple files.  This tablet's data is encoded as ``6'' within the log.}
 \item{\texttt{srv:dir []    /default\_tablet} Files written for this tablet will be placed into /accumulo/tables/3/default\_tablet.}
 \item{\texttt{srv:flush []    1} Flush id.  This table has successfully completed the flush with the id of ``1''. }
-\item{\texttt{srv:lock []    tservers/127.0.0.1:9997/zlock-0000000001\$13fe86cd27101e5}  This is the lock information for the tablet holding the present lock.  This information is checked against zookeeper whenever this is updated, which prevents a !METADATA table update from a tablet server that no longer holds its lock.}
+\item{\texttt{srv:lock []    tservers/127.0.0.1:9997/zlock-0000000001\$13fe86cd27101e5}  This is the lock information for the tablet holding the present lock.  This information is checked against zookeeper whenever this is updated, which prevents a metadata update from a tablet server that no longer holds its lock.}
 \item{\texttt{srv:time []    M1373998392323} }
 \item{\texttt{~tab:~pr []    \\x00} The end-row marker for the previous tablet (prev-row).  The first byte indicates the presence of a prev-row.  This tablet has the range (-inf, +inf), so it has no prev-row (or end row). }
 \end{enumerate}
@@ -505,7 +507,7 @@ Besides these columns, you may see:
 
 \begin{enumerate}
 \item{\texttt{rowId future:zooKeeperID location} Tablet has been assigned to a tablet, but not yet loaded.}
-\item{\texttt{~del:filename} When a tablet server is done use a file, it will create a delete marker in the !METADATA table, unassociated with any table.  The garbage collector will remove the marker, and the file, when no other reference to the file exists.}
+\item{\texttt{~del:filename} When a tablet server is done use a file, it will create a delete marker in the appropriate metadata table, unassociated with any tablet.  The garbage collector will remove the marker, and the file, when no other reference to the file exists.}
 \item{\texttt{~blip:txid} Bulk-Load In Progress marker}
 \item{\texttt{rowId loaded:filename} A file has been bulk-loaded into this tablet, however the bulk load has not yet completed on other tablets, so this is marker prevents the file from being loaded multiple times.}
 \item{\texttt{rowId !cloned} A marker that indicates that this tablet has been successfully cloned.}

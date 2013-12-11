@@ -61,3 +61,6 @@ export ACCUMULO_KILL_CMD='kill -9 %p'
 ### May not be necessary for Hadoop 2.x or using an RPM that installs to
 ### the correct system library directory.
 # export LD_LIBRARY_PATH=${HADOOP_PREFIX}/lib/native/${PLATFORM}:${LD_LIBRARY_PATH}
+
+# Should the monitor bind to all network interfaces -- default: false
+# export ACCUMULO_MONITOR_BIND_ALL="true"

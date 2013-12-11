@@ -61,7 +61,7 @@ from live ingest in the following ways:
 
 <p>In the first case, adding the file requires telling a single tablet server about a single file.  Even if the file
 is 20G in size, it is one call to the tablet server.  The tablet server makes one extra file entry in the
-!METADATA table, and the data is now part of the tablet.
+tablet's metadata, and the data is now part of the tablet.
 
 <p>In the second case, an request must be made for each tablet for each file to be added.  If there
 100 files and 100 tablets, this will be 10K requests, and the number of files needed to be opened

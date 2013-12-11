@@ -174,10 +174,11 @@ you will need the table ID, because this is used in HDFS instead of the table
 name.  The following command will show table ids.
 
     $ ./bin/accumulo shell -u username -p password -e 'tables -l'
-    !METADATA       =>         !0
-    bloom_test1     =>         o7
-    bloom_test2     =>         o8
-    trace           =>          1
+    accumulo.metadata    =>        !0
+    accumulo.root        =>        +r
+    bloom_test1          =>        o7
+    bloom_test2          =>        o8
+    trace                =>         1
 
 So the table id for bloom_test2 is o8.  The command below shows what files this
 table has in HDFS.  This assumes Accumulo is at the default location in HDFS. 

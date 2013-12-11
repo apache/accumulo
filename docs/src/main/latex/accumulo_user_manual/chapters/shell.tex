@@ -52,14 +52,16 @@ table and instance specific options.
 \small
 \begin{verbatim}
 root@myinstance> tables
-!METADATA
+accumulo.metadata
+accumulo.root
 
 root@myinstance> createtable mytable
 
 root@myinstance mytable>
 
 root@myinstance mytable> tables
-!METADATA
+accumulo.metadata
+accumulo.root
 mytable
 
 root@myinstance mytable> createtable testtable
@@ -136,7 +138,7 @@ Enter current password for 'bob': *********
 
 bob@myinstance mytable> userpermissions
 System permissions: System.CREATE_TABLE
-Table permissions (!METADATA): Table.READ
+Table permissions (accumulo.metadata): Table.READ
 Table permissions (mytable): NONE
 
 bob@myinstance mytable> createtable bobstable

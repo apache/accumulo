@@ -664,7 +664,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         @Override
         public boolean contains(ByteSequence auth) {
           try {
-            return security.userHasAuthorizations(credentials, Collections.<ByteBuffer> singletonList(ByteBuffer.wrap(auth.getBackingArray())));
+            return security.userHasAuthorizations(credentials,
+                Collections.<ByteBuffer> singletonList(ByteBuffer.wrap(auth.getBackingArray(), auth.offset(), auth.length())));
           } catch (ThriftSecurityException e) {
             throw new RuntimeException(e);
           }
@@ -1195,7 +1196,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       // processing the write from the dead client is still in progress,
       // the restarted client may not see the write unless we wait here.
       // this behavior is very important when the client is reading the
-      // !METADATA table
+      // metadata
       if (waitForWrites)
         writeTracker.waitForWrites(TabletType.type(extent));
 
@@ -2819,7 +2820,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
             if (openingOverlapping.contains(extent) || onlineOverlapping.contains(extent))
               return;
-            
+
             if (!unopenedOverlapping.contains(extent)) {
               log.info("assignment " + extent + " no longer in the unopened set");
               return;
@@ -2896,7 +2897,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
          * 
          * 1) The log recovery code does not handle data written to the tablet on multiple tablet servers. 2) The log recovery code does not block if memory is
          * full. Therefore recovering lots of tablets that use a lot of memory could run out of memory. 3) The minor compaction finish event did not make it to
-         * the logs (the file will be in !METADATA, preventing replay of compacted data)... but do not want a majc to wipe the file out from !METADATA and then
+         * the logs (the file will be in metadata, preventing replay of compacted data)... but do not want a majc to wipe the file out from metadata and then
          * have another process failure... this could cause duplicate data to replay
          */
         if (tablet.getNumEntriesInMemory() > 0 && !tablet.minorCompactNow(MinorCompactionReason.SYSTEM)) {
