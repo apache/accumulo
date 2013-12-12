@@ -18,6 +18,7 @@ package org.apache.accumulo.core.data;
 
 import java.io.DataInput;
 import java.io.DataOutput;
+import java.io.InvalidObjectException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -170,10 +171,54 @@ public class Range implements WritableComparable<Range> {
    * Copies a range
    */
   public Range(Range range) {
-    this(range.start, range.stop, range.startKeyInclusive, range.stopKeyInclusive, range.infiniteStartKey, range.infiniteStopKey);
+    this(range.start, range.startKeyInclusive, range.infiniteStartKey, range.stop, range.stopKeyInclusive, range.infiniteStopKey);
   }
   
+  /**
+   * Creates a range from start to stop.
+   *
+   * @param start
+   *          set this to null when negative infinity is needed
+   * @param stop
+   *          set this to null when infinity is needed
+   * @param startKeyInclusive
+   *          determines if the ranges includes the start key
+   * @param stopKeyInclusive
+   *          determines if the range includes the end key
+   * @param infiniteStartKey
+   *          true if start key is negative infinity (null)
+   * @param infiniteStopKey
+   *          true if stop key is positive infinity (null)
+   * @throws IllegalArgumentException if stop is before start, or infiniteStartKey is true but start is not null, or infiniteStopKey is true but stop is not
+   *          null
+   */
   public Range(Key start, Key stop, boolean startKeyInclusive, boolean stopKeyInclusive, boolean infiniteStartKey, boolean infiniteStopKey) {
+    this(start, startKeyInclusive, infiniteStartKey, stop, stopKeyInclusive, infiniteStopKey);
+    if (!infiniteStartKey && !infiniteStopKey && beforeStartKey(stop)) {
+      throw new IllegalArgumentException("Start key must be less than end key in range (" + start + ", " + stop + ")");
+    }
+  }
+
+  /**
+   * Creates a range from start to stop. Unlike the public six-argument method,
+   * this one does not assure that stop is after start, which helps performance
+   * in cases where that assurance is already in place.
+   *
+   * @param start
+   *          set this to null when negative infinity is needed
+   * @param startKeyInclusive
+   *          determines if the ranges includes the start key
+   * @param infiniteStartKey
+   *          true if start key is negative infinity (null)
+   * @param stop
+   *          set this to null when infinity is needed
+   * @param stopKeyInclusive
+   *          determines if the range includes the end key
+   * @param infiniteStopKey
+   *          true if stop key is positive infinity (null)
+   * @throws IllegalArgumentException if infiniteStartKey is true but start is not null, or infiniteStopKey is true but stop is not null
+   */
+  protected Range(Key start, boolean startKeyInclusive, boolean infiniteStartKey, Key stop, boolean stopKeyInclusive, boolean infiniteStopKey) {
     if (infiniteStartKey && start != null)
       throw new IllegalArgumentException();
     
@@ -189,8 +234,11 @@ public class Range implements WritableComparable<Range> {
   }
   
   public Range(TRange trange) {
-    this(trange.start == null ? null : new Key(trange.start), trange.stop == null ? null : new Key(trange.stop), trange.startKeyInclusive,
-        trange.stopKeyInclusive, trange.infiniteStartKey, trange.infiniteStopKey);
+    this(trange.start == null ? null : new Key(trange.start), trange.startKeyInclusive, trange.infiniteStartKey,
+        trange.stop == null ? null : new Key(trange.stop), trange.stopKeyInclusive, trange.infiniteStopKey);
+    if (!infiniteStartKey && !infiniteStopKey && beforeStartKey(stop)) {
+      throw new IllegalArgumentException("Start key must be less than end key in range (" + start + ", " + stop + ")");
+    }
   }
   
   /**
@@ -566,6 +614,10 @@ public class Range implements WritableComparable<Range> {
     
     startKeyInclusive = in.readBoolean();
     stopKeyInclusive = in.readBoolean();
+
+    if (!infiniteStartKey && !infiniteStopKey && beforeStartKey(stop)) {
+      throw new InvalidObjectException("Start key must be less than end key in range (" + start + ", " + stop + ")");
+    }
   }
   
   public void write(DataOutput out) throws IOException {

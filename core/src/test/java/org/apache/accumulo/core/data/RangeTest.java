@@ -16,12 +16,18 @@
  */
 package org.apache.accumulo.core.data;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.InvalidObjectException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
 import junit.framework.TestCase;
 
+import org.apache.accumulo.core.data.thrift.TRange;
 import org.apache.hadoop.io.Text;
 
 public class RangeTest extends TestCase {
@@ -760,5 +766,57 @@ public class RangeTest extends TestCase {
     assertNull(Range.followingPrefix(makeText((byte) 0xff)));
     assertNull(Range.followingPrefix(makeText((byte) 0xff, (byte) 0xff)));
     assertEquals(Range.followingPrefix(makeText((byte) 0x07, (byte) 0xff)), new Text(makeText((byte) 0x08)));
+  }
+
+  public void testReadFields() throws Exception {
+    Range r = nr("nuts", "soup");
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    DataOutputStream dos = new DataOutputStream(baos);
+    r.write(dos);
+    dos.close();
+    ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+    DataInputStream dis = new DataInputStream(bais);
+    Range r2 = new Range();
+    r2.readFields(dis);
+    dis.close();
+
+    assertEquals(r, r2);
+  }
+
+  public void testReadFields_Check() throws Exception {
+    Range r = new Range(new Key(new Text("soup")), true, false, new Key(new Text("nuts")), true, false);
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    DataOutputStream dos = new DataOutputStream(baos);
+    r.write(dos);
+    dos.close();
+    ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+    DataInputStream dis = new DataInputStream(bais);
+    Range r2 = new Range();
+    try {
+      r2.readFields(dis);
+      fail("readFields allowed invalid range");
+    } catch (InvalidObjectException exc) {
+      /* good! */
+    } finally {
+      dis.close();
+    }
+  }
+
+  public void testThrift() {
+    Range r = nr("nuts", "soup");
+    TRange tr = r.toThrift();
+    Range r2 = new Range(tr);
+    assertEquals(r, r2);
+  }
+
+  public void testThrift_Check() {
+    Range r = new Range(new Key(new Text("soup")), true, false, new Key(new Text("nuts")), true, false);
+    TRange tr = r.toThrift();
+    try {
+      Range r2 = new Range(tr);
+      fail("Thrift constructor allowed invalid range");
+    } catch (IllegalArgumentException exc) {
+      /* good! */
+    }
   }
 }
