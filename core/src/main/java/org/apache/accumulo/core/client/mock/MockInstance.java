@@ -162,7 +162,7 @@ public class MockInstance implements Instance {
   }
 
   @Override
-  public void close() throws AccumuloException {
+  public void close() {
     // NOOP
   }
 }

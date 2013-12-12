@@ -294,14 +294,14 @@ public class ZooKeeperInstance implements Instance {
   static private final AtomicInteger clientInstances = new AtomicInteger(0);
 
   @Override
-  public synchronized void close() throws AccumuloException {
+  public synchronized void close() {
     if (!closed && clientInstances.decrementAndGet() == 0) {
       try {
         zooCache.close();
         ThriftUtil.close();
-      } catch (InterruptedException e) {
+      } catch (RuntimeException e) {
         clientInstances.incrementAndGet();
-        throw new AccumuloException("Issues closing ZooKeeper.");
+        throw e;
       }
     }
     closed = true;
