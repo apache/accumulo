@@ -17,6 +17,7 @@
 # set this to an absolute path that exist on every machine
 # Inherit values from environment if they are already set.
 HADOOP_HOME=${HADOOP_HOME:-/opt/hadoop}
+HADOOP_PREFIX=${HADOOP_PREFIX:-$HADOOP_HOME}
 ACCUMULO_HOME=${ACCUMULO_HOME:-/opt/accumulo}
 ACCUMULO_CONF_DIR=${ACCUMULO_CONF_DIR:-$ACCUMULO_HOME/conf}
 JAVA_HOME=${JAVA_HOME:-/opt/java}
