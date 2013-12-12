@@ -20,7 +20,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -36,9 +38,45 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class MetadataIT extends SimpleMacIT {
+
+  @Test(timeout = 60 * 1000)
+  public void testFlushAndCompact() throws Exception {
+    Connector c = getConnector();
+
+    // create a table to write some data to metadata table
+    c.tableOperations().create(super.getTableNames(1)[0]);
+
+    Scanner rootScanner = c.createScanner(RootTable.NAME, Authorizations.EMPTY);
+    rootScanner.setRange(MetadataSchema.TabletsSection.getRange());
+    rootScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+
+    Set<String> files1 = new HashSet<String>();
+    for (Entry<Key,Value> entry : rootScanner)
+      files1.add(entry.getKey().getColumnQualifier().toString());
+
+    c.tableOperations().flush(MetadataTable.NAME, null, null, true);
+
+    Set<String> files2 = new HashSet<String>();
+    for (Entry<Key,Value> entry : rootScanner)
+      files2.add(entry.getKey().getColumnQualifier().toString());
+
+    // flush of metadata table should change file set in root table
+    Assert.assertTrue(files2.size() > 0);
+    Assert.assertNotEquals(files1, files2);
+
+    c.tableOperations().compact(MetadataTable.NAME, null, null, false, true);
+
+    Set<String> files3 = new HashSet<String>();
+    for (Entry<Key,Value> entry : rootScanner)
+
+      files3.add(entry.getKey().getColumnQualifier().toString());
+    // compaction of metadata table should change file set in root table
+    Assert.assertNotEquals(files2, files3);
+  }
 
   @Test(timeout = 60 * 1000)
   public void mergeMeta() throws Exception {
