@@ -161,7 +161,7 @@ while(1){
         system("ssh $server \"pkill -9 -f '[p]roc_datanode'\"");
       } else {
         # We're not the hdfs user, try to use sudo
-        system("ssh $server 'sudo -u $HDFS_USER pkill -9 -f \'[p]roc_datanode\''");
+        system("sudo -u $HDFS_USER ssh $server pkill -9 -f \'[p]roc_datanode\'");
       }
     }
   }
@@ -191,7 +191,7 @@ while(1){
       system("ssh $server '$HADOOP_PREFIX/sbin/hadoop-daemon.sh start datanode'");
     } else {
       # Not the HDFS user, have to try sudo
-      system("ssh $server 'sudo -u $HDFS_USER $HADOOP_PREFIX/sbin/hadoop-daemon.sh start datanode'");
+      system("sudo -u $HDFS_USER ssh $server $HADOOP_PREFIX/sbin/hadoop-daemon.sh start datanode");
     }
   }
 

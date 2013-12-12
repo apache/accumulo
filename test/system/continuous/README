@@ -41,7 +41,7 @@ ACCUMULO_USER for Accumulo processes). If you run it as yourself and the HDFS_US
 ACCUMULO_USER values are the same as your user, the agitator will not change users. In
 the case where you run the agitator as a non-privileged user which isn't the same as HDFS_USER
 nor ACCUMULO_USER, the agitator will attempt to `sudo` to these users which relies on correct 
-configuration of sudo.
+configuration of sudo. Also, be sure that your HDFS_USER has password-less ssh configured.
 
  start-agitator.sh
  stop-agitator.sh
