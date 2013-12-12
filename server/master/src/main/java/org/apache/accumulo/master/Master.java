@@ -74,6 +74,7 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.master.thrift.TabletSplit;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
@@ -708,12 +709,18 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
         try {
           Connector conn = getConnector();
-          Scanner scanner = new IsolatedScanner(conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
+          Scanner scanner;
+          if (tableId.equals(MetadataTable.ID)) {
+            scanner = new IsolatedScanner(conn.createScanner(RootTable.NAME, Authorizations.EMPTY));
+            scanner.setRange(MetadataSchema.TabletsSection.getRange());
+          } else {
+            scanner = new IsolatedScanner(conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
+            scanner.setRange(new KeyExtent(new Text(tableId), null, ByteBufferUtil.toText(startRow)).toMetadataRange());
+          }
           TabletsSection.ServerColumnFamily.FLUSH_COLUMN.fetch(scanner);
           TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
           scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
           scanner.fetchColumnFamily(LogColumnFamily.NAME);
-          scanner.setRange(new KeyExtent(new Text(tableId), null, ByteBufferUtil.toText(startRow)).toMetadataRange());
 
           RowIterator ri = new RowIterator(scanner);
 

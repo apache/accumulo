@@ -43,6 +43,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.MapCounter;
@@ -97,14 +98,18 @@ class CompactionDriver extends MasterRepo {
 
     MapCounter<TServerInstance> serversToFlush = new MapCounter<TServerInstance>();
     Connector conn = master.getConnector();
-    Scanner scanner = new IsolatedScanner(conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
 
-    Range range = new KeyExtent(new Text(tableId), null, startRow == null ? null : new Text(startRow)).toMetadataRange();
+    Scanner scanner;
 
-    if (tableId.equals(MetadataTable.ID))
-      range = range.clip(new Range(RootTable.EXTENT.getMetadataEntry(), false, null, true));
+    if (tableId.equals(MetadataTable.ID)) {
+      scanner = new IsolatedScanner(conn.createScanner(RootTable.NAME, Authorizations.EMPTY));
+      scanner.setRange(MetadataSchema.TabletsSection.getRange());
+    } else {
+      scanner = new IsolatedScanner(conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
+      Range range = new KeyExtent(new Text(tableId), null, startRow == null ? null : new Text(startRow)).toMetadataRange();
+      scanner.setRange(range);
+    }
 
-    scanner.setRange(range);
     TabletsSection.ServerColumnFamily.COMPACT_COLUMN.fetch(scanner);
     TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
     scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
