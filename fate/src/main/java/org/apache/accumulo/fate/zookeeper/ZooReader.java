@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
+import java.io.Closeable;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -27,7 +28,7 @@ import org.apache.zookeeper.AsyncCallback.VoidCallback;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.data.Stat;
 
-public class ZooReader implements IZooReader {
+public class ZooReader implements IZooReader, Closeable {
   
   protected String keepers;
   protected int timeout;
@@ -103,7 +104,15 @@ public class ZooReader implements IZooReader {
     this.timeout = timeout;
   }
 
-  public void close() throws InterruptedException {
-    getZooKeeper().close();
+  /**
+   * Closes this reader. If closure of the underlying session is interrupted,
+   * this method sets the calling thread's interrupt status.
+   */
+  public void close() {
+    try {
+      getZooKeeper().close();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
   }
 }

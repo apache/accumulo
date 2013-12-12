@@ -190,12 +190,8 @@ public class HdfsZooInstance implements Instance {
   }
 
   @Override
-  public void close() throws AccumuloException {
-    try {
-      zooCache.close();
-    } catch (InterruptedException e) {
-      throw new AccumuloException("Issues closing ZooKeeper, try again");
-    }
+  public void close() {
+    zooCache.close();
   }
 
 }
