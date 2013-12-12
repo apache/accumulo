@@ -24,12 +24,17 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
-import junit.framework.TestCase;
+import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
+import org.apache.accumulo.core.data.thrift.TMutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 
-public class MutationTest extends TestCase {
+public class MutationTest {
+  @Test
   public void test1() {
     Mutation m = new Mutation(new Text("r1"));
     m.put(new Text("cf1"), new Text("cq1"), new Value("v1".getBytes()));
@@ -47,6 +52,7 @@ public class MutationTest extends TestCase {
     
   }
   
+  @Test
   public void test2() throws IOException {
     Mutation m = new Mutation(new Text("r1"));
     m.put(new Text("cf1"), new Text("cq1"), new Value("v1".getBytes()));
@@ -113,6 +119,7 @@ public class MutationTest extends TestCase {
     return m;
   }
   
+  @Test
   public void test3() throws IOException {
     Mutation m = new Mutation(new Text("r1"));
     for (int i = 0; i < 5; i++) {
@@ -155,6 +162,7 @@ public class MutationTest extends TestCase {
     return new Value(s.getBytes());
   }
   
+  @Test
   public void testPuts() {
     Mutation m = new Mutation(new Text("r1"));
     
@@ -175,18 +183,19 @@ public class MutationTest extends TestCase {
     assertEquals(8, m.size());
     assertEquals(8, updates.size());
     
-    assertEquals(updates.get(0), "cf1", "cq1", "", 0l, false, false, "v1");
-    assertEquals(updates.get(1), "cf2", "cq2", "cv2", 0l, false, false, "v2");
-    assertEquals(updates.get(2), "cf3", "cq3", "", 3l, true, false, "v3");
-    assertEquals(updates.get(3), "cf4", "cq4", "cv4", 4l, true, false, "v4");
+    verifyColumnUpdate(updates.get(0), "cf1", "cq1", "", 0l, false, false, "v1");
+    verifyColumnUpdate(updates.get(1), "cf2", "cq2", "cv2", 0l, false, false, "v2");
+    verifyColumnUpdate(updates.get(2), "cf3", "cq3", "", 3l, true, false, "v3");
+    verifyColumnUpdate(updates.get(3), "cf4", "cq4", "cv4", 4l, true, false, "v4");
     
-    assertEquals(updates.get(4), "cf5", "cq5", "", 0l, false, true, "");
-    assertEquals(updates.get(5), "cf6", "cq6", "cv6", 0l, false, true, "");
-    assertEquals(updates.get(6), "cf7", "cq7", "", 7l, true, true, "");
-    assertEquals(updates.get(7), "cf8", "cq8", "cv8", 8l, true, true, "");
+    verifyColumnUpdate(updates.get(4), "cf5", "cq5", "", 0l, false, true, "");
+    verifyColumnUpdate(updates.get(5), "cf6", "cq6", "cv6", 0l, false, true, "");
+    verifyColumnUpdate(updates.get(6), "cf7", "cq7", "", 7l, true, true, "");
+    verifyColumnUpdate(updates.get(7), "cf8", "cq8", "cv8", 8l, true, true, "");
     
   }
   
+  @Test
   public void testPutsString() {
     Mutation m = new Mutation(new Text("r1"));
     
@@ -207,17 +216,18 @@ public class MutationTest extends TestCase {
     assertEquals(8, m.size());
     assertEquals(8, updates.size());
     
-    assertEquals(updates.get(0), "cf1", "cq1", "", 0l, false, false, "v1");
-    assertEquals(updates.get(1), "cf2", "cq2", "cv2", 0l, false, false, "v2");
-    assertEquals(updates.get(2), "cf3", "cq3", "", 3l, true, false, "v3");
-    assertEquals(updates.get(3), "cf4", "cq4", "cv4", 4l, true, false, "v4");
+    verifyColumnUpdate(updates.get(0), "cf1", "cq1", "", 0l, false, false, "v1");
+    verifyColumnUpdate(updates.get(1), "cf2", "cq2", "cv2", 0l, false, false, "v2");
+    verifyColumnUpdate(updates.get(2), "cf3", "cq3", "", 3l, true, false, "v3");
+    verifyColumnUpdate(updates.get(3), "cf4", "cq4", "cv4", 4l, true, false, "v4");
     
-    assertEquals(updates.get(4), "cf5", "cq5", "", 0l, false, true, "");
-    assertEquals(updates.get(5), "cf6", "cq6", "cv6", 0l, false, true, "");
-    assertEquals(updates.get(6), "cf7", "cq7", "", 7l, true, true, "");
-    assertEquals(updates.get(7), "cf8", "cq8", "cv8", 8l, true, true, "");
+    verifyColumnUpdate(updates.get(4), "cf5", "cq5", "", 0l, false, true, "");
+    verifyColumnUpdate(updates.get(5), "cf6", "cq6", "cv6", 0l, false, true, "");
+    verifyColumnUpdate(updates.get(6), "cf7", "cq7", "", 7l, true, true, "");
+    verifyColumnUpdate(updates.get(7), "cf8", "cq8", "cv8", 8l, true, true, "");
   }
   
+  @Test
   public void testPutsStringString() {
     Mutation m = new Mutation(new Text("r1"));
     
@@ -238,15 +248,15 @@ public class MutationTest extends TestCase {
     assertEquals(8, m.size());
     assertEquals(8, updates.size());
     
-    assertEquals(updates.get(0), "cf1", "cq1", "", 0l, false, false, "v1");
-    assertEquals(updates.get(1), "cf2", "cq2", "cv2", 0l, false, false, "v2");
-    assertEquals(updates.get(2), "cf3", "cq3", "", 3l, true, false, "v3");
-    assertEquals(updates.get(3), "cf4", "cq4", "cv4", 4l, true, false, "v4");
+    verifyColumnUpdate(updates.get(0), "cf1", "cq1", "", 0l, false, false, "v1");
+    verifyColumnUpdate(updates.get(1), "cf2", "cq2", "cv2", 0l, false, false, "v2");
+    verifyColumnUpdate(updates.get(2), "cf3", "cq3", "", 3l, true, false, "v3");
+    verifyColumnUpdate(updates.get(3), "cf4", "cq4", "cv4", 4l, true, false, "v4");
     
-    assertEquals(updates.get(4), "cf5", "cq5", "", 0l, false, true, "");
-    assertEquals(updates.get(5), "cf6", "cq6", "cv6", 0l, false, true, "");
-    assertEquals(updates.get(6), "cf7", "cq7", "", 7l, true, true, "");
-    assertEquals(updates.get(7), "cf8", "cq8", "cv8", 8l, true, true, "");
+    verifyColumnUpdate(updates.get(4), "cf5", "cq5", "", 0l, false, true, "");
+    verifyColumnUpdate(updates.get(5), "cf6", "cq6", "cv6", 0l, false, true, "");
+    verifyColumnUpdate(updates.get(6), "cf7", "cq7", "", 7l, true, true, "");
+    verifyColumnUpdate(updates.get(7), "cf8", "cq8", "cv8", 8l, true, true, "");
   }
   
   /**
@@ -254,6 +264,7 @@ public class MutationTest extends TestCase {
    * the first set of column updates (and value lengths). Hadoop input formats reuse objects when reading, so if Mutations are used with an input format (or as
    * the input to a combiner or reducer) then they will be used in this fashion.
    */
+  @Test
   public void testMultipleReadFieldsCalls() throws IOException {
     // Create test mutations and write them to a byte output stream
     Mutation m1 = new Mutation("row1");
@@ -290,9 +301,9 @@ public class MutationTest extends TestCase {
     assertEquals(size1, m.size());
     assertEquals(nb1, m.numBytes());
     assertEquals(3, m.getUpdates().size());
-    assertEquals(m.getUpdates().get(0), "cf1.1", "cq1.1", "A|B", 0L, false, false, "val1.1");
-    assertEquals(m.getUpdates().get(1), "cf1.2", "cq1.2", "C|D", 0L, false, false, "val1.2");
-    assertEquals(m.getUpdates().get(2), "cf1.3", "cq1.3", "E|F", 0L, false, false, new String(val1_3));
+    verifyColumnUpdate(m.getUpdates().get(0), "cf1.1", "cq1.1", "A|B", 0L, false, false, "val1.1");
+    verifyColumnUpdate(m.getUpdates().get(1), "cf1.2", "cq1.2", "C|D", 0L, false, false, "val1.2");
+    verifyColumnUpdate(m.getUpdates().get(2), "cf1.3", "cq1.3", "E|F", 0L, false, false, new String(val1_3));
     
     // Reuse the same mutation object (which is what happens in the hadoop framework
     // when objects are read by an input format)
@@ -302,10 +313,10 @@ public class MutationTest extends TestCase {
     assertEquals(size2, m.size());
     assertEquals(nb2, m.numBytes());
     assertEquals(1, m.getUpdates().size());
-    assertEquals(m.getUpdates().get(0), "cf2", "cq2", "G|H", 1234L, true, false, new String(val2));
+    verifyColumnUpdate(m.getUpdates().get(0), "cf2", "cq2", "G|H", 1234L, true, false, new String(val2));
   }
   
-  private void assertEquals(ColumnUpdate cu, String cf, String cq, String cv, long ts, boolean timeSet, boolean deleted, String val) {
+  private void verifyColumnUpdate(ColumnUpdate cu, String cf, String cq, String cv, long ts, boolean timeSet, boolean deleted, String val) {
     
     assertEquals(cf, new String(cu.getColumnFamily()));
     assertEquals(cq, new String(cu.getColumnQualifier()));
@@ -317,6 +328,7 @@ public class MutationTest extends TestCase {
     assertEquals(val, new String(cu.getValue()));
   }
   
+  @Test
   public void test4() throws Exception {
     Mutation m1 = new Mutation(new Text("r1"));
     
@@ -343,11 +355,12 @@ public class MutationTest extends TestCase {
     assertEquals("r1", new String(m2.getRow()));
     assertEquals(2, m2.getUpdates().size());
     assertEquals(2, m2.size());
-    assertEquals(m2.getUpdates().get(0), "cf1", "cq1", "", 0l, false, false, "v1");
-    assertEquals(m2.getUpdates().get(1), "cf2", "cq2", "cv2", 0l, false, false, "v2");
+    verifyColumnUpdate(m2.getUpdates().get(0), "cf1", "cq1", "", 0l, false, false, "v1");
+    verifyColumnUpdate(m2.getUpdates().get(1), "cf2", "cq2", "cv2", 0l, false, false, "v2");
     
   }
   
+  @Test
   public void testEquals() {
     Mutation m1 = new Mutation("r1");
     
@@ -416,4 +429,22 @@ public class MutationTest extends TestCase {
     assertFalse(m3.equals(m5));
     assertFalse(m4.equals(m5));
   }
+
+  @Test
+  public void testThrift() {
+    Mutation m1 = new Mutation("r1");
+    m1.put("cf1", "cq1", "v1");
+    TMutation tm1 = m1.toThrift();
+    Mutation m2 = new Mutation(tm1);
+    assertEquals(m1, m2);
+  }
+  @Test(expected=IllegalArgumentException.class)
+  public void testThrift_Invalid() {
+    Mutation m1 = new Mutation("r1");
+    m1.put("cf1", "cq1", "v1");
+    TMutation tm1 = m1.toThrift();
+    tm1.setRow((byte[]) null);
+    new Mutation(tm1);
+  }
+
 }
