@@ -22,16 +22,16 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.MultiTableBatchWriterImpl;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -41,44 +41,31 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-import org.apache.accumulo.minicluster.MiniAccumuloConfig;
-import org.junit.AfterClass;
+import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.junit.Assert;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 import com.google.common.collect.Maps;
 
-public class MultiTableBatchWriterTest {
-  public static TemporaryFolder folder = new TemporaryFolder();
-  public static MiniAccumuloCluster cluster;
-  private static final PasswordToken password = new PasswordToken("secret");
+public class MultiTableBatchWriterIT extends SimpleMacIT {
 
-  @BeforeClass
-  public static void setUpBeforeClass() throws Exception {
-    folder.create();
-    MiniAccumuloConfig cfg = new MiniAccumuloConfig(folder.newFolder("miniAccumulo"), new String(password.getPassword()));
-    cluster = new MiniAccumuloCluster(cfg);
-    cluster.start();
+  private Connector connector;
+  private MultiTableBatchWriter mtbw;
+
+  @Before
+  public void setUpArgs() throws AccumuloException, AccumuloSecurityException {
+    connector = getConnector();
+    mtbw = getMultiTableBatchWriter(60);
   }
 
-  @AfterClass
-  public static void tearDownAfterClass() throws Exception {
-    cluster.stop();
-    folder.delete();
+  public MultiTableBatchWriter getMultiTableBatchWriter(long cacheTimeoutInSeconds) {
+    return new MultiTableBatchWriterImpl(connector.getInstance(), new Credentials("root", new PasswordToken(getStaticCluster().getConfig().getRootPassword())),
+        new BatchWriterConfig(), cacheTimeoutInSeconds, TimeUnit.SECONDS);
   }
 
   @Test
   public void testTableRenameDataValidation() throws Exception {
-    ZooKeeperInstance instance = new ZooKeeperInstance(new ClientConfiguration().withInstance(cluster.getInstanceName()).withZkHosts(cluster.getZooKeepers()));
-    Connector connector = instance.getConnector("root", password);
-
-    BatchWriterConfig config = new BatchWriterConfig();
-
-    Credentials creds = new Credentials("root", password);
-    MultiTableBatchWriter mtbw = new MultiTableBatchWriterImpl(instance, creds, config, 60, TimeUnit.SECONDS);
 
     try {
       final String table1 = "testTableRenameDataValidation_table1", table2 = "testTableRenameDataValidation_table2";
@@ -140,13 +127,6 @@ public class MultiTableBatchWriterTest {
 
   @Test
   public void testTableRenameSameWriters() throws Exception {
-    ZooKeeperInstance instance = new ZooKeeperInstance(new ClientConfiguration().withInstance(cluster.getInstanceName()).withZkHosts(cluster.getZooKeepers()));
-    Connector connector = instance.getConnector("root", password);
-
-    BatchWriterConfig config = new BatchWriterConfig();
-
-    Credentials creds = new Credentials("root", password);
-    MultiTableBatchWriter mtbw = new MultiTableBatchWriterImpl(instance, creds, config, 60, TimeUnit.SECONDS);
 
     try {
       final String table1 = "testTableRenameSameWriters_table1", table2 = "testTableRenameSameWriters_table2";
@@ -202,13 +182,6 @@ public class MultiTableBatchWriterTest {
 
   @Test
   public void testTableRenameNewWriters() throws Exception {
-    ZooKeeperInstance instance = new ZooKeeperInstance(new ClientConfiguration().withInstance(cluster.getInstanceName()).withZkHosts(cluster.getZooKeepers()));
-    Connector connector = instance.getConnector("root", password);
-
-    BatchWriterConfig config = new BatchWriterConfig();
-
-    Credentials creds = new Credentials("root", password);
-    MultiTableBatchWriter mtbw = new MultiTableBatchWriterImpl(instance, creds, config, 60, TimeUnit.SECONDS);
 
     try {
       final String table1 = "testTableRenameNewWriters_table1", table2 = "testTableRenameNewWriters_table2";
@@ -284,13 +257,7 @@ public class MultiTableBatchWriterTest {
 
   @Test
   public void testTableRenameNewWritersNoCaching() throws Exception {
-    ZooKeeperInstance instance = new ZooKeeperInstance(new ClientConfiguration().withInstance(cluster.getInstanceName()).withZkHosts(cluster.getZooKeepers()));
-    Connector connector = instance.getConnector("root", password);
-
-    BatchWriterConfig config = new BatchWriterConfig();
-
-    Credentials creds = new Credentials("root", password);
-    MultiTableBatchWriter mtbw = new MultiTableBatchWriterImpl(instance, creds, config, 0, TimeUnit.SECONDS);
+    mtbw = getMultiTableBatchWriter(0);
 
     try {
       final String table1 = "testTableRenameNewWritersNoCaching_table1", table2 = "testTableRenameNewWritersNoCaching_table2";
@@ -333,15 +300,8 @@ public class MultiTableBatchWriterTest {
 
   @Test
   public void testTableDelete() throws Exception {
-    ZooKeeperInstance instance = new ZooKeeperInstance(new ClientConfiguration().withInstance(cluster.getInstanceName()).withZkHosts(cluster.getZooKeepers()));
-    Connector connector = instance.getConnector("root", password);
-
-    BatchWriterConfig config = new BatchWriterConfig();
-
-    Credentials creds = new Credentials("root", password);
-    MultiTableBatchWriter mtbw = new MultiTableBatchWriterImpl(instance, creds, config, 60, TimeUnit.SECONDS);
     boolean mutationsRejected = false;
-    
+
     try {
       final String table1 = "testTableDelete_table1", table2 = "testTableDelete_table2";
 
@@ -384,19 +344,12 @@ public class MultiTableBatchWriterTest {
         }
       }
     }
-    
+
     Assert.assertTrue("Expected mutations to be rejected.", mutationsRejected);
   }
 
   @Test
   public void testOfflineTable() throws Exception {
-    ZooKeeperInstance instance = new ZooKeeperInstance(new ClientConfiguration().withInstance(cluster.getInstanceName()).withZkHosts(cluster.getZooKeepers()));
-    Connector connector = instance.getConnector("root", password);
-
-    BatchWriterConfig config = new BatchWriterConfig();
-
-    Credentials creds = new Credentials("root", password);
-    MultiTableBatchWriter mtbw = new MultiTableBatchWriterImpl(instance, creds, config, 60, TimeUnit.SECONDS);
     boolean mutationsRejected = false;
 
     try {
@@ -439,19 +392,12 @@ public class MultiTableBatchWriterTest {
         }
       }
     }
-    
+
     Assert.assertTrue("Expected mutations to be rejected.", mutationsRejected);
   }
 
   @Test
   public void testOfflineTableWithCache() throws Exception {
-    ZooKeeperInstance instance = new ZooKeeperInstance(new ClientConfiguration().withInstance(cluster.getInstanceName()).withZkHosts(cluster.getZooKeepers()));
-    Connector connector = instance.getConnector("root", password);
-
-    BatchWriterConfig config = new BatchWriterConfig();
-
-    Credentials creds = new Credentials("root", password);
-    MultiTableBatchWriter mtbw = new MultiTableBatchWriterImpl(instance, creds, config, 60, TimeUnit.SECONDS);
     boolean mutationsRejected = false;
 
     try {
@@ -504,13 +450,7 @@ public class MultiTableBatchWriterTest {
 
   @Test
   public void testOfflineTableWithoutCache() throws Exception {
-    ZooKeeperInstance instance = new ZooKeeperInstance(new ClientConfiguration().withInstance(cluster.getInstanceName()).withZkHosts(cluster.getZooKeepers()));
-    Connector connector = instance.getConnector("root", password);
-
-    BatchWriterConfig config = new BatchWriterConfig();
-
-    Credentials creds = new Credentials("root", password);
-    MultiTableBatchWriter mtbw = new MultiTableBatchWriterImpl(instance, creds, config, 0, TimeUnit.SECONDS);
+    mtbw = getMultiTableBatchWriter(0);
     boolean mutationsRejected = false;
 
     try {

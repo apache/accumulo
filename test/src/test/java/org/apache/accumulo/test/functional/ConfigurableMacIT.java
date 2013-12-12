@@ -64,7 +64,7 @@ public class ConfigurableMacIT extends AbstractMacIT {
     return getCluster().getConnector("root", ROOT_PASSWORD);
   }
 
-  public Process exec(Class<? extends Object> clazz, String... args) throws IOException {
+  public Process exec(Class<?> clazz, String... args) throws IOException {
     return getCluster().exec(clazz, args);
   }
 

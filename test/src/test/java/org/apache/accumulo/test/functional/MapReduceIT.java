@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Collections;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -43,6 +44,7 @@ import org.codehaus.plexus.util.Base64;
 import org.junit.Test;
 
 public class MapReduceIT extends ConfigurableMacIT {
+  public static final String hadoopTmpDirArg = "-Dhadoop.tmp.dir=" + System.getProperty("user.dir") + "/target/hadoop-tmp";
 
   static final String tablename = "mapredf";
   static final String input_cf = "cf-HASHTYPE";
@@ -66,8 +68,8 @@ public class MapReduceIT extends ConfigurableMacIT {
       bw.addMutation(m);
     }
     bw.close();
-    Process hash = cluster.exec(RowHash.class, "-i", c.getInstance().getInstanceName(), "-z", c.getInstance().getZooKeepers(), "-u", "root", "-p",
-        ROOT_PASSWORD, "-t", tablename, "--column", input_cfcq);
+    Process hash = cluster.exec(RowHash.class, Collections.singletonList(hadoopTmpDirArg), "-i", c.getInstance().getInstanceName(), "-z", c.getInstance()
+        .getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD, "-t", tablename, "--column", input_cfcq);
     assertEquals(0, hash.waitFor());
 
     Scanner s = c.createScanner(tablename, Authorizations.EMPTY);
@@ -81,5 +83,4 @@ public class MapReduceIT extends ConfigurableMacIT {
     }
 
   }
-
 }

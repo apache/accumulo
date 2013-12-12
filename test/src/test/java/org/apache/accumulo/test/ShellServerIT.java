@@ -147,6 +147,7 @@ public class ShellServerIT extends SimpleMacIT {
   public static void setUpBeforeClass() throws Exception {
     // history file is updated in $HOME
     System.setProperty("HOME", getFolder().getAbsolutePath());
+    System.setProperty("hadoop.tmp.dir", System.getProperty("user.dir") + "/target/hadoop-tmp");
 
     // start the shell
     output = new TestOutputStream();
@@ -768,11 +769,11 @@ public class ShellServerIT extends SimpleMacIT {
 
   @Test(timeout = 30 * 1000)
   public void testPertableClasspath() throws Exception {
-    File fooFilterJar = File.createTempFile("FooFilter", ".jar");
+    File fooFilterJar = File.createTempFile("FooFilter", ".jar", getFolder());
     FileUtils.copyURLToFile(this.getClass().getResource("/FooFilter.jar"), fooFilterJar);
     fooFilterJar.deleteOnExit();
 
-    File fooConstraintJar = File.createTempFile("FooConstraint", ".jar");
+    File fooConstraintJar = File.createTempFile("FooConstraint", ".jar", getFolder());
     FileUtils.copyURLToFile(this.getClass().getResource("/FooConstraint.jar"), fooConstraintJar);
     fooConstraintJar.deleteOnExit();
 

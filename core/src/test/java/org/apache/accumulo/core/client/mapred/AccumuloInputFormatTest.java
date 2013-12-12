@@ -36,8 +36,8 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobClient;
@@ -48,6 +48,8 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.lib.NullOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class AccumuloInputFormatTest {
@@ -56,6 +58,18 @@ public class AccumuloInputFormatTest {
   private static final String INSTANCE_NAME = PREFIX + "_mapred_instance";
   private static final String TEST_TABLE_1 = PREFIX + "_mapred_table_1";
 
+  private JobConf job;
+
+  @BeforeClass
+  public static void setupClass() {
+    System.setProperty("hadoop.tmp.dir", System.getProperty("user.dir") + "/target/hadoop-tmp");
+  }
+
+  @Before
+  public void createJob() {
+    job = new JobConf();
+  }
+
   /**
    * Check that the iterator configuration is getting stored in the Job conf correctly.
    * 
@@ -63,8 +77,6 @@ public class AccumuloInputFormatTest {
    */
   @Test
   public void testSetIterator() throws IOException {
-    JobConf job = new JobConf();
-
     IteratorSetting is = new IteratorSetting(1, "WholeRow", "org.apache.accumulo.core.iterators.WholeRowIterator");
     AccumuloInputFormat.addIterator(job, is);
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -75,8 +87,6 @@ public class AccumuloInputFormatTest {
 
   @Test
   public void testAddIterator() throws IOException {
-    JobConf job = new JobConf();
-
     AccumuloInputFormat.addIterator(job, new IteratorSetting(1, "WholeRow", WholeRowIterator.class));
     AccumuloInputFormat.addIterator(job, new IteratorSetting(2, "Versions", "org.apache.accumulo.core.iterators.VersioningIterator"));
     IteratorSetting iter = new IteratorSetting(3, "Count", "org.apache.accumulo.core.iterators.CountingIterator");
@@ -123,7 +133,6 @@ public class AccumuloInputFormatTest {
     String value = "comma,delimited,value";
     IteratorSetting someSetting = new IteratorSetting(1, "iterator", "Iterator.class");
     someSetting.addOption(key, value);
-    JobConf job = new JobConf();
     AccumuloInputFormat.addIterator(job, someSetting);
 
     List<IteratorSetting> list = AccumuloInputFormat.getIterators(job);
@@ -151,8 +160,6 @@ public class AccumuloInputFormatTest {
    */
   @Test
   public void testGetIteratorSettings() throws IOException {
-    JobConf job = new JobConf();
-
     AccumuloInputFormat.addIterator(job, new IteratorSetting(1, "WholeRow", "org.apache.accumulo.core.iterators.WholeRowIterator"));
     AccumuloInputFormat.addIterator(job, new IteratorSetting(2, "Versions", "org.apache.accumulo.core.iterators.VersioningIterator"));
     AccumuloInputFormat.addIterator(job, new IteratorSetting(3, "Count", "org.apache.accumulo.core.iterators.CountingIterator"));
@@ -182,8 +189,6 @@ public class AccumuloInputFormatTest {
 
   @Test
   public void testSetRegex() throws IOException {
-    JobConf job = new JobConf();
-
     String regex = ">\"*%<>\'\\";
 
     IteratorSetting is = new IteratorSetting(50, regex, RegExFilter.class);
@@ -259,8 +264,8 @@ public class AccumuloInputFormatTest {
       return JobClient.runJob(job).isSuccessful() ? 0 : 1;
     }
 
-    public static void main(String[] args) throws Exception {
-      assertEquals(0, ToolRunner.run(CachedConfiguration.getInstance(), new MRTester(), args));
+    public static void main(String... args) throws Exception {
+      assertEquals(0, ToolRunner.run(new Configuration(), new MRTester(), args));
     }
   }
 
@@ -277,7 +282,7 @@ public class AccumuloInputFormatTest {
     }
     bw.close();
 
-    MRTester.main(new String[] {"root", "", TEST_TABLE_1});
+    MRTester.main("root", "", TEST_TABLE_1);
     assertNull(e1);
     assertNull(e2);
   }

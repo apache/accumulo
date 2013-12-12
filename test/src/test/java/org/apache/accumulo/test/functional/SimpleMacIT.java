@@ -22,6 +22,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.minicluster.MiniAccumuloInstance;
@@ -41,6 +42,8 @@ public class SimpleMacIT extends AbstractMacIT {
     if (getInstanceOneConnector() == null && cluster == null) {
       folder = createSharedTestDir(SimpleMacIT.class.getName());
       MiniAccumuloConfig cfg = new MiniAccumuloConfig(folder, ROOT_PASSWORD);
+      cfg.setNativeLibPaths(NativeMapIT.nativeMapLocation().getAbsolutePath());
+      cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.TRUE.toString());
       configureForEnvironment(cfg, SimpleMacIT.class, createSharedTestDir(SimpleMacIT.class.getName() + "-ssl"));
       cluster = new MiniAccumuloCluster(cfg);
       cluster.start();

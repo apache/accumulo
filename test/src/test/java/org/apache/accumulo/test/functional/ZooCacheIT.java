@@ -18,17 +18,27 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class ZooCacheIT extends ConfigurableMacIT {
 
+  private static String pathName = "/zcTest-42";
+  private static File testDir;
+
+  @BeforeClass
+  public static void createTestDirectory() {
+    testDir = createSharedTestDir(ZooCacheIT.class.getName() + pathName);
+  }
+
   @Test(timeout = 2 * 60 * 1000)
   public void test() throws Exception {
-    assertEquals(0, exec(CacheTestClean.class, "/zcTest-42", "/tmp/zcTest-42").waitFor());
+    assertEquals(0, exec(CacheTestClean.class, pathName, testDir.getAbsolutePath()).waitFor());
     final AtomicReference<Exception> ref = new AtomicReference<Exception>();
     List<Thread> threads = new ArrayList<Thread>();
     for (int i = 0; i < 3; i++) {
@@ -36,7 +46,7 @@ public class ZooCacheIT extends ConfigurableMacIT {
         @Override
         public void run() {
           try {
-            CacheTestReader.main(new String[] {"/zcTest-42", "/tmp/zcTest-42", getConnector().getInstance().getZooKeepers()});
+            CacheTestReader.main(new String[] {pathName, testDir.getAbsolutePath(), getConnector().getInstance().getZooKeepers()});
           } catch (Exception ex) {
             ref.set(ex);
           }
@@ -45,7 +55,7 @@ public class ZooCacheIT extends ConfigurableMacIT {
       reader.start();
       threads.add(reader);
     }
-    assertEquals(0, exec(CacheTestWriter.class, "/zcTest-42", "/tmp/zcTest-42", "3", "50").waitFor());
+    assertEquals(0, exec(CacheTestWriter.class, pathName, testDir.getAbsolutePath(), "3", "50").waitFor());
     for (Thread t : threads) {
       t.join();
       if (ref.get() != null)

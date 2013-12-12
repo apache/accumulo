@@ -84,16 +84,15 @@ public enum Property {
   @Sensitive
   RPC_SSL_KEYSTORE_PASSWORD("rpc.javax.net.ssl.keyStorePassword", "", PropertyType.STRING,
       "Password used to encrypt the SSL private keystore.  Leave blank to use the Accumulo instance secret"),
-  RPC_SSL_KEYSTORE_TYPE("rpc.javax.net.ssl.keyStoreType", "jks", PropertyType.STRING,
-      "Type of SSL keystore"),
+  RPC_SSL_KEYSTORE_TYPE("rpc.javax.net.ssl.keyStoreType", "jks", PropertyType.STRING, "Type of SSL keystore"),
   RPC_SSL_TRUSTSTORE_PATH("rpc.javax.net.ssl.trustStore", "$ACCUMULO_CONF_DIR/ssl/truststore.jks", PropertyType.PATH,
       "Path of the truststore file for the root cert"),
   @Sensitive
   RPC_SSL_TRUSTSTORE_PASSWORD("rpc.javax.net.ssl.trustStorePassword", "", PropertyType.STRING,
       "Password used to encrypt the SSL truststore.  Leave blank to use no password"),
-  RPC_SSL_TRUSTSTORE_TYPE("rpc.javax.net.ssl.trustStoreType", "jks", PropertyType.STRING,
-        "Type of SSL truststore"),
-  RPC_USE_JSSE("rpc.useJsse", "false", PropertyType.BOOLEAN, "Use JSSE system properties to configure SSL rather than general.javax.net.ssl.* Accumulo properties"),
+  RPC_SSL_TRUSTSTORE_TYPE("rpc.javax.net.ssl.trustStoreType", "jks", PropertyType.STRING, "Type of SSL truststore"),
+  RPC_USE_JSSE("rpc.useJsse", "false", PropertyType.BOOLEAN,
+      "Use JSSE system properties to configure SSL rather than general.javax.net.ssl.* Accumulo properties"),
   // instance properties (must be the same for every node in an instance)
   INSTANCE_PREFIX("instance.", null, PropertyType.PREFIX,
       "Properties in this category must be consistent throughout a cloud. This is enforced and servers won't be able to communicate if these differ."),
@@ -598,7 +597,7 @@ public enum Property {
   }
 
   // This is not a cache for loaded classes, just a way to avoid spamming the debug log
-  static Map<String, Class<? extends Object>> loaded = Collections.synchronizedMap(new HashMap<String, Class<? extends Object>>()); 
+  static Map<String,Class<?>> loaded = Collections.synchronizedMap(new HashMap<String,Class<?>>());
 
   public static <T> T createInstanceFromPropertyName(AccumuloConfiguration conf, Property property, Class<T> base, T defaultInstance) {
     String clazzName = conf.get(property);

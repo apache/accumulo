@@ -150,8 +150,16 @@ public class MiniAccumuloCluster {
   private MiniDFSCluster miniDFS = null;
   private List<Process> cleanup = new ArrayList<Process>();
 
-  public Process exec(Class<? extends Object> clazz, String... args) throws IOException {
-    Process proc = exec(clazz, Collections.singletonList("-Xmx" + config.getDefaultMemory()), args);
+  public Process exec(Class<?> clazz, String... args) throws IOException {
+    return exec(clazz, null, args);
+  }
+
+  public Process exec(Class<?> clazz, List<String> jvmArgs, String... args) throws IOException {
+    ArrayList<String> jvmArgs2 = new ArrayList<String>(1 + (jvmArgs == null ? 0 : jvmArgs.size()));
+    jvmArgs2.add("-Xmx" + config.getDefaultMemory());
+    if (jvmArgs != null)
+      jvmArgs2.addAll(jvmArgs);
+    Process proc = _exec(clazz, jvmArgs2, args);
     cleanup.add(proc);
     return proc;
   }
@@ -226,7 +234,7 @@ public class MiniAccumuloCluster {
     }
   }
 
-  private Process exec(Class<? extends Object> clazz, List<String> extraJvmOpts, String... args) throws IOException {
+  private Process _exec(Class<?> clazz, List<String> extraJvmOpts, String... args) throws IOException {
     String javaHome = System.getProperty("java.home");
     String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
     String classpath = getClasspath();
@@ -275,7 +283,7 @@ public class MiniAccumuloCluster {
     return process;
   }
 
-  private Process exec(Class<? extends Object> clazz, ServerType serverType, String... args) throws IOException {
+  private Process _exec(Class<?> clazz, ServerType serverType, String... args) throws IOException {
 
     List<String> jvmOpts = new ArrayList<String>();
     jvmOpts.add("-Xmx" + config.getMemory(serverType));
@@ -285,7 +293,7 @@ public class MiniAccumuloCluster {
       jvmOpts.addAll(buildRemoteDebugParams(port));
       debugPorts.add(new Pair<ServerType,Integer>(serverType, port));
     }
-    return exec(clazz, jvmOpts, args);
+    return _exec(clazz, jvmOpts, args);
   }
 
   /**
@@ -425,7 +433,7 @@ public class MiniAccumuloCluster {
     }
 
     if (zooKeeperProcess == null) {
-      zooKeeperProcess = exec(ZooKeeperServerMain.class, ServerType.ZOOKEEPER, zooCfgFile.getAbsolutePath());
+      zooKeeperProcess = _exec(ZooKeeperServerMain.class, ServerType.ZOOKEEPER, zooCfgFile.getAbsolutePath());
     }
 
     if (!initialized) {
@@ -456,7 +464,7 @@ public class MiniAccumuloCluster {
     }
     synchronized (tabletServerProcesses) {
       for (int i = tabletServerProcesses.size(); i < config.getNumTservers(); i++) {
-        tabletServerProcesses.add(exec(TabletServer.class, ServerType.TABLET_SERVER));
+        tabletServerProcesses.add(_exec(TabletServer.class, ServerType.TABLET_SERVER));
       }
     }
     int ret = 0;
@@ -470,10 +478,10 @@ public class MiniAccumuloCluster {
       throw new RuntimeException("Could not set master goal state, process returned " + ret + ". Check the logs in " + config.getLogDir() + " for errors.");
     }
     if (masterProcess == null) {
-      masterProcess = exec(Master.class, ServerType.MASTER);
+      masterProcess = _exec(Master.class, ServerType.MASTER);
     }
     if (config.shouldRunGC()) {
-      gcProcess = exec(SimpleGarbageCollector.class, ServerType.GARBAGE_COLLECTOR);
+      gcProcess = _exec(SimpleGarbageCollector.class, ServerType.GARBAGE_COLLECTOR);
     }
   }
 
