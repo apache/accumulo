@@ -63,7 +63,7 @@
       </excludes>
     </fileSet>
     <fileSet>
-      <directory>../lib/ext</directory>
+      <directory>.</directory>
       <outputDirectory>/lib/ext</outputDirectory>
       <directoryMode>0755</directoryMode>
       <excludes>
@@ -71,7 +71,7 @@
       </excludes>
     </fileSet>
     <fileSet>
-      <directory>../logs</directory>
+      <directory>.</directory>
       <outputDirectory>/logs</outputDirectory>
       <directoryMode>0700</directoryMode>
       <excludes>
