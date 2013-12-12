@@ -49,22 +49,27 @@
       <fileMode>0600</fileMode>
     </fileSet>
     <fileSet>
-      <includes>
-        <include>logs/</include>
-      </includes>
-      <directoryMode>0700</directoryMode>
+      <directory>./</directory>
+      <outputDirectory>/lib/ext</outputDirectory>
+      <directoryMode>0755</directoryMode>
       <excludes>
-        <exclude>logs/**.**</exclude>
+        <exclude>*/**</exclude>
       </excludes>
     </fileSet>
     <fileSet>
-      <includes>
-        <include>walogs/</include>
-      </includes>
+      <directory>./</directory>
+      <outputDirectory>/logs</outputDirectory>
       <directoryMode>0700</directoryMode>
       <excludes>
-        <exclude>walogs/.lock</exclude>
-        <exclude>walogs/**-**</exclude>
+        <exclude>*/**</exclude>
+      </excludes>
+    </fileSet>
+    <fileSet>
+      <directory>./</directory>
+      <outputDirectory>/walogs</outputDirectory>
+      <directoryMode>0700</directoryMode>
+      <excludes>
+        <exclude>*/**</exclude>
       </excludes>
     </fileSet>
     <fileSet>
