@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.client;
 
-import java.io.Closeable;
 import java.nio.ByteBuffer;
 import java.util.List;
 
@@ -28,7 +27,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
  * This class represents the information a client needs to know to connect to an instance of accumulo.
  * 
  */
-public interface Instance extends Closeable {
+public interface Instance {
   /**
    * Returns the location of the tablet server that is serving the root tablet.
    * 
@@ -126,9 +125,8 @@ public interface Instance extends Closeable {
    * Closes up the instance to free up all associated resources. You should try to reuse an Instance as much as you can because there is some location caching
    * stored which will enhance performance.
    */
-  @Override
   public abstract void close();
-  
+
   /**
    * Returns the AccumuloConfiguration to use when interacting with this instance.
    * 
