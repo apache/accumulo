@@ -186,14 +186,14 @@ take some time for particular configurations.
 
 \subsection{Adding a Node}
 
-Update your \texttt{\$ACCUMULO_HOME/conf/slaves} (or \texttt{\$ACCUMULO_CONF_DIR/slaves}) file to account for the addition.
+Update your \texttt{\$ACCUMULO\_HOME/conf/slaves} (or \texttt{\$ACCUMULO\_CONF\_DIR/slaves}) file to account for the addition.
 
 \begin{verbatim}
 $ACCUMULO_HOME/bin/accumulo admin start <host(s)> {<host> ...}
 \end{verbatim}
 
 Alternatively, you can ssh to each of the hosts you want to add and run 
-\texttt{\$ACCUMULO_HOME/bin/start-here.sh}.
+\texttt{\$ACCUMULO\_HOME/bin/start-here.sh}.
 
 Make sure the host in question has the new configuration, or else the tablet 
 server won't start; at a minimum this needs to be on the host(s) being added, 
@@ -209,9 +209,9 @@ $ACCUMULO_HOME/bin/accumulo admin stop <host(s)> {<host> ...}
 \end{verbatim}
 
 Alternatively, you can ssh to each of the hosts you want to remove and run 
-\texttt{\$ACCUMULO_HOME/bin/stop-here.sh}.
+\texttt{\$ACCUMULO\_HOME/bin/stop-here.sh}.
 
-Be sure to update your \texttt{\$ACCUMULO_HOME/conf/slaves} (or \texttt{\$ACCUMULO_CONF_DIR/slaves}) file to 
+Be sure to update your \texttt{\$ACCUMUL\_HOME/conf/slaves} (or \texttt{\$ACCUMULO\_CONF\_DIR/slaves}) file to 
 account for the removal of these hosts. Bear in mind that the monitor will not re-read the 
 slaves file automatically, so it will report the decomissioned servers as down; it's 
 recommended that you restart the monitor so that the node list is up to date.
