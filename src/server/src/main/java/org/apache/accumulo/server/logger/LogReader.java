@@ -108,14 +108,26 @@ public class LogReader {
       if (fs.isFile(path)) {
         // read log entries from a simple hdfs file
         org.apache.hadoop.io.SequenceFile.Reader reader = new SequenceFile.Reader(fs, new Path(file), conf);
-        while (reader.next(key, value)) {
-          printLogEvent(key, value, row, rowMatcher, ke, tabletIds, max);
+        try {
+          while (reader.next(key, value)) {
+            printLogEvent(key, value, row, rowMatcher, ke, tabletIds, max);
+          }
+        } finally {
+          if (reader != null) {
+            reader.close();
+          }
         }
       } else if (local.isFile(path)) {
         // read log entries from a simple file
         org.apache.hadoop.io.SequenceFile.Reader reader = new SequenceFile.Reader(local, new Path(file), conf);
-        while (reader.next(key, value)) {
-          printLogEvent(key, value, row, rowMatcher, ke, tabletIds, max);
+        try {
+          while (reader.next(key, value)) {
+            printLogEvent(key, value, row, rowMatcher, ke, tabletIds, max);
+          }
+        } finally {
+          if (reader != null) {
+            reader.close();
+          }
         }
       } else {
         try {
@@ -129,6 +141,7 @@ public class LogReader {
           while (input.next(key, value)) {
             printLogEvent(key, value, row, rowMatcher, ke, tabletIds, max);
           }
+          input.close();
         }
       }
     }

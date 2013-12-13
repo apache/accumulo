@@ -92,34 +92,34 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
  */
 public class LogService implements MutationLogger.Iface, Watcher {
   static final org.apache.log4j.Logger LOG = org.apache.log4j.Logger.getLogger(LogService.class);
-  
+
   private Configuration conf;
   private Authenticator authenticator;
   private TServer service;
   private LogWriter writer_;
   private MutationLogger.Iface writer;
   private String ephemeralNode;
-  
+
   enum ShutdownState {
     STARTED, REGISTERED, WAITING_FOR_HALT, HALT
   };
-  
+
   private ShutdownState shutdownState = ShutdownState.STARTED;
-  
+
   synchronized void switchState(ShutdownState state) {
     LOG.info("Switching from " + shutdownState + " to " + state);
     shutdownState = state;
   }
-  
+
   synchronized private void closedCheck() throws LoggerClosedException {
     if (!shutdownState.equals(ShutdownState.REGISTERED))
       throw new LoggerClosedException();
   }
-  
+
   private List<FileLock> fileLocks = new ArrayList<FileLock>();
-  
+
   private final String addressString;
-  
+
   public static void main(String[] args) throws Exception {
     LogService logService;
     SecurityUtil.serverLogin();
@@ -136,16 +136,16 @@ public class LogService implements MutationLogger.Iface, Watcher {
       LOG.error("Unexpected exception, exiting.", ex);
     }
   }
-  
+
   public LogService(String[] args) throws UnknownHostException, KeeperException, InterruptedException, IOException {
     try {
       Accumulo.init("logger");
     } catch (UnknownHostException e1) {
       LOG.error("Error reading logging configuration");
     }
-    
+
     FileSystemMonitor.start(Property.LOGGER_MONITOR_FS);
-    
+
     conf = CachedConfiguration.getInstance();
     FileSystem fs = null;
     try {
@@ -168,34 +168,45 @@ public class LogService implements MutationLogger.Iface, Watcher {
       }
       rootDirs.add(root);
     }
-    
+
     for (String root : rootDirs) {
       File rootFile = new File(root);
       rootFile.mkdirs();
+      @SuppressWarnings("resource")
       FileOutputStream lockOutputStream = new FileOutputStream(root + "/.lock");
       FileLock fileLock = lockOutputStream.getChannel().tryLock();
       if (fileLock == null)
-        throw new IOException("Failed to acquire lock file");
+        try {
+          throw new IOException("Failed to acquire lock file");
+        } finally {
+          if (lockOutputStream != null)
+            lockOutputStream.close();
+        }
       fileLocks.add(fileLock);
-      
+
       try {
         File test = new File(root, "test_writable");
         if (!test.mkdir())
           throw new RuntimeException("Unable to write to write-ahead log directory " + root);
         test.delete();
       } catch (Throwable t) {
-        LOG.fatal("Unable to write to write-ahead log directory", t);
-        throw new RuntimeException(t);
+        try {
+          LOG.fatal("Unable to write to write-ahead log directory", t);
+          throw new RuntimeException(t);
+        } finally {
+          if (lockOutputStream != null)
+            lockOutputStream.close();
+        }
       }
       LOG.info("Storing recovery logs at " + root);
     }
-    
+
     authenticator = ZKAuthenticator.getInstance();
     int poolSize = ServerConfiguration.getSystemConfiguration().getCount(Property.LOGGER_COPY_THREADPOOL_SIZE);
     boolean archive = ServerConfiguration.getSystemConfiguration().getBoolean(Property.LOGGER_ARCHIVE);
     AccumuloConfiguration acuConf = ServerConfiguration.getSystemConfiguration();
     writer_ = new LogWriter(acuConf, fs, rootDirs, HdfsZooInstance.getInstance().getInstanceID(), poolSize, archive);
-    
+
     // call before putting this service online
     removeIncompleteCopies(acuConf, fs, rootDirs);
 
@@ -241,7 +252,7 @@ public class LogService implements MutationLogger.Iface, Watcher {
     this.switchState(ShutdownState.REGISTERED);
     Accumulo.enableTracing(address.getHostName(), "logger");
   }
-  
+
   /**
    * @param acuConf
    * @param fs
@@ -265,7 +276,7 @@ public class LogService implements MutationLogger.Iface, Watcher {
         }
       }
     }
-    
+
     // look for .recovered that are not finished
     for (String walog : walogs) {
       Path path = new Path(ServerConstants.getRecoveryDir() + "/" + walog + ".recovered");
@@ -292,7 +303,7 @@ public class LogService implements MutationLogger.Iface, Watcher {
     }
     Runtime.getRuntime().halt(0);
   }
-  
+
   void registerInZooKeeper(String zooDir) {
     try {
       IZooReaderWriter zoo = ZooReaderWriter.getInstance();
@@ -305,7 +316,7 @@ public class LogService implements MutationLogger.Iface, Watcher {
       throw new RuntimeException("Unexpected error creating zookeeper entry " + zooDir);
     }
   }
-  
+
   private void checkForSystemPrivs(String request, AuthInfo credentials) throws ThriftSecurityException {
     try {
       if (!authenticator.hasSystemPermission(credentials, credentials.user, SystemPermission.SYSTEM)) {
@@ -317,13 +328,13 @@ public class LogService implements MutationLogger.Iface, Watcher {
       throw e.asThriftException();
     }
   }
-  
+
   @Override
   public void close(TInfo info, long id) throws NoSuchLogIDException, LoggerClosedException, TException {
     closedCheck();
     writer.close(info, id);
   }
-  
+
   @Override
   public LogCopyInfo startCopy(TInfo info, AuthInfo credentials, String localLog, String fullyQualifiedFileName, boolean sort) throws ThriftSecurityException,
       TException {
@@ -332,50 +343,50 @@ public class LogService implements MutationLogger.Iface, Watcher {
     lci.loggerZNode = ephemeralNode;
     return lci;
   }
-  
+
   @Override
   public LogFile create(TInfo info, AuthInfo credentials, String tserverSession) throws ThriftSecurityException, LoggerClosedException, TException {
     checkForSystemPrivs("create", credentials);
     closedCheck();
     return writer.create(info, credentials, tserverSession);
   }
-  
+
   @Override
   public void log(TInfo info, long id, long seq, int tid, TMutation mutation) throws NoSuchLogIDException, LoggerClosedException, TException {
     closedCheck();
     writer.log(info, id, seq, tid, mutation);
   }
-  
+
   @Override
   public void logManyTablets(TInfo info, long id, List<TabletMutations> mutations) throws NoSuchLogIDException, LoggerClosedException, TException {
     closedCheck();
     writer.logManyTablets(info, id, mutations);
   }
-  
+
   @Override
   public void minorCompactionFinished(TInfo info, long id, long seq, int tid, String fqfn) throws NoSuchLogIDException, LoggerClosedException, TException {
     closedCheck();
     writer.minorCompactionFinished(info, id, seq, tid, fqfn);
   }
-  
+
   @Override
   public void minorCompactionStarted(TInfo info, long id, long seq, int tid, String fqfn) throws NoSuchLogIDException, LoggerClosedException, TException {
     closedCheck();
     writer.minorCompactionStarted(info, id, seq, tid, fqfn);
   }
-  
+
   @Override
   public void defineTablet(TInfo info, long id, long seq, int tid, TKeyExtent tablet) throws NoSuchLogIDException, LoggerClosedException, TException {
     closedCheck();
     writer.defineTablet(info, id, seq, tid, tablet);
   }
-  
+
   @Override
   public void process(WatchedEvent event) {
     LOG.debug("event " + event.getPath() + " " + event.getType() + " " + event.getState());
     if (event.getState() == KeeperState.Disconnected)
       return;
-    
+
     if (event.getState() == KeeperState.Expired) {
       LOG.warn("Logger lost zookeeper registration at " + event.getPath());
       service.stop();
@@ -400,13 +411,13 @@ public class LogService implements MutationLogger.Iface, Watcher {
       service.stop();
     }
   }
-  
+
   @Override
   public List<String> getClosedLogs(TInfo info, AuthInfo credentials) throws ThriftSecurityException, TException {
     checkForSystemPrivs("getClosedLogs", credentials);
     return writer.getClosedLogs(info, credentials);
   }
-  
+
   @Override
   public void remove(TInfo info, AuthInfo credentials, List<String> files) throws TException {
     try {
@@ -416,7 +427,7 @@ public class LogService implements MutationLogger.Iface, Watcher {
       LOG.error(ex, ex);
     }
   }
-  
+
   @Override
   public void beginShutdown(TInfo tinfo, AuthInfo credentials) throws TException {
     try {
@@ -427,7 +438,7 @@ public class LogService implements MutationLogger.Iface, Watcher {
       LOG.error(ex, ex);
     }
   }
-  
+
   @Override
   public void halt(TInfo tinfo, AuthInfo credentials) throws TException {
     try {

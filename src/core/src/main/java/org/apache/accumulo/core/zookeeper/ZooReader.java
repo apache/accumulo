@@ -16,67 +16,66 @@
  */
 package org.apache.accumulo.core.zookeeper;
 
-import java.io.Closeable;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.client.Instance;
+import org.apache.zookeeper.AsyncCallback.VoidCallback;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
-import org.apache.zookeeper.AsyncCallback.VoidCallback;
-import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.data.Stat;
 
-public class ZooReader implements IZooReader, Closeable {
-  
+public class ZooReader implements IZooReader {
+
   protected String keepers;
   protected int timeout;
-  
+
   protected ZooKeeper getSession(String keepers, int timeout, String auth) {
     return ZooSession.getSession(keepers, timeout, auth);
   }
-  
+
   protected ZooKeeper getZooKeeper() {
     return getSession(keepers, timeout, null);
   }
-  
+
   @Override
   public byte[] getData(String zPath, Stat stat) throws KeeperException, InterruptedException {
     return getZooKeeper().getData(zPath, false, stat);
   }
-  
+
   @Override
   public Stat getStatus(String zPath) throws KeeperException, InterruptedException {
     return getZooKeeper().exists(zPath, false);
   }
-  
+
   @Override
   public Stat getStatus(String zPath, Watcher watcher) throws KeeperException, InterruptedException {
     return getZooKeeper().exists(zPath, watcher);
   }
-  
+
   @Override
   public List<String> getChildren(String zPath) throws KeeperException, InterruptedException {
     return getZooKeeper().getChildren(zPath, false);
   }
-  
+
   @Override
   public List<String> getChildren(String zPath, Watcher watcher) throws KeeperException, InterruptedException {
     return getZooKeeper().getChildren(zPath, watcher);
   }
-  
+
   @Override
   public boolean exists(String zPath) throws KeeperException, InterruptedException {
     return getZooKeeper().exists(zPath, false) != null;
   }
-  
+
   @Override
   public boolean exists(String zPath, Watcher watcher) throws KeeperException, InterruptedException {
     return getZooKeeper().exists(zPath, watcher) != null;
   }
-  
+
   @Override
   public void sync(final String path) throws KeeperException, InterruptedException {
     final AtomicInteger rc = new AtomicInteger();
@@ -89,7 +88,8 @@ public class ZooReader implements IZooReader, Closeable {
           waiter.set(true);
           waiter.notifyAll();
         }
-      }}, null);
+      }
+    }, null);
     synchronized (waiter) {
       while (!waiter.get())
         waiter.wait();
@@ -99,19 +99,18 @@ public class ZooReader implements IZooReader, Closeable {
       throw KeeperException.create(code);
     }
   }
-  
+
   public ZooReader(String keepers, int timeout) {
     this.keepers = keepers;
     this.timeout = timeout;
   }
-  
+
   public ZooReader(Instance instance) {
     this(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
   }
 
   /**
-   * Closes this reader. If closure of the underlying session is interrupted,
-   * this method sets the calling thread's interrupt status.
+   * Closes this reader. If closure of the underlying session is interrupted, this method sets the calling thread's interrupt status.
    */
   public void close() {
     try {

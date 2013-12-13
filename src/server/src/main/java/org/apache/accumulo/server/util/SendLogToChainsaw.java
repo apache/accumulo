@@ -18,8 +18,10 @@ package org.apache.accumulo.server.util;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.net.Socket;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
@@ -48,33 +50,33 @@ import org.apache.log4j.varia.LevelRangeFilter;
 import org.apache.log4j.xml.XMLLayout;
 
 public class SendLogToChainsaw extends XMLLayout {
-  
+
   private static Pattern logPattern = Pattern.compile(
       "^(\\d\\d)\\s(\\d\\d):(\\d\\d):(\\d\\d),(\\d\\d\\d)\\s\\[(.*)\\]\\s(TRACE|DEBUG|INFO|WARN|FATAL|ERROR)\\s*?:(.*)$", Pattern.UNIX_LINES);
-  
+
   private File[] logFiles = null;
-  
+
   private SocketFactory factory = SocketFactory.getDefault();
-  
+
   private WildcardFileFilter fileFilter = null;
-  
+
   private Socket socket = null;
-  
+
   private Pattern lineFilter = null;
-  
+
   private LongRange dateFilter = null;
-  
+
   private LevelRangeFilter levelFilter = null;
-  
+
   public SendLogToChainsaw(String directory, String fileNameFilter, String host, int port, Date start, Date end, String regex, String level) throws Exception {
-    
+
     // Set up the file name filter
     if (null != fileNameFilter) {
       fileFilter = new WildcardFileFilter(fileNameFilter);
     } else {
       fileFilter = new WildcardFileFilter("*");
     }
-    
+
     // Get the list of files that match
     File dir = new File(directory);
     if (dir.isDirectory()) {
@@ -82,22 +84,22 @@ public class SendLogToChainsaw extends XMLLayout {
     } else {
       throw new IllegalArgumentException(directory + " is not a directory or is not readable.");
     }
-    
+
     if (logFiles.length == 0) {
       throw new IllegalArgumentException("No files match the supplied filter.");
     }
-    
+
     socket = factory.createSocket(host, port);
-    
+
     lineFilter = Pattern.compile(regex);
-    
+
     // Create Date Filter
     if (null != start) {
       if (end == null)
         end = new Date(System.currentTimeMillis());
       dateFilter = new LongRange(start.getTime(), end.getTime());
     }
-    
+
     if (null != level) {
       Level base = Level.toLevel(level.toUpperCase());
       levelFilter = new LevelRangeFilter();
@@ -106,43 +108,60 @@ public class SendLogToChainsaw extends XMLLayout {
       levelFilter.setLevelMax(Level.FATAL);
     }
   }
-  
+
   public void processLogFiles() throws Exception {
-    for (File log : logFiles) {
-      // Parse the server type and name from the log file name
-      String threadName = log.getName().substring(0, log.getName().indexOf("."));
-      FileReader fReader = new FileReader(log);
-      BufferedReader reader = new BufferedReader(fReader);
-      
-      String line = reader.readLine();
-      while (null != line) {
-        String out = null;
+    String line = null;
+    String out = null;
+    FileReader fReader = null;
+    BufferedReader reader = null;
+    try {
+      for (File log : logFiles) {
+        // Parse the server type and name from the log file name
+        String threadName = log.getName().substring(0, log.getName().indexOf("."));
         try {
-          out = convertLine(line, threadName);
-          if (null != out) {
-            if (socket != null && socket.isConnected())
-              socket.getOutputStream().write(out.getBytes());
-            else
-              System.err.println("Unable to send data to transport");
-          }
-        } catch (Exception e) {
-          System.out.println("Error processing line: " + line + ". Output was " + out);
+          fReader = new FileReader(log);
+        } catch (FileNotFoundException e) {
+          System.out.println("Unable to find file: " + log.getAbsolutePath());
           throw e;
         }
-        line = reader.readLine();
+        reader = new BufferedReader(fReader);
+
+        try {
+          line = reader.readLine();
+          while (null != line) {
+            out = convertLine(line, threadName);
+            if (null != out) {
+              if (socket != null && socket.isConnected())
+                socket.getOutputStream().write(out.getBytes());
+              else
+                System.err.println("Unable to send data to transport");
+            }
+            line = reader.readLine();
+          }
+        } catch (IOException e) {
+          System.out.println("Error processing line: " + line + ". Output was " + out);
+          throw e;
+        } finally {
+          if (reader != null) {
+            reader.close();
+          }
+          if (fReader != null) {
+            fReader.close();
+          }
+        }
       }
-      reader.close();
-      fReader.close();
+    } finally {
+      if (socket != null && socket.isConnected()) {
+        socket.close();
+      }
     }
-    if (socket != null && socket.isConnected())
-      socket.close();
   }
-  
+
   private String convertLine(String line, String threadName) throws Exception {
     String result = null;
     Matcher m = logPattern.matcher(line);
     if (m.matches()) {
-      
+
       Calendar cal = Calendar.getInstance();
       cal.setTime(new Date(System.currentTimeMillis()));
       Integer date = Integer.parseInt(m.group(1));
@@ -188,54 +207,54 @@ public class SendLogToChainsaw extends XMLLayout {
     }
     return result;
   }
-  
+
   private static Options getOptions() {
     Options opts = new Options();
-    
+
     Option dirOption = new Option("d", "logDirectory", true, "ACCUMULO log directory path");
     dirOption.setArgName("dir");
     dirOption.setRequired(true);
     opts.addOption(dirOption);
-    
+
     Option fileFilterOption = new Option("f", "fileFilter", true, "filter to apply to names of logs");
     fileFilterOption.setArgName("filter");
     fileFilterOption.setRequired(false);
     opts.addOption(fileFilterOption);
-    
+
     Option hostOption = new Option("h", "host", true, "host where chainsaw is running");
     hostOption.setArgName("hostname");
     hostOption.setRequired(true);
     opts.addOption(hostOption);
-    
+
     Option portOption = new Option("p", "port", true, "port where XMLSocketReceiver is listening");
     portOption.setArgName("portnum");
     portOption.setRequired(true);
     opts.addOption(portOption);
-    
+
     Option startOption = new Option("s", "start", true, "start date filter (yyyyMMddHHmmss)");
     startOption.setArgName("date");
     startOption.setRequired(true);
     opts.addOption(startOption);
-    
+
     Option endOption = new Option("e", "end", true, "end date filter (yyyyMMddHHmmss)");
     endOption.setArgName("date");
     endOption.setRequired(true);
     opts.addOption(endOption);
-    
+
     Option levelOption = new Option("l", "level", true, "filter log level");
     levelOption.setArgName("level");
     levelOption.setRequired(false);
     opts.addOption(levelOption);
-    
+
     Option msgFilter = new Option("m", "messageFilter", true, "regex filter for log messages");
     msgFilter.setArgName("regex");
     msgFilter.setRequired(false);
     opts.addOption(msgFilter);
-    
+
     return opts;
-    
+
   }
-  
+
   /**
    * 
    * @param args
@@ -245,11 +264,11 @@ public class SendLogToChainsaw extends XMLLayout {
    * @throws Exception
    */
   public static void main(String[] args) throws Exception {
-    
+
     Options o = getOptions();
     CommandLine cl = null;
     cl = new BasicParser().parse(o, args);
-    
+
     String logDir = cl.getOptionValue(o.getOption("d").getOpt());
     String fileNameFilter = null;
     if (cl.hasOption(o.getOption("f").getOpt()))
@@ -277,9 +296,9 @@ public class SendLogToChainsaw extends XMLLayout {
     String levelFilter = null;
     if (cl.hasOption(o.getOption("l").getOpt()))
       levelFilter = cl.getOptionValue(o.getOption("l").getOpt());
-    
+
     SendLogToChainsaw c = new SendLogToChainsaw(logDir, fileNameFilter, chainsawHost, chainsawPort, startDate, endDate, msgFilter, levelFilter);
     c.processLogFiles();
   }
-  
+
 }

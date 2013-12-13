@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.client;
 
-import java.io.Closeable;
 import java.nio.ByteBuffer;
 import java.util.List;
 
@@ -27,49 +26,49 @@ import org.apache.accumulo.core.security.thrift.AuthInfo;
  * This class represents the information a client needs to know to connect to an instance of accumulo.
  * 
  */
-public interface Instance extends Closeable {
+public interface Instance {
   /**
    * Returns the location of the tablet server that is serving the root tablet.
    * 
    * @return location in "hostname:port" form
    */
   public abstract String getRootTabletLocation();
-  
+
   /**
    * Returns the location(s) of the accumulo master and any redundant servers.
    * 
    * @return a list of locations in "hostname:port" form
    */
   public abstract List<String> getMasterLocations();
-  
+
   /**
    * Returns a unique string that identifies this instance of accumulo.
    * 
    * @return a UUID
    */
   public abstract String getInstanceID();
-  
+
   /**
    * Returns the instance name given at system initialization time.
    * 
    * @return current instance name
    */
   public abstract String getInstanceName();
-  
+
   /**
    * Returns a comma-separated list of zookeeper servers the instance is using.
    * 
    * @return the zookeeper servers this instance is using in "hostname:port" form
    */
   public abstract String getZooKeepers();
-  
+
   /**
    * Returns the zookeeper connection timeout.
    * 
    * @return the configured timeout to connect to zookeeper
    */
   public abstract int getZooKeepersSessionTimeOut();
-  
+
   /**
    * Returns a connection to accumulo.
    * 
@@ -84,7 +83,7 @@ public interface Instance extends Closeable {
    *           when a user's credentials are invalid
    */
   public abstract Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * Returns a connection to accumulo.
    * 
@@ -97,7 +96,7 @@ public interface Instance extends Closeable {
    *           when a user's credentials are invalid
    */
   public abstract Connector getConnector(AuthInfo auth) throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * Returns a connection to accumulo.
    * 
@@ -112,7 +111,7 @@ public interface Instance extends Closeable {
    *           when a user's credentials are invalid
    */
   public abstract Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException;
-  
+
   /**
    * Returns a connection to this instance of accumulo.
    * 
@@ -132,16 +131,15 @@ public interface Instance extends Closeable {
    * Closes up the instance to free up all associated resources. You should try to reuse an Instance as much as you can because there is some location caching
    * stored which will enhance performance.
    */
-  @Override
   public abstract void close();
-  
+
   /**
    * Returns the AccumuloConfiguration to use when interacting with this instance.
    * 
    * @return the AccumuloConfiguration that specifies properties related to interacting with this instance
    */
   public abstract AccumuloConfiguration getConfiguration();
-  
+
   /**
    * Set the AccumuloConfiguration to use when interacting with this instance.
    * 
