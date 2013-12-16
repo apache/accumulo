@@ -24,8 +24,10 @@ import java.io.DataOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.List;
+
 import org.junit.Before;
 import org.junit.Test;
+
 import static org.easymock.EasyMock.*;
 import static org.junit.Assert.*;
 
@@ -73,6 +75,7 @@ public class ValueTest {
 
   @Test
   public void testByteBufferCopy() {
+    @SuppressWarnings("deprecation")
     Value v = new Value(DATABUFF, true);
     assertArrayEquals(DATA, v.get());
   }
