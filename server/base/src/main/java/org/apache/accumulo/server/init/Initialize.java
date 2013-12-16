@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
 
@@ -39,7 +38,6 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
-import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
@@ -416,8 +414,8 @@ public class Initialize {
     zoo.putPersistentData(zkInstanceRoot + Constants.ZRECOVERY, new byte[] {'0'}, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZNAMESPACES, new byte[0], NodeExistsPolicy.FAIL);
     
-    createInitialNamespace(zoo, zkInstanceRoot, Constants.DEFAULT_NAMESPACE_ID, Constants.DEFAULT_NAMESPACE, true);
-    createInitialNamespace(zoo, zkInstanceRoot, Constants.ACCUMULO_NAMESPACE_ID, Constants.ACCUMULO_NAMESPACE, false);
+    createInitialNamespace(zoo, zkInstanceRoot, Constants.DEFAULT_NAMESPACE_ID, Constants.DEFAULT_NAMESPACE);
+    createInitialNamespace(zoo, zkInstanceRoot, Constants.ACCUMULO_NAMESPACE_ID, Constants.ACCUMULO_NAMESPACE);
     
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTABLES + "/" + MetadataTable.ID + Constants.ZTABLE_NAMESPACE,
         Constants.ACCUMULO_NAMESPACE_ID.getBytes(Constants.UTF8), NodeExistsPolicy.OVERWRITE);
@@ -425,19 +423,12 @@ public class Initialize {
         Constants.ACCUMULO_NAMESPACE_ID.getBytes(Constants.UTF8), NodeExistsPolicy.OVERWRITE);
   }
   
-  private static void createInitialNamespace(IZooReaderWriter zoo, String root, String id, String namespace, boolean defaultOpts) throws KeeperException,
+  private static void createInitialNamespace(IZooReaderWriter zoo, String root, String id, String namespace) throws KeeperException,
       InterruptedException {
     String zPath = root + Constants.ZNAMESPACES + "/" + id;
     zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zPath + Constants.ZNAMESPACE_NAME, namespace.getBytes(Constants.UTF8), NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zPath + Constants.ZNAMESPACE_CONF, new byte[0], NodeExistsPolicy.FAIL);
-    
-    if (defaultOpts) {
-      Map<String,String> opts = IteratorUtil.generateInitialTableProperties(true);
-      for (Entry<String,String> e : opts.entrySet()) {
-        zoo.putPersistentData(zPath + Constants.ZNAMESPACE_CONF + "/" + e.getKey(), e.getValue().getBytes(Constants.UTF8), NodeExistsPolicy.SKIP);
-      }
-    }
   }
 
   private static String getInstanceNamePath(Opts opts) throws IOException, KeeperException, InterruptedException {
