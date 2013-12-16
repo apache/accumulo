@@ -316,11 +316,6 @@ public class TServerUtils {
   }
 
   public static ServerAddress startTServer(HostAndPort address, TProcessor processor, String serverName, String threadName, int numThreads,
-      long timeBetweenThreadChecks, long maxMessageSize) throws TTransportException {
-    return startTServer(address, processor, serverName, threadName, numThreads, timeBetweenThreadChecks, maxMessageSize, null, -1);
-  }
-
-  public static ServerAddress startTServer(HostAndPort address, TProcessor processor, String serverName, String threadName, int numThreads,
       long timeBetweenThreadChecks, long maxMessageSize, SslConnectionParams sslParams, long sslSocketTimeout) throws TTransportException {
     return startTServer(address, new TimedProcessor(processor, serverName, threadName), serverName, threadName, numThreads, timeBetweenThreadChecks,
         maxMessageSize, sslParams, sslSocketTimeout);
