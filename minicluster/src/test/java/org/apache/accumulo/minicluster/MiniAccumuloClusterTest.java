@@ -87,7 +87,7 @@ public class MiniAccumuloClusterTest {
   public void test() throws Exception {
     Connector conn = accumulo.getConnector("root", "superSecret");
 
-    conn.tableOperations().create("table1");
+    conn.tableOperations().create("table1", true);
 
     conn.securityOperations().createLocalUser("user1", new PasswordToken("pass1"));
     conn.securityOperations().changeUserAuthorizations("user1", new Authorizations("A", "B"));

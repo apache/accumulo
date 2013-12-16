@@ -218,7 +218,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()), ByteBuffer.wrap(timeType.name().getBytes()));
 
-    Map<String,String> opts = new HashMap<String,String>();
+    Map<String,String> opts = IteratorUtil.generateInitialTableProperties(limitVersion);
 
     try {
       doTableOperation(TableOperation.CREATE, args, opts);
