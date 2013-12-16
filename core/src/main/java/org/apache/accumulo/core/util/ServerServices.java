@@ -50,7 +50,7 @@ public class ServerServices implements Comparable<ServerServices> {
   }
   
   public HostAndPort getAddress(Service service) {
-    return AddressUtil.parseAddress(getAddressString(service));
+    return AddressUtil.parseAddress(getAddressString(service), false);
   }
   
   // DON'T CHANGE THIS; WE'RE USING IT FOR SERIALIZATION!!!

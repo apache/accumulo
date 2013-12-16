@@ -22,11 +22,19 @@ public class AddressUtil {
 
 
   static public HostAndPort parseAddress(String address) throws NumberFormatException {
+    return parseAddress(address, false);
+  }
+
+  static public HostAndPort parseAddress(String address, boolean ignoreMissingPort) throws NumberFormatException {
     address = address.replace('+', ':');
     HostAndPort hap = HostAndPort.fromString(address);
-    if (!hap.hasPort())
+    if (!ignoreMissingPort && !hap.hasPort())
       throw new IllegalArgumentException("Address was expected to contain port. address=" + address);
     
     return hap;
+  }
+
+  public static HostAndPort parseAddress(String address, int defaultPort) {
+    return parseAddress(address, true).withDefaultPort(defaultPort);
   }
 }

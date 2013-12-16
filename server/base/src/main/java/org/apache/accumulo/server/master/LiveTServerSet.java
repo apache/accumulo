@@ -364,7 +364,7 @@ public class LiveTServerSet implements Watcher {
   }
   
   public synchronized TServerInstance find(String tabletServer) {
-    HostAndPort addr = AddressUtil.parseAddress(tabletServer);
+    HostAndPort addr = AddressUtil.parseAddress(tabletServer, false);
     for (Entry<String,TServerInfo> entry : current.entrySet()) {
       if (entry.getValue().instance.getLocation().equals(addr))
         return entry.getValue().instance;

@@ -151,7 +151,7 @@ public class GarbageCollectWriteAheadLogs {
           }
         }
       } else {
-        HostAndPort address = AddressUtil.parseAddress(entry.getKey());
+        HostAndPort address = AddressUtil.parseAddress(entry.getKey(), false);
         if (!holdsLock(address)) {
           for (Path path : entry.getValue()) {
             log.debug("Removing WAL for offline server " + path);
