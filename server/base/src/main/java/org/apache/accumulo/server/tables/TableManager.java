@@ -185,9 +185,12 @@ public class TableManager {
     updateTableStateCache(tableId);
   }
 
-  public void cloneTable(String srcTable, String tableId, String tableName, Map<String,String> propertiesToSet, Set<String> propertiesToExclude,
+  public void cloneTable(String srcTable, String tableId, String tableName, String namespaceId, Map<String,String> propertiesToSet, Set<String> propertiesToExclude,
       NodeExistsPolicy existsPolicy) throws KeeperException, InterruptedException {
     prepareNewTableState(instance.getInstanceID(), tableId, tableName, TableState.NEW, existsPolicy);
+    
+    addNamespaceToTable(tableId, namespaceId);
+    
     String srcTablePath = Constants.ZROOT + "/" + instance.getInstanceID() + Constants.ZTABLES + "/" + srcTable + Constants.ZTABLE_CONF;
     String newTablePath = Constants.ZROOT + "/" + instance.getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_CONF;
     ZooReaderWriter.getRetryingInstance().recursiveCopyPersistent(srcTablePath, newTablePath, NodeExistsPolicy.OVERWRITE);

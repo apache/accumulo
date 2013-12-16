@@ -157,11 +157,9 @@ class CloneZookeeper extends MasterRepo {
 
       Utils.checkTableDoesNotExist(instance, cloneInfo.tableName, cloneInfo.tableId, TableOperation.CLONE);
 
-      TableManager.getInstance().cloneTable(cloneInfo.srcTableId, cloneInfo.tableId, cloneInfo.tableName, cloneInfo.propertiesToSet,
+      TableManager.getInstance().cloneTable(cloneInfo.srcTableId, cloneInfo.tableId, cloneInfo.tableName, cloneInfo.namespaceId, cloneInfo.propertiesToSet,
           cloneInfo.propertiesToExclude, NodeExistsPolicy.OVERWRITE);
       Tables.clearCache(instance);
-
-      TableManager.getInstance().addNamespaceToTable(cloneInfo.tableId, cloneInfo.namespaceId);
 
       return new CloneMetadata(cloneInfo);
     } finally {
