@@ -279,10 +279,10 @@ public class NamespacesIT extends SimpleMacIT {
   }
 
   /**
-   * This tests adding iterators to a namespace, listing them, and removing them as well as adding and removing constraints
+   * This tests adding iterators to a namespace, listing them, and removing them
    */
   @Test
-  public void testNamespaceIteratorsAndConstraints() throws Exception {
+  public void testNamespaceIterators() throws Exception {
     Connector c = getConnector();
 
     String namespace = "iterator";
@@ -307,15 +307,32 @@ public class NamespacesIT extends SimpleMacIT {
     assertTrue(!s.iterator().hasNext());
 
     assertTrue(c.namespaceOperations().listIterators(namespace).containsKey(iter));
-    c.namespaceOperations().removeIterator(namespace, iter, EnumSet.copyOf(scope));
+  }
+
+  /**
+   * This tests adding iterators to a namespace, listing them, and removing them as well as adding and removing constraints
+   */
+  @Test
+  public void testNamespaceConstraints() throws Exception {
+    Connector c = getConnector();
+
+    String namespace = "iterator";
+    String tableName = namespace + ".table";
+    String iter = "thing";
+
+    c.namespaceOperations().create(namespace);
+    c.tableOperations().create(tableName, false);
+
+    c.namespaceOperations().removeIterator(namespace, iter, EnumSet.of(IteratorScope.scan));
 
     c.namespaceOperations().addConstraint(namespace, NumericValueConstraint.class.getName());
     // doesn't take effect immediately, needs time to propagate
     UtilWaitThread.sleep(250);
 
-    m = new Mutation("rowy");
+    Mutation m = new Mutation("rowy");
     m.put("a", "b", new Value("abcde".getBytes(Constants.UTF8)));
     try {
+      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
       bw.addMutation(m);
       bw.flush();
       bw.close();
