@@ -50,11 +50,11 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
   }
   
   public TServerInstance(String address, long session) {
-    this(AddressUtil.parseAddress(address), Long.toHexString(session));
+    this(AddressUtil.parseAddress(address, false), Long.toHexString(session));
   }
   
   public TServerInstance(Value address, Text session) {
-    this(AddressUtil.parseAddress(new String(address.get())), session.toString());
+    this(AddressUtil.parseAddress(new String(address.get()), false), session.toString());
   }
   
   public void putLocation(Mutation m) {

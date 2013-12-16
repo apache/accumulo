@@ -193,7 +193,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public void ping(String tserver) throws AccumuloException {
     TTransport transport = null;
     try {
-      transport = ThriftUtil.createTransport(AddressUtil.parseAddress(tserver), ServerConfigurationUtil.getConfiguration(instance));
+      transport = ThriftUtil.createTransport(AddressUtil.parseAddress(tserver, false), ServerConfigurationUtil.getConfiguration(instance));
       TabletClientService.Client client = ThriftUtil.createClient(new TabletClientService.Client.Factory(), transport);
       client.getTabletServerStatus(Tracer.traceInfo(), credentials.toThrift(instance));
     } catch (TTransportException e) {

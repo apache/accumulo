@@ -49,6 +49,7 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.server.cli.ClientOpts;
+import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.hadoop.conf.Configuration;
@@ -299,7 +300,7 @@ public class Admin {
   private static void stopTabletServer(final Instance instance, final Credentials creds, List<String> servers, final boolean force) throws AccumuloException,
       AccumuloSecurityException {
     for (String server : servers) {
-      HostAndPort address = AddressUtil.parseAddress(server);
+      HostAndPort address = AddressUtil.parseAddress(server, ServerConfiguration.getDefaultConfiguration().getPort(Property.TSERV_CLIENTPORT));
       final String finalServer = address.toString();
       log.info("Stopping server " + finalServer);
       MasterClient.execute(instance, new ClientExec<MasterClientService.Client>() {
