@@ -38,6 +38,10 @@
 #  SSH                Default ssh parameters used to start daemons
 #  MALLOC_ARENA_MAX   To work around a memory management bug (see ACCUMULO-847)
 #  HADOOP_HOME        Home dir for hadoop.  TODO fix this.
+#
+# Values set by script if certain files exist
+# ACCUMULO_JAAS_CONF  Location of jaas.conf file. Needed by JAAS for things like Kerberos based logins
+# ACCUMULO_KRB5_CONF  Location of krb5.conf file. Needed by Kerberos subsystems to find login servers
 
 if [ -z "${ACCUMULO_HOME}" ] ; then
   # Start: Resolve Script Directory
@@ -142,3 +146,19 @@ export MALLOC_ARENA_MAX=${MALLOC_ARENA_MAX:-1}
 
 # ACCUMULO-1985 provide a way to use the scripts and still bind to all network interfaces
 export ACCUMULO_MONITOR_BIND_ALL=${ACCUMULO_MONITOR_BIND_ALL:-"false"}
+
+# Check for jaas.conf configuration
+if [ -z ${ACCUMULO_JAAS_CONF} ]; then
+  if [ -f ${ACCUMULO_CONF_DIR}/jaas.conf ]; then
+    export ACCUMULO_JAAS_CONF=${ACCUMULO_CONF_DIR}/jaas.conf
+  fi
+fi
+
+# Check for krb5.conf configuration
+if [ -z ${ACCUMULO_KRB5_CONF} ]; then
+  if [ -f ${ACCUMULO_CONF_DIR}/krb5.conf ]; then
+    export ACCUMULO_KRB5_CONF=${ACCUMULO_CONF_DIR}/krb5.conf
+  fi
+fi
+
+

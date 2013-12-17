@@ -89,6 +89,17 @@ if [ "$1" = "jar" -a -f "$2" ] ; then
 fi
 
 #
+# Set up -D switches for JAAS and Kerberos if env variables set
+#
+if [ ! -z ${ACCUMULO_JAAS_CONF} ]; then
+  ACCUMULO_GENERAL_OPTS="${ACCUMULO_GENERAL_OPTS} -Djava.security.auth.login.config=${ACCUMULO_JAAS_CONF}"
+fi
+
+if [ ! -z ${ACCUMULO_KRB5_CONF} ]; then
+  ACCUMULO_GENERAL_OPTS="${ACCUMULO_GENERAL_OPTS} -Djava.security.krb5.conf=${ACCUMULO_KRB5_CONF}"
+fi
+
+#
 # Add appropriate options for process type
 #
 case "$1" in
