@@ -68,6 +68,7 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
     ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
     scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
     scanner.fetchColumnFamily(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY);
+    scanner.fetchColumnFamily(Constants.METADATA_LAST_LOCATION_COLUMN_FAMILY);
     scanner.fetchColumnFamily(Constants.METADATA_LOG_COLUMN_FAMILY);
     scanner.fetchColumnFamily(Constants.METADATA_CHOPPED_COLUMN_FAMILY);
     scanner.addScanIterator(new IteratorSetting(1000, "wholeRows", WholeRowIterator.class));
