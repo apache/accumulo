@@ -62,14 +62,24 @@ do
     ${bin}/start-server.sh $master master
 done
 
-for gc in `grep -v '^#' "$ACCUMULO_CONF_DIR/gc"`
+if [[ -r $ACCUMULO_CONF_DIR/gc ]]; then
+    GC=`grep -v '^#' "$ACCUMULO_CONF_DIR/gc"`
+else
+    GC=$MASTER1
+fi
+for gc in "$GC"
 do
     ${bin}/start-server.sh $gc gc "garbage collector"
 done
 
 ${bin}/start-server.sh $MONITOR monitor 
 
-for tracer in `grep -v '^#' "$ACCUMULO_CONF_DIR/tracers"`
+if [[ -r $ACCUMULO_CONF_DIR/tracers ]]; then
+    TRACERS=`grep -v '^#' "$ACCUMULO_CONF_DIR/tracers"`
+else
+    TRACERS=$MASTER1
+fi
+for tracer in "$TRACERS"
 do
    ${bin}/start-server.sh $tracer tracer
 done

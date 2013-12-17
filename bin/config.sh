@@ -114,6 +114,8 @@ if [ -z "${ACCUMULO_VERIFY_ONLY}" ] ; then
           echo `hostname` > "$ACCUMULO_CONF_DIR/masters"
           echo "STANDALONE: echo "`hostname`" > $ACCUMULO_CONF_DIR/slaves"
           echo `hostname` > "$ACCUMULO_CONF_DIR/slaves"
+          echo "STANDALONE: echo "`hostname`" > $ACCUMULO_CONF_DIR/monitor"
+          echo `hostname` > "$ACCUMULO_CONF_DIR/monitor"
           fgrep -s logger.dir.walog "$ACCUMULO_CONF_DIR/accumulo-site.xml" > /dev/null
           WALOG_CONFIGURED=$?
           if [ $WALOG_CONFIGURED -ne 0 -a ! -e "$ACCUMULO_HOME/walogs" ]
@@ -143,14 +145,6 @@ if [ -z "${MONITOR}" ] ; then
   if [ -z "${MONITOR}" ] ; then
     echo "Could not infer a Monitor role. You need to either define the MONITOR env variable, define \"${ACCUMULO_CONF_DIR}/monitor\", or make sure \"${ACCUMULO_CONF_DIR}/masters\" is non-empty."
     exit 1
-  fi
-fi
-if [ ! -f "$ACCUMULO_CONF_DIR/tracers" -a -z "${ACCUMULO_VERIFY_ONLY}" ]; then
-  if [ -z "${MASTER1}" ] ; then
-    echo "Could not find a master node to use as a default for the tracer role. Either set up \"${ACCUMULO_CONF_DIR}/tracers\" or make sure \"${ACCUMULO_CONF_DIR}/masters\" is non-empty."
-    exit 1
-  else
-    echo "$MASTER1" > "$ACCUMULO_CONF_DIR/tracers"
   fi
 fi
 

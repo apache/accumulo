@@ -45,14 +45,25 @@ do
     fi
 done
 
-for host in $HOSTS
-do
-    if grep -q "^${host}\$" $ACCUMULO_CONF_DIR/gc
-    then
-	${bin}/start-server.sh $host gc "garbage collector"
-	break
-    fi
-done
+if [[ -r $ACCUMULO_CONF_DIR/gc ]]; then
+    for host in $HOSTS
+    do
+        if grep -q "^${host}\$" $ACCUMULO_CONF_DIR/gc
+        then
+            ${bin}/start-server.sh $host gc "garbage collector"
+            break
+        fi
+    done
+else
+    for host in $HOSTS
+    do
+        if [[ "$host" == "$MASTER1" ]]
+        then
+            ${bin}/start-server.sh $host gc "garbage collector"
+            break
+        fi
+    done
+fi
 
 for host in $HOSTS
 do
@@ -63,11 +74,22 @@ do
     fi
 done
 
-for host in $HOSTS
-do
-    if grep -q "^${host}\$" $ACCUMULO_CONF_DIR/tracers
-    then
-	${bin}/start-server.sh $host tracer 
-	break
-    fi
-done
+if [[ -r $ACCUMULO_CONF_DIR/tracers ]]; then
+    for host in $HOSTS
+    do
+        if grep -q "^${host}\$" $ACCUMULO_CONF_DIR/tracers
+        then
+            ${bin}/start-server.sh $host tracer
+            break
+        fi
+    done
+else
+    for host in $HOSTS
+    do
+        if [[ "$host" == "$MASTER1" ]]
+        then
+            ${bin}/start-server.sh $host tracer
+            break
+        fi
+    done
+fi
