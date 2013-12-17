@@ -135,7 +135,7 @@ public class ProblemServlet extends BasicServlet {
       if (obj == null)
         return "-";
       String table = String.valueOf(obj);
-      return String.format("<a href='/problems?table=%s'>%s</a>", table, Tables.getPrintableTableNameFromId(tidToNameMap, table));
+      return String.format("<a href='/problems?table=%s'>%s</a>", encode(table), encode((Tables.getPrintableTableNameFromId(tidToNameMap, table))));
     }
   }
   
@@ -158,7 +158,7 @@ public class ProblemServlet extends BasicServlet {
       if (obj == null)
         return "-";
       String table = String.valueOf(obj);
-      return String.format("<a href='/op?table=%s&action=clearTableProblems&redir=%s'>clear ALL %s problems</a>", table, currentPage(req),
+      return String.format("<a href='/op?table=%s&action=clearTableProblems&redir=%s'>clear ALL %s problems</a>", encode(table), currentPage(req),
           Tables.getPrintableTableNameFromId(tidToNameMap, table));
     }
   }
@@ -180,7 +180,7 @@ public class ProblemServlet extends BasicServlet {
       if (obj == null)
         return "-";
       ProblemReport p = (ProblemReport) obj;
-      return String.format("<a href='/op?table=%s&action=clearProblem&redir=%s&resource=%s&ptype=%s'>clear this problem</a>", p.getTableName(),
+      return String.format("<a href='/op?table=%s&action=clearProblem&redir=%s&resource=%s&ptype=%s'>clear this problem</a>", encode(p.getTableName()),
           currentPage(req), encode(p.getResource()), encode(p.getProblemType().name()));
     }
     

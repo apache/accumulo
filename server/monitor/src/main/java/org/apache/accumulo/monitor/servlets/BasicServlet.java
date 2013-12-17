@@ -253,15 +253,6 @@ abstract public class BasicServlet extends HttpServlet {
     }
   }
 
-  public static String decode(String s) {
-    try {
-      return URLDecoder.decode(s, Constants.UTF8.name());
-    } catch (UnsupportedEncodingException e) {
-      Logger.getLogger(BasicServlet.class).fatal(Constants.UTF8.name() + " is not a recognized encoding", e);
-      throw new RuntimeException(e);
-    }
-  }
-
   public static String sanitize(String xml) {
     return xml.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
   }
