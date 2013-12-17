@@ -41,6 +41,7 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.net.HostAndPort;
@@ -68,6 +69,7 @@ public class DefaultLoadBalancerTest {
   }
   
   Map<TServerInstance,FakeTServer> servers = new HashMap<TServerInstance,FakeTServer>();
+  Map<KeyExtent, TServerInstance> last = new HashMap<KeyExtent, TServerInstance>();
   
   class TestDefaultLoadBalancer extends DefaultLoadBalancer {
     
@@ -83,12 +85,17 @@ public class DefaultLoadBalancerTest {
     }
   }
   
+  @Before
+  public void setUp() {
+    last.clear();
+    servers.clear();
+  }
+  
   @Test
   public void testAssignMigrations() {
-    servers.clear();
     servers.put(new TServerInstance(HostAndPort.fromParts("127.0.0.1", 1234), "a"), new FakeTServer());
-    servers.put(new TServerInstance(HostAndPort.fromParts("127.0.0.1", 1235), "b"), new FakeTServer());
-    servers.put(new TServerInstance(HostAndPort.fromParts("127.0.0.1", 1236), "c"), new FakeTServer());
+    servers.put(new TServerInstance(HostAndPort.fromParts("127.0.0.2", 1234), "b"), new FakeTServer());
+    servers.put(new TServerInstance(HostAndPort.fromParts("127.0.0.3", 1234), "c"), new FakeTServer());
     List<KeyExtent> metadataTable = new ArrayList<KeyExtent>();
     String table = "t1";
     metadataTable.add(makeExtent(table, null, null));
@@ -143,10 +150,11 @@ public class DefaultLoadBalancerTest {
       TestDefaultLoadBalancer balancer) {
     // Assign tablets
     for (KeyExtent extent : metadataTable) {
-      TServerInstance assignment = balancer.getAssignment(status, extent, null);
+      TServerInstance assignment = balancer.getAssignment(status, extent, last.get(extent));
       assertNotNull(assignment);
       assertFalse(servers.get(assignment).extents.contains(extent));
       servers.get(assignment).extents.add(extent);
+      last.put(extent, assignment);
     }
   }
   
@@ -160,7 +168,6 @@ public class DefaultLoadBalancerTest {
   
   @Test
   public void testUnevenAssignment() {
-    servers.clear();
     for (char c : "abcdefghijklmnopqrstuvwxyz".toCharArray()) {
       String cString = Character.toString(c);
       HostAndPort fakeAddress = HostAndPort.fromParts("127.0.0.1", (int) c);
@@ -201,7 +208,6 @@ public class DefaultLoadBalancerTest {
   
   @Test
   public void testUnevenAssignment2() {
-    servers.clear();
     // make 26 servers
     for (char c : "abcdefghijklmnopqrstuvwxyz".toCharArray()) {
       String cString = Character.toString(c);
@@ -237,7 +243,9 @@ public class DefaultLoadBalancerTest {
       for (TabletMigration migration : migrationsOut) {
         if (servers.get(migration.oldServer).extents.remove(migration.tablet))
           moved++;
+        last.remove(migration.tablet);
         servers.get(migration.newServer).extents.add(migration.tablet);
+        last.put(migration.tablet, migration.newServer);
       }
     }
     // average is 58, with 2 at 59: we need 48 more moved to the short server
