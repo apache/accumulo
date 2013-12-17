@@ -47,8 +47,6 @@ public class OperationServlet extends BasicServlet {
     try {
       String operation = req.getParameter("action");
       redir = req.getParameter("redir");
-      if (redir != null)
-        redir = decode(redir);
       
       if (operation != null) {
         for (Class<?> subclass : OperationServlet.class.getClasses()) {
@@ -118,11 +116,7 @@ public class OperationServlet extends BasicServlet {
     public void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) {
       String table = req.getParameter("table");
       String resource = req.getParameter("resource");
-      if (resource != null)
-        resource = decode(resource);
       String ptype = req.getParameter("ptype");
-      if (ptype != null)
-        ptype = decode(ptype);
       try {
         ProblemReports.getInstance().deleteProblemReport(table, ProblemType.valueOf(ptype), resource);
       } catch (Exception e) {
@@ -162,7 +156,7 @@ public class OperationServlet extends BasicServlet {
   public static class ClearDeadServerOperation implements WebOperation {
     @Override
     public void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) {
-      String server = decode(req.getParameter("server"));
+      String server = req.getParameter("server");
       Instance inst = HdfsZooInstance.getInstance();
       // a dead server should have a uniq address: a logger or tserver
       DeadServerList obit = new DeadServerList(ZooUtil.getRoot(inst) + Constants.ZDEADTSERVERS);

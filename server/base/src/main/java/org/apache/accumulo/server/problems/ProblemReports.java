@@ -87,7 +87,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
         log.debug("Filing problem report " + pr.getTableName() + " " + pr.getProblemType() + " " + pr.getResource());
         
         try {
-          if (pr.getTableName().equals(MetadataTable.ID) || pr.getTableName().equals(RootTable.ID)) {
+          if (isMeta(pr.getTableName())) {
             // file report in zookeeper
             pr.saveToZooKeeper();
           } else {
@@ -123,8 +123,8 @@ public class ProblemReports implements Iterable<ProblemReport> {
       @Override
       public void run() {
         try {
-          if (pr.getTableName().equals(MetadataTable.ID)) {
-            // file report in zookeeper
+          if (isMeta(pr.getTableName())) {
+           // file report in zookeeper
             pr.removeFromZooKeeper();
           } else {
             // file report in metadata table
@@ -147,7 +147,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
   
   public void deleteProblemReports(String table) throws Exception {
     
-    if (MetadataTable.ID.equals(table)) {
+    if (isMeta(table)) {
       Iterator<ProblemReport> pri = iterator(table);
       while (pri.hasNext()) {
         pri.next().removeFromZooKeeper();
@@ -177,6 +177,10 @@ public class ProblemReports implements Iterable<ProblemReport> {
       MetadataTableUtil.getMetadataTable(SystemCredentials.get()).update(delMut);
   }
   
+  private static boolean isMeta(String tableId) {
+    return tableId.equals(MetadataTable.ID) || tableId.equals(RootTable.ID);
+  }
+  
   public Iterator<ProblemReport> iterator(final String table) {
     try {
       
@@ -190,7 +194,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
           if (iter1 == null) {
             try {
               List<String> children;
-              if (table == null || table.equals(MetadataTable.ID)) {
+              if (table == null || isMeta(table)) {
                 children = zoo.getChildren(ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZPROBLEMS);
               } else {
                 children = Collections.emptyList();
@@ -209,7 +213,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
         private Iterator<Entry<Key,Value>> getIter2() {
           if (iter2 == null) {
             try {
-              if ((table == null || !table.equals(MetadataTable.ID)) && iter1Count == 0) {
+              if ((table == null || !isMeta(table)) && iter1Count == 0) {
                 Connector connector = HdfsZooInstance.getInstance().getConnector(SystemCredentials.get().getPrincipal(), SystemCredentials.get().getToken());
                 Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
                 
