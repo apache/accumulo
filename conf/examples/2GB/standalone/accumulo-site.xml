@@ -84,6 +84,21 @@
 
     <property>
       <name>general.classpaths</name>
+    <!--
+       Add the following for Hadoop2, actual needs depend on Hadoop installation details.
+       This list may be excessive, but this should cause no issues.
+
+       $HADOOP_PREFIX/share/hadoop/common/.*.jar,
+       $HADOOP_PREFIX/share/hadoop/common/lib/.*.jar,
+       $HADOOP_PREFIX/share/hadoop/hdfs/.*.jar,
+       $HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar,
+       $HADOOP_PREFIX/share/hadoop/yarn/.*.jar,
+       /usr/lib/hadoop/.*.jar,
+       /usr/lib/hadoop/lib/.*.jar,
+       /usr/lib/hadoop-hdfs/.*.jar,
+       /usr/lib/hadoop-mapreduce/.*.jar,
+       /usr/lib/hadoop-yarn/.*.jar,
+    -->
       <value>
     $ACCUMULO_HOME/src/server/target/classes/,
     $ACCUMULO_HOME/src/core/target/classes/,
