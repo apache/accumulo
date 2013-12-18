@@ -299,6 +299,10 @@ public class Admin {
 
   private static void stopTabletServer(final Instance instance, final Credentials creds, List<String> servers, final boolean force) throws AccumuloException,
       AccumuloSecurityException {
+    if (instance.getMasterLocations().size() == 0) {
+      log.info("No masters running. Not attempting safe unload of tserver.");
+      return;
+    }
     for (String server : servers) {
       HostAndPort address = AddressUtil.parseAddress(server, ServerConfiguration.getDefaultConfiguration().getPort(Property.TSERV_CLIENTPORT));
       final String finalServer = address.toString();
