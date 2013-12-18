@@ -16,12 +16,19 @@
  */
 package org.apache.accumulo.core.data;
 
-import junit.framework.TestCase;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
+import org.apache.accumulo.core.data.thrift.TKey;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
-public class KeyTest extends TestCase {
+public class KeyTest {
+
+  @Test
   public void testDeletedCompare() {
     Key k1 = new Key("r1".getBytes(), "cf".getBytes(), "cq".getBytes(), new byte[0], 0, false);
     Key k2 = new Key("r1".getBytes(), "cf".getBytes(), "cq".getBytes(), new byte[0], 0, false);
@@ -34,6 +41,7 @@ public class KeyTest extends TestCase {
     assertTrue(k3.compareTo(k1) < 0);
   }
   
+  @Test
   public void testCopyData() {
     byte row[] = "r".getBytes();
     byte cf[] = "cf".getBytes();
@@ -67,6 +75,7 @@ public class KeyTest extends TestCase {
     
   }
   
+  @Test
   public void testString() {
     Key k1 = new Key("r1");
     Key k2 = new Key(new Text("r1"));
@@ -94,6 +103,7 @@ public class KeyTest extends TestCase {
     
   }
   
+  @Test
   public void testVisibilityFollowingKey() {
     Key k = new Key("r", "f", "q", "v");
     assertEquals(k.followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS).toString(), "r f:q [v%00;] " + Long.MAX_VALUE + " false");
@@ -106,5 +116,21 @@ public class KeyTest extends TestCase {
     ColumnVisibility parsed = k.getColumnVisibilityParsed();
     
     assertEquals(expression, new Text(parsed.getExpression()));
+  }
+
+  @Test
+  public void testThrift() {
+    Key k = new Key("r1", "cf2", "cq2", "cv");
+    TKey tk = k.toThrift();
+    Key k2 = new Key(tk);
+    assertEquals(k, k2);
+  }
+
+  @Test(expected=IllegalArgumentException.class)
+  public void testThrift_Invalid() {
+    Key k = new Key("r1", "cf2", "cq2", "cv");
+    TKey tk = k.toThrift();
+    tk.setRow((byte[]) null);
+    new Key(tk);
   }
 }
