@@ -30,6 +30,7 @@ import org.apache.log4j.Logger;
 public class SecurityUtil {
   private static final Logger log = Logger.getLogger(SecurityUtil.class);
   public static boolean usingKerberos = false;
+
   /**
    * This method is for logging a server in kerberos. If this is used in client code, it will fail unless run as the accumulo keytab's owner. Instead, use
    * {@link #login(String, String)}
