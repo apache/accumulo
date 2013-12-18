@@ -316,7 +316,7 @@ public class NamespacesIT extends SimpleMacIT {
   public void testNamespaceConstraints() throws Exception {
     Connector c = getConnector();
 
-    String namespace = "iterator";
+    String namespace = "constraint";
     String tableName = namespace + ".table";
     String iter = "thing";
 
