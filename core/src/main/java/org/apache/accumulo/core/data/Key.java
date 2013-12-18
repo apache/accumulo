@@ -291,6 +291,19 @@ public class Key implements WritableComparable<Key>, Cloneable {
     this.colVisibility = toBytes(tkey.colVisibility);
     this.timestamp = tkey.timestamp;
     this.deleted = false;
+
+    if (row == null) {
+      throw new IllegalArgumentException("null row");
+    }
+    if (colFamily == null) {
+      throw new IllegalArgumentException("null column family");
+    }
+    if (colQualifier == null) {
+      throw new IllegalArgumentException("null column qualifier");
+    }
+    if (colVisibility == null) {
+      throw new IllegalArgumentException("null column visibility");
+    }
   }
   
   /**
