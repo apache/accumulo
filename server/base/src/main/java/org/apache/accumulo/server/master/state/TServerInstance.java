@@ -16,9 +16,6 @@
  */
 package org.apache.accumulo.server.master.state;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
 import org.apache.accumulo.core.data.Mutation;
@@ -38,8 +35,7 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
   
   private static final long serialVersionUID = 1L;
   
-  // HostAndPort is not Serializable
-  private transient HostAndPort location;
+  private HostAndPort location;
   private String session;
   private String cachedStringRepresentation;
   
@@ -128,15 +124,5 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
   
   public String getSession() {
     return session;
-  }
-  
-  private void writeObject(ObjectOutputStream out) throws IOException {
-    out.defaultWriteObject();
-    out.writeObject(location.toString());
-  }
-  
-  private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
-    in.defaultReadObject();
-    location = HostAndPort.fromString(in.readObject().toString());
   }
 }

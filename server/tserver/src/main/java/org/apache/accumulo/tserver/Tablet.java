@@ -1080,8 +1080,9 @@ public class Tablet {
     splitCreationTime = 0;
   }
 
-  public Tablet(KeyExtent extent, TabletServer tabletServer, TabletResourceManager trm, SplitInfo info) throws IOException {
-    this(tabletServer, new Text(info.dir), extent, trm, CachedConfiguration.getInstance(), info.datafiles, info.time, info.initFlushID, info.initCompactID, info.lastLocation);
+  public Tablet(TabletServer tabletServer, Text location, KeyExtent extent, TabletResourceManager trm, SortedMap<FileRef,DataFileValue> datafiles, String time,
+      long initFlushID, long initCompactID) throws IOException {
+    this(tabletServer, location, extent, trm, CachedConfiguration.getInstance(), datafiles, time, initFlushID, initCompactID);
     splitCreationTime = System.currentTimeMillis();
   }
 
@@ -1093,8 +1094,8 @@ public class Tablet {
   static private final List<LogEntry> EMPTY = Collections.emptyList();
 
   private Tablet(TabletServer tabletServer, Text location, KeyExtent extent, TabletResourceManager trm, Configuration conf,
-      SortedMap<FileRef,DataFileValue> datafiles, String time, long initFlushID, long initCompactID, TServerInstance last) throws IOException {
-    this(tabletServer, location, extent, trm, conf, VolumeManagerImpl.get(), EMPTY, datafiles, time, last, new HashSet<FileRef>(), initFlushID, initCompactID);
+      SortedMap<FileRef,DataFileValue> datafiles, String time, long initFlushID, long initCompactID) throws IOException {
+    this(tabletServer, location, extent, trm, conf, VolumeManagerImpl.get(), EMPTY, datafiles, time, null, new HashSet<FileRef>(), initFlushID, initCompactID);
   }
 
   private static String lookupTime(AccumuloConfiguration conf, KeyExtent extent, SortedMap<Key,Value> tabletsKeyValues) {
@@ -3476,15 +3477,13 @@ public class Tablet {
     String time;
     long initFlushID;
     long initCompactID;
-    TServerInstance lastLocation;
 
-    SplitInfo(String d, SortedMap<FileRef,DataFileValue> dfv, String time, long initFlushID, long initCompactID, TServerInstance lastLocation) {
+    SplitInfo(String d, SortedMap<FileRef,DataFileValue> dfv, String time, long initFlushID, long initCompactID) {
       this.dir = d;
       this.datafiles = dfv;
       this.time = time;
       this.initFlushID = initFlushID;
       this.initCompactID = initCompactID;
-      this.lastLocation = lastLocation;
     }
 
   }
@@ -3573,8 +3572,8 @@ public class Tablet {
 
       log.log(TLevel.TABLET_HIST, extent + " split " + low + " " + high);
 
-      newTablets.put(high, new SplitInfo(tabletDirectory, highDatafileSizes, time, lastFlushID, lastCompactID, this.lastLocation));
-      newTablets.put(low, new SplitInfo(lowDirectory, lowDatafileSizes, time, lastFlushID, lastCompactID, this.lastLocation));
+      newTablets.put(high, new SplitInfo(tabletDirectory, highDatafileSizes, time, lastFlushID, lastCompactID));
+      newTablets.put(low, new SplitInfo(lowDirectory, lowDatafileSizes, time, lastFlushID, lastCompactID));
 
       long t2 = System.currentTimeMillis();
 
