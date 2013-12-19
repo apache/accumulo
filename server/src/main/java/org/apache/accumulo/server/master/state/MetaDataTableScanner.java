@@ -124,6 +124,7 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
     TServerInstance future = null;
     TServerInstance current = null;
     TServerInstance last = null;
+    long lastTimestamp = 0;
     List<Collection<String>> walogs = new ArrayList<Collection<String>>();
     boolean chopped = false;
     
@@ -149,11 +150,8 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
         String[] split = entry.getValue().toString().split("\\|")[0].split(";");
         walogs.add(Arrays.asList(split));
       } else if (cf.compareTo(Constants.METADATA_LAST_LOCATION_COLUMN_FAMILY) == 0) {
-        TServerInstance location = new TServerInstance(entry.getValue(), cq);
-        if (last != null) {
-          throw new BadLocationStateException("found two last locations for the same extent " + key.getRow() + ": " + last + " and " + location);
-        }
-        last = new TServerInstance(entry.getValue(), cq);
+        if (lastTimestamp < entry.getKey().getTimestamp())
+          last = new TServerInstance(entry.getValue(), cq);
       } else if (cf.compareTo(Constants.METADATA_CHOPPED_COLUMN_FAMILY) == 0) {
         chopped = true;
       } else if (Constants.METADATA_PREV_ROW_COLUMN.equals(cf, cq)) {
