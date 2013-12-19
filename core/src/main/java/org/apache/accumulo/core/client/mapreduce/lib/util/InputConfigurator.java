@@ -601,7 +601,11 @@ public class InputConfigurator extends ConfiguratorBase {
     if ("MockInstance".equals(instanceType))
       return new MockTabletLocator();
     Instance instance = getInstance(implementingClass, conf);
-    return TabletLocator.getLocator(instance, new Text(tableId));
+    try {
+      return TabletLocator.getLocator(instance, new Text(tableId));
+    } finally {
+      instance.close();
+    }
   }
 
   // InputFormat doesn't have the equivalent of OutputFormat's checkOutputSpecs(JobContext job)
@@ -625,10 +629,12 @@ public class InputConfigurator extends ConfiguratorBase {
     if (!"MockInstance".equals(instanceKey) && !"ZooKeeperInstance".equals(instanceKey))
       throw new IOException("Instance info has not been set.");
     // validate that we can connect as configured
+    Instance inst = getInstance(implementingClass, conf);
     try {
       String principal = getPrincipal(implementingClass, conf);
       AuthenticationToken token = getAuthenticationToken(implementingClass, conf);
-      Connector c = getInstance(implementingClass, conf).getConnector(principal, token);
+
+      Connector c = inst.getConnector(principal, token);
       if (!c.securityOperations().authenticateUser(principal, token))
         throw new IOException("Unable to authenticate user");
 
@@ -656,6 +662,8 @@ public class InputConfigurator extends ConfiguratorBase {
       throw new IOException(e);
     } catch (TableNotFoundException e) {
       throw new IOException(e);
+    } finally {
+      inst.close();
     }
   }
 
