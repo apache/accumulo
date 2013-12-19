@@ -107,8 +107,6 @@ public class ShellOptionsJC {
         }
       }
       
-      // No match found, assume it is the password for compatibility
-      log.warn("Specifying a raw password is deprecated.");
       return value;
     }
   }
