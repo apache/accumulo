@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.monitor;
 
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -427,8 +428,14 @@ public class Monitor {
       server.addServlet(ShellServlet.class, "/shell");
     server.start();
     
+    
     try {
+      hostname = InetAddress.getLocalHost().getHostName();
+      
+      log.debug("Using " + hostname + " to advertise monitor location in ZooKeeper");
+
       String monitorAddress = HostAndPort.fromParts(hostname, server.getPort()).toString();
+
       ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instance) + Constants.ZMONITOR, monitorAddress.getBytes(),
           NodeExistsPolicy.OVERWRITE);
       log.info("Set monitor address in zookeeper to " + monitorAddress);
