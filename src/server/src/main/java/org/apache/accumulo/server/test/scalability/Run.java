@@ -59,7 +59,7 @@ public class Run {
       e.printStackTrace();
     }
     
-    ScaleTest test = (ScaleTest) Class.forName(String.format("accumulo.server.test.scalability.%s", testId)).newInstance();
+    ScaleTest test = (ScaleTest) Class.forName(String.format("org.apache.accumulo.server.test.scalability.%s", testId)).newInstance();
     
     test.init(scaleProps, testProps, numTabletServers);
     
