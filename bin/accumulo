@@ -131,12 +131,16 @@ CLASSPATH=${XML_FILES}:${START_JAR}:${COMMONS_JCI_JARS}
 
 JAVA=$JAVA_HOME/bin/java
 PLATFORM="`$JAVA -cp $CLASSPATH org.apache.accumulo.start.Platform`"
-# hadoop 1.0, 1.1
+
+# Try to find the hadoop native library, defaulting to where it should
+# be for the default Hadoop version
 LIB_PATH="$HADOOP_PREFIX/lib/native/$PLATFORM"
-if [ ! -d "$LIB_PATH" ]; then
-   # hadoop-2.0
-   LIB_PATH=$HADOOP_PREFIX/lib/native
+
+if [ -e "$HADOOP_PREFIX/lib/native/libhadoop.so" ]; then
+    # hadoop-2.0
+    LIB_PATH=$HADOOP_PREFIX/lib/native
 fi
+
 #
 # app isn't used anywhere, but it makes the process easier to spot when ps/top/snmp truncate the command line
 exec $JAVA "-Dapp=$1" $ACCUMULO_OPTS -classpath $CLASSPATH -XX:OnOutOfMemoryError="${ACCUMULO_KILL_CMD:-kill -9 %p}" \
