@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.test.randomwalk.State;
@@ -45,6 +46,8 @@ public class CreateTable extends Test {
       log.debug("Create " + tableName + " failed, it exists");
     } catch (IllegalArgumentException e) {
       log.debug("Create: " + e.toString());
+    } catch (AccumuloSecurityException e) {
+      log.debug("Could not create table: " + e);
     }
   }
 }
