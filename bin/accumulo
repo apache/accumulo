@@ -130,7 +130,7 @@ fi
 #   explicitly in ${ACCUMULO_HOME}/conf/accumulo-env.sh
 #   usually something like:
 #     ${HADOOP_PREFIX}/lib/native/${PLATFORM}
-if [ -d "${HADOOP_PREFIX}/lib/native" ]; then
+if [ -e "${HADOOP_PREFIX}/lib/native/libhadoop.so" ]; then
    LIB_PATH="${HADOOP_PREFIX}/lib/native"
    LD_LIBRARY_PATH="${LIB_PATH}:${LD_LIBRARY_PATH}"     # For Linux
    DYLD_LIBRARY_PATH="${LIB_PATH}:${DYLD_LIBRARY_PATH}" # For Mac

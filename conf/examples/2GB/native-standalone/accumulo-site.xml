@@ -91,6 +91,11 @@
       $HADOOP_PREFIX/share/hadoop/hdfs/.*.jar,
       $HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar,
       $HADOOP_PREFIX/share/hadoop/yarn/.*.jar,
+      /usr/lib/hadoop/.*.jar,
+      /usr/lib/hadoop/lib/.*.jar,
+      /usr/lib/hadoop-hdfs/.*.jar,
+      /usr/lib/hadoop-mapreduce/.*.jar,
+      /usr/lib/hadoop-yarn/.*.jar,
 
       $ACCUMULO_HOME/lib/accumulo-server.jar,
       $ACCUMULO_HOME/lib/accumulo-core.jar,
