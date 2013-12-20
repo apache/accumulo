@@ -81,7 +81,7 @@ import org.junit.Test;
  */
 public class ConditionalWriterIT extends SimpleMacIT {
 
-  @Test
+  @Test(timeout =  60 * 1000)
   public void testBasic() throws Exception {
 
     Connector conn = getConnector();
@@ -159,7 +159,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     Assert.assertEquals("doe", scanner.iterator().next().getValue().toString());
   }
 
-  @Test
+  @Test(timeout = 60 * 1000)
   public void testFields() throws Exception {
 
     Connector conn = getConnector();
@@ -241,7 +241,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
 
   }
 
-  @Test
+  @Test(timeout = 60 * 1000)
   public void testBadColVis() throws Exception {
     // test when a user sets a col vis in a condition that can never be seen
 
@@ -338,7 +338,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     cw2.close();
   }
 
-  @Test
+  @Test(timeout = 60 * 1000)
   public void testConstraints() throws Exception {
     // ensure constraint violations are properly reported
 
@@ -368,7 +368,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     cw.close();
   }
 
-  @Test
+  @Test(timeout = 60 * 1000)
   public void testIterators() throws Exception {
 
     Connector conn = getConnector();
@@ -464,7 +464,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     cw.close();
   }
 
-  @Test
+  @Test(timeout = 60 * 1000)
   public void testBatch() throws Exception {
 
     Connector conn = getConnector();
@@ -569,7 +569,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     cw.close();
   }
 
-  @Test
+  @Test(timeout = 60 * 1000)
   public void testBigBatch() throws Exception {
 
     Connector conn = getConnector();
@@ -642,7 +642,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     cw.close();
   }
 
-  @Test
+  @Test(timeout = 60 * 1000)
   public void testBatchErrors() throws Exception {
 
     Connector conn = getConnector();
@@ -722,7 +722,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     cw.close();
   }
 
-  @Test
+  @Test(timeout = 60 * 1000)
   public void testSameRow() throws Exception {
     // test multiple mutations for same row in same batch
 
@@ -907,7 +907,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     }
   }
 
-  @Test
+  @Test(timeout = 60 * 1000)
   public void testThreads() throws Exception {
     // test multiple threads using a single conditional writer
 
@@ -986,7 +986,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     return ret;
   }
 
-  @Test
+  @Test(timeout = 60 * 1000)
   public void testSecurity() throws Exception {
     // test against table user does not have read and/or write permissions for
     Connector conn = getConnector();
@@ -1029,7 +1029,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     }
   }
 
-  @Test
+  @Test(timeout = 60 * 1000)
   public void testTimeout() throws Exception {
     Connector conn = getConnector();
 
@@ -1078,7 +1078,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     cw.close();
   }
 
-  @Test
+  @Test(timeout = 60 * 1000)
   public void testDeleteTable() throws Exception {
     String table = getTableNames(1)[0];
     Connector conn = getConnector();
@@ -1108,7 +1108,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     }
   }
 
-  @Test
+  @Test(timeout = 60 * 1000)
   public void testOffline() throws Exception {
     String table = getTableNames(1)[0];
     Connector conn = getConnector();
@@ -1140,7 +1140,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     } catch (TableOfflineException e) {}
   }
 
-  @Test
+  @Test(timeout = 60 * 1000)
   public void testError() throws Exception {
     String table = getTableNames(1)[0];
     Connector conn = getConnector();
@@ -1167,7 +1167,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     cw.close();
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test(timeout = 60 * 1000, expected = IllegalArgumentException.class)
   public void testNoConditions() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException {
     String table = getTableNames(1)[0];
     Connector conn = getConnector();
