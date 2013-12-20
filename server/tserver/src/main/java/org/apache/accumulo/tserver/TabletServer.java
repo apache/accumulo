@@ -2662,7 +2662,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     newTablets[0] = new Tablet(first.getKey(), TabletServer.this, resourceManager.createTabletResourceManager(), first.getValue());
 
     Entry<KeyExtent,SplitInfo> last = tabletInfo.lastEntry();
-    newTablets[1] = new Tablet(first.getKey(), TabletServer.this, resourceManager.createTabletResourceManager(), last.getValue());
+    newTablets[1] = new Tablet(last.getKey(), TabletServer.this, resourceManager.createTabletResourceManager(), last.getValue());
 
     // roll tablet stats over into tablet server's statsKeeper object as
     // historical data
