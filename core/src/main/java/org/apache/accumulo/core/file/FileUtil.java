@@ -544,6 +544,13 @@ public class FileUtil {
     return results;
   }
   
+  public static FileSystem getFileSystem(String path, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
+    if (path.contains(":"))
+      return new Path(path).getFileSystem(conf);
+    else
+      return getFileSystem(conf, acuconf);
+  }
+
   public static FileSystem getFileSystem(Configuration conf, AccumuloConfiguration acuconf) throws IOException {
     String uri = acuconf.get(Property.INSTANCE_DFS_URI);
     if ("".equals(uri))

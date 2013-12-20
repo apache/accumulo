@@ -67,7 +67,6 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
 class OfflineIterator implements Iterator<Entry<Key,Value>> {
@@ -296,8 +295,6 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     
     Configuration conf = CachedConfiguration.getInstance();
     
-    FileSystem defaultFs = FileUtil.getFileSystem(conf, ServerConfigurationUtil.getConfiguration(instance));
-    
     for (SortedKeyValueIterator<Key,Value> reader : readers) {
       ((FileSKVIterator) reader).close();
     }
@@ -306,10 +303,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     
     // TODO need to close files - ACCUMULO-1303
     for (String file : absFiles) {
-      FileSystem fs = defaultFs;
-      if (file.contains(":"))
-        fs = new Path(file).getFileSystem(conf);
-
+      FileSystem fs = FileUtil.getFileSystem(file, conf, ServerConfigurationUtil.getConfiguration(instance));
       FileSKVIterator reader = FileOperations.getInstance().openReader(file, false, fs, conf, acuTableConf, null, null);
       readers.add(reader);
     }

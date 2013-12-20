@@ -44,10 +44,12 @@ public class ZooUtil extends org.apache.accumulo.fate.zookeeper.ZooUtil {
   /**
    * Utility to support certain client side utilities to minimize command-line options.
    */
+
   public static String getInstanceIDFromHdfs(Path instanceDirectory) {
     try {
+
       @SuppressWarnings("deprecation")
-      FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), AccumuloConfiguration.getSiteConfiguration());
+      FileSystem fs = FileUtil.getFileSystem(instanceDirectory.toString(), CachedConfiguration.getInstance(), AccumuloConfiguration.getSiteConfiguration());
       FileStatus[] files = null;
       try {
         files = fs.listStatus(instanceDirectory);
