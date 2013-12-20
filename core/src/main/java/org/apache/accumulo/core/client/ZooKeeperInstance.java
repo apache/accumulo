@@ -153,7 +153,7 @@ public class ZooKeeperInstance implements Instance {
         throw new RuntimeException("Instance name " + instanceName
             + " does not exist in zookeeper.  Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
       }
-      instanceId = new String(iidb);
+      instanceId = new String(iidb, Constants.UTF8);
     }
 
     if (zooCache.get(Constants.ZROOT + "/" + instanceId) == null) {
@@ -284,7 +284,8 @@ public class ZooKeeperInstance implements Instance {
     ArgumentChecker.notNull(zooCache, instanceId);
     for (String name : zooCache.getChildren(Constants.ZROOT + Constants.ZINSTANCES)) {
       String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + name;
-      UUID iid = UUID.fromString(new String(zooCache.get(instanceNamePath)));
+      byte[] bytes = zooCache.get(instanceNamePath);
+      UUID iid = UUID.fromString(new String(bytes, Constants.UTF8));
       if (iid.equals(instanceId)) {
         return name;
       }
