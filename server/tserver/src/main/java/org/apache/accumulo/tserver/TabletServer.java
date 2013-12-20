@@ -157,6 +157,7 @@ import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.master.recovery.RecoveryPath;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.DistributedStoreException;
 import org.apache.accumulo.server.master.state.TServerInstance;
@@ -3663,8 +3664,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     for (LogEntry entry : sorted) {
       Path recovery = null;
       for (String log : entry.logSet) {
-        String[] parts = log.split("/"); // "host:port/filename"
-        Path finished = new Path(fs.getFullPath(FileType.RECOVERY, parts[parts.length - 1]), "finished");
+        Path finished = RecoveryPath.getRecoveryPath(fs, fs.getFullPath(FileType.WAL, log));
+        finished = new Path(finished, "finished");
         TabletServer.log.info("Looking for " + finished);
         if (fs.exists(finished)) {
           recovery = finished.getParent();

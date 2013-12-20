@@ -1152,13 +1152,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @SuppressWarnings("deprecation")
   private Path checkPath(String dir, String kind, String type) throws IOException, AccumuloException {
     Path ret;
-    FileSystem fs;
+    FileSystem fs = FileUtil.getFileSystem(dir, CachedConfiguration.getInstance(), ServerConfigurationUtil.getConfiguration(instance));
 
     if (dir.contains(":")) {
       ret = new Path(dir);
-      fs = ret.getFileSystem(CachedConfiguration.getInstance());
     } else {
-      fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfigurationUtil.getConfiguration(instance));
       ret = fs.makeQualified(new Path(dir));
     }
 

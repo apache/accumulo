@@ -21,6 +21,8 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.server.fs.ViewFSUtils;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
@@ -35,6 +37,16 @@ public class HadoopLogCloser implements LogCloser {
   @Override
   public long close(AccumuloConfiguration conf, VolumeManager fs, Path source) throws IOException {
     FileSystem ns = fs.getFileSystemByPath(source);
+
+    // if path points to a viewfs path, then resolve to underlying filesystem
+    if (ViewFSUtils.isViewFS(ns)) {
+      Path newSource = ViewFSUtils.resolvePath(ns, source);
+      if (!newSource.equals(source) && newSource.toUri().getScheme() != null) {
+        ns = newSource.getFileSystem(CachedConfiguration.getInstance());
+        source = newSource;
+      }
+    }
+
     if (ns instanceof DistributedFileSystem) {
       DistributedFileSystem dfs = (DistributedFileSystem) ns;
       try {
@@ -53,7 +65,7 @@ public class HadoopLogCloser implements LogCloser {
     } else if (ns instanceof LocalFileSystem) {
       // ignore
     } else {
-      throw new IllegalStateException("Don't know how to recover a lease for " + fs.getClass().getName());
+      throw new IllegalStateException("Don't know how to recover a lease for " + ns.getClass().getName());
     }
     return 0;
   }

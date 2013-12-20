@@ -19,6 +19,7 @@ package org.apache.accumulo.server.fs;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.ArrayList;
@@ -325,8 +326,23 @@ public class VolumeManagerImpl implements VolumeManager {
 
   @Override
   public short getDefaultReplication(Path path) {
+    FileSystem fs = getFileSystemByPath(path);
+    try {
+      // try calling hadoop 2 method
+      Method method = fs.getClass().getMethod("getDefaultReplication", Path.class);
+      return ((Short) method.invoke(fs, path)).shortValue();
+    } catch (NoSuchMethodException e) {
+      // ignore
+    } catch (IllegalArgumentException e) {
+      throw new RuntimeException(e);
+    } catch (IllegalAccessException e) {
+      throw new RuntimeException(e);
+    } catch (InvocationTargetException e) {
+      throw new RuntimeException(e);
+    }
+
     @SuppressWarnings("deprecation")
-    short rep = getFileSystemByPath(path).getDefaultReplication();
+    short rep = fs.getDefaultReplication();
     return rep;
   }
 
