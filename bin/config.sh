@@ -58,6 +58,11 @@ if [ -z "${ACCUMULO_HOME}" ] ; then
   export ACCUMULO_HOME=`cd $ACCUMULO_HOME; pwd`
 fi
 
+if [ ! -d "${ACCUMULO_HOME}" ]; then
+  echo "ACCUMULO_HOME=${ACCUMULO_HOME} is not a valid directory. Please make sure it exists"
+  exit 1
+fi
+
 ACCUMULO_CONF_DIR="${ACCUMULO_CONF_DIR:-$ACCUMULO_HOME/conf}"
 export ACCUMULO_CONF_DIR
 if [ -z "$ACCUMULO_CONF_DIR" -o ! -d "$ACCUMULO_CONF_DIR" ]
