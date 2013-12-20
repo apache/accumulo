@@ -35,10 +35,10 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.master.recovery.HadoopLogCloser;
 import org.apache.accumulo.server.master.recovery.LogCloser;
+import org.apache.accumulo.server.master.recovery.RecoveryPath;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.hadoop.fs.Path;
@@ -126,13 +126,11 @@ public class RecoveryManager {
     ;
     for (Collection<String> logs : walogs) {
       for (String walog : logs) {
-        String hostFilename[] = walog.split("/", 2);
-        String host = hostFilename[0];
-        String filename = hostFilename[1];
-        String parts[] = filename.split("/");
+
+        String parts[] = walog.split("/");
         String sortId = parts[parts.length - 1];
-        String dest = master.getFileSystem().choose(ServerConstants.getRecoveryDirs()) + "/" + sortId;
-        filename = master.getFileSystem().getFullPath(FileType.WAL, walog).toString();
+        String filename = master.getFileSystem().getFullPath(FileType.WAL, walog).toString();
+        String dest = RecoveryPath.getRecoveryPath(master.getFileSystem(), new Path(filename)).toString();
         log.debug("Recovering " + filename + " to " + dest);
 
         boolean sortQueued;
@@ -167,7 +165,7 @@ public class RecoveryManager {
               delay = Math.min(2 * delay, 1000 * 60 * 5l);
             }
 
-            log.info("Starting recovery of " + filename + " (in : " + (delay / 1000) + "s) created for " + host + ", tablet " + extent + " holds a reference");
+            log.info("Starting recovery of " + filename + " (in : " + (delay / 1000) + "s), tablet " + extent + " holds a reference");
 
             executor.schedule(new LogSortTask(closer, filename, dest, sortId), delay, TimeUnit.MILLISECONDS);
             closeTasksQueued.add(sortId);
