@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core;
 
+import java.nio.charset.Charset;
+
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -28,6 +30,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
 public class Constants {
+  public static final Charset UTF8 = Charset.forName("UTF-8");
   public static final String VERSION = "1.4.5-SNAPSHOT";
   public static final int DATA_VERSION = 4;
   public static final int PREV_DATA_VERSION = 3;
