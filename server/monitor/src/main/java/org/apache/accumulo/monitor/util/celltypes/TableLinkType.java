@@ -16,13 +16,18 @@
  */
 package org.apache.accumulo.monitor.util.celltypes;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.Map;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.log4j.Logger;
 
 public class TableLinkType extends CellType<String> {
   
+  private static final Logger log = Logger.getLogger(TableLinkType.class);
   private Map<String,String> tidToNameMap;
   
   public TableLinkType() {
@@ -34,7 +39,15 @@ public class TableLinkType extends CellType<String> {
     if (obj == null)
       return "-";
     String tableId = (String) obj;
-    return String.format("<a href='/tables?t=%s'>%s</a>", tableId, displayName(tableId));
+    String encodedTableId = tableId;
+    // Encode the tableid we use in the link so we construct a correct url
+    // e.g. the root table's id of "+r" would not be interpreted properly
+    try {
+      encodedTableId = URLEncoder.encode(tableId, Constants.UTF8.name());
+    } catch (UnsupportedEncodingException e) {
+      log.error("Could not urlencode tableId: " + encodedTableId);
+    }
+    return String.format("<a href='/tables?t=%s'>%s</a>", encodedTableId, displayName(tableId));
   }
   
   private String displayName(String tableId) {
