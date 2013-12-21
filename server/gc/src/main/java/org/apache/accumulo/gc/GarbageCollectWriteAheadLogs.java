@@ -42,7 +42,6 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
@@ -231,20 +230,19 @@ public class GarbageCollectWriteAheadLogs {
       InterruptedException {
     int count = 0;
     Iterator<LogEntry> iterator = MetadataTableUtil.getLogEntries(SystemCredentials.get());
+
     while (iterator.hasNext()) {
       for (String entry : iterator.next().logSet) {
-        String parts[] = entry.split("/", 2);
-        String filename = parts[1];
-        Path path;
-        if (filename.contains(":"))
-          path = new Path(filename);
-        else
-          path = fs.getFullPath(FileType.WAL, filename);
-        
-        Path pathFromNN = nameToFileMap.remove(path.getName());
+        String uuid = new Path(entry).getName();
+        if (!isUUID(uuid)) {
+          // fully expect this to be a uuid, if its not then something is wrong and walog GC should not proceed!
+          throw new IllegalArgumentException("Expected uuid, but got " + uuid + " from " + entry);
+        }
+
+        Path pathFromNN = nameToFileMap.remove(uuid);
         if (pathFromNN != null) {
           status.currentLog.inUse++;
-          sortedWALogs.remove(path.getName());
+          sortedWALogs.remove(uuid);
         }
         count++;
       }
@@ -258,7 +256,13 @@ public class GarbageCollectWriteAheadLogs {
     Set<String> servers = new HashSet<String>();
     for (String walDir : ServerConstants.getWalDirs()) {
       Path walRoot = new Path(walDir);
-      FileStatus[] listing = fs.listStatus(walRoot);
+      FileStatus[] listing = null;
+      try {
+        listing = fs.listStatus(walRoot);
+      } catch (FileNotFoundException e) {
+        // ignore dir
+      }
+
       if (listing == null)
         continue;
       for (FileStatus status : listing) {
