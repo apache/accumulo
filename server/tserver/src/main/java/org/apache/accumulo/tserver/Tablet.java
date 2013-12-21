@@ -3682,11 +3682,11 @@ public class Tablet {
 
   private Set<DfsLogger> currentLogs = new HashSet<DfsLogger>();
 
-  public Set<String> getCurrentLogs() {
+  public Set<String> getCurrentLogFiles() {
     Set<String> result = new HashSet<String>();
     synchronized (currentLogs) {
       for (DfsLogger log : currentLogs) {
-        result.add(log.toString());
+        result.add(log.getFileName());
       }
     }
     return result;
