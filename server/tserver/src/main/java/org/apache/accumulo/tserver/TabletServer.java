@@ -2451,20 +2451,24 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       String myname = getClientAddressString();
       myname = myname.replace(':', '+');
       Set<String> loggers = new HashSet<String>();
-      logger.getLoggers(loggers);
+      logger.getLogFiles(loggers);
+      Set<String> loggerUUIDs = new HashSet<String>();
+      for (String logger : loggers)
+        loggerUUIDs.add(new Path(logger).getName());
+
       nextFile: for (String filename : filenames) {
+        String uuid = new Path(filename).getName();
         // skip any log we're currently using
-        for (String logger : loggers) {
-          if (logger.contains(filename))
-            continue nextFile;
-        }
+        if (loggerUUIDs.contains(uuid))
+          continue nextFile;
+
         List<Tablet> onlineTabletsCopy = new ArrayList<Tablet>();
         synchronized (onlineTablets) {
           onlineTabletsCopy.addAll(onlineTablets.values());
         }
         for (Tablet tablet : onlineTabletsCopy) {
-          for (String current : tablet.getCurrentLogs()) {
-            if (current.contains(filename)) {
+          for (String current : tablet.getCurrentLogFiles()) {
+            if (current.contains(uuid)) {
               log.info("Attempted to delete " + filename + " from tablet " + tablet.getExtent());
               continue nextFile;
             }
