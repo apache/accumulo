@@ -50,11 +50,11 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
 public class TableOp extends Test {
-  
+
   @Override
   public void visit(State state, Properties props) throws Exception {
     Connector conn = state.getInstance().getConnector(WalkingSecurity.get(state).getTabUserName(), WalkingSecurity.get(state).getTabToken());
-    
+
     String action = props.getProperty("action", "_random");
     TablePermission tp;
     if ("_random".equalsIgnoreCase(action)) {
@@ -63,17 +63,23 @@ public class TableOp extends Test {
     } else {
       tp = TablePermission.valueOf(action);
     }
-    
-    boolean tableExists = WalkingSecurity.get(state).getTableExists();
-    String tableName = WalkingSecurity.get(state).getTableName();
-    
+
+    final boolean tableExists = WalkingSecurity.get(state).getTableExists();
+    final String tableName = WalkingSecurity.get(state).getTableName();
+    final String tableId = conn.tableOperations().tableIdMap().get(tableName);
+
+    if (null == tableId) {
+      log.error("Could not determine tableID from name " + tableName);
+      return;
+    }
+
     switch (tp) {
       case READ: {
-        boolean canRead = WalkingSecurity.get(state).canScan(WalkingSecurity.get(state).getTabCredentials(), tableName);
+        boolean canRead = WalkingSecurity.get(state).canScan(WalkingSecurity.get(state).getTabCredentials(), tableId);
         Authorizations auths = WalkingSecurity.get(state).getUserAuthorizations(WalkingSecurity.get(state).getTabCredentials());
         boolean ambiguousZone = WalkingSecurity.get(state).inAmbiguousZone(conn.whoami(), tp);
         boolean ambiguousAuths = WalkingSecurity.get(state).ambiguousAuthorizations(conn.whoami());
-        
+
         Scanner scan = null;
         try {
           scan = conn.createScanner(tableName, conn.securityOperations().getUserAuthorizations(conn.whoami()));
@@ -127,22 +133,22 @@ public class TableOp extends Test {
             else
               throw new AccumuloException("Mismatched authorizations! ", re.getCause());
           }
-          
+
           throw new AccumuloException("Unexpected exception!", re);
         } finally {
           if (scan != null) {
             scan.close();
             scan = null;
           }
-          
+
         }
-        
+
         break;
       }
       case WRITE:
-        boolean canWrite = WalkingSecurity.get(state).canWrite(WalkingSecurity.get(state).getTabCredentials(), tableName);
+        boolean canWrite = WalkingSecurity.get(state).canWrite(WalkingSecurity.get(state).getTabCredentials(), tableId);
         boolean ambiguousZone = WalkingSecurity.get(state).inAmbiguousZone(conn.whoami(), tp);
-        
+
         String key = WalkingSecurity.get(state).getLastKey() + "1";
         Mutation m = new Mutation(new Text(key));
         for (String s : WalkingSecurity.get(state).getAuthsArray()) {
@@ -166,7 +172,7 @@ public class TableOp extends Test {
             // For now, just wait a second and go again if they can write!
             if (!canWrite)
               return;
-            
+
             if (ambiguousZone) {
               Thread.sleep(1000);
               try {
@@ -214,7 +220,7 @@ public class TableOp extends Test {
           return;
         } catch (AccumuloSecurityException ae) {
           if (ae.getSecurityErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
-            if (WalkingSecurity.get(state).canBulkImport(WalkingSecurity.get(state).getTabCredentials(), tableName))
+            if (WalkingSecurity.get(state).canBulkImport(WalkingSecurity.get(state).getTabCredentials(), tableId))
               throw new AccumuloException("Bulk Import failed when it should have worked: " + tableName);
             return;
           } else if (ae.getSecurityErrorCode().equals(SecurityErrorCode.BAD_CREDENTIALS)) {
@@ -227,15 +233,15 @@ public class TableOp extends Test {
           WalkingSecurity.get(state).increaseAuthMap(s, 1);
         fs.delete(dir, true);
         fs.delete(fail, true);
-        
-        if (!WalkingSecurity.get(state).canBulkImport(WalkingSecurity.get(state).getTabCredentials(), tableName))
+
+        if (!WalkingSecurity.get(state).canBulkImport(WalkingSecurity.get(state).getTabCredentials(), tableId))
           throw new AccumuloException("Bulk Import succeeded when it should have failed: " + dir + " table " + tableName);
         break;
       case ALTER_TABLE:
         AlterTable.renameTable(conn, state, tableName, tableName + "plus",
-            WalkingSecurity.get(state).canAlterTable(WalkingSecurity.get(state).getTabCredentials(), tableName), tableExists);
+            WalkingSecurity.get(state).canAlterTable(WalkingSecurity.get(state).getTabCredentials(), tableId), tableExists);
         break;
-      
+
       case GRANT:
         props.setProperty("task", "grant");
         props.setProperty("perm", "random");
@@ -243,7 +249,7 @@ public class TableOp extends Test {
         props.setProperty("target", "system");
         AlterTablePerm.alter(state, props);
         break;
-      
+
       case DROP_TABLE:
         props.setProperty("source", "table");
         DropTable.dropTable(state, props);
