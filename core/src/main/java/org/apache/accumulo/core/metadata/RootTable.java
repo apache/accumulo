@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.metadata;
 
-import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.hadoop.io.Text;
 
@@ -26,7 +26,7 @@ import org.apache.hadoop.io.Text;
 public class RootTable {
 
   public static final String ID = "+r";
-  public static final String NAME = Constants.ACCUMULO_NAMESPACE + ".root";
+  public static final String NAME = Namespaces.ACCUMULO_NAMESPACE + ".root";
 
   /**
    * DFS location relative to the Accumulo directory

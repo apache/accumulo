@@ -34,7 +34,10 @@ import org.apache.thrift.TEnum;
   BULK_BAD_INPUT_DIRECTORY(3),
   BULK_BAD_ERROR_DIRECTORY(4),
   BAD_RANGE(5),
-  OTHER(6);
+  OTHER(6),
+  NAMESPACE_EXISTS(7),
+  NAMESPACE_NOTFOUND(8),
+  INVALID_NAME(9);
 
   private final int value;
 
@@ -69,6 +72,12 @@ import org.apache.thrift.TEnum;
         return BAD_RANGE;
       case 6:
         return OTHER;
+      case 7:
+        return NAMESPACE_EXISTS;
+      case 8:
+        return NAMESPACE_NOTFOUND;
+      case 9:
+        return INVALID_NAME;
       default:
         return null;
     }

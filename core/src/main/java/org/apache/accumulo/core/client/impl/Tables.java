@@ -59,13 +59,13 @@ public class Tables {
     for (String tableId : tableIds) {
       byte[] tableName = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME);
       byte[] nId = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE);
-      String namespaceName = Constants.DEFAULT_NAMESPACE;
+      String namespaceName = Namespaces.DEFAULT_NAMESPACE;
       // create fully qualified table name
       if (nId == null) {
         namespaceName = null;
       } else if (nId != null) {
         String namespaceId = new String(nId, Constants.UTF8);
-        if (!namespaceId.equals(Constants.DEFAULT_NAMESPACE_ID)) {
+        if (!namespaceId.equals(Namespaces.DEFAULT_NAMESPACE_ID)) {
           try {
             namespaceName = namespaceIdToNameMap.get(namespaceId);
             if (namespaceName == null) {
@@ -91,9 +91,27 @@ public class Tables {
   }
 
   public static String getTableId(Instance instance, String tableName) throws TableNotFoundException {
+    try {
+      return _getTableId(instance, tableName);
+    } catch (NamespaceNotFoundException e) {
+      throw new TableNotFoundException(tableName, e);
+    }
+  }
+
+  public static String _getTableId(Instance instance, String tableName) throws NamespaceNotFoundException, TableNotFoundException {
     String tableId = getNameToIdMap(instance).get(tableName);
-    if (tableId == null)
-      throw new TableNotFoundException(tableId, tableName, null);
+    if (tableId == null) {
+      // maybe the table exist, but the cache was not updated yet... so try to clear the cache and check again
+      clearCache(instance);
+      tableId = getNameToIdMap(instance).get(tableName);
+      if (tableId == null) {
+        String namespace = qualify(tableName).getFirst();
+        if (Namespaces.getNameToIdMap(instance).containsKey(namespace))
+          throw new TableNotFoundException(null, tableName, null);
+        else
+          throw new NamespaceNotFoundException(null, namespace, null);
+      }
+    }
     return tableId;
   }
 
@@ -169,19 +187,19 @@ public class Tables {
   }
 
   public static String qualified(String tableName) {
-    return qualified(tableName, Constants.DEFAULT_NAMESPACE);
+    return qualified(tableName, Namespaces.DEFAULT_NAMESPACE);
   }
 
   public static String qualified(String tableName, String defaultNamespace) {
     Pair<String,String> qualifiedTableName = Tables.qualify(tableName, defaultNamespace);
-    if (Constants.DEFAULT_NAMESPACE.equals(qualifiedTableName.getFirst()))
+    if (Namespaces.DEFAULT_NAMESPACE.equals(qualifiedTableName.getFirst()))
       return qualifiedTableName.getSecond();
     else
       return qualifiedTableName.toString("", ".", "");
   }
 
   public static Pair<String,String> qualify(String tableName) {
-    return qualify(tableName, Constants.DEFAULT_NAMESPACE);
+    return qualify(tableName, Namespaces.DEFAULT_NAMESPACE);
   }
 
   public static Pair<String,String> qualify(String tableName, String defaultNamespace) {

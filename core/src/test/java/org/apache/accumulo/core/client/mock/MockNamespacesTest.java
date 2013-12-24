@@ -39,6 +39,7 @@ import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NamespaceOperations;
+import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -66,7 +67,7 @@ public class MockNamespacesTest {
     Instance instance = new MockInstance("default");
     Connector c = instance.getConnector("user", new PasswordToken("pass"));
 
-    assertTrue(c.namespaceOperations().exists(Constants.DEFAULT_NAMESPACE));
+    assertTrue(c.namespaceOperations().exists(Namespaces.DEFAULT_NAMESPACE));
     c.tableOperations().create(tableName);
     assertTrue(c.tableOperations().exists(tableName));
   }
@@ -170,7 +171,7 @@ public class MockNamespacesTest {
     propVal = "13K";
     String tableName = "some_table";
     c.tableOperations().create(tableName);
-    c.namespaceOperations().setProperty(Constants.DEFAULT_NAMESPACE, propKey, propVal);
+    c.namespaceOperations().setProperty(Namespaces.DEFAULT_NAMESPACE, propKey, propVal);
 
     assertTrue(checkTableHasProp(c, tableName, propKey, propVal));
 

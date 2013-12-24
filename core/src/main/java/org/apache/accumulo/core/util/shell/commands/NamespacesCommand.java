@@ -22,9 +22,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -47,7 +47,7 @@ public class NamespacesCommand extends Command {
       @Override
       public String apply(Map.Entry<String,String> entry) {
         String name = entry.getKey();
-        if (Constants.DEFAULT_NAMESPACE.equals(name))
+        if (Namespaces.DEFAULT_NAMESPACE.equals(name))
           name = DEFAULT_NAMESPACE_DISPLAY_NAME;
         String id = entry.getValue();
         if (cl.hasOption(namespaceIdOption.getOpt()))
