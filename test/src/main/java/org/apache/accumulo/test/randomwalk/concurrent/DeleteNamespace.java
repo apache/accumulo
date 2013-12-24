@@ -21,6 +21,7 @@ import java.util.Properties;
 import java.util.Random;
 
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.NamespaceNotEmptyException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
@@ -43,6 +44,8 @@ public class DeleteNamespace extends Test {
       log.debug("Deleted namespace " + namespace);
     } catch (NamespaceNotFoundException e) {
       log.debug("Delete namespace " + namespace + " failed, doesnt exist");
+    } catch (NamespaceNotEmptyException e) {
+      log.debug("Delete namespace " + namespace + " failed, not empty");
     }
   }
 }
