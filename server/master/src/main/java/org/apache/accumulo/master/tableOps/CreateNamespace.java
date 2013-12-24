@@ -107,7 +107,7 @@ class PopulateZookeeperWithNamespace extends MasterRepo {
 
       Utils.checkNamespaceDoesNotExist(instance, namespaceInfo.namespaceName, namespaceInfo.namespaceId, TableOperation.CREATE);
 
-      TableManager.getInstance().addNamespace(namespaceInfo.namespaceId, namespaceInfo.namespaceName, NodeExistsPolicy.OVERWRITE);
+      TableManager.prepareNewNamespaceState(instance.getInstanceID(), namespaceInfo.namespaceId, namespaceInfo.namespaceName, NodeExistsPolicy.OVERWRITE);
 
       for (Entry<String,String> entry : namespaceInfo.props.entrySet())
         NamespacePropUtil.setNamespaceProperty(namespaceInfo.namespaceId, entry.getKey(), entry.getValue());

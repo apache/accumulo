@@ -316,56 +316,38 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
         IZooReaderWriter zoo = ZooReaderWriter.getInstance();
 
+        // create initial namespaces
+        String namespaces = ZooUtil.getRoot(instance) + Constants.ZNAMESPACES;
+        zoo.putPersistentData(namespaces, new byte[0], NodeExistsPolicy.SKIP);
+        if (!Namespaces.exists(instance, Constants.ACCUMULO_NAMESPACE_ID))
+          TableManager.prepareNewNamespaceState(instance.getInstanceID(), Constants.ACCUMULO_NAMESPACE_ID, Constants.ACCUMULO_NAMESPACE, NodeExistsPolicy.SKIP);
+        if (!Namespaces.exists(instance, Constants.DEFAULT_NAMESPACE_ID))
+          TableManager.prepareNewNamespaceState(instance.getInstanceID(), Constants.DEFAULT_NAMESPACE_ID, Constants.DEFAULT_NAMESPACE, NodeExistsPolicy.SKIP);
+
+        // create root table
         if (!Tables.exists(instance, RootTable.ID)) {
-          TableManager.prepareNewTableState(instance.getInstanceID(), RootTable.ID, RootTable.NAME, TableState.ONLINE, NodeExistsPolicy.SKIP);
+          TableManager.prepareNewTableState(instance.getInstanceID(), RootTable.ID, Constants.ACCUMULO_NAMESPACE_ID, RootTable.NAME, TableState.ONLINE,
+              NodeExistsPolicy.SKIP);
           Initialize.initMetadataConfig(RootTable.ID);
           // ensure root user can flush root table
           security.grantTablePermission(SystemCredentials.get().toThrift(instance), security.getRootUsername(), RootTable.ID, TablePermission.ALTER_TABLE);
         }
 
+        // put existing tables in the correct namespaces
+        String tables = ZooUtil.getRoot(instance) + Constants.ZTABLES;
+        for (Entry<String,String> table : Tables.getIdToNameMap(instance).entrySet()) {
+          String targetNamespace = (MetadataTable.ID.equals(table.getKey()) || RootTable.ID.equals(table.getKey())) ? Constants.ACCUMULO_NAMESPACE_ID
+              : Constants.DEFAULT_NAMESPACE_ID;
+          zoo.putPersistentData(tables + "/" + table.getKey() + Constants.ZTABLE_NAMESPACE, targetNamespace.getBytes(Constants.UTF8), NodeExistsPolicy.SKIP);
+        }
+
+        // rename metadata table
+        zoo.putPersistentData(tables + "/" + MetadataTable.ID + Constants.ZTABLE_NAME, Tables.qualify(MetadataTable.NAME).getSecond().getBytes(Constants.UTF8),
+            NodeExistsPolicy.OVERWRITE);
+
         moveRootTabletToRootTable(zoo);
 
-        zoo.recursiveDelete(ZooUtil.getRoot(instance) + "/loggers", NodeMissingPolicy.SKIP);
-        zoo.recursiveDelete(ZooUtil.getRoot(instance) + "/dead/loggers", NodeMissingPolicy.SKIP);
-        zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZRECOVERY, new byte[] {'0'}, NodeExistsPolicy.SKIP);
-
-        for (String id : Tables.getIdToNameMap(instance).keySet()) {
-
-          zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_COMPACT_CANCEL_ID, "0".getBytes(),
-              NodeExistsPolicy.SKIP);
-        }
-
-        // setup default and system namespaces if not already there
-        String namespaces = ZooUtil.getRoot(instance) + Constants.ZNAMESPACES;
-        String defaultNamespace = ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + Constants.DEFAULT_NAMESPACE_ID;
-        String systemNamespace = ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + Constants.ACCUMULO_NAMESPACE_ID;
-        String tables = ZooUtil.getRoot(instance) + Constants.ZTABLES;
-        zoo.putPersistentData(namespaces, new byte[0], NodeExistsPolicy.SKIP);
-
-        zoo.putPersistentData(defaultNamespace, new byte[0], NodeExistsPolicy.SKIP);
-        zoo.putPersistentData(defaultNamespace + Constants.ZNAMESPACE_CONF, new byte[0], NodeExistsPolicy.SKIP);
-        zoo.putPersistentData(defaultNamespace + Constants.ZNAMESPACE_NAME, Constants.DEFAULT_NAMESPACE.getBytes(Constants.UTF8), NodeExistsPolicy.SKIP);
-
-        zoo.putPersistentData(systemNamespace, new byte[0], NodeExistsPolicy.SKIP);
-        zoo.putPersistentData(systemNamespace + Constants.ZNAMESPACE_CONF, new byte[0], NodeExistsPolicy.SKIP);
-        zoo.putPersistentData(systemNamespace + Constants.ZNAMESPACE_NAME, Constants.ACCUMULO_NAMESPACE.getBytes(Constants.UTF8), NodeExistsPolicy.SKIP);
-
-        Map<String,String> opts = IteratorUtil.generateInitialTableProperties(true);
-        for (Entry<String,String> e : opts.entrySet()) {
-          zoo.putPersistentData(defaultNamespace + Constants.ZNAMESPACE_CONF + "/" + e.getKey(), e.getValue().getBytes(Constants.UTF8), NodeExistsPolicy.SKIP);
-        }
-
-        for (Entry<String,String> table : Tables.getIdToNameMap(instance).entrySet()) {
-          if (table.getValue().equals(MetadataTable.NAME) || table.getValue().equals(RootTable.NAME)) {
-            zoo.putPersistentData(tables + "/" + table.getKey() + Constants.ZTABLE_NAMESPACE, Constants.ACCUMULO_NAMESPACE_ID.getBytes(Constants.UTF8),
-                NodeExistsPolicy.SKIP);
-          } else {
-            zoo.putPersistentData(tables + "/" + table.getKey() + Constants.ZTABLE_NAMESPACE, Constants.DEFAULT_NAMESPACE_ID.getBytes(Constants.UTF8),
-                NodeExistsPolicy.SKIP);
-          }
-        }
-
-        // add namespace permissions to existing users
+        // add system namespace permissions to existing users
         ZKPermHandler perm = new ZKPermHandler();
         perm.initialize(instance.getInstanceID(), true);
         String users = ZooUtil.getRoot(instance) + "/users";
