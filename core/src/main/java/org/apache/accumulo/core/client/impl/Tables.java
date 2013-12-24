@@ -53,9 +53,7 @@ public class Tables {
     ZooCache zc = getZooCache(instance);
 
     List<String> tableIds = zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTABLES);
-
     TreeMap<String,String> tableMap = new TreeMap<String,String>();
-
     Map<String,String> namespaceIdToNameMap = new HashMap<String,String>();
 
     for (String tableId : tableIds) {
@@ -63,7 +61,9 @@ public class Tables {
       byte[] nId = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE);
       String namespaceName = Constants.DEFAULT_NAMESPACE;
       // create fully qualified table name
-      if (nId != null) {
+      if (nId == null) {
+        namespaceName = null;
+      } else if (nId != null) {
         String namespaceId = new String(nId, Constants.UTF8);
         if (!namespaceId.equals(Constants.DEFAULT_NAMESPACE_ID)) {
           try {
@@ -73,12 +73,12 @@ public class Tables {
               namespaceIdToNameMap.put(namespaceId, namespaceName);
             }
           } catch (NamespaceNotFoundException e) {
-            log.error("Table (" + tableId + ") contains reference to namespace (" + namespaceId + ") that doesn't exist");
+            log.error("Table (" + tableId + ") contains reference to namespace (" + namespaceId + ") that doesn't exist", e);
             continue;
           }
         }
       }
-      if (tableName != null) {
+      if (tableName != null && namespaceName != null) {
         String tableNameStr = qualified(new String(tableName, Constants.UTF8), namespaceName);
         if (nameAsKey)
           tableMap.put(tableNameStr, tableId);
