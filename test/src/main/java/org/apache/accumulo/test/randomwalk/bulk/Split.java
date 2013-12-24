@@ -34,6 +34,7 @@ public class Split extends BulkTest {
       splits.add(new Text(String.format(BulkPlusOne.FMT, (rand.nextLong() & 0x7fffffffffffffffl) % BulkPlusOne.LOTS)));
     log.info("splitting " + splits);
     state.getConnector().tableOperations().addSplits(Setup.getTableName(), splits);
+    log.info("split for " + splits + " finished");
   }
   
 }
