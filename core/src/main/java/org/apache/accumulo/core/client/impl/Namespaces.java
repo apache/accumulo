@@ -58,6 +58,12 @@ public class Namespaces {
     return namespaceMap;
   }
 
+  public static boolean exists(Instance instance, String namespaceId) {
+    ZooCache zc = getZooCache(instance);
+    List<String> namespaceIds = zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES);
+    return namespaceIds.contains(namespaceId);
+  }
+
   public static String getNamespaceId(Instance instance, String namespace) throws NamespaceNotFoundException {
     String id = getNameToIdMap(instance).get(namespace);
     if (id == null)

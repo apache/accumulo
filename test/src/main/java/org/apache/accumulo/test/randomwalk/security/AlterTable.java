@@ -17,6 +17,7 @@
 package org.apache.accumulo.test.randomwalk.security;
 
 import java.net.InetAddress;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -27,8 +28,10 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
+import org.apache.log4j.Logger;
 
 public class AlterTable extends Test {
+  private static final Logger log = Logger.getLogger(AlterTable.class);
   
   @Override
   public void visit(State state, Properties props) throws Exception {
@@ -36,12 +39,33 @@ public class AlterTable extends Test {
     
     String tableName = WalkingSecurity.get(state).getTableName();
     
+    Map<String,String> nameToId = conn.tableOperations().tableIdMap();
+    String tableId = nameToId.get(tableName);
+    
     boolean exists = WalkingSecurity.get(state).getTableExists();
-    boolean hasPermission = WalkingSecurity.get(state).canAlterTable(WalkingSecurity.get(state).getSysCredentials(), tableName);
+    
+    if ((null == tableId && exists) || (null != tableId && !exists)) {
+      log.error("For table " + tableName + ": found table ID " + tableId + " and " + (exists ? "expect" : "did not expect") + " it to exist");
+      throw new TableNotFoundException(null, tableName, "Could not find table ID when it should exist");
+    }
+    
+    boolean hasPermission;
+    try {
+      hasPermission = WalkingSecurity.get(state).canAlterTable(WalkingSecurity.get(state).getSysCredentials(), tableId);
+    } catch (Exception e) {
+      if (!exists) {
+        log.debug("Ignoring exception when trying to alter non-existent table", e);
+        return;
+      }
+      
+      throw e;
+    }
+    
     String newTableName = String.format("security_%s_%s_%d", InetAddress.getLocalHost().getHostName().replaceAll("[-.]", "_"), state.getPid(),
         System.currentTimeMillis());
     
     renameTable(conn, state, tableName, newTableName, hasPermission, exists);
+
   }
   
   public static void renameTable(Connector conn, State state, String oldName, String newName, boolean hasPermission, boolean tableExists)
