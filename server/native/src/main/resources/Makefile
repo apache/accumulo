@@ -20,7 +20,10 @@ CXX=g++
 MAVERICKFLAGS=
 
 ifeq ($(shell uname),Linux)
-	JAVA_HOME=$(shell dirname $$(dirname $$(readlink -ef $$(which javah))))
+	JAVA_HOME=$(shell env | fgrep JAVA_HOME | cut -d= -f2)
+	ifeq ($(strip $(JAVA_HOME)),)
+		JAVA_HOME=$(shell dirname $$(dirname $$(readlink -ef $$(which javah))))
+	endif
 	NATIVE_LIB := libaccumulo.so
 	CXXFLAGS=-m64 -g -fPIC -shared -O2 -fno-omit-frame-pointer -fno-strict-aliasing -Wall -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux -Ijavah
 endif
