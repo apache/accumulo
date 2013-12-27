@@ -778,27 +778,27 @@
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>cloudtrace</artifactId>
-        <version>1.4.5-SNAPSHOT</version>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-start</artifactId>
-        <version>1.4.5-SNAPSHOT</version>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-core</artifactId>
-        <version>1.4.5-SNAPSHOT</version>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-server</artifactId>
-        <version>1.4.5-SNAPSHOT</version>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-minicluster</artifactId>
-        <version>1.4.5-SNAPSHOT</version>
+        <version>${project.version}</version>
       </dependency>
 
       <!-- additional dependencies we need to provide -->
