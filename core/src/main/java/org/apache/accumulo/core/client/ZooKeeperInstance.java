@@ -157,7 +157,7 @@ public class ZooKeeperInstance implements Instance {
   }
 
   @Override
-  public String getInstanceID() {
+  public synchronized String getInstanceID() {
     if (closed)
       throw new RuntimeException("ZooKeeperInstance has been closed.");
     if (instanceId == null) {
@@ -182,7 +182,7 @@ public class ZooKeeperInstance implements Instance {
   }
 
   @Override
-  public List<String> getMasterLocations() {
+  public synchronized List<String> getMasterLocations() {
     if (closed)
       throw new RuntimeException("ZooKeeperInstance has been closed.");
     String masterLocPath = ZooUtil.getRoot(this) + Constants.ZMASTER_LOCK;
@@ -199,7 +199,7 @@ public class ZooKeeperInstance implements Instance {
   }
 
   @Override
-  public String getRootTabletLocation() {
+  public synchronized String getRootTabletLocation() {
     if (closed)
       throw new RuntimeException("ZooKeeperInstance has been closed.");
     String zRootLocPath = ZooUtil.getRoot(this) + RootTable.ZROOT_TABLET_LOCATION;
@@ -216,7 +216,7 @@ public class ZooKeeperInstance implements Instance {
   }
 
   @Override
-  public String getInstanceName() {
+  public synchronized String getInstanceName() {
     if (closed)
       throw new RuntimeException("ZooKeeperInstance has been closed.");
     if (instanceName == null)
