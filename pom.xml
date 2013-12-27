@@ -97,6 +97,19 @@
         </configuration>
       </plugin>
       <plugin>
+        <groupId>com.github.koraktor</groupId>
+        <artifactId>mavanagaiata</artifactId>
+        <executions>
+          <execution>
+            <id>git-commit</id>
+            <phase>validate</phase>
+            <goals>
+              <goal>commit</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
         <executions>
@@ -125,8 +138,7 @@
               <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
             </manifest>
             <manifestEntries>
-              <Implementation-Build>${buildNumber}</Implementation-Build>
-              <Implementation-Timestamp>${timestamp}</Implementation-Timestamp>
+              <Implementation-Build>${mvngit.commit.id}</Implementation-Build>
             </manifestEntries>
           </archive>
           <includes>
@@ -877,6 +889,13 @@
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-jci-fam</artifactId>
         <version>1.0</version>
+      </dependency>
+
+      <!-- Version management -->
+      <dependency>
+        <groupId>com.github.koraktor</groupId>
+        <artifactId>mavanagaiata</artifactId>
+        <version>0.6.1</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
