@@ -20,7 +20,7 @@ import unittest
 import time
 import sys
 
-from TestUtils import TestUtilsMixin, FUZZ, ACCUMULO_HOME, SITE
+from TestUtils import TestUtilsMixin, FUZZ, SITE_PATH
 
 log = logging.getLogger('test.auto')
 
@@ -151,9 +151,8 @@ class SunnyLG(SunnyDayTest):
         }
     def runTest(self):
         SunnyDayTest.runTest(self)
-        cfg = os.path.join(ACCUMULO_HOME, 'conf', SITE)
         import config
-        dir = config.parse(cfg)['instance.dfs.dir']
+        dir = config.parse(SITE_PATH)['instance.dfs.dir']
         handle = self.runOn(self.masterHost(),
                             [self.accumulo_sh(),
                              'org.apache.accumulo.core.file.rfile.PrintInfo',

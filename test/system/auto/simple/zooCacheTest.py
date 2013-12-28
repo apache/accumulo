@@ -18,7 +18,7 @@ import shutil
 import unittest
 import time
 
-from TestUtils import TestUtilsMixin, ACCUMULO_HOME, SITE, ZOOKEEPERS
+from TestUtils import TestUtilsMixin, ZOOKEEPERS
 
 class ZooCacheTest(TestUtilsMixin, unittest.TestCase):
     "Zoo Cache Test"
@@ -44,7 +44,7 @@ class ZooCacheTest(TestUtilsMixin, unittest.TestCase):
         self.waitForStop(handleR3, 1)
 
     def tearDown(self):
-        os.unlink(os.path.join(ACCUMULO_HOME, 'conf', SITE))
+        self.clean_config_file()
         shutil.rmtree('/tmp/zcTest-42', ignore_errors=True, onerror=None)
 
 def suite():
