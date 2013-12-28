@@ -34,6 +34,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DiskUsage;
@@ -183,16 +184,13 @@ public class MockTableOperations extends TableOperationsHelper {
   @Override
   public Iterable<Entry<String,String>> getProperties(String tableName) throws TableNotFoundException {
     String namespace = Tables.qualify(tableName).getFirst();
-
-    if (!namespaceExists(namespace)) {
-      throw new IllegalArgumentException("Namespace (" + namespace + ") does not exist");
+    if (!exists(tableName)) {
+      if (!namespaceExists(namespace))
+        throw new TableNotFoundException(tableName, new NamespaceNotFoundException(null, namespace, null));
+      throw new TableNotFoundException(null, tableName, null);
     }
 
     Set<Entry<String,String>> props = new HashSet<Entry<String,String>>(acu.namespaces.get(namespace).settings.entrySet());
-
-    if (!exists(tableName)) {
-      throw new TableNotFoundException(tableName, tableName, "");
-    }
 
     Set<Entry<String,String>> tableProps = acu.tables.get(tableName).settings.entrySet();
     for (Entry<String,String> e : tableProps) {

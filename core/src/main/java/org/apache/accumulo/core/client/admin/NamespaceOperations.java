@@ -277,7 +277,7 @@ public interface NamespaceOperations {
 
   /**
    * Check whether a given iterator configuration conflicts with existing configuration; in particular, determine if the name or priority are already in use for
-   * the specified scopes. If not, an IllegalArgumentException is thrown, wrapped in an AccumuloException.
+   * the specified scopes. If so, an IllegalArgumentException is thrown, wrapped in an AccumuloException.
    * 
    * @param namespace
    *          the name of the namespace

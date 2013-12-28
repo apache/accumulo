@@ -34,6 +34,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -835,7 +836,8 @@ public class ShellServerIT extends SimpleMacIT {
 
   @Test(timeout = 30 * 1000)
   public void namespaces() throws Exception {
-    exec("namespaces", true, Constants.DEFAULT_NAMESPACE, true);
+    exec("namespaces", true, "(default)", true); // default namespace for display purposes only
+    exec("namespaces", true, Namespaces.ACCUMULO_NAMESPACE, true);
     exec("createnamespace thing1", true);
     String namespaces = exec("namespaces");
     assertTrue(namespaces.contains("thing1"));
@@ -899,7 +901,7 @@ public class ShellServerIT extends SimpleMacIT {
     // should fail
     exec("insert r cf cq abc", false);
     exec("constraint -l", true, "NumericValueConstraint", true);
-    exec("constraint -ns thing4 -d 1");
+    exec("constraint -ns thing4 -d 2");
     exec("sleep 1");
     exec("insert r cf cq abc", true);
   }

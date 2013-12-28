@@ -34,6 +34,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
@@ -79,16 +80,16 @@ public class ClientServiceHandler implements ClientService.Iface {
     this.fs = fs;
   }
 
-  protected String checkTableId(String tableName, TableOperation operation) throws ThriftTableOperationException {
-    String tableId = Tables.getNameToIdMap(instance).get(tableName);
-    if (tableId == null) {
-      // maybe the table exist, but the cache was not updated yet... so try to clear the cache and check again
-      Tables.clearCache(instance);
-      tableId = Tables.getNameToIdMap(instance).get(tableName);
-      if (tableId == null)
-        throw new ThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.NOTFOUND, null);
+  public static String checkTableId(Instance instance, String tableName, TableOperation operation) throws ThriftTableOperationException {
+    TableOperationExceptionType reason = null;
+    try {
+      return Tables._getTableId(instance, tableName);
+    } catch (NamespaceNotFoundException e) {
+      reason = TableOperationExceptionType.NAMESPACE_NOTFOUND;
+    } catch (TableNotFoundException e) {
+      reason = TableOperationExceptionType.NOTFOUND;
     }
-    return tableId;
+    throw new ThriftTableOperationException(null, tableName, operation, reason, null);
   }
 
   protected String checkNamespaceId(String namespace, TableOperation operation) throws ThriftTableOperationException {
@@ -98,7 +99,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       Tables.clearCache(instance);
       namespaceId = Namespaces.getNameToIdMap(instance).get(namespace);
       if (namespaceId == null)
-        throw new ThriftTableOperationException(null, namespace, operation, TableOperationExceptionType.NOTFOUND, null);
+        throw new ThriftTableOperationException(null, namespace, operation, TableOperationExceptionType.NAMESPACE_NOTFOUND, null);
     }
     return namespaceId;
   }
@@ -181,7 +182,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   @Override
   public void grantTablePermission(TInfo tinfo, TCredentials credentials, String user, String tableName, byte permission) throws ThriftSecurityException,
       ThriftTableOperationException {
-    String tableId = checkTableId(tableName, TableOperation.PERMISSION);
+    String tableId = checkTableId(instance, tableName, TableOperation.PERMISSION);
     security.grantTablePermission(credentials, user, tableId, TablePermission.getPermissionById(permission));
   }
 
@@ -200,7 +201,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   @Override
   public void revokeTablePermission(TInfo tinfo, TCredentials credentials, String user, String tableName, byte permission) throws ThriftSecurityException,
       ThriftTableOperationException {
-    String tableId = checkTableId(tableName, TableOperation.PERMISSION);
+    String tableId = checkTableId(instance, tableName, TableOperation.PERMISSION);
     security.revokeTablePermission(credentials, user, tableId, TablePermission.getPermissionById(permission));
   }
 
@@ -212,7 +213,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   @Override
   public boolean hasTablePermission(TInfo tinfo, TCredentials credentials, String user, String tableName, byte tblPerm) throws ThriftSecurityException,
       ThriftTableOperationException {
-    String tableId = checkTableId(tableName, TableOperation.PERMISSION);
+    String tableId = checkTableId(instance, tableName, TableOperation.PERMISSION);
     return security.hasTablePermission(credentials, user, tableId, TablePermission.getPermissionById(tblPerm));
   }
 
@@ -263,8 +264,8 @@ public class ClientServiceHandler implements ClientService.Iface {
 
   @Override
   public Map<String,String> getTableConfiguration(TInfo tinfo, TCredentials credentials, String tableName) throws TException, ThriftTableOperationException {
-    String tableId = checkTableId(tableName, null);
-    AccumuloConfiguration config = new ServerConfiguration(instance).getTableConfiguration(tableId);
+    String tableId = checkTableId(instance, tableName, null);
+    AccumuloConfiguration config = ServerConfiguration.getTableConfiguration(instance, tableId);
     return conf(credentials, config);
   }
 
@@ -326,7 +327,7 @@ public class ClientServiceHandler implements ClientService.Iface {
 
     security.authenticateUser(credentials, credentials);
 
-    String tableId = checkTableId(tableName, null);
+    String tableId = checkTableId(instance, tableName, null);
 
     ClassLoader loader = getClass().getClassLoader();
     Class<?> shouldMatch;
@@ -398,7 +399,7 @@ public class ClientServiceHandler implements ClientService.Iface {
 
       for (String table : tables) {
         // ensure that table table exists
-        String tableId = checkTableId(table, null);
+        String tableId = checkTableId(instance, table, null);
         tableIds.add(tableId);
         if (!security.canScan(credentials, tableId))
           throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
@@ -428,7 +429,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       namespaceId = Namespaces.getNamespaceId(instance, ns);
     } catch (NamespaceNotFoundException e) {
       String why = "Could not find namespace while getting configuration.";
-      throw new ThriftTableOperationException(null, ns, null, TableOperationExceptionType.NOTFOUND, why);
+      throw new ThriftTableOperationException(null, ns, null, TableOperationExceptionType.NAMESPACE_NOTFOUND, why);
     }
     AccumuloConfiguration config = ServerConfiguration.getNamespaceConfiguration(instance, namespaceId);
     return conf(credentials, config);

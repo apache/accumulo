@@ -14,17 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.accumulo.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -32,344 +39,503 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.NamespaceExistsException;
 import org.apache.accumulo.core.client.NamespaceNotEmptyException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.NamespaceOperations;
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.client.impl.thrift.TableOperation;
+import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.user.VersioningIterator;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.NumericValueConstraint;
 import org.apache.accumulo.test.functional.SimpleMacIT;
+import org.apache.hadoop.io.Text;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class NamespacesIT extends SimpleMacIT {
 
-  Random random = new Random();
+  private Connector c;
+  private String namespace;
 
-  /**
-   * This test creates a table without specifying a namespace. In this case, it puts the table into the default namespace.
-   */
+  @Before
+  public void setUpConnectorAndNamespace() throws Exception {
+    c = getConnector();
+    namespace = "ns_" + getTableNames(1)[0];
+  }
+
+  @After
+  public void removeTablesAndNamespaces() throws Exception {
+    for (String t : c.tableOperations().list())
+      if (!Tables.qualify(t).getFirst().equals(Namespaces.ACCUMULO_NAMESPACE))
+        c.tableOperations().delete(t);
+    assertEquals(2, c.tableOperations().list().size());
+    for (String n : c.namespaceOperations().list())
+      if (!n.equals(Namespaces.ACCUMULO_NAMESPACE) && !n.equals(Namespaces.DEFAULT_NAMESPACE))
+        c.namespaceOperations().delete(n);
+    assertEquals(2, c.namespaceOperations().list().size());
+    for (String u : c.securityOperations().listLocalUsers())
+      if (!"root".equals(u))
+        c.securityOperations().dropLocalUser(u);
+    assertEquals(1, c.securityOperations().listLocalUsers().size());
+  }
+
   @Test
-  public void testDefaultNamespace() throws Exception {
-    String tableName = "test";
-    Connector c = getConnector();
+  public void checkBuiltInNamespaces() throws Exception {
+    assertTrue(c.namespaceOperations().exists(Namespaces.DEFAULT_NAMESPACE));
+    assertTrue(c.namespaceOperations().exists(Namespaces.ACCUMULO_NAMESPACE));
+  }
 
-    assertTrue(c.namespaceOperations().exists(Constants.DEFAULT_NAMESPACE));
+  @Test
+  public void createTableInDefaultNamespace() throws Exception {
+    String tableName = getTableNames(1)[0];
     c.tableOperations().create(tableName);
     assertTrue(c.tableOperations().exists(tableName));
   }
 
-  /**
-   * This test creates a new namespace "testing" and a table "testing.table1" which puts "table1" into the "testing" namespace. Then we create "testing.table2"
-   * which creates "table2" and puts it into "testing" as well. Then we make sure that you can't delete a namespace with tables in it, and then we delete the
-   * tables and delete the namespace.
-   */
-  @Test
-  public void testCreateAndDeleteNamespace() throws Exception {
-    String namespace = "testing";
-    String tableName1 = namespace + ".table1";
-    String tableName2 = namespace + ".table2";
-
-    Connector c = getConnector();
-
-    c.namespaceOperations().create(namespace);
-    assertTrue(c.namespaceOperations().exists(namespace));
-
-    c.tableOperations().create(tableName1);
-    assertTrue(c.tableOperations().exists(tableName1));
-
-    c.tableOperations().create(tableName2);
-    assertTrue(c.tableOperations().exists(tableName2));
-
-    // deleting
-    try {
-      // can't delete a namespace with tables in it
-      c.namespaceOperations().delete(namespace);
-      fail();
-    } catch (NamespaceNotEmptyException e) {
-      // ignore, supposed to happen
-    }
-    assertTrue(c.namespaceOperations().exists(namespace));
-    assertTrue(c.tableOperations().exists(tableName1));
-    assertTrue(c.tableOperations().exists(tableName2));
-
-    c.tableOperations().delete(tableName2);
-    assertTrue(!c.tableOperations().exists(tableName2));
-    assertTrue(c.namespaceOperations().exists(namespace));
-
-    c.tableOperations().delete(tableName1);
-    assertTrue(!c.tableOperations().exists(tableName1));
-    c.namespaceOperations().delete(namespace);
-    assertTrue(!c.namespaceOperations().exists(namespace));
+  // TODO enable after ACCUMULO-2079 is fixed
+  @Ignore
+  @Test(expected = AccumuloSecurityException.class)
+  public void createTableInAccumuloNamespace() throws Exception {
+    String tableName = Namespaces.ACCUMULO_NAMESPACE + "." + getTableNames(1)[0];
+    assertFalse(c.tableOperations().exists(tableName));
+    c.tableOperations().create(tableName); // should fail
   }
 
-  /**
-   * This test creates a namespace, modifies it's properties, and checks to make sure that those properties are applied to its tables. To do something on a
-   * namespace-wide level, use NamespaceOperations.
-   * 
-   * Checks to make sure namespace-level properties are overridden by table-level properties.
-   * 
-   * Checks to see if the default namespace's properties work as well.
-   */
+  @Test(expected = AccumuloSecurityException.class)
+  public void deleteDefaultNamespace() throws Exception {
+    c.namespaceOperations().delete(Namespaces.DEFAULT_NAMESPACE); // should fail
+  }
+
+  @Test(expected = AccumuloSecurityException.class)
+  public void deleteAccumuloNamespace() throws Exception {
+    c.namespaceOperations().delete(Namespaces.ACCUMULO_NAMESPACE); // should fail
+  }
 
   @Test
-  public void testNamespaceProperties() throws Exception {
-    String namespace = "propchange";
-    String tableName1 = namespace + ".table1";
-    String tableName2 = namespace + ".table2";
+  public void createTableInMissingNamespace() throws Exception {
+    String t = namespace + ".1";
+    assertFalse(c.namespaceOperations().exists(namespace));
+    assertFalse(c.tableOperations().exists(t));
+    try {
+      c.tableOperations().create(t);
+      fail();
+    } catch (AccumuloException e) {
+      assertEquals(NamespaceNotFoundException.class.getName(), e.getCause().getClass().getName());
+      assertFalse(c.namespaceOperations().exists(namespace));
+      assertFalse(c.tableOperations().exists(t));
+    }
+  }
 
-    String propKey = Property.TABLE_SCAN_MAXMEM.getKey();
-    String propVal = "42K";
+  @Test
+  public void createAndDeleteNamespace() throws Exception {
+    String t1 = namespace + ".1";
+    String t2 = namespace + ".2";
+    assertFalse(c.namespaceOperations().exists(namespace));
+    assertFalse(c.tableOperations().exists(t1));
+    assertFalse(c.tableOperations().exists(t2));
+    try {
+      c.namespaceOperations().delete(namespace);
+    } catch (NamespaceNotFoundException e) {}
+    try {
+      c.tableOperations().delete(t1);
+    } catch (TableNotFoundException e) {
+      assertEquals(NamespaceNotFoundException.class.getName(), e.getCause().getClass().getName());
+    }
+    c.namespaceOperations().create(namespace);
+    assertTrue(c.namespaceOperations().exists(namespace));
+    assertFalse(c.tableOperations().exists(t1));
+    assertFalse(c.tableOperations().exists(t2));
+    c.tableOperations().create(t1);
+    assertTrue(c.namespaceOperations().exists(namespace));
+    assertTrue(c.tableOperations().exists(t1));
+    assertFalse(c.tableOperations().exists(t2));
+    c.tableOperations().create(t2);
+    assertTrue(c.namespaceOperations().exists(namespace));
+    assertTrue(c.tableOperations().exists(t1));
+    assertTrue(c.tableOperations().exists(t2));
+    c.tableOperations().delete(t1);
+    assertTrue(c.namespaceOperations().exists(namespace));
+    assertFalse(c.tableOperations().exists(t1));
+    assertTrue(c.tableOperations().exists(t2));
+    c.tableOperations().delete(t2);
+    assertTrue(c.namespaceOperations().exists(namespace));
+    assertFalse(c.tableOperations().exists(t1));
+    assertFalse(c.tableOperations().exists(t2));
+    c.namespaceOperations().delete(namespace);
+    assertFalse(c.namespaceOperations().exists(namespace));
+    assertFalse(c.tableOperations().exists(t1));
+    assertFalse(c.tableOperations().exists(t2));
+  }
 
-    Connector c = getConnector();
-
+  @Test(expected = NamespaceNotEmptyException.class)
+  public void deleteNonEmptyNamespace() throws Exception {
+    String tableName1 = namespace + ".1";
+    assertFalse(c.namespaceOperations().exists(namespace));
+    assertFalse(c.tableOperations().exists(tableName1));
     c.namespaceOperations().create(namespace);
     c.tableOperations().create(tableName1);
-    c.namespaceOperations().setProperty(namespace, propKey, propVal);
+    assertTrue(c.namespaceOperations().exists(namespace));
+    assertTrue(c.tableOperations().exists(tableName1));
+    c.namespaceOperations().delete(namespace); // should fail
+  }
 
-    // check the namespace has the property
-    assertTrue(checkNamespaceHasProp(c, namespace, propKey, propVal));
+  @Test
+  public void verifyPropertyInheritance() throws Exception {
+    String t0 = "0";
+    String t1 = namespace + ".1";
+    String t2 = namespace + ".2";
 
-    // check that the table gets it from the namespace
-    assertTrue(checkTableHasProp(c, tableName1, propKey, propVal));
+    String k = Property.TABLE_SCAN_MAXMEM.getKey();
+    String v = "42K";
 
-    // test a second table to be sure the first wasn't magical
-    // (also, changed the order, the namespace has the property already)
-    c.tableOperations().create(tableName2);
-    assertTrue(checkTableHasProp(c, tableName2, propKey, propVal));
+    assertFalse(c.namespaceOperations().exists(namespace));
+    assertFalse(c.tableOperations().exists(t1));
+    assertFalse(c.tableOperations().exists(t2));
+    c.namespaceOperations().create(namespace);
+    c.tableOperations().create(t1);
+    c.tableOperations().create(t0);
+    assertTrue(c.namespaceOperations().exists(namespace));
+    assertTrue(c.tableOperations().exists(t1));
+    assertTrue(c.tableOperations().exists(t0));
+
+    // verify no property
+    assertFalse(checkNamespaceHasProp(namespace, k, v));
+    assertFalse(checkTableHasProp(t1, k, v));
+    assertFalse(checkNamespaceHasProp(Namespaces.DEFAULT_NAMESPACE, k, v));
+    assertFalse(checkTableHasProp(t0, k, v));
+
+    // set property and verify
+    c.namespaceOperations().setProperty(namespace, k, v);
+    assertTrue(checkNamespaceHasProp(namespace, k, v));
+    assertTrue(checkTableHasProp(t1, k, v));
+    assertFalse(checkNamespaceHasProp(Namespaces.DEFAULT_NAMESPACE, k, v));
+    assertFalse(checkTableHasProp(t0, k, v));
+
+    // add a new table to namespace and verify
+    assertFalse(c.tableOperations().exists(t2));
+    c.tableOperations().create(t2);
+    assertTrue(c.tableOperations().exists(t2));
+    assertTrue(checkNamespaceHasProp(namespace, k, v));
+    assertTrue(checkTableHasProp(t1, k, v));
+    assertTrue(checkTableHasProp(t2, k, v));
+    assertFalse(checkNamespaceHasProp(Namespaces.DEFAULT_NAMESPACE, k, v));
+    assertFalse(checkTableHasProp(t0, k, v));
+
+    // remove property and verify
+    c.namespaceOperations().removeProperty(namespace, k);
+    assertFalse(checkNamespaceHasProp(namespace, k, v));
+    assertFalse(checkTableHasProp(t1, k, v));
+    assertFalse(checkTableHasProp(t2, k, v));
+    assertFalse(checkNamespaceHasProp(Namespaces.DEFAULT_NAMESPACE, k, v));
+    assertFalse(checkTableHasProp(t0, k, v));
+
+    // set property on default namespace and verify
+    c.namespaceOperations().setProperty(Namespaces.DEFAULT_NAMESPACE, k, v);
+    assertFalse(checkNamespaceHasProp(namespace, k, v));
+    assertFalse(checkTableHasProp(t1, k, v));
+    assertFalse(checkTableHasProp(t2, k, v));
+    assertTrue(checkNamespaceHasProp(Namespaces.DEFAULT_NAMESPACE, k, v));
+    assertTrue(checkTableHasProp(t0, k, v));
 
     // test that table properties override namespace properties
-    String propKey2 = Property.TABLE_FILE_MAX.getKey();
-    String propVal2 = "42";
-    String tablePropVal = "13";
+    String k2 = Property.TABLE_FILE_MAX.getKey();
+    String v2 = "42";
+    String table_v2 = "13";
 
-    c.tableOperations().setProperty(tableName2, propKey2, tablePropVal);
-    c.namespaceOperations().setProperty("propchange", propKey2, propVal2);
+    // set new property on some
+    c.namespaceOperations().setProperty(namespace, k2, v2);
+    c.tableOperations().setProperty(t2, k2, table_v2);
+    assertTrue(checkNamespaceHasProp(namespace, k2, v2));
+    assertTrue(checkTableHasProp(t1, k2, v2));
+    assertTrue(checkTableHasProp(t2, k2, table_v2));
 
-    assertTrue(checkTableHasProp(c, tableName2, propKey2, tablePropVal));
+    c.tableOperations().delete(t1);
+    c.tableOperations().delete(t2);
+    c.tableOperations().delete(t0);
+    c.namespaceOperations().delete(namespace);
+  }
 
-    // now check that you can change the default namespace's properties
-    propVal = "13K";
-    String tableName = "some_table";
-    c.tableOperations().create(tableName);
-    c.namespaceOperations().setProperty(Constants.DEFAULT_NAMESPACE, propKey, propVal);
+  @Test
+  public void verifyIteratorInheritance() throws Exception {
+    String t1 = namespace + ".1";
+    c.namespaceOperations().create(namespace);
+    c.tableOperations().create(t1);
+    String iterName = namespace + "_iter";
 
-    assertTrue(checkTableHasProp(c, tableName, propKey, propVal));
-
-    // test the properties server-side by configuring an iterator.
-    // should not show anything with column-family = 'a'
-    String tableName3 = namespace + ".table3";
-    c.tableOperations().create(tableName3);
-
-    IteratorSetting setting = new IteratorSetting(250, "thing", SimpleFilter.class.getName());
-    c.namespaceOperations().attachIterator(namespace, setting);
-
-    BatchWriter bw = c.createBatchWriter(tableName3, new BatchWriterConfig());
+    BatchWriter bw = c.createBatchWriter(t1, new BatchWriterConfig());
     Mutation m = new Mutation("r");
     m.put("a", "b", new Value("abcde".getBytes()));
     bw.addMutation(m);
     bw.flush();
     bw.close();
 
-    Scanner s = c.createScanner(tableName3, Authorizations.EMPTY);
-    assertTrue(!s.iterator().hasNext());
+    IteratorSetting setting = new IteratorSetting(250, iterName, SimpleFilter.class.getName());
+
+    // verify can see inserted entry
+    Scanner s = c.createScanner(t1, Authorizations.EMPTY);
+    assertTrue(s.iterator().hasNext());
+    assertFalse(c.namespaceOperations().listIterators(namespace).containsKey(iterName));
+    assertFalse(c.tableOperations().listIterators(t1).containsKey(iterName));
+
+    // verify entry is filtered out (also, verify conflict checking API)
+    c.namespaceOperations().checkIteratorConflicts(namespace, setting, EnumSet.allOf(IteratorScope.class));
+    c.namespaceOperations().attachIterator(namespace, setting);
+    try {
+      c.namespaceOperations().checkIteratorConflicts(namespace, setting, EnumSet.allOf(IteratorScope.class));
+      fail();
+    } catch (AccumuloException e) {
+      assertEquals(IllegalArgumentException.class.getName(), e.getCause().getClass().getName());
+    }
+    IteratorSetting setting2 = c.namespaceOperations().getIteratorSetting(namespace, setting.getName(), IteratorScope.scan);
+    assertEquals(setting, setting2);
+    s = c.createScanner(t1, Authorizations.EMPTY);
+    assertFalse(s.iterator().hasNext());
+    assertTrue(c.namespaceOperations().listIterators(namespace).containsKey(iterName));
+    assertTrue(c.tableOperations().listIterators(t1).containsKey(iterName));
+
+    // verify can see inserted entry again
+    c.namespaceOperations().removeIterator(namespace, setting.getName(), EnumSet.allOf(IteratorScope.class));
+    s = c.createScanner(t1, Authorizations.EMPTY);
+    assertTrue(s.iterator().hasNext());
+    assertFalse(c.namespaceOperations().listIterators(namespace).containsKey(iterName));
+    assertFalse(c.tableOperations().listIterators(t1).containsKey(iterName));
   }
 
-  /**
-   * This test renames and clones two separate table into different namespaces. different namespace.
-   * 
-   */
   @Test
-  public void testCloneTableToNewNamespace() throws Exception {
-    Connector c = getConnector();
+  public void cloneTable() throws Exception {
+    String namespace2 = namespace + "_clone";
+    String t1 = namespace + ".1";
+    String t2 = namespace + ".2";
+    String t3 = namespace2 + ".2";
+    String k1 = Property.TABLE_FILE_MAX.getKey();
+    String k2 = Property.TABLE_FILE_REPLICATION.getKey();
+    String k1v1 = "55";
+    String k1v2 = "66";
+    String k2v1 = "5";
+    String k2v2 = "6";
 
-    String[] uniqueNames = getTableNames(2);
-    String namespace1 = uniqueNames[0];
-    String namespace2 = uniqueNames[1];
-    String tableName1 = namespace1 + ".table1";
-    String tableName2 = namespace2 + ".table2";
-
-    c.namespaceOperations().create(namespace1);
-    c.tableOperations().create(tableName1);
-    assertTrue(c.tableOperations().exists(tableName1));
-
-    c.namespaceOperations().create(namespace2);
-    c.tableOperations().clone(tableName1, tableName2, false, null, null);
-
-    assertTrue(c.tableOperations().exists(tableName1));
-    assertTrue(c.tableOperations().exists(tableName2));
-  }
-
-  /**
-   * This test renames a namespace and ensures that its tables are still correct
-   */
-  @Test
-  public void testNamespaceRename() throws Exception {
-    String namespace1 = "n1";
-    String namespace2 = "n2";
-    String table = "t";
-
-    Connector c = getConnector();
-    Instance instance = c.getInstance();
-
-    c.namespaceOperations().create(namespace1);
-    c.tableOperations().create(namespace1 + "." + table);
-
-    c.namespaceOperations().rename(namespace1, namespace2);
-
-    assertTrue(!c.namespaceOperations().exists(namespace1));
-    assertTrue(c.namespaceOperations().exists(namespace2));
-    assertTrue(c.tableOperations().exists(namespace2 + "." + table));
-    String tid = Tables.getTableId(instance, namespace2 + "." + table);
-    String tnid = Tables.getNamespace(instance, tid);
-    String tnamespace = Namespaces.getNamespaceName(instance, tnid);
-    assertTrue(namespace2.equals(tnamespace));
-  }
-
-  /**
-   * This test clones a table to a different namespace and ensures it's properties are correct
-   */
-  @Test
-  public void testCloneTableProperties() throws Exception {
-    String[] uniqueNames = getTableNames(2);
-    String n1 = uniqueNames[0];
-    String n2 = uniqueNames[1];
-    String t1 = n1 + ".table";
-    String t2 = n2 + ".table";
-
-    String propKey = Property.TABLE_FILE_MAX.getKey();
-    String propVal1 = "55";
-    String propVal2 = "66";
-
-    Connector c = getConnector();
-
-    c.namespaceOperations().create(n1);
+    c.namespaceOperations().create(namespace);
     c.tableOperations().create(t1);
+    assertTrue(c.tableOperations().exists(t1));
+    assertFalse(c.namespaceOperations().exists(namespace2));
+    assertFalse(c.tableOperations().exists(t2));
+    assertFalse(c.tableOperations().exists(t3));
 
-    c.tableOperations().removeProperty(t1, Property.TABLE_FILE_MAX.getKey());
-    c.namespaceOperations().setProperty(n1, propKey, propVal1);
+    try {
+      // try to clone before namespace exists
+      c.tableOperations().clone(t1, t3, false, null, null); // should fail
+      fail();
+    } catch (AccumuloException e) {
+      assertEquals(NamespaceNotFoundException.class.getName(), e.getCause().getClass().getName());
+    }
 
-    assertTrue(checkTableHasProp(c, t1, propKey, propVal1));
+    // try to clone before when target tables exist
+    c.namespaceOperations().create(namespace2);
+    c.tableOperations().create(t2);
+    c.tableOperations().create(t3);
+    for (String t : Arrays.asList(t2, t3)) {
+      try {
+        c.tableOperations().clone(t1, t, false, null, null); // should fail
+        fail();
+      } catch (TableExistsException e) {
+        c.tableOperations().delete(t);
+      }
+    }
 
-    c.namespaceOperations().create(n2);
-    c.namespaceOperations().setProperty(n2, propKey, propVal2);
-    c.tableOperations().clone(t1, t2, true, null, null);
-    c.tableOperations().removeProperty(t2, propKey);
+    assertTrue(c.tableOperations().exists(t1));
+    assertTrue(c.namespaceOperations().exists(namespace2));
+    assertFalse(c.tableOperations().exists(t2));
+    assertFalse(c.tableOperations().exists(t3));
 
-    assertTrue(checkTableHasProp(c, t2, propKey, propVal2));
+    // set property with different values in two namespaces and a separate property with different values on the table and both namespaces
+    assertFalse(checkNamespaceHasProp(namespace, k1, k1v1));
+    assertFalse(checkNamespaceHasProp(namespace2, k1, k1v2));
+    assertFalse(checkTableHasProp(t1, k1, k1v1));
+    assertFalse(checkTableHasProp(t1, k1, k1v2));
+    assertFalse(checkNamespaceHasProp(namespace, k2, k2v1));
+    assertFalse(checkNamespaceHasProp(namespace2, k2, k2v1));
+    assertFalse(checkTableHasProp(t1, k2, k2v1));
+    assertFalse(checkTableHasProp(t1, k2, k2v2));
+    c.namespaceOperations().setProperty(namespace, k1, k1v1);
+    c.namespaceOperations().setProperty(namespace2, k1, k1v2);
+    c.namespaceOperations().setProperty(namespace, k2, k2v1);
+    c.namespaceOperations().setProperty(namespace2, k2, k2v1);
+    c.tableOperations().setProperty(t1, k2, k2v2);
+    assertTrue(checkNamespaceHasProp(namespace, k1, k1v1));
+    assertTrue(checkNamespaceHasProp(namespace2, k1, k1v2));
+    assertTrue(checkTableHasProp(t1, k1, k1v1));
+    assertFalse(checkTableHasProp(t1, k1, k1v2));
+    assertTrue(checkNamespaceHasProp(namespace, k2, k2v1));
+    assertTrue(checkNamespaceHasProp(namespace2, k2, k2v1));
+    assertFalse(checkTableHasProp(t1, k2, k2v1));
+    assertTrue(checkTableHasProp(t1, k2, k2v2));
 
-    c.tableOperations().delete(t1);
-    c.tableOperations().delete(t2);
-    c.namespaceOperations().delete(n1);
-    c.namespaceOperations().delete(n2);
+    // clone twice, once in same namespace, once in another
+    for (String t : Arrays.asList(t2, t3))
+      c.tableOperations().clone(t1, t, false, null, null);
+
+    assertTrue(c.namespaceOperations().exists(namespace2));
+    assertTrue(c.tableOperations().exists(t1));
+    assertTrue(c.tableOperations().exists(t2));
+    assertTrue(c.tableOperations().exists(t3));
+
+    // verify the properties got transferred
+    assertTrue(checkTableHasProp(t1, k1, k1v1));
+    assertTrue(checkTableHasProp(t2, k1, k1v1));
+    assertTrue(checkTableHasProp(t3, k1, k1v2));
+    assertTrue(checkTableHasProp(t1, k2, k2v2));
+    assertTrue(checkTableHasProp(t2, k2, k2v2));
+    assertTrue(checkTableHasProp(t3, k2, k2v2));
   }
 
-  /**
-   * This tests adding iterators to a namespace, listing them, and removing them
-   */
   @Test
-  public void testNamespaceIterators() throws Exception {
-    Connector c = getConnector();
-
-    String namespace = "iterator";
-    String tableName = namespace + ".table";
-    String iter = "thing";
+  public void renameNamespaceWithTable() throws Exception {
+    String namespace2 = namespace + "_renamed";
+    String t1 = namespace + ".t";
+    String t2 = namespace2 + ".t";
 
     c.namespaceOperations().create(namespace);
-    c.tableOperations().create(tableName);
+    c.tableOperations().create(t1);
+    assertTrue(c.namespaceOperations().exists(namespace));
+    assertTrue(c.tableOperations().exists(t1));
+    assertFalse(c.namespaceOperations().exists(namespace2));
+    assertFalse(c.tableOperations().exists(t2));
 
-    IteratorSetting setting = new IteratorSetting(250, iter, SimpleFilter.class.getName());
-    HashSet<IteratorScope> scope = new HashSet<IteratorScope>();
-    scope.add(IteratorScope.scan);
-    c.namespaceOperations().attachIterator(namespace, setting, EnumSet.copyOf(scope));
+    String namespaceId = c.namespaceOperations().namespaceIdMap().get(namespace);
+    String tableId = c.tableOperations().tableIdMap().get(t1);
 
-    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-    Mutation m = new Mutation("r");
-    m.put("a", "b", new Value("abcde".getBytes(Constants.UTF8)));
-    bw.addMutation(m);
-    bw.flush();
+    c.namespaceOperations().rename(namespace, namespace2);
+    assertFalse(c.namespaceOperations().exists(namespace));
+    assertFalse(c.tableOperations().exists(t1));
+    assertTrue(c.namespaceOperations().exists(namespace2));
+    assertTrue(c.tableOperations().exists(t2));
 
-    Scanner s = c.createScanner(tableName, Authorizations.EMPTY);
-    assertTrue(!s.iterator().hasNext());
+    // verify id's didn't change
+    String namespaceId2 = c.namespaceOperations().namespaceIdMap().get(namespace2);
+    String tableId2 = c.tableOperations().tableIdMap().get(t2);
 
-    assertTrue(c.namespaceOperations().listIterators(namespace).containsKey(iter));
+    assertEquals(namespaceId, namespaceId2);
+    assertEquals(tableId, tableId2);
   }
 
-  /**
-   * This tests adding iterators to a namespace, listing them, and removing them as well as adding and removing constraints
-   */
   @Test
-  public void testNamespaceConstraints() throws Exception {
-    Connector c = getConnector();
-
-    String namespace = "constraint";
-    String tableName = namespace + ".table";
-    String iter = "thing";
-
+  public void verifyConstraintInheritance() throws Exception {
+    String t1 = namespace + ".1";
     c.namespaceOperations().create(namespace);
-    c.tableOperations().create(tableName, false);
+    c.tableOperations().create(t1, false);
+    String constraintClassName = NumericValueConstraint.class.getName();
 
-    c.namespaceOperations().removeIterator(namespace, iter, EnumSet.of(IteratorScope.scan));
+    assertFalse(c.namespaceOperations().listConstraints(namespace).containsKey(constraintClassName));
+    assertFalse(c.tableOperations().listConstraints(t1).containsKey(constraintClassName));
 
-    c.namespaceOperations().addConstraint(namespace, NumericValueConstraint.class.getName());
-    // doesn't take effect immediately, needs time to propagate
+    c.namespaceOperations().addConstraint(namespace, constraintClassName);
+    assertTrue(c.namespaceOperations().listConstraints(namespace).containsKey(constraintClassName));
+    assertTrue(c.tableOperations().listConstraints(t1).containsKey(constraintClassName));
+    int num = c.namespaceOperations().listConstraints(namespace).get(constraintClassName);
+    assertEquals(num, (int) c.tableOperations().listConstraints(t1).get(constraintClassName));
+    // doesn't take effect immediately, needs time to propagate to tserver's ZooKeeper cache
     UtilWaitThread.sleep(250);
 
-    Mutation m = new Mutation("rowy");
-    m.put("a", "b", new Value("abcde".getBytes(Constants.UTF8)));
+    Mutation m1 = new Mutation("r1");
+    Mutation m2 = new Mutation("r2");
+    Mutation m3 = new Mutation("r3");
+    m1.put("a", "b", new Value("abcde".getBytes(Constants.UTF8)));
+    m2.put("e", "f", new Value("123".getBytes(Constants.UTF8)));
+    m3.put("c", "d", new Value("zyxwv".getBytes(Constants.UTF8)));
+    BatchWriter bw = c.createBatchWriter(t1, new BatchWriterConfig());
+    bw.addMutations(Arrays.asList(m1, m2, m3));
     try {
-      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-      bw.addMutation(m);
-      bw.flush();
       bw.close();
       fail();
     } catch (MutationsRejectedException e) {
-      // supposed to be thrown
+      assertEquals(1, e.getConstraintViolationSummaries().size());
+      assertEquals(2, e.getConstraintViolationSummaries().get(0).getNumberOfViolatingMutations());
     }
-    int num = c.namespaceOperations().listConstraints(namespace).get(NumericValueConstraint.class.getName());
     c.namespaceOperations().removeConstraint(namespace, num);
+    assertFalse(c.namespaceOperations().listConstraints(namespace).containsKey(constraintClassName));
+    assertFalse(c.tableOperations().listConstraints(t1).containsKey(constraintClassName));
+    // doesn't take effect immediately, needs time to propagate to tserver's ZooKeeper cache
+    UtilWaitThread.sleep(250);
+
+    bw = c.createBatchWriter(t1, new BatchWriterConfig());
+    bw.addMutations(Arrays.asList(m1, m2, m3));
+    bw.close();
   }
 
-  /**
-   * Tests disallowed rename across namespaces
-   */
   @Test
-  public void testRenameTable() throws Exception {
-    Connector c = getConnector();
+  public void renameTable() throws Exception {
+    String namespace2 = namespace + "_renamed";
+    String t1 = namespace + ".1";
+    String t2 = namespace2 + ".2";
+    String t3 = namespace + ".3";
+    String t4 = namespace + ".4";
 
-    String[] uniqueNames = getTableNames(4);
-    String namespace1 = uniqueNames[0];
-    String namespace2 = uniqueNames[1];
-    String tableName1 = namespace1 + "." + uniqueNames[2];
-    String tableName2 = namespace2 + "." + uniqueNames[3];
-    String tableName3 = namespace1 + "." + uniqueNames[3];
-
-    c.namespaceOperations().create(namespace1);
+    c.namespaceOperations().create(namespace);
     c.namespaceOperations().create(namespace2);
-    c.tableOperations().create(tableName1);
+
+    assertTrue(c.namespaceOperations().exists(namespace));
+    assertTrue(c.namespaceOperations().exists(namespace2));
+    assertFalse(c.tableOperations().exists(t1));
+    assertFalse(c.tableOperations().exists(t2));
+    assertFalse(c.tableOperations().exists(t3));
+    assertFalse(c.tableOperations().exists(t4));
+
+    c.tableOperations().create(t1);
 
     try {
-      c.tableOperations().rename(tableName1, tableName2);
+      c.tableOperations().rename(t1, t2);
       fail();
     } catch (AccumuloException e) {
       // this is expected, because we don't allow renames across namespaces
+      assertEquals(ThriftTableOperationException.class.getName(), e.getCause().getClass().getName());
+      assertEquals(TableOperation.RENAME, ((ThriftTableOperationException) e.getCause()).getOp());
+      assertEquals(TableOperationExceptionType.INVALID_NAME, ((ThriftTableOperationException) e.getCause()).getType());
+      assertTrue(c.tableOperations().exists(t1));
+      assertFalse(c.tableOperations().exists(t2));
+      assertFalse(c.tableOperations().exists(t3));
+      assertFalse(c.tableOperations().exists(t4));
     }
 
-    c.tableOperations().rename(tableName1, tableName3);
+    // fully qualified rename
+    c.tableOperations().rename(t1, t3);
+    assertFalse(c.tableOperations().exists(t1));
+    assertFalse(c.tableOperations().exists(t2));
+    assertTrue(c.tableOperations().exists(t3));
+    assertFalse(c.tableOperations().exists(t4));
+
+    // unqualified rename
+    c.tableOperations().rename(t3, Tables.qualify(t4).getSecond());
+    assertFalse(c.tableOperations().exists(t1));
+    assertFalse(c.tableOperations().exists(t2));
+    assertFalse(c.tableOperations().exists(t3));
+    assertTrue(c.tableOperations().exists(t4));
   }
 
   /**
@@ -378,187 +544,556 @@ public class NamespacesIT extends SimpleMacIT {
    */
   @Test
   public void testPermissions() throws Exception {
-    Connector c = getConnector();
+    String u1 = "u1";
+    String u2 = "u2";
+    PasswordToken pass = new PasswordToken("pass");
 
-    String[] uniqueNames = getTableNames(8);
-    String user1 = uniqueNames[0];
-    String user2 = uniqueNames[1];
-    PasswordToken pass = new PasswordToken(uniqueNames[2]);
-    String n1 = uniqueNames[3];
-    String n2 = uniqueNames[4];
-    String t1 = uniqueNames[5];
-    String t2 = uniqueNames[6];
-    String t3 = uniqueNames[7];
+    String n1 = namespace;
+    String t1 = n1 + ".1";
+    String t2 = n1 + ".2";
+    String t3 = n1 + ".3";
+
+    String n2 = namespace + "_2";
 
     c.namespaceOperations().create(n1);
-    c.tableOperations().create(n1 + "." + t1);
+    c.tableOperations().create(t1);
 
-    c.securityOperations().createLocalUser(user1, pass);
+    c.securityOperations().createLocalUser(u1, pass);
 
-    Connector user1Con = getConnector().getInstance().getConnector(user1, pass);
-
-    try {
-      user1Con.tableOperations().create(n1 + "." + t2);
-      fail();
-    } catch (AccumuloSecurityException e) {
-      // supposed to happen
-    }
-
-    c.securityOperations().grantNamespacePermission(user1, n1, NamespacePermission.CREATE_TABLE);
-    user1Con.tableOperations().create(n1 + "." + t2);
-    assertTrue(c.tableOperations().list().contains(n1 + "." + t2));
-    c.securityOperations().revokeNamespacePermission(user1, n1, NamespacePermission.CREATE_TABLE);
+    Connector user1Con = c.getInstance().getConnector(u1, pass);
 
     try {
-      user1Con.tableOperations().delete(n1 + "." + t1);
+      user1Con.tableOperations().create(t2);
       fail();
     } catch (AccumuloSecurityException e) {
-      // should happen
+      expectPermissionDenied(e);
     }
 
-    c.securityOperations().grantNamespacePermission(user1, n1, NamespacePermission.DROP_TABLE);
-    user1Con.tableOperations().delete(n1 + "." + t1);
-    assertTrue(!c.tableOperations().list().contains(n1 + "." + t1));
-    c.securityOperations().revokeNamespacePermission(user1, n1, NamespacePermission.DROP_TABLE);
+    c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.CREATE_TABLE);
+    user1Con.tableOperations().create(t2);
+    assertTrue(c.tableOperations().list().contains(t2));
+    c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.CREATE_TABLE);
 
-    c.tableOperations().create(n1 + "." + t3);
-    BatchWriter bw = c.createBatchWriter(n1 + "." + t3, null);
+    try {
+      user1Con.tableOperations().delete(t1);
+      fail();
+    } catch (AccumuloSecurityException e) {
+      expectPermissionDenied(e);
+    }
+
+    c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.DROP_TABLE);
+    user1Con.tableOperations().delete(t1);
+    assertTrue(!c.tableOperations().list().contains(t1));
+    c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.DROP_TABLE);
+
+    c.tableOperations().create(t3);
+    BatchWriter bw = c.createBatchWriter(t3, null);
     Mutation m = new Mutation("row");
     m.put("cf", "cq", "value");
     bw.addMutation(m);
     bw.close();
 
-    Iterator<Entry<Key,Value>> i = user1Con.createScanner(n1 + "." + t3, new Authorizations()).iterator();
+    Iterator<Entry<Key,Value>> i = user1Con.createScanner(t3, new Authorizations()).iterator();
     try {
       i.next();
       fail();
     } catch (RuntimeException e) {
-      // yup
+      assertEquals(AccumuloSecurityException.class.getName(), e.getCause().getClass().getName());
+      expectPermissionDenied((AccumuloSecurityException) e.getCause());
     }
 
-    m = new Mutation(user1);
+    m = new Mutation(u1);
     m.put("cf", "cq", "turtles");
-    bw = user1Con.createBatchWriter(n1 + "." + t3, null);
+    bw = user1Con.createBatchWriter(t3, null);
     try {
       bw.addMutation(m);
       bw.close();
       fail();
     } catch (MutationsRejectedException e) {
-      // good
+      assertEquals(1, e.getAuthorizationFailuresMap().size());
+      assertEquals(1, e.getAuthorizationFailuresMap().entrySet().iterator().next().getValue().size());
+      switch (e.getAuthorizationFailuresMap().entrySet().iterator().next().getValue().iterator().next()) {
+        case PERMISSION_DENIED:
+          break;
+        default:
+          fail();
+      }
     }
 
-    c.securityOperations().grantNamespacePermission(user1, n1, NamespacePermission.READ);
-    i = user1Con.createScanner(n1 + "." + t3, new Authorizations()).iterator();
+    c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.READ);
+    i = user1Con.createScanner(t3, new Authorizations()).iterator();
     assertTrue(i.hasNext());
-    c.securityOperations().revokeNamespacePermission(user1, n1, NamespacePermission.READ);
+    c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.READ);
 
-    c.securityOperations().grantNamespacePermission(user1, n1, NamespacePermission.WRITE);
-    m = new Mutation(user1);
+    c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.WRITE);
+    m = new Mutation(u1);
     m.put("cf", "cq", "turtles");
-    bw = user1Con.createBatchWriter(n1 + "." + t3, null);
+    bw = user1Con.createBatchWriter(t3, null);
     bw.addMutation(m);
     bw.close();
-    c.securityOperations().revokeNamespacePermission(user1, n1, NamespacePermission.WRITE);
+    c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.WRITE);
 
     try {
-      user1Con.tableOperations().setProperty(n1 + "." + t3, Property.TABLE_FILE_MAX.getKey(), "42");
+      user1Con.tableOperations().setProperty(t3, Property.TABLE_FILE_MAX.getKey(), "42");
       fail();
-    } catch (AccumuloSecurityException e) {}
+    } catch (AccumuloSecurityException e) {
+      expectPermissionDenied(e);
+    }
 
-    c.securityOperations().grantNamespacePermission(user1, n1, NamespacePermission.ALTER_TABLE);
-    user1Con.tableOperations().setProperty(n1 + "." + t3, Property.TABLE_FILE_MAX.getKey(), "42");
-    user1Con.tableOperations().removeProperty(n1 + "." + t3, Property.TABLE_FILE_MAX.getKey());
-    c.securityOperations().revokeNamespacePermission(user1, n1, NamespacePermission.ALTER_TABLE);
+    c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.ALTER_TABLE);
+    user1Con.tableOperations().setProperty(t3, Property.TABLE_FILE_MAX.getKey(), "42");
+    user1Con.tableOperations().removeProperty(t3, Property.TABLE_FILE_MAX.getKey());
+    c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.ALTER_TABLE);
 
     try {
       user1Con.namespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "55");
       fail();
-    } catch (AccumuloSecurityException e) {}
+    } catch (AccumuloSecurityException e) {
+      expectPermissionDenied(e);
+    }
 
-    c.securityOperations().grantNamespacePermission(user1, n1, NamespacePermission.ALTER_NAMESPACE);
+    c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.ALTER_NAMESPACE);
     user1Con.namespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "42");
     user1Con.namespaceOperations().removeProperty(n1, Property.TABLE_FILE_MAX.getKey());
-    c.securityOperations().revokeNamespacePermission(user1, n1, NamespacePermission.ALTER_NAMESPACE);
+    c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.ALTER_NAMESPACE);
 
-    c.securityOperations().createLocalUser(user2, pass);
+    c.securityOperations().createLocalUser(u2, pass);
     try {
-      user1Con.securityOperations().grantNamespacePermission(user2, n1, NamespacePermission.ALTER_NAMESPACE);
+      user1Con.securityOperations().grantNamespacePermission(u2, n1, NamespacePermission.ALTER_NAMESPACE);
       fail();
-    } catch (AccumuloSecurityException e) {}
+    } catch (AccumuloSecurityException e) {
+      expectPermissionDenied(e);
+    }
 
-    c.securityOperations().grantNamespacePermission(user1, n1, NamespacePermission.GRANT);
-    user1Con.securityOperations().grantNamespacePermission(user2, n1, NamespacePermission.ALTER_NAMESPACE);
-    user1Con.securityOperations().revokeNamespacePermission(user2, n1, NamespacePermission.ALTER_NAMESPACE);
-    c.securityOperations().revokeNamespacePermission(user1, n1, NamespacePermission.GRANT);
+    c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.GRANT);
+    user1Con.securityOperations().grantNamespacePermission(u2, n1, NamespacePermission.ALTER_NAMESPACE);
+    user1Con.securityOperations().revokeNamespacePermission(u2, n1, NamespacePermission.ALTER_NAMESPACE);
+    c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.GRANT);
 
     try {
       user1Con.namespaceOperations().create(n2);
       fail();
-    } catch (AccumuloSecurityException e) {}
+    } catch (AccumuloSecurityException e) {
+      expectPermissionDenied(e);
+    }
 
-    c.securityOperations().grantSystemPermission(user1, SystemPermission.CREATE_NAMESPACE);
+    c.securityOperations().grantSystemPermission(u1, SystemPermission.CREATE_NAMESPACE);
     user1Con.namespaceOperations().create(n2);
-    c.securityOperations().revokeSystemPermission(user1, SystemPermission.CREATE_NAMESPACE);
+    c.securityOperations().revokeSystemPermission(u1, SystemPermission.CREATE_NAMESPACE);
 
     try {
       user1Con.namespaceOperations().delete(n2);
       fail();
-    } catch (AccumuloSecurityException e) {}
+    } catch (AccumuloSecurityException e) {
+      expectPermissionDenied(e);
+    }
 
-    c.securityOperations().grantSystemPermission(user1, SystemPermission.DROP_NAMESPACE);
+    c.securityOperations().grantSystemPermission(u1, SystemPermission.DROP_NAMESPACE);
     user1Con.namespaceOperations().delete(n2);
-    c.securityOperations().revokeSystemPermission(user1, SystemPermission.DROP_NAMESPACE);
+    c.securityOperations().revokeSystemPermission(u1, SystemPermission.DROP_NAMESPACE);
 
     try {
       user1Con.namespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "33");
       fail();
-    } catch (AccumuloSecurityException e) {}
+    } catch (AccumuloSecurityException e) {
+      expectPermissionDenied(e);
+    }
 
-    c.securityOperations().grantSystemPermission(user1, SystemPermission.ALTER_NAMESPACE);
+    c.securityOperations().grantSystemPermission(u1, SystemPermission.ALTER_NAMESPACE);
     user1Con.namespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "33");
     user1Con.namespaceOperations().removeProperty(n1, Property.TABLE_FILE_MAX.getKey());
-    c.securityOperations().revokeSystemPermission(user1, SystemPermission.ALTER_NAMESPACE);
+    c.securityOperations().revokeSystemPermission(u1, SystemPermission.ALTER_NAMESPACE);
   }
 
-  /**
-   * This test makes sure that system-level iterators and constraints are ignored by the system namespace so that the metadata and root tables aren't affected
-   */
   @Test
-  public void excludeSystemIterConst() throws Exception {
-    Connector c = getConnector();
+  public void verifySystemPropertyInheritance() throws Exception {
+    String t1 = "1";
+    String t2 = namespace + "." + t1;
+    c.tableOperations().create(t1);
+    c.namespaceOperations().create(namespace);
+    c.tableOperations().create(t2);
 
-    c.instanceOperations().setProperty("table.iterator.scan.sum", "20," + SimpleFilter.class.getName());
-    assertTrue(c.instanceOperations().getSystemConfiguration().containsValue("20," + SimpleFilter.class.getName()));
+    // verify iterator inheritance
+    _verifySystemPropertyInheritance(t1, t2, Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.sum", "20," + SimpleFilter.class.getName(), false);
 
-    assertTrue(checkNamespaceHasProp(c, Constants.DEFAULT_NAMESPACE, "table.iterator.scan.sum", "20," + SimpleFilter.class.getName()));
-    assertTrue(!checkNamespaceHasProp(c, Constants.ACCUMULO_NAMESPACE, "table.iterator.scan.sum", "20," + SimpleFilter.class.getName()));
-    c.instanceOperations().removeProperty("table.iterator.scan.sum");
+    // verify constraint inheritance
+    _verifySystemPropertyInheritance(t1, t2, Property.TABLE_CONSTRAINT_PREFIX.getKey() + "42", NumericValueConstraint.class.getName(), false);
 
-    c.instanceOperations().setProperty("table.constraint.42", NumericValueConstraint.class.getName());
-    assertTrue(c.instanceOperations().getSystemConfiguration().containsValue(NumericValueConstraint.class.getName()));
-
-    assertTrue(checkNamespaceHasProp(c, Constants.DEFAULT_NAMESPACE, "table.constraint.42", NumericValueConstraint.class.getName()));
-    assertTrue(!checkNamespaceHasProp(c, Constants.ACCUMULO_NAMESPACE, "table.constraint.42", NumericValueConstraint.class.getName()));
-    c.instanceOperations().removeProperty("table.constraint.42");
+    // verify other inheritance
+    _verifySystemPropertyInheritance(t1, t2, Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "dummy", "dummy", true);
   }
 
-  private boolean checkTableHasProp(Connector c, String t, String propKey, String propVal) throws AccumuloException, TableNotFoundException {
-    for (Entry<String,String> e : c.tableOperations().getProperties(t)) {
-      if (e.getKey().equals(propKey) && e.getValue().equals(propVal)) {
-        return true;
-      }
-    }
-    return false;
+  private void _verifySystemPropertyInheritance(String defaultNamespaceTable, String namespaceTable, String k, String v, boolean systemNamespaceShouldInherit)
+      throws Exception {
+    // nobody should have any of these properties yet
+    assertFalse(c.instanceOperations().getSystemConfiguration().containsValue(v));
+    assertFalse(checkNamespaceHasProp(Namespaces.ACCUMULO_NAMESPACE, k, v));
+    assertFalse(checkTableHasProp(RootTable.NAME, k, v));
+    assertFalse(checkTableHasProp(MetadataTable.NAME, k, v));
+    assertFalse(checkNamespaceHasProp(Namespaces.DEFAULT_NAMESPACE, k, v));
+    assertFalse(checkTableHasProp(defaultNamespaceTable, k, v));
+    assertFalse(checkNamespaceHasProp(namespace, k, v));
+    assertFalse(checkTableHasProp(namespaceTable, k, v));
+
+    // set the filter, verify that accumulo namespace is the only one unaffected
+    c.instanceOperations().setProperty(k, v);
+    // doesn't take effect immediately, needs time to propagate to tserver's ZooKeeper cache
+    UtilWaitThread.sleep(250);
+    assertTrue(c.instanceOperations().getSystemConfiguration().containsValue(v));
+    assertEquals(systemNamespaceShouldInherit, checkNamespaceHasProp(Namespaces.ACCUMULO_NAMESPACE, k, v));
+    assertEquals(systemNamespaceShouldInherit, checkTableHasProp(RootTable.NAME, k, v));
+    assertEquals(systemNamespaceShouldInherit, checkTableHasProp(MetadataTable.NAME, k, v));
+    assertTrue(checkNamespaceHasProp(Namespaces.DEFAULT_NAMESPACE, k, v));
+    assertTrue(checkTableHasProp(defaultNamespaceTable, k, v));
+    assertTrue(checkNamespaceHasProp(namespace, k, v));
+    assertTrue(checkTableHasProp(namespaceTable, k, v));
+
+    // verify it is no longer inherited
+    c.instanceOperations().removeProperty(k);
+    // doesn't take effect immediately, needs time to propagate to tserver's ZooKeeper cache
+    UtilWaitThread.sleep(250);
+    assertFalse(c.instanceOperations().getSystemConfiguration().containsValue(v));
+    assertFalse(checkNamespaceHasProp(Namespaces.ACCUMULO_NAMESPACE, k, v));
+    assertFalse(checkTableHasProp(RootTable.NAME, k, v));
+    assertFalse(checkTableHasProp(MetadataTable.NAME, k, v));
+    assertFalse(checkNamespaceHasProp(Namespaces.DEFAULT_NAMESPACE, k, v));
+    assertFalse(checkTableHasProp(defaultNamespaceTable, k, v));
+    assertFalse(checkNamespaceHasProp(namespace, k, v));
+    assertFalse(checkTableHasProp(namespaceTable, k, v));
   }
 
-  private boolean checkNamespaceHasProp(Connector c, String n, String propKey, String propVal) throws AccumuloException, NamespaceNotFoundException,
-      AccumuloSecurityException {
-    for (Entry<String,String> e : c.namespaceOperations().getProperties(n)) {
-      if (e.getKey().equals(propKey) && e.getValue().equals(propVal)) {
-        return true;
+  @Test
+  public void listNamespaces() throws Exception {
+    SortedSet<String> namespaces = c.namespaceOperations().list();
+    Map<String,String> map = c.namespaceOperations().namespaceIdMap();
+    assertEquals(2, namespaces.size());
+    assertEquals(2, map.size());
+    assertTrue(namespaces.contains(Namespaces.ACCUMULO_NAMESPACE));
+    assertTrue(namespaces.contains(Namespaces.DEFAULT_NAMESPACE));
+    assertFalse(namespaces.contains(namespace));
+    assertEquals(Namespaces.ACCUMULO_NAMESPACE_ID, map.get(Namespaces.ACCUMULO_NAMESPACE));
+    assertEquals(Namespaces.DEFAULT_NAMESPACE_ID, map.get(Namespaces.DEFAULT_NAMESPACE));
+    assertNull(map.get(namespace));
+
+    c.namespaceOperations().create(namespace);
+    namespaces = c.namespaceOperations().list();
+    map = c.namespaceOperations().namespaceIdMap();
+    assertEquals(3, namespaces.size());
+    assertEquals(3, map.size());
+    assertTrue(namespaces.contains(Namespaces.ACCUMULO_NAMESPACE));
+    assertTrue(namespaces.contains(Namespaces.DEFAULT_NAMESPACE));
+    assertTrue(namespaces.contains(namespace));
+    assertEquals(Namespaces.ACCUMULO_NAMESPACE_ID, map.get(Namespaces.ACCUMULO_NAMESPACE));
+    assertEquals(Namespaces.DEFAULT_NAMESPACE_ID, map.get(Namespaces.DEFAULT_NAMESPACE));
+    assertNotNull(map.get(namespace));
+
+    c.namespaceOperations().delete(namespace);
+    namespaces = c.namespaceOperations().list();
+    map = c.namespaceOperations().namespaceIdMap();
+    assertEquals(2, namespaces.size());
+    assertEquals(2, map.size());
+    assertTrue(namespaces.contains(Namespaces.ACCUMULO_NAMESPACE));
+    assertTrue(namespaces.contains(Namespaces.DEFAULT_NAMESPACE));
+    assertFalse(namespaces.contains(namespace));
+    assertEquals(Namespaces.ACCUMULO_NAMESPACE_ID, map.get(Namespaces.ACCUMULO_NAMESPACE));
+    assertEquals(Namespaces.DEFAULT_NAMESPACE_ID, map.get(Namespaces.DEFAULT_NAMESPACE));
+    assertNull(map.get(namespace));
+  }
+
+  @Test
+  public void loadClass() throws Exception {
+    assertTrue(c.namespaceOperations().testClassLoad(Namespaces.DEFAULT_NAMESPACE, VersioningIterator.class.getName(), SortedKeyValueIterator.class.getName()));
+    assertFalse(c.namespaceOperations().testClassLoad(Namespaces.DEFAULT_NAMESPACE, "dummy", SortedKeyValueIterator.class.getName()));
+    try {
+      c.namespaceOperations().testClassLoad(namespace, "dummy", "dummy");
+      fail();
+    } catch (NamespaceNotFoundException e) {}
+  }
+
+  @Test
+  public void verifyTableOperationsExceptions() throws Exception {
+    String tableName = namespace + ".1";
+    IteratorSetting setting = new IteratorSetting(200, VersioningIterator.class);
+    Text a = new Text("a");
+    Text z = new Text("z");
+    TableOperations ops = c.tableOperations();
+
+    // this one doesn't throw an exception, so don't fail; just check that it works
+    assertFalse(ops.exists(tableName));
+
+    // table operations that should throw an AccumuloException caused by NamespaceNotFoundException
+    int numRun = 0;
+    ACCUMULOEXCEPTIONS_NAMESPACENOTFOUND: for (int i = 0;; ++i)
+      try {
+        switch (i) {
+          case 0:
+            ops.create(tableName);
+            fail();
+          case 1:
+            ops.create("a");
+            ops.clone("a", tableName, true, Collections.<String,String> emptyMap(), Collections.<String> emptySet());
+            fail();
+          case 2:
+            ops.importTable(tableName, System.getProperty("user.dir") + "/target");
+            fail();
+          default:
+            // break out of infinite loop
+            assertEquals(3, i); // check test integrity
+            assertEquals(3, numRun); // check test integrity
+            break ACCUMULOEXCEPTIONS_NAMESPACENOTFOUND;
+        }
+      } catch (Exception e) {
+        numRun++;
+        if (!(e instanceof AccumuloException) || !(e.getCause() instanceof NamespaceNotFoundException))
+          throw new Exception("Case " + i + " resulted in " + e.getClass().getName(), e);
       }
+
+    // table operations that should throw an AccumuloException caused by a TableNotFoundException caused by a NamespaceNotFoundException
+    // these are here because we didn't declare TableNotFoundException in the API :(
+    numRun = 0;
+    ACCUMULOEXCEPTIONS_TABLENOTFOUND: for (int i = 0;; ++i)
+      try {
+        switch (i) {
+          case 0:
+            ops.removeConstraint(tableName, 0);
+            fail();
+          case 1:
+            ops.removeProperty(tableName, "a");
+            fail();
+          case 2:
+            ops.setProperty(tableName, "a", "b");
+            fail();
+          default:
+            // break out of infinite loop
+            assertEquals(3, i); // check test integrity
+            assertEquals(3, numRun); // check test integrity
+            break ACCUMULOEXCEPTIONS_TABLENOTFOUND;
+        }
+      } catch (Exception e) {
+        numRun++;
+        if (!(e instanceof AccumuloException) || !(e.getCause() instanceof TableNotFoundException)
+            || !(e.getCause().getCause() instanceof NamespaceNotFoundException))
+          throw new Exception("Case " + i + " resulted in " + e.getClass().getName(), e);
+      }
+
+    // table operations that should throw a TableNotFoundException caused by NamespaceNotFoundException
+    numRun = 0;
+    TABLENOTFOUNDEXCEPTIONS: for (int i = 0;; ++i)
+      try {
+        switch (i) {
+          case 0:
+            ops.addConstraint(tableName, NumericValueConstraint.class.getName());
+            fail();
+          case 1:
+            ops.addSplits(tableName, new TreeSet<Text>());
+            fail();
+          case 2:
+            ops.attachIterator(tableName, setting);
+            fail();
+          case 3:
+            ops.cancelCompaction(tableName);
+            fail();
+          case 4:
+            ops.checkIteratorConflicts(tableName, setting, EnumSet.allOf(IteratorScope.class));
+            fail();
+          case 5:
+            ops.clearLocatorCache(tableName);
+            fail();
+          case 6:
+            ops.clone(tableName, "2", true, Collections.<String,String> emptyMap(), Collections.<String> emptySet());
+            fail();
+          case 7:
+            ops.compact(tableName, a, z, true, true);
+            fail();
+          case 8:
+            ops.delete(tableName);
+            fail();
+          case 9:
+            ops.deleteRows(tableName, a, z);
+            fail();
+          case 10:
+            ops.splitRangeByTablets(tableName, new Range(), 10);
+            fail();
+          case 11:
+            ops.exportTable(tableName, namespace + "_dir");
+            fail();
+          case 12:
+            ops.flush(tableName, a, z, true);
+            fail();
+          case 13:
+            ops.getDiskUsage(Collections.singleton(tableName));
+            fail();
+          case 14:
+            ops.getIteratorSetting(tableName, "a", IteratorScope.scan);
+            fail();
+          case 15:
+            ops.getLocalityGroups(tableName);
+            fail();
+          case 16:
+            ops.getMaxRow(tableName, Authorizations.EMPTY, a, true, z, true);
+            fail();
+          case 17:
+            ops.getProperties(tableName);
+            fail();
+          case 18:
+            ops.importDirectory(tableName, "", "", false);
+            fail();
+          case 19:
+            ops.testClassLoad(tableName, VersioningIterator.class.getName(), SortedKeyValueIterator.class.getName());
+            fail();
+          case 20:
+            ops.listConstraints(tableName);
+            fail();
+          case 21:
+            ops.listIterators(tableName);
+            fail();
+          case 22:
+            ops.listSplits(tableName);
+            fail();
+          case 23:
+            ops.merge(tableName, a, z);
+            fail();
+          case 24:
+            ops.offline(tableName, true);
+            fail();
+          case 25:
+            ops.online(tableName, true);
+            fail();
+          case 26:
+            ops.removeIterator(tableName, "a", EnumSet.of(IteratorScope.scan));
+            fail();
+          case 27:
+            ops.rename(tableName, tableName + "2");
+            fail();
+          case 28:
+            ops.setLocalityGroups(tableName, Collections.<String,Set<Text>> emptyMap());
+            fail();
+          default:
+            // break out of infinite loop
+            assertEquals(29, i); // check test integrity
+            assertEquals(29, numRun); // check test integrity
+            break TABLENOTFOUNDEXCEPTIONS;
+        }
+      } catch (Exception e) {
+        numRun++;
+        if (!(e instanceof TableNotFoundException) || !(e.getCause() instanceof NamespaceNotFoundException))
+          throw new Exception("Case " + i + " resulted in " + e.getClass().getName(), e);
+      }
+  }
+
+  @Test
+  public void verifyNamespaceOperationsExceptions() throws Exception {
+    IteratorSetting setting = new IteratorSetting(200, VersioningIterator.class);
+    NamespaceOperations ops = c.namespaceOperations();
+
+    // this one doesn't throw an exception, so don't fail; just check that it works
+    assertFalse(ops.exists(namespace));
+
+    // namespace operations that should throw a NamespaceNotFoundException
+    int numRun = 0;
+    NAMESPACENOTFOUND: for (int i = 0;; ++i)
+      try {
+        switch (i) {
+          case 0:
+            ops.addConstraint(namespace, NumericValueConstraint.class.getName());
+            fail();
+          case 1:
+            ops.attachIterator(namespace, setting);
+            fail();
+          case 2:
+            ops.checkIteratorConflicts(namespace, setting, EnumSet.of(IteratorScope.scan));
+            fail();
+          case 3:
+            ops.delete(namespace);
+            fail();
+          case 4:
+            ops.getIteratorSetting(namespace, "thing", IteratorScope.scan);
+            fail();
+          case 5:
+            ops.getProperties(namespace);
+            fail();
+          case 6:
+            ops.listConstraints(namespace);
+            fail();
+          case 7:
+            ops.listIterators(namespace);
+            fail();
+          case 8:
+            ops.removeConstraint(namespace, 1);
+            fail();
+          case 9:
+            ops.removeIterator(namespace, "thing", EnumSet.allOf(IteratorScope.class));
+            fail();
+          case 10:
+            ops.removeProperty(namespace, "a");
+            fail();
+          case 11:
+            ops.rename(namespace, namespace + "2");
+            fail();
+          case 12:
+            ops.setProperty(namespace, "k", "v");
+            fail();
+          case 13:
+            ops.testClassLoad(namespace, VersioningIterator.class.getName(), SortedKeyValueIterator.class.getName());
+            fail();
+          default:
+            // break out of infinite loop
+            assertEquals(14, i); // check test integrity
+            assertEquals(14, numRun); // check test integrity
+            break NAMESPACENOTFOUND;
+        }
+      } catch (Exception e) {
+        numRun++;
+        if (!(e instanceof NamespaceNotFoundException))
+          throw new Exception("Case " + i + " resulted in " + e.getClass().getName(), e);
+      }
+
+    // namespace operations that should throw a NamespaceExistsException
+    numRun = 0;
+    NAMESPACEEXISTS: for (int i = 0;; ++i)
+      try {
+        switch (i) {
+          case 0:
+            ops.create(namespace + "0");
+            ops.create(namespace + "0"); // should fail here
+            fail();
+          case 1:
+            ops.create(namespace + "1");
+            ops.create(namespace + "2");
+            ops.rename(namespace + "1", namespace + "2"); // should fail here
+            fail();
+          default:
+            // break out of infinite loop
+            assertEquals(2, i); // check test integrity
+            assertEquals(2, numRun); // check test integrity
+            break NAMESPACEEXISTS;
+        }
+      } catch (Exception e) {
+        numRun++;
+        if (!(e instanceof NamespaceExistsException))
+          throw new Exception("Case " + i + " resulted in " + e.getClass().getName(), e);
+      }
+  }
+
+  private boolean checkTableHasProp(String t, String propKey, String propVal) {
+    return checkHasProperty(t, propKey, propVal, true);
+  }
+
+  private boolean checkNamespaceHasProp(String n, String propKey, String propVal) {
+    return checkHasProperty(n, propKey, propVal, false);
+  }
+
+  private boolean checkHasProperty(String name, String propKey, String propVal, boolean nameIsTable) {
+    try {
+      Iterable<Entry<String,String>> iterable = nameIsTable ? c.tableOperations().getProperties(name) : c.namespaceOperations().getProperties(name);
+      for (Entry<String,String> e : iterable)
+        if (propKey.equals(e.getKey()))
+          return propVal.equals(e.getValue());
+      return false;
+    } catch (Exception e) {
+      fail();
+      return false;
     }
-    return false;
   }
 
   public static class SimpleFilter extends Filter {
@@ -569,4 +1104,15 @@ public class NamespacesIT extends SimpleMacIT {
       return true;
     }
   }
+
+  private void expectPermissionDenied(AccumuloSecurityException sec) {
+    assertEquals(sec.getSecurityErrorCode().getClass(), SecurityErrorCode.class);
+    switch (sec.getSecurityErrorCode()) {
+      case PERMISSION_DENIED:
+        break;
+      default:
+        fail();
+    }
+  }
+
 }

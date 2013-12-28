@@ -50,6 +50,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.NamespaceExistsException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
@@ -61,7 +62,6 @@ import org.apache.accumulo.core.client.impl.AccumuloServerException;
 import org.apache.accumulo.core.client.impl.ClientExec;
 import org.apache.accumulo.core.client.impl.ClientExecReturn;
 import org.apache.accumulo.core.client.impl.MasterClient;
-import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.ServerClient;
 import org.apache.accumulo.core.client.impl.ServerConfigurationUtil;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -72,7 +72,6 @@ import org.apache.accumulo.core.client.impl.thrift.ClientService.Client;
 import org.apache.accumulo.core.client.impl.thrift.TDiskUsage;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
-import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
@@ -87,8 +86,8 @@ import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.master.thrift.FateOperation;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
-import org.apache.accumulo.core.master.thrift.TableOperation;
 import org.apache.accumulo.core.metadata.MetadataServicer;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -120,10 +119,6 @@ import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 
-/**
- * Provides a class for administering tables
- * 
- */
 public class TableOperationsImpl extends TableOperationsHelper {
   private Instance instance;
   private Credentials credentials;
@@ -225,21 +220,21 @@ public class TableOperationsImpl extends TableOperationsHelper {
       opts = Collections.emptyMap();
 
     try {
-      doTableOperation(TableOperation.CREATE, args, opts);
-    } catch (TableNotFoundException e1) {
+      doTableFateOperation(tableName, AccumuloException.class, FateOperation.TABLE_CREATE, args, opts);
+    } catch (TableNotFoundException e) {
       // should not happen
-      throw new RuntimeException(e1);
+      throw new AssertionError(e);
     }
   }
 
-  private long beginTableOperation() throws ThriftSecurityException, TException {
+  private long beginFateOperation() throws ThriftSecurityException, TException {
     while (true) {
       MasterClientService.Iface client = null;
       try {
         client = MasterClient.getConnectionWithRetry(instance);
-        return client.beginTableOperation(Tracer.traceInfo(), credentials.toThrift(instance));
+        return client.beginFateOperation(Tracer.traceInfo(), credentials.toThrift(instance));
       } catch (TTransportException tte) {
-        log.debug("Failed to call beginTableOperation(), retrying ... ", tte);
+        log.debug("Failed to call beginFateOperation(), retrying ... ", tte);
         UtilWaitThread.sleep(100);
       } finally {
         MasterClient.close(client);
@@ -247,16 +242,17 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  private void executeTableOperation(long opid, TableOperation op, List<ByteBuffer> args, Map<String,String> opts, boolean autoCleanUp)
+  // This method is for retrying in the case of network failures; anything else it passes to the caller to deal with
+  private void executeFateOperation(long opid, FateOperation op, List<ByteBuffer> args, Map<String,String> opts, boolean autoCleanUp)
       throws ThriftSecurityException, TException, ThriftTableOperationException {
     while (true) {
       MasterClientService.Iface client = null;
       try {
         client = MasterClient.getConnectionWithRetry(instance);
-        client.executeTableOperation(Tracer.traceInfo(), credentials.toThrift(instance), opid, op, args, opts, autoCleanUp);
+        client.executeFateOperation(Tracer.traceInfo(), credentials.toThrift(instance), opid, op, args, opts, autoCleanUp);
         break;
       } catch (TTransportException tte) {
-        log.debug("Failed to call executeTableOperation(), retrying ... ", tte);
+        log.debug("Failed to call executeFateOperation(), retrying ... ", tte);
         UtilWaitThread.sleep(100);
       } finally {
         MasterClient.close(client);
@@ -264,14 +260,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  private String waitForTableOperation(long opid) throws ThriftSecurityException, TException, ThriftTableOperationException {
+  private String waitForFateOperation(long opid) throws ThriftSecurityException, TException, ThriftTableOperationException {
     while (true) {
       MasterClientService.Iface client = null;
       try {
         client = MasterClient.getConnectionWithRetry(instance);
-        return client.waitForTableOperation(Tracer.traceInfo(), credentials.toThrift(instance), opid);
+        return client.waitForFateOperation(Tracer.traceInfo(), credentials.toThrift(instance), opid);
       } catch (TTransportException tte) {
-        log.debug("Failed to call waitForTableOperation(), retrying ... ", tte);
+        log.debug("Failed to call waitForFateOperation(), retrying ... ", tte);
         UtilWaitThread.sleep(100);
       } finally {
         MasterClient.close(client);
@@ -279,15 +275,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  private void finishTableOperation(long opid) throws ThriftSecurityException, TException {
+  private void finishFateOperation(long opid) throws ThriftSecurityException, TException {
     while (true) {
       MasterClientService.Iface client = null;
       try {
         client = MasterClient.getConnectionWithRetry(instance);
-        client.finishTableOperation(Tracer.traceInfo(), credentials.toThrift(instance), opid);
+        client.finishFateOperation(Tracer.traceInfo(), credentials.toThrift(instance), opid);
         break;
       } catch (TTransportException tte) {
-        log.debug("Failed to call finishTableOperation(), retrying ... ", tte);
+        log.debug("Failed to call finishFateOperation(), retrying ... ", tte);
         UtilWaitThread.sleep(100);
       } finally {
         MasterClient.close(client);
@@ -295,38 +291,48 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  private String doTableOperation(TableOperation op, List<ByteBuffer> args, Map<String,String> opts) throws AccumuloSecurityException, TableExistsException,
-      TableNotFoundException, AccumuloException {
-    return doTableOperation(op, args, opts, true);
+  String doFateOperation(FateOperation op, List<ByteBuffer> args, Map<String,String> opts) throws AccumuloSecurityException, TableExistsException,
+      TableNotFoundException, AccumuloException, NamespaceExistsException, NamespaceNotFoundException {
+    return doFateOperation(op, args, opts, true);
   }
 
-  private String doTableOperation(TableOperation op, List<ByteBuffer> args, Map<String,String> opts, boolean wait) throws AccumuloSecurityException,
-      TableExistsException, TableNotFoundException, AccumuloException {
+  String doFateOperation(FateOperation op, List<ByteBuffer> args, Map<String,String> opts, boolean wait) throws AccumuloSecurityException,
+      TableExistsException, TableNotFoundException, AccumuloException, NamespaceExistsException, NamespaceNotFoundException {
     Long opid = null;
 
     try {
-      opid = beginTableOperation();
-      executeTableOperation(opid, op, args, opts, !wait);
+      opid = beginFateOperation();
+      executeFateOperation(opid, op, args, opts, !wait);
       if (!wait) {
         opid = null;
         return null;
       }
-      String ret = waitForTableOperation(opid);
+      String ret = waitForFateOperation(opid);
       Tables.clearCache(instance);
       return ret;
     } catch (ThriftSecurityException e) {
       String tableName = ByteBufferUtil.toString(args.get(0));
-      String tableInfo = Tables.getPrintableTableInfoFromName(instance, tableName);
-      throw new AccumuloSecurityException(e.user, e.code, tableInfo, e);
+      switch (e.getCode()) {
+        case TABLE_DOESNT_EXIST:
+          throw new TableNotFoundException(null, tableName, "Target table does not exist");
+        case NAMESPACE_DOESNT_EXIST:
+          throw new NamespaceNotFoundException(null, tableName, "Target namespace does not exist");
+        default:
+          String tableInfo = Tables.getPrintableTableInfoFromName(instance, tableName);
+          throw new AccumuloSecurityException(e.user, e.code, tableInfo, e);
+      }
     } catch (ThriftTableOperationException e) {
       switch (e.getType()) {
         case EXISTS:
           throw new TableExistsException(e);
         case NOTFOUND:
           throw new TableNotFoundException(e);
+        case NAMESPACE_EXISTS:
+          throw new NamespaceExistsException(e);
+        case NAMESPACE_NOTFOUND:
+          throw new NamespaceNotFoundException(e);
         case OFFLINE:
           throw new TableOfflineException(instance, null);
-        case OTHER:
         default:
           throw new AccumuloException(e.description, e);
       }
@@ -336,7 +342,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       // always finish table op, even when exception
       if (opid != null)
         try {
-          finishTableOperation(opid);
+          finishFateOperation(opid);
         } catch (Exception e) {
           log.warn(e.getMessage(), e);
         }
@@ -525,10 +531,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
         : TextUtil.getByteBuffer(end));
     Map<String,String> opts = new HashMap<String,String>();
     try {
-      doTableOperation(TableOperation.MERGE, args, opts);
+      doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_MERGE, args, opts);
     } catch (TableExistsException e) {
       // should not happen
-      throw new RuntimeException(e);
+      throw new AssertionError(e);
     }
   }
 
@@ -541,10 +547,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
         : TextUtil.getByteBuffer(end));
     Map<String,String> opts = new HashMap<String,String>();
     try {
-      doTableOperation(TableOperation.DELETE_RANGE, args, opts);
+      doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_DELETE_RANGE, args, opts);
     } catch (TableExistsException e) {
       // should not happen
-      throw new RuntimeException(e);
+      throw new AssertionError(e);
     }
   }
 
@@ -666,10 +672,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Map<String,String> opts = new HashMap<String,String>();
 
     try {
-      doTableOperation(TableOperation.DELETE, args, opts);
+      doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_DELETE, args, opts);
     } catch (TableExistsException e) {
       // should not happen
-      throw new RuntimeException(e);
+      throw new AssertionError(e);
     }
 
   }
@@ -679,12 +685,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloSecurityException, TableNotFoundException, AccumuloException, TableExistsException {
 
     ArgumentChecker.notNull(srcTableName, newTableName);
-
-    String namespace = Tables.qualify(newTableName).getFirst();
-    if (!namespaceExists(namespace)) {
-      String info = "Namespace not found while cloning table";
-      throw new IllegalArgumentException(new NamespaceNotFoundException(null, namespace, info));
-    }
 
     String srcTableId = Tables.getTableId(instance, srcTableName);
 
@@ -696,14 +696,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     if (propertiesToSet == null)
       propertiesToSet = Collections.emptyMap();
-
-    HashSet<String> excludeProps = getUniqueNamespaceProperties(namespace, srcTableName, propertiesToSet);
-    for (String p : propertiesToExclude) {
-      excludeProps.add(p);
-    }
-
-    if (!Collections.disjoint(excludeProps, propertiesToSet.keySet()))
-      throw new IllegalArgumentException("propertiesToSet and propertiesToExclude not disjoint");
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(srcTableId.getBytes()), ByteBuffer.wrap(newTableName.getBytes()));
     Map<String,String> opts = new HashMap<String,String>();
@@ -717,35 +709,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       opts.put(CLONE_EXCLUDE_PREFIX + prop, "");
     }
 
-    doTableOperation(TableOperation.CLONE, args, opts);
-  }
-
-  // get the properties that are only in the namespace so that we can exclude them when copying table properties.
-  // also, don't exclude properties that are going to be explicitly set.
-  private HashSet<String> getUniqueNamespaceProperties(String namespace, String table, Map<String,String> propsToSet) throws TableNotFoundException,
-      AccumuloException {
-    HashSet<String> props = new HashSet<String>();
-    try {
-      Iterable<Entry<String,String>> n = new NamespaceOperationsImpl(instance, credentials).getProperties(namespace);
-      Iterable<Entry<String,String>> t = getProperties(table);
-      Map<String,String> tmap = new HashMap<String,String>();
-      for (Entry<String,String> e : t) {
-        tmap.put(e.getKey(), e.getValue());
-      }
-      for (Entry<String,String> e : n) {
-        String val = tmap.get(e.getKey());
-        if (e.getValue().equals(val)) {
-          props.add(e.getKey());
-        }
-      }
-    } catch (NamespaceNotFoundException e) {
-      throw new IllegalStateException(new NamespaceNotFoundException(null, namespace, null));
-    }
-
-    for (Entry<String,String> e : propsToSet.entrySet()) {
-      props.remove(e.getKey());
-    }
-    return props;
+    doTableFateOperation(newTableName, AccumuloException.class, FateOperation.TABLE_CLONE, args, opts);
   }
 
   /**
@@ -770,7 +734,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldTableName.getBytes(Constants.UTF8)), ByteBuffer.wrap(newTableName.getBytes(Constants.UTF8)));
     Map<String,String> opts = new HashMap<String,String>();
-    doTableOperation(TableOperation.RENAME, args, opts);
+    doTableFateOperation(oldTableName, TableNotFoundException.class, FateOperation.TABLE_RENAME, args, opts);
   }
 
   /**
@@ -827,10 +791,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     Map<String,String> opts = new HashMap<String,String>();
     try {
-      doTableOperation(TableOperation.COMPACT, args, opts, wait);
+      doFateOperation(FateOperation.TABLE_COMPACT, args, opts, wait);
     } catch (TableExistsException e) {
       // should not happen
-      throw new RuntimeException(e);
+      throw new AssertionError(e);
+    } catch (NamespaceExistsException e) {
+      // should not happen
+      throw new AssertionError(e);
+    } catch (NamespaceNotFoundException e) {
+      throw new TableNotFoundException(null, tableName, "Namespace not found", e);
     }
   }
 
@@ -842,10 +811,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     Map<String,String> opts = new HashMap<String,String>();
     try {
-      doTableOperation(TableOperation.COMPACT_CANCEL, args, opts, true);
+      doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_CANCEL_COMPACT, args, opts);
     } catch (TableExistsException e) {
       // should not happen
-      throw new RuntimeException(e);
+      throw new AssertionError(e);
     }
 
   }
@@ -887,16 +856,17 @@ public class TableOperationsImpl extends TableOperationsHelper {
         }
       }
     } catch (ThriftSecurityException e) {
-      if (e.getCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST)) {
-        throw new TableNotFoundException(tableId, null, e.getMessage(), e);
+      switch (e.getCode()) {
+        case TABLE_DOESNT_EXIST:
+          throw new TableNotFoundException(tableId, null, e.getMessage(), e);
+        default:
+          log.debug("flush security exception on table id " + tableId);
+          throw new AccumuloSecurityException(e.user, e.code, e);
       }
-      log.debug("flush security exception on table id " + tableId);
-      throw new AccumuloSecurityException(e.user, e.code, e);
     } catch (ThriftTableOperationException e) {
       switch (e.getType()) {
         case NOTFOUND:
           throw new TableNotFoundException(e);
-        case OTHER:
         default:
           throw new AccumuloException(e.description, e);
       }
@@ -922,12 +892,16 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void setProperty(final String tableName, final String property, final String value) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(tableName, property, value);
-    MasterClient.execute(instance, new ClientExec<MasterClientService.Client>() {
-      @Override
-      public void execute(MasterClientService.Client client) throws Exception {
-        client.setTableProperty(Tracer.traceInfo(), credentials.toThrift(instance), tableName, property, value);
-      }
-    });
+    try {
+      MasterClient.executeTable(instance, new ClientExec<MasterClientService.Client>() {
+        @Override
+        public void execute(MasterClientService.Client client) throws Exception {
+          client.setTableProperty(Tracer.traceInfo(), credentials.toThrift(instance), tableName, property, value);
+        }
+      });
+    } catch (TableNotFoundException e) {
+      throw new AccumuloException(e);
+    }
   }
 
   /**
@@ -945,12 +919,16 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void removeProperty(final String tableName, final String property) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(tableName, property);
-    MasterClient.execute(instance, new ClientExec<MasterClientService.Client>() {
-      @Override
-      public void execute(MasterClientService.Client client) throws Exception {
-        client.removeTableProperty(Tracer.traceInfo(), credentials.toThrift(instance), tableName, property);
-      }
-    });
+    try {
+      MasterClient.executeTable(instance, new ClientExec<MasterClientService.Client>() {
+        @Override
+        public void execute(MasterClientService.Client client) throws Exception {
+          client.removeTableProperty(Tracer.traceInfo(), credentials.toThrift(instance), tableName, property);
+        }
+      });
+    } catch (TableNotFoundException e) {
+      throw new AccumuloException(e);
+    }
   }
 
   /**
@@ -976,7 +954,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       switch (e.getType()) {
         case NOTFOUND:
           throw new TableNotFoundException(e);
-        case OTHER:
+        case NAMESPACE_NOTFOUND:
+          throw new TableNotFoundException(tableName, new NamespaceNotFoundException(e));
         default:
           throw new AccumuloException(e.description, e);
       }
@@ -1021,7 +1000,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
       setProperty(tableName, Property.TABLE_LOCALITY_GROUP_PREFIX + entry.getKey(), value);
     }
 
-    setProperty(tableName, Property.TABLE_LOCALITY_GROUPS.getKey(), StringUtil.join(groups.keySet(), ","));
+    try {
+      setProperty(tableName, Property.TABLE_LOCALITY_GROUPS.getKey(), StringUtil.join(groups.keySet(), ","));
+    } catch (AccumuloException e) {
+      if (e.getCause() instanceof TableNotFoundException)
+        throw (TableNotFoundException) e.getCause();
+      throw e;
+    }
 
     // remove anything extraneous
     String prefix = Property.TABLE_LOCALITY_GROUP_PREFIX.getKey();
@@ -1181,6 +1166,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void importDirectory(String tableName, String dir, String failureDir, boolean setTime) throws IOException, AccumuloSecurityException,
       TableNotFoundException, AccumuloException {
     ArgumentChecker.notNull(tableName, dir, failureDir);
+    // check for table existance
+    Tables.getTableId(instance, tableName);
 
     Path dirPath = checkPath(dir, "Bulk", "");
     Path failPath = checkPath(failureDir, "Bulk", "failure");
@@ -1190,13 +1177,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Map<String,String> opts = new HashMap<String,String>();
 
     try {
-      doTableOperation(TableOperation.BULK_IMPORT, args, opts);
+      doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_BULK_IMPORT, args, opts);
     } catch (TableExistsException e) {
       // should not happen
-      throw new RuntimeException(e);
+      throw new AssertionError(e);
     }
-    // return new BulkImportHelper(instance, credentials, tableName).importDirectory(new Path(dir), new Path(failureDir), numThreads, numAssignThreads,
-    // disableGC);
   }
 
   private void waitForTableStateTransition(String tableId, TableState expectedState) throws AccumuloException, TableNotFoundException,
@@ -1340,10 +1325,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Map<String,String> opts = new HashMap<String,String>();
 
     try {
-      doTableOperation(TableOperation.OFFLINE, args, opts);
+      doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_OFFLINE, args, opts);
     } catch (TableExistsException e) {
       // should not happen
-      throw new RuntimeException(e);
+      throw new AssertionError(e);
     }
 
     if (wait)
@@ -1373,10 +1358,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Map<String,String> opts = new HashMap<String,String>();
 
     try {
-      doTableOperation(TableOperation.ONLINE, args, opts);
+      doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_ONLINE, args, opts);
     } catch (TableExistsException e) {
       // should not happen
-      throw new RuntimeException(e);
+      throw new AssertionError(e);
     }
 
     if (wait)
@@ -1431,7 +1416,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
         switch (e.getType()) {
           case NOTFOUND:
             throw new TableNotFoundException(e);
-          case OTHER:
+          case NAMESPACE_NOTFOUND:
+            throw new TableNotFoundException(e.getTableName(), new NamespaceNotFoundException(e));
           default:
             throw new AccumuloException(e.description, e);
         }
@@ -1513,10 +1499,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Map<String,String> opts = Collections.emptyMap();
 
     try {
-      doTableOperation(TableOperation.IMPORT, args, opts);
-    } catch (TableNotFoundException e1) {
+      doTableFateOperation(tableName, AccumuloException.class, FateOperation.TABLE_IMPORT, args, opts);
+    } catch (TableNotFoundException e) {
       // should not happen
-      throw new RuntimeException(e1);
+      throw new AssertionError(e);
     }
 
   }
@@ -1530,10 +1516,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Map<String,String> opts = Collections.emptyMap();
 
     try {
-      doTableOperation(TableOperation.EXPORT, args, opts);
-    } catch (TableExistsException e1) {
+      doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_EXPORT, args, opts);
+    } catch (TableExistsException e) {
       // should not happen
-      throw new RuntimeException(e1);
+      throw new AssertionError(e);
     }
   }
 
@@ -1553,7 +1539,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       switch (e.getType()) {
         case NOTFOUND:
           throw new TableNotFoundException(e);
-        case OTHER:
+        case NAMESPACE_NOTFOUND:
+          throw new TableNotFoundException(tableName, new NamespaceNotFoundException(e));
         default:
           throw new AccumuloException(e.description, e);
       }
@@ -1579,7 +1566,26 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return super.addConstraint(tableName, constraintClassName);
   }
 
-  private boolean namespaceExists(String namespace) {
-    return Namespaces.getNameToIdMap(instance).containsKey(namespace);
+  private void doTableFateOperation(String tableName, Class<? extends Exception> namespaceNotFoundExceptionClass, FateOperation op, List<ByteBuffer> args,
+      Map<String,String> opts) throws AccumuloSecurityException, AccumuloException, TableExistsException, TableNotFoundException {
+    try {
+      doFateOperation(op, args, opts);
+    } catch (NamespaceExistsException e) {
+      // should not happen
+      throw new AssertionError(e);
+    } catch (NamespaceNotFoundException e) {
+      if (namespaceNotFoundExceptionClass == null) {
+        // should not happen
+        throw new AssertionError(e);
+      } else if (AccumuloException.class.isAssignableFrom(namespaceNotFoundExceptionClass)) {
+        throw new AccumuloException("Cannot create table in non-existent namespace", e);
+      } else if (TableNotFoundException.class.isAssignableFrom(namespaceNotFoundExceptionClass)) {
+        throw new TableNotFoundException(null, tableName, "Namespace not found", e);
+      } else {
+        // should not happen
+        throw new AssertionError(e);
+      }
+    }
   }
+
 }

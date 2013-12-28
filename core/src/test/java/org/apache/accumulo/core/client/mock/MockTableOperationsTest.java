@@ -61,43 +61,43 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class MockTableOperationsTest {
-  
+
   @Test
   public void testCreateUseVersions() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException {
     Instance instance = new MockInstance("topstest");
     Connector conn = instance.getConnector("user", new PasswordToken("pass"));
     String t = "tableName1";
-    
+
     {
       conn.tableOperations().create(t, false, TimeType.LOGICAL);
-      
+
       writeVersionable(conn, t, 3);
       assertVersionable(conn, t, 3);
-      
+
       IteratorSetting settings = new IteratorSetting(20, VersioningIterator.class);
       conn.tableOperations().attachIterator(t, settings);
-      
+
       assertVersionable(conn, t, 1);
-      
+
       conn.tableOperations().delete(t);
     }
-    
+
     {
       conn.tableOperations().create(t, true, TimeType.MILLIS);
-      
+
       try {
         IteratorSetting settings = new IteratorSetting(20, VersioningIterator.class);
         conn.tableOperations().attachIterator(t, settings);
         Assert.fail();
       } catch (AccumuloException ex) {}
-      
+
       writeVersionable(conn, t, 3);
       assertVersionable(conn, t, 1);
-      
+
       conn.tableOperations().delete(t);
     }
   }
-  
+
   protected void writeVersionable(Connector c, String tableName, int size) throws TableNotFoundException, MutationsRejectedException {
     for (int i = 0; i < size; i++) {
       BatchWriter w = c.createBatchWriter(tableName, new BatchWriterConfig());
@@ -107,7 +107,7 @@ public class MockTableOperationsTest {
       w.close();
     }
   }
-  
+
   protected void assertVersionable(Connector c, String tableName, int size) throws TableNotFoundException {
     BatchScanner s = c.createBatchScanner(tableName, Authorizations.EMPTY, 1);
     s.setRanges(Collections.singleton(Range.exact("row1", "cf", "cq")));
@@ -117,23 +117,24 @@ public class MockTableOperationsTest {
       Assert.assertEquals("cf", e.getKey().getColumnFamily().toString());
       Assert.assertEquals("cq", e.getKey().getColumnQualifier().toString());
       count++;
-      
+
     }
     Assert.assertEquals(size, count);
     s.close();
   }
-  
+
   @Test
   public void testTableNotFound() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException {
     Instance instance = new MockInstance("topstest");
     Connector conn = instance.getConnector("user", new PasswordToken("pass"));
+    IteratorSetting setting = new IteratorSetting(100, "myvers", VersioningIterator.class);
     String t = "tableName";
     try {
-      conn.tableOperations().attachIterator(t, null);
+      conn.tableOperations().attachIterator(t, setting);
       Assert.fail();
     } catch (TableNotFoundException e) {}
     try {
-      conn.tableOperations().checkIteratorConflicts(t, null, EnumSet.allOf(IteratorScope.class));
+      conn.tableOperations().checkIteratorConflicts(t, setting, EnumSet.allOf(IteratorScope.class));
       Assert.fail();
     } catch (TableNotFoundException e) {}
     try {
@@ -141,7 +142,7 @@ public class MockTableOperationsTest {
       Assert.fail();
     } catch (TableNotFoundException e) {}
     try {
-      conn.tableOperations().getIteratorSetting(t, null, null);
+      conn.tableOperations().getIteratorSetting(t, "myvers", IteratorScope.scan);
       Assert.fail();
     } catch (TableNotFoundException e) {}
     try {
@@ -174,13 +175,13 @@ public class MockTableOperationsTest {
       Assert.fail();
     } catch (TableExistsException e) {}
   }
-  
+
   private static class ImportTestFilesAndData {
     Path importPath;
     Path failurePath;
     List<Pair<Key,Value>> keyVals;
   }
-  
+
   @Test
   public void testImport() throws Throwable {
     ImportTestFilesAndData dataAndFiles = prepareTestFiles();
@@ -200,7 +201,7 @@ public class MockTableOperationsTest {
     }
     Assert.assertFalse(iterator.hasNext());
   }
-  
+
   private ImportTestFilesAndData prepareTestFiles() throws Throwable {
     Configuration defaultConf = new Configuration();
     Path tempFile = new Path("target/accumulo-test/import/sample.rf");
@@ -228,7 +229,7 @@ public class MockTableOperationsTest {
     files.keyVals = keyVals;
     return files;
   }
-  
+
   @Test(expected = TableNotFoundException.class)
   public void testFailsWithNoTable() throws Throwable {
     Instance instance = new MockInstance("foo");
@@ -237,7 +238,7 @@ public class MockTableOperationsTest {
     ImportTestFilesAndData testFiles = prepareTestFiles();
     tableOperations.importDirectory("doesnt_exist_table", testFiles.importPath.toString(), testFiles.failurePath.toString(), false);
   }
-  
+
   @Test(expected = IOException.class)
   public void testFailsWithNonEmptyFailureDirectory() throws Throwable {
     Instance instance = new MockInstance("foo");
@@ -248,7 +249,7 @@ public class MockTableOperationsTest {
     fs.open(testFiles.failurePath.suffix("/something")).close();
     tableOperations.importDirectory("doesnt_exist_table", testFiles.importPath.toString(), testFiles.failurePath.toString(), false);
   }
-  
+
   @Test
   public void testDeleteRows() throws Exception {
     Instance instance = new MockInstance("rows");
@@ -270,5 +271,5 @@ public class MockTableOperationsTest {
       Assert.assertTrue(entry.getKey().getRow().toString().charAt(0) != '1');
     }
   }
-  
+
 }

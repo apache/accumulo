@@ -27,24 +27,27 @@ import java.util.Map;
 import java.util.HashMap;
 import org.apache.thrift.TEnum;
 
-@SuppressWarnings("all") public enum TableOperation implements org.apache.thrift.TEnum {
-  CREATE(0),
-  CLONE(1),
-  DELETE(2),
-  RENAME(3),
-  ONLINE(4),
-  OFFLINE(5),
-  MERGE(6),
-  DELETE_RANGE(7),
-  BULK_IMPORT(8),
-  COMPACT(9),
-  IMPORT(10),
-  EXPORT(11),
-  COMPACT_CANCEL(12);
+@SuppressWarnings("all") public enum FateOperation implements org.apache.thrift.TEnum {
+  TABLE_CREATE(0),
+  TABLE_CLONE(1),
+  TABLE_DELETE(2),
+  TABLE_RENAME(3),
+  TABLE_ONLINE(4),
+  TABLE_OFFLINE(5),
+  TABLE_MERGE(6),
+  TABLE_DELETE_RANGE(7),
+  TABLE_BULK_IMPORT(8),
+  TABLE_COMPACT(9),
+  TABLE_IMPORT(10),
+  TABLE_EXPORT(11),
+  TABLE_CANCEL_COMPACT(12),
+  NAMESPACE_CREATE(13),
+  NAMESPACE_DELETE(14),
+  NAMESPACE_RENAME(15);
 
   private final int value;
 
-  private TableOperation(int value) {
+  private FateOperation(int value) {
     this.value = value;
   }
 
@@ -59,34 +62,40 @@ import org.apache.thrift.TEnum;
    * Find a the enum type by its integer value, as defined in the Thrift IDL.
    * @return null if the value is not found.
    */
-  public static TableOperation findByValue(int value) { 
+  public static FateOperation findByValue(int value) { 
     switch (value) {
       case 0:
-        return CREATE;
+        return TABLE_CREATE;
       case 1:
-        return CLONE;
+        return TABLE_CLONE;
       case 2:
-        return DELETE;
+        return TABLE_DELETE;
       case 3:
-        return RENAME;
+        return TABLE_RENAME;
       case 4:
-        return ONLINE;
+        return TABLE_ONLINE;
       case 5:
-        return OFFLINE;
+        return TABLE_OFFLINE;
       case 6:
-        return MERGE;
+        return TABLE_MERGE;
       case 7:
-        return DELETE_RANGE;
+        return TABLE_DELETE_RANGE;
       case 8:
-        return BULK_IMPORT;
+        return TABLE_BULK_IMPORT;
       case 9:
-        return COMPACT;
+        return TABLE_COMPACT;
       case 10:
-        return IMPORT;
+        return TABLE_IMPORT;
       case 11:
-        return EXPORT;
+        return TABLE_EXPORT;
       case 12:
-        return COMPACT_CANCEL;
+        return TABLE_CANCEL_COMPACT;
+      case 13:
+        return NAMESPACE_CREATE;
+      case 14:
+        return NAMESPACE_DELETE;
+      case 15:
+        return NAMESPACE_RENAME;
       default:
         return null;
     }

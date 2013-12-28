@@ -37,7 +37,7 @@ import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.data.thrift.TColumn;
 import org.apache.accumulo.core.data.thrift.TKeyExtent;
 import org.apache.accumulo.core.data.thrift.TRange;
-import org.apache.accumulo.core.master.thrift.TableOperation;
+import org.apache.accumulo.core.master.thrift.FateOperation;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
@@ -356,7 +356,7 @@ public class SecurityOperation {
   protected boolean _hasNamespacePermission(String user, String namespace, NamespacePermission permission, boolean useCached) throws ThriftSecurityException {
     targetUserExists(user);
 
-    if (namespace.equals(Constants.ACCUMULO_NAMESPACE_ID) && permission.equals(NamespacePermission.READ))
+    if (namespace.equals(Namespaces.ACCUMULO_NAMESPACE_ID) && permission.equals(NamespacePermission.READ))
       return true;
 
     try {
@@ -478,7 +478,7 @@ public class SecurityOperation {
         || hasNamespacePermissionForTableId(c, tableId, NamespacePermission.DROP_TABLE, false);
   }
 
-  public boolean canOnlineOfflineTable(TCredentials c, String tableId, TableOperation op) throws ThriftSecurityException {
+  public boolean canOnlineOfflineTable(TCredentials c, String tableId, FateOperation op) throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermission(c, SystemPermission.SYSTEM, false) || hasSystemPermission(c, SystemPermission.ALTER_TABLE, false)
         || hasTablePermission(c, tableId, TablePermission.ALTER_TABLE, false)

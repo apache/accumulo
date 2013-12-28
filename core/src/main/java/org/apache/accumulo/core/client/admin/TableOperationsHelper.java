@@ -29,17 +29,19 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.util.ArgumentChecker;
 
 public abstract class TableOperationsHelper implements TableOperations {
-  
+
   @Override
   public void attachIterator(String tableName, IteratorSetting setting) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     attachIterator(tableName, setting, EnumSet.allOf(IteratorScope.class));
   }
-  
+
   @Override
   public void attachIterator(String tableName, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException,
       TableNotFoundException {
+    ArgumentChecker.notNull(tableName, setting, scopes);
     checkIteratorConflicts(tableName, setting, scopes);
     for (IteratorScope scope : scopes) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), setting.getName());
@@ -49,12 +51,10 @@ public abstract class TableOperationsHelper implements TableOperations {
       this.setProperty(tableName, root, setting.getPriority() + "," + setting.getIteratorClass());
     }
   }
-  
+
   @Override
   public void removeIterator(String tableName, String name, EnumSet<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException,
       TableNotFoundException {
-    if (!exists(tableName))
-      throw new TableNotFoundException(null, tableName, null);
     Map<String,String> copy = new TreeMap<String,String>();
     for (Entry<String,String> property : this.getProperties(tableName)) {
       copy.put(property.getKey(), property.getValue());
@@ -67,16 +67,15 @@ public abstract class TableOperationsHelper implements TableOperations {
       }
     }
   }
-  
+
   @Override
   public IteratorSetting getIteratorSetting(String tableName, String name, IteratorScope scope) throws AccumuloSecurityException, AccumuloException,
       TableNotFoundException {
-    if (!exists(tableName))
-      throw new TableNotFoundException(null, tableName, null);
+    ArgumentChecker.notNull(tableName, name, scope);
     int priority = -1;
     String classname = null;
     Map<String,String> settings = new HashMap<String,String>();
-    
+
     String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), name);
     String opt = root + ".opt.";
     for (Entry<String,String> property : this.getProperties(tableName)) {
@@ -96,11 +95,9 @@ public abstract class TableOperationsHelper implements TableOperations {
     }
     return new IteratorSetting(priority, name, classname, settings);
   }
-  
+
   @Override
   public Map<String,EnumSet<IteratorScope>> listIterators(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
-    if (!exists(tableName))
-      throw new TableNotFoundException(null, tableName, null);
     Map<String,EnumSet<IteratorScope>> result = new TreeMap<String,EnumSet<IteratorScope>>();
     for (Entry<String,String> property : this.getProperties(tableName)) {
       String name = property.getKey();
@@ -116,11 +113,10 @@ public abstract class TableOperationsHelper implements TableOperations {
     }
     return result;
   }
-  
+
   @Override
   public void checkIteratorConflicts(String tableName, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException, TableNotFoundException {
-    if (!exists(tableName))
-      throw new TableNotFoundException(null, tableName, null);
+    ArgumentChecker.notNull(tableName, setting, scopes);
     for (IteratorScope scope : scopes) {
       String scopeStr = String.format("%s%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase());
       String nameStr = String.format("%s.%s", scopeStr, setting.getName());
@@ -129,7 +125,8 @@ public abstract class TableOperationsHelper implements TableOperations {
       for (Entry<String,String> property : this.getProperties(tableName)) {
         if (property.getKey().startsWith(scopeStr)) {
           if (property.getKey().equals(nameStr))
-            throw new AccumuloException(new IllegalArgumentException("iterator name conflict for " + setting.getName() + ": " + property.getKey() + "=" + property.getValue()));
+            throw new AccumuloException(new IllegalArgumentException("iterator name conflict for " + setting.getName() + ": " + property.getKey() + "="
+                + property.getValue()));
           if (property.getKey().startsWith(optStr))
             optionConflicts.put(property.getKey(), property.getValue());
           if (property.getKey().contains(".opt."))
@@ -149,7 +146,7 @@ public abstract class TableOperationsHelper implements TableOperations {
         throw new AccumuloException(new IllegalArgumentException("iterator options conflict for " + setting.getName() + ": " + optionConflicts));
     }
   }
-  
+
   @Override
   public int addConstraint(String tableName, String constraintClassName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     TreeSet<Integer> constraintNumbers = new TreeSet<Integer>();
@@ -175,12 +172,12 @@ public abstract class TableOperationsHelper implements TableOperations {
     this.setProperty(tableName, Property.TABLE_CONSTRAINT_PREFIX.toString() + i, constraintClassName);
     return i;
   }
-  
+
   @Override
   public void removeConstraint(String tableName, int number) throws AccumuloException, AccumuloSecurityException {
     this.removeProperty(tableName, Property.TABLE_CONSTRAINT_PREFIX.toString() + number);
   }
-  
+
   @Override
   public Map<String,Integer> listConstraints(String tableName) throws AccumuloException, TableNotFoundException {
     Map<String,Integer> constraints = new TreeMap<String,Integer>();
