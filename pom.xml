@@ -108,6 +108,9 @@
             </goals>
           </execution>
         </executions>
+        <configuration>
+          <skipNoGit>true</skipNoGit>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -390,6 +393,19 @@
                     <versionRange>[1.0,)</versionRange>
                     <goals>
                       <goal>enforce</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <ignore />
+                  </action>
+                </pluginExecution>
+                <pluginExecution>
+                  <pluginExecutionFilter>
+                    <groupId>com.github.koraktor</groupId>
+                    <artifactId>mavanagaiata</artifactId>
+                    <versionRange>[0.6.1,)</versionRange>
+                    <goals>
+                      <goal>commit</goal>
                     </goals>
                   </pluginExecutionFilter>
                   <action>
