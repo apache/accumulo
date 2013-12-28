@@ -139,6 +139,11 @@
         <version>1.32</version>
       </dependency>
       <dependency>
+        <groupId>com.github.koraktor</groupId>
+        <artifactId>mavanagaiata</artifactId>
+        <version>0.6.1</version>
+      </dependency>
+      <dependency>
         <groupId>com.google.code.gson</groupId>
         <artifactId>gson</artifactId>
         <version>2.2.2</version>
@@ -623,6 +628,7 @@
             <archive>
               <manifestEntries>
                 <Sealed>${sealJars}</Sealed>
+                <Implementation-Build>${mvngit.commit.id}</Implementation-Build>
               </manifestEntries>
             </archive>
           </configuration>
@@ -884,6 +890,19 @@
                 </requireMavenVersion>
               </rules>
             </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>com.github.koraktor</groupId>
+        <artifactId>mavanagaiata</artifactId>
+        <executions>
+          <execution>
+            <id>git-commit</id>
+            <goals>
+              <goal>commit</goal>
+            </goals>
+            <phase>validate</phase>
           </execution>
         </executions>
       </plugin>
