@@ -605,6 +605,19 @@
                     <ignore />
                   </action>
                 </pluginExecution>
+                <pluginExecution>
+                  <pluginExecutionFilter>
+                    <groupId>com.github.koraktor</groupId>
+                    <artifactId>mavanagaiata</artifactId>
+                    <versionRange>[0.6.1,)</versionRange>
+                    <goals>
+                      <goal>commit</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <ignore />
+                  </action>
+                </pluginExecution>
               </pluginExecutions>
             </lifecycleMappingMetadata>
           </configuration>
@@ -669,6 +682,9 @@
       <plugin>
         <groupId>com.github.koraktor</groupId>
         <artifactId>mavanagaiata</artifactId>
+        <configuration>
+          <skipNoGit>true</skipNoGit>
+        </configuration>
         <executions>
           <execution>
             <id>git-commit</id>
