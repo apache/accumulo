@@ -42,13 +42,16 @@ public class ColumnVisibility {
   
   /**
    * Accessor for the underlying byte string.
-   * 
+   *
    * @return byte array representation of a visibility expression
    */
   public byte[] getExpression() {
     return expression;
   }
   
+  /**
+   * The node types in a parse tree for a visibility expression.
+   */
   public static enum NodeType {
     EMPTY, TERM, OR, AND,
   }
@@ -58,7 +61,13 @@ public class ColumnVisibility {
    */
   private static final Node EMPTY_NODE = new Node(NodeType.EMPTY, 0);
   
+  /**
+   * A node in the parse tree for a visibility expression.
+   */
   public static class Node {
+    /**
+     * An empty list of nodes.
+     */
     public final static List<Node> EMPTY = Collections.emptyList();
     NodeType type;
     int start;
@@ -115,10 +124,20 @@ public class ColumnVisibility {
     }
   }
   
+  /**
+   * A node comparator. Nodes sort according to node type, terms sort
+   * lexicographically. AND and OR nodes sort by number of children, or if
+   * the same by corresponding children.
+   */
   public static class NodeComparator implements Comparator<Node> {
     
     byte[] text;
     
+    /**
+     * Creates a new comparator.
+     *
+     * @param text expression string, encoded in UTF-8
+     */
     public NodeComparator(byte[] text) {
       this.text = text;
     }
@@ -209,8 +228,8 @@ public class ColumnVisibility {
   }
   
   /**
-   * Generates a byte[] that represents a normalized, but logically equivalent, form of the supplied expression.
-   * 
+   * Generates a byte[] that represents a normalized, but logically equivalent, form of this evaluator's expression.
+   *
    * @return normalized expression in byte[] form
    */
   public byte[] flatten() {
@@ -371,7 +390,7 @@ public class ColumnVisibility {
   }
   
   /**
-   * Empty visibility. Normally, elements with empty visibility can be seen by everyone. Though, one could change this behavior with filters.
+   * Creates an empty visibility. Normally, elements with empty visibility can be seen by everyone. Though, one could change this behavior with filters.
    * 
    * @see #ColumnVisibility(String)
    */
@@ -380,50 +399,51 @@ public class ColumnVisibility {
   }
   
   /**
-   * Set the column visibility for a Mutation.
-   * 
+   * Creates a column visibility for a Mutation.
+   *
    * @param expression
    *          An expression of the rights needed to see this mutation. The expression is a sequence of characters from the set [A-Za-z0-9_-] along with the
-   *          binary operators "&" and "|" indicating that both operands are necessary, or the either is necessary. The following are valid expressions for
+   *          binary operators "&amp;" and "|" indicating that both operands are necessary, or that either is necessary. The following are valid expressions for
    *          visibility:
-   * 
+   *
    *          <pre>
    * A
    * A|B
-   * (A|B)&(C|D)
-   * orange|(red&yellow)
-   * 
+   * (A|B)&amp;(C|D)
+   * orange|(red&amp;yellow)
+   *
    * </pre>
-   * 
+   *
    *          <P>
    *          The following are not valid expressions for visibility:
-   * 
+   *
    *          <pre>
-   * A|B&C
+   * A|B&amp;C
    * A=B
    * A|B|
-   * A&|B
+   * A&amp;|B
    * ()
    * )
    * dog|!cat
    * </pre>
-   * 
+   *
    *          <P>
    *          You can use any character you like in your column visibility expression with quoting. If your quoted term contains '&quot;' or '\' then escape
    *          them with '\'. The {@link #quote(String)} method will properly quote and escape terms for you.
-   * 
+   *
    *          <pre>
    * &quot;A#C&quot;<span />&amp;<span />B
    * </pre>
-   * 
+   *
    */
   public ColumnVisibility(String expression) {
     this(expression.getBytes(Constants.UTF8));
   }
   
   /**
-   * A convenience method for constructing from a string already encoded in UTF-8 bytes and contained in a {@link Text} object.
-   * 
+   * Creates a column visibility for a Mutation.
+   *
+   * @param expression visibility expression
    * @see #ColumnVisibility(String)
    */
   public ColumnVisibility(Text expression) {
@@ -431,8 +451,9 @@ public class ColumnVisibility {
   }
   
   /**
-   * A convenience method for constructing from a string already encoded in UTF-8 bytes.
-   * 
+   * Creates a column visibility for a Mutation from a string already encoded in UTF-8 bytes.
+   *
+   * @param expression visibility expression, encoded as UTF-8 bytes
    * @see #ColumnVisibility(String)
    */
   public ColumnVisibility(byte[] expression) {
@@ -456,6 +477,9 @@ public class ColumnVisibility {
   
   /**
    * Compares two ColumnVisibilities for string equivalence, not as a meaningful comparison of terms and conditions.
+   *
+   * @param otherLe other column visibility
+   * @return true if this visibility equals the other via string comparison
    */
   public boolean equals(ColumnVisibility otherLe) {
     return Arrays.equals(expression, otherLe.expression);
@@ -466,16 +490,21 @@ public class ColumnVisibility {
     return Arrays.hashCode(expression);
   }
   
+  /**
+   * Gets the parse tree for this column visibility.
+   *
+   * @return parse tree node
+   */
   public Node getParseTree() {
     return node;
   }
   
   /**
-   * Use to properly quote terms in a column visibility expression. If no quoting is needed, then nothing is done.
-   * 
+   * Properly quotes terms in a column visibility expression. If no quoting is needed, then nothing is done.
+   *
    * <p>
    * Examples of using quote :
-   * 
+   *
    * <pre>
    * import static org.apache.accumulo.core.security.ColumnVisibility.quote;
    *   .
@@ -483,15 +512,19 @@ public class ColumnVisibility {
    *   .
    * ColumnVisibility cv = new ColumnVisibility(quote(&quot;A#C&quot;) + &quot;&amp;&quot; + quote(&quot;FOO&quot;));
    * </pre>
-   * 
+   *
+   * @param term term to quote
+   * @return quoted term (unquoted if unnecessary)
    */
   public static String quote(String term) {
     return new String(quote(term.getBytes(Constants.UTF8)), Constants.UTF8);
   }
   
   /**
-   * A convenience method to quote terms which are already encoded as UTF-8 bytes.
-   * 
+   * Properly quotes terms in a column visibility expression. If no quoting is needed, then nothing is done.
+   *
+   * @param term term to quote, encoded as UTF-8 bytes
+   * @return quoted term (unquoted if unnecessary), encoded as UTF-8 bytes
    * @see #quote(String)
    */
   public static byte[] quote(byte[] term) {
