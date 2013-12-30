@@ -37,46 +37,50 @@ import org.apache.commons.codec.binary.Base64;
  * @since 1.6.0
  */
 public class Credentials {
-  
+
   private String principal;
   private AuthenticationToken token;
-  
+
   /**
    * Creates a new credentials object.
-   *
-   * @param principal unique identifier for the entity (e.g. a user or service) authorized for these credentials
-   * @param token authentication token used to prove that the principal for these credentials has been properly verified
+   * 
+   * @param principal
+   *          unique identifier for the entity (e.g. a user or service) authorized for these credentials
+   * @param token
+   *          authentication token used to prove that the principal for these credentials has been properly verified
    */
   public Credentials(String principal, AuthenticationToken token) {
     this.principal = principal;
     this.token = token;
   }
-  
+
   /**
    * Gets the principal.
-   *
+   * 
    * @return unique identifier for the entity (e.g. a user or service) authorized for these credentials
    */
   public String getPrincipal() {
     return principal;
   }
-  
+
   /**
    * Gets the authentication token.
-   *
+   * 
    * @return authentication token used to prove that the principal for these credentials has been properly verified
    */
   public AuthenticationToken getToken() {
     return token;
   }
-  
+
   /**
    * Converts the current object to the relevant thrift type. The object returned from this contains a non-destroyable version of the
    * {@link AuthenticationToken}, so this should be used just before placing on the wire, and references to it should be tightly controlled.
-   *
-   * @param instance client instance
+   * 
+   * @param instance
+   *          client instance
    * @return Thrift credentials
-   * @throws RuntimeException if the authentication token has been destroyed (expired)
+   * @throws RuntimeException
+   *           if the authentication token has been destroyed (expired)
    */
   public TCredentials toThrift(Instance instance) {
     TCredentials tCreds = new TCredentials(getPrincipal(), getToken().getClass().getName(),
@@ -85,24 +89,24 @@ public class Credentials {
       throw new RuntimeException("Token has been destroyed", new AccumuloSecurityException(getPrincipal(), SecurityErrorCode.TOKEN_EXPIRED));
     return tCreds;
   }
-  
+
   /**
    * Converts the current object to a serialized form. The object returned from this contains a non-destroyable version of the {@link AuthenticationToken}, so
    * references to it should be tightly controlled.
-   *
+   * 
    * @return serialized form of these credentials
-   * @throws AccumuloSecurityException
    */
   public final String serialize() {
     return (getPrincipal() == null ? "-" : Base64.encodeBase64String(getPrincipal().getBytes(Constants.UTF8))) + ":"
         + (getToken() == null ? "-" : Base64.encodeBase64String(getToken().getClass().getName().getBytes(Constants.UTF8))) + ":"
         + (getToken() == null ? "-" : Base64.encodeBase64String(AuthenticationTokenSerializer.serialize(getToken())));
   }
-  
+
   /**
    * Converts the serialized form to an instance of {@link Credentials}. The original serialized form will not be affected.
-   *
-   * @param serializedForm serialized form of credentials
+   * 
+   * @param serializedForm
+   *          serialized form of credentials
    * @return deserialized credentials
    */
   public static final Credentials deserialize(String serializedForm) {
@@ -116,12 +120,12 @@ public class Credentials {
     }
     return new Credentials(principal, token);
   }
-  
+
   @Override
   public int hashCode() {
     return getPrincipal() == null ? 0 : getPrincipal().hashCode();
   }
-  
+
   @Override
   public boolean equals(Object obj) {
     if (obj == null || !(obj instanceof Credentials))
@@ -133,7 +137,7 @@ public class Credentials {
     boolean tEq = getToken() == null ? (other.getToken() == null) : (getToken().equals(other.getToken()));
     return tEq;
   }
-  
+
   @Override
   public String toString() {
     return getClass().getName() + ":" + getPrincipal() + ":" + (getToken() == null ? null : getToken().getClass().getName()) + ":<hidden>";
