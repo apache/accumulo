@@ -16,10 +16,10 @@
  */
 package org.apache.accumulo.core.client;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.ArgumentChecker;
 
 /**
  * 
@@ -46,7 +46,7 @@ public class ConditionalWriterConfig {
    * @param auths
    */
   public ConditionalWriterConfig setAuthorizations(Authorizations auths) {
-    ArgumentChecker.notNull(auths);
+    checkArgument(auths != null, "auths is null");
     this.auths = auths;
     return this;
   }

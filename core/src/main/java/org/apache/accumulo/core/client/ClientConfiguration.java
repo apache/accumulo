@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import java.io.File;
 import java.io.StringReader;
 import java.io.StringWriter;
@@ -26,7 +27,6 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.PropertyType;
-import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.commons.configuration.CompositeConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
@@ -226,7 +226,7 @@ public class ClientConfiguration extends CompositeConfiguration {
    * 
    */
   public ClientConfiguration withInstance(String instanceName) {
-    ArgumentChecker.notNull(instanceName);
+    checkArgument(instanceName != null, "instanceName is null");
     return with(ClientProperty.INSTANCE_NAME, instanceName);
   }
 
@@ -235,7 +235,7 @@ public class ClientConfiguration extends CompositeConfiguration {
    * 
    */
   public ClientConfiguration withInstance(UUID instanceId) {
-    ArgumentChecker.notNull(instanceId);
+    checkArgument(instanceId != null, "instanceId is null");
     return with(ClientProperty.INSTANCE_ID, instanceId.toString());
   }
 
@@ -244,7 +244,7 @@ public class ClientConfiguration extends CompositeConfiguration {
    * 
    */
   public ClientConfiguration withZkHosts(String zooKeepers) {
-    ArgumentChecker.notNull(zooKeepers);
+    checkArgument(zooKeepers != null, "zooKeepers is null");
     return with(ClientProperty.INSTANCE_ZK_HOST, zooKeepers);
   }
 
@@ -286,7 +286,7 @@ public class ClientConfiguration extends CompositeConfiguration {
    * 
    */
   public ClientConfiguration withTruststore(String path, String password, String type) {
-    ArgumentChecker.notNull(path);
+    checkArgument(path != null, "path is null");
     setProperty(ClientProperty.RPC_SSL_TRUSTSTORE_PATH, path);
     if (password != null)
       setProperty(ClientProperty.RPC_SSL_TRUSTSTORE_PASSWORD, password);
@@ -309,7 +309,7 @@ public class ClientConfiguration extends CompositeConfiguration {
    * 
    */
   public ClientConfiguration withKeystore(String path, String password, String type) {
-    ArgumentChecker.notNull(path);
+    checkArgument(path != null, "path is null");
     setProperty(ClientProperty.INSTANCE_RPC_SSL_CLIENT_AUTH, "true");
     setProperty(ClientProperty.RPC_SSL_KEYSTORE_PATH, path);
     if (password != null)

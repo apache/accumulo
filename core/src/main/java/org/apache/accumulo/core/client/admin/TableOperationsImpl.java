@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -97,7 +98,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
@@ -136,7 +136,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
    *          the username/password for this connection
    */
   public TableOperationsImpl(Instance instance, Credentials credentials) {
-    ArgumentChecker.notNull(instance, credentials);
+    checkArgument(instance != null, "instance is null");
+    checkArgument(credentials != null, "credentials is null");
     this.instance = instance;
     this.credentials = credentials;
   }
@@ -163,7 +164,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    */
   @Override
   public boolean exists(String tableName) {
-    ArgumentChecker.notNull(tableName);
+    checkArgument(tableName != null, "tableName is null");
     if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME))
       return true;
 
@@ -211,7 +212,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
    */
   @Override
   public void create(String tableName, boolean limitVersion, TimeType timeType) throws AccumuloException, AccumuloSecurityException, TableExistsException {
-    ArgumentChecker.notNull(tableName, timeType);
+    checkArgument(tableName != null, "tableName is null");
+    checkArgument(timeType != null, "timeType is null");
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(Constants.UTF8)), ByteBuffer.wrap(timeType.name().getBytes(Constants.UTF8)));
 
@@ -527,7 +529,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void merge(String tableName, Text start, Text end) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
-    ArgumentChecker.notNull(tableName);
+    checkArgument(tableName != null, "tableName is null");
     ByteBuffer EMPTY = ByteBuffer.allocate(0);
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(Constants.UTF8)), start == null ? EMPTY : TextUtil.getByteBuffer(start),
         end == null ? EMPTY : TextUtil.getByteBuffer(end));
@@ -543,7 +545,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void deleteRows(String tableName, Text start, Text end) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
-    ArgumentChecker.notNull(tableName);
+    checkArgument(tableName != null, "tableName is null");
     ByteBuffer EMPTY = ByteBuffer.allocate(0);
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(Constants.UTF8)), start == null ? EMPTY : TextUtil.getByteBuffer(start),
         end == null ? EMPTY : TextUtil.getByteBuffer(end));
@@ -564,7 +566,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public Collection<Text> listSplits(String tableName) throws TableNotFoundException, AccumuloSecurityException {
 
-    ArgumentChecker.notNull(tableName);
+    checkArgument(tableName != null, "tableName is null");
 
     String tableId = Tables.getTableId(instance, tableName);
 
@@ -668,7 +670,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    */
   @Override
   public void delete(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    ArgumentChecker.notNull(tableName);
+    checkArgument(tableName != null, "tableName is null");
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(Constants.UTF8)));
     Map<String,String> opts = new HashMap<String,String>();
@@ -686,7 +688,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void clone(String srcTableName, String newTableName, boolean flush, Map<String,String> propertiesToSet, Set<String> propertiesToExclude)
       throws AccumuloSecurityException, TableNotFoundException, AccumuloException, TableExistsException {
 
-    ArgumentChecker.notNull(srcTableName, newTableName);
+    checkArgument(srcTableName != null, "srcTableName is null");
+    checkArgument(newTableName != null, "newTableName is null");
 
     String srcTableId = Tables.getTableId(instance, srcTableName);
 
@@ -765,7 +768,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    */
   @Override
   public void flush(String tableName, Text start, Text end, boolean wait) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    ArgumentChecker.notNull(tableName);
+    checkArgument(tableName != null, "tableName is null");
 
     String tableId = Tables.getTableId(instance, tableName);
     _flush(tableId, start, end, wait);
@@ -780,7 +783,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void compact(String tableName, Text start, Text end, List<IteratorSetting> iterators, boolean flush, boolean wait) throws AccumuloSecurityException,
       TableNotFoundException, AccumuloException {
-    ArgumentChecker.notNull(tableName);
+    checkArgument(tableName != null, "tableName is null");
     ByteBuffer EMPTY = ByteBuffer.allocate(0);
 
     String tableId = Tables.getTableId(instance, tableName);
@@ -893,7 +896,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
    */
   @Override
   public void setProperty(final String tableName, final String property, final String value) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(tableName, property, value);
+    checkArgument(tableName != null, "tableName is null");
+    checkArgument(property != null, "property is null");
+    checkArgument(value != null, "value is null");
     try {
       MasterClient.executeTable(instance, new ClientExec<MasterClientService.Client>() {
         @Override
@@ -920,7 +925,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
    */
   @Override
   public void removeProperty(final String tableName, final String property) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(tableName, property);
+    checkArgument(tableName != null, "tableName is null");
+    checkArgument(property != null, "property is null");
     try {
       MasterClient.executeTable(instance, new ClientExec<MasterClientService.Client>() {
         @Override
@@ -944,7 +950,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    */
   @Override
   public Iterable<Entry<String,String>> getProperties(final String tableName) throws AccumuloException, TableNotFoundException {
-    ArgumentChecker.notNull(tableName);
+    checkArgument(tableName != null, "tableName is null");
     try {
       return ServerClient.executeRaw(instance, new ClientExecReturn<Map<String,String>,ClientService.Client>() {
         @Override
@@ -1077,7 +1083,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public Set<Range> splitRangeByTablets(String tableName, Range range, int maxSplits) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
-    ArgumentChecker.notNull(tableName, range);
+    checkArgument(tableName != null, "tableName is null");
+    checkArgument(range != null, "range is null");
     if (maxSplits < 1)
       throw new IllegalArgumentException("maximum splits must be >= 1");
     if (maxSplits == 1)
@@ -1168,7 +1175,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void importDirectory(String tableName, String dir, String failureDir, boolean setTime) throws IOException, AccumuloSecurityException,
       TableNotFoundException, AccumuloException {
-    ArgumentChecker.notNull(tableName, dir, failureDir);
+    checkArgument(tableName != null, "tableName is null");
+    checkArgument(dir != null, "dir is null");
+    checkArgument(failureDir != null, "failureDir is null");
     // check for table existance
     Tables.getTableId(instance, tableName);
 
@@ -1322,7 +1331,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void offline(String tableName, boolean wait) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
 
-    ArgumentChecker.notNull(tableName);
+    checkArgument(tableName != null, "tableName is null");
     String tableId = Tables.getTableId(instance, tableName);
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes(Constants.UTF8)));
     Map<String,String> opts = new HashMap<String,String>();
@@ -1355,7 +1364,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    */
   @Override
   public void online(String tableName, boolean wait) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
-    ArgumentChecker.notNull(tableName);
+    checkArgument(tableName != null, "tableName is null");
     String tableId = Tables.getTableId(instance, tableName);
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes(Constants.UTF8)));
     Map<String,String> opts = new HashMap<String,String>();
@@ -1381,7 +1390,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    */
   @Override
   public void clearLocatorCache(String tableName) throws TableNotFoundException {
-    ArgumentChecker.notNull(tableName);
+    checkArgument(tableName != null, "tableName is null");
     TabletLocator tabLocator = TabletLocator.getLocator(instance, new Text(Tables.getTableId(instance, tableName)));
     tabLocator.invalidateCache();
   }
@@ -1399,7 +1408,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public Text getMaxRow(String tableName, Authorizations auths, Text startRow, boolean startInclusive, Text endRow, boolean endInclusive)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(tableName, auths);
+    checkArgument(tableName != null, "tableName is null");
+    checkArgument(auths != null, "auths is null");
     Scanner scanner = instance.getConnector(credentials.getPrincipal(), credentials.getToken()).createScanner(tableName, auths);
     return FindMax.findMax(scanner, startRow, startInclusive, endRow, endInclusive);
   }
@@ -1478,7 +1488,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public void importTable(String tableName, String importDir) throws TableExistsException, AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(tableName, importDir);
+    checkArgument(tableName != null, "tableName is null");
+    checkArgument(importDir != null, "importDir is null");
 
     try {
       importDir = checkPath(importDir, "Table", "").toString();
@@ -1516,7 +1527,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public void exportTable(String tableName, String exportDir) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(tableName, exportDir);
+    checkArgument(tableName != null, "tableName is null");
+    checkArgument(exportDir != null, "exportDir is null");
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(Constants.UTF8)), ByteBuffer.wrap(exportDir.getBytes(Constants.UTF8)));
 
@@ -1533,7 +1545,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public boolean testClassLoad(final String tableName, final String className, final String asTypeName) throws TableNotFoundException, AccumuloException,
       AccumuloSecurityException {
-    ArgumentChecker.notNull(tableName, className, asTypeName);
+    checkArgument(tableName != null, "tableName is null");
+    checkArgument(className != null, "className is null");
+    checkArgument(asTypeName != null, "asTypeName is null");
 
     try {
       return ServerClient.executeRaw(instance, new ClientExecReturn<Boolean,ClientService.Client>() {

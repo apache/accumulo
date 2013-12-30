@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
@@ -31,7 +32,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Credentials;
-import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.TextUtil;
@@ -134,7 +134,7 @@ public class ZooKeeperInstance implements Instance {
    */
 
   public ZooKeeperInstance(Configuration config) {
-    ArgumentChecker.notNull(config);
+    checkArgument(config != null, "config is null");
     if (config instanceof ClientConfiguration) {
       this.clientConf = (ClientConfiguration)config;
     } else {
@@ -259,7 +259,8 @@ public class ZooKeeperInstance implements Instance {
    * Given a zooCache and instanceId, look up the instance name.
    */
   public static String lookupInstanceName(ZooCache zooCache, UUID instanceId) {
-    ArgumentChecker.notNull(zooCache, instanceId);
+    checkArgument(zooCache != null, "zooCache is null");
+    checkArgument(instanceId != null, "instanceId is null");
     for (String name : zooCache.getChildren(Constants.ZROOT + Constants.ZINSTANCES)) {
       String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + name;
       byte[] bytes = zooCache.get(instanceNamePath);

@@ -16,10 +16,10 @@
  */
 package org.apache.accumulo.server.trace;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import java.io.IOException;
 import java.net.URI;
 
-import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.hadoop.conf.Configuration;
@@ -667,7 +667,7 @@ public class TraceFileSystem extends FileSystem {
   final FileSystem impl;
 
   TraceFileSystem(FileSystem impl) {
-    ArgumentChecker.notNull(impl);
+    checkArgument(impl != null, "impl is null");
     this.impl = impl;
   }
 

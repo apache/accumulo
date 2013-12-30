@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -60,7 +61,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.Credentials;
-import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.Pair;
@@ -354,7 +354,10 @@ public class OfflineScanner extends ScannerOptions implements Scanner {
   private Text tableId;
   
   public OfflineScanner(Instance instance, Credentials credentials, String tableId, Authorizations authorizations) {
-    ArgumentChecker.notNull(instance, credentials, tableId, authorizations);
+    checkArgument(instance != null, "instance is null");
+    checkArgument(credentials != null, "credentials is null");
+    checkArgument(tableId != null, "tableId is null");
+    checkArgument(authorizations != null, "authorizations is null");
     this.instance = instance;
     this.credentials = credentials;
     this.tableId = new Text(tableId);

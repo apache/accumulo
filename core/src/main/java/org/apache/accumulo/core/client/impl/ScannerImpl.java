@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
@@ -28,7 +29,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
-import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -58,7 +58,10 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   private long readaheadThreshold = Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD;
   
   public ScannerImpl(Instance instance, Credentials credentials, String table, Authorizations authorizations) {
-    ArgumentChecker.notNull(instance, credentials, table, authorizations);
+    checkArgument(instance != null, "instance is null");
+    checkArgument(credentials != null, "credentials is null");
+    checkArgument(table != null, "table is null");
+    checkArgument(authorizations != null, "authorizations is null");
     this.instance = instance;
     this.credentials = credentials;
     this.table = new Text(table);
@@ -70,7 +73,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   
   @Override
   public synchronized void setRange(Range range) {
-    ArgumentChecker.notNull(range);
+    checkArgument(range != null, "range is null");
     this.range = range;
   }
   

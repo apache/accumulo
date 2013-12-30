@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,7 +35,6 @@ import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.thrift.IterInfo;
-import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 
@@ -61,7 +61,7 @@ public class ScannerOptions implements ScannerBase {
    */
   @Override
   public synchronized void addScanIterator(IteratorSetting si) {
-    ArgumentChecker.notNull(si);
+    checkArgument(si != null, "si is null");
     if (serverSideIteratorList.size() == 0)
       serverSideIteratorList = new ArrayList<IterInfo>();
     
@@ -88,7 +88,7 @@ public class ScannerOptions implements ScannerBase {
   
   @Override
   public synchronized void removeScanIterator(String iteratorName) {
-    ArgumentChecker.notNull(iteratorName);
+    checkArgument(iteratorName != null, "iteratorName is null");
     // if no iterators are set, we don't have it, so it is already removed
     if (serverSideIteratorList.size() == 0)
       return;
@@ -108,7 +108,9 @@ public class ScannerOptions implements ScannerBase {
    */
   @Override
   public synchronized void updateScanIteratorOption(String iteratorName, String key, String value) {
-    ArgumentChecker.notNull(iteratorName, key, value);
+    checkArgument(iteratorName != null, "iteratorName is null");
+    checkArgument(key != null, "key is null");
+    checkArgument(value != null, "value is null");
     if (serverSideIteratorOptions.size() == 0)
       serverSideIteratorOptions = new HashMap<String,Map<String,String>>();
     
@@ -129,20 +131,21 @@ public class ScannerOptions implements ScannerBase {
   
   @Override
   public synchronized void fetchColumnFamily(Text col) {
-    ArgumentChecker.notNull(col);
+    checkArgument(col != null, "col is null");
     Column c = new Column(TextUtil.getBytes(col), null, null);
     fetchedColumns.add(c);
   }
   
   @Override
   public synchronized void fetchColumn(Text colFam, Text colQual) {
-    ArgumentChecker.notNull(colFam, colQual);
+    checkArgument(colFam != null, "colFam is null");
+    checkArgument(colQual != null, "colQual is null");
     Column c = new Column(TextUtil.getBytes(colFam), TextUtil.getBytes(colQual), null);
     fetchedColumns.add(c);
   }
   
   public synchronized void fetchColumn(Column column) {
-    ArgumentChecker.notNull(column);
+    checkArgument(column != null, "column is null");
     fetchedColumns.add(column);
   }
   

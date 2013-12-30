@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.client.mapreduce.lib.util;
 
-import static org.apache.accumulo.core.util.ArgumentChecker.notNull;
+import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -106,7 +106,7 @@ public class InputConfigurator extends ConfiguratorBase {
    * @since 1.5.0
    */
   public static void setInputTableName(Class<?> implementingClass, Configuration conf, String tableName) {
-    notNull(tableName);
+    checkArgument(tableName != null, "tableName is null");
     conf.set(enumToConfKey(implementingClass, ScanOpts.TABLE_NAME), tableName);
   }
 
@@ -169,7 +169,7 @@ public class InputConfigurator extends ConfiguratorBase {
    * @since 1.5.0
    */
   public static void setRanges(Class<?> implementingClass, Configuration conf, Collection<Range> ranges) {
-    notNull(ranges);
+    checkArgument(ranges != null, "ranges is null");
 
     ArrayList<String> rangeStrings = new ArrayList<String>(ranges.size());
     try {
@@ -259,13 +259,13 @@ public class InputConfigurator extends ConfiguratorBase {
    * @since 1.5.0
    */
   public static void fetchColumns(Class<?> implementingClass, Configuration conf, Collection<Pair<Text,Text>> columnFamilyColumnQualifierPairs) {
-    notNull(columnFamilyColumnQualifierPairs);
+    checkArgument(columnFamilyColumnQualifierPairs != null, "columnFamilyColumnQualifierPairs is null");
     String[] columnStrings = serializeColumns(columnFamilyColumnQualifierPairs);
     conf.setStrings(enumToConfKey(implementingClass, ScanOpts.COLUMNS), columnStrings);
   }
 
   public static String[] serializeColumns(Collection<Pair<Text,Text>> columnFamilyColumnQualifierPairs) {
-    notNull(columnFamilyColumnQualifierPairs);
+    checkArgument(columnFamilyColumnQualifierPairs != null, "columnFamilyColumnQualifierPairs is null");
     ArrayList<String> columnStrings = new ArrayList<String>(columnFamilyColumnQualifierPairs.size());
     for (Pair<Text,Text> column : columnFamilyColumnQualifierPairs) {
 
@@ -293,7 +293,7 @@ public class InputConfigurator extends ConfiguratorBase {
    * @see #fetchColumns(Class, Configuration, Collection)
    */
   public static Set<Pair<Text,Text>> getFetchedColumns(Class<?> implementingClass, Configuration conf) {
-    notNull(conf);
+    checkArgument(conf != null, "conf is null");
     String confValue = conf.get(enumToConfKey(implementingClass, ScanOpts.COLUMNS));
     List<String> serialized = new ArrayList<String>();
     if (confValue != null) {

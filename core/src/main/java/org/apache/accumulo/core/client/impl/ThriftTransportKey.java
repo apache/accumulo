@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.client.impl;
 
-import org.apache.accumulo.core.util.ArgumentChecker;
+import static com.google.common.base.Preconditions.checkArgument;
 import org.apache.accumulo.core.util.SslConnectionParams;
 
 class ThriftTransportKey {
@@ -28,7 +28,7 @@ class ThriftTransportKey {
   private int hash = -1;
   
   ThriftTransportKey(String location, long timeout, SslConnectionParams sslParams) {
-    ArgumentChecker.notNull(location);
+    checkArgument(location != null, "location is null");
     String[] locationAndPort = location.split(":", 2);
     if (locationAndPort.length == 2) {
       this.location = locationAndPort[0];

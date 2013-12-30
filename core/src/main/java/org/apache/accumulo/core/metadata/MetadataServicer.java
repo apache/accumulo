@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import java.util.SortedMap;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -25,7 +26,6 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.security.Credentials;
-import org.apache.accumulo.core.util.ArgumentChecker;
 
 /**
  * Provides a consolidated API for handling table metadata
@@ -33,13 +33,13 @@ import org.apache.accumulo.core.util.ArgumentChecker;
 public abstract class MetadataServicer {
   
   public static MetadataServicer forTableName(Instance instance, Credentials credentials, String tableName) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(tableName);
+    checkArgument(tableName != null, "tableName is null");
     Connector conn = instance.getConnector(credentials.getPrincipal(), credentials.getToken());
     return forTableId(instance, credentials, conn.tableOperations().tableIdMap().get(tableName));
   }
   
   public static MetadataServicer forTableId(Instance instance, Credentials credentials, String tableId) {
-    ArgumentChecker.notNull(tableId);
+    checkArgument(tableId != null, "tableId is null");
     if (RootTable.ID.equals(tableId))
       return new ServicerForRootTable(instance, credentials);
     else if (MetadataTable.ID.equals(tableId))

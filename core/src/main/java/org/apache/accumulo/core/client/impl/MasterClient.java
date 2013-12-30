@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import java.net.UnknownHostException;
 import java.util.List;
 
@@ -27,7 +28,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
-import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.log4j.Logger;
@@ -38,7 +38,7 @@ public class MasterClient {
   private static final Logger log = Logger.getLogger(MasterClient.class);
 
   public static MasterClientService.Client getConnectionWithRetry(Instance instance) {
-    ArgumentChecker.notNull(instance);
+    checkArgument(instance != null, "instance is null");
 
     while (true) {
 

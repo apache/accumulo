@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.mapreduce.lib.util;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -29,7 +30,6 @@ import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.security.Credentials;
-import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -122,7 +122,8 @@ public class ConfiguratorBase {
     if (isConnectorInfoSet(implementingClass, conf))
       throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName() + " can only be set once per job");
 
-    ArgumentChecker.notNull(principal, token);
+    checkArgument(principal != null, "principal is null");
+    checkArgument(token != null, "token is null");
     conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
     conf.set(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL), principal);
     conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN),
@@ -151,7 +152,8 @@ public class ConfiguratorBase {
     if (isConnectorInfoSet(implementingClass, conf))
       throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName() + " can only be set once per job");
 
-    ArgumentChecker.notNull(principal, tokenFile);
+    checkArgument(principal != null, "principal is null");
+    checkArgument(tokenFile != null, "tokenFile is null");
 
     try {
       DistributedCacheHelper.addCacheFile(new URI(tokenFile), conf);
@@ -283,7 +285,8 @@ public class ConfiguratorBase {
 
   @Deprecated
   public static void setZooKeeperInstance(Class<?> implementingClass, Configuration conf, String instanceName, String zooKeepers) {
-    ArgumentChecker.notNull(instanceName, zooKeepers);
+    checkArgument(instanceName != null, "instanceName is null");
+    checkArgument(zooKeepers != null, "zooKeepers is null");
     setZooKeeperInstance(implementingClass, conf, new ClientConfiguration().withInstance(instanceName).withZkHosts(zooKeepers));
   }
 
@@ -325,7 +328,7 @@ public class ConfiguratorBase {
       throw new IllegalStateException("Instance info can only be set once per job; it has already been configured with " + conf.get(key));
     conf.set(key, "MockInstance");
 
-    ArgumentChecker.notNull(instanceName);
+    checkArgument(instanceName != null, "instanceName is null");
     conf.set(enumToConfKey(implementingClass, InstanceOpts.NAME), instanceName);
   }
 
@@ -372,7 +375,7 @@ public class ConfiguratorBase {
    * @since 1.5.0
    */
   public static void setLogLevel(Class<?> implementingClass, Configuration conf, Level level) {
-    ArgumentChecker.notNull(level);
+    checkArgument(level != null, "level is null");
     Logger.getLogger(implementingClass).setLevel(level);
     conf.setInt(enumToConfKey(implementingClass, GeneralOpts.LOG_LEVEL), level.toInt());
   }

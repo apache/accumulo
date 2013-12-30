@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -35,7 +36,6 @@ import org.apache.accumulo.core.metadata.MetadataLocationObtainer;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Credentials;
-import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.hadoop.io.Text;
 
 public abstract class TabletLocator {
@@ -155,7 +155,9 @@ public abstract class TabletLocator {
     public final String tablet_session;
     
     public TabletLocation(KeyExtent tablet_extent, String tablet_location, String session) {
-      ArgumentChecker.notNull(tablet_extent, tablet_location, session);
+      checkArgument(tablet_extent != null, "tablet_extent is null");
+      checkArgument(tablet_location != null, "tablet_location is null");
+      checkArgument(session != null, "session is null");
       this.tablet_extent = tablet_extent;
       this.tablet_location = dedupeLocation(tablet_location);
       this.tablet_session = dedupeLocation(session);

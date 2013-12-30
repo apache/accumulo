@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import java.security.SecurityPermission;
 import java.util.HashMap;
 import java.util.List;
@@ -31,8 +32,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.util.ArgumentChecker;
-import org.apache.accumulo.core.util.ArgumentChecker.Validator;
+import org.apache.accumulo.core.util.Validator;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
@@ -293,7 +293,8 @@ public class Tables {
    * @throws IllegalArgumentException if the table doesn't exist in ZooKeeper
    */
   public static String getNamespaceId(Instance instance, String tableId) throws IllegalArgumentException {
-    ArgumentChecker.notNull(instance, tableId);
+    checkArgument(instance != null, "instance is null");
+    checkArgument(tableId != null, "tableId is null");
     
     ZooCache zc = getZooCache(instance);
     byte[] n = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE);

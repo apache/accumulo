@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -30,7 +31,6 @@ import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.trace.instrument.Tracer;
@@ -49,7 +49,9 @@ public class Writer {
   private Text table;
   
   public Writer(Instance instance, Credentials credentials, Text table) {
-    ArgumentChecker.notNull(instance, credentials, table);
+    checkArgument(instance != null, "instance is null");
+    checkArgument(credentials != null, "credentials is null");
+    checkArgument(table != null, "table is null");
     this.instance = instance;
     this.credentials = credentials;
     this.table = table;
@@ -61,7 +63,10 @@ public class Writer {
   
   private static void updateServer(Instance instance, Mutation m, KeyExtent extent, String server, Credentials ai, AccumuloConfiguration configuration)
       throws TException, NotServingTabletException, ConstraintViolationException, AccumuloSecurityException {
-    ArgumentChecker.notNull(m, extent, server, ai);
+    checkArgument(m != null, "m is null");
+    checkArgument(extent != null, "extent is null");
+    checkArgument(server != null, "server is null");
+    checkArgument(ai != null, "ai is null");
     
     TabletClientService.Iface client = null;
     try {
@@ -79,7 +84,7 @@ public class Writer {
   }
   
   public void update(Mutation m) throws AccumuloException, AccumuloSecurityException, ConstraintViolationException, TableNotFoundException {
-    ArgumentChecker.notNull(m);
+    checkArgument(m != null, "m is null");
     
     if (m.size() == 0)
       throw new IllegalArgumentException("Can not add empty mutations");

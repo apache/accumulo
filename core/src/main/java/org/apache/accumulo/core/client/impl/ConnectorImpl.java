@@ -18,6 +18,7 @@ package org.apache.accumulo.core.client.impl;
 
 import java.util.concurrent.TimeUnit;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
@@ -45,7 +46,6 @@ import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
-import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.trace.instrument.Tracer;
 
 public class ConnectorImpl extends Connector {
@@ -57,7 +57,8 @@ public class ConnectorImpl extends Connector {
   private InstanceOperations instanceops = null;
 
   public ConnectorImpl(final Instance instance, Credentials cred) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(instance, cred);
+    checkArgument(instance != null, "instance is null");
+    checkArgument(cred != null, "cred is null");
     if (cred.getToken().isDestroyed())
       throw new AccumuloSecurityException(cred.getPrincipal(), SecurityErrorCode.TOKEN_EXPIRED);
 
@@ -94,7 +95,8 @@ public class ConnectorImpl extends Connector {
 
   @Override
   public BatchScanner createBatchScanner(String tableName, Authorizations authorizations, int numQueryThreads) throws TableNotFoundException {
-    ArgumentChecker.notNull(tableName, authorizations);
+    checkArgument(tableName != null, "tableName is null");
+    checkArgument(authorizations != null, "authorizations is null");
     return new TabletServerBatchReader(instance, credentials, getTableId(tableName), authorizations, numQueryThreads);
   }
 
@@ -102,7 +104,8 @@ public class ConnectorImpl extends Connector {
   @Override
   public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads, long maxMemory, long maxLatency,
       int maxWriteThreads) throws TableNotFoundException {
-    ArgumentChecker.notNull(tableName, authorizations);
+    checkArgument(tableName != null, "tableName is null");
+    checkArgument(authorizations != null, "authorizations is null");
     return new TabletServerBatchDeleter(instance, credentials, getTableId(tableName), authorizations, numQueryThreads, new BatchWriterConfig()
         .setMaxMemory(maxMemory).setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
   }
@@ -110,21 +113,22 @@ public class ConnectorImpl extends Connector {
   @Override
   public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads, BatchWriterConfig config)
       throws TableNotFoundException {
-    ArgumentChecker.notNull(tableName, authorizations);
+    checkArgument(tableName != null, "tableName is null");
+    checkArgument(authorizations != null, "authorizations is null");
     return new TabletServerBatchDeleter(instance, credentials, getTableId(tableName), authorizations, numQueryThreads, config);
   }
 
   @Deprecated
   @Override
   public BatchWriter createBatchWriter(String tableName, long maxMemory, long maxLatency, int maxWriteThreads) throws TableNotFoundException {
-    ArgumentChecker.notNull(tableName);
+    checkArgument(tableName != null, "tableName is null");
     return new BatchWriterImpl(instance, credentials, getTableId(tableName), new BatchWriterConfig().setMaxMemory(maxMemory)
         .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
   }
 
   @Override
   public BatchWriter createBatchWriter(String tableName, BatchWriterConfig config) throws TableNotFoundException {
-    ArgumentChecker.notNull(tableName);
+    checkArgument(tableName != null, "tableName is null");
     return new BatchWriterImpl(instance, credentials, getTableId(tableName), config);
   }
 
@@ -147,7 +151,8 @@ public class ConnectorImpl extends Connector {
 
   @Override
   public Scanner createScanner(String tableName, Authorizations authorizations) throws TableNotFoundException {
-    ArgumentChecker.notNull(tableName, authorizations);
+    checkArgument(tableName != null, "tableName is null");
+    checkArgument(authorizations != null, "authorizations is null");
     return new ScannerImpl(instance, credentials, getTableId(tableName), authorizations);
   }
 

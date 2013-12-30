@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -34,7 +35,6 @@ import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Credentials;
-import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.log4j.Logger;
 
 import com.google.common.cache.CacheBuilder;
@@ -60,7 +60,7 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
 
     @Override
     public void addMutation(Mutation m) throws MutationsRejectedException {
-      ArgumentChecker.notNull(m);
+      checkArgument(m != null, "m is null");
       bw.addMutation(table, m);
     }
 
@@ -111,7 +111,10 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
   }
 
   public MultiTableBatchWriterImpl(Instance instance, Credentials credentials, BatchWriterConfig config, long cacheTime, TimeUnit cacheTimeUnit) {
-    ArgumentChecker.notNull(instance, credentials, config, cacheTimeUnit);
+    checkArgument(instance != null, "instance is null");
+    checkArgument(credentials != null, "credentials is null");
+    checkArgument(config != null, "config is null");
+    checkArgument(cacheTimeUnit != null, "cacheTimeUnit is null");
     this.instance = instance;
     this.bw = new TabletServerBatchWriter(instance, credentials, config);
     tableWriters = new ConcurrentHashMap<String,BatchWriter>();
@@ -191,7 +194,7 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
 
   @Override
   public BatchWriter getBatchWriter(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    ArgumentChecker.notNull(tableName);
+    checkArgument(tableName != null, "tableName is null");
 
     while (true) {
       long cacheResetCount = Tables.getCacheResetCount();

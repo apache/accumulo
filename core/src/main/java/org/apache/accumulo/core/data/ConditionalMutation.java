@@ -17,12 +17,12 @@
 
 package org.apache.accumulo.core.data;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -66,12 +66,12 @@ public class ConditionalMutation extends Mutation {
   }
 
   private void init(Condition... conditions) {
-    ArgumentChecker.notNull(conditions);
+    checkArgument(conditions != null, "conditions is null");
     this.conditions.addAll(Arrays.asList(conditions));
   }
   
   public void addCondition(Condition condition) {
-    ArgumentChecker.notNull(condition);
+    checkArgument(condition != null, "condition is null");
     this.conditions.add(condition);
   }
   

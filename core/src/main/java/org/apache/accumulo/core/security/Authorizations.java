@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.security;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -30,7 +31,6 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
-import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.commons.codec.binary.Base64;
 
@@ -109,7 +109,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
    * @see #Authorizations(String...)
    */
   public Authorizations(Collection<byte[]> authorizations) {
-    ArgumentChecker.notNull(authorizations);
+    checkArgument(authorizations != null, "authorizations is null");
     for (byte[] auth : authorizations)
       auths.add(new ArrayByteSequence(auth));
     checkAuths();
@@ -126,7 +126,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
    * @see #Authorizations(String...)
    */
   public Authorizations(List<ByteBuffer> authorizations) {
-    ArgumentChecker.notNull(authorizations);
+    checkArgument(authorizations != null, "authorizations is null");
     for (ByteBuffer buffer : authorizations) {
       auths.add(new ArrayByteSequence(ByteBufferUtil.toBytes(buffer)));
     }
@@ -144,7 +144,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
    */
   public Authorizations(byte[] authorizations) {
 
-    ArgumentChecker.notNull(authorizations);
+    checkArgument(authorizations != null, "authorizations is null");
 
     String authsString = new String(authorizations, Constants.UTF8);
     if (authsString.startsWith(HEADER)) {
@@ -159,7 +159,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
       }
     } else {
       // it's the old format
-      ArgumentChecker.notNull(authorizations);
+      checkArgument(authorizations != null, "authorizations is null");
       if (authorizations.length > 0)
         setAuthorizations(authsString.split(","));
     }
@@ -185,7 +185,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
   }
 
   private void setAuthorizations(String... authorizations) {
-    ArgumentChecker.notNull(authorizations);
+    checkArgument(authorizations != null, "authorizations is null");
     auths.clear();
     for (String str : authorizations) {
       str = str.trim();

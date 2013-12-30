@@ -16,13 +16,13 @@
  */
 package org.apache.accumulo.core.data;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import java.util.Arrays;
 import java.util.HashSet;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -51,7 +51,8 @@ public class Condition {
    * @throws IllegalArgumentException if any argument is null
    */
   public Condition(CharSequence cf, CharSequence cq) {
-    ArgumentChecker.notNull(cf, cq);
+    checkArgument(cf != null, "cf is null");
+    checkArgument(cq != null, "cq is null");
     this.cf = new ArrayByteSequence(cf.toString().getBytes(Constants.UTF8));
     this.cq = new ArrayByteSequence(cq.toString().getBytes(Constants.UTF8));
     this.cv = EMPTY;
@@ -66,7 +67,8 @@ public class Condition {
    * @throws IllegalArgumentException if any argument is null
    */
   public Condition(byte[] cf, byte[] cq) {
-    ArgumentChecker.notNull(cf, cq);
+    checkArgument(cf != null, "cf is null");
+    checkArgument(cq != null, "cq is null");
     this.cf = new ArrayByteSequence(cf);
     this.cq = new ArrayByteSequence(cq);
     this.cv = EMPTY;
@@ -81,7 +83,8 @@ public class Condition {
    * @throws IllegalArgumentException if any argument is null
    */
   public Condition(Text cf, Text cq) {
-    ArgumentChecker.notNull(cf, cq);
+    checkArgument(cf != null, "cf is null");
+    checkArgument(cq != null, "cq is null");
     this.cf = new ArrayByteSequence(cf.getBytes(), 0, cf.getLength());
     this.cq = new ArrayByteSequence(cq.getBytes(), 0, cq.getLength());
     this.cv = EMPTY;
@@ -96,7 +99,8 @@ public class Condition {
    * @throws IllegalArgumentException if any argument is null
    */
   public Condition(ByteSequence cf, ByteSequence cq) {
-    ArgumentChecker.notNull(cf, cq);
+    checkArgument(cf != null, "cf is null");
+    checkArgument(cq != null, "cq is null");
     this.cf = cf;
     this.cq = cq;
     this.cv = EMPTY;
@@ -150,7 +154,7 @@ public class Condition {
    * @throws IllegalArgumentException if value is null
    */
   public Condition setValue(CharSequence value) {
-    ArgumentChecker.notNull(value);
+    checkArgument(value != null, "value is null");
     this.val = new ArrayByteSequence(value.toString().getBytes(Constants.UTF8));
     return this;
   }
@@ -164,7 +168,7 @@ public class Condition {
    * @throws IllegalArgumentException if value is null
    */
   public Condition setValue(byte[] value) {
-    ArgumentChecker.notNull(value);
+    checkArgument(value != null, "value is null");
     this.val = new ArrayByteSequence(value);
     return this;
   }
@@ -179,7 +183,7 @@ public class Condition {
    * @throws IllegalArgumentException if value is null
    */
   public Condition setValue(Text value) {
-    ArgumentChecker.notNull(value);
+    checkArgument(value != null, "value is null");
     this.val = new ArrayByteSequence(value.getBytes(), 0, value.getLength());
     return this;
   }
@@ -194,7 +198,7 @@ public class Condition {
    * @throws IllegalArgumentException if value is null
    */
   public Condition setValue(ByteSequence value) {
-    ArgumentChecker.notNull(value);
+    checkArgument(value != null, "value is null");
     this.val = value;
     return this;
   }
@@ -215,7 +219,7 @@ public class Condition {
    * @throws IllegalArgumentException if cv is null
    */
   public Condition setVisibility(ColumnVisibility cv) {
-    ArgumentChecker.notNull(cv);
+    checkArgument(cv != null, "cv is null");
     this.cv = new ArrayByteSequence(cv.getExpression());
     return this;
   }
@@ -241,7 +245,7 @@ public class Condition {
    * or if any two iterators share the same name or priority
    */
   public Condition setIterators(IteratorSetting... iterators) {
-    ArgumentChecker.notNull(iterators);
+    checkArgument(iterators != null, "iterators is null");
     
     if (iterators.length > 1) {
       HashSet<String> names = new HashSet<String>();

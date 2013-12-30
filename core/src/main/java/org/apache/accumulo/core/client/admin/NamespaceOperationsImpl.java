@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
@@ -51,7 +52,6 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.master.thrift.FateOperation;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.security.Credentials;
-import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.log4j.Level;
@@ -65,7 +65,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   private static final Logger log = Logger.getLogger(TableOperations.class);
 
   public NamespaceOperationsImpl(Instance instance, Credentials credentials, TableOperationsImpl tableOps) {
-    ArgumentChecker.notNull(instance, credentials);
+    checkArgument(instance != null, "instance is null");
+    checkArgument(credentials != null, "credentials is null");
     this.instance = instance;
     this.credentials = credentials;
     this.tableOps = tableOps;
@@ -81,7 +82,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
   @Override
   public boolean exists(String namespace) {
-    ArgumentChecker.notNull(namespace);
+    checkArgument(namespace != null, "namespace is null");
 
     OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Checking if namespace " + namespace + " exists...");
     boolean exists = Namespaces.getNameToIdMap(instance).containsKey(namespace);
@@ -91,7 +92,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
   @Override
   public void create(String namespace) throws AccumuloException, AccumuloSecurityException, NamespaceExistsException {
-    ArgumentChecker.notNull(namespace);
+    checkArgument(namespace != null, "namespace is null");
 
     try {
       doNamespaceFateOperation(FateOperation.NAMESPACE_CREATE, Arrays.asList(ByteBuffer.wrap(namespace.getBytes())), Collections.<String,String> emptyMap());
@@ -103,7 +104,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
   @Override
   public void delete(String namespace) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException, NamespaceNotEmptyException {
-    ArgumentChecker.notNull(namespace);
+    checkArgument(namespace != null, "namespace is null");
     String namespaceId = Namespaces.getNamespaceId(instance, namespace);
 
     if (namespaceId.equals(Namespaces.ACCUMULO_NAMESPACE_ID) || namespaceId.equals(Namespaces.DEFAULT_NAMESPACE_ID)) {
@@ -139,7 +140,9 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   @Override
   public void setProperty(final String namespace, final String property, final String value) throws AccumuloException, AccumuloSecurityException,
       NamespaceNotFoundException {
-    ArgumentChecker.notNull(namespace, property, value);
+    checkArgument(namespace != null, "namespace is null");
+    checkArgument(property != null, "property is null");
+    checkArgument(value != null, "value is null");
 
     MasterClient.executeNamespace(instance, new ClientExec<MasterClientService.Client>() {
       @Override
@@ -151,7 +154,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
   @Override
   public void removeProperty(final String namespace, final String property) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
-    ArgumentChecker.notNull(namespace, property);
+    checkArgument(namespace != null, "namespace is null");
+    checkArgument(property != null, "property is null");
 
     MasterClient.executeNamespace(instance, new ClientExec<MasterClientService.Client>() {
       @Override
@@ -163,7 +167,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
   @Override
   public Iterable<Entry<String,String>> getProperties(final String namespace) throws AccumuloException, NamespaceNotFoundException {
-    ArgumentChecker.notNull(namespace);
+    checkArgument(namespace != null, "namespace is null");
     try {
       return ServerClient.executeRaw(instance, new ClientExecReturn<Map<String,String>,ClientService.Client>() {
         @Override
@@ -195,7 +199,9 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   @Override
   public boolean testClassLoad(final String namespace, final String className, final String asTypeName) throws NamespaceNotFoundException, AccumuloException,
       AccumuloSecurityException {
-    ArgumentChecker.notNull(namespace, className, asTypeName);
+    checkArgument(namespace != null, "namespace is null");
+    checkArgument(className != null, "className is null");
+    checkArgument(asTypeName != null, "asTypeName is null");
 
     try {
       return ServerClient.executeRaw(instance, new ClientExecReturn<Boolean,ClientService.Client>() {

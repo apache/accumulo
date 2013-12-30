@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -28,7 +29,6 @@ import java.util.Set;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
@@ -70,7 +70,7 @@ public class IteratorSetting implements Writable {
    *          first)
    */
   public void setPriority(int priority) {
-    ArgumentChecker.strictlyPositive(priority);
+    checkArgument(priority > 0, "property must be strictly positive");
     this.priority = priority;
   }
   
@@ -89,7 +89,7 @@ public class IteratorSetting implements Writable {
    * @param name
    */
   public void setName(String name) {
-    ArgumentChecker.notNull(name);
+    checkArgument(name != null, "name is null");
     this.name = name;
   }
   
@@ -109,7 +109,7 @@ public class IteratorSetting implements Writable {
    * @param iteratorClass
    */
   public void setIteratorClass(String iteratorClass) {
-    ArgumentChecker.notNull(iteratorClass);
+    checkArgument(iteratorClass != null, "iteratorClass is null");
     this.iteratorClass = iteratorClass;
   }
   
@@ -221,7 +221,8 @@ public class IteratorSetting implements Writable {
    *          the value of the option
    */
   public void addOption(String option, String value) {
-    ArgumentChecker.notNull(option, value);
+    checkArgument(option != null, "option is null");
+    checkArgument(value != null, "value is null");
     properties.put(option, value);
   }
   
@@ -233,7 +234,7 @@ public class IteratorSetting implements Writable {
    * @return the value previously associated with the option, or null if no such option existed
    */
   public String removeOption(String option) {
-    ArgumentChecker.notNull(option);
+    checkArgument(option != null, "option is null");
     return properties.remove(option);
   }
   
@@ -244,7 +245,7 @@ public class IteratorSetting implements Writable {
    *          a set of entries to add to the options
    */
   public void addOptions(Set<Entry<String,String>> propertyEntries) {
-    ArgumentChecker.notNull(propertyEntries);
+    checkArgument(propertyEntries != null, "propertyEntries is null");
     for (Entry<String,String> keyValue : propertyEntries) {
       addOption(keyValue.getKey(), keyValue.getValue());
     }
@@ -257,7 +258,7 @@ public class IteratorSetting implements Writable {
    *          a map of entries to add to the options
    */
   public void addOptions(Map<String,String> properties) {
-    ArgumentChecker.notNull(properties);
+    checkArgument(properties != null, "properties is null");
     addOptions(properties.entrySet());
   }
   

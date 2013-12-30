@@ -16,10 +16,11 @@
  */
 package org.apache.accumulo.core.client.mock;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.util.ArgumentChecker;
 
 public class MockBatchWriter implements BatchWriter {
   
@@ -33,13 +34,13 @@ public class MockBatchWriter implements BatchWriter {
   
   @Override
   public void addMutation(Mutation m) throws MutationsRejectedException {
-    ArgumentChecker.notNull(m);
+    checkArgument(m != null, "m is null");
     acu.addMutation(tablename, m);
   }
   
   @Override
   public void addMutations(Iterable<Mutation> iterable) throws MutationsRejectedException {
-    ArgumentChecker.notNull(iterable);
+    checkArgument(iterable != null, "iterable is null");
     for (Mutation m : iterable) {
       acu.addMutation(tablename, m);
     }

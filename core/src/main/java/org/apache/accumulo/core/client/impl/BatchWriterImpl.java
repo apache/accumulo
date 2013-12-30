@@ -16,13 +16,13 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.Credentials;
-import org.apache.accumulo.core.util.ArgumentChecker;
 
 public class BatchWriterImpl implements BatchWriter {
   
@@ -30,7 +30,9 @@ public class BatchWriterImpl implements BatchWriter {
   private TabletServerBatchWriter bw;
   
   public BatchWriterImpl(Instance instance, Credentials credentials, String table, BatchWriterConfig config) {
-    ArgumentChecker.notNull(instance, credentials, table);
+    checkArgument(instance != null, "instance is null");
+    checkArgument(credentials != null, "credentials is null");
+    checkArgument(table != null, "table is null");
     if (config == null)
       config = new BatchWriterConfig();
     this.table = table;
@@ -39,13 +41,13 @@ public class BatchWriterImpl implements BatchWriter {
   
   @Override
   public void addMutation(Mutation m) throws MutationsRejectedException {
-    ArgumentChecker.notNull(m);
+    checkArgument(m != null, "m is null");
     bw.addMutation(table, m);
   }
   
   @Override
   public void addMutations(Iterable<Mutation> iterable) throws MutationsRejectedException {
-    ArgumentChecker.notNull(iterable);
+    checkArgument(iterable != null, "iterable is null");
     bw.addMutation(table, iterable.iterator());
   }
   
