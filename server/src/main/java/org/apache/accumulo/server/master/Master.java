@@ -2044,6 +2044,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
     synchronized (badServers) {
       badServers.keySet().retainAll(currentServers);
+      badServers.keySet().removeAll(result.keySet());
     }
     log.debug(String.format("Finished gathering information from %d servers in %.2f seconds", result.size(), (System.currentTimeMillis() - start) / 1000.));
     return result;
