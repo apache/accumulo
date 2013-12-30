@@ -3368,32 +3368,35 @@ public class Tablet {
         majorCompactionInProgress = true;
       }
 
-      majCStats = _majorCompact(reason);
-      if (reason == MajorCompactionReason.CHOP) {
-        MetadataTableUtil.chopped(getExtent(), this.tabletServer.getLock());
-        tabletServer.enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.CHOPPED, extent));
-      }
-    } catch (CompactionCanceledException mcce) {
-      log.debug("Major compaction canceled, extent = " + getExtent());
-      throw new RuntimeException(mcce);
-    } catch (Throwable t) {
-      log.error("MajC Failed, extent = " + getExtent());
-      log.error("MajC Failed, message = " + (t.getMessage() == null ? t.getClass().getName() : t.getMessage()), t);
-      throw new RuntimeException(t);
-    } finally {
-      // ensure we always reset boolean, even
-      // when an exception is thrown
-      synchronized (this) {
-        majorCompactionInProgress = false;
-        this.notifyAll();
-      }
+      try {
+        majCStats = _majorCompact(reason);
+        if (reason == MajorCompactionReason.CHOP) {
+          MetadataTableUtil.chopped(getExtent(), this.tabletServer.getLock());
+          tabletServer.enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.CHOPPED, extent));
+        }
+      } catch (CompactionCanceledException mcce) {
+        log.debug("Major compaction canceled, extent = " + getExtent());
+        throw new RuntimeException(mcce);
+      } catch (Throwable t) {
+        log.error("MajC Failed, extent = " + getExtent());
+        log.error("MajC Failed, message = " + (t.getMessage() == null ? t.getClass().getName() : t.getMessage()), t);
+        throw new RuntimeException(t);
+      } finally {
+        // ensure we always reset boolean, even
+        // when an exception is thrown
+        synchronized (this) {
+          majorCompactionInProgress = false;
+          this.notifyAll();
+        }
 
-      Span curr = Trace.currentTrace();
-      curr.data("extent", "" + getExtent());
-      if (majCStats != null) {
-        curr.data("read", "" + majCStats.getEntriesRead());
-        curr.data("written", "" + majCStats.getEntriesWritten());
+        Span curr = Trace.currentTrace();
+        curr.data("extent", "" + getExtent());
+        if (majCStats != null) {
+          curr.data("read", "" + majCStats.getEntriesRead());
+          curr.data("written", "" + majCStats.getEntriesWritten());
+        }
       }
+    } finally {
       span.stop();
     }
 
@@ -3682,11 +3685,11 @@ public class Tablet {
 
   private Set<DfsLogger> currentLogs = new HashSet<DfsLogger>();
 
-  public Set<String> getCurrentLogs() {
+  public Set<String> getCurrentLogFiles() {
     Set<String> result = new HashSet<String>();
     synchronized (currentLogs) {
       for (DfsLogger log : currentLogs) {
-        result.add(log.toString());
+        result.add(log.getFileName());
       }
     }
     return result;

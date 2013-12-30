@@ -19,6 +19,7 @@ package org.apache.accumulo.core.client.impl;
 import java.security.SecurityPermission;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -30,6 +31,11 @@ import org.apache.accumulo.fate.zookeeper.ZooCache;
 
 public class Namespaces {
   private static SecurityPermission TABLES_PERMISSION = new SecurityPermission("tablesPermission");
+
+  public static final String DEFAULT_NAMESPACE_ID = "+default";
+  public static final String DEFAULT_NAMESPACE = "";
+  public static final String ACCUMULO_NAMESPACE_ID = "+accumulo";
+  public static final String ACCUMULO_NAMESPACE = "accumulo";
 
   private static ZooCache getZooCache(Instance instance) {
     SecurityManager sm = System.getSecurityManager();
@@ -58,6 +64,12 @@ public class Namespaces {
     return namespaceMap;
   }
 
+  public static boolean exists(Instance instance, String namespaceId) {
+    ZooCache zc = getZooCache(instance);
+    List<String> namespaceIds = zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES);
+    return namespaceIds.contains(namespaceId);
+  }
+
   public static String getNamespaceId(Instance instance, String namespace) throws NamespaceNotFoundException {
     String id = getNameToIdMap(instance).get(namespace);
     if (id == null)
@@ -81,27 +93,20 @@ public class Namespaces {
   }
 
   public static List<String> getTableIds(Instance instance, String namespaceId) throws NamespaceNotFoundException {
-    List<String> l = new LinkedList<String>();
-    for (String id : Tables.getIdToNameMap(instance).keySet()) {
-      if (Tables.getNamespace(instance, id).equals(namespaceId)) {
-        l.add(id);
-      }
-    }
-    return l;
+    String namespace = getNamespaceName(instance, namespaceId);
+    List<String> names = new LinkedList<String>();
+    for (Entry<String,String> nameToId : Tables.getNameToIdMap(instance).entrySet())
+      if (namespace.equals(Tables.qualify(nameToId.getKey()).getFirst()))
+        names.add(nameToId.getValue());
+    return names;
   }
 
   public static List<String> getTableNames(Instance instance, String namespaceId) throws NamespaceNotFoundException {
-    ZooCache zc = getZooCache(instance);
-    List<String> ids = getTableIds(instance, namespaceId);
+    String namespace = getNamespaceName(instance, namespaceId);
     List<String> names = new LinkedList<String>();
-    String namespace = getNamespaceName(instance, namespaceId) + ".";
-    if (namespaceId.equals(Constants.DEFAULT_NAMESPACE_ID) || namespaceId.equals(Constants.ACCUMULO_NAMESPACE_ID)) {
-      // default and system namespaces aren't displayed for backwards compatibility
-      namespace = "";
-    }
-    for (String id : ids) {
-      names.add(namespace + new String(zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_NAME), Constants.UTF8));
-    }
+    for (String name : Tables.getNameToIdMap(instance).keySet())
+      if (namespace.equals(Tables.qualify(name).getFirst()))
+        names.add(name);
     return names;
   }
 }

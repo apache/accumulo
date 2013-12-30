@@ -42,11 +42,13 @@ public class Setup extends Test {
       namespaces.add(String.format("nspc_%03d", i));
     }
     
+    // Make tables in the default namespace
     double tableCeil = Math.ceil(numTables / (numNamespaces + 1));
     for (int i = 0; i < tableCeil; i++) {
       tables.add(String.format("ctt_%03d", i));
     }
     
+    // Make tables in each namespace
     double tableFloor = Math.floor(numTables / (numNamespaces + 1));
     for (String n : namespaces) {
       for (int i = 0; i < tableFloor; i++) {

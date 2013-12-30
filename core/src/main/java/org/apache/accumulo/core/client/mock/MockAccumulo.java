@@ -22,9 +22,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.SortedSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Mutation;
@@ -52,8 +52,8 @@ public class MockAccumulo {
     MockUser root = new MockUser("root", new PasswordToken(new byte[0]), Authorizations.EMPTY);
     root.permissions.add(SystemPermission.SYSTEM);
     users.put(root.name, root);
-    namespaces.put(Constants.DEFAULT_NAMESPACE, new MockNamespace());
-    namespaces.put(Constants.ACCUMULO_NAMESPACE, new MockNamespace());
+    namespaces.put(Namespaces.DEFAULT_NAMESPACE, new MockNamespace());
+    namespaces.put(Namespaces.ACCUMULO_NAMESPACE, new MockNamespace());
     createTable("root", RootTable.NAME, true, TimeType.LOGICAL);
     createTable("root", MetadataTable.NAME, true, TimeType.LOGICAL);
   }

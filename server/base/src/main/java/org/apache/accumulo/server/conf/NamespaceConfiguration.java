@@ -25,6 +25,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
 import org.apache.accumulo.core.conf.Property;
@@ -57,7 +58,7 @@ public class NamespaceConfiguration extends AccumuloConfiguration {
     if (value == null || !property.getType().isValidFormat(value)) {
       if (value != null)
         log.error("Using default value for " + key + " due to improperly formatted " + property.getType() + ": " + value);
-      if (!(namespaceId.equals(Constants.ACCUMULO_NAMESPACE_ID) && isIteratorOrConstraint(property.getKey()))) {
+      if (!(namespaceId.equals(Namespaces.ACCUMULO_NAMESPACE_ID) && isIteratorOrConstraint(property.getKey()))) {
         // ignore iterators from parent if system namespace
         value = parent.get(property);
       }
@@ -108,7 +109,7 @@ public class NamespaceConfiguration extends AccumuloConfiguration {
 
     // exclude system iterators/constraints from the system namespace
     // so they don't affect the metadata or root tables.
-    if (this.namespaceId.equals(Constants.ACCUMULO_NAMESPACE_ID))
+    if (getNamespaceId().equals(Namespaces.ACCUMULO_NAMESPACE_ID))
       parentFilter = new SystemNamespaceFilter(filter);
 
     parent.getProperties(props, parentFilter);

@@ -19,8 +19,14 @@ package org.apache.accumulo.core.security;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Accumulo namespace permissions. Each permission has an associated byte ID.
+ */
 public enum NamespacePermission {
-  // One can add new permissions, with new numbers, but please don't change or use numbers previously assigned
+  /*
+   * One may add new permissions, but new permissions must use new numbers.
+   * Current numbers in use must not be changed.
+   */
   READ((byte) 0),
   WRITE((byte) 1),
   ALTER_NAMESPACE((byte) 2),
@@ -41,10 +47,20 @@ public enum NamespacePermission {
     this.permID = id;
   }
 
+  /**
+   * Gets the byte ID of this permission.
+   *
+   * @return byte ID
+   */
   public byte getId() {
     return this.permID;
   }
 
+  /**
+   * Returns a list of printable permission values.
+   *
+   * @return list of namespace permission values, as "Namespace." + permission name
+   */
   public static List<String> printableValues() {
     NamespacePermission[] a = NamespacePermission.values();
 
@@ -56,6 +72,13 @@ public enum NamespacePermission {
     return list;
   }
 
+  /**
+   * Gets the permission matching the given byte ID.
+   *
+   * @param id byte ID
+   * @return system permission
+   * @throws IndexOutOfBoundsException if the byte ID is invalid
+   */
   public static NamespacePermission getPermissionById(byte id) {
     NamespacePermission result = mapping[id];
     if (result != null)

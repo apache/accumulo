@@ -104,7 +104,7 @@ public class Utils {
         Instance instance = HdfsZooInstance.getInstance();
         IZooReaderWriter zk = ZooReaderWriter.getRetryingInstance();
         if (!zk.exists(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + namespaceId))
-          throw new ThriftTableOperationException(namespaceId, "", op, TableOperationExceptionType.NOTFOUND, "Namespace does not exist");
+          throw new ThriftTableOperationException(namespaceId, "", op, TableOperationExceptionType.NAMESPACE_NOTFOUND, "Namespace does not exist");
       }
       log.info("namespace " + namespaceId + " (" + Long.toHexString(id) + ") locked for " + (writeLock ? "write" : "read") + " operation: " + op);
       return 0;
@@ -155,6 +155,6 @@ public class Utils {
     String n = Namespaces.getNameToIdMap(instance).get(namespace);
 
     if (n != null && !n.equals(namespaceId))
-      throw new ThriftTableOperationException(null, namespace, operation, TableOperationExceptionType.EXISTS, null);
+      throw new ThriftTableOperationException(null, namespace, operation, TableOperationExceptionType.NAMESPACE_EXISTS, null);
   }
 }

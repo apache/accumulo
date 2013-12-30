@@ -25,7 +25,9 @@ import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
+import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.fate.Repo;
@@ -210,7 +212,12 @@ class ClonePermissions extends MasterRepo {
     // setup permissions in zookeeper before table info in zookeeper
     // this way concurrent users will not get a spurious pemission denied
     // error
-    return new CloneZookeeper(cloneInfo);
+    try {
+      return new CloneZookeeper(cloneInfo);
+    } catch (NamespaceNotFoundException e) {
+      throw new ThriftTableOperationException(null, cloneInfo.tableName, TableOperation.CLONE, TableOperationExceptionType.NAMESPACE_NOTFOUND,
+          "Namespace for target table not found");
+    }
   }
 
   @Override
@@ -237,7 +244,6 @@ public class CloneTable extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-
     long val = Utils.reserveNamespace(cloneInfo.srcNamespaceId, tid, false, true, TableOperation.CLONE);
     val += Utils.reserveTable(cloneInfo.srcTableId, tid, false, true, TableOperation.CLONE);
     return val;

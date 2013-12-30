@@ -147,7 +147,7 @@ public class Config extends Test {
         } catch (AccumuloException ex) {
           if (ex.getCause() instanceof ThriftTableOperationException) {
             ThriftTableOperationException ttoe = (ThriftTableOperationException) ex.getCause();
-            if (ttoe.type == TableOperationExceptionType.NOTFOUND)
+            if (ttoe.type == TableOperationExceptionType.NAMESPACE_NOTFOUND)
               return;
           }
           throw ex;
@@ -215,7 +215,7 @@ public class Config extends Test {
     } catch (AccumuloException ex) {
       if (ex.getCause() instanceof ThriftTableOperationException) {
         ThriftTableOperationException ttoe = (ThriftTableOperationException) ex.getCause();
-        if (ttoe.type == TableOperationExceptionType.NOTFOUND)
+        if (ttoe.type == TableOperationExceptionType.NAMESPACE_NOTFOUND)
           return;
       }
       throw ex;
