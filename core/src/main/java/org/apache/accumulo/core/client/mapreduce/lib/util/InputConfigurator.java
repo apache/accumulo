@@ -601,11 +601,7 @@ public class InputConfigurator extends ConfiguratorBase {
     if ("MockInstance".equals(instanceType))
       return new MockTabletLocator();
     Instance instance = getInstance(implementingClass, conf);
-    try {
-      return TabletLocator.getLocator(instance, new Text(tableId));
-    } finally {
-      instance.close();
-    }
+    return TabletLocator.getLocator(instance, new Text(tableId));
   }
 
   // InputFormat doesn't have the equivalent of OutputFormat's checkOutputSpecs(JobContext job)
