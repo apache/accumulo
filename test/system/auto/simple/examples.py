@@ -124,8 +124,8 @@ class Examples(TestUtilsMixin, unittest.TestCase):
         self.comment("Creating a sharded index of the accumulo java files")
         self.ashell('createtable shard\ncreatetable doc2term\nquit\n')
         self.execute('/bin/sh', '-c',
-                     'find src -name "*.java" | xargs ./bin/accumulo org.apache.accumulo.examples.simple.shard.Index %s %s shard %s %s 30' %
-                     (INSTANCE_NAME, ZOOKEEPERS, ROOT, ROOT_PASSWORD))
+                     'find %s/src -name "*.java" | xargs %s/bin/accumulo org.apache.accumulo.examples.simple.shard.Index %s %s shard %s %s 30' %
+                     (ACCUMULO_HOME, ACCUMULO_HOME, INSTANCE_NAME, ZOOKEEPERS, ROOT, ROOT_PASSWORD))
         self.execute(self.accumulo_sh(), 'org.apache.accumulo.examples.simple.shard.Query',
                      INSTANCE_NAME, ZOOKEEPERS, 'shard', ROOT, ROOT_PASSWORD,
                      'foo', 'bar')
