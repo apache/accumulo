@@ -704,7 +704,7 @@ public class Tablet {
         List<FileRef> files = MetadataTableUtil.getBulkFilesLoaded(conn, extent, tid);
 
         for (FileRef file : files)
-          if (paths.keySet().remove(file.path()))
+          if (paths.keySet().remove(file))
             log.debug("Ignoring request to re-import a file already imported: " + extent + ": " + file);
 
         if (paths.size() > 0) {
@@ -3565,7 +3565,7 @@ public class Tablet {
       String time = tabletTime.getMetadataValue();
 
       // it is possible that some of the bulk loading flags will be deleted after being read below because the bulk load
-      // finishes.... therefore split could propogate load flags for a finished bulk load... there is a special iterator
+      // finishes.... therefore split could propagate load flags for a finished bulk load... there is a special iterator
       // on the metadata table to clean up this type of garbage
       Map<FileRef,Long> bulkLoadedFiles = MetadataTableUtil.getBulkFilesLoaded(SystemCredentials.get(), extent);
 
