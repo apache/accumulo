@@ -47,6 +47,7 @@ if os.getenv('ACCUMULO_CONF_DIR'):
 else:
    ACCUMULO_CONF_DIR = os.path.join(ACCUMULO_HOME, 'conf')
 SITE = "test-" + ID
+SITE_PATH = os.path.join(ACCUMULO_CONF_DIR, SITE)
 
 LOG_PROPERTIES= os.path.join(ACCUMULO_CONF_DIR, 'log4j.properties')
 LOG_GENERIC = os.path.join(ACCUMULO_CONF_DIR, 'generic_logger.xml')
@@ -255,7 +256,7 @@ class TestUtilsMixin:
             self.pkill(host, 'accumulo.config.file', signal)
 
     def create_config_file(self, settings):
-        fp = open(os.path.join(ACCUMULO_CONF_DIR, SITE), 'w')
+        fp = open(SITE_PATH, 'w')
 	fp.write('<configuration>\n')
         settings = self.settings.copy()
         settings.update({ 'instance.zookeeper.host': ZOOKEEPERS,
@@ -424,6 +425,9 @@ class TestUtilsMixin:
       if os.path.exists(LOG_MONITOR_BACKUP):
          os.rename(LOG_MONITOR_BACKUP, LOG_MONITOR)
 
+    def clean_config_file(self):
+      os.unlink(SITE_PATH)
+
     def sleep(self, secs):
         log.debug("Sleeping %f seconds" % secs)
         sleep.sleep(secs)
@@ -445,7 +449,7 @@ class TestUtilsMixin:
                                     ['-i', INSTANCE_NAME]))
           self.wait(self.runOn(self.masterHost(), ['rm', '-rf', ACCUMULO_HOME + '/logs/' + ID]))
           self.clean_logging() 
-          os.unlink(os.path.join(ACCUMULO_HOME, 'conf', SITE))
+          self.clean_config_file()
 
     def createTable(self, table, splitFile=None):
         if splitFile :
