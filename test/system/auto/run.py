@@ -297,7 +297,9 @@ def main():
     map(suite.addTest, filtered)
 
     if options.coverage:
-        cobertura_jar = os.path.join(COBERTURA_HOME, findCoberturaJar())
+        cobertura_jar = findCoberturaJar()
+        if cobertura_jar:
+            cobertura_jar = os.path.join(COBERTURA_HOME, cobertura_jar)
         if not cobertura_jar or not os.access(cobertura_jar, os.F_OK):
             print "Install Cobertura under %s" % COBERTURA_HOME
             sys.exit(1)

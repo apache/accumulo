@@ -52,6 +52,8 @@ SITE_PATH = os.path.join(ACCUMULO_CONF_DIR, SITE)
 
 COBERTURA_HOME = os.path.join(ACCUMULO_HOME, 'lib', 'test', 'cobertura')
 def findCoberturaJar():
+    if not os.path.exists(COBERTURA_HOME):
+        return None
     jars = [f for f in os.listdir(COBERTURA_HOME) if re.search(r'cobertura.*\.jar', f)]
     if len(jars) >= 1:
         return jars[0]
