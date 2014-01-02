@@ -108,9 +108,6 @@
             </goals>
           </execution>
         </executions>
-        <configuration>
-          <skipNoGit>true</skipNoGit>
-        </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -414,6 +411,14 @@
                 </pluginExecution>
               </pluginExecutions>
             </lifecycleMappingMetadata>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>com.github.koraktor</groupId>
+          <artifactId>mavanagaiata</artifactId>
+          <version>0.6.1</version>
+          <configuration>
+            <skipNoGit>true</skipNoGit>
           </configuration>
         </plugin>
       </plugins>
@@ -908,11 +913,6 @@
       </dependency>
 
       <!-- Version management -->
-      <dependency>
-        <groupId>com.github.koraktor</groupId>
-        <artifactId>mavanagaiata</artifactId>
-        <version>0.6.1</version>
-      </dependency>
     </dependencies>
   </dependencyManagement>
 
