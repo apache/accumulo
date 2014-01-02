@@ -21,11 +21,11 @@ file for the necessary components.
 
 Run "mvn package && mvn assembly:single -N". By default, Accumulo compiles
 against Hadoop 0.20.203.0.  To compile against a different version
-that is compatible with Hadoop 1.0, specify hadoop.version on the command line,
+that is compatible with Hadoop 1, specify hadoop.version on the command line,
 e.g. "-Dhadoop.version=0.20.205.0" or "-Dhadoop.version=1.1.0".  To compile 
-against Hadoop 2.0, specify "-Dhadoop.profile=2.0".  By default this uses
-2.2.0.  To compile against a different 2.0-compatible version, specify
-the profile and version, e.g. "-Dhadoop.profile=2.0 -Dhadoop.version=0.23.5".
+against Hadoop 2, specify "-Dhadoop.profile=2".  By default this uses
+2.2.0.  To compile against a different Hadoop 2-compatible version, specify
+the profile and version, e.g. "-Dhadoop.profile=2 -Dhadoop.version=0.23.5".
 
 If you are running on another Unix-like operating system (OSX, etc) then
 you may wish to build the native libraries.  They are not strictly necessary

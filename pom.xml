@@ -63,6 +63,12 @@
                 <requireMavenVersion>
                   <version>[2.0.9,)</version>
                 </requireMavenVersion>
+                <requireProperty>
+                  <property>hadoop.profile</property>
+                  <regex>(1|2)</regex>
+                  <regexMessage>You should specify the Hadoop profile by major Hadoop generation, i.e. 1 or 2, not by a version number.
+    Use hadoop.version to use a particular Hadoop version within that generation. See README for more details.</regexMessage>
+                </requireProperty>
               </rules>
             </configuration>
           </execution>
@@ -707,13 +713,43 @@
         </plugins>
       </build>
     </profile>
-    <!-- profile for building against Hadoop 1.0.x
-    Activate by not specifying hadoop.profile -->
+    <!-- profile for our default Hadoop build
+         unfortunately, has to duplicate one of our
+         specified profiles. see MNG-3328 -->
     <profile>
-      <id>hadoop-1.0</id>
+      <id>hadoop-default</id>
       <activation>
         <property>
           <name>!hadoop.profile</name>
+        </property>
+      </activation>
+      <properties>
+        <!-- Denotes intention and allows the enforcer plugin to pass when
+             the user is relying on default behavior; won't work to activate profile -->
+        <hadoop.profile>1</hadoop.profile>
+        <hadoop.version>0.20.203.0</hadoop.version>
+        <slf4j.version>1.4.3</slf4j.version>
+      </properties>
+      <dependencyManagement>
+        <dependencies>
+          <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-core</artifactId>
+            <version>${hadoop.version}</version>
+            <scope>provided</scope>
+          </dependency>
+        </dependencies>
+      </dependencyManagement>
+    </profile>
+    <!-- profile for building against Hadoop 1.x
+     XXX Since this is the default, make sure to sync hadoop-default when changing.
+    Activate using: mvn -Dhadoop.profile=1 -->
+    <profile>
+      <id>hadoop-1</id>
+      <activation>
+        <property>
+          <name>hadoop.profile</name>
+          <value>1</value>
         </property>
       </activation>
       <properties>
@@ -731,14 +767,14 @@
         </dependencies>
       </dependencyManagement>
     </profile>
-    <!-- profile for building against Hadoop 2.0.x
-    Activate using: mvn -Dhadoop.profile=2.0 -->
+    <!-- profile for building against Hadoop 2.x
+    Activate using: mvn -Dhadoop.profile=2 -->
     <profile>
-      <id>hadoop-2.0</id>
+      <id>hadoop-2</id>
       <activation>
         <property>
           <name>hadoop.profile</name>
-          <value>2.0</value>
+          <value>2</value>
         </property>
       </activation>
       <properties>
@@ -943,9 +979,9 @@
 
   <properties>
     <targetJdk>1.6</targetJdk>
-    <!-- overwritten in profiles hadoop-1.0 or hadoop-2.0 -->
+    <!-- overwritten in profiles hadoop-1 or hadoop-2 -->
     <hadoop.version>0.20.203.0</hadoop.version>
-    <!-- overwritten in profiles hadoop-1.0 or hadoop-2.0 -->
+    <!-- overwritten in profiles hadoop-1 or hadoop-2 -->
     <slf4j.version>1.4.3</slf4j.version>
     <zookeeper.version>3.3.1</zookeeper.version>
   </properties>
