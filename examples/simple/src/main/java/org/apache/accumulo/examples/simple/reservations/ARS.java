@@ -46,7 +46,7 @@ import org.apache.hadoop.io.Text;
  */
 
 // EXCERCISE create a test that verifies correctness under concurrency. For example, have M threads making reservations against N resources. Each thread could
-// randomly reserve and cancel resources for a single user. When each thread finishes, it know what the state of its single user should be. When all threads
+// randomly reserve and cancel resources for a single user. When each thread finishes, it knows what the state of its single user should be. When all threads
 // finish, collect their expected state and verify the status of all users and resources. For extra credit run the test on a IAAS provider using 10 nodes and
 // 10 threads per node.
 
