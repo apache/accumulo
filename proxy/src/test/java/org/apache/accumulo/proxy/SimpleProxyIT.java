@@ -1498,6 +1498,26 @@ public class SimpleProxyIT {
     return toRet;
   }
 
+  static private ByteBuffer t2bb(Text t) {
+    return ByteBuffer.wrap(t.getBytes());
+  }
+  
+  @Test
+  public void testGetRowRange() throws Exception {
+    Range range = client.getRowRange(s2bb("xyzzy"));
+    org.apache.accumulo.core.data.Range range2 = new org.apache.accumulo.core.data.Range(new Text("xyzzy")); 
+    assertEquals(0, range.start.row.compareTo(t2bb(range2.getStartKey().getRow())));
+    assertEquals(0, range.stop.row.compareTo(t2bb(range2.getEndKey().getRow())));
+    assertEquals(range.startInclusive, range2.isStartKeyInclusive());
+    assertEquals(range.stopInclusive, range2.isEndKeyInclusive());
+    assertEquals(0, range.start.colFamily.compareTo(t2bb(range2.getStartKey().getColumnFamily())));
+    assertEquals(0, range.start.colQualifier.compareTo(t2bb(range2.getStartKey().getColumnQualifier())));
+    assertEquals(0, range.stop.colFamily.compareTo(t2bb(range2.getEndKey().getColumnFamily())));
+    assertEquals(0, range.stop.colQualifier.compareTo(t2bb(range2.getEndKey().getColumnQualifier())));
+    assertEquals(range.start.timestamp, range.start.timestamp);
+    assertEquals(range.stop.timestamp, range.stop.timestamp);
+  }
+  
   @AfterClass
   public static void tearDownMiniCluster() throws Exception {
     accumulo.stop();
