@@ -128,7 +128,7 @@ class Examples(TestUtilsMixin, unittest.TestCase):
         self.comment("Creating a sharded index of the accumulo java files")
         self.ashell('createtable shard\ncreatetable doc2term\nquit\n')
         self.execute('/bin/sh', '-c',
-                     'find %s/server -name "*.java" | xargs %s/bin/accumulo org.apache.accumulo.examples.simple.shard.Index -i %s -z %s -t shard -u %s -p %s --partitions 30' %
+                     'find %s/examples -name "*.java" | xargs %s/bin/accumulo org.apache.accumulo.examples.simple.shard.Index -i %s -z %s -t shard -u %s -p %s --partitions 30' %
                      (ACCUMULO_HOME, ACCUMULO_HOME, INSTANCE_NAME, ZOOKEEPERS, ROOT, ROOT_PASSWORD))
         self.execute(self.accumulo_sh(), 'org.apache.accumulo.examples.simple.shard.Query',
                      '-i', INSTANCE_NAME, '-z', ZOOKEEPERS, '-t', 'shard', '-u', ROOT, '-p', ROOT_PASSWORD,
@@ -163,7 +163,7 @@ class Examples(TestUtilsMixin, unittest.TestCase):
             'org.apache.accumulo.examples.simple.mapreduce.TeraSortIngest',
             '--count', ROWS,  
             '-nk', 10, '-xk', 10,
-            '-nk', 78, '-xk', 78,
+            '-nv', 78, '-xv', 78,
             '-t', 'sorted',
             '-i', INSTANCE_NAME,
             '-z', ZOOKEEPERS,
@@ -171,7 +171,6 @@ class Examples(TestUtilsMixin, unittest.TestCase):
             '-p', ROOT_PASSWORD,
             '--splits', 4]))
         self.comment("Looking for '999' in all rows")
-        self.ashell('deletetable sorted\ncreatetable sorted\nquit\n')
         self.wait(self.runOn(self.masterHost(), [
             ACCUMULO_HOME+'/bin/tool.sh',
             examplesJar,
@@ -182,9 +181,8 @@ class Examples(TestUtilsMixin, unittest.TestCase):
             '-p', ROOT_PASSWORD,
             '-t', 'sorted',
             '--rowRegex', '.*999.*',
-            'tmp/nines']))
-        self.comment("Generating hashes of each row into a new table")
-        self.ashell('deletetable sorted\ncreatetable sorted\nquit\n')
+            '--output', 'tmp/nines']))
+        self.comment("Generating hashes of each row")
         self.wait(self.runOn(self.masterHost(), [
             ACCUMULO_HOME+'/bin/tool.sh',
             examplesJar,
@@ -195,10 +193,8 @@ class Examples(TestUtilsMixin, unittest.TestCase):
             '-p', ROOT_PASSWORD,
             '-t', 'sorted',
             '--column', ':',
-            'sortedHashed',
             ]))
         self.comment("Exporting the table to HDFS")
-        self.ashell('deletetable sorted\ncreatetable sorted\nquit\n')
         self.wait(self.runOn(self.masterHost(), [
             ACCUMULO_HOME+'/bin/tool.sh',
             examplesJar,
