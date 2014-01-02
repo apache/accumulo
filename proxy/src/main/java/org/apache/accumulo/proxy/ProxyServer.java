@@ -1384,6 +1384,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       return null;
     org.apache.accumulo.proxy.thrift.Key result = new org.apache.accumulo.proxy.thrift.Key(TextUtil.getByteBuffer(k.getRow()), TextUtil.getByteBuffer(k
         .getColumnFamily()), TextUtil.getByteBuffer(k.getColumnQualifier()), TextUtil.getByteBuffer(k.getColumnVisibility()));
+    result.setTimestamp(k.getTimestamp());
     return result;
   }
   
@@ -1402,12 +1403,9 @@ public class ProxyServer implements AccumuloProxy.Iface {
     }
   }
   
-  static private final ByteBuffer EMPTY = ByteBuffer.wrap(new byte[] {});
-  
   @Override
   public org.apache.accumulo.proxy.thrift.Range getRowRange(ByteBuffer row) throws TException {
-    return new org.apache.accumulo.proxy.thrift.Range(new org.apache.accumulo.proxy.thrift.Key(row, EMPTY, EMPTY, EMPTY), true,
-        new org.apache.accumulo.proxy.thrift.Key(row, EMPTY, EMPTY, EMPTY), true);
+    return getRange(new Range(ByteBufferUtil.toText(row)));
   }
   
   @Override
