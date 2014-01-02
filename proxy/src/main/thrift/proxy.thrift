@@ -28,13 +28,15 @@
 
 namespace cpp accumulo
 namespace java org.apache.accumulo.proxy.thrift
+namespace rb Accumulo
+namespace py accumulo
 
 struct Key {
   1:binary row;
   2:binary colFamily;
   3:binary colQualifier;
   4:binary colVisibility;
-  5:optional i64 timestamp
+  5:optional i64 timestamp = 0x7FFFFFFFFFFFFFFF
 }
 
 enum PartialKey {
