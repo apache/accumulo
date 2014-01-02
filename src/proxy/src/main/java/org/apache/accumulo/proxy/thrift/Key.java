@@ -143,6 +143,8 @@ import org.slf4j.LoggerFactory;
   }
 
   public Key() {
+    this.timestamp = 9223372036854775807L;
+
   }
 
   public Key(
@@ -193,8 +195,8 @@ import org.slf4j.LoggerFactory;
     this.colFamily = null;
     this.colQualifier = null;
     this.colVisibility = null;
-    setTimestampIsSet(false);
-    this.timestamp = 0;
+    this.timestamp = 9223372036854775807L;
+
   }
 
   public byte[] getRow() {

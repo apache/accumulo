@@ -21,8 +21,8 @@ from thrift.transport import TSocket
 from thrift.transport import TTransport
 from thrift.protocol import TCompactProtocol
 
-from proxy import AccumuloProxy
-from proxy.ttypes import *
+from accumulo import AccumuloProxy
+from accumulo.ttypes import *
 
 transport = TSocket.TSocket('localhost', 42424)
 transport = TTransport.TFramedTransport(transport)
