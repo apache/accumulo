@@ -91,7 +91,8 @@
       <name>general.classpaths</name>
     <!--
        Add the following for Hadoop2, actual needs depend on Hadoop installation details.
-       This list may be excessive, but this should cause no issues.
+       This list may be excessive, but this should cause no issues. Append these values
+       after the $HADOOP_PREFIX entries
 
        $HADOOP_PREFIX/share/hadoop/common/.*.jar,
        $HADOOP_PREFIX/share/hadoop/common/lib/.*.jar,
