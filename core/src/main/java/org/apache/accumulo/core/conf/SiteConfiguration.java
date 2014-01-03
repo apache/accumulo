@@ -100,6 +100,13 @@ public class SiteConfiguration extends AccumuloConfiguration {
    * Clears the configuration properties in this configuration (but not the
    * parent). This method supports testing and should not be called.
    */
+  synchronized public static void clearInstance() {
+    instance = null;
+  }
+
+  /**
+   * method here to support testing, do not call
+   */
   public void clear() {
     getXmlConfig().clear();
   }
