@@ -223,6 +223,22 @@ public class Initialize {
       initFileSystem(opts, fs, uuid, rootTablet);
     } catch (Exception e) {
       log.fatal("Failed to initialize filesystem", e);
+      for (FileSystem filesystem : fs.getFileSystems().values()) {
+        log.fatal("For FileSystem:" + filesystem.getUri());
+        
+        // Try to warn the user about what the actual problem is
+        Configuration fsConf = filesystem.getConf();
+        
+        final String defaultFsUri = "file:///";
+        String fsDefaultName = fsConf.get("fs.default.name", defaultFsUri), fsDefaultFS = fsConf.get("fs.defaultFS", defaultFsUri);
+        
+        // Try to determine when we couldn't find an appropriate core-site.xml on the classpath
+        if (defaultFsUri.equals(fsDefaultName) && defaultFsUri.equals(fsDefaultFS)) {
+          log.fatal("Default filesystem value ('fs.defaultFS' or 'fs.default.name') was found in the Hadoop configuration");
+          log.fatal("Please ensure that the Hadoop core-site.xml is on the classpath using 'general.classpaths' in accumulo-site.xml");
+        }
+      }
+      
       return false;
     }
 
