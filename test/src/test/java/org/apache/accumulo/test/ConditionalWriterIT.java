@@ -17,6 +17,8 @@
 
 package org.apache.accumulo.test;
 
+import static org.junit.Assert.*;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -66,12 +68,19 @@ import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.trace.DistributedTrace;
+import org.apache.accumulo.core.trace.TraceDump;
+import org.apache.accumulo.core.trace.TraceDump.Printer;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.AlphaNumKeyConstraint;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.test.functional.BadIterator;
 import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.apache.accumulo.test.functional.SlowIterator;
+import org.apache.accumulo.trace.instrument.Span;
+import org.apache.accumulo.trace.instrument.Trace;
+import org.apache.accumulo.tracer.TraceServer;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
@@ -91,7 +100,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
 
     ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig());
 
-    // mutation conditional on column tx:seq not exiting
+    // mutation conditional on column tx:seq not existing
     ConditionalMutation cm0 = new ConditionalMutation("99006", new Condition("tx", "seq"));
     cm0.put("name", "last", "doe");
     cm0.put("name", "first", "john");
@@ -1181,5 +1190,56 @@ public class ConditionalWriterIT extends SimpleMacIT {
     cm1.put("data", "x", "a");
 
     cw.write(cm1);
+  }
+  
+  @Test(timeout = 60 * 1000)
+  public void testTrace() throws Exception {
+
+    Process tracer = getStaticCluster().exec(TraceServer.class);
+    Connector conn = getConnector();
+    String tableName = getTableNames(1)[0];
+
+    conn.tableOperations().create(tableName);
+    conn.tableOperations().deleteRows("trace", null, null);
+
+    DistributedTrace.enable(conn.getInstance(), new ZooReader(conn.getInstance().getZooKeepers(), 30*1000), "testTrace", "localhost");
+    Span root = Trace.on("traceTest");
+    ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig());
+
+    // mutation conditional on column tx:seq not exiting
+    ConditionalMutation cm0 = new ConditionalMutation("99006", new Condition("tx", "seq"));
+    cm0.put("name", "last", "doe");
+    cm0.put("name", "first", "john");
+    cm0.put("tx", "seq", "1");
+    Assert.assertEquals(Status.ACCEPTED, cw.write(cm0).getStatus());
+    root.stop();
+    
+    final Scanner scanner = conn.createScanner("trace", Authorizations.EMPTY);
+    scanner.setRange(new Range(new Text(Long.toHexString(root.traceId()))));
+    while (true) {
+      final StringBuffer finalBuffer = new StringBuffer();
+      int traceCount = TraceDump.printTrace(scanner, new Printer() {
+        @Override
+        public void print(final String line) {
+          try {
+            finalBuffer.append(line).append("\n");
+          } catch (Exception ex) {
+            throw new RuntimeException(ex);
+          }
+        }
+      });
+      if (traceCount > 0) {
+        int lastPos = 0;
+        for (String part : "traceTest, startScan,startConditionalUpdate,conditionalUpdate,Check conditions,apply conditional mutations".split(","))
+        {
+          int pos = finalBuffer.toString().indexOf(part);
+          assertTrue(pos > 0);
+          assertTrue(pos > lastPos);
+          lastPos = pos;
+        }
+        break;
+      }
+    }
+    tracer.destroy();
   }
 }
