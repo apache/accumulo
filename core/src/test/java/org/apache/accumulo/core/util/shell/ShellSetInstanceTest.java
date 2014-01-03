@@ -42,10 +42,12 @@ import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigSanityCheck;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Level;
 import org.easymock.EasyMock;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -94,6 +96,10 @@ public class ShellSetInstanceTest {
     output = new TestOutputStream();
     shell = new Shell(new ConsoleReader(new FileInputStream(FileDescriptor.in), output));
     shell.setLogErrorsToConsole();
+  }
+  @After
+  public void tearDown() {
+    SiteConfiguration.clearInstance();
   }
 
   @Test

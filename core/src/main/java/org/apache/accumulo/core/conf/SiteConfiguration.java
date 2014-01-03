@@ -81,6 +81,13 @@ public class SiteConfiguration extends AccumuloConfiguration {
   /**
    * method here to support testing, do not call
    */
+  synchronized public static void clearInstance() {
+    instance = null;
+  }
+
+  /**
+   * method here to support testing, do not call
+   */
   public void clear() {
     getXmlConfig().clear();
   }
