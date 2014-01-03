@@ -22,6 +22,7 @@ import java.util.Random;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.test.randomwalk.State;
@@ -59,6 +60,17 @@ public class RenameTable extends Test {
     } catch (TableExistsException e) {
       log.debug("Rename " + srcTableName + " failed, " + newTableName + " exists");
     } catch (TableNotFoundException e) {
+      Throwable cause = e.getCause();
+      if (null != cause) {
+        // Rename has to have failed on the destination namespace, because the source namespace
+        // couldn't be deleted with our table in it
+        if (cause.getClass().isAssignableFrom(NamespaceNotFoundException.class)) {
+          log.debug("Rename failed because new namespace doesn't exist: " + newNamespace, cause);
+          // Avoid the final src/dest namespace check
+          return;
+        }
+      }
+      
       log.debug("Rename " + srcTableName + " failed, doesnt exist");
     } catch (IllegalArgumentException e) {
       log.debug("Rename: " + e.toString());
