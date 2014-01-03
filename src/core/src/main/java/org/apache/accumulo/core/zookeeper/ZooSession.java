@@ -29,8 +29,14 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.ZooKeeper.States;
 
-class ZooSession {
+public class ZooSession {
   
+  public static class ZooSessionShutdownException extends RuntimeException {
+
+    private static final long serialVersionUID = 1L;
+
+  }
+
   private static final Logger log = Logger.getLogger(ZooSession.class);
   
   private static class ZooSessionInfo {
@@ -114,6 +120,9 @@ class ZooSession {
   
   public static synchronized ZooKeeper getSession(String zooKeepers, int timeout, String auth) {
     
+    if (sessions == null)
+      throw new ZooSessionShutdownException();
+
     String sessionKey = sessionKey(zooKeepers, timeout, auth);
     
     // a read-only session can use a session with authorizations, so cache a copy for it w/out auths
@@ -136,5 +145,17 @@ class ZooSession {
         sessions.put(readOnlySessionKey, zsi);
     }
     return zsi.zooKeeper;
+  }
+
+  public static synchronized void shutdown() {
+    for (ZooSessionInfo zsi : sessions.values()) {
+      try {
+        zsi.zooKeeper.close();
+      } catch (Exception e) {
+        log.debug("Error closing zookeeper during shutdown", e);
+      }
+    }
+
+    sessions = null;
   }
 }

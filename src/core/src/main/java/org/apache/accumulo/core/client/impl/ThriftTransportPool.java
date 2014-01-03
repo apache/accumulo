@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -53,6 +54,8 @@ public class ThriftTransportPool {
   private Map<ThriftTransportKey,Long> errorCount = new HashMap<ThriftTransportKey,Long>();
   private Map<ThriftTransportKey,Long> errorTime = new HashMap<ThriftTransportKey,Long>();
   private Set<ThriftTransportKey> serversWarnedAbout = new HashSet<ThriftTransportKey>();
+
+  private CountDownLatch closerExitLatch;
   
   private static final Logger log = Logger.getLogger(ThriftTransportPool.class);
   
@@ -78,20 +81,26 @@ public class ThriftTransportPool {
     long lastReturnTime;
   }
   
+  public static class TransportPoolShutdownException extends RuntimeException {
+    private static final long serialVersionUID = 1L;
+  }
+
   private static class Closer implements Runnable {
     ThriftTransportPool pool;
-    
-    public Closer(ThriftTransportPool pool) {
+    private CountDownLatch closerExitLatch;
+
+    public Closer(ThriftTransportPool pool, CountDownLatch closerExitLatch) {
       this.pool = pool;
+      this.closerExitLatch = closerExitLatch;
     }
     
-    public void run() {
+    private void closeConnections() {
       while (true) {
         
         ArrayList<CachedConnection> connectionsToClose = new ArrayList<CachedConnection>();
         
         synchronized (pool) {
-          for (List<CachedConnection> ccl : pool.cache.values()) {
+          for (List<CachedConnection> ccl : pool.getCache().values()) {
             Iterator<CachedConnection> iter = ccl.iterator();
             while (iter.hasNext()) {
               CachedConnection cachedConnection = iter.next();
@@ -103,7 +112,7 @@ public class ThriftTransportPool {
             }
           }
           
-          for (List<CachedConnection> ccl : pool.cache.values()) {
+          for (List<CachedConnection> ccl : pool.getCache().values()) {
             for (CachedConnection cachedConnection : ccl) {
               cachedConnection.transport.checkForStuckIO(STUCK_THRESHOLD);
             }
@@ -130,6 +139,15 @@ public class ThriftTransportPool {
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
+      }
+    }
+
+    public void run() {
+      try {
+        closeConnections();
+      } catch (TransportPoolShutdownException e) {
+      } finally {
+        closerExitLatch.countDown();
       }
     }
   }
@@ -384,14 +402,14 @@ public class ThriftTransportPool {
       synchronized (this) {
         
         // randomly pick a server from the connection cache
-        serversSet.retainAll(cache.keySet());
+        serversSet.retainAll(getCache().keySet());
         
         if (serversSet.size() > 0) {
           ArrayList<ThriftTransportKey> cachedServers = new ArrayList<ThriftTransportKey>(serversSet);
           Collections.shuffle(cachedServers, random);
           
           for (ThriftTransportKey ttk : cachedServers) {
-            for (CachedConnection cachedConnection : cache.get(ttk)) {
+            for (CachedConnection cachedConnection : getCache().get(ttk)) {
               if (!cachedConnection.isReserved()) {
                 cachedConnection.setReserved(true);
                 if (log.isTraceEnabled())
@@ -411,7 +429,7 @@ public class ThriftTransportPool {
       
       if (!preferCachedConnection) {
         synchronized (this) {
-          List<CachedConnection> cachedConnList = cache.get(ttk);
+          List<CachedConnection> cachedConnList = getCache().get(ttk);
           if (cachedConnList != null) {
             for (CachedConnection cachedConnection : cachedConnList) {
               if (!cachedConnection.isReserved()) {
@@ -444,11 +462,11 @@ public class ThriftTransportPool {
   private TTransport getTransport(ThriftTransportKey cacheKey) throws TTransportException {
     synchronized (this) {
       // atomically reserve location if it exist in cache
-      List<CachedConnection> ccl = cache.get(cacheKey);
+      List<CachedConnection> ccl = getCache().get(cacheKey);
       
       if (ccl == null) {
         ccl = new LinkedList<CachedConnection>();
-        cache.put(cacheKey, ccl);
+        getCache().put(cacheKey, ccl);
       }
       
       for (CachedConnection cachedConnection : ccl) {
@@ -486,15 +504,20 @@ public class ThriftTransportPool {
     CachedConnection cc = new CachedConnection(tsc);
     cc.setReserved(true);
     
-    synchronized (this) {
-      List<CachedConnection> ccl = cache.get(cacheKey);
+    try {
+      synchronized (this) {
+        List<CachedConnection> ccl = getCache().get(cacheKey);
+
+        if (ccl == null) {
+          ccl = new LinkedList<CachedConnection>();
+          getCache().put(cacheKey, ccl);
+        }
       
-      if (ccl == null) {
-        ccl = new LinkedList<CachedConnection>();
-        cache.put(cacheKey, ccl);
+        ccl.add(cc);
       }
-      
-      ccl.add(cc);
+    } catch (TransportPoolShutdownException e) {
+      cc.transport.close();
+      throw e;
     }
     return cc.transport;
   }
@@ -510,7 +533,7 @@ public class ThriftTransportPool {
     ArrayList<CachedConnection> closeList = new ArrayList<ThriftTransportPool.CachedConnection>();
 
     synchronized (this) {
-      List<CachedConnection> ccl = cache.get(ctsc.getCacheKey());
+      List<CachedConnection> ccl = getCache().get(ctsc.getCacheKey());
       for (Iterator<CachedConnection> iterator = ccl.iterator(); iterator.hasNext();) {
         CachedConnection cachedConnection = iterator.next();
         if (cachedConnection.transport == tsc) {
@@ -600,8 +623,49 @@ public class ThriftTransportPool {
     }
     
     if (daemonStarted.compareAndSet(false, true)) {
-      new Daemon(new Closer(instance), "Thrift Connection Pool Checker").start();
+      CountDownLatch closerExitLatch = new CountDownLatch(1);
+      new Daemon(new Closer(instance, closerExitLatch), "Thrift Connection Pool Checker").start();
+      instance.setCloserExitLatch(closerExitLatch);
     }
     return instance;
+  }
+  
+  private synchronized void setCloserExitLatch(CountDownLatch closerExitLatch) {
+    this.closerExitLatch = closerExitLatch;
+  }
+
+  public void shutdown() {
+    synchronized (this) {
+      if (cache == null)
+        return;
+
+      // close any connections in the pool... even ones that are in use
+      for (List<CachedConnection> ccl : getCache().values()) {
+        Iterator<CachedConnection> iter = ccl.iterator();
+        while (iter.hasNext()) {
+          CachedConnection cc = iter.next();
+          try {
+            cc.transport.close();
+          } catch (Exception e) {
+            log.debug("Error closing transport during shutdown", e);
+          }
+        }
+      }
+
+      // this will render the pool unusable and cause the background thread to exit
+      this.cache = null;
+    }
+
+    try {
+      closerExitLatch.await();
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private Map<ThriftTransportKey,List<CachedConnection>> getCache() {
+    if (cache == null)
+      throw new TransportPoolShutdownException();
+    return cache;
   }
 }
