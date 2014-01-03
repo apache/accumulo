@@ -607,7 +607,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
           String location = hostNameCache.get(ip);
           if (location == null) {
             InetAddress inetAddress = InetAddress.getByName(ip);
-            location = inetAddress.getHostName();
+            location = inetAddress.getCanonicalHostName();
             hostNameCache.put(ip, location);
           }
           for (Map.Entry<KeyExtent,List<Range>> extentRanges : tserverBin.getValue().entrySet()) {
