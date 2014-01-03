@@ -102,7 +102,7 @@
         $HADOOP_CONF_DIR,
         $HADOOP_PREFIX/[^.].*.jar,
         $HADOOP_PREFIX/lib/[^.].*.jar,
-        <!-- Comment the following for hadoop-1.2 -->
+        <!-- Comment the following for hadoop-1 -->
         $HADOOP_PREFIX/share/hadoop/common/.*.jar,
         $HADOOP_PREFIX/share/hadoop/common/lib/.*.jar,
         $HADOOP_PREFIX/share/hadoop/hdfs/.*.jar,
