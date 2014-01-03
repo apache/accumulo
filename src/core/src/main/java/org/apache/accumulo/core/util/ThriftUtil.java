@@ -165,8 +165,4 @@ public class ThriftUtil {
   public static TProtocolFactory protocolFactory() {
     return protocolFactory;
   }
-  
-  public static void close() {
-    ThriftTransportPool.close();
-  }
 }

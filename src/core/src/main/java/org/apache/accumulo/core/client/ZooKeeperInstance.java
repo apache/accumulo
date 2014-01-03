@@ -22,7 +22,6 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.impl.ConnectorImpl;
@@ -35,7 +34,6 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.hadoop.fs.FileStatus;
@@ -72,8 +70,6 @@ public class ZooKeeperInstance implements Instance {
 
   private int zooKeepersSessionTimeOut;
 
-  private volatile boolean closed = false;
-
   /**
    * 
    * @param instanceName
@@ -103,7 +99,6 @@ public class ZooKeeperInstance implements Instance {
     this.zooKeepersSessionTimeOut = sessionTimeout;
     zooCache = ZooCache.getInstance(zooKeepers, sessionTimeout);
     getInstanceID();
-    clientInstances.incrementAndGet();
   }
 
   /**
@@ -134,13 +129,10 @@ public class ZooKeeperInstance implements Instance {
     this.zooKeepers = zooKeepers;
     this.zooKeepersSessionTimeOut = sessionTimeout;
     zooCache = ZooCache.getInstance(zooKeepers, sessionTimeout);
-    clientInstances.incrementAndGet();
   }
 
   @Override
-  public synchronized String getInstanceID() {
-    if (closed)
-      throw new RuntimeException("ZooKeeperInstance has been closed.");
+  public String getInstanceID() {
     if (instanceId == null) {
       // want the instance id to be stable for the life of this instance object,
       // so only get it once
@@ -163,9 +155,7 @@ public class ZooKeeperInstance implements Instance {
   }
 
   @Override
-  public synchronized List<String> getMasterLocations() {
-    if (closed)
-      throw new RuntimeException("ZooKeeperInstance has been closed.");
+  public List<String> getMasterLocations() {
     String masterLocPath = ZooUtil.getRoot(this) + Constants.ZMASTER_LOCK;
 
     OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Looking up master location in zoocache.");
@@ -180,9 +170,7 @@ public class ZooKeeperInstance implements Instance {
   }
 
   @Override
-  public synchronized String getRootTabletLocation() {
-    if (closed)
-      throw new RuntimeException("ZooKeeperInstance has been closed.");
+  public String getRootTabletLocation() {
     String zRootLocPath = ZooUtil.getRoot(this) + Constants.ZROOT_TABLET_LOCATION;
 
     OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Looking up root tablet location in zookeeper.");
@@ -197,9 +185,7 @@ public class ZooKeeperInstance implements Instance {
   }
 
   @Override
-  public synchronized String getInstanceName() {
-    if (closed)
-      throw new RuntimeException("ZooKeeperInstance has been closed.");
+  public String getInstanceName() {
     if (instanceName == null)
       instanceName = lookupInstanceName(zooCache, UUID.fromString(getInstanceID()));
 
@@ -230,8 +216,6 @@ public class ZooKeeperInstance implements Instance {
   @SuppressWarnings("deprecation")
   @Override
   public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
-    if (closed)
-      throw new RuntimeException("ZooKeeperInstance has been closed.");
     return new ConnectorImpl(this, user, pass);
   }
 
@@ -268,7 +252,7 @@ public class ZooKeeperInstance implements Instance {
     }
     return null;
   }
-  
+
   // To be moved to server code. Only lives here to support the Accumulo Shell
   @Deprecated
   public static String getInstanceIDFromHdfs(Path instanceDirectory) {
@@ -295,32 +279,9 @@ public class ZooKeeperInstance implements Instance {
       throw new RuntimeException("Accumulo not initialized, there is no instance id at " + instanceDirectory, e);
     }
   }
-  
+
   @Override
   public Connector getConnector(AuthInfo auth) throws AccumuloException, AccumuloSecurityException {
     return getConnector(auth.user, auth.password);
-  }
-
-  static private final AtomicInteger clientInstances = new AtomicInteger(0);
-
-  @Override
-  public synchronized void close() {
-    if (!closed && clientInstances.decrementAndGet() == 0) {
-      try {
-        zooCache.close();
-        ThriftUtil.close();
-      } catch (RuntimeException e) {
-        clientInstances.incrementAndGet();
-        throw e;
-      }
-    }
-    closed = true;
-  }
-
-  @Override
-  public void finalize() {
-    // This method intentionally left blank. Users need to explicitly close Instances if they want things cleaned up nicely.
-    if (!closed)
-      log.warn("ZooKeeperInstance being cleaned up without being closed. Please remember to call close() before dereferencing to clean up threads.");
   }
 }

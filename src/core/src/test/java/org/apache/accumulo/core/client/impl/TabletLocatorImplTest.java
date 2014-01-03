@@ -448,11 +448,6 @@ public class TabletLocatorImplTest extends TestCase {
     public Connector getConnector(AuthInfo auth) throws AccumuloException, AccumuloSecurityException {
       return getConnector(auth.user, auth.password);
     }
-    
-    @Override
-    public void close() {
-      // NOOP
-    }
   }
   
   static class TServers {
