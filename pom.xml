@@ -129,11 +129,6 @@
         <version>1.30</version>
       </dependency>
       <dependency>
-        <groupId>com.github.koraktor</groupId>
-        <artifactId>mavanagaiata</artifactId>
-        <version>0.6.1</version>
-      </dependency>
-      <dependency>
         <groupId>com.google.code.gson</groupId>
         <artifactId>gson</artifactId>
         <version>2.2.2</version>
@@ -370,6 +365,14 @@
             <sortDependencies>scope,groupId,artifactId</sortDependencies>
             <sortProperties>true</sortProperties>
             <verifyFail>Stop</verifyFail>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>com.github.koraktor</groupId>
+          <artifactId>mavanagaiata</artifactId>
+          <version>0.6.1</version>
+          <configuration>
+            <skipNoGit>true</skipNoGit>
           </configuration>
         </plugin>
         <plugin>
@@ -682,9 +685,6 @@
       <plugin>
         <groupId>com.github.koraktor</groupId>
         <artifactId>mavanagaiata</artifactId>
-        <configuration>
-          <skipNoGit>true</skipNoGit>
-        </configuration>
         <executions>
           <execution>
             <id>git-commit</id>
