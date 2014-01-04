@@ -22,13 +22,13 @@ import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceExistsException;
 import org.apache.accumulo.core.client.NamespaceNotEmptyException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.admin.NamespaceOperationsHelper;
+import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 
@@ -54,7 +54,7 @@ public class MockNamespaceOperations extends NamespaceOperationsHelper {
 
   @Override
   public void create(String namespace) throws AccumuloException, AccumuloSecurityException, NamespaceExistsException {
-    if (!namespace.matches(Constants.VALID_NAMESPACE_REGEX))
+    if (!namespace.matches(Namespaces.VALID_NAME_REGEX))
       throw new IllegalArgumentException();
 
     if (exists(namespace))

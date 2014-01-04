@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -98,7 +97,7 @@ public class MockTableOperations extends TableOperationsHelper {
   @Override
   public void create(String tableName, boolean versioningIter, TimeType timeType) throws AccumuloException, AccumuloSecurityException, TableExistsException {
     String namespace = Tables.qualify(tableName).getFirst();
-    if (!tableName.matches(Constants.VALID_TABLE_NAME_REGEX)) {
+    if (!tableName.matches(Tables.VALID_NAME_REGEX)) {
       throw new IllegalArgumentException();
     }
     if (exists(tableName))

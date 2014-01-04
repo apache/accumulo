@@ -344,7 +344,7 @@ public interface TableOperations {
    * @param oldTableName
    *          the old table name
    * @param newTableName
-   *          the new table name
+   *          the new table name, which must be either unqualified (no namespace) or in the same namespace as the oldTableName
    * @throws AccumuloException
    *           if a general error occurs
    * @throws AccumuloSecurityException

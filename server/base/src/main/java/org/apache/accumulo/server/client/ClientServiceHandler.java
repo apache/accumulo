@@ -92,7 +92,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     throw new ThriftTableOperationException(null, tableName, operation, reason, null);
   }
 
-  protected String checkNamespaceId(String namespace, TableOperation operation) throws ThriftTableOperationException {
+  public static String checkNamespaceId(Instance instance, String namespace, TableOperation operation) throws ThriftTableOperationException {
     String namespaceId = Namespaces.getNameToIdMap(instance).get(namespace);
     if (namespaceId == null) {
       // maybe the namespace exists, but the cache was not updated yet... so try to clear the cache and check again
@@ -189,7 +189,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   @Override
   public void grantNamespacePermission(TInfo tinfo, TCredentials credentials, String user, String ns, byte permission) throws ThriftSecurityException,
       ThriftTableOperationException {
-    String namespaceId = checkNamespaceId(ns, TableOperation.PERMISSION);
+    String namespaceId = checkNamespaceId(instance, ns, TableOperation.PERMISSION);
     security.grantNamespacePermission(credentials, user, namespaceId, NamespacePermission.getPermissionById(permission));
   }
 
@@ -220,14 +220,14 @@ public class ClientServiceHandler implements ClientService.Iface {
   @Override
   public boolean hasNamespacePermission(TInfo tinfo, TCredentials credentials, String user, String ns, byte perm) throws ThriftSecurityException,
       ThriftTableOperationException {
-    String namespaceId = checkNamespaceId(ns, TableOperation.PERMISSION);
+    String namespaceId = checkNamespaceId(instance, ns, TableOperation.PERMISSION);
     return security.hasNamespacePermission(credentials, user, namespaceId, NamespacePermission.getPermissionById(perm));
   }
 
   @Override
   public void revokeNamespacePermission(TInfo tinfo, TCredentials credentials, String user, String ns, byte permission) throws ThriftSecurityException,
       ThriftTableOperationException {
-    String namespaceId = checkNamespaceId(ns, TableOperation.PERMISSION);
+    String namespaceId = checkNamespaceId(instance, ns, TableOperation.PERMISSION);
     security.revokeNamespacePermission(credentials, user, namespaceId, NamespacePermission.getPermissionById(permission));
   }
 
@@ -361,7 +361,7 @@ public class ClientServiceHandler implements ClientService.Iface {
 
     security.authenticateUser(credentials, credentials);
 
-    String namespaceId = checkNamespaceId(ns, null);
+    String namespaceId = checkNamespaceId(instance, ns, null);
 
     ClassLoader loader = getClass().getClassLoader();
     Class<?> shouldMatch;
