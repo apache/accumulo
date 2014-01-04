@@ -76,7 +76,6 @@ import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class NamespacesIT extends SimpleMacIT {
@@ -86,12 +85,14 @@ public class NamespacesIT extends SimpleMacIT {
 
   @Before
   public void setUpConnectorAndNamespace() throws Exception {
+    // prepare a unique namespace and get a new root connector for each test
     c = getConnector();
     namespace = "ns_" + getTableNames(1)[0];
   }
 
   @After
-  public void removeTablesAndNamespaces() throws Exception {
+  public void swingMjölnir() throws Exception {
+    // clean up any added tables, namespaces, and users, after each test
     for (String t : c.tableOperations().list())
       if (!Tables.qualify(t).getFirst().equals(Namespaces.ACCUMULO_NAMESPACE))
         c.tableOperations().delete(t);
@@ -114,16 +115,14 @@ public class NamespacesIT extends SimpleMacIT {
 
   @Test
   public void createTableInDefaultNamespace() throws Exception {
-    String tableName = getTableNames(1)[0];
+    String tableName = "1";
     c.tableOperations().create(tableName);
     assertTrue(c.tableOperations().exists(tableName));
   }
 
-  // TODO enable after ACCUMULO-2079 is fixed
-  @Ignore
-  @Test(expected = AccumuloSecurityException.class)
+  @Test(expected = AccumuloException.class)
   public void createTableInAccumuloNamespace() throws Exception {
-    String tableName = Namespaces.ACCUMULO_NAMESPACE + "." + getTableNames(1)[0];
+    String tableName = Namespaces.ACCUMULO_NAMESPACE + ".1";
     assertFalse(c.tableOperations().exists(tableName));
     c.tableOperations().create(tableName); // should fail
   }
@@ -1058,14 +1057,28 @@ public class NamespacesIT extends SimpleMacIT {
             ops.create(namespace + "0"); // should fail here
             fail();
           case 1:
-            ops.create(namespace + "1");
-            ops.create(namespace + "2");
-            ops.rename(namespace + "1", namespace + "2"); // should fail here
+            ops.create(namespace + i + "_1");
+            ops.create(namespace + i + "_2");
+            ops.rename(namespace + i + "_1", namespace + i + "_2"); // should fail here
+            fail();
+          case 2:
+            ops.create(Namespaces.DEFAULT_NAMESPACE);
+            fail();
+          case 3:
+            ops.create(Namespaces.ACCUMULO_NAMESPACE);
+            fail();
+          case 4:
+            ops.create(namespace + i + "_1");
+            ops.rename(namespace + i + "_1", Namespaces.DEFAULT_NAMESPACE); // should fail here
+            fail();
+          case 5:
+            ops.create(namespace + i + "_1");
+            ops.rename(namespace + i + "_1", Namespaces.ACCUMULO_NAMESPACE); // should fail here
             fail();
           default:
             // break out of infinite loop
-            assertEquals(2, i); // check test integrity
-            assertEquals(2, numRun); // check test integrity
+            assertEquals(6, i); // check test integrity
+            assertEquals(6, numRun); // check test integrity
             break NAMESPACEEXISTS;
         }
       } catch (Exception e) {

@@ -405,7 +405,7 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
       ThriftTableOperationException {
 
     String namespaceId = null;
-    namespaceId = checkNamespaceId(namespace, op);
+    namespaceId = ClientServiceHandler.checkNamespaceId(master.getInstance(), namespace, op);
 
     if (!master.security.canAlterNamespace(c, namespaceId))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
@@ -418,7 +418,7 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
       }
     } catch (KeeperException.NoNodeException e) {
       // race condition... namespace no longer exists? This call will throw an exception if the namespace was deleted:
-      checkNamespaceId(namespaceId, op);
+      ClientServiceHandler.checkNamespaceId(master.getInstance(), namespaceId, op);
       log.info("Error altering namespace property", e);
       throw new ThriftTableOperationException(namespaceId, namespace, op, TableOperationExceptionType.OTHER, "Problem altering namespaceproperty");
     } catch (Exception e) {

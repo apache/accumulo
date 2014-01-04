@@ -101,8 +101,6 @@ public class Constants {
 
   public static final int MAX_DATA_TO_PRINT = 64;
   public static final String CORE_PACKAGE_NAME = "org.apache.accumulo.core";
-  public static final String VALID_TABLE_NAME_REGEX = "^(\\w+\\.)?(\\w+)$";
-  public static final String VALID_NAMESPACE_REGEX = "^\\w+$";
   public static final String MAPFILE_EXTENSION = "map";
   public static final String GENERATED_TABLET_DIRECTORY_PREFIX = "t-";
 

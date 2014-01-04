@@ -26,10 +26,50 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.util.ArgumentChecker.Validator;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 
 public class Namespaces {
+  public static final String VALID_NAME_REGEX = "^\\w*$";
+  public static final Validator<String> VALID_NAME = new Validator<String>() {
+    @Override
+    public boolean isValid(String namespace) {
+      return namespace != null && namespace.matches(VALID_NAME_REGEX);
+    }
+
+    @Override
+    public String invalidMessage(String namespace) {
+      if (namespace == null)
+        return "Namespace cannot be null";
+      return "Namespaces must only contain word characters (letters, digits, and underscores): " + namespace;
+    }
+  };
+
+  public static final Validator<String> NOT_DEFAULT = new Validator<String>() {
+    @Override
+    public boolean isValid(String namespace) {
+      return !Namespaces.DEFAULT_NAMESPACE.equals(namespace);
+    }
+
+    @Override
+    public String invalidMessage(String namespace) {
+      return "Namespace cannot be the reserved empty namespace";
+    }
+  };
+
+  public static final Validator<String> NOT_ACCUMULO = new Validator<String>() {
+    @Override
+    public boolean isValid(String namespace) {
+      return !Namespaces.ACCUMULO_NAMESPACE.equals(namespace);
+    }
+
+    @Override
+    public String invalidMessage(String namespace) {
+      return "Namespace cannot be the reserved namespace, " + Namespaces.ACCUMULO_NAMESPACE;
+    }
+  };
+
   private static SecurityPermission TABLES_PERMISSION = new SecurityPermission("tablesPermission");
 
   public static final String DEFAULT_NAMESPACE_ID = "+default";
@@ -109,4 +149,5 @@ public class Namespaces {
         names.add(name);
     return names;
   }
+
 }

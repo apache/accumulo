@@ -65,4 +65,37 @@ public class ArgumentChecker {
     if (!arg.iterator().hasNext())
       throw new IllegalArgumentException("Argument should not be empty");
   }
+
+  public static abstract class Validator<T> {
+
+    public final T validate(final T argument) throws IllegalArgumentException {
+      if (!isValid(argument))
+        throw new IllegalArgumentException(invalidMessage(argument));
+      return argument;
+    }
+
+    public abstract boolean isValid(final T argument);
+
+    public abstract String invalidMessage(final T argument);
+
+    public Validator<T> and(final Validator<T> other) {
+      if (other == null)
+        return this;
+      final Validator<T> mine = this;
+      return new Validator<T>() {
+
+        @Override
+        public boolean isValid(T argument) {
+          return mine.isValid(argument) && other.isValid(argument);
+        }
+
+        @Override
+        public String invalidMessage(T argument) {
+          return (mine.isValid(argument) ? other : mine).invalidMessage(argument);
+        }
+
+      };
+    }
+  }
+
 }

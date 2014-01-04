@@ -25,12 +25,12 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.security.VisibilityConstraint;
@@ -62,7 +62,7 @@ public class CreateTableCommand extends Command {
 
     final String testTableName = cl.getArgs()[0];
 
-    if (!testTableName.matches(Constants.VALID_TABLE_NAME_REGEX)) {
+    if (!testTableName.matches(Tables.VALID_NAME_REGEX)) {
       shellState.getReader().println("Only letters, numbers and underscores are allowed for use in table names.");
       throw new IllegalArgumentException();
     }
