@@ -19,6 +19,7 @@ package org.apache.accumulo.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,6 +35,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -369,6 +371,90 @@ public class ShellServerIT extends SimpleMacIT {
     exec("listiter -scan", true, "Iterator xyzzy", true);
     exec("deletetable -f t");
 
+  }
+  
+  @Test(timeout = 30 * 1000)
+  public void setIterOptionPrompt() throws Exception {
+    Connector conn = getConnector();
+    String tableName = "setIterOptionPrompt";
+    
+    exec("createtable " + tableName);
+    input.set("\n\n");
+    // Setting a non-optiondescriber with no name should fail
+    exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 30", false);
+    
+    // Name as option will work
+    exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 30 -name cfcounter", true);
+
+    String expectedKey = "table.iterator.scan.cfcounter";
+    String expectedValue = "30,org.apache.accumulo.core.iterators.ColumnFamilyCounter";
+    TableOperations tops = conn.tableOperations();
+    checkTableForProperty(tops, tableName, expectedKey, expectedValue);
+
+    exec("deletetable " + tableName, true);
+    tableName = tableName + "1";
+    
+    exec("createtable " + tableName, true);
+    
+    input.set("customcfcounter\n\n");
+    
+    // Name on the CLI should override OptionDescriber (or user input name, in this case)
+    exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 30", true);
+    expectedKey = "table.iterator.scan.customcfcounter";
+    expectedValue = "30,org.apache.accumulo.core.iterators.ColumnFamilyCounter";
+    checkTableForProperty(tops, tableName, expectedKey, expectedValue);
+
+    exec("deletetable " + tableName, true);
+    tableName = tableName + "1";
+    
+    exec("createtable " + tableName, true);
+    
+    input.set("customcfcounter\nname1 value1\nname2 value2\n\n");
+    
+    // Name on the CLI should override OptionDescriber (or user input name, in this case)
+    exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 30", true);
+    expectedKey = "table.iterator.scan.customcfcounter";
+    expectedValue = "30,org.apache.accumulo.core.iterators.ColumnFamilyCounter";
+    checkTableForProperty(tops, tableName, expectedKey, expectedValue);
+    expectedKey = "table.iterator.scan.customcfcounter.opt.name1";
+    expectedValue = "value1";
+    checkTableForProperty(tops, tableName, expectedKey, expectedValue);
+    expectedKey = "table.iterator.scan.customcfcounter.opt.name2";
+    expectedValue = "value2";
+    checkTableForProperty(tops, tableName, expectedKey, expectedValue);
+
+    exec("deletetable " + tableName, true);
+    tableName = tableName + "1";
+    
+    exec("createtable " + tableName, true);
+    
+    input.set("\nname1 value1.1,value1.2,value1.3\nname2 value2\n\n");
+    
+    // Name on the CLI should override OptionDescriber (or user input name, in this case)
+    exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 30 -name cfcounter", true);
+    expectedKey = "table.iterator.scan.cfcounter";
+    expectedValue = "30,org.apache.accumulo.core.iterators.ColumnFamilyCounter";
+    checkTableForProperty(tops, tableName, expectedKey, expectedValue);
+    expectedKey = "table.iterator.scan.cfcounter.opt.name1";
+    expectedValue = "value1.1,value1.2,value1.3";
+    checkTableForProperty(tops, tableName, expectedKey, expectedValue);
+    expectedKey = "table.iterator.scan.cfcounter.opt.name2";
+    expectedValue = "value2";
+    checkTableForProperty(tops, tableName, expectedKey, expectedValue);
+  }
+  
+  protected void checkTableForProperty(TableOperations tops, String tableName, String expectedKey, String expectedValue) throws Exception {
+    for (int i = 0; i < 5; i++) {
+      for (Entry<String,String> entry : tops.getProperties(tableName)) {
+        if (expectedKey.equals(entry.getKey())) {
+          assertEquals(expectedValue, entry.getValue());
+          return;
+        }
+      }
+      Thread.sleep(500);
+    }
+    
+    fail("Failed to find expected property on " + tableName + ": " + expectedKey + "=" + expectedValue);
   }
 
   @Test(timeout = 30 * 1000)

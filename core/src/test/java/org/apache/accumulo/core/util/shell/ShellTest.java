@@ -19,9 +19,8 @@ package org.apache.accumulo.core.util.shell;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.io.FileDescriptor;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -52,6 +51,25 @@ public class ShellTest {
     }
   }
 
+  public static class StringInputStream extends InputStream {
+    private String source = "";
+    private int offset = 0;
+
+    @Override
+    public int read() throws IOException {
+      if (offset == source.length())
+        return '\n';
+      else
+        return source.charAt(offset++);
+    }
+
+    public void set(String other) {
+      source = other;
+      offset = 0;
+    }
+  }
+
+  private StringInputStream input;
   private TestOutputStream output;
   private Shell shell;
 
@@ -84,7 +102,8 @@ public class ShellTest {
   public void setup() throws IOException {
     Shell.log.setLevel(Level.OFF);
     output = new TestOutputStream();
-    shell = new Shell(new ConsoleReader(new FileInputStream(FileDescriptor.in), output));
+    input = new StringInputStream();
+    shell = new Shell(new ConsoleReader(input, output));
     shell.setLogErrorsToConsole();
     shell.config("--fake", "-u", "test", "-p", "secret");
   }
@@ -236,8 +255,16 @@ public class ShellTest {
     exec(cmdFullPackage, false, "class not found", true);
 
     String cmdNoOption = "setiter -class java.lang.String -p 1";
-    exec(cmdNoOption, false, "Loaded", true);
+    exec(cmdNoOption, false, "loaded successfully but does not implement SortedKeyValueIterator", true);
 
+    input.set("\n\n");
+    exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 30 -name foo", true);
+    
+    input.set("bar\nname value\n");
+    exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 31", true);
+    
+    //TODO can't verify this as config -t fails, functionality verified in ShellServerIT
+    
     exec("deletetable t -f", true, "Table: [t] has been deleted");
   }
 }

@@ -31,6 +31,8 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.OptionDescriber.IteratorOptions;
@@ -49,6 +51,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.vfs2.FileSystemException;
 
 public class SetIterCommand extends Command {
@@ -84,7 +87,19 @@ public class SetIterCommand extends Command {
 
     ClassLoader classloader = getClassLoader(cl, shellState);
 
-    final String name = cl.getOptionValue(nameOpt.getOpt(), setUpOptions(classloader, shellState.getReader(), classname, options));
+    // Get the iterator options, with potentially a name provided by the OptionDescriber impl or through user input
+    String configuredName = setUpOptions(classloader, shellState.getReader(), classname, options);
+
+    // Try to get the name provided by the setiter command
+    String name = cl.getOptionValue(nameOpt.getOpt(), null);
+    
+    // Cannot continue if no name is provided
+    if (null == name && null == configuredName) {
+      throw new IllegalArgumentException("No provided or default name for iterator");
+    } else if (null == name) {
+      // Fall back to the name from OptionDescriber or user input if none is provided on setiter option
+      name = configuredName;
+    }
 
     if (namespaces) {
       try {
@@ -240,11 +255,13 @@ public class SetIterCommand extends Command {
   private static String setUpOptions(ClassLoader classloader, final ConsoleReader reader, final String className, final Map<String,String> options)
       throws IOException, ShellCommandException {
     String input;
-    OptionDescriber skvi;
-    Class<? extends OptionDescriber> clazz;
+    @SuppressWarnings("rawtypes")
+    SortedKeyValueIterator untypedInstance;
+    @SuppressWarnings("rawtypes")
+    Class<? extends SortedKeyValueIterator> clazz;
     try {
-      clazz = classloader.loadClass(className).asSubclass(OptionDescriber.class);
-      skvi = clazz.newInstance();
+      clazz = classloader.loadClass(className).asSubclass(SortedKeyValueIterator.class);
+      untypedInstance = clazz.newInstance();
     } catch (ClassNotFoundException e) {
       StringBuilder msg = new StringBuilder("Unable to load ").append(className);
       if (className.indexOf('.') < 0) {
@@ -258,57 +275,45 @@ public class SetIterCommand extends Command {
     } catch (IllegalAccessException e) {
       throw new IllegalArgumentException(e.getMessage());
     } catch (ClassCastException e) {
-      StringBuilder msg = new StringBuilder("Loaded ");
-      msg.append(className).append(" but it does not implement ");
-      msg.append(OptionDescriber.class.getSimpleName());
-      msg.append("; use 'config -s' instead.");
+      StringBuilder msg = new StringBuilder(50);
+      msg.append(className).append(" loaded successfully but does not implement SortedKeyValueIterator.");
+      msg.append(" This class cannot be used with this command.");
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, msg.toString());
     }
 
-    final IteratorOptions itopts = skvi.describeOptions();
-    if (itopts.getName() == null) {
-      throw new IllegalArgumentException(className + " described its default distinguishing name as null");
+    @SuppressWarnings("unchecked")
+    SortedKeyValueIterator<Key,Value> skvi = (SortedKeyValueIterator<Key,Value>) untypedInstance;
+    OptionDescriber iterOptions = null;
+    if (OptionDescriber.class.isAssignableFrom(skvi.getClass())) {
+      iterOptions = (OptionDescriber) skvi;
     }
-    String shortClassName = className;
-    if (className.contains(".")) {
-      shortClassName = className.substring(className.lastIndexOf('.') + 1);
-    }
-    final Map<String,String> localOptions = new HashMap<String,String>();
-    do {
-      // clean up the overall options that caused things to fail
-      for (String key : localOptions.keySet()) {
-        options.remove(key);
+
+    String iteratorName;
+    if (null != iterOptions) {
+      final IteratorOptions itopts = iterOptions.describeOptions();
+      iteratorName = itopts.getName();
+      
+      if (iteratorName == null) {
+        throw new IllegalArgumentException(className + " described its default distinguishing name as null");
       }
-      localOptions.clear();
-
-      reader.println(itopts.getDescription());
-
-      String prompt;
-      if (itopts.getNamedOptions() != null) {
-        for (Entry<String,String> e : itopts.getNamedOptions().entrySet()) {
-          prompt = Shell.repeat("-", 10) + "> set " + shortClassName + " parameter " + e.getKey() + ", " + e.getValue() + ": ";
-          reader.flush();
-          input = reader.readLine(prompt);
-          if (input == null) {
-            reader.println();
-            throw new IOException("Input stream closed");
-          } else {
-            input = new String(input);
-          }
-          // Places all Parameters and Values into the LocalOptions, even if the value is "".
-          // This allows us to check for "" values when setting the iterators and allows us to remove
-          // the parameter and value from the table property.
-          localOptions.put(e.getKey(), input);
+      String shortClassName = className;
+      if (className.contains(".")) {
+        shortClassName = className.substring(className.lastIndexOf('.') + 1);
+      }
+      final Map<String,String> localOptions = new HashMap<String,String>();
+      do {
+        // clean up the overall options that caused things to fail
+        for (String key : localOptions.keySet()) {
+          options.remove(key);
         }
-      }
-
-      if (itopts.getUnnamedOptionDescriptions() != null) {
-        for (String desc : itopts.getUnnamedOptionDescriptions()) {
-          reader.println(Shell.repeat("-", 10) + "> entering options: " + desc);
-          input = "start";
-          while (true) {
-            prompt = Shell.repeat("-", 10) + "> set " + shortClassName + " option (<name> <value>, hit enter to skip): ";
-
+        localOptions.clear();
+  
+        reader.println(itopts.getDescription());
+  
+        String prompt;
+        if (itopts.getNamedOptions() != null) {
+          for (Entry<String,String> e : itopts.getNamedOptions().entrySet()) {
+            prompt = Shell.repeat("-", 10) + "> set " + shortClassName + " parameter " + e.getKey() + ", " + e.getValue() + ": ";
             reader.flush();
             input = reader.readLine(prompt);
             if (input == null) {
@@ -317,22 +322,77 @@ public class SetIterCommand extends Command {
             } else {
               input = new String(input);
             }
-
-            if (input.length() == 0)
-              break;
-
-            String[] sa = input.split(" ", 2);
-            localOptions.put(sa[0], sa[1]);
+            // Places all Parameters and Values into the LocalOptions, even if the value is "".
+            // This allows us to check for "" values when setting the iterators and allows us to remove
+            // the parameter and value from the table property.
+            localOptions.put(e.getKey(), input);
           }
         }
+  
+        if (itopts.getUnnamedOptionDescriptions() != null) {
+          for (String desc : itopts.getUnnamedOptionDescriptions()) {
+            reader.println(Shell.repeat("-", 10) + "> entering options: " + desc);
+            input = "start";
+            prompt = Shell.repeat("-", 10) + "> set " + shortClassName + " option (<name> <value>, hit enter to skip): ";
+            while (true) {
+              reader.flush();
+              input = reader.readLine(prompt);
+              if (input == null) {
+                reader.println();
+                throw new IOException("Input stream closed");
+              } else {
+                input = new String(input);
+              }
+  
+              if (input.length() == 0)
+                break;
+  
+              String[] sa = input.split(" ", 2);
+              localOptions.put(sa[0], sa[1]);
+            }
+          }
+        }
+  
+        options.putAll(localOptions);
+        if (!iterOptions.validateOptions(options))
+          reader.println("invalid options for " + clazz.getName());
+  
+      } while (!iterOptions.validateOptions(options));
+    } else {
+      reader.flush();
+      reader.println("The iterator class does not implement OptionDescriber. Consider this for better iterator configuration using this setiter command.");
+      iteratorName = reader.readLine("Name for iterator (enter to skip): ");
+      if (null == iteratorName) {
+        reader.println();
+        throw new IOException("Input stream closed");
+      } else if (StringUtils.isWhitespace(iteratorName)) {
+        // Treat whitespace or empty string as no name provided
+        iteratorName = null;
       }
+      
+      reader.flush();
+      reader.println("Optional, configure name-value options for iterator:");
+      String prompt = Shell.repeat("-", 10) + "> set option (<name> <value>, hit enter to skip): ";
+      final HashMap<String,String> localOptions = new HashMap<String,String>();
+      
+      while (true) {
+        reader.flush();
+        input = reader.readLine(prompt);
+        if (input == null) {
+          reader.println();
+          throw new IOException("Input stream closed");
+        } else if (StringUtils.isWhitespace(input)) {
+          break;
+        } 
 
+        String[] sa = input.split(" ", 2);
+        localOptions.put(sa[0], sa[1]);
+      }
+      
       options.putAll(localOptions);
-      if (!skvi.validateOptions(options))
-        reader.println("invalid options for " + clazz.getName());
-
-    } while (!skvi.validateOptions(options));
-    return itopts.getName();
+    }
+    
+    return iteratorName;
   }
 
   @Override
