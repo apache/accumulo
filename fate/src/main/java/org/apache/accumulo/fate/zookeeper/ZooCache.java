@@ -307,11 +307,4 @@ public class ZooCache {
 
     return zc;
   }
-
-  public void close() {
-    cache.clear();
-    statCache.clear();
-    childrenCache.clear();
-    zReader.close();
-  }
 }

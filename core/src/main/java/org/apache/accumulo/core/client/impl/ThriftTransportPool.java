@@ -79,15 +79,13 @@ public class ThriftTransportPool {
   
   private static class Closer implements Runnable {
     final ThriftTransportPool pool;
-    final AtomicBoolean stop;
     
-    public Closer(ThriftTransportPool pool, AtomicBoolean stop) {
+    public Closer(ThriftTransportPool pool) {
       this.pool = pool;
-      this.stop = stop;
     }
     
     public void run() {
-      while (!stop.get()) {
+      while (true) {
         
         ArrayList<CachedConnection> connectionsToClose = new ArrayList<CachedConnection>();
         
@@ -570,7 +568,6 @@ public class ThriftTransportPool {
   
   private static ThriftTransportPool instance = new ThriftTransportPool();
   private static final AtomicBoolean daemonStarted = new AtomicBoolean(false);
-  private static AtomicBoolean stopDaemon;
   
   public static ThriftTransportPool getInstance() {
     SecurityManager sm = System.getSecurityManager();
@@ -579,15 +576,8 @@ public class ThriftTransportPool {
     }
     
     if (daemonStarted.compareAndSet(false, true)) {
-      stopDaemon = new AtomicBoolean(false);
-      new Daemon(new Closer(instance, stopDaemon), "Thrift Connection Pool Checker").start();
+      new Daemon(new Closer(instance), "Thrift Connection Pool Checker").start();
     }
     return instance;
-  }
-  
-  public static void close() {
-    if (daemonStarted.compareAndSet(true, false)) {
-      stopDaemon.set(true);
-    }
   }
 }

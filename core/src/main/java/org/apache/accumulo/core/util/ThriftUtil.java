@@ -208,10 +208,6 @@ public class ThriftUtil {
     }
   }
 
-  public static void close() {
-    ThriftTransportPool.close();
-  }
-
   public static TTransport createClientTransport(HostAndPort address, int timeout, SslConnectionParams sslParams) throws TTransportException {
     boolean success = false;
     TTransport transport = null;
