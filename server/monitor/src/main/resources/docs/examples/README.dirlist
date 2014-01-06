@@ -62,7 +62,7 @@ To count the number of direct children (directories and files) and descendants (
 The results are written back to the same table.  FileCount reads from and writes to Accumulo.  This requires scan authorizations for the read and a visibility for the data written.
 In this example, the authorizations and visibility are set to the same value, exampleVis.  See README.visibility for more information on visibility and authorizations.
 
-    $ ./bin/accumulo org.apache.accumulo.examples.simple.dirlist.FileCount instance zookeepers username password dirTable exampleVis exampleVis
+    $ ./bin/accumulo org.apache.accumulo.examples.simple.dirlist.FileCount -i instance -z zookeepers -u username -p password -t dirTable --auths exampleVis
 
 ## Directory Table
 

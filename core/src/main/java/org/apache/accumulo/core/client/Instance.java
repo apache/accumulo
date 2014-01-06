@@ -120,13 +120,7 @@ public interface Instance {
    */
   @Deprecated
   public abstract Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException;
-
-  /**
-   * Closes up the instance to free up all associated resources. You should try to reuse an Instance as much as you can because there is some location caching
-   * stored which will enhance performance.
-   */
-  public abstract void close();
-
+  
   /**
    * Returns the AccumuloConfiguration to use when interacting with this instance.
    * 

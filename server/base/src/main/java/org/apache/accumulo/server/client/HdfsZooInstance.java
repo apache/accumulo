@@ -188,10 +188,4 @@ public class HdfsZooInstance implements Instance {
     System.out.println("ZooKeepers: " + instance.getZooKeepers());
     System.out.println("Masters: " + StringUtil.join(instance.getMasterLocations(), ", "));
   }
-
-  @Override
-  public void close() {
-    zooCache.close();
-  }
-
 }

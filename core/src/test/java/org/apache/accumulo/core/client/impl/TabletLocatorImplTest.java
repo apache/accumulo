@@ -461,11 +461,6 @@ public class TabletLocatorImplTest extends TestCase {
     public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
       throw new UnsupportedOperationException();
     }
-
-    @Override
-    public void close() {
-      // NOOP
-    }
   }
 
   static class TServers {
