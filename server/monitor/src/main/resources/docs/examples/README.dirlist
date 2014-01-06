@@ -56,7 +56,7 @@ To perform searches on file or directory names, also use QueryUtil.java.  Search
     $ ./bin/accumulo org.apache.accumulo.examples.simple.dirlist.QueryUtil -i instance -z zookeepers -u username -p password -t indexTable --auths exampleVis --path filename --search
     $ ./bin/accumulo org.apache.accumulo.examples.simple.dirlist.QueryUtil -i instance -z zookeepers -u username -p password -t indexTable --auths exampleVis --path 'filename*' --search
     $ ./bin/accumulo org.apache.accumulo.examples.simple.dirlist.QueryUtil -i instance -z zookeepers -u username -p password -t indexTable --auths exampleVis --path '*jar' --search
-    $ ./bin/accumulo org.apache.accumulo.examples.simple.dirlist.QueryUtil -i instance -z zookeepers -u username -p password -t indexTable --auths exampleVis iipath 'filename*jar' --search
+    $ ./bin/accumulo org.apache.accumulo.examples.simple.dirlist.QueryUtil -i instance -z zookeepers -u username -p password -t indexTable --auths exampleVis --path 'filename*jar' --search
 
 To count the number of direct children (directories and files) and descendants (children and children's descendants, directories and files), run the FileCount over the dirTable table.
 The results are written back to the same table.  FileCount reads from and writes to Accumulo.  This requires scan authorizations for the read and a visibility for the data written.
