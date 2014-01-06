@@ -625,12 +625,10 @@ public class InputConfigurator extends ConfiguratorBase {
     if (!"MockInstance".equals(instanceKey) && !"ZooKeeperInstance".equals(instanceKey))
       throw new IOException("Instance info has not been set.");
     // validate that we can connect as configured
-    Instance inst = getInstance(implementingClass, conf);
     try {
       String principal = getPrincipal(implementingClass, conf);
       AuthenticationToken token = getAuthenticationToken(implementingClass, conf);
-
-      Connector c = inst.getConnector(principal, token);
+      Connector c = getInstance(implementingClass, conf).getConnector(principal, token);
       if (!c.securityOperations().authenticateUser(principal, token))
         throw new IOException("Unable to authenticate user");
 
@@ -658,8 +656,6 @@ public class InputConfigurator extends ConfiguratorBase {
       throw new IOException(e);
     } catch (TableNotFoundException e) {
       throw new IOException(e);
-    } finally {
-      inst.close();
     }
   }
 
