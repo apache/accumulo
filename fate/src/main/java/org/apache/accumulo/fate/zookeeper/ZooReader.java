@@ -28,7 +28,6 @@ import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 
 public class ZooReader implements IZooReader {
-
   protected String keepers;
   protected int timeout;
 
@@ -102,16 +101,5 @@ public class ZooReader implements IZooReader {
   public ZooReader(String keepers, int timeout) {
     this.keepers = keepers;
     this.timeout = timeout;
-  }
-
-  /**
-   * Closes this reader. If closure of the underlying session is interrupted, this method sets the calling thread's interrupt status.
-   */
-  public void close() {
-    try {
-      getZooKeeper().close();
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-    }
   }
 }

@@ -163,9 +163,4 @@ public class MockInstance implements Instance {
       throw new AccumuloSecurityException(principal, SecurityErrorCode.BAD_CREDENTIALS);
     return conn;
   }
-
-  @Override
-  public void close() {
-    // NOOP
-  }
 }
