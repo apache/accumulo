@@ -71,17 +71,30 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   
   static public long getMemoryInBytes(String str) {
     int multiplier = 0;
-    switch (str.charAt(str.length() - 1)) {
-      case 'G':
-        multiplier += 10;
-      case 'M':
-        multiplier += 10;
-      case 'K':
-        multiplier += 10;
-      case 'B':
-        return Long.parseLong(str.substring(0, str.length() - 1)) << multiplier;
-      default:
-        return Long.parseLong(str);
+    char lastChar = str.charAt(str.length() - 1);
+    
+    if (lastChar == 'b') {
+      log.warn("The 'b' in " + str + 
+          " is being considered as bytes. " + 
+          "Setting memory by bits is not supported");
+    }
+    try {
+      switch (Character.toUpperCase(lastChar)) {
+        case 'G':
+          multiplier += 10;
+        case 'M':
+          multiplier += 10;
+        case 'K':
+          multiplier += 10;
+        case 'B':
+          return Long.parseLong(str.substring(0, str.length() - 1)) << multiplier;
+        default:
+          return Long.parseLong(str);
+      }
+    } catch (Exception ex) {
+      throw new IllegalArgumentException("The value '" + str + 
+          "' is not a valid memory setting. A valid value would a number " +
+          "possibily followed by an optional 'G', 'M', 'K', or 'B'.");
     }
   }
   
