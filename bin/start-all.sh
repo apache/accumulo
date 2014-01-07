@@ -67,9 +67,9 @@ if [[ -r $ACCUMULO_CONF_DIR/gc ]]; then
 else
     GC=$MASTER1
 fi
-for gc in "$GC"
+for gc in $GC
 do
-    ${bin}/start-server.sh $gc gc "garbage collector"
+    ${bin}/start-server.sh "$gc" gc "garbage collector"
 done
 
 ${bin}/start-server.sh $MONITOR monitor 
@@ -79,7 +79,7 @@ if [[ -r $ACCUMULO_CONF_DIR/tracers ]]; then
 else
     TRACERS=$MASTER1
 fi
-for tracer in "$TRACERS"
+for tracer in $TRACERS
 do
-   ${bin}/start-server.sh $tracer tracer
+   ${bin}/start-server.sh "$tracer" tracer
 done
