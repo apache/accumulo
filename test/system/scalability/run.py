@@ -189,8 +189,10 @@ def main():
     log('Creating test directory structure')
     testDir = 'test-%d' % time.time()
     nodesDir = testDir+'/nodes'
+    resultsDir = testDir+'/results'
     syscall('mkdir %s' % testDir)
     syscall('mkdir %s' % nodesDir)
+    syscall('mkdir %s' % resultsDir)
 
     log('Removing current /accumulo-scale directory')
     syscall('hadoop fs -rmr /accumulo-scale')
