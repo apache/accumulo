@@ -535,13 +535,13 @@ public class SimpleGarbageCollector implements Iface {
     int port = ServerConfiguration.getSystemConfiguration(instance).getPort(Property.GC_PORT);
     long maxMessageSize = ServerConfiguration.getSystemConfiguration(instance).getMemoryInBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
     HostAndPort result = HostAndPort.fromParts(opts.getAddress(), port);
+    log.debug("Starting garbage collector listening on " + result);
     try {
-      port = TServerUtils.startTServer(result, processor, this.getClass().getSimpleName(), "GC Monitor Service", 2, 1000, maxMessageSize).address.getPort();
+      return TServerUtils.startTServer(result, processor, this.getClass().getSimpleName(), "GC Monitor Service", 2, 1000, maxMessageSize).address;
     } catch (Exception ex) {
       log.fatal(ex, ex);
       throw new RuntimeException(ex);
     }
-    return result;
   }
   
 

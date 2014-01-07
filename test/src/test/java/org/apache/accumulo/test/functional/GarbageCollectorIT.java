@@ -18,14 +18,18 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertTrue;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -36,27 +40,36 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.core.util.ServerServices;
+import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.minicluster.ProcessReference;
 import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.zookeeper.KeeperException.NoNodeException;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class GarbageCollectorIT extends ConfigurableMacIT {
-
+  private static final String OUR_SECRET = "itsreallysecret";
+  
   @Override
   public void configure(MiniAccumuloConfig cfg) {
     Map<String,String> settings = new HashMap<String,String>();
+    settings.put(Property.INSTANCE_SECRET.getKey(), OUR_SECRET);
     settings.put(Property.GC_CYCLE_START.getKey(), "1");
     settings.put(Property.GC_CYCLE_DELAY.getKey(), "1");
+    settings.put(Property.GC_PORT.getKey(), "0");
     settings.put(Property.TSERV_MAXMEM.getKey(), "5K");
     settings.put(Property.TSERV_MAJC_DELAY.getKey(), "1");
     cfg.setSiteConfig(settings);
@@ -83,11 +96,14 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
       before = more;
     }
     Process gc = cluster.exec(SimpleGarbageCollector.class);
-    UtilWaitThread.sleep(10 * 1000);
-    int after = countFiles();
-    VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
-    assertTrue(after < before);
-    gc.destroy();
+    try {
+      UtilWaitThread.sleep(10 * 1000);
+      int after = countFiles();
+      VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
+      assertTrue(after < before);
+    } finally {
+      gc.destroy();
+    }
   }
 
   @Test(timeout = 4 * 60 * 1000)
@@ -124,6 +140,56 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     for (@SuppressWarnings("unused")
     Entry<Key,Value> unused : scanner) {
 
+    }
+  }
+
+  @Test(timeout = 60 * 1000)
+  public void testProperPortAdvertisement() throws Exception {
+    Process gc = cluster.exec(SimpleGarbageCollector.class);
+    Connector conn = getConnector();
+    Instance instance = conn.getInstance();
+    
+    try {
+      ZooReaderWriter zk = new ZooReaderWriter(cluster.getZooKeepers(), 30000, OUR_SECRET);
+      String path = ZooUtil.getRoot(instance) + Constants.ZGC_LOCK;
+      for (int i = 0; i < 5; i++) {
+        List<String> locks;
+        try {
+          locks = zk.getChildren(path, null);
+        } catch (NoNodeException e ) {
+          Thread.sleep(5000);
+          continue;
+        }
+  
+        if (locks != null && locks.size() > 0) {
+          Collections.sort(locks);
+          
+          String lockPath = path + "/" + locks.get(0);
+          
+          String gcLoc = new String(zk.getData(lockPath, null));
+  
+          Assert.assertTrue("Found unexpected data in zookeeper for GC location: " + gcLoc, gcLoc.startsWith(Service.GC_CLIENT.name()));
+          int loc = gcLoc.indexOf(ServerServices.SEPARATOR_CHAR);
+          Assert.assertNotEquals("Could not find split point of GC location for: " + gcLoc, -1, loc);
+          String addr = gcLoc.substring(loc + 1);
+          
+          int addrSplit = addr.indexOf(':');
+          Assert.assertNotEquals("Could not find split of GC host:port for: " + addr, -1, addrSplit);
+          
+          String host = addr.substring(0, addrSplit), port = addr.substring(addrSplit + 1);
+          // We shouldn't have the "bindall" address in zk
+          Assert.assertNotEquals("0.0.0.0", host);
+          // Nor should we have the "random port" in zk
+          Assert.assertNotEquals(0, Integer.parseInt(port));
+          return;
+        }
+        
+        Thread.sleep(5000);
+      }
+      
+      Assert.fail("Could not find advertised GC address");
+    } finally {
+      gc.destroy();
     }
   }
 
