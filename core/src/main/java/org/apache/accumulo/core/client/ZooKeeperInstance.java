@@ -37,7 +37,6 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.hadoop.fs.FileStatus;
@@ -222,12 +221,12 @@ public class ZooKeeperInstance implements Instance {
   public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
     return getConnector(CredentialHelper.create(principal, token, getInstanceID()));
   }
-  
+
   @SuppressWarnings("deprecation")
   private Connector getConnector(TCredentials credential) throws AccumuloException, AccumuloSecurityException {
     return new ConnectorImpl(this, credential);
   }
-  
+
   @Override
   @Deprecated
   public Connector getConnector(String principal, byte[] pass) throws AccumuloException, AccumuloSecurityException {
@@ -255,7 +254,7 @@ public class ZooKeeperInstance implements Instance {
   public static String lookupInstanceName(org.apache.accumulo.core.zookeeper.ZooCache zooCache, UUID instanceId) {
     return lookupInstanceName((ZooCache) zooCache, instanceId);
   }
-  
+
   /**
    * Given a zooCache and instanceId, look up the instance name.
    * 
@@ -275,7 +274,7 @@ public class ZooKeeperInstance implements Instance {
     }
     return null;
   }
-  
+
   /**
    * To be moved to server code. Only lives here to support certain client side utilities to minimize command-line options.
    */
@@ -304,7 +303,7 @@ public class ZooKeeperInstance implements Instance {
       throw new RuntimeException("Accumulo not initialized, there is no instance id at " + instanceDirectory, e);
     }
   }
-  
+
   @Deprecated
   @Override
   public Connector getConnector(org.apache.accumulo.core.security.thrift.AuthInfo auth) throws AccumuloException, AccumuloSecurityException {

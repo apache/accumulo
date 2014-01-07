@@ -24,6 +24,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -49,10 +50,9 @@ public class CleanUpTest extends FunctionalTest {
   @Override
   public void run() throws Exception {
 
-
     getConnector().tableOperations().create("test");
 
-    BatchWriter bw = getConnector().createBatchWriter("test", 1000000, 60000, 1);
+    BatchWriter bw = getConnector().createBatchWriter("test", new BatchWriterConfig());
 
     Mutation m1 = new Mutation("r1");
     m1.put("cf1", "cq1", 1, "5");
