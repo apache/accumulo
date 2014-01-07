@@ -262,13 +262,33 @@
       </build>
     </profile>
     <profile>
-      <!-- profile for building against Hadoop 1.2.x
-      Activate using: mvn -Dhadoop.profile=1.2 -->
-      <id>hadoop-1.2</id>
+      <id>hadoop-default</id>
+      <activation>
+        <property>
+          <name>!hadoop.profile</name>
+        </property>
+      </activation>
+      <properties>
+        <!-- Denotes intention and allows the enforcer plugin to pass when
+             the user is relying on default behavior; won't work to activate profile -->
+        <hadoop.profile>2</hadoop.profile>
+      </properties>
+      <dependencies>
+        <dependency>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-distcp</artifactId>
+          <scope>test</scope>
+        </dependency>
+      </dependencies>
+    </profile>
+    <!-- profile for building against Hadoop 1.x
+    Activate using: mvn -Dhadoop.profile=1 -->
+    <profile>
+      <id>hadoop-1</id>
       <activation>
         <property>
           <name>hadoop.profile</name>
-          <value>1.2</value>
+          <value>1</value>
         </property>
       </activation>
       <dependencies>
@@ -279,13 +299,15 @@
         </dependency>
       </dependencies>
     </profile>
+    <!-- profile for building against Hadoop 2.x
+     XXX Since this is the default, make sure to sync hadoop-default when changing.
+    Activate using: mvn -Dhadoop.profile=2 -->
     <profile>
-      <!-- profile for building against Hadoop 2.2.x
-      Activate by not specifying hadoop.profile -->
-      <id>hadoop-2.2</id>
+      <id>hadoop-2</id>
       <activation>
         <property>
-          <name>!hadoop.profile</name>
+          <name>hadoop.profile</name>
+          <value>2</value>
         </property>
       </activation>
       <dependencies>

@@ -26,13 +26,13 @@ Hadoop 1.2.x or Apache Hadoop 2.2.x releases.
   mvn package -P assemble
 
 By default, Accumulo compiles against Apache Hadoop 2.2.0. To compile against 
-a  different 2.2-compatible version, specify the profile and version, 
+a  different Hadoop 2-compatible version, specify the profile and version,
 e.g. "-Dhadoop.version=0.23.5".
 
 To compile against Apache Hadoop 1.2.1, or a different version that is compatible 
-with Hadoop 1.0, specify hadoop.profile and hadoop.version on the command line,
-e.g. "-Dhadoop.profile=1.2 -Dhadoop.version=0.20.205.0" or 
-     "-Dhadoop.profile=1.2 -Dhadoop.version=1.1.0".  
+with Hadoop 1, specify hadoop.profile and hadoop.version on the command line,
+e.g. "-Dhadoop.profile=1 -Dhadoop.version=0.20.205.0" or
+     "-Dhadoop.profile=1 -Dhadoop.version=1.1.0".
 
 If you are running on another Unix-like operating system (OSX, etc) then
 you may wish to build the native libraries.  They are not strictly necessary
