@@ -59,7 +59,7 @@ public class TableManager {
 
   public static void prepareNewNamespaceState(String instanceId, String namespaceId, String namespace, NodeExistsPolicy existsPolicy) throws KeeperException,
       InterruptedException {
-    // state gets created last
+    log.debug("Creating ZooKeeper entries for new namespace " + namespace + " (ID: " + namespaceId + ")");
     String zPath = Constants.ZROOT + "/" + instanceId + Constants.ZNAMESPACES + "/" + namespaceId;
 
     IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
@@ -71,6 +71,7 @@ public class TableManager {
   public static void prepareNewTableState(String instanceId, String tableId, String namespaceId, String tableName, TableState state,
       NodeExistsPolicy existsPolicy) throws KeeperException, InterruptedException {
     // state gets created last
+    log.debug("Creating ZooKeeper entries for new table " + tableName + " (ID: " + tableId + ") in namespace (ID: " + namespaceId + ")");
     Pair<String,String> qualifiedTableName = Tables.qualify(tableName);
     tableName = qualifiedTableName.getSecond();
     String zTablePath = Constants.ZROOT + "/" + instanceId + Constants.ZTABLES + "/" + tableId;
@@ -79,10 +80,10 @@ public class TableManager {
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_CONF, new byte[0], existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_NAMESPACE, namespaceId.getBytes(Constants.UTF8), existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_NAME, tableName.getBytes(Constants.UTF8), existsPolicy);
-    zoo.putPersistentData(zTablePath + Constants.ZTABLE_STATE, state.name().getBytes(Constants.UTF8), existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_FLUSH_ID, "0".getBytes(Constants.UTF8), existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_COMPACT_ID, "0".getBytes(Constants.UTF8), existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_COMPACT_CANCEL_ID, "0".getBytes(Constants.UTF8), existsPolicy);
+    zoo.putPersistentData(zTablePath + Constants.ZTABLE_STATE, state.name().getBytes(Constants.UTF8), existsPolicy);
   }
 
   public synchronized static TableManager getInstance() {
