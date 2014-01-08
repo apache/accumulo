@@ -16,12 +16,11 @@
  */
 package org.apache.accumulo.core.security.crypto;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PushbackInputStream;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -50,7 +49,8 @@ import org.apache.log4j.Logger;
  */
 public class DefaultCryptoModule implements CryptoModule {
   
-  private static final String ENCRYPTION_HEADER_MARKER = "---Log File Encrypted (v1)---";
+  private static final String ENCRYPTION_HEADER_MARKER_V1 = "---Log File Encrypted (v1)---";
+  private static final String ENCRYPTION_HEADER_MARKER_V2 = "---Log File Encrypted (v2)---";
   private static Logger log = Logger.getLogger(DefaultCryptoModule.class);
   
   public DefaultCryptoModule() {}
@@ -249,16 +249,17 @@ public class DefaultCryptoModule implements CryptoModule {
     }
     
     CipherOutputStream cipherOutputStream = new CipherOutputStream(params.getPlaintextOutputStream(), params.getCipher());
-    BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(cipherOutputStream);    
+    BlockedOutputStream blockedOutputStream = new BlockedOutputStream(cipherOutputStream, params.getCipher().getBlockSize(), params.getBlockStreamSize());
     
-    params.setEncryptedOutputStream(bufferedOutputStream);
+    
+    params.setEncryptedOutputStream(blockedOutputStream);
     
     if (params.getRecordParametersToStream()) {
       DataOutputStream dataOut = new DataOutputStream(params.getPlaintextOutputStream());
       
       // Write a marker to indicate this is an encrypted log file (in case we read it a plain one and need to
       // not try to decrypt it. Can happen during a failure when the log's encryption settings are changing.      
-      dataOut.writeUTF(ENCRYPTION_HEADER_MARKER);
+      dataOut.writeUTF(ENCRYPTION_HEADER_MARKER_V2);
       
       
       // Write out all the parameters
@@ -281,6 +282,7 @@ public class DefaultCryptoModule implements CryptoModule {
       dataOut.writeUTF(params.getOpaqueKeyEncryptionKeyID());
       dataOut.writeInt(params.getEncryptedKey().length);
       dataOut.write(params.getEncryptedKey());
+      dataOut.writeInt(params.getBlockStreamSize());
     }
     
     return params;
@@ -295,7 +297,7 @@ public class DefaultCryptoModule implements CryptoModule {
       log.trace("About to read encryption parameters from underlying stream");
       
       String marker = dataIn.readUTF();
-      if (marker.equals(ENCRYPTION_HEADER_MARKER)) {
+      if (marker.equals(ENCRYPTION_HEADER_MARKER_V1) || marker.equals(ENCRYPTION_HEADER_MARKER_V2)) {
         
         Map<String, String> paramsFromFile = new HashMap<String, String>();
         
@@ -350,6 +352,10 @@ public class DefaultCryptoModule implements CryptoModule {
         
         params = keyEncryptionStrategy.decryptSecretKey(params);
         
+        if (marker.equals(ENCRYPTION_HEADER_MARKER_V2))
+          params.setBlockStreamSize(dataIn.readInt());
+        else
+          params.setBlockStreamSize(-1);
       } else {
         
         log.trace("Read something off of the encrypted input stream that was not the encryption header marker, so pushing back bytes and returning the given stream");
@@ -390,12 +396,14 @@ public class DefaultCryptoModule implements CryptoModule {
       throw new RuntimeException(e);
     }   
     
+    InputStream blockedDecryptingInputStream = new CipherInputStream(params.getEncryptedInputStream(), cipher);
     
-    BufferedInputStream bufferedDecryptingInputStream = new BufferedInputStream(new CipherInputStream(params.getEncryptedInputStream(), cipher));
+    if (params.getBlockStreamSize() != -1)
+      blockedDecryptingInputStream = new BlockedInputStream(blockedDecryptingInputStream, cipher.getBlockSize(), params.getBlockStreamSize());
 
     log.trace("Initialized cipher input stream with transformation ["+getCipherTransformation(params)+"]");
     
-    params.setPlaintextInputStream(bufferedDecryptingInputStream);
+    params.setPlaintextInputStream(blockedDecryptingInputStream);
 
     return params;
   }

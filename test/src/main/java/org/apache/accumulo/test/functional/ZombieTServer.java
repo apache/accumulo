@@ -99,7 +99,7 @@ public class ZombieTServer {
     final ThriftClientHandler tch = new ThriftClientHandler(instance, watcher);
     Processor<Iface> processor = new Processor<Iface>(tch);
     ServerAddress serverPort = TServerUtils.startTServer(HostAndPort.fromParts("0.0.0.0", port), processor, "ZombieTServer", "walking dead", 2, 1000,
-        10 * 1024 * 1024);
+        10 * 1024 * 1024, null, -1);
     
     String addressString = serverPort.address.toString();
     String zPath = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + addressString;

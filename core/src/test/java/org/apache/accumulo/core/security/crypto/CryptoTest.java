@@ -97,7 +97,7 @@ public class CryptoTest {
     assertNotNull(params);
     assertEquals("AES", params.getAlgorithmName());
     assertEquals("CFB", params.getEncryptionMode());
-    assertEquals("PKCS5Padding", params.getPadding());
+    assertEquals("NoPadding", params.getPadding());
     assertEquals(128, params.getKeyLength());
     assertEquals("SHA1PRNG", params.getRandomNumberGenerator());
     assertEquals("SUN", params.getRandomNumberGeneratorProvider());
@@ -206,7 +206,7 @@ public class CryptoTest {
   private byte[] setUpSampleEncryptedBytes(CryptoModule cryptoModule, CryptoModuleParameters params) throws IOException {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     
-    params.setPlaintextOutputStream(out);
+    params.setPlaintextOutputStream(new NoFlushOutputStream(out));
     
     params = cryptoModule.getEncryptingOutputStream(params);
     

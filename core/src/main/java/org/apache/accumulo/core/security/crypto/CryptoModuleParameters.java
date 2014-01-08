@@ -109,8 +109,8 @@ public class CryptoModuleParameters {
   /**
    * Sets the name of the padding type to use for an encryption stream.
    * <p>
-   * Valid names are names recognized by your cryptographic engine provider. For the default Java provider, valid names would include things like
-   * "PKCS5Padding", "None", etc.
+   * Valid names are names recognized by your cryptographic engine provider. For the default Java provider, valid names would include things like "NoPadding",
+   * "None", etc.
    * <p>
    * For <b>encryption</b>, this value is <b>required</b> and is always used. Its value should be prepended or otherwise included with the ciphertext for future
    * decryption. <br>
@@ -575,6 +575,20 @@ public class CryptoModuleParameters {
   }
   
   /**
+   * Gets the size of the buffering stream that sits above the cipher stream
+   */
+  public int getBlockStreamSize() {
+    return blockStreamSize;
+  }
+
+  /**
+   * Sets the size of the buffering stream that sits above the cipher stream
+   */
+  public void setBlockStreamSize(int blockStreamSize) {
+    this.blockStreamSize = blockStreamSize;
+  }
+
+  /**
    * Gets the overall set of options for the {@link CryptoModule}.
    * 
    * @see CryptoModuleParameters#setAllOptions(Map)
@@ -625,5 +639,5 @@ public class CryptoModuleParameters {
   private byte[] initializationVector;
   
   private Map<String,String> allOptions;
-  
+  private int blockStreamSize;
 }

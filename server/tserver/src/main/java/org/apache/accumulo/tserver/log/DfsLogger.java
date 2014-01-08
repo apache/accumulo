@@ -43,9 +43,11 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.security.crypto.CryptoModule;
 import org.apache.accumulo.core.security.crypto.CryptoModuleFactory;
 import org.apache.accumulo.core.security.crypto.CryptoModuleParameters;
 import org.apache.accumulo.core.security.crypto.DefaultCryptoModule;
+import org.apache.accumulo.core.security.crypto.NoFlushOutputStream;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.server.ServerConstants;
@@ -250,8 +252,7 @@ public class DfsLogger {
     if (Arrays.equals(magicBuffer, magic)) {
       // additional parameters it needs from the underlying stream.
       String cryptoModuleClassname = input.readUTF();
-      org.apache.accumulo.core.security.crypto.CryptoModule cryptoModule = org.apache.accumulo.core.security.crypto.CryptoModuleFactory
-          .getCryptoModule(cryptoModuleClassname);
+      CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(cryptoModuleClassname);
 
       // Create the parameters and set the input stream into those parameters
       CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
@@ -367,7 +368,7 @@ public class DfsLogger {
 
       CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf.getConfiguration());
       
-      params.setPlaintextOutputStream(logFile);
+      params.setPlaintextOutputStream(new NoFlushOutputStream(logFile));
       
       // In order to bootstrap the reading of this file later, we have to record the CryptoModule that was used to encipher it here,
       // so that that crypto module can re-read its own parameters.
@@ -397,6 +398,7 @@ public class DfsLogger {
       if (logFile != null)
         logFile.close();
       logFile = null;
+      encryptingLogFile = null;
       throw new IOException(ex);
     }
     
@@ -437,9 +439,9 @@ public class DfsLogger {
         }
     }
     
-    if (logFile != null)
+    if (encryptingLogFile != null)
       try {
-        logFile.close();
+        encryptingLogFile.close();
       } catch (IOException ex) {
         log.error(ex);
         throw new LogClosedException();
@@ -470,6 +472,7 @@ public class DfsLogger {
   private synchronized void write(LogFileKey key, LogFileValue value) throws IOException {
     key.write(encryptingLogFile);
     value.write(encryptingLogFile);
+    encryptingLogFile.flush();
   }
   
   public LoggerOperation log(int seq, int tid, Mutation mutation) throws IOException {
