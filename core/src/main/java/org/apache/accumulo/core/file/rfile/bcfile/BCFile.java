@@ -90,7 +90,6 @@ public final class BCFile {
     private final FSDataOutputStream out;
     private final Configuration conf;
     private final CryptoModule cryptoModule;
-    private final Map<String,String> cryptoConf;
     private BCFileCryptoModuleParameters cryptoParams;
     private SecretKeyEncryptionStrategy secretKeyEncryptionStrategy;
     // the single meta block containing index of compressed data blocks
@@ -363,16 +362,10 @@ public final class BCFile {
 
       @SuppressWarnings("deprecation")
       AccumuloConfiguration accumuloConfiguration = AccumuloConfiguration.getSiteConfiguration();
-      this.cryptoConf = accumuloConfiguration.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX);
 
       this.cryptoModule = CryptoModuleFactory.getCryptoModule(accumuloConfiguration);
-      Map<String,String> instanceProperties = accumuloConfiguration.getAllPropertiesWithPrefix(Property.INSTANCE_PREFIX);
-      if (instanceProperties != null) {
-        this.cryptoConf.putAll(instanceProperties);
-      }
-
       this.cryptoParams = new BCFileCryptoModuleParameters();
-      CryptoModuleFactory.fillParamsObjectFromStringMap(cryptoParams, cryptoConf);
+      CryptoModuleFactory.fillParamsObjectFromConfiguration(cryptoParams, accumuloConfiguration);
       this.cryptoParams = (BCFileCryptoModuleParameters) cryptoModule.generateNewRandomSessionKey(cryptoParams);
 
       this.secretKeyEncryptionStrategy = CryptoModuleFactory.getSecretKeyEncryptionStrategy(accumuloConfiguration);

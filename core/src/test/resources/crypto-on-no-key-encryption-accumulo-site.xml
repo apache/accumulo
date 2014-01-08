@@ -114,7 +114,7 @@
     </property>
     <property>
       <name>crypto.cipher.suite</name>
-      <value>AES/CFB/PKCS5Padding</value>
+      <value>AES/CFB/NoPadding</value>
     </property>
     <property>
       <name>crypto.cipher.algorithm.name</name>

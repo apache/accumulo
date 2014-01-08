@@ -1,0 +1,96 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.accumulo.core.security.crypto;
+
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
+
+// Buffers all input in a growing buffer until flush() is called. Then entire buffer is written, with size information, and padding to force the underlying 
+// crypto output stream to also fully flush
+public class BlockedOutputStream extends OutputStream {
+  int blockSize;
+  DataOutputStream out;
+  ByteBuffer bb;
+
+  public BlockedOutputStream(OutputStream out, int blockSize, int bufferSize) {
+    if (bufferSize <= 0)
+      throw new IllegalArgumentException("bufferSize must be greater than 0.");
+    if (out instanceof DataOutputStream)
+      this.out = (DataOutputStream) out;
+    else
+      this.out = new DataOutputStream(out);
+    this.blockSize = blockSize;
+    int remainder = bufferSize % blockSize;
+    if (remainder != 0)
+      remainder = blockSize - remainder;
+    // some buffer space + bytes to make the buffer evened up with the cipher block size - 4 bytes for the size int
+    bb = ByteBuffer.allocate(bufferSize + remainder - 4);
+  }
+
+  @Override
+  public void flush() throws IOException {
+    int size = bb.position();
+    if (size == 0)
+      return;
+    out.writeInt(size);
+
+    int remainder = ((size + 4) % blockSize);
+    if (remainder != 0)
+      remainder = blockSize - remainder;
+
+    // This is garbage
+    bb.position(bb.position() + remainder);
+    out.write(bb.array(), 0, size + remainder);
+
+    out.flush();
+    bb.rewind();
+  }
+
+  @Override
+  public void write(int b) throws IOException {
+    bb.put((byte) b);
+    if (bb.remaining() == 0)
+      flush();
+  }
+
+  @Override
+  public void write(byte b[], int off, int len) throws IOException {
+    if (bb.remaining() >= len) {
+      bb.put(b, off, len);
+      if (bb.remaining() == 0)
+        flush();
+    } else {
+      int remaining = bb.remaining();
+      write(b, off, remaining);
+      write(b, off + remaining, len - remaining);
+    }
+  }
+
+  @Override
+  public void write(byte b[]) throws IOException {
+    write(b, 0, b.length);
+  }
+
+  @Override
+  public void close() throws IOException {
+    flush();
+    bb = null;
+    out.close();
+  }
+}
