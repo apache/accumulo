@@ -29,7 +29,7 @@ public class Commit extends Test {
     state.getMultiTableBatchWriter().flush();
     
     log.debug("Committed " + state.getLong("numWrites") + " writes.  Total writes: " + state.getLong("totalWrites"));
-    state.set("numWrites", new Long(0));
+    state.set("numWrites", Long.valueOf(0));
   }
   
 }

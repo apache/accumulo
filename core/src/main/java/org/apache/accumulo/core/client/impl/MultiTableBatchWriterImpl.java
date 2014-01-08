@@ -91,7 +91,7 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
       String tableId = Tables.getNameToIdMap(instance).get(tableName);
 
       if (tableId == null)
-        throw new TableNotFoundException(tableId, tableName, null);
+        throw new TableNotFoundException(null, tableName, null);
 
       if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
         throw new TableOfflineException(instance, tableId);
@@ -215,12 +215,14 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
 
     String tableId = getId(tableName);
 
-    BatchWriter tbw = tableWriters.get(tableId);
-    if (tbw == null) {
-      tbw = new TableBatchWriter(tableId);
-      tableWriters.put(tableId, tbw);
+    synchronized (tableWriters) {
+      BatchWriter tbw = tableWriters.get(tableId);
+      if (tbw == null) {
+        tbw = new TableBatchWriter(tableId);
+        tableWriters.put(tableId, tbw);
+      }
+      return tbw;
     }
-    return tbw;
   }
 
   @Override

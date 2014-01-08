@@ -50,7 +50,7 @@ public interface CryptoModule {
    *         That stream may be exactly the same stream as {@link CryptoModuleParameters#getPlaintextInputStream()} if the params object specifies no cryptography.
    * @throws IOException
    */
-  public CryptoModuleParameters getEncryptingOutputStream(CryptoModuleParameters params) throws IOException;
+  CryptoModuleParameters getEncryptingOutputStream(CryptoModuleParameters params) throws IOException;
   
   
   
@@ -72,7 +72,7 @@ public interface CryptoModule {
    *         That stream may be exactly the same stream as {@link CryptoModuleParameters#getEncryptedInputStream()} if the params object specifies no cryptography.
    * @throws IOException
    */
-  public CryptoModuleParameters getDecryptingInputStream(CryptoModuleParameters params) throws IOException;
+  CryptoModuleParameters getDecryptingInputStream(CryptoModuleParameters params) throws IOException;
 
   
   /**
@@ -83,7 +83,7 @@ public interface CryptoModule {
    * @param params a {@link CryptoModuleParameters} object contained a correctly instantiated set of properties.
    * @return the same {@link CryptoModuleParameters} object with the plaintext key set
    */
-  public CryptoModuleParameters generateNewRandomSessionKey(CryptoModuleParameters params);
+  CryptoModuleParameters generateNewRandomSessionKey(CryptoModuleParameters params);
   
   /**
    * Generates a {@link Cipher} object based on the parameters in the given {@link CryptoModuleParameters} object and places it into the
@@ -93,6 +93,6 @@ public interface CryptoModule {
    * @param params a {@link CryptoModuleParameters} object contained a correctly instantiated set of properties.
    * @return the same {@link CryptoModuleParameters} object with the cipher set.
    */
-  public CryptoModuleParameters initializeCipher(CryptoModuleParameters params);
+  CryptoModuleParameters initializeCipher(CryptoModuleParameters params);
  
 }

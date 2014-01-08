@@ -35,7 +35,7 @@ public interface Scanner extends ScannerBase {
    * @deprecated Since 1.5. See {@link ScannerBase#setTimeout(long, java.util.concurrent.TimeUnit)}
    */
   @Deprecated
-  public void setTimeOut(int timeOut);
+  void setTimeOut(int timeOut);
   
   /**
    * Returns the setting for how long a scanner will automatically retry when a failure occurs.
@@ -44,7 +44,7 @@ public interface Scanner extends ScannerBase {
    * @deprecated Since 1.5. See {@link ScannerBase#getTimeout(java.util.concurrent.TimeUnit)}
    */
   @Deprecated
-  public int getTimeOut();
+  int getTimeOut();
   
   /**
    * Sets the range of keys to scan over.
@@ -52,14 +52,14 @@ public interface Scanner extends ScannerBase {
    * @param range
    *          key range to begin and end scan
    */
-  public void setRange(Range range);
+  void setRange(Range range);
   
   /**
    * Returns the range of keys to scan over.
    * 
    * @return the range configured for this scanner
    */
-  public Range getRange();
+  Range getRange();
   
   /**
    * Sets the number of Key/Value pairs that will be fetched at a time from a tablet server.
@@ -67,19 +67,19 @@ public interface Scanner extends ScannerBase {
    * @param size
    *          the number of Key/Value pairs to fetch per call to Accumulo
    */
-  public void setBatchSize(int size);
+  void setBatchSize(int size);
   
   /**
    * Returns the batch size (number of Key/Value pairs) that will be fetched at a time from a tablet server.
    * 
    * @return the batch size configured for this scanner
    */
-  public int getBatchSize();
+  int getBatchSize();
   
   /**
    * Enables row isolation. Writes that occur to a row after a scan of that row has begun will not be seen if this option is enabled.
    */
-  public void enableIsolation();
+  void enableIsolation();
   
   /**
    * Disables row isolation. Writes that occur to a row after a scan of that row has begun may be seen if this option is enabled.
@@ -91,12 +91,12 @@ public interface Scanner extends ScannerBase {
    * @return Number of batches before read-ahead begins
    * @since 1.6.0
    */
-  public long getReadaheadThreshold();
+  long getReadaheadThreshold();
   
   /**
    * Sets the number of batches of Key/Value pairs returned before the {@link Scanner} will begin to prefetch the next batch
    * @param batches Non-negative number of batches
    * @since 1.6.0
    */
-  public void setReadaheadThreshold(long batches); 
+  void setReadaheadThreshold(long batches); 
 }

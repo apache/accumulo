@@ -20,8 +20,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 
-import org.apache.accumulo.server.master.state.TabletLocationState;
-
 /**
  * Interface for storing information about tablet assignments. There are three implementations:
  * 

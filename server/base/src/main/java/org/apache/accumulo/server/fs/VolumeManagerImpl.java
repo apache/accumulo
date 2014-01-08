@@ -445,7 +445,7 @@ public class VolumeManagerImpl implements VolumeManager {
       if (uri1.getScheme().equals(uri3.getScheme())) {
         String a1 = uri1.getAuthority();
         String a2 = uri3.getAuthority();
-        if (a1 == a2 || (a1 != null && a1.equals(a2)))
+        if ((a1 == null && a2 == null) || (a1 != null && a1.equals(a2)))
           return new Path(option);
       }
     }

@@ -33,7 +33,6 @@ public class InsecureAuthenticator implements Authenticator {
   
   @Override
   public void initialize(String instanceId, boolean initialize) {
-    return;
   }
   
   @Override
@@ -43,7 +42,6 @@ public class InsecureAuthenticator implements Authenticator {
   
   @Override
   public void initializeSecurity(TCredentials credentials, String principal, byte[] token) throws AccumuloSecurityException {
-    return;
   }
   
   @Override
@@ -58,17 +56,14 @@ public class InsecureAuthenticator implements Authenticator {
   
   @Override
   public void createUser(String principal, AuthenticationToken token) throws AccumuloSecurityException {
-    return;
   }
   
   @Override
   public void dropUser(String user) throws AccumuloSecurityException {
-    return;
   }
   
   @Override
   public void changePassword(String user, AuthenticationToken token) throws AccumuloSecurityException {
-    return;
   }
   
   @Override

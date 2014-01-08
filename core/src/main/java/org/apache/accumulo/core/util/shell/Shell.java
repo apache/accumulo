@@ -877,9 +877,8 @@ public class Shell extends ShellOptions {
   }
 
   public interface PrintLine {
-    public void print(String s);
-
-    public void close();
+    void print(String s);
+    void close();
   }
 
   public static class PrintShell implements PrintLine {

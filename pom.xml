@@ -1073,6 +1073,7 @@
           <xmlOutput>true</xmlOutput>
           <effort>Max</effort>
           <threshold>Medium</threshold>
+          <failOnError>false</failOnError>
         </configuration>
       </plugin>
     </plugins>

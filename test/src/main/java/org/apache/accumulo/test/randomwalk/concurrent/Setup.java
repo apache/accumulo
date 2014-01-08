@@ -43,7 +43,7 @@ public class Setup extends Test {
     }
     
     // Make tables in the default namespace
-    double tableCeil = Math.ceil(numTables / (numNamespaces + 1));
+    double tableCeil = Math.ceil((double)numTables / (numNamespaces + 1));
     for (int i = 0; i < tableCeil; i++) {
       tables.add(String.format("ctt_%03d", i));
     }

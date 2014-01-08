@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -74,10 +75,10 @@ public class FileUtil {
   
   private static String createTmpDir(AccumuloConfiguration acuConf, FileSystem fs) throws IOException {
     String accumuloDir = acuConf.get(Property.INSTANCE_DFS_DIR);
-    
+    Random random = new Random();
     String tmpDir = null;
     while (tmpDir == null) {
-      tmpDir = accumuloDir + "/tmp/idxReduce_" + String.format("%09d", (int) (Math.random() * Integer.MAX_VALUE));
+      tmpDir = accumuloDir + "/tmp/idxReduce_" + String.format("%09d", random.nextInt(Integer.MAX_VALUE));
       
       try {
         fs.getFileStatus(new Path(tmpDir));
@@ -338,7 +339,7 @@ public class FileUtil {
       
       long t2 = System.currentTimeMillis();
       
-      log.debug(String.format("Found midPoint from indexes in %6.2f secs.%n", ((t2 - t1) / 1000.0)));
+      log.debug(String.format("Found midPoint from indexes in %6.2f secs.%n", (t2 - t1) / 1000.0));
       
       ret.put(.5, mmfi.getTopKey());
       

@@ -40,7 +40,7 @@ public interface BatchWriter {
    *           this could be thrown because current or previous mutations failed
    */
   
-  public void addMutation(Mutation m) throws MutationsRejectedException;
+  void addMutation(Mutation m) throws MutationsRejectedException;
   
   /**
    * Queues several mutations to write.
@@ -50,7 +50,7 @@ public interface BatchWriter {
    * @throws MutationsRejectedException
    *           this could be thrown because current or previous mutations failed
    */
-  public void addMutations(Iterable<Mutation> iterable) throws MutationsRejectedException;
+  void addMutations(Iterable<Mutation> iterable) throws MutationsRejectedException;
   
   /**
    * Send any buffered mutations to Accumulo immediately.
@@ -58,7 +58,7 @@ public interface BatchWriter {
    * @throws MutationsRejectedException
    *           this could be thrown because current or previous mutations failed
    */
-  public void flush() throws MutationsRejectedException;
+  void flush() throws MutationsRejectedException;
   
   /**
    * Flush and release any resources.
@@ -66,6 +66,6 @@ public interface BatchWriter {
    * @throws MutationsRejectedException
    *           this could be thrown because current or previous mutations failed
    */
-  public void close() throws MutationsRejectedException;
+  void close() throws MutationsRejectedException;
   
 }

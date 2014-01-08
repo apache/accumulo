@@ -50,9 +50,9 @@ public class BigDecimalCombinerTest {
     TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
     
     // keys that do not aggregate
-    CombinerTest.nkv(tm1, 1, 1, 1, 1, false, new BigDecimal(2), encoder);
-    CombinerTest.nkv(tm1, 1, 1, 1, 2, false, new BigDecimal(2.3), encoder);
-    CombinerTest.nkv(tm1, 1, 1, 1, 3, false, new BigDecimal(-1.4E1), encoder);
+    CombinerTest.nkv(tm1, 1, 1, 1, 1, false, BigDecimal.valueOf(2), encoder);
+    CombinerTest.nkv(tm1, 1, 1, 1, 2, false, BigDecimal.valueOf(2.3), encoder);
+    CombinerTest.nkv(tm1, 1, 1, 1, 3, false, BigDecimal.valueOf(-1.4E1), encoder);
     
     Combiner ai = new BigDecimalCombiner.BigDecimalSummingCombiner();
     IteratorSetting is = new IteratorSetting(1, BigDecimalCombiner.BigDecimalSummingCombiner.class);

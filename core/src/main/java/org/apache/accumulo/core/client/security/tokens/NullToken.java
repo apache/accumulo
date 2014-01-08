@@ -31,17 +31,14 @@ public class NullToken implements AuthenticationToken {
   
   @Override
   public void readFields(DataInput arg0) throws IOException {
-    return;
   }
   
   @Override
   public void write(DataOutput arg0) throws IOException {
-    return;
   }
   
   @Override
   public void destroy() throws DestroyFailedException {
-    return;
   }
   
   @Override

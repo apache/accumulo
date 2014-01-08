@@ -28,26 +28,26 @@ import java.io.IOException;
 
 public interface ABlockReader extends DataInput {
   
-  public long getRawSize();
+  long getRawSize();
   
-  public DataInputStream getStream() throws IOException;
+  DataInputStream getStream() throws IOException;
   
-  public void close() throws IOException;
+  void close() throws IOException;
   
   /**
    * An indexable block supports seeking, getting a position, and associating an arbitrary index with the block
    * 
    * @return true, if the block is indexable; otherwise false.
    */
-  public boolean isIndexable();
+  boolean isIndexable();
 
-  public void seek(int position);
+  void seek(int position);
 
   /** Get the file position.
 
    * @return the file position.
    */
-  public int getPosition();
+  int getPosition();
 
   <T> T getIndex(Class<T> clazz);
 }

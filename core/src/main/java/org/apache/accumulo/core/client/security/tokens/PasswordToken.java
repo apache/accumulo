@@ -40,7 +40,7 @@ public class PasswordToken implements AuthenticationToken {
   private byte[] password = null;
   
   public byte[] getPassword() {
-    return password;
+    return Arrays.copyOf(password, password.length);
   }
   
   /**

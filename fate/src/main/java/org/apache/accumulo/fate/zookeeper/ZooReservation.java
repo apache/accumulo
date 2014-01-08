@@ -45,7 +45,7 @@ public class ZooReservation {
         
         String idInZoo = new String(zooData).split(":")[0];
         
-        return idInZoo.equals(new String(reservationID));
+        return idInZoo.equals(reservationID);
       }
     }
     
@@ -65,8 +65,8 @@ public class ZooReservation {
     
     String idInZoo = new String(zooData).split(":")[0];
     
-    if (!idInZoo.equals(new String(reservationID))) {
-      throw new IllegalStateException("Tried to release reservation " + path + " with data mismatch " + new String(reservationID) + " " + new String(zooData));
+    if (!idInZoo.equals(reservationID)) {
+      throw new IllegalStateException("Tried to release reservation " + path + " with data mismatch " + reservationID + " " + new String(zooData));
     }
     
     zk.recursiveDelete(path, stat.getVersion(), NodeMissingPolicy.SKIP);

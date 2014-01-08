@@ -48,7 +48,7 @@ public interface SecurityOperations {
    * @deprecated since 1.5.0; use {@link #createLocalUser(String, PasswordToken)} or the user management functions of your configured authenticator instead.
    */
   @Deprecated
-  public void createUser(String user, byte[] password, Authorizations authorizations) throws AccumuloException, AccumuloSecurityException;
+  void createUser(String user, byte[] password, Authorizations authorizations) throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Create a user
@@ -63,7 +63,7 @@ public interface SecurityOperations {
    *           if the user does not have permission to create a user
    * @since 1.5.0
    */
-  public void createLocalUser(String principal, PasswordToken password) throws AccumuloException, AccumuloSecurityException;
+  void createLocalUser(String principal, PasswordToken password) throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Delete a user
@@ -77,7 +77,7 @@ public interface SecurityOperations {
    * @deprecated since 1.5.0; use {@link #dropUser(String)} or the user management functions of your configured authenticator instead.
    */
   @Deprecated
-  public void dropUser(String user) throws AccumuloException, AccumuloSecurityException;
+  void dropUser(String user) throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Delete a user
@@ -90,7 +90,7 @@ public interface SecurityOperations {
    *           if the user does not have permission to delete a user
    * @since 1.5.0
    */
-  public void dropLocalUser(String principal) throws AccumuloException, AccumuloSecurityException;
+  void dropLocalUser(String principal) throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Verify a username/password combination is valid
@@ -107,7 +107,7 @@ public interface SecurityOperations {
    * @deprecated since 1.5.0; use {@link #authenticateUser(String, AuthenticationToken)} instead.
    */
   @Deprecated
-  public boolean authenticateUser(String user, byte[] password) throws AccumuloException, AccumuloSecurityException;
+  boolean authenticateUser(String user, byte[] password) throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Verify a username/password combination is valid
@@ -123,7 +123,7 @@ public interface SecurityOperations {
    *           if the user does not have permission to ask
    * @since 1.5.0
    */
-  public boolean authenticateUser(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException;
+  boolean authenticateUser(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Set the user's password
@@ -140,7 +140,7 @@ public interface SecurityOperations {
    *             instead.
    */
   @Deprecated
-  public void changeUserPassword(String user, byte[] password) throws AccumuloException, AccumuloSecurityException;
+  void changeUserPassword(String user, byte[] password) throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Set the user's password
@@ -155,7 +155,7 @@ public interface SecurityOperations {
    *           if the user does not have permission to modify a user
    * @since 1.5.0
    */
-  public void changeLocalUserPassword(String principal, PasswordToken token) throws AccumuloException, AccumuloSecurityException;
+  void changeLocalUserPassword(String principal, PasswordToken token) throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Set the user's record-level authorizations
@@ -169,7 +169,7 @@ public interface SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to modify a user
    */
-  public void changeUserAuthorizations(String principal, Authorizations authorizations) throws AccumuloException, AccumuloSecurityException;
+  void changeUserAuthorizations(String principal, Authorizations authorizations) throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Retrieves the user's authorizations for scanning
@@ -182,7 +182,7 @@ public interface SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to query a user
    */
-  public Authorizations getUserAuthorizations(String principal) throws AccumuloException, AccumuloSecurityException;
+  Authorizations getUserAuthorizations(String principal) throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Verify the user has a particular system permission
@@ -197,7 +197,7 @@ public interface SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to query a user
    */
-  public boolean hasSystemPermission(String principal, SystemPermission perm) throws AccumuloException, AccumuloSecurityException;
+  boolean hasSystemPermission(String principal, SystemPermission perm) throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Verify the user has a particular table permission
@@ -214,7 +214,7 @@ public interface SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to query a user
    */
-  public boolean hasTablePermission(String principal, String table, TablePermission perm) throws AccumuloException, AccumuloSecurityException;
+  boolean hasTablePermission(String principal, String table, TablePermission perm) throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Verify the user has a particular namespace permission
@@ -231,7 +231,7 @@ public interface SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to query a user
    */
-  public boolean hasNamespacePermission(String principal, String namespace, NamespacePermission perm) throws AccumuloException, AccumuloSecurityException;
+  boolean hasNamespacePermission(String principal, String namespace, NamespacePermission perm) throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Grant a user a system permission
@@ -245,7 +245,7 @@ public interface SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to grant a user permissions
    */
-  public void grantSystemPermission(String principal, SystemPermission permission) throws AccumuloException, AccumuloSecurityException;
+  void grantSystemPermission(String principal, SystemPermission permission) throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Grant a user a specific permission for a specific table
@@ -261,7 +261,7 @@ public interface SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to grant a user permissions
    */
-  public void grantTablePermission(String principal, String table, TablePermission permission) throws AccumuloException, AccumuloSecurityException;
+  void grantTablePermission(String principal, String table, TablePermission permission) throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Grant a user a specific permission for a specific namespace
@@ -277,7 +277,7 @@ public interface SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to grant a user permissions
    */
-  public void grantNamespacePermission(String principal, String namespace, NamespacePermission permission) throws AccumuloException, AccumuloSecurityException;
+  void grantNamespacePermission(String principal, String namespace, NamespacePermission permission) throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Revoke a system permission from a user
@@ -291,7 +291,7 @@ public interface SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to revoke a user's permissions
    */
-  public void revokeSystemPermission(String principal, SystemPermission permission) throws AccumuloException, AccumuloSecurityException;
+  void revokeSystemPermission(String principal, SystemPermission permission) throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Revoke a table permission for a specific user on a specific table
@@ -307,7 +307,7 @@ public interface SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to revoke a user's permissions
    */
-  public void revokeTablePermission(String principal, String table, TablePermission permission) throws AccumuloException, AccumuloSecurityException;
+  void revokeTablePermission(String principal, String table, TablePermission permission) throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Revoke a namespace permission for a specific user on a specific namespace
@@ -323,7 +323,7 @@ public interface SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to revoke a user's permissions
    */
-  public void revokeNamespacePermission(String principal, String namespace, NamespacePermission permission) throws AccumuloException, AccumuloSecurityException;
+  void revokeNamespacePermission(String principal, String namespace, NamespacePermission permission) throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Return a list of users in accumulo
@@ -336,7 +336,7 @@ public interface SecurityOperations {
    * @deprecated since 1.5.0; use {@link #listLocalUsers()} or the user management functions of your configured authenticator instead.
    */
   @Deprecated
-  public Set<String> listUsers() throws AccumuloException, AccumuloSecurityException;
+  Set<String> listUsers() throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Return a list of users in accumulo
@@ -348,6 +348,6 @@ public interface SecurityOperations {
    *           if the user does not have permission to query users
    * @since 1.5.0
    */
-  public Set<String> listLocalUsers() throws AccumuloException, AccumuloSecurityException;
+  Set<String> listLocalUsers() throws AccumuloException, AccumuloSecurityException;
 
 }

@@ -39,6 +39,9 @@ public class ProcessReference {
 
   @Override
   public boolean equals(Object obj) {
-    return process.equals(obj);
+    if (obj instanceof Process) {
+      return process == obj;
+    }
+    return this == obj;
   }
 }

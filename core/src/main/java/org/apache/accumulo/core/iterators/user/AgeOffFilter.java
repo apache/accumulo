@@ -51,8 +51,6 @@ public class AgeOffFilter extends Filter {
   
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
-    super.init(source, options, env);
-    threshold = -1;
     if (options == null)
       throw new IllegalArgumentException(TTL + " must be set for AgeOffFilter");
     
@@ -60,6 +58,8 @@ public class AgeOffFilter extends Filter {
     if (ttl == null)
       throw new IllegalArgumentException(TTL + " must be set for AgeOffFilter");
     
+    super.init(source, options, env);
+    threshold = -1;
     threshold = Long.parseLong(ttl);
     
     String time = options.get(CURRENT_TIME);

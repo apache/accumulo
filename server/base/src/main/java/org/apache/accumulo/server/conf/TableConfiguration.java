@@ -51,13 +51,10 @@ public class TableConfiguration extends AccumuloConfiguration {
     this.observers = Collections.synchronizedSet(new HashSet<ConfigurationObserver>());
   }
 
-  private static ZooCache getTablePropCache() {
+  private synchronized static ZooCache getTablePropCache() {
     Instance inst = HdfsZooInstance.getInstance();
     if (tablePropCache == null)
-      synchronized (TableConfiguration.class) {
-        if (tablePropCache == null)
-          tablePropCache = new ZooCache(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), new TableConfWatcher(inst));
-      }
+	tablePropCache = new ZooCache(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), new TableConfWatcher(inst));
     return tablePropCache;
   }
 

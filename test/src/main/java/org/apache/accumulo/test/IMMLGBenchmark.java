@@ -135,6 +135,12 @@ public class IMMLGBenchmark {
     return t2 - t1;
     
   }
+  
+  static long abs(long l) {
+    if (l < 0)
+      return -l;
+    return l;
+  }
 
   private static long write(Connector conn, ArrayList<byte[]> cfset, String table) throws TableNotFoundException, MutationsRejectedException {
     Random rand = new Random();
@@ -146,7 +152,7 @@ public class IMMLGBenchmark {
     long t1 = System.currentTimeMillis();
 
     for (int i = 0; i < 1 << 15; i++) {
-      byte[] row = FastFormat.toZeroPaddedString(Math.abs(rand.nextLong()), 16, 16, new byte[0]);
+      byte[] row = FastFormat.toZeroPaddedString(abs(rand.nextLong()), 16, 16, new byte[0]);
       
       Mutation m = new Mutation(row);
       for (byte[] cf : cfset) {

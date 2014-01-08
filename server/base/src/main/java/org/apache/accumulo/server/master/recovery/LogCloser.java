@@ -23,5 +23,5 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
 
 public interface LogCloser {
-  public long close(AccumuloConfiguration conf, VolumeManager fs, Path path) throws IOException;
+  long close(AccumuloConfiguration conf, VolumeManager fs, Path path) throws IOException;
 }

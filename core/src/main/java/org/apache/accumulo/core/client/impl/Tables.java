@@ -134,7 +134,7 @@ public class Tables {
       // create fully qualified table name
       if (nId == null) {
         namespaceName = null;
-      } else if (nId != null) {
+      } else {
         String namespaceId = new String(nId, Constants.UTF8);
         if (!namespaceId.equals(Namespaces.DEFAULT_NAMESPACE_ID)) {
           try {
@@ -189,7 +189,7 @@ public class Tables {
   public static String getTableName(Instance instance, String tableId) throws TableNotFoundException {
     String tableName = getIdToNameMap(instance).get(tableId);
     if (tableName == null)
-      throw new TableNotFoundException(tableId, tableName, null);
+      throw new TableNotFoundException(tableId, null, null);
     return tableName;
   }
 

@@ -84,7 +84,7 @@ public class ConditionalMutation extends Mutation {
     if (o == this) {
       return true;
     }
-    if (o == null || o.getClass() != ConditionalMutation.class) {
+    if (o == null || !(o instanceof ConditionalMutation)) {
       return false;
     }
     ConditionalMutation cm = (ConditionalMutation) o;

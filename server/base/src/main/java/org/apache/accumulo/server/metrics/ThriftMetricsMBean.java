@@ -18,25 +18,25 @@ package org.apache.accumulo.server.metrics;
 
 public interface ThriftMetricsMBean {
   
-  public static final String idle = "idle";
-  public static final String execute = "execute";
+  static final String idle = "idle";
+  static final String execute = "execute";
   
-  public long getIdleCount();
+  long getIdleCount();
   
-  public long getIdleMinTime();
+  long getIdleMinTime();
   
-  public long getIdleMaxTime();
+  long getIdleMaxTime();
   
-  public long getIdleAvgTime();
+  long getIdleAvgTime();
   
-  public long getExecutionCount();
+  long getExecutionCount();
   
-  public long getExecutionMinTime();
+  long getExecutionMinTime();
   
-  public long getExecutionMaxTime();
+  long getExecutionMaxTime();
   
-  public long getExecutionAvgTime();
+  long getExecutionAvgTime();
   
-  public void reset();
+  void reset();
   
 }

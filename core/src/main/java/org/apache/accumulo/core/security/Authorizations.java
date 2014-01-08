@@ -274,7 +274,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
    * @return true if authorization is in this collection
    */
   public boolean contains(String auth) {
-    return auths.contains(auth.getBytes(Constants.UTF8));
+    return auths.contains(new ArrayByteSequence(auth));
   }
 
   @Override

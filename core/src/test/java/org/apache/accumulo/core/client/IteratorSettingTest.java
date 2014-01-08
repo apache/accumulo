@@ -36,7 +36,7 @@ public class IteratorSettingTest {
   IteratorSetting setting2 = new IteratorSetting(500, "combiner", Combiner.class.getName());
   IteratorSetting setting3 = new IteratorSetting(500, "combiner", Combiner.class.getName());
   IteratorSetting devnull = new IteratorSetting(500, "devNull", DevNull.class.getName());
-  IteratorSetting nullsetting = null;
+  final IteratorSetting nullsetting = null;
   IteratorSetting setting4 = new IteratorSetting(300, "combiner", Combiner.class.getName());
   IteratorSetting setting5 = new IteratorSetting(500, "foocombiner", Combiner.class.getName());
   IteratorSetting setting6 = new IteratorSetting(500, "combiner", "MySuperCombiner");

@@ -29,15 +29,19 @@ public class MiniDFSUtil {
     try {
       Process p = Runtime.getRuntime().exec("/bin/sh -c umask");
       BufferedReader bri = new BufferedReader(new InputStreamReader(p.getInputStream()));
-      String line = bri.readLine();
-      p.waitFor();
-      
-      Short umask = Short.parseShort(line.trim(), 8);
-      // Need to set permission to 777 xor umask
-      // leading zero makes java interpret as base 8
-      int newPermission = 0777 ^ umask;
-      
-      return String.format("%03o", newPermission);
+      try {
+        String line = bri.readLine();
+        p.waitFor();
+        
+        Short umask = Short.parseShort(line.trim(), 8);
+        // Need to set permission to 777 xor umask
+        // leading zero makes java interpret as base 8
+        int newPermission = 0777 ^ umask;
+        
+        return String.format("%03o", newPermission);
+      } finally {
+        bri.close();
+      }
     } catch (Exception e) {
       throw new RuntimeException("Error getting umask from O/S", e);
     }

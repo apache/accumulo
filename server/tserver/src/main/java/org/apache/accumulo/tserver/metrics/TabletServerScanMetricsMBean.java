@@ -18,25 +18,25 @@ package org.apache.accumulo.tserver.metrics;
 
 public interface TabletServerScanMetricsMBean {
   
-  public static final String scan = "scan";
-  public static final String resultSize = "result";
+  static final String scan = "scan";
+  static final String resultSize = "result";
   
-  public long getScanCount();
+  long getScanCount();
   
-  public long getScanAvgTime();
+  long getScanAvgTime();
   
-  public long getScanMinTime();
+  long getScanMinTime();
   
-  public long getScanMaxTime();
+  long getScanMaxTime();
   
-  public long getResultCount();
+  long getResultCount();
   
-  public long getResultAvgSize();
+  long getResultAvgSize();
   
-  public long getResultMinSize();
+  long getResultMinSize();
   
-  public long getResultMaxSize();
+  long getResultMaxSize();
   
-  public void reset();
+  void reset();
   
 }

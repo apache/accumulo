@@ -31,9 +31,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.master.state.CurrentState;
-import org.apache.accumulo.server.master.state.MetaDataTableScanner;
-import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.hadoop.io.Text;
 

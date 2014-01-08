@@ -23,13 +23,13 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
 
 public interface FileSKVIterator extends InterruptibleIterator {
-  public Key getFirstKey() throws IOException;
+  Key getFirstKey() throws IOException;
   
-  public Key getLastKey() throws IOException;
+  Key getLastKey() throws IOException;
   
-  public DataInputStream getMetaStore(String name) throws IOException, NoSuchMetaStoreException;
+  DataInputStream getMetaStore(String name) throws IOException, NoSuchMetaStoreException;
   
-  public void closeDeepCopies() throws IOException;
+  void closeDeepCopies() throws IOException;
   
-  public void close() throws IOException;
+  void close() throws IOException;
 }

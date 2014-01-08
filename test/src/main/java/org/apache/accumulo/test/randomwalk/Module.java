@@ -355,7 +355,7 @@ public class Module extends Node {
   private String getFullName(String name) {
     
     int index = name.indexOf(".");
-    if ((index == -1) || name.endsWith(".xml")) {
+    if (index == -1 || name.endsWith(".xml")) {
       return name;
     }
     

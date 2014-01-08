@@ -33,42 +33,42 @@ public interface Instance {
    * 
    * @return location in "hostname:port" form
    */
-  public abstract String getRootTabletLocation();
+  String getRootTabletLocation();
 
   /**
    * Returns the location(s) of the accumulo master and any redundant servers.
    * 
    * @return a list of locations in "hostname:port" form
    */
-  public abstract List<String> getMasterLocations();
+  List<String> getMasterLocations();
 
   /**
    * Returns a unique string that identifies this instance of accumulo.
    * 
    * @return a UUID
    */
-  public abstract String getInstanceID();
+  String getInstanceID();
 
   /**
    * Returns the instance name given at system initialization time.
    * 
    * @return current instance name
    */
-  public abstract String getInstanceName();
+  String getInstanceName();
 
   /**
    * Returns a comma-separated list of zookeeper servers the instance is using.
    * 
    * @return the zookeeper servers this instance is using in "hostname:port" form
    */
-  public abstract String getZooKeepers();
+  String getZooKeepers();
 
   /**
    * Returns the zookeeper connection timeout.
    * 
    * @return the configured timeout to connect to zookeeper
    */
-  public abstract int getZooKeepersSessionTimeOut();
+  int getZooKeepersSessionTimeOut();
 
   /**
    * Returns a connection to accumulo.
@@ -85,7 +85,7 @@ public interface Instance {
    * @deprecated since 1.5, use {@link #getConnector(String, AuthenticationToken)} with {@link PasswordToken}
    */
   @Deprecated
-  public abstract Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException;
+  Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Returns a connection to accumulo.
@@ -102,7 +102,7 @@ public interface Instance {
    * @deprecated since 1.5, use {@link #getConnector(String, AuthenticationToken)} with {@link PasswordToken}
    */
   @Deprecated
-  public abstract Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException;
+  Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Returns a connection to this instance of accumulo.
@@ -119,7 +119,7 @@ public interface Instance {
    * @deprecated since 1.5, use {@link #getConnector(String, AuthenticationToken)} with {@link PasswordToken}
    */
   @Deprecated
-  public abstract Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException;
+  Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException;
   
   /**
    * Returns the AccumuloConfiguration to use when interacting with this instance.
@@ -128,7 +128,7 @@ public interface Instance {
    * @deprecated since 1.6.0
    */
   @Deprecated
-  public abstract AccumuloConfiguration getConfiguration();
+  AccumuloConfiguration getConfiguration();
 
   /**
    * Set the AccumuloConfiguration to use when interacting with this instance.
@@ -138,7 +138,7 @@ public interface Instance {
    * @deprecated since 1.6.0
    */
   @Deprecated
-  public abstract void setConfiguration(AccumuloConfiguration conf);
+  void setConfiguration(AccumuloConfiguration conf);
 
   /**
    * Returns a connection to this instance of accumulo.
@@ -150,5 +150,5 @@ public interface Instance {
    *          {@link PasswordToken}
    * @since 1.5.0
    */
-  public abstract Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException;
+  Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException;
 }

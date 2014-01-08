@@ -20,13 +20,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -167,8 +165,6 @@ public class RFileTest {
 
   public static class TestRFile {
 
-    public File preGeneratedInputFile = null;
-    public File outputFile = null;
     private Configuration conf = CachedConfiguration.getInstance();
     public RFile.Writer writer;
     private ByteArrayOutputStream baos;
@@ -180,14 +176,8 @@ public class RFileTest {
 
     public void openWriter(boolean startDLG) throws IOException {
 
-      if (outputFile == null) {
-        baos = new ByteArrayOutputStream();
-
-        dos = new FSDataOutputStream(baos, new FileSystem.Statistics("a"));
-      } else {
-        BufferedOutputStream bufos = new BufferedOutputStream(new FileOutputStream(outputFile));
-        dos = new FSDataOutputStream(bufos, new FileSystem.Statistics("a"));
-      }
+      baos = new ByteArrayOutputStream();
+      dos = new FSDataOutputStream(baos, new FileSystem.Statistics("a"));
       CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(dos, "gz", conf);
       writer = new RFile.Writer(_cbw, 1000, 1000);
 
@@ -212,14 +202,7 @@ public class RFileTest {
 
       int fileLength = 0;
       byte[] data = null;
-      if (preGeneratedInputFile != null) {
-        data = new byte[(int) preGeneratedInputFile.length()];
-        DataInputStream in = new DataInputStream(new FileInputStream(preGeneratedInputFile));
-        in.readFully(data);
-        in.close();
-      } else {
-        data = baos.toByteArray();
-      }
+      data = baos.toByteArray();
 
       bais = new SeekableByteArrayInputStream(data);
       in = new FSDataInputStream(bais);

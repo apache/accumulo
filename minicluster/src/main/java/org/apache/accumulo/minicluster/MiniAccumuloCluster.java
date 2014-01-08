@@ -586,8 +586,8 @@ public class MiniAccumuloCluster {
     if (masterProcess != null) {
       masterProcess.destroy();
     }
-    synchronized (tabletServerProcesses) {
-      if (tabletServerProcesses != null) {
+    if (tabletServerProcesses != null) {
+      synchronized (tabletServerProcesses) {
         for (Process tserver : tabletServerProcesses) {
           tserver.destroy();
         }

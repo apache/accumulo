@@ -158,7 +158,7 @@ public class VisServlet extends BasicServlet {
       return;
     
     int width = (int) Math.ceil(Math.sqrt(tservers.size())) * cfg.spacing;
-    int height = (int) Math.ceil(tservers.size() / width) * cfg.spacing;
+    int height = (int) Math.ceil(tservers.size() / (double)width) * cfg.spacing;
     doSettings(sb, cfg, width < 640 ? 640 : width, height < 640 ? 640 : height);
     doScript(sb, cfg, tservers);
   }

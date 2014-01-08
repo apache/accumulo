@@ -181,6 +181,13 @@ class ConditionalWriterImpl implements ConditionalWriter {
     }
     
     @Override
+    public boolean equals(Object o) {
+      if (o instanceof QCMutation)
+        return compareTo((QCMutation) o) == 0;
+      return false;
+    }
+
+    @Override
     public long getDelay(TimeUnit unit) {
       return unit.convert(delay - (System.currentTimeMillis() - resetTime), TimeUnit.MILLISECONDS);
     }
@@ -368,7 +375,6 @@ class ConditionalWriterImpl implements ConditionalWriter {
     this.auths = config.getAuthorizations();
     this.ve = new VisibilityEvaluator(config.getAuthorizations());
     this.threadPool = new ScheduledThreadPoolExecutor(config.getMaxWriteThreads());
-    this.threadPool.setMaximumPoolSize(config.getMaxWriteThreads());
     this.locator = TabletLocator.getLocator(instance, new Text(tableId));
     this.serverQueues = new HashMap<String,ServerQueue>();
     this.tableId = tableId;

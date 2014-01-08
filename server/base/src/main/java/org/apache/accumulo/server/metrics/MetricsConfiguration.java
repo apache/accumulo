@@ -107,15 +107,19 @@ public class MetricsConfiguration {
   }
   
   public Configuration getEnvironmentConfiguration() {
-    if (null == envConfig)
-      envConfig = new EnvironmentConfiguration();
-    return envConfig;
+    synchronized (MetricsConfiguration.class) {
+      if (null == envConfig)
+        envConfig = new EnvironmentConfiguration();
+      return envConfig;
+    }
   }
   
   public Configuration getSystemConfiguration() {
-    if (null == sysConfig)
-      sysConfig = new SystemConfiguration();
-    return sysConfig;
+    synchronized (MetricsConfiguration.class) {
+      if (null == sysConfig)
+        sysConfig = new SystemConfiguration();
+      return sysConfig;
+    }
   }
   
   public Configuration getMetricsConfiguration() {

@@ -20,12 +20,12 @@ package org.apache.accumulo.core.security.crypto;
 import java.util.Map;
 
 public interface SecretKeyEncryptionStrategyContext {
-  public String getOpaqueKeyEncryptionKeyID();
-  public void setOpaqueKeyEncryptionKeyID(String id);
-  public byte[] getPlaintextSecretKey();
-  public void setPlaintextSecretKey(byte[] key);
-  public byte[] getEncryptedSecretKey();
-  public void setEncryptedSecretKey(byte[] key);
-  public Map<String, String> getContext();
-  public void setContext(Map<String, String> context);
+  String getOpaqueKeyEncryptionKeyID();
+  void setOpaqueKeyEncryptionKeyID(String id);
+  byte[] getPlaintextSecretKey();
+  void setPlaintextSecretKey(byte[] key);
+  byte[] getEncryptedSecretKey();
+  void setEncryptedSecretKey(byte[] key);
+  Map<String, String> getContext();
+  void setContext(Map<String, String> context);
 }

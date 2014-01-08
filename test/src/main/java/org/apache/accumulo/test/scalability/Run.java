@@ -22,7 +22,6 @@ import java.net.InetAddress;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.test.scalability.ScaleTest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;

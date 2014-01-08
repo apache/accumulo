@@ -31,7 +31,7 @@ import java.util.Map;
  * 
  */
 public interface OptionDescriber {
-  public static class IteratorOptions {
+  public class IteratorOptions {
     public LinkedHashMap<String,String> namedOptions;
     public ArrayList<String> unnamedOptionDescriptions;
     public String name;
@@ -115,7 +115,7 @@ public interface OptionDescriber {
    * 
    * @return an iterator options object
    */
-  public IteratorOptions describeOptions();
+  IteratorOptions describeOptions();
   
   /**
    * Check to see if an options map contains all options required by an iterator and that the option values are in the expected formats.
@@ -126,5 +126,5 @@ public interface OptionDescriber {
    * @exception IllegalArgumentException
    *              if there are problems with the options
    */
-  public boolean validateOptions(Map<String,String> options);
+  boolean validateOptions(Map<String,String> options);
 }

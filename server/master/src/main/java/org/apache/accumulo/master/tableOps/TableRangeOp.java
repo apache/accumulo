@@ -108,7 +108,7 @@ public class TableRangeOp extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master env) throws Exception {
 
-    if (RootTable.ID.equals(tableId) && TableOperation.MERGE.equals(op)) {
+    if (RootTable.ID.equals(tableId) && Operation.MERGE.equals(op)) {
       log.warn("Attempt to merge tablets for " + RootTable.NAME + " does nothing. It is not splittable.");
     }
 

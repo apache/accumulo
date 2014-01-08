@@ -31,7 +31,6 @@ public class InsecurePermHandler implements PermissionHandler {
   
   @Override
   public void initialize(String instanceId, boolean initialize) {
-    return;
   }
   
   @Override
@@ -41,7 +40,6 @@ public class InsecurePermHandler implements PermissionHandler {
   
   @Override
   public void initializeSecurity(TCredentials token, String rootuser) throws AccumuloSecurityException {
-    return;
   }
   
   @Override
@@ -66,37 +64,30 @@ public class InsecurePermHandler implements PermissionHandler {
   
   @Override
   public void grantSystemPermission(String user, SystemPermission permission) throws AccumuloSecurityException {
-    return;
   }
   
   @Override
   public void revokeSystemPermission(String user, SystemPermission permission) throws AccumuloSecurityException {
-    return;
   }
   
   @Override
   public void grantTablePermission(String user, String table, TablePermission permission) throws AccumuloSecurityException, TableNotFoundException {
-    return;
   }
   
   @Override
   public void revokeTablePermission(String user, String table, TablePermission permission) throws AccumuloSecurityException, TableNotFoundException {
-    return;
   }
   
   @Override
   public void cleanTablePermissions(String table) throws AccumuloSecurityException, TableNotFoundException {
-    return;
   }
   
   @Override
   public void initUser(String user) throws AccumuloSecurityException {
-    return;
   }
   
   @Override
   public void cleanUser(String user) throws AccumuloSecurityException {
-    return;
   }
   
   @Override
@@ -117,18 +108,15 @@ public class InsecurePermHandler implements PermissionHandler {
   @Override
   public void grantNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException,
       NamespaceNotFoundException {
-    return;
   }
 
   @Override
   public void revokeNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException,
       NamespaceNotFoundException {
-    return;
   }
 
   @Override
   public void cleanNamespacePermissions(String namespace) throws AccumuloSecurityException, NamespaceNotFoundException {
-    return;
   }
   
 }

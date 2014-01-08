@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -59,8 +60,10 @@ public class TabletLocatorImpl extends TabletLocator {
   // putting null, put MAX_TEXT
   static final Text MAX_TEXT = new Text();
   
-  private static class EndRowComparator implements Comparator<Text> {
+  private static class EndRowComparator implements Comparator<Text>, Serializable {
     
+    private static final long serialVersionUID = 1L;
+
     @Override
     public int compare(Text o1, Text o2) {
       
@@ -96,7 +99,7 @@ public class TabletLocatorImpl extends TabletLocator {
   private final Lock wLock = rwLock.writeLock();
 
   
-  public static interface TabletLocationObtainer {
+  public interface TabletLocationObtainer {
     /**
      * @return null when unable to read information successfully
      */
@@ -634,7 +637,7 @@ public class TabletLocatorImpl extends TabletLocator {
     if (badExtents.size() == 0)
       return;
     
-    boolean writeLockHeld = rwLock.isWriteLockedByCurrentThread();
+    final boolean writeLockHeld = rwLock.isWriteLockedByCurrentThread();
     try {
       if (!writeLockHeld) {
         rLock.unlock();

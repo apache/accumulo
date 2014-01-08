@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -525,7 +526,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
     Level logLevel = getLogLevel(context);
     log.setLevel(logLevel);
     validateOptions(context);
-
+    Random random = new Random();
     LinkedList<InputSplit> splits = new LinkedList<InputSplit>();
     Map<String,InputTableConfig> tableConfigs = getInputTableConfigs(context);
     for (Map.Entry<String,InputTableConfig> tableConfigEntry : tableConfigs.entrySet()) {
@@ -568,7 +569,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
           binnedRanges = binOfflineTable(context, tableId, ranges);
           while (binnedRanges == null) {
             // Some tablets were still online, try again
-            UtilWaitThread.sleep(100 + (int) (Math.random() * 100)); // sleep randomly between 100 and 200 ms
+            UtilWaitThread.sleep(100 + random.nextInt(100)); // sleep randomly between 100 and 200 ms
             binnedRanges = binOfflineTable(context, tableId, ranges);
 
           }
@@ -587,7 +588,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
             }
             binnedRanges.clear();
             log.warn("Unable to locate bins for specified ranges. Retrying.");
-            UtilWaitThread.sleep(100 + (int) (Math.random() * 100)); // sleep randomly between 100 and 200 ms
+            UtilWaitThread.sleep(100 + random.nextInt(100)); // sleep randomly between 100 and 200 ms
             tl.invalidateCache();
           }
         }

@@ -578,6 +578,12 @@ public class ConditionalWriterIT extends SimpleMacIT {
     cw.close();
   }
 
+  static long abs(long l) {
+    if (l < 0)
+      return -l;
+    return l;
+  }
+
   @Test(timeout = 60 * 1000)
   public void testBigBatch() throws Exception {
 
@@ -598,7 +604,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     byte[] e = new byte[0];
 
     for (int i = 0; i < num; i++) {
-      rows.add(FastFormat.toZeroPaddedString(Math.abs(r.nextLong()), 16, 16, e));
+      rows.add(FastFormat.toZeroPaddedString(abs(r.nextLong()), 16, 16, e));
     }
 
     for (int i = 0; i < num; i++) {
@@ -891,7 +897,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
           for (ByteSequence row : changes) {
             scanner.setRange(new Range(row.toString()));
             Stats stats = new Stats(scanner.iterator());
-            stats.set(rand.nextInt(10), Math.abs(rand.nextInt()));
+            stats.set(rand.nextInt(10), rand.nextInt(Integer.MAX_VALUE));
             mutations.add(stats.toMutation());
           }
 
@@ -941,7 +947,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     ArrayList<ByteSequence> rows = new ArrayList<ByteSequence>();
 
     for (int i = 0; i < 1000; i++) {
-      rows.add(new ArrayByteSequence(FastFormat.toZeroPaddedString(Math.abs(rand.nextLong()), 16, 16, new byte[0])));
+      rows.add(new ArrayByteSequence(FastFormat.toZeroPaddedString(abs(rand.nextLong()), 16, 16, new byte[0])));
     }
 
     ArrayList<ConditionalMutation> mutations = new ArrayList<ConditionalMutation>();

@@ -49,7 +49,7 @@ public interface TStore<T> {
    * 
    * @return a transaction id
    */
-  public long create();
+  long create();
   
   /**
    * Reserve a transaction that is IN_PROGRESS or FAILED_IN_PROGRESS.
@@ -57,7 +57,7 @@ public interface TStore<T> {
    */
   long reserve();
   
-  public void reserve(long tid);
+  void reserve(long tid);
   
   /**
    * Return the given transaction to the store
@@ -84,7 +84,7 @@ public interface TStore<T> {
    * @param repo
    *          the operation
    */
-  public void push(long tid, Repo<T> repo) throws StackOverflowException;
+  void push(long tid, Repo<T> repo) throws StackOverflowException;
   
   /**
    * Remove the last pushed operation from the given transaction.
@@ -100,7 +100,7 @@ public interface TStore<T> {
    *          transaction id
    * @return execution status
    */
-  public TStatus getStatus(long tid);
+  TStatus getStatus(long tid);
   
   /**
    * Update the state of a given transaction
@@ -110,7 +110,7 @@ public interface TStore<T> {
    * @param status
    *          execution status
    */
-  public void setStatus(long tid, TStatus status);
+  void setStatus(long tid, TStatus status);
   
   /**
    * Wait for the satus of a transaction to change
@@ -118,11 +118,11 @@ public interface TStore<T> {
    * @param tid
    *          transaction id
    */
-  public TStatus waitForStatusChange(long tid, EnumSet<TStatus> expected);
+  TStatus waitForStatusChange(long tid, EnumSet<TStatus> expected);
   
-  public void setProperty(long tid, String prop, Serializable val);
+  void setProperty(long tid, String prop, Serializable val);
   
-  public Serializable getProperty(long tid, String prop);
+  Serializable getProperty(long tid, String prop);
   
   /**
    * Remove the transaction from the store.
@@ -130,13 +130,13 @@ public interface TStore<T> {
    * @param tid
    *          the transaction id
    */
-  public void delete(long tid);
+  void delete(long tid);
   
   /**
    * list all transaction ids in store
    * 
    */
   
-  public List<Long> list();
+  List<Long> list();
   
 }

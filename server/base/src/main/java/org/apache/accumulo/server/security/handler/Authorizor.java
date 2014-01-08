@@ -33,40 +33,40 @@ public interface Authorizor {
   /**
    * Sets up the authorizor for a new instance of Accumulo
    */
-  public void initialize(String instanceId, boolean initialize);
+  void initialize(String instanceId, boolean initialize);
   
   /**
    * Used to validate that the Authorizor, Authenticator, and permission handler can coexist
    */
-  public boolean validSecurityHandlers(Authenticator auth, PermissionHandler pm);
+  boolean validSecurityHandlers(Authenticator auth, PermissionHandler pm);
   
   /**
    * Used to initialize security for the root user
    */
-  public void initializeSecurity(TCredentials credentials, String rootuser) throws AccumuloSecurityException, ThriftSecurityException;
+  void initializeSecurity(TCredentials credentials, String rootuser) throws AccumuloSecurityException, ThriftSecurityException;
   
   /**
    * Used to change the authorizations for the user
    */
-  public void changeAuthorizations(String user, Authorizations authorizations) throws AccumuloSecurityException;
+  void changeAuthorizations(String user, Authorizations authorizations) throws AccumuloSecurityException;
   
   /**
    * Used to get the authorizations for the user
    */
-  public Authorizations getCachedUserAuthorizations(String user) throws AccumuloSecurityException;
+  Authorizations getCachedUserAuthorizations(String user) throws AccumuloSecurityException;
 
   /**
    * Used to check if a user has valid auths.
    */
-  public boolean isValidAuthorizations(String user, List<ByteBuffer> list) throws AccumuloSecurityException;
+  boolean isValidAuthorizations(String user, List<ByteBuffer> list) throws AccumuloSecurityException;
   
   /**
    * Initializes a new user
    */
-  public void initUser(String user) throws AccumuloSecurityException;
+  void initUser(String user) throws AccumuloSecurityException;
   
   /**
    * Deletes a user
    */
-  public void dropUser(String user) throws AccumuloSecurityException;
+  void dropUser(String user) throws AccumuloSecurityException;
 }

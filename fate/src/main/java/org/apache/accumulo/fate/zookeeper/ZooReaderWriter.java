@@ -21,6 +21,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.security.SecurityPermission;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.accumulo.fate.util.UtilWaitThread;
@@ -56,7 +57,7 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
   public ZooReaderWriter(String string, int timeInMillis, String scheme, byte[] auth) {
     super(string, timeInMillis);
     this.scheme = scheme;
-    this.auth = auth;
+    this.auth = Arrays.copyOf(auth, auth.length);
   }
   
   @Override

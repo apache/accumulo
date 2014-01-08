@@ -40,6 +40,6 @@ public interface HeapSize {
   /**
    * @return Approximate 'exclusive deep size' of implementing object. Includes count of payload and hosting object sizings.
    */
-  public long heapSize();
+  long heapSize();
   
 }

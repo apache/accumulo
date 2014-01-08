@@ -123,7 +123,7 @@ public class RecoveryManager {
 
   public boolean recoverLogs(KeyExtent extent, Collection<Collection<String>> walogs) throws IOException {
     boolean recoveryNeeded = false;
-    ;
+
     for (Collection<String> logs : walogs) {
       for (String walog : logs) {
 

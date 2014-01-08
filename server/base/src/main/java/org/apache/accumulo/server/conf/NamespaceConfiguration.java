@@ -75,13 +75,10 @@ public class NamespaceConfiguration extends AccumuloConfiguration {
     return value;
   }
 
-  private static ZooCache getPropCache() {
+  private synchronized static ZooCache getPropCache() {
     Instance inst = HdfsZooInstance.getInstance();
     if (propCache == null)
-      synchronized (NamespaceConfiguration.class) {
-        if (propCache == null)
-          propCache = new ZooCache(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), new NamespaceConfWatcher(inst));
-      }
+	propCache = new ZooCache(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), new NamespaceConfWatcher(inst));
     return propCache;
   }
 

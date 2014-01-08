@@ -32,7 +32,7 @@ import org.apache.log4j.Logger;
 
 public abstract class AccumuloConfiguration implements Iterable<Entry<String,String>> {
 
-  public static interface PropertyFilter {
+  public interface PropertyFilter {
     boolean accept(String key);
   }
 

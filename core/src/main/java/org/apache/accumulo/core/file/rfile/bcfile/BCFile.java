@@ -106,7 +106,7 @@ public final class BCFile {
     /**
      * Call-back interface to register a block after a block is closed.
      */
-    private static interface BlockRegister {
+    private interface BlockRegister {
       /**
        * Register a block that is fully closed.
        * 
@@ -117,7 +117,7 @@ public final class BCFile {
        * @param offsetEnd
        *          One byte after the end of the block. Compressed block size is offsetEnd - offsetStart.
        */
-      public void register(long raw, long offsetStart, long offsetEnd);
+      void register(long raw, long offsetStart, long offsetEnd);
     }
 
     /**

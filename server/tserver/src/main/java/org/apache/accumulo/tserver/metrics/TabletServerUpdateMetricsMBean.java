@@ -18,49 +18,49 @@ package org.apache.accumulo.tserver.metrics;
 
 public interface TabletServerUpdateMetricsMBean {
   
-  public final static String permissionErrors = "permissionErrors";
-  public final static String unknownTabletErrors = "unknownTabletErrors";
-  public final static String mutationArraySize = "mutationArraysSize";
-  public final static String commitPrep = "commitPrep";
-  public final static String constraintViolations = "constraintViolations";
-  public final static String waLogWriteTime = "waLogWriteTime";
-  public final static String commitTime = "commitTime";
+  final static String permissionErrors = "permissionErrors";
+  final static String unknownTabletErrors = "unknownTabletErrors";
+  final static String mutationArraySize = "mutationArraysSize";
+  final static String commitPrep = "commitPrep";
+  final static String constraintViolations = "constraintViolations";
+  final static String waLogWriteTime = "waLogWriteTime";
+  final static String commitTime = "commitTime";
   
-  public long getPermissionErrorCount();
+  long getPermissionErrorCount();
   
-  public long getUnknownTabletErrorCount();
+  long getUnknownTabletErrorCount();
   
-  public long getMutationArrayAvgSize();
+  long getMutationArrayAvgSize();
   
-  public long getMutationArrayMinSize();
+  long getMutationArrayMinSize();
   
-  public long getMutationArrayMaxSize();
+  long getMutationArrayMaxSize();
   
-  public long getCommitPrepCount();
+  long getCommitPrepCount();
   
-  public long getCommitPrepMinTime();
+  long getCommitPrepMinTime();
   
-  public long getCommitPrepMaxTime();
+  long getCommitPrepMaxTime();
   
-  public long getCommitPrepAvgTime();
+  long getCommitPrepAvgTime();
   
-  public long getConstraintViolationCount();
+  long getConstraintViolationCount();
   
-  public long getWALogWriteCount();
+  long getWALogWriteCount();
   
-  public long getWALogWriteMinTime();
+  long getWALogWriteMinTime();
   
-  public long getWALogWriteMaxTime();
+  long getWALogWriteMaxTime();
   
-  public long getWALogWriteAvgTime();
+  long getWALogWriteAvgTime();
   
-  public long getCommitCount();
+  long getCommitCount();
   
-  public long getCommitMinTime();
+  long getCommitMinTime();
   
-  public long getCommitMaxTime();
+  long getCommitMaxTime();
   
-  public long getCommitAvgTime();
+  long getCommitAvgTime();
   
-  public void reset();
+  void reset();
 }

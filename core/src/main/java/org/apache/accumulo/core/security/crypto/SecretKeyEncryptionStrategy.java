@@ -21,8 +21,8 @@ package org.apache.accumulo.core.security.crypto;
  */
 public interface SecretKeyEncryptionStrategy {  
   
-  public CryptoModuleParameters encryptSecretKey(CryptoModuleParameters params);
-  public CryptoModuleParameters decryptSecretKey(CryptoModuleParameters params);
+  CryptoModuleParameters encryptSecretKey(CryptoModuleParameters params);
+  CryptoModuleParameters decryptSecretKey(CryptoModuleParameters params);
   
   
 }

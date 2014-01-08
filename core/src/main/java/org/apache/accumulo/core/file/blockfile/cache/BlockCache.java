@@ -33,7 +33,7 @@ public interface BlockCache {
    * @param inMemory
    *          Whether block should be treated as in-memory
    */
-  public CacheEntry cacheBlock(String blockName, byte buf[], boolean inMemory);
+  CacheEntry cacheBlock(String blockName, byte buf[], boolean inMemory);
   
   /**
    * Add block to cache (defaults to not in-memory).
@@ -43,7 +43,7 @@ public interface BlockCache {
    * @param buf
    *          The block contents wrapped in a ByteBuffer.
    */
-  public CacheEntry cacheBlock(String blockName, byte buf[]);
+  CacheEntry cacheBlock(String blockName, byte buf[]);
   
   /**
    * Fetch block from cache.
@@ -52,17 +52,17 @@ public interface BlockCache {
    *          Block number to fetch.
    * @return Block or null if block is not in the cache.
    */
-  public CacheEntry getBlock(String blockName);
+  CacheEntry getBlock(String blockName);
   
   /**
    * Shutdown the cache.
    */
-  public void shutdown();
+  void shutdown();
   
   /**
    * Get the maximum size of this cache.
    *
    * @return max size in bytes
    */
-  public long getMaxSize();
+  long getMaxSize();
 }

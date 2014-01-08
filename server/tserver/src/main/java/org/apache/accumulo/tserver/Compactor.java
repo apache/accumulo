@@ -128,7 +128,7 @@ public class Compactor implements Callable<CompactionStats> {
     private static final long serialVersionUID = 1L;
   }
 
-  static interface CompactionEnv {
+  interface CompactionEnv {
     boolean isCompactionEnabled();
 
     IteratorScope getIteratorScope();

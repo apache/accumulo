@@ -63,7 +63,7 @@ public class MiniAccumuloClusterGCTest {
   
       Assert.assertEquals(true, macConfig.shouldRunGC());
     } finally {
-      if (null != f && f.exists()) {
+      if (f.exists()) {
         f.delete();
       }
     }

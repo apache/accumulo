@@ -99,7 +99,7 @@ public class RandomBatchScanner {
   static void generateRandomQueries(int num, long min, long max, Random r, HashSet<Range> ranges, HashMap<Text,Boolean> expectedRows) {
     log.info(String.format("Generating %,d random queries...", num));
     while (ranges.size() < num) {
-      long rowid = (Math.abs(r.nextLong()) % (max - min)) + min;
+      long rowid = (abs(r.nextLong()) % (max - min)) + min;
       
       Text row1 = new Text(String.format("row_%010d", rowid));
       
@@ -111,6 +111,12 @@ public class RandomBatchScanner {
     log.info("finished");
   }
   
+  private static long abs(long l) {
+    if (l < 0)
+      return -l;
+    return l;
+  }
+
   /**
    * Prints a count of the number of rows mapped to false.
    * 

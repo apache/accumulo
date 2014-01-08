@@ -114,7 +114,7 @@ public class ZooCache {
     this.externalWatcher = watcher;
   }
 
-  private static interface ZooRunnable {
+  private interface ZooRunnable {
     void run(ZooKeeper zooKeeper) throws KeeperException, InterruptedException;
   }
 
