@@ -436,10 +436,18 @@ public class LruBlockCache implements BlockCache, HeapSize {
       return totalSize;
     }
     
+    @Override
     public int compareTo(BlockBucket that) {
       if (this.overflow() == that.overflow())
         return 0;
       return this.overflow() > that.overflow() ? 1 : -1;
+    }
+    
+    @Override
+    public boolean equals(Object that) {
+      if (that instanceof BlockBucket)
+        return compareTo((BlockBucket)that) == 0;
+      return false;
     }
   }
   

@@ -56,7 +56,7 @@ public class ConfigSanityCheck {
     checkTimeDuration(acuconf, Property.INSTANCE_ZK_TIMEOUT, new CheckTimeDurationBetween(1000, 300000));
   }
   
-  private static interface CheckTimeDuration {
+  private interface CheckTimeDuration {
     boolean check(long propVal);
     
     String getDescription(Property prop);

@@ -22,9 +22,6 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Credentials;
-import org.apache.accumulo.server.master.state.CurrentState;
-import org.apache.accumulo.server.master.state.MetaDataTableScanner;
-import org.apache.accumulo.server.master.state.TabletLocationState;
 
 public class RootTabletStateStore extends MetaDataStateStore {
   

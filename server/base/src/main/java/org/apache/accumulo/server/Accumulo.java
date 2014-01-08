@@ -172,7 +172,7 @@ public class Accumulo {
       DOMConfigurator.configureAndWatch(logConfig, 5000);
     
     // Read the auditing config
-    String auditConfig = String.format("%s/auditLog.xml", System.getenv("ACCUMULO_CONF_DIR"), application);
+    String auditConfig = String.format("%s/auditLog.xml", System.getenv("ACCUMULO_CONF_DIR"));
     
     DOMConfigurator.configureAndWatch(auditConfig, 5000);
     

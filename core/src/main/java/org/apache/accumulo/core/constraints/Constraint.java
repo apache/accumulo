@@ -42,7 +42,7 @@ import org.apache.accumulo.core.security.Authorizations;
 
 public interface Constraint {
   
-  public interface Environment {
+  interface Environment {
     KeyExtent getExtent();
     
     String getUser();

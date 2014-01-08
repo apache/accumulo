@@ -102,7 +102,7 @@ public class BulkInsert extends Test {
     
     int minInsert = Integer.parseInt(props.getProperty("minInsert"));
     int maxInsert = Integer.parseInt(props.getProperty("maxInsert"));
-    int numToInsert = rand.nextInt((maxInsert - minInsert)) + minInsert;
+    int numToInsert = rand.nextInt(maxInsert - minInsert) + minInsert;
     
     int maxSplits = Integer.parseInt(props.getProperty("maxSplits"));
     
@@ -121,7 +121,7 @@ public class BulkInsert extends Test {
       log.debug("Bulk inserting document " + docID);
     }
     
-    state.set("nextDocID", new Long(nextDocID));
+    state.set("nextDocID", Long.valueOf(nextDocID));
     
     dataWriter.close();
     indexWriter.close();

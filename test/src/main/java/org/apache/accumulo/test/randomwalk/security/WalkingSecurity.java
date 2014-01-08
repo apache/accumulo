@@ -431,7 +431,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
     try {
       fs = (FileSystem) state.get(filesystem);
     } catch (RuntimeException re) {}
-    ;
+
     if (fs == null) {
       try {
         fs = FileSystem.get(CachedConfiguration.getInstance());

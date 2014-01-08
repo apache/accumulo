@@ -38,7 +38,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   /**
    * A filter for properties, based on key.
    */
-  public static interface PropertyFilter {
+  public interface PropertyFilter {
     /**
      * Determines whether to accept a property based on its key.
      *

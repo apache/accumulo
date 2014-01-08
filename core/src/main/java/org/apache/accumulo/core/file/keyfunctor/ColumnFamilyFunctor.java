@@ -26,7 +26,7 @@ public class ColumnFamilyFunctor implements KeyFunctor {
   public static final PartialKey kDepth = PartialKey.ROW_COLFAM;
   
   @Override
-  public org.apache.hadoop.util.bloom.Key transform(org.apache.accumulo.core.data.Key acuKey) {
+  public Key transform(org.apache.accumulo.core.data.Key acuKey) {
     
     byte keyData[];
     
@@ -36,7 +36,7 @@ public class ColumnFamilyFunctor implements KeyFunctor {
     System.arraycopy(row.getBackingArray(), row.offset(), keyData, 0, row.length());
     System.arraycopy(cf.getBackingArray(), cf.offset(), keyData, row.length(), cf.length());
     
-    return new org.apache.hadoop.util.bloom.Key(keyData, 1.0);
+    return new Key(keyData, 1.0);
   }
   
   @Override

@@ -71,7 +71,7 @@ public class UndefinedAnalyzer {
     public IngestInfo(String logDir) throws Exception {
       File dir = new File(logDir);
       File[] ingestLogs = dir.listFiles(new FilenameFilter() {
-        public boolean accept(java.io.File dir, String name) {
+        public boolean accept(File dir, String name) {
           return name.endsWith("ingest.out");
         }
       });
@@ -162,7 +162,7 @@ public class UndefinedAnalyzer {
     TabletHistory(String tableId, String acuLogDir) throws Exception {
       File dir = new File(acuLogDir);
       File[] masterLogs = dir.listFiles(new FilenameFilter() {
-        public boolean accept(java.io.File dir, String name) {
+        public boolean accept(File dir, String name) {
           return name.matches("master.*debug.log.*");
         }
       });

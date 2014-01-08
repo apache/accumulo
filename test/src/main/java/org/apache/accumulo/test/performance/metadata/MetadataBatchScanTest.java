@@ -226,7 +226,7 @@ public class MetadataBatchScanTest {
     bs.close();
     long t2 = System.currentTimeMillis();
     
-    ss.delta1 = (t2 - t1);
+    ss.delta1 = t2 - t1;
     ss.count1 = count;
     
     count = 0;
@@ -237,7 +237,7 @@ public class MetadataBatchScanTest {
     
     t2 = System.currentTimeMillis();
     
-    ss.delta2 = (t2 - t1);
+    ss.delta2 = t2 - t1;
     ss.count2 = count;
     
     return ss;

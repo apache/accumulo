@@ -273,7 +273,7 @@ public class Condition {
     if (o == this) {
       return true;
     }
-    if (o == null || o.getClass() != Condition.class) {
+    if (o == null || !(o instanceof Condition)) {
       return false;
     }
     Condition c = (Condition) o;

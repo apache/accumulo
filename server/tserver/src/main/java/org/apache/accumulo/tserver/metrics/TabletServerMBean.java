@@ -18,33 +18,33 @@ package org.apache.accumulo.tserver.metrics;
 
 public interface TabletServerMBean {
   
-  public int getOnlineCount();
+  int getOnlineCount();
   
-  public int getOpeningCount();
+  int getOpeningCount();
   
-  public int getUnopenedCount();
+  int getUnopenedCount();
   
-  public int getMajorCompactions();
+  int getMajorCompactions();
   
-  public int getMajorCompactionsQueued();
+  int getMajorCompactionsQueued();
   
-  public int getMinorCompactions();
+  int getMinorCompactions();
   
-  public int getMinorCompactionsQueued();
+  int getMinorCompactionsQueued();
   
-  public long getEntries();
+  long getEntries();
   
-  public long getEntriesInMemory();
+  long getEntriesInMemory();
   
-  public long getQueries();
+  long getQueries();
   
-  public long getIngest();
+  long getIngest();
   
-  public long getTotalMinorCompactions();
+  long getTotalMinorCompactions();
   
-  public double getHoldTime();
+  double getHoldTime();
   
-  public String getName();
+  String getName();
   
-  public double getAverageFilesPerTablet();
+  double getAverageFilesPerTablet();
 }

@@ -43,10 +43,10 @@ public class EmbeddedWebServer {
     handler = new ContextHandlerCollection();
     root = new Context(handler, "/", new SessionHandler(), null, null, null);
     
-    if (Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_KEYSTORE) == ""
-        || Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_KEYSTOREPASS) == ""
-        || Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_TRUSTSTORE) == ""
-        || Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_TRUSTSTOREPASS) == "") {
+    if (Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_KEYSTORE).equals("")
+        || Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_KEYSTOREPASS).equals("")
+        || Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_TRUSTSTORE).equals("")
+        || Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_TRUSTSTOREPASS).equals("")) {
       sock = new SocketConnector();
       usingSsl = false;
     } else {

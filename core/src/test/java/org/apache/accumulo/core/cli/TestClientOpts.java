@@ -43,9 +43,9 @@ public class TestClientOpts {
     assertEquals(System.getProperty("user.name"), args.principal);
     assertNull(args.securePassword);
     assertNull(args.getToken());
-    assertEquals(new Long(cfg.getMaxLatency(TimeUnit.MILLISECONDS)), bwOpts.batchLatency);
-    assertEquals(new Long(cfg.getTimeout(TimeUnit.MILLISECONDS)), bwOpts.batchTimeout);
-    assertEquals(new Long(cfg.getMaxMemory()), bwOpts.batchMemory);
+    assertEquals(Long.valueOf(cfg.getMaxLatency(TimeUnit.MILLISECONDS)), bwOpts.batchLatency);
+    assertEquals(Long.valueOf(cfg.getTimeout(TimeUnit.MILLISECONDS)), bwOpts.batchTimeout);
+    assertEquals(Long.valueOf(cfg.getMaxMemory()), bwOpts.batchMemory);
     assertFalse(args.debug);
     assertFalse(args.trace);
     assertEquals(10, bsOpts.scanThreads.intValue());
@@ -63,9 +63,9 @@ public class TestClientOpts {
     assertEquals("bar", args.principal);
     assertNull(args.securePassword);
     assertEquals(new PasswordToken("foo"), args.getToken());
-    assertEquals(new Long(3000), bwOpts.batchLatency);
-    assertEquals(new Long(2000), bwOpts.batchTimeout);
-    assertEquals(new Long(1024 * 1024), bwOpts.batchMemory);
+    assertEquals(Long.valueOf(3000), bwOpts.batchLatency);
+    assertEquals(Long.valueOf(2000), bwOpts.batchTimeout);
+    assertEquals(Long.valueOf(1024 * 1024), bwOpts.batchMemory);
     assertTrue(args.debug);
     assertTrue(args.trace);
     assertEquals(7, bsOpts.scanThreads.intValue());

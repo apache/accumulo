@@ -35,7 +35,7 @@ public class ShardFixture extends Fixture {
   static SortedSet<Text> genSplits(long max, int numTablets, String format) {
     
     int numSplits = numTablets - 1;
-    long distance = (max / numTablets);
+    long distance = max / numTablets;
     long split = distance;
     
     TreeSet<Text> splits = new TreeSet<Text>();
@@ -78,7 +78,7 @@ public class ShardFixture extends Fixture {
     state.set("numPartitions", new Integer(numPartitions));
     state.set("cacheIndex", rand.nextDouble() < .5);
     state.set("rand", rand);
-    state.set("nextDocID", new Long(0));
+    state.set("nextDocID", Long.valueOf(0));
     
     Connector conn = state.getConnector();
     

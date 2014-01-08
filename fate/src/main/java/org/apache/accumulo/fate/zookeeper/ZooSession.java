@@ -67,7 +67,7 @@ public class ZooSession {
     final int TIME_BETWEEN_CONNECT_CHECKS_MS = 100;
     int connectTimeWait = Math.min(10 * 1000, timeout);
     boolean tryAgain = true;
-    int sleepTime = 100;
+    long sleepTime = 100;
     ZooKeeper zooKeeper = null;
     
     long startTime = System.currentTimeMillis();
@@ -106,7 +106,7 @@ public class ZooSession {
       
       if (tryAgain) {
         if (startTime + 2 * timeout < System.currentTimeMillis() + sleepTime + connectTimeWait)
-          sleepTime = (int) (startTime + 2 * timeout - System.currentTimeMillis() - connectTimeWait);
+          sleepTime = startTime + 2 * timeout - System.currentTimeMillis() - connectTimeWait;
         if (sleepTime < 0)
         {
           connectTimeWait -= sleepTime; 
@@ -114,7 +114,7 @@ public class ZooSession {
         }
         UtilWaitThread.sleep(sleepTime);
         if (sleepTime < 10000)
-          sleepTime = (int) (sleepTime + sleepTime * Math.random());
+          sleepTime = sleepTime + (long)(sleepTime * Math.random());
       }
     }
     

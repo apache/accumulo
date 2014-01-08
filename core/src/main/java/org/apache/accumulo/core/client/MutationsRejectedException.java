@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.impl.Tables;
@@ -62,19 +63,19 @@ public class MutationsRejectedException extends AccumuloException {
   }
   
   private static String format(HashMap<KeyExtent,Set<SecurityErrorCode>> hashMap, Instance instance) {
-    Map<String,Set<SecurityErrorCode>> errorMap = new HashMap<String,Set<SecurityErrorCode>>();
+    Map<String,Set<SecurityErrorCode>> result = new HashMap<String,Set<SecurityErrorCode>>();
     
-    for (KeyExtent ke : hashMap.keySet()) {
-      String tableInfo = Tables.getPrintableTableInfoFromId(instance, ke.getTableId().toString());
+    for (Entry<KeyExtent,Set<SecurityErrorCode>> entry : hashMap.entrySet()) {
+      String tableInfo = Tables.getPrintableTableInfoFromId(instance, entry.getKey().getTableId().toString());
       
-      if (!errorMap.containsKey(tableInfo)) {
-        errorMap.put(tableInfo, new HashSet<SecurityErrorCode>());
+      if (!result.containsKey(tableInfo)) {
+        result.put(tableInfo, new HashSet<SecurityErrorCode>());
       }
       
-      errorMap.get(tableInfo).addAll(hashMap.get(ke));
+      result.get(tableInfo).addAll(hashMap.get(entry.getKey()));
     }
     
-    return errorMap.toString();
+    return result.toString();
   }
   
   /**

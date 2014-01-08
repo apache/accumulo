@@ -23,12 +23,12 @@ import java.util.List;
  */
 public interface DistributedStore {
   
-  public List<String> getChildren(String path) throws DistributedStoreException;
+  List<String> getChildren(String path) throws DistributedStoreException;
   
-  public byte[] get(String path) throws DistributedStoreException;
+  byte[] get(String path) throws DistributedStoreException;
   
-  public void put(String path, byte[] bs) throws DistributedStoreException;
+  void put(String path, byte[] bs) throws DistributedStoreException;
   
-  public void remove(String path) throws DistributedStoreException;
+  void remove(String path) throws DistributedStoreException;
   
 }

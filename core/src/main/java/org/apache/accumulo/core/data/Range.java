@@ -413,7 +413,7 @@ public class Range implements WritableComparable<Range> {
       boolean startKeysEqual;
       if (range.infiniteStartKey) {
         // previous start key must be infinite because it is sorted
-        assert (currentRange.infiniteStartKey);
+        assert currentRange.infiniteStartKey;
         startKeysEqual = true;
       } else if (currentRange.infiniteStartKey) {
         startKeysEqual = false;

@@ -138,6 +138,7 @@ public class Fate<T> {
     
   }
   
+  // TODO: move thread creation to another method ACCUMULO-2136
   public Fate(T environment, TStore<T> store, int numThreads) {
     this.store = store;
     this.environment = environment;
@@ -171,7 +172,7 @@ public class Fate<T> {
         }
         
         if (autoCleanUp)
-          store.setProperty(tid, AUTO_CLEAN_PROP, new Boolean(autoCleanUp));
+          store.setProperty(tid, AUTO_CLEAN_PROP, Boolean.valueOf(autoCleanUp));
         
         store.setProperty(tid, DEBUG_PROP, repo.getDescription());
         

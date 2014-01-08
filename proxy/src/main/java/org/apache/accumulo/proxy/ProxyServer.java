@@ -419,10 +419,11 @@ public class ProxyServer implements AccumuloProxy.Iface {
     try {
       Map<String,Set<Text>> groups = getConnector(login).tableOperations().getLocalityGroups(tableName);
       Map<String,Set<String>> ret = new HashMap<String,Set<String>>();
-      for (String key : groups.keySet()) {
-        ret.put(key, new HashSet<String>());
-        for (Text val : groups.get(key)) {
-          ret.get(key).add(val.toString());
+      for (Entry<String,Set<Text>> entry : groups.entrySet()) {
+        Set<String> value = new HashSet<String>();
+        ret.put(entry.getKey(), value);
+        for (Text val : entry.getValue()) {
+          value.add(val.toString());
         }
       }
       return ret;

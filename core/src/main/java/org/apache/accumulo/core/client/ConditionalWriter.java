@@ -29,7 +29,7 @@ import org.apache.accumulo.core.data.ConditionalMutation;
  * @since 1.6.0
  */
 public interface ConditionalWriter {
-  public static class Result {
+  class Result {
     
     private Status status;
     private ConditionalMutation mutation;
@@ -122,7 +122,7 @@ public interface ConditionalWriter {
    * @return Result for each mutation submitted. The mutations may still be processing in the background when this method returns, if so the iterator will
    *         block.
    */
-  public abstract Iterator<Result> write(Iterator<ConditionalMutation> mutations);
+  Iterator<Result> write(Iterator<ConditionalMutation> mutations);
   
   /**
    * This method has the same thread safety guarantees as @link {@link #write(Iterator)}
@@ -132,10 +132,10 @@ public interface ConditionalWriter {
    * @return Result for the submitted mutation
    */
 
-  public abstract Result write(ConditionalMutation mutation);
+  Result write(ConditionalMutation mutation);
 
   /**
    * release any resources (like threads pools) used by conditional writer
    */
-  public void close();
+  void close();
 }

@@ -110,6 +110,12 @@ public class RandomBatchWriter {
     Long seed = null;
   }
 
+  private static long abs(long l) {
+    if (l < 0)
+      return -l;
+    return l;
+  }
+
   /**
    * Writes a specified number of entries to Accumulo using a {@link BatchWriter}.
    * 
@@ -121,7 +127,7 @@ public class RandomBatchWriter {
     Opts opts = new Opts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(RandomBatchWriter.class.getName(), args, bwOpts);
-    if ((opts.max - opts.min) < opts.num) {
+    if ((opts.max - opts.min) < (long)opts.num) {
       System.err
           .println(String
               .format(
@@ -144,7 +150,7 @@ public class RandomBatchWriter {
     // Generate num unique row ids in the given range
     HashSet<Long> rowids = new HashSet<Long>(opts.num);
     while (rowids.size() < opts.num) {
-      rowids.add((Math.abs(r.nextLong()) % (opts.max - opts.min)) + opts.min);
+      rowids.add((abs(r.nextLong()) % (opts.max - opts.min)) + opts.min);
     }
     for (long rowid : rowids) {
       Mutation m = createMutation(rowid, opts.size, cv);

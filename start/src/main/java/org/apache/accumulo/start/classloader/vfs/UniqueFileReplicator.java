@@ -30,6 +30,7 @@ import org.apache.commons.vfs2.provider.FileReplicator;
 import org.apache.commons.vfs2.provider.UriParser;
 import org.apache.commons.vfs2.provider.VfsComponent;
 import org.apache.commons.vfs2.provider.VfsComponentContext;
+import org.apache.log4j.Logger;
 
 /**
  * 
@@ -37,6 +38,8 @@ import org.apache.commons.vfs2.provider.VfsComponentContext;
 public class UniqueFileReplicator implements VfsComponent, FileReplicator {
   
   private static final char[] TMP_RESERVED_CHARS = new char[] {'?', '/', '\\', ' ', '&', '"', '\'', '*', '#', ';', ':', '<', '>', '|'};
+
+  private static final Logger log = Logger.getLogger(UniqueFileReplicator.class);
   
   private File tempDir;
   private VfsComponentContext context;
@@ -51,7 +54,8 @@ public class UniqueFileReplicator implements VfsComponent, FileReplicator {
     String baseName = srcFile.getName().getBaseName();
     
     try {
-      tempDir.mkdirs();
+      if (!tempDir.mkdirs())
+        log.warn("Unexpected error creating directory " + tempDir);
       String safeBasename = UriParser.encode(baseName, TMP_RESERVED_CHARS).replace('%', '_');
       File file = File.createTempFile("vfsr_", "_" + safeBasename, tempDir);
       file.deleteOnExit();
@@ -85,10 +89,11 @@ public class UniqueFileReplicator implements VfsComponent, FileReplicator {
   public void close() {
     synchronized (tmpFiles) {
       for (File tmpFile : tmpFiles) {
-        tmpFile.delete();
+        if (!tmpFile.delete())
+          log.warn("File does not exist: " + tmpFile);
       }
     }
-    
-    tempDir.delete();
+    if (!tempDir.delete())
+      log.warn("Directory does not exists: " + tempDir);
   }
 }

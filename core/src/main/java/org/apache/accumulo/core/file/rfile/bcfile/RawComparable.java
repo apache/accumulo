@@ -35,19 +35,19 @@ public interface RawComparable {
    * 
    * @return The underlying byte array.
    */
-  abstract byte[] buffer();
+  byte[] buffer();
   
   /**
    * Get the offset of the first byte in the byte array.
    * 
    * @return The offset of the first byte in the byte array.
    */
-  abstract int offset();
+  int offset();
   
   /**
    * Get the size of the byte range in the byte array.
    * 
    * @return The size of the byte range in the byte array.
    */
-  abstract int size();
+  int size();
 }

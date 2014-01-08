@@ -60,7 +60,7 @@ public class MapRedVerifyTool extends Configured implements Tool {
       int index = start;
       while (iterator.hasNext()) {
         int next = iterator.next().get();
-        if (next != (index + 1)) {
+        if (next != index + 1) {
           writeMutation(output, start, index);
           start = next;
         }

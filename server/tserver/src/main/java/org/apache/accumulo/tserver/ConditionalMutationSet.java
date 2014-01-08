@@ -33,7 +33,7 @@ import org.apache.hadoop.io.WritableComparator;
  */
 public class ConditionalMutationSet {
 
-  static interface DeferFilter {
+  interface DeferFilter {
     void defer(List<ServerConditionalMutation> scml, List<ServerConditionalMutation> okMutations, List<ServerConditionalMutation> deferred);
   }
   

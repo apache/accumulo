@@ -113,6 +113,5 @@ public class CreateToken {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-    return;
   }
 }

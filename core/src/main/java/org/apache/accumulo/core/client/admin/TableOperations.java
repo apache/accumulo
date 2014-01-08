@@ -47,7 +47,7 @@ public interface TableOperations {
    * 
    * @return List of tables in accumulo
    */
-  public SortedSet<String> list();
+  SortedSet<String> list();
 
   /**
    * A method to check if a table exists in Accumulo.
@@ -56,7 +56,7 @@ public interface TableOperations {
    *          the name of the table
    * @return true if the table exists
    */
-  public boolean exists(String tableName);
+  boolean exists(String tableName);
 
   /**
    * Create a table with no special configuration
@@ -70,7 +70,7 @@ public interface TableOperations {
    * @throws TableExistsException
    *           if the table already exists
    */
-  public void create(String tableName) throws AccumuloException, AccumuloSecurityException, TableExistsException;
+  void create(String tableName) throws AccumuloException, AccumuloSecurityException, TableExistsException;
 
   /**
    * @param tableName
@@ -84,7 +84,7 @@ public interface TableOperations {
    * @throws TableExistsException
    *           if the table already exists
    */
-  public void create(String tableName, boolean limitVersion) throws AccumuloException, AccumuloSecurityException, TableExistsException;
+  void create(String tableName, boolean limitVersion) throws AccumuloException, AccumuloSecurityException, TableExistsException;
 
   /**
    * @param tableName
@@ -100,7 +100,7 @@ public interface TableOperations {
    * @throws TableExistsException
    *           if the table already exists
    */
-  public void create(String tableName, boolean versioningIter, TimeType timeType) throws AccumuloException, AccumuloSecurityException, TableExistsException;
+  void create(String tableName, boolean versioningIter, TimeType timeType) throws AccumuloException, AccumuloSecurityException, TableExistsException;
 
   /**
    * Imports a table exported via exportTable and copied via hadoop distcp.
@@ -114,7 +114,7 @@ public interface TableOperations {
    * @throws AccumuloSecurityException
    * @since 1.5.0
    */
-  public void importTable(String tableName, String importDir) throws TableExistsException, AccumuloException, AccumuloSecurityException;
+  void importTable(String tableName, String importDir) throws TableExistsException, AccumuloException, AccumuloSecurityException;
 
   /**
    * Exports a table. The tables data is not exported, just table metadata and a list of files to distcp. The table being exported must be offline and stay
@@ -132,7 +132,7 @@ public interface TableOperations {
    * @throws AccumuloSecurityException
    * @since 1.5.0
    */
-  public void exportTable(String tableName, String exportDir) throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
+  void exportTable(String tableName, String exportDir) throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
 
   /**
    * @param tableName
@@ -146,7 +146,7 @@ public interface TableOperations {
    * @throws TableNotFoundException
    *           if the table does not exist
    */
-  public void addSplits(String tableName, SortedSet<Text> partitionKeys) throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
+  void addSplits(String tableName, SortedSet<Text> partitionKeys) throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
 
   /**
    * @param tableName
@@ -157,7 +157,7 @@ public interface TableOperations {
    * @deprecated since 1.5.0; use {@link #listSplits(String)} instead.
    */
   @Deprecated
-  public Collection<Text> getSplits(String tableName) throws TableNotFoundException;
+  Collection<Text> getSplits(String tableName) throws TableNotFoundException;
 
   /**
    * @param tableName
@@ -171,7 +171,7 @@ public interface TableOperations {
    *           if the user does not have permission
    * @since 1.5.0
    */
-  public Collection<Text> listSplits(String tableName) throws TableNotFoundException, AccumuloSecurityException, AccumuloException;
+  Collection<Text> listSplits(String tableName) throws TableNotFoundException, AccumuloSecurityException, AccumuloException;
 
   /**
    * @param tableName
@@ -183,7 +183,7 @@ public interface TableOperations {
    * @deprecated since 1.5.0; use {@link #listSplits(String, int)} instead.
    */
   @Deprecated
-  public Collection<Text> getSplits(String tableName, int maxSplits) throws TableNotFoundException;
+  Collection<Text> getSplits(String tableName, int maxSplits) throws TableNotFoundException;
 
   /**
    * @param tableName
@@ -198,7 +198,7 @@ public interface TableOperations {
    * @throws TableNotFoundException
    * @since 1.5.0
    */
-  public Collection<Text> listSplits(String tableName, int maxSplits) throws TableNotFoundException, AccumuloSecurityException, AccumuloException;
+  Collection<Text> listSplits(String tableName, int maxSplits) throws TableNotFoundException, AccumuloSecurityException, AccumuloException;
 
   /**
    * Finds the max row within a given range. To find the max row in a table, pass null for start and end row.
@@ -221,7 +221,7 @@ public interface TableOperations {
    * @throws AccumuloException
    * @throws TableNotFoundException
    */
-  public Text getMaxRow(String tableName, Authorizations auths, Text startRow, boolean startInclusive, Text endRow, boolean endInclusive)
+  Text getMaxRow(String tableName, Authorizations auths, Text startRow, boolean startInclusive, Text endRow, boolean endInclusive)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
 
   /**
@@ -234,7 +234,7 @@ public interface TableOperations {
    * @param end
    *          last tablet to be merged contains this row, null means the last tablet
    */
-  public void merge(String tableName, Text start, Text end) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+  void merge(String tableName, Text start, Text end) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
    * Delete rows between (start, end]
@@ -246,7 +246,7 @@ public interface TableOperations {
    * @param end
    *          last row to be deleted, inclusive, null means the last row of the table
    */
-  public void deleteRows(String tableName, Text start, Text end) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+  void deleteRows(String tableName, Text start, Text end) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
    * Starts a full major compaction of the tablets in the range (start, end]. The compaction is preformed even for tablets that have only one file.
@@ -262,7 +262,7 @@ public interface TableOperations {
    * @param wait
    *          when true, the call will not return until compactions are finished
    */
-  public void compact(String tableName, Text start, Text end, boolean flush, boolean wait) throws AccumuloSecurityException, TableNotFoundException,
+  void compact(String tableName, Text start, Text end, boolean flush, boolean wait) throws AccumuloSecurityException, TableNotFoundException,
       AccumuloException;
 
   /**
@@ -282,7 +282,7 @@ public interface TableOperations {
    *          when true, the call will not return until compactions are finished
    * @since 1.5.0
    */
-  public void compact(String tableName, Text start, Text end, List<IteratorSetting> iterators, boolean flush, boolean wait) throws AccumuloSecurityException,
+  void compact(String tableName, Text start, Text end, List<IteratorSetting> iterators, boolean flush, boolean wait) throws AccumuloSecurityException,
       TableNotFoundException, AccumuloException;
 
   /**
@@ -300,7 +300,7 @@ public interface TableOperations {
    *           if the user does not have permission
    * @since 1.5.0
    */
-  public void cancelCompaction(String tableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException;
+  void cancelCompaction(String tableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException;
 
   /**
    * Delete a table
@@ -314,7 +314,7 @@ public interface TableOperations {
    * @throws TableNotFoundException
    *           if the table does not exist
    */
-  public void delete(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+  void delete(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
    * Clone a table from an existing table. The cloned table will have the same data as the source table it was created from. After cloning, the two tables can
@@ -335,7 +335,7 @@ public interface TableOperations {
    *          do not copy these properties from the source table, just revert to system defaults
    */
 
-  public void clone(String srcTableName, String newTableName, boolean flush, Map<String,String> propertiesToSet, Set<String> propertiesToExclude)
+  void clone(String srcTableName, String newTableName, boolean flush, Map<String,String> propertiesToSet, Set<String> propertiesToExclude)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, TableExistsException;
 
   /**
@@ -354,7 +354,7 @@ public interface TableOperations {
    * @throws TableExistsException
    *           if the new table name already exists
    */
-  public void rename(String oldTableName, String newTableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException,
+  void rename(String oldTableName, String newTableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException,
       TableExistsException;
 
   /**
@@ -370,7 +370,7 @@ public interface TableOperations {
    * @deprecated As of release 1.4, replaced by {@link #flush(String, Text, Text, boolean)}
    */
   @Deprecated
-  public void flush(String tableName) throws AccumuloException, AccumuloSecurityException;
+  void flush(String tableName) throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Flush a table's data that is currently in memory.
@@ -386,7 +386,7 @@ public interface TableOperations {
    *           if the user does not have permission
    * @throws TableNotFoundException
    */
-  public void flush(String tableName, Text start, Text end, boolean wait) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+  void flush(String tableName, Text start, Text end, boolean wait) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
    * Sets a property on a table. Note that it may take a short period of time (a second) to propagate the change everywhere.
@@ -402,7 +402,7 @@ public interface TableOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission
    */
-  public void setProperty(String tableName, String property, String value) throws AccumuloException, AccumuloSecurityException;
+  void setProperty(String tableName, String property, String value) throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Removes a property from a table. Note that it may take a short period of time (a second) to propagate the change everywhere.
@@ -416,7 +416,7 @@ public interface TableOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission
    */
-  public void removeProperty(String tableName, String property) throws AccumuloException, AccumuloSecurityException;
+  void removeProperty(String tableName, String property) throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Gets properties of a table. Note that recently changed properties may not be available immediately.
@@ -427,7 +427,7 @@ public interface TableOperations {
    * @throws TableNotFoundException
    *           if the table does not exist
    */
-  public Iterable<Entry<String,String>> getProperties(String tableName) throws AccumuloException, TableNotFoundException;
+  Iterable<Entry<String,String>> getProperties(String tableName) throws AccumuloException, TableNotFoundException;
 
   /**
    * Sets a table's locality groups. A table's locality groups can be changed at any time.
@@ -443,7 +443,7 @@ public interface TableOperations {
    * @throws TableNotFoundException
    *           if the table does not exist
    */
-  public void setLocalityGroups(String tableName, Map<String,Set<Text>> groups) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+  void setLocalityGroups(String tableName, Map<String,Set<Text>> groups) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
    * 
@@ -457,7 +457,7 @@ public interface TableOperations {
    * @throws TableNotFoundException
    *           if the table does not exist
    */
-  public Map<String,Set<Text>> getLocalityGroups(String tableName) throws AccumuloException, TableNotFoundException;
+  Map<String,Set<Text>> getLocalityGroups(String tableName) throws AccumuloException, TableNotFoundException;
 
   /**
    * @param tableName
@@ -474,7 +474,7 @@ public interface TableOperations {
    * @throws TableNotFoundException
    *           if the table does not exist
    */
-  public Set<Range> splitRangeByTablets(String tableName, Range range, int maxSplits) throws AccumuloException, AccumuloSecurityException,
+  Set<Range> splitRangeByTablets(String tableName, Range range, int maxSplits) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException;
 
   /**
@@ -498,7 +498,7 @@ public interface TableOperations {
    *           when the table no longer exists
    * 
    */
-  public void importDirectory(String tableName, String dir, String failureDir, boolean setTime) throws TableNotFoundException, IOException, AccumuloException,
+  void importDirectory(String tableName, String dir, String failureDir, boolean setTime) throws TableNotFoundException, IOException, AccumuloException,
       AccumuloSecurityException;
 
   /**
@@ -512,7 +512,7 @@ public interface TableOperations {
    *           when the user does not have the proper permissions
    * @throws TableNotFoundException
    */
-  public void offline(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
+  void offline(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
 
   /**
    * 
@@ -527,7 +527,7 @@ public interface TableOperations {
    * @throws TableNotFoundException
    * @since 1.6.0
    */
-  public void offline(String tableName, boolean wait) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
+  void offline(String tableName, boolean wait) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
 
   /**
    * Initiates bringing a table online, but does not wait for action to complete
@@ -540,7 +540,7 @@ public interface TableOperations {
    *           when the user does not have the proper permissions
    * @throws TableNotFoundException
    */
-  public void online(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
+  void online(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
 
   /**
    * 
@@ -555,7 +555,7 @@ public interface TableOperations {
    * @throws TableNotFoundException
    * @since 1.6.0
    */
-  public void online(String tableName, boolean wait) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
+  void online(String tableName, boolean wait) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
 
   /**
    * Clears the tablet locator cache for a specified table
@@ -565,14 +565,14 @@ public interface TableOperations {
    * @throws TableNotFoundException
    *           if table does not exist
    */
-  public void clearLocatorCache(String tableName) throws TableNotFoundException;
+  void clearLocatorCache(String tableName) throws TableNotFoundException;
 
   /**
    * Get a mapping of table name to internal table id.
    * 
    * @return the map from table name to internal table id
    */
-  public Map<String,String> tableIdMap();
+  Map<String,String> tableIdMap();
 
   /**
    * Add an iterator to a table on all scopes.
@@ -589,7 +589,7 @@ public interface TableOperations {
    * @throws IllegalArgumentException
    *           if the setting conflicts with any existing iterators
    */
-  public void attachIterator(String tableName, IteratorSetting setting) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
+  void attachIterator(String tableName, IteratorSetting setting) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
 
   /**
    * Add an iterator to a table on the given scopes.
@@ -606,7 +606,7 @@ public interface TableOperations {
    * @throws IllegalArgumentException
    *           if the setting conflicts with any existing iterators
    */
-  public void attachIterator(String tableName, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException,
+  void attachIterator(String tableName, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException,
       TableNotFoundException;
 
   /**
@@ -624,7 +624,7 @@ public interface TableOperations {
    * @throws TableNotFoundException
    *           throw if the table no longer exists
    */
-  public void removeIterator(String tableName, String name, EnumSet<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException,
+  void removeIterator(String tableName, String name, EnumSet<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException,
       TableNotFoundException;
 
   /**
@@ -643,7 +643,7 @@ public interface TableOperations {
    * @throws TableNotFoundException
    *           throw if the table no longer exists
    */
-  public IteratorSetting getIteratorSetting(String tableName, String name, IteratorScope scope) throws AccumuloSecurityException, AccumuloException,
+  IteratorSetting getIteratorSetting(String tableName, String name, IteratorScope scope) throws AccumuloSecurityException, AccumuloException,
       TableNotFoundException;
 
   /**
@@ -656,7 +656,7 @@ public interface TableOperations {
    * @throws AccumuloException
    * @throws TableNotFoundException
    */
-  public Map<String,EnumSet<IteratorScope>> listIterators(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
+  Map<String,EnumSet<IteratorScope>> listIterators(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
 
   /**
    * Check whether a given iterator configuration conflicts with existing configuration; in particular, determine if the name or priority are already in use for
@@ -669,7 +669,7 @@ public interface TableOperations {
    * @throws AccumuloException
    * @throws TableNotFoundException
    */
-  public void checkIteratorConflicts(String tableName, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException, TableNotFoundException;
+  void checkIteratorConflicts(String tableName, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException, TableNotFoundException;
 
   /**
    * Add a new constraint to a table.
@@ -686,7 +686,7 @@ public interface TableOperations {
    * @throws TableNotFoundException
    * @since 1.5.0
    */
-  public int addConstraint(String tableName, String constraintClassName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+  int addConstraint(String tableName, String constraintClassName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
    * Remove a constraint from a table.
@@ -700,7 +700,7 @@ public interface TableOperations {
    *           thrown if the user doesn't have permission to remove the constraint
    * @since 1.5.0
    */
-  public void removeConstraint(String tableName, int number) throws AccumuloException, AccumuloSecurityException;
+  void removeConstraint(String tableName, int number) throws AccumuloException, AccumuloSecurityException;
 
   /**
    * List constraints on a table with their assigned numbers.
@@ -713,7 +713,7 @@ public interface TableOperations {
    * @throws TableNotFoundException
    * @since 1.5.0
    */
-  public Map<String,Integer> listConstraints(String tableName) throws AccumuloException, TableNotFoundException;
+  Map<String,Integer> listConstraints(String tableName) throws AccumuloException, TableNotFoundException;
 
   /**
    * Gets the number of bytes being used in the files for a set of tables
@@ -724,7 +724,7 @@ public interface TableOperations {
    * @throws AccumuloException
    * @throws AccumuloSecurityException
    */
-  public List<DiskUsage> getDiskUsage(Set<String> tables) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+  List<DiskUsage> getDiskUsage(Set<String> tables) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
    * Test to see if the instance can load the given class as the given type. This check uses the table classpath if it is set.
@@ -737,6 +737,6 @@ public interface TableOperations {
    * 
    * @since 1.5.0
    */
-  public boolean testClassLoad(String tableName, final String className, final String asTypeName) throws AccumuloException, AccumuloSecurityException,
+  boolean testClassLoad(String tableName, final String className, final String asTypeName) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException;
 }

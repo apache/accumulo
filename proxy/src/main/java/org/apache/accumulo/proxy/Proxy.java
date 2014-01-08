@@ -106,7 +106,8 @@ public class Proxy {
           } catch (Exception e) {
             throw new RuntimeException();
           } finally {
-            folder.delete();
+            if (!folder.delete())
+              log.warn("Unexpected error removing " + folder);
           }
         }
       });

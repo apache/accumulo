@@ -114,6 +114,19 @@ public class MultiLevelIndex {
     public int compareTo(IndexEntry o) {
       return key.compareTo(o.key);
     }
+    
+    @Override
+    public boolean equals(Object o) {
+      if (o instanceof IndexEntry)
+        return compareTo((IndexEntry)o) == 0;
+      return false;
+    }
+    
+    @Override
+    public int hashCode() {
+      assert false : "hashCode not designed";
+      return 42; // any arbitrary constant will do
+    }
   }
   
   // a list that deserializes index entries on demand
@@ -585,7 +598,7 @@ public class MultiLevelIndex {
       }
     }
     
-    public class IndexIterator implements ListIterator<IndexEntry> {
+    static public class IndexIterator implements ListIterator<IndexEntry> {
       
       private Node node;
       private ListIterator<IndexEntry> liter;

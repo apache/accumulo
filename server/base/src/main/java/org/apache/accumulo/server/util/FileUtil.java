@@ -171,7 +171,6 @@ public class FileUtil {
           }
         
         try {
-          if (writer != null)
             writer.close();
         } catch (IOException e) {
           log.error(e, e);

@@ -462,9 +462,6 @@ class LoadFiles extends MasterRepo {
   private static final long serialVersionUID = 1L;
   
   private static ExecutorService threadPool = null;
-  static {
-    
-  }
   private static final Logger log = Logger.getLogger(BulkImport.class);
   
   private String tableId;

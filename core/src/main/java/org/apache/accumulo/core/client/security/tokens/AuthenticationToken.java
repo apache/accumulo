@@ -126,7 +126,7 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
     }
   }
   
-  public class Properties implements Destroyable, Map<String,char[]> {
+  class Properties implements Destroyable, Map<String,char[]> {
     
     private boolean destroyed = false;
     private HashMap<String,char[]> map = new HashMap<String,char[]>();
@@ -233,13 +233,13 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
     }
     
     @Override
-    public Set<java.util.Map.Entry<String,char[]>> entrySet() {
+    public Set<Map.Entry<String,char[]>> entrySet() {
       checkDestroyed();
       return map.entrySet();
     }
   }
   
-  public static class TokenProperty implements Comparable<TokenProperty> {
+  static class TokenProperty implements Comparable<TokenProperty> {
     private String key, description;
     private boolean masked;
     

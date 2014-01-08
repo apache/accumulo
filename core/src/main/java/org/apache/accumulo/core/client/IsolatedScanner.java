@@ -169,11 +169,11 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
     
   }
   
-  public static interface RowBufferFactory {
+  interface RowBufferFactory {
     RowBuffer newBuffer();
   }
   
-  public static interface RowBuffer extends Iterable<Entry<Key,Value>> {
+  interface RowBuffer extends Iterable<Entry<Key,Value>> {
     void add(Entry<Key,Value> entry);
     
     @Override
@@ -256,7 +256,6 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
   @Override
   public void setRange(Range range) {
     this.range = range;
-    ;
   }
   
   @Override

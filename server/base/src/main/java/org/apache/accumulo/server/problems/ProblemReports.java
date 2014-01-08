@@ -159,11 +159,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
     Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.addScanIterator(new IteratorSetting(1, "keys-only", SortedKeyIterator.class));
     
-    if (table == null) {
-      scanner.setRange(new Range(new Text("~err_"), false, new Text("~err`"), false));
-    } else {
-      scanner.setRange(new Range(new Text("~err_" + table)));
-    }
+    scanner.setRange(new Range(new Text("~err_" + table)));
     
     Mutation delMut = new Mutation(new Text("~err_" + table));
     

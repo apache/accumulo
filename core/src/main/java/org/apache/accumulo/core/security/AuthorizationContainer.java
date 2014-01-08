@@ -28,5 +28,5 @@ public interface AuthorizationContainer {
    * @param auth authorization, as a string encoded in UTF-8
    * @return true if authorization is in this collection
    */
-  public boolean contains(ByteSequence auth);
+  boolean contains(ByteSequence auth);
 }

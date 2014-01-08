@@ -60,7 +60,7 @@ public class ScanMeta extends Test {
     int maxScan = Integer.parseInt(props.getProperty("maxScan"));
     
     Random rand = new Random();
-    int numToScan = rand.nextInt((maxScan - minScan)) + minScan;
+    int numToScan = rand.nextInt(maxScan - minScan) + minScan;
     
     Map<Text,Text> hashes = new HashMap<Text,Text>();
     

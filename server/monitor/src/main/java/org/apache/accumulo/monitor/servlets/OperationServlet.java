@@ -80,8 +80,8 @@ public class OperationServlet extends BasicServlet {
     }
   }
   
-  private static interface WebOperation {
-    public void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) throws Exception;
+  private interface WebOperation {
+    void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) throws Exception;
   }
   
   public static class RefreshOperation implements WebOperation {

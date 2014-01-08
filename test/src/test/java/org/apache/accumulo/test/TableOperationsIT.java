@@ -124,7 +124,7 @@ public class TableOperationsIT {
     List<DiskUsage> diskUsages = connector.tableOperations().getDiskUsage(Collections.singleton(tableName));
     assertEquals(1, diskUsages.size());
     assertEquals(1, diskUsages.get(0).getTables().size());
-    assertEquals(new Long(0), diskUsages.get(0).getUsage());
+    assertEquals(Long.valueOf(0), diskUsages.get(0).getUsage());
     assertEquals(tableName, diskUsages.get(0).getTables().first());
 
     // add some data

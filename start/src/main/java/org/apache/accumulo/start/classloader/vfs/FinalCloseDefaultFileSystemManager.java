@@ -19,7 +19,7 @@ package org.apache.accumulo.start.classloader.vfs;
 import org.apache.commons.vfs2.impl.DefaultFileSystemManager;
 
 public class FinalCloseDefaultFileSystemManager extends DefaultFileSystemManager {
-  public void finalize() {
+  protected void finalize() {
     close();
   }
 }

@@ -30,28 +30,28 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 
 public interface Authenticator {
   
-  public void initialize(String instanceId, boolean initialize);
+  void initialize(String instanceId, boolean initialize);
   
-  public boolean validSecurityHandlers(Authorizor auth, PermissionHandler pm);
+  boolean validSecurityHandlers(Authorizor auth, PermissionHandler pm);
   
-  public void initializeSecurity(TCredentials credentials, String principal, byte[] token) throws AccumuloSecurityException, ThriftSecurityException;
+  void initializeSecurity(TCredentials credentials, String principal, byte[] token) throws AccumuloSecurityException, ThriftSecurityException;
   
-  public boolean authenticateUser(String principal, AuthenticationToken token) throws AccumuloSecurityException;
+  boolean authenticateUser(String principal, AuthenticationToken token) throws AccumuloSecurityException;
   
-  public Set<String> listUsers() throws AccumuloSecurityException;
+  Set<String> listUsers() throws AccumuloSecurityException;
   
-  public void createUser(String principal, AuthenticationToken token) throws AccumuloSecurityException;
+  void createUser(String principal, AuthenticationToken token) throws AccumuloSecurityException;
   
-  public void dropUser(String user) throws AccumuloSecurityException;
+  void dropUser(String user) throws AccumuloSecurityException;
   
-  public void changePassword(String principal, AuthenticationToken token) throws AccumuloSecurityException;
+  void changePassword(String principal, AuthenticationToken token) throws AccumuloSecurityException;
   
-  public boolean userExists(String user) throws AccumuloSecurityException;
+  boolean userExists(String user) throws AccumuloSecurityException;
   
-  public Set<Class<? extends AuthenticationToken>> getSupportedTokenTypes();
+  Set<Class<? extends AuthenticationToken>> getSupportedTokenTypes();
   
   /**
    * Returns true if the given token is appropriate for this Authenticator
    */
-  public boolean validTokenClass(String tokenClass);
+  boolean validTokenClass(String tokenClass);
 }

@@ -51,14 +51,14 @@ public abstract class Translator<IT,OT> {
     }
   }
   
-  public static class TCVSTranslator extends Translator<TConstraintViolationSummary,org.apache.accumulo.core.data.ConstraintViolationSummary> {
+  public static class TCVSTranslator extends Translator<TConstraintViolationSummary,ConstraintViolationSummary> {
     @Override
     public ConstraintViolationSummary translate(TConstraintViolationSummary input) {
       return new ConstraintViolationSummary(input);
     }
   }
   
-  public static class CVSTranslator extends Translator<org.apache.accumulo.core.data.ConstraintViolationSummary,TConstraintViolationSummary> {
+  public static class CVSTranslator extends Translator<ConstraintViolationSummary,TConstraintViolationSummary> {
     @Override
     public TConstraintViolationSummary translate(ConstraintViolationSummary input) {
       return input.toThrift();

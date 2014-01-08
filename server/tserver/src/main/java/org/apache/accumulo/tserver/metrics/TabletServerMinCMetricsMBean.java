@@ -18,25 +18,25 @@ package org.apache.accumulo.tserver.metrics;
 
 public interface TabletServerMinCMetricsMBean {
   
-  public static final String minc = "minc";
-  public static final String queue = "queue";
+  static final String minc = "minc";
+  static final String queue = "queue";
   
-  public long getMinorCompactionCount();
+  long getMinorCompactionCount();
   
-  public long getMinorCompactionAvgTime();
+  long getMinorCompactionAvgTime();
   
-  public long getMinorCompactionMinTime();
+  long getMinorCompactionMinTime();
   
-  public long getMinorCompactionMaxTime();
+  long getMinorCompactionMaxTime();
   
-  public long getMinorCompactionQueueCount();
+  long getMinorCompactionQueueCount();
   
-  public long getMinorCompactionQueueAvgTime();
+  long getMinorCompactionQueueAvgTime();
   
-  public long getMinorCompactionQueueMinTime();
+  long getMinorCompactionQueueMinTime();
   
-  public long getMinorCompactionQueueMaxTime();
+  long getMinorCompactionQueueMaxTime();
   
-  public void reset();
+  void reset();
   
 }

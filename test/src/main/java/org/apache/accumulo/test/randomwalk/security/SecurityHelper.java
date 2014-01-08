@@ -188,7 +188,7 @@ public class SecurityHelper {
     try {
       fs = (FileSystem) state.get(filesystem);
     } catch (RuntimeException re) {}
-    ;
+
     if (fs == null) {
       try {
         fs = FileSystem.get(CachedConfiguration.getInstance());

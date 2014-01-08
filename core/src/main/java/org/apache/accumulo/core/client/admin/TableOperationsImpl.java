@@ -32,6 +32,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -1081,6 +1082,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     if (maxSplits == 1)
       return Collections.singleton(range);
 
+    Random random = new Random();
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
     String tableId = Tables.getTableId(instance, tableName);
     TabletLocator tl = TabletLocator.getLocator(instance, new Text(tableId));
@@ -1094,7 +1096,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
       log.warn("Unable to locate bins for specified range. Retrying.");
       // sleep randomly between 100 and 200ms
-      UtilWaitThread.sleep(100 + (int) (Math.random() * 100));
+      UtilWaitThread.sleep(100 + random.nextInt(100));
       binnedRanges.clear();
       tl.invalidateCache();
     }
@@ -1454,10 +1456,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
       while ((zipEntry = zis.getNextEntry()) != null) {
         if (zipEntry.getName().equals(Constants.EXPORT_TABLE_CONFIG_FILE)) {
           BufferedReader in = new BufferedReader(new InputStreamReader(zis));
-          String line;
-          while ((line = in.readLine()) != null) {
-            String sa[] = line.split("=", 2);
-            props.put(sa[0], sa[1]);
+          try {
+            String line;
+            while ((line = in.readLine()) != null) {
+              String sa[] = line.split("=", 2);
+              props.put(sa[0], sa[1]);
+            }
+          } finally {
+            in.close();
           }
 
           break;
@@ -1483,10 +1489,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
       FileSystem fs = new Path(importDir).getFileSystem(CachedConfiguration.getInstance());
       Map<String,String> props = getExportedProps(fs, new Path(importDir, Constants.EXPORT_FILE));
 
-      for (String propKey : props.keySet()) {
-        if (Property.isClassProperty(propKey) && !props.get(propKey).contains(Constants.CORE_PACKAGE_NAME)) {
+      for (Entry<String,String> entry : props.entrySet()) {
+        if (Property.isClassProperty(entry.getKey()) && !entry.getValue().contains(Constants.CORE_PACKAGE_NAME)) {
           Logger.getLogger(this.getClass()).info(
-              "Imported table sets '" + propKey + "' to '" + props.get(propKey) + "'.  Ensure this class is on Accumulo classpath.");
+              "Imported table sets '" + entry.getKey() + "' to '" + entry.getValue() + "'.  Ensure this class is on Accumulo classpath.");
         }
       }
 

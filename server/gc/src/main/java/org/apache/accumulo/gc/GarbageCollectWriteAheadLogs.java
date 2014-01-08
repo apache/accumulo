@@ -67,6 +67,7 @@ public class GarbageCollectWriteAheadLogs {
   GarbageCollectWriteAheadLogs(Instance instance, VolumeManager fs, boolean useTrash) throws IOException {
     this.instance = instance;
     this.fs = fs;
+    this.useTrash = useTrash;
   }
   
   public void collect(GCStatus status) {

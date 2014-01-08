@@ -627,7 +627,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
    */
   abstract protected PartialKey getKeyPrefix();
   
-  public static interface KVBuffer {
+  public interface KVBuffer {
     void append(Key key, Value val);
   }
   

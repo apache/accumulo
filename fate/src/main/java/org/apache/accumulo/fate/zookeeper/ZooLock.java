@@ -346,9 +346,7 @@ public class ZooLock implements Watcher {
     watchingParent = false;
 
     if (event.getState() == KeeperState.Expired && lock != null) {
-      if (lock != null) {
         lostLock(LockLossReason.SESSION_EXPIRED);
-      }
     } else {
       
       try { // set the watch on the parent node again

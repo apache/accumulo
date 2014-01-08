@@ -260,7 +260,7 @@ public class RFile {
       out.println("\tFirst key            : " + firstKey);
       
       Key lastKey = null;
-      if (indexReader != null && indexReader.size() > 0) {
+      if (indexReader.size() > 0) {
         lastKey = indexReader.getLastKey();
       }
       

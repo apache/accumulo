@@ -232,19 +232,19 @@ public class InMemoryMap {
   }
   
   private interface SimpleMap {
-    public Value get(Key key);
+    Value get(Key key);
     
-    public Iterator<Entry<Key,Value>> iterator(Key startKey);
+    Iterator<Entry<Key,Value>> iterator(Key startKey);
     
-    public int size();
+    int size();
     
-    public InterruptibleIterator skvIterator();
+    InterruptibleIterator skvIterator();
     
-    public void delete();
+    void delete();
     
-    public long getMemoryUsed();
+    long getMemoryUsed();
     
-    public void mutate(List<Mutation> mutations, int kvCount);
+    void mutate(List<Mutation> mutations, int kvCount);
   }
   
   private static class LocalityGroupMap implements SimpleMap {

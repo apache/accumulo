@@ -21,6 +21,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -318,7 +319,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
   public String toString() {
     StringBuilder sb = new StringBuilder(256);
     sb.append("Range: ").append(range);
-    sb.append(" Locations: ").append(locations);
+    sb.append(" Locations: ").append(Arrays.asList(locations));
     sb.append(" Table: ").append(tableName);
     sb.append(" TableID: ").append(tableId);
     sb.append(" InstanceName: ").append(instanceName);
@@ -417,7 +418,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
   }
 
   public void setLocations(String[] locations) {
-    this.locations = locations;
+    this.locations = Arrays.copyOf(locations, locations.length);
   }
 
   public Boolean isMockInstance() {

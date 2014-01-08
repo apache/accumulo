@@ -36,7 +36,7 @@ public interface MultiTableBatchWriter {
    * @throws TableNotFoundException
    *           when the table does not exist
    */
-  public BatchWriter getBatchWriter(String table) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+   BatchWriter getBatchWriter(String table) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
   
   /**
    * Send mutations for all tables to accumulo.
@@ -44,7 +44,7 @@ public interface MultiTableBatchWriter {
    * @throws MutationsRejectedException
    *           when queued mutations are unable to be inserted
    */
-  public void flush() throws MutationsRejectedException;
+  void flush() throws MutationsRejectedException;
   
   /**
    * Flush and release all resources.
@@ -53,12 +53,12 @@ public interface MultiTableBatchWriter {
    *           when queued mutations are unable to be inserted
    * 
    */
-  public void close() throws MutationsRejectedException;
+  void close() throws MutationsRejectedException;
   
   /**
    * Returns true if this batch writer has been closed.
    * 
    * @return true if this batch writer has been closed
    */
-  public boolean isClosed();
+  boolean isClosed();
 }
