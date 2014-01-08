@@ -18,8 +18,10 @@ package org.apache.accumulo.core.util.shell.commands;
 
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -31,7 +33,7 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
 public class ListIterCommand extends Command {
-  private Option nameOpt;
+  private Option nameOpt, allScopesOpt;
   private Map<IteratorScope,Option> scopeOpts;
 
   @Override
@@ -60,18 +62,19 @@ public class ListIterCommand extends Command {
       iterators.put(name, scopes);
     }
 
-    boolean hasScope = false;
+    final boolean allScopes = cl.hasOption(allScopesOpt.getOpt());
+    Set<IteratorScope> desiredScopes = new HashSet<IteratorScope>();
     for (IteratorScope scope : IteratorScope.values()) {
-      if (cl.hasOption(scopeOpts.get(scope).getOpt()))
-        hasScope = true;
+      if (allScopes || cl.hasOption(scopeOpts.get(scope).getOpt()))
+        desiredScopes.add(scope);
     }
-    if (!hasScope) {
+    if (desiredScopes.isEmpty()) {
       throw new IllegalArgumentException("You must select at least one scope to configure");
     }
     final StringBuilder sb = new StringBuilder("-\n");
     for (String name : iterators.keySet()) {
       for (IteratorScope scope : iterators.get(name)) {
-        if (cl.hasOption(scopeOpts.get(scope).getOpt())) {
+        if (desiredScopes.contains(scope)) {
           IteratorSetting setting;
           if (namespaces) {
             setting = shellState.getConnector().namespaceOperations().getIteratorSetting(OptUtil.getNamespaceOpt(cl, shellState), name, scope);
@@ -112,6 +115,9 @@ public class ListIterCommand extends Command {
     nameOpt = new Option("n", "name", true, "iterator to list");
     nameOpt.setArgName("itername");
 
+    allScopesOpt = new Option("all", "all-scopes", false, "list from all scopes");
+    o.addOption(allScopesOpt);
+    
     scopeOpts = new EnumMap<IteratorScope,Option>(IteratorScope.class);
     scopeOpts.put(IteratorScope.minc, new Option(IteratorScope.minc.name(), "minor-compaction", false, "list iterator for minor compaction scope"));
     scopeOpts.put(IteratorScope.majc, new Option(IteratorScope.majc.name(), "major-compaction", false, "list iterator for major compaction scope"));
