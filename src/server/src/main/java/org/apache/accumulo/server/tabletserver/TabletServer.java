@@ -2464,7 +2464,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
               openingTablets.remove(extentToOpen);
               onlineTablets.put(extentToOpen, tablet);
               openingTablets.notifyAll();
-              recentlyUnloadedCache.remove(tablet);
+              recentlyUnloadedCache.remove(tablet.getExtent());
             }
           }
           tablet = null; // release this reference

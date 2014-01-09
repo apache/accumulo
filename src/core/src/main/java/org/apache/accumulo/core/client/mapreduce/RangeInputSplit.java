@@ -20,6 +20,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -309,7 +310,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
   public String toString() {
     StringBuilder sb = new StringBuilder(128);
     sb.append("Range: ").append(range);
-    sb.append(" Locations: ").append(locations);
+    sb.append(" Locations: ").append(Arrays.asList(locations));
     sb.append(" Table: ").append(table);
     sb.append(" InstanceName: ").append(instanceName);
     sb.append(" zooKeepers: ").append(zooKeepers);
