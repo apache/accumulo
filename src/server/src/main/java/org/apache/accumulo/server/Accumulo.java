@@ -117,7 +117,7 @@ public class Accumulo {
       System.setProperty("org.apache.accumulo.core.host.log", localhost);
     
     // Use a specific log config, if it exists
-    String logConfig = String.format("%s/%s_logger.xml", System.getenv("ACCUMULO_CONF_DIR"));
+    String logConfig = String.format("%s/%s_logger.xml", System.getenv("ACCUMULO_CONF_DIR"), application);
     if (!new File(logConfig).exists()) {
       // otherwise, use the generic config
       logConfig = String.format("%s/generic_logger.xml", System.getenv("ACCUMULO_CONF_DIR"));
