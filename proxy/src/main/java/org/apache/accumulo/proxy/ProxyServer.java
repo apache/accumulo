@@ -226,6 +226,10 @@ public class ProxyServer implements AccumuloProxy.Iface {
     try {
       throw ex;
     } catch (AccumuloException e) {
+      Throwable cause = e.getCause();
+      if (null != cause && TableNotFoundException.class.equals(cause.getClass())) {
+        throw new org.apache.accumulo.proxy.thrift.TableNotFoundException(cause.toString());
+      }
       handleAccumuloException(e);
     } catch (AccumuloSecurityException e) {
       handleAccumuloSecurityException(e);
