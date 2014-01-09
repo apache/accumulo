@@ -24,49 +24,79 @@ import org.apache.accumulo.core.security.AuthorizationContainer;
 import org.apache.accumulo.core.security.Authorizations;
 
 /**
- * Accumulo uses Constraint objects to determine if mutations will be applied to a table.
- * 
- * This interface expects implementers to return violation codes. The reason codes are returned instead of arbitrary strings it to encourage conciseness.
- * Conciseness is needed because violations are aggregated. If a user sends a batch of 10,000 mutations to accumulo, only aggregated counts about which
- * violations occurred are returned.
- * 
- * If the Constraint implementer was allowed to return arbitrary violation strings like the following :
- * 
- * Value "abc" is not a number Value "vbg" is not a number
- * 
- * Then this would not aggregate very well, because the same violation is represented with two different strings.
- * 
- * 
- * 
+ * <p>
+ * Constraint objects are used to determine if mutations will be applied to a table.
+ * </p>
+ *
+ * <p>
+ * This interface expects implementers to return violation codes. The reason codes are returned instead of arbitrary strings to encourage conciseness.
+ * Conciseness is needed because violations are aggregated. If a user sends a batch of 10,000 mutations to Accumulo, only aggregated counts about which
+ * violations occurred are returned. If the constraint implementer were allowed to return arbitrary violation strings like the following:
+ * </p>
+ *
+ * <p>
+ * Value "abc" is not a number<br>
+ * Value "vbg" is not a number
+ * </p>
+ *
+ * <p>
+ * This would not aggregate very well, because the same violation is represented with two different strings.
+ * </p>
  */
-
 public interface Constraint {
   
+  /**
+   * The environment within which a constraint exists.
+   */
   interface Environment {
+    /**
+     * Gets the key extent of the environment.
+     *
+     * @return key extent
+     */
     KeyExtent getExtent();
     
+    /**
+     * Gets the user within the environment.
+     *
+     * @return user
+     */
     String getUser();
     
+    /**
+     * Gets the authorizations in the environment.
+     *
+     * @return authorizations
+     * @deprecated Use {@link #getAuthorizationsContainer()} instead.
+     */
     @Deprecated
     Authorizations getAuthorizations();
 
+    /**
+     * Gets the authorizations in the environment.
+     *
+     * @return authorizations
+     */
     AuthorizationContainer getAuthorizationsContainer();
   }
   
   /**
-   * Implementers of this method should return a short one sentence description of what a given violation code means.
-   * 
+   * Gets a short, one-sentence description of what a given violation code means.
+   *
+   * @param violationCode numeric violation code
+   * @return matching violation description
    */
-  
   String getViolationDescription(short violationCode);
   
   /**
-   * Checks a mutation for constrain violations. If the mutation contains no violations, then the implementation should return null. Otherwise it should return
+   * Checks a mutation for constraint violations. If the mutation contains no violations, returns null. Otherwise, returns
    * a list of violation codes.
-   * 
-   * Violation codes must be non negative. Negative violation codes are reserved for system use.
-   * 
+   *
+   * Violation codes must be non-negative. Negative violation codes are reserved for system use.
+   *
+   * @param env constraint environment
+   * @param mutation mutation to check
+   * @return list of violation codes, or null if none
    */
-  
   List<Short> check(Environment env, Mutation mutation);
 }

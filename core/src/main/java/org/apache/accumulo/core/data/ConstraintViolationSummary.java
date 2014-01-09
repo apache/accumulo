@@ -31,10 +31,11 @@ public class ConstraintViolationSummary {
   /**
    * Creates a new summary.
    *
-   * @param constrainClass
-   * @param violationCode
-   * @param violationDescription
-   * @param numberOfViolatingMutations
+   * @param constrainClass class of constraint that was violated
+   * @param violationCode violation code
+   * @param violationDescription description of violation
+   * @param numberOfViolatingMutations number of mutations that produced this
+   * particular violation
    */
   public ConstraintViolationSummary(String constrainClass, short violationCode, String violationDescription, long numberOfViolatingMutations) {
     this.constrainClass = constrainClass;
