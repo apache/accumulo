@@ -204,7 +204,7 @@ public class MiniAccumuloClusterTest {
   public void testDebugPorts() {
 
     Set<Pair<ServerType,Integer>> debugPorts = accumulo.getDebugPorts();
-    Assert.assertEquals(4, debugPorts.size());
+    Assert.assertEquals(5, debugPorts.size());
     for (Pair<ServerType,Integer> debugPort : debugPorts) {
       Assert.assertTrue(debugPort.getSecond() > 0);
     }
@@ -214,7 +214,7 @@ public class MiniAccumuloClusterTest {
   public void testAccurateProcessListReturned() throws Exception {
     Map<ServerType,Collection<ProcessReference>> procs = accumulo.getProcesses();
 
-    Assert.assertFalse(procs.containsKey(ServerType.GARBAGE_COLLECTOR));
+    Assert.assertTrue(procs.containsKey(ServerType.GARBAGE_COLLECTOR));
 
     for (ServerType t : new ServerType[] {ServerType.MASTER, ServerType.TABLET_SERVER, ServerType.ZOOKEEPER}) {
       Assert.assertTrue(procs.containsKey(t));
