@@ -245,7 +245,8 @@ public class MiniAccumuloCluster {
     appendProp(fileWriter, Property.TSERV_WALOG_MAX_SIZE, "100M", siteConfig);
     appendProp(fileWriter, Property.TSERV_NATIVEMAP_ENABLED, "false", siteConfig);
     appendProp(fileWriter, Property.TRACE_TOKEN_PROPERTY_PREFIX + ".password", config.getRootPassword(), siteConfig);
-    appendProp(fileWriter, Property.GC_CYCLE_DELAY, "30s", siteConfig);
+    appendProp(fileWriter, Property.GC_CYCLE_DELAY, "4s", siteConfig);
+    appendProp(fileWriter, Property.GC_CYCLE_START, "0s", siteConfig);
     mergePropWithRandomPort(siteConfig, Property.MASTER_CLIENTPORT.getKey());
     mergePropWithRandomPort(siteConfig, Property.TRACE_PORT.getKey());
     mergePropWithRandomPort(siteConfig, Property.TSERV_CLIENTPORT.getKey());
@@ -326,9 +327,7 @@ public class MiniAccumuloCluster {
     
     masterProcess = exec(Master.class);
     
-    if (config.shouldRunGC()) {
-      gcProcess = exec(SimpleGarbageCollector.class);
-    }
+    gcProcess = exec(SimpleGarbageCollector.class);
   }
   
   /**
