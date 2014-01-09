@@ -244,7 +244,9 @@ public class MiniAccumuloCluster {
     appendProp(fileWriter, Property.TRACE_PORT, "" + PortUtils.getRandomFreePort(), siteConfig);
     appendProp(fileWriter, Property.LOGGER_SORT_BUFFER_SIZE, "50M", siteConfig);
     appendProp(fileWriter, Property.LOGGER_PORTSEARCH, "true", siteConfig);
-    appendProp(fileWriter, Property.GC_CYCLE_DELAY, "30s", siteConfig);
+    appendProp(fileWriter, Property.GC_CYCLE_DELAY, "4s", siteConfig);
+    appendProp(fileWriter, Property.GC_CYCLE_START, "0s", siteConfig);
+    appendProp(fileWriter, Property.GC_PORT, "" + PortUtils.getRandomFreePort(), siteConfig);
     
     // since there is a small amount of memory, check more frequently for majc... setting may not be needed in 1.5
     appendProp(fileWriter, Property.TSERV_MAJC_DELAY, "3", siteConfig);
@@ -324,9 +326,7 @@ public class MiniAccumuloCluster {
     loggerProcess = exec(LogService.class);
     masterProcess = exec(Master.class);
     
-    if (config.shouldRunGC()) {
-      gcProcess = exec(SimpleGarbageCollector.class);
-    }
+    gcProcess = exec(SimpleGarbageCollector.class);
   }
   
   /**
