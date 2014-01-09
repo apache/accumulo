@@ -37,11 +37,22 @@ public abstract class AbstractAccumuloMojo extends AbstractMojo {
     if (miniClasspath == null && project != null) {
       classpathItems.add(project.getBuild().getOutputDirectory());
       classpathItems.add(project.getBuild().getTestOutputDirectory());
-      for (Artifact artifact : project.getArtifacts())
+      for (Artifact artifact : project.getArtifacts()) {
         classpathItems.add(artifact.getFile().toURI().toURL().toString());
+      }
     } else if (miniClasspath != null && !miniClasspath.isEmpty()) {
       classpathItems.addAll(Arrays.asList(miniClasspath.split(File.pathSeparator)));
     }
+    
+    // Hack to prevent sisu-guava, a maven 3.0.4 dependency, from effecting normal accumulo behavior.
+    String sisuGuava = null;
+    for (String items : classpathItems)
+      if (items.contains("sisu-guava"))
+        sisuGuava = items;
+    
+    if (sisuGuava != null)
+      classpathItems.remove(sisuGuava);
+    
     macConfig.setClasspathItems(classpathItems.toArray(new String[classpathItems.size()]));
   }
 }
