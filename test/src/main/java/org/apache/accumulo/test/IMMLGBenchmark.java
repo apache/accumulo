@@ -136,12 +136,6 @@ public class IMMLGBenchmark {
     
   }
   
-  static long abs(long l) {
-    if (l < 0)
-      return -l;
-    return l;
-  }
-
   private static long write(Connector conn, ArrayList<byte[]> cfset, String table) throws TableNotFoundException, MutationsRejectedException {
     Random rand = new Random();
     
@@ -193,5 +187,12 @@ public class IMMLGBenchmark {
       UtilWaitThread.sleep(1000);
       conn.tableOperations().online(table);
     }
+  }
+  
+  public static long abs(long l) {
+    l = Math.abs(l);  // abs(Long.MIN_VALUE) == Long.MIN_VALUE... 
+    if (l < 0)
+      return 0;
+    return l;
   }
 }
