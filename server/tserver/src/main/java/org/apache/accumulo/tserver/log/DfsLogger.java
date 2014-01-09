@@ -366,14 +366,14 @@ public class DfsLogger {
       logFile.write(LOG_FILE_HEADER_V3.getBytes());
 
       CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf.getConfiguration());
-      
+
       params.setPlaintextOutputStream(new NoFlushOutputStream(logFile));
-      
+
       // In order to bootstrap the reading of this file later, we have to record the CryptoModule that was used to encipher it here,
       // so that that crypto module can re-read its own parameters.
-      
+
       logFile.writeUTF(conf.getConfiguration().get(Property.CRYPTO_MODULE_CLASS));
-      
+
       
       params = cryptoModule.getEncryptingOutputStream(params);
       OutputStream encipheringOutputStream = params.getEncryptedOutputStream();
@@ -437,7 +437,7 @@ public class DfsLogger {
           log.info("Interrupted");
         }
     }
-    
+
     if (encryptingLogFile != null)
       try {
         encryptingLogFile.close();
@@ -492,7 +492,7 @@ public class DfsLogger {
         work.exception = e;
       }
     }
-    
+
     synchronized (closeLock) {
       // use a different lock for close check so that adding to work queue does not need
       // to wait on walog I/O operations
