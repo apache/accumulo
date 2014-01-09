@@ -24,6 +24,9 @@ import java.util.Set;
 
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 
+/**
+ * A class for accumulating constraint violations across a number of mutations.
+ */
 public class Violations {
   
   private static class CVSKey {
@@ -54,10 +57,18 @@ public class Violations {
   
   private HashMap<CVSKey,ConstraintViolationSummary> cvsmap;
   
+  /**
+   * Creates a new empty object.
+   */
   public Violations() {
     cvsmap = new HashMap<CVSKey,ConstraintViolationSummary>();
   }
   
+  /**
+   * Checks if this object is empty, i.e., that no violations have been added.
+   *
+   * @return true if empty
+   */
   public boolean isEmpty() {
     return cvsmap.isEmpty();
   }
@@ -72,11 +83,22 @@ public class Violations {
     }
   }
   
+  /**
+   * Adds a violation. If a matching violation was already added, then its
+   * count is increased.
+   *
+   * @param cvs summary of violation
+   */
   public void add(ConstraintViolationSummary cvs) {
     CVSKey cvsk = new CVSKey(cvs);
     add(cvsk, cvs);
   }
   
+  /**
+   * Adds all violations from the given object to this one.
+   *
+   * @param violations violations to add
+   */
   public void add(Violations violations) {
     Set<Entry<CVSKey,ConstraintViolationSummary>> es = violations.cvsmap.entrySet();
     
@@ -86,6 +108,11 @@ public class Violations {
     
   }
   
+  /**
+   * Adds a list of violations.
+   *
+   * @param cvsList list of violation summaries
+   */
   public void add(List<ConstraintViolationSummary> cvsList) {
     for (ConstraintViolationSummary constraintViolationSummary : cvsList) {
       add(constraintViolationSummary);
@@ -93,6 +120,11 @@ public class Violations {
     
   }
   
+  /**
+   * Gets the violations as a list of summaries.
+   *
+   * @return list of violation summaries
+   */
   public List<ConstraintViolationSummary> asList() {
     return new ArrayList<ConstraintViolationSummary>(cvsmap.values());
   }
