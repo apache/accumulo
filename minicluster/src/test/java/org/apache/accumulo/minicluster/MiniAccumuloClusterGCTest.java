@@ -40,7 +40,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.io.Files;
 
 /**
  * 
@@ -48,27 +47,6 @@ import com.google.common.io.Files;
 public class MiniAccumuloClusterGCTest {
   private static final Logger log = Logger.getLogger(MiniAccumuloClusterGCTest.class);
   
-  @Test
-  public void testGcConfig() throws Exception {
-    File f = Files.createTempDir();
-    f.deleteOnExit();
-    try {
-      MiniAccumuloConfig macConfig = new MiniAccumuloConfig(f, passwd);
-      macConfig.setNumTservers(1);
-  
-      Assert.assertEquals(false, macConfig.shouldRunGC());
-      
-      // Turn on the garbage collector
-      macConfig.runGC(true);
-  
-      Assert.assertEquals(true, macConfig.shouldRunGC());
-    } finally {
-      if (f.exists()) {
-        f.delete();
-      }
-    }
-  }
-
   private static File testDir = new File(System.getProperty("user.dir") + "/target/" + MiniAccumuloClusterGCTest.class.getName());
   private static MiniAccumuloConfig macConfig;
   private static MiniAccumuloCluster accumulo;
@@ -82,9 +60,6 @@ public class MiniAccumuloClusterGCTest {
 
     macConfig = new MiniAccumuloConfig(testDir, passwd);
     macConfig.setNumTservers(1);
-
-    // Turn on the garbage collector
-    macConfig.runGC(true);
 
     // And tweak the settings to make it run often
     Map<String,String> config = ImmutableMap.of(Property.GC_CYCLE_DELAY.getKey(), "1s", Property.GC_CYCLE_START.getKey(), "0s");

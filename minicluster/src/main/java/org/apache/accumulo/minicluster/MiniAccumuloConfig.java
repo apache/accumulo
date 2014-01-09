@@ -57,7 +57,6 @@ public class MiniAccumuloConfig {
   private boolean initialized = false;
 
   private boolean useMiniDFS = false;
-  private boolean runGC = false;
 
   private String[] classpathItems = null;
 
@@ -116,7 +115,8 @@ public class MiniAccumuloConfig {
       mergeProp(Property.TSERV_MAJC_DELAY.getKey(), "3");
       mergeProp(Property.GENERAL_CLASSPATHS.getKey(), classpath);
       mergeProp(Property.GENERAL_DYNAMIC_CLASSPATHS.getKey(), libDir.getAbsolutePath() + "/[^.].*[.]jar");
-      mergeProp(Property.GC_CYCLE_DELAY.getKey(), "30s");
+      mergeProp(Property.GC_CYCLE_DELAY.getKey(), "4s");
+      mergeProp(Property.GC_CYCLE_START.getKey(), "0s");
       mergePropWithRandomPort(Property.MASTER_CLIENTPORT.getKey());
       mergePropWithRandomPort(Property.TRACE_PORT.getKey());
       mergePropWithRandomPort(Property.TSERV_CLIENTPORT.getKey());
@@ -368,22 +368,6 @@ public class MiniAccumuloConfig {
    */
   public File getClientConfFile() {
     return new File(getConfDir(), "client.conf");
-  }
-
-  /**
-   * Whether or not the Accumulo garbage collector proces will run
-   */
-  public boolean shouldRunGC() {
-    return runGC;
-  }
-
-  /**
-   * Sets if the Accumulo garbage collector process should run
-   * 
-   * @param shouldRunGC
-   */
-  public void runGC(boolean shouldRunGC) {
-    runGC = shouldRunGC;
   }
 
   /**
