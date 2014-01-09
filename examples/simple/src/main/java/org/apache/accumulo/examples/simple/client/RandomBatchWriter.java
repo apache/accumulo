@@ -110,9 +110,10 @@ public class RandomBatchWriter {
     Long seed = null;
   }
 
-  private static long abs(long l) {
+  public static long abs(long l) {
+    l = Math.abs(l);  // abs(Long.MIN_VALUE) == Long.MIN_VALUE... 
     if (l < 0)
-      return -l;
+      return 0;
     return l;
   }
 

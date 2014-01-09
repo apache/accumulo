@@ -89,6 +89,13 @@ import org.junit.Test;
  * 
  */
 public class ConditionalWriterIT extends SimpleMacIT {
+  
+  public static long abs(long l) {
+    l = Math.abs(l);  // abs(Long.MIN_VALUE) == Long.MIN_VALUE... 
+    if (l < 0)
+      return 0;
+    return l;
+  }
 
   @Test(timeout =  60 * 1000)
   public void testBasic() throws Exception {
@@ -576,12 +583,6 @@ public class ConditionalWriterIT extends SimpleMacIT {
     Assert.assertEquals("Doe", scanner.iterator().next().getValue().toString());
 
     cw.close();
-  }
-
-  static long abs(long l) {
-    if (l < 0)
-      return -l;
-    return l;
   }
 
   @Test(timeout = 60 * 1000)

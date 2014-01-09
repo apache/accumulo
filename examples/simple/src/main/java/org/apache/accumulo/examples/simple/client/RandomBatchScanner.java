@@ -35,6 +35,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
+import static org.apache.accumulo.examples.simple.client.RandomBatchWriter.abs;
 
 import com.beust.jcommander.Parameter;
 
@@ -111,12 +112,6 @@ public class RandomBatchScanner {
     log.info("finished");
   }
   
-  private static long abs(long l) {
-    if (l < 0)
-      return -l;
-    return l;
-  }
-
   /**
    * Prints a count of the number of rows mapped to false.
    * 
