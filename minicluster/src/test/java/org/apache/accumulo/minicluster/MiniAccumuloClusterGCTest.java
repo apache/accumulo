@@ -34,38 +34,14 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Ignore;
-import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.io.Files;
 
 /**
  * 
  */
 public class MiniAccumuloClusterGCTest {
-  
-  @Test
-  public void testGcConfig() throws Exception {
-    File f = Files.createTempDir();
-    f.deleteOnExit();
-    try {
-      MiniAccumuloConfig macConfig = new MiniAccumuloConfig(f, passwd);
-      macConfig.setNumTservers(1);
-  
-      Assert.assertEquals(false, macConfig.shouldRunGC());
-      
-      // Turn on the garbage collector
-      macConfig.runGC(true);
-  
-      Assert.assertEquals(true, macConfig.shouldRunGC());
-    } finally {
-      if (null != f && f.exists()) {
-        f.delete();
-      }
-    }
-  }
-
   
   private static TemporaryFolder tmpDir = new TemporaryFolder();
   private static MiniAccumuloConfig macConfig;
@@ -78,9 +54,6 @@ public class MiniAccumuloClusterGCTest {
     
     macConfig = new MiniAccumuloConfig(tmpDir.getRoot(), passwd);
     macConfig.setNumTservers(1);
-    
-    // Turn on the garbage collector
-    macConfig.runGC(true);
     
     String gcPort = Integer.toString(PortUtils.getRandomFreePort());
     
