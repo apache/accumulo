@@ -607,8 +607,10 @@ public class MetadataTableUtil {
         while (true) {
           try {
             IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-            if (zoo.isLockHeld(zooLock.getLockID()))
-              zoo.recursiveDelete(root + "/" + entry.filename, NodeMissingPolicy.SKIP);
+            if (zoo.isLockHeld(zooLock.getLockID())) {
+              String parts[] = entry.filename.split("/");
+              zoo.recursiveDelete(root + "/" + parts[parts.length - 1], NodeMissingPolicy.SKIP);
+            }
             break;
           } catch (Exception e) {
             log.error(e, e);
