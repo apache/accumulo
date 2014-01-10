@@ -49,6 +49,7 @@ import org.apache.accumulo.core.security.crypto.CryptoModuleParameters;
 import org.apache.accumulo.core.security.crypto.DefaultCryptoModule;
 import org.apache.accumulo.core.security.crypto.NoFlushOutputStream;
 import org.apache.accumulo.core.util.Daemon;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -120,7 +121,7 @@ public class DfsLogger {
   
   private final Object closeLock = new Object();
   
-  private static final DfsLogger.LogWork CLOSED_MARKER = new DfsLogger.LogWork(null, null);
+  private static final DfsLogger.LogWork CLOSED_MARKER = new DfsLogger.LogWork(null);
   
   private static final LogFileValue EMPTY = new LogFileValue();
   
@@ -176,12 +177,10 @@ public class DfsLogger {
   }
   
   static class LogWork {
-    List<TabletMutations> mutations;
     CountDownLatch latch;
     volatile Exception exception;
-    
-    public LogWork(List<TabletMutations> mutations, CountDownLatch latch) {
-      this.mutations = mutations;
+
+    public LogWork(CountDownLatch latch) {
       this.latch = latch;
     }
   }
@@ -479,19 +478,12 @@ public class DfsLogger {
     return logManyTablets(Collections.singletonList(new TabletMutations(tid, seq, Collections.singletonList(mutation))));
   }
   
-  public LoggerOperation logManyTablets(List<TabletMutations> mutations) throws IOException {
-    DfsLogger.LogWork work = new DfsLogger.LogWork(mutations, new CountDownLatch(1));
-    
+  private LoggerOperation logFileData(List<Pair<LogFileKey, LogFileValue>> keys) throws IOException {
+    DfsLogger.LogWork work = new DfsLogger.LogWork(new CountDownLatch(1));
     synchronized (DfsLogger.this) {
       try {
-        for (TabletMutations tabletMutations : mutations) {
-          LogFileKey key = new LogFileKey();
-          key.event = MANY_MUTATIONS;
-          key.seq = tabletMutations.getSeq();
-          key.tid = tabletMutations.getTid();
-          LogFileValue value = new LogFileValue();
-          value.mutations = tabletMutations.getMutations();
-          write(key, value);
+        for (Pair<LogFileKey,LogFileValue> pair : keys) {
+          write(pair.getFirst(), pair.getSecond());
         }
       } catch (ClosedChannelException ex) {
         throw new LogClosedException();
@@ -513,31 +505,35 @@ public class DfsLogger {
     return new LoggerOperation(work);
   }
   
-  public synchronized void minorCompactionFinished(int seq, int tid, String fqfn) throws IOException {
+  public LoggerOperation logManyTablets(List<TabletMutations> mutations) throws IOException {
+    List<Pair<LogFileKey, LogFileValue>> data = new ArrayList<Pair<LogFileKey, LogFileValue>>();
+    for (TabletMutations tabletMutations : mutations) {
+      LogFileKey key = new LogFileKey();
+      key.event = MANY_MUTATIONS;
+      key.seq = tabletMutations.getSeq();
+      key.tid = tabletMutations.getTid();
+      LogFileValue value = new LogFileValue();
+      value.mutations = tabletMutations.getMutations();
+      data.add(new Pair<LogFileKey, LogFileValue>(key, value));
+    }
+    return logFileData(data);
+  }
+
+  public LoggerOperation minorCompactionFinished(int seq, int tid, String fqfn) throws IOException {
     LogFileKey key = new LogFileKey();
     key.event = COMPACTION_FINISH;
     key.seq = seq;
     key.tid = tid;
-    try {
-      write(key, EMPTY);
-    } catch (IOException ex) {
-      log.error(ex);
-      throw ex;
-    }
+    return logFileData(Collections.singletonList(new Pair<LogFileKey, LogFileValue>(key, EMPTY)));
   }
   
-  public synchronized void minorCompactionStarted(int seq, int tid, String fqfn) throws IOException {
+  public LoggerOperation minorCompactionStarted(int seq, int tid, String fqfn) throws IOException {
     LogFileKey key = new LogFileKey();
     key.event = COMPACTION_START;
     key.seq = seq;
     key.tid = tid;
     key.filename = fqfn;
-    try {
-      write(key, EMPTY);
-    } catch (IOException ex) {
-      log.error(ex);
-      throw ex;
-    }
+    return logFileData(Collections.singletonList(new Pair<LogFileKey, LogFileValue>(key, EMPTY)));
   }
 
   public String getLogger() {

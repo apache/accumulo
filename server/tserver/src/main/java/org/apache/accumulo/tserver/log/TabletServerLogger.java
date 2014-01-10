@@ -392,7 +392,7 @@ public class TabletServerLogger {
     int seq = write(commitSession, true, new Writer() {
       @Override
       public LoggerOperation write(DfsLogger logger, int ignored) throws Exception {
-        logger.minorCompactionFinished(walogSeq, commitSession.getLogId(), fullyQualifiedFileName);
+        logger.minorCompactionFinished(walogSeq, commitSession.getLogId(), fullyQualifiedFileName).await();
         return null;
       }
     });
@@ -408,7 +408,7 @@ public class TabletServerLogger {
     write(commitSession, false, new Writer() {
       @Override
       public LoggerOperation write(DfsLogger logger, int ignored) throws Exception {
-        logger.minorCompactionStarted(seq, commitSession.getLogId(), fullyQualifiedFileName);
+        logger.minorCompactionStarted(seq, commitSession.getLogId(), fullyQualifiedFileName).await();
         return null;
       }
     });
