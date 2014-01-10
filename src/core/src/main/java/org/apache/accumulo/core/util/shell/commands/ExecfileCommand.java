@@ -35,8 +35,12 @@ public class ExecfileCommand extends Command {
   @Override
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
     java.util.Scanner scanner = new java.util.Scanner(new File(cl.getArgs()[0]));
-    while (scanner.hasNextLine())
-      shellState.execCommand(scanner.nextLine(), true, cl.hasOption(verboseOption.getOpt()));
+    try {
+      while (scanner.hasNextLine())
+        shellState.execCommand(scanner.nextLine(), true, cl.hasOption(verboseOption.getOpt()));
+    } finally {
+      scanner.close();
+    }
     return 0;
   }
   
