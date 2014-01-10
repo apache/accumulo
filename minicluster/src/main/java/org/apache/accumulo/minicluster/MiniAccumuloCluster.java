@@ -480,9 +480,7 @@ public class MiniAccumuloCluster {
     if (masterProcess == null) {
       masterProcess = _exec(Master.class, ServerType.MASTER);
     }
-    if (config.shouldRunGC()) {
-      gcProcess = _exec(SimpleGarbageCollector.class, ServerType.GARBAGE_COLLECTOR);
-    }
+    gcProcess = _exec(SimpleGarbageCollector.class, ServerType.GARBAGE_COLLECTOR);
   }
 
   private List<String> buildRemoteDebugParams(int port) {
