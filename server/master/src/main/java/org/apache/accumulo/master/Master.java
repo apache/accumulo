@@ -897,7 +897,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
       int threads = this.getConfiguration().getConfiguration().getCount(Property.MASTER_FATE_THREADPOOL_SIZE);
 
-      fate = new Fate<Master>(this, store, threads);
+      fate = new Fate<Master>(this, store);
+      fate.startTransactionRunners(threads);
 
       SimpleTimer.getInstance().schedule(new Runnable() {
 

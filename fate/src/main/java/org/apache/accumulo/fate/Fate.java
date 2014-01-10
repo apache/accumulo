@@ -138,11 +138,21 @@ public class Fate<T> {
     
   }
   
-  // TODO: move thread creation to another method ACCUMULO-2136
-  public Fate(T environment, TStore<T> store, int numThreads) {
+  /**
+   * Creates a Fault-tolerant executor.
+   * <p>
+   * Note: Users of this class should call {@link #startTransactionRunners(int)} to
+   * launch the {@link TransactionRunner} threads after creating a Fate object.
+   */
+  public Fate(T environment, TStore<T> store) {
     this.store = store;
     this.environment = environment;
-    
+  }
+
+  /**
+   * Launches the specified number of {@link TransactionRunner} threads.
+   */
+  public void startTransactionRunners(int numThreads) {
     for (int i = 0; i < numThreads; i++) {
       // TODO: use an ExecutorService, maybe a utility to do these steps throughout the server packages - ACCUMULO-1311
       Thread thread = new Daemon(new LoggingRunnable(log, new TransactionRunner()), "Repo runner " + i);
