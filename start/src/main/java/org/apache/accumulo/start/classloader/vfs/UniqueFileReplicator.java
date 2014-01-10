@@ -93,7 +93,10 @@ public class UniqueFileReplicator implements VfsComponent, FileReplicator {
           log.warn("File does not exist: " + tmpFile);
       }
     }
-    if (!tempDir.delete())
-      log.warn("Directory does not exists: " + tempDir);
+    if (tempDir.exists()) {
+      int numChildren = tempDir.list().length;
+      if (0 == numChildren && !tempDir.delete())
+        log.warn("Cannot delete empty directory: " + tempDir);
+    }
   }
 }
