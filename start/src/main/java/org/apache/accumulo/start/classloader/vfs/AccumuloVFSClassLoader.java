@@ -18,6 +18,7 @@ package org.apache.accumulo.start.classloader.vfs;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.lang.ref.WeakReference;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -254,8 +255,9 @@ public class AccumuloVFSClassLoader {
     vfs.setFileContentInfoFactory(new FileContentInfoFilenameFactory());
     vfs.setFilesCache(new SoftRefFilesCache());
     String cacheDirPath = AccumuloClassLoader.getAccumuloString(VFS_CACHE_DIR, "");
-    File cacheDir = new File(System.getProperty("java.io.tmpdir"), "accumulo-vfs-cache-" + System.getProperty("user.name", "nouser"));
-    if (!("".equals(cacheDirPath)))
+    String procName = ManagementFactory.getRuntimeMXBean().getName();
+    File cacheDir = new File(System.getProperty("java.io.tmpdir"), "accumulo-vfs-cache-" + procName + "-" + System.getProperty("user.name", "nouser"));
+    if (!cacheDirPath.isEmpty())
       cacheDir = new File(cacheDirPath);
     vfs.setReplicator(new UniqueFileReplicator(cacheDir));
     vfs.setCacheStrategy(CacheStrategy.ON_RESOLVE);
@@ -359,7 +361,7 @@ public class AccumuloVFSClassLoader {
     
     return contextManager;
   }
-  
+
   public static void close() {
     for (WeakReference<DefaultFileSystemManager> vfsInstance : vfsInstances) {
       DefaultFileSystemManager ref = vfsInstance.get();
