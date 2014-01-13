@@ -26,9 +26,9 @@ import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.minicluster.MiniAccumuloConfig;
-import org.apache.accumulo.minicluster.ProcessReference;
 import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.minicluster.impl.ProcessReference;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
@@ -37,7 +37,7 @@ import org.junit.Test;
 public class WriteAheadLogIT extends ConfigurableMacIT {
   
   @Override
-  public void configure(MiniAccumuloConfig cfg) {
+  public void configure(MiniAccumuloConfigImpl cfg) {
     Map<String, String> siteConfig = new HashMap<String, String>();
     siteConfig.put(Property.TSERV_WALOG_MAX_SIZE.getKey(), "2M");
     siteConfig.put(Property.GC_CYCLE_DELAY.getKey(), "1");

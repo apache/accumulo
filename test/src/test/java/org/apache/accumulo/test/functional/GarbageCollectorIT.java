@@ -49,10 +49,10 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.minicluster.MemoryUnit;
-import org.apache.accumulo.minicluster.MiniAccumuloConfig;
-import org.apache.accumulo.minicluster.ProcessNotFoundException;
-import org.apache.accumulo.minicluster.ProcessReference;
 import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.minicluster.impl.ProcessNotFoundException;
+import org.apache.accumulo.minicluster.impl.ProcessReference;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
@@ -69,7 +69,7 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
   private static final String OUR_SECRET = "itsreallysecret";
   
   @Override
-  public void configure(MiniAccumuloConfig cfg) {
+  public void configure(MiniAccumuloConfigImpl cfg) {
     Map<String,String> settings = new HashMap<String,String>();
     settings.put(Property.INSTANCE_SECRET.getKey(), OUR_SECRET);
     settings.put(Property.GC_CYCLE_START.getKey(), "1");

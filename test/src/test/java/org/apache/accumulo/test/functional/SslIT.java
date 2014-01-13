@@ -18,7 +18,7 @@ package org.apache.accumulo.test.functional;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.minicluster.MiniAccumuloConfig;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.junit.Test;
 
 /**
@@ -28,7 +28,7 @@ import org.junit.Test;
  */
 public class SslIT extends ConfigurableMacIT {
   @Override
-  public void configure(MiniAccumuloConfig cfg) {
+  public void configure(MiniAccumuloConfigImpl cfg) {
     super.configure(cfg);
     configureForSsl(cfg, createSharedTestDir(this.getClass().getName() + "-ssl"));
   }

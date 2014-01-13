@@ -40,14 +40,14 @@ import org.apache.accumulo.core.file.keyfunctor.ColumnQualifierFunctor;
 import org.apache.accumulo.core.file.keyfunctor.RowFunctor;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.MemoryUnit;
-import org.apache.accumulo.minicluster.MiniAccumuloConfig;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class BloomFilterIT extends ConfigurableMacIT {
   
   @Override
-  public void configure(MiniAccumuloConfig cfg) {
+  public void configure(MiniAccumuloConfigImpl cfg) {
     cfg.setDefaultMemory(1, MemoryUnit.GIGABYTE);
     cfg.setNumTservers(1);
     Map<String,String> siteConfig = new HashMap<String, String>();

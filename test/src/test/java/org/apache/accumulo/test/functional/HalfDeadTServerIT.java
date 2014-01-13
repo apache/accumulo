@@ -33,8 +33,8 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
@@ -44,7 +44,7 @@ import org.junit.Test;
 public class HalfDeadTServerIT extends ConfigurableMacIT {
   
   @Override
-  public void configure(MiniAccumuloConfig cfg) {
+  public void configure(MiniAccumuloConfigImpl cfg) {
     cfg.setNumTservers(1);
     Map<String,String> siteConfig = new HashMap<String,String>();
     siteConfig.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "15s");

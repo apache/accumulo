@@ -45,7 +45,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.commons.io.FileUtils;
@@ -93,7 +93,7 @@ public class AuditMessageIT extends ConfigurableMacIT {
    */
   private ArrayList<String> getAuditMessages(String stepName) throws IOException {
 
-    for (MiniAccumuloCluster.LogWriter lw : getCluster().getLogWriters()) {
+    for (MiniAccumuloClusterImpl.LogWriter lw : getCluster().getLogWriters()) {
       lw.flush();
     }
 

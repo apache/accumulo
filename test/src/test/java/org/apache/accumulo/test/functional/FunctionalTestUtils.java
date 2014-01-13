@@ -42,8 +42,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster.LogWriter;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl.LogWriter;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -148,7 +148,7 @@ public class FunctionalTestUtils {
     return result.toString();
   }
 
-  static String readAll(MiniAccumuloCluster c, Class<?> klass, Process p) throws Exception {
+  static String readAll(MiniAccumuloClusterImpl c, Class<?> klass, Process p) throws Exception {
     for (LogWriter writer : c.getLogWriters())
       writer.flush();
     return readAll(new FileInputStream(c.getConfig().getLogDir() + "/" + klass.getSimpleName() + "_" + p.hashCode() + ".out"));

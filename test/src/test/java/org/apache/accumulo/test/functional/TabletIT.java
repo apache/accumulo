@@ -33,7 +33,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.MemoryUnit;
-import org.apache.accumulo.minicluster.MiniAccumuloConfig;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -42,7 +42,7 @@ public class TabletIT extends ConfigurableMacIT {
   private static final int N = 1000;
 
   @Override
-  public void configure(MiniAccumuloConfig cfg) {
+  public void configure(MiniAccumuloConfigImpl cfg) {
     Map<String,String> siteConfig = new HashMap<String,String>();
     siteConfig.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "200");
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "128M");

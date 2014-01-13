@@ -21,7 +21,7 @@ import java.util.Map;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.minicluster.MiniAccumuloConfig;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.junit.Test;
 
 /**
@@ -32,7 +32,7 @@ import org.junit.Test;
  */
 public class SslWithClientAuthIT extends SslIT {
   @Override
-  public void configure(MiniAccumuloConfig cfg) {
+  public void configure(MiniAccumuloConfigImpl cfg) {
     super.configure(cfg);
     Map<String,String> site = cfg.getSiteConfig();
     site.put(Property.INSTANCE_RPC_SSL_CLIENT_AUTH.getKey(), "true");

@@ -30,7 +30,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.minicluster.MiniAccumuloConfig;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.junit.Test;
@@ -42,7 +42,7 @@ import org.junit.Test;
 public class MaxOpenIT extends ConfigurableMacIT {
   
   @Override
-  public void configure(MiniAccumuloConfig cfg) {
+  public void configure(MiniAccumuloConfigImpl cfg) {
     Map<String, String> conf = new HashMap<String, String>();
     conf.put(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), "4");
     conf.put(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), "1");

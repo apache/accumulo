@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.minicluster;
+package org.apache.accumulo.minicluster.impl;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -25,12 +25,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.minicluster.MemoryUnit;
+import org.apache.accumulo.minicluster.ServerType;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-public class MiniAccumuloConfigTest {
+public class MiniAccumuloConfigImplTest {
 
   static TemporaryFolder tempFolder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
@@ -43,11 +45,11 @@ public class MiniAccumuloConfigTest {
   public void testZookeeperPort() {
 
     // set specific zookeeper port
-    MiniAccumuloConfig config = new MiniAccumuloConfig(tempFolder.getRoot(), "password").setZooKeeperPort(5000).initialize();
+    MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password").setZooKeeperPort(5000).initialize();
     assertEquals(5000, config.getZooKeeperPort());
 
     // generate zookeeper port
-    config = new MiniAccumuloConfig(tempFolder.getRoot(), "password").initialize();
+    config = new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password").initialize();
     assertTrue(config.getZooKeeperPort() > 0);
   }
 
@@ -57,14 +59,14 @@ public class MiniAccumuloConfigTest {
     // constructor site config overrides default props
     Map<String,String> siteConfig = new HashMap<String,String>();
     siteConfig.put(Property.INSTANCE_DFS_URI.getKey(), "hdfs://");
-    MiniAccumuloConfig config = new MiniAccumuloConfig(tempFolder.getRoot(), "password").setSiteConfig(siteConfig).initialize();
+    MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password").setSiteConfig(siteConfig).initialize();
     assertEquals("hdfs://", config.getSiteConfig().get(Property.INSTANCE_DFS_URI.getKey()));
   }
 
   @Test
   public void testMemoryConfig() {
 
-    MiniAccumuloConfig config = new MiniAccumuloConfig(tempFolder.getRoot(), "password").initialize();
+    MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password").initialize();
     config.setDefaultMemory(96, MemoryUnit.MEGABYTE);
     assertEquals(96 * 1024 * 1024l, config.getMemory(ServerType.MASTER));
     assertEquals(96 * 1024 * 1024l, config.getMemory(ServerType.TABLET_SERVER));
