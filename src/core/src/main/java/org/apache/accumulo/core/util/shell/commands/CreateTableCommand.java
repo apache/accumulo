@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Scanner;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -107,11 +108,15 @@ public class CreateTableCommand extends Command {
       String f = cl.getOptionValue(createTableOptSplit.getOpt());
       
       String line;
-      java.util.Scanner file = new java.util.Scanner(new File(f));
-      while (file.hasNextLine()) {
-        line = file.nextLine();
-        if (!line.isEmpty())
-          partitions.add(decode ? new Text(Base64.decodeBase64(line.getBytes())) : new Text(line));
+      Scanner file = new Scanner(new File(f));
+      try {
+        while (file.hasNextLine()) {
+          line = file.nextLine();
+          if (!line.isEmpty())
+            partitions.add(decode ? new Text(Base64.decodeBase64(line.getBytes())) : new Text(line));
+        }
+      } finally {
+        file.close();
       }
     } else if (cl.hasOption(createTableOptCopySplits.getOpt())) {
       String oldTable = cl.getOptionValue(createTableOptCopySplits.getOpt());
