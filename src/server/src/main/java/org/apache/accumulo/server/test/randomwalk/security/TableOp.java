@@ -83,6 +83,7 @@ public class TableOp extends Test {
       case READ:
         Authorizations auths = SecurityHelper.getUserAuths(state, SecurityHelper.getTabUserName(state));
         boolean canRead = SecurityHelper.getTabPerm(state, SecurityHelper.getTabUserName(state), TablePermission.READ);
+        boolean ambiguousAuths = SecurityHelper.ambiguousAuthorizations(state, SecurityHelper.getTabUserName(state));
         try {
           Scanner scan = conn.createScanner(tableName, conn.securityOperations().getUserAuthorizations(SecurityHelper.getTabUserName(state)));
           int seen = 0;
@@ -91,7 +92,7 @@ public class TableOp extends Test {
             Entry<Key,Value> entry = iter.next();
             Key k = entry.getKey();
             seen++;
-            if (!auths.contains(k.getColumnVisibilityData()))
+            if (!auths.contains(k.getColumnVisibilityData()) && !ambiguousAuths)
               throw new AccumuloException("Got data I should not be capable of seeing: " + k + " table " + tableName);
           }
           if (!canRead)
@@ -100,7 +101,7 @@ public class TableOp extends Test {
             if (auths.contains(entry.getKey().getBytes()))
               seen = seen - entry.getValue();
           }
-          if (seen != 0)
+          if (seen != 0 && !ambiguousAuths)
             throw new AccumuloException("Got mismatched amounts of data");
         } catch (TableNotFoundException tnfe) {
           if (tableExists)
@@ -113,6 +114,12 @@ public class TableOp extends Test {
             else
               return;
           }
+          if (ae.getErrorCode().equals(SecurityErrorCode.BAD_AUTHORIZATIONS)) {
+            if (ambiguousAuths)
+              return;
+            else
+              throw new AccumuloException("Mismatched authorizations! ", ae);
+          }
           throw new AccumuloException("Unexpected exception!", ae);
         } catch (RuntimeException re) {
           if (re.getCause() instanceof AccumuloSecurityException
@@ -121,6 +128,13 @@ public class TableOp extends Test {
               throw new AccumuloException("Table read permission out of sync with Accumulo: table " + tableName, re.getCause());
             else
               return;
+          }
+          if (re.getCause() instanceof AccumuloSecurityException
+              && ((AccumuloSecurityException) re.getCause()).getErrorCode().equals(SecurityErrorCode.BAD_AUTHORIZATIONS)) {
+            if (ambiguousAuths)
+              return;
+            else
+              throw new AccumuloException("Mismatched authorizations! ", re.getCause());
           }
           throw new AccumuloException("Unexpected exception!", re);
         }

@@ -97,6 +97,8 @@ public class ChangePass extends Test {
       SecurityHelper.setSysUserPass(state, newPass);
     } else
       SecurityHelper.setTabUserPass(state, newPass);
+    // Waiting 1 second for password to propogate through Zk
+    Thread.sleep(1000);
     if (!hasPerm)
       throw new AccumuloException("Password change succeeded when it should have failed.");
   }

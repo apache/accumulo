@@ -140,8 +140,18 @@ public class SecurityHelper {
   
   public static void setUserAuths(State state, String target, Authorizations auths) {
     state.set(target + "_auths", auths);
+    state.set("Auths-" + target + '-' + "time", System.currentTimeMillis());
   }
   
+  public static boolean ambiguousAuthorizations(State state, String target) {
+    Long setTime = state.getLong("Auths-" + target + '-' + "time");
+    if (setTime == null)
+      throw new RuntimeException("WTF? Auths-" + target + '-' + "time is null");
+    if (System.currentTimeMillis() < (setTime + 1000))
+      return true;
+    return false;
+  }
+
   @SuppressWarnings("unchecked")
   public static Map<String,Integer> getAuthsMap(State state) {
     return (Map<String,Integer>) state.get(authsMap);

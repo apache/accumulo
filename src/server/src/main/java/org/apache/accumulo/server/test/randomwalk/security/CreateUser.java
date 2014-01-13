@@ -67,6 +67,7 @@ public class CreateUser extends Test {
     }
     SecurityHelper.setTabUserPass(state, tabUserPass);
     SecurityHelper.setTabUserExists(state, true);
+    Thread.sleep(1000);
     if (!hasPermission)
       throw new AccumuloException("Didn't get Security Exception when we should have");
   }

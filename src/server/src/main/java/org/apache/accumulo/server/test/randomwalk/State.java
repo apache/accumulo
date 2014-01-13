@@ -78,6 +78,10 @@ public class State {
   public Integer getInteger(String key) {
     return (Integer) stateMap.get(key);
   }
+
+  public Long getLong(String key) {
+    return (Long) stateMap.get(key);
+  }
   
   public String getProperty(String key) {
     return props.getProperty(key);
