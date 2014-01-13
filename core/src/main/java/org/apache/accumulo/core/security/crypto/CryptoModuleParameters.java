@@ -247,7 +247,7 @@ public class CryptoModuleParameters {
    * Sets the class name of the key encryption strategy class. The class obeys the {@link SecretKeyEncryptionStrategy} interface. It instructs the
    * {@link DefaultCryptoModule} on how to encrypt the keys it uses to secure the streams.
    * <p>
-   * The default implementation of this interface, {@link DefaultSecretKeyEncryptionStrategy}, creates a random key encryption key (KEK) as another symmetric
+   * The default implementation of this interface, {@link CachingHDFSSecretKeyEncryptionStrategy}, creates a random key encryption key (KEK) as another symmetric
    * key and places the KEK into HDFS. <i>This is not really very secure.</i> Users of the crypto modules are encouraged to either safeguard that KEK carefully
    * or to obtain and use another {@link SecretKeyEncryptionStrategy} class.
    * <p>

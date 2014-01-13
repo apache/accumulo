@@ -101,7 +101,7 @@ public class CryptoTest {
     assertEquals(128, params.getKeyLength());
     assertEquals("SHA1PRNG", params.getRandomNumberGenerator());
     assertEquals("SUN", params.getRandomNumberGeneratorProvider());
-    assertEquals("org.apache.accumulo.core.security.crypto.DefaultSecretKeyEncryptionStrategy", params.getKeyEncryptionStrategyClass());
+    assertEquals("org.apache.accumulo.core.security.crypto.CachingHDFSSecretKeyEncryptionStrategy", params.getKeyEncryptionStrategyClass());
     
     restoreOldConfiguration(oldSiteConfigProperty, conf);    
   }
@@ -241,7 +241,7 @@ public class CryptoTest {
 
     assertTrue(cryptoModule instanceof DefaultCryptoModule);
     assertNotNull(params.getKeyEncryptionStrategyClass());
-    assertEquals("org.apache.accumulo.core.security.crypto.DefaultSecretKeyEncryptionStrategy", params.getKeyEncryptionStrategyClass());
+    assertEquals("org.apache.accumulo.core.security.crypto.CachingHDFSSecretKeyEncryptionStrategy", params.getKeyEncryptionStrategyClass());
     
     byte[] resultingBytes = setUpSampleEncryptedBytes(cryptoModule, params);
 
@@ -279,7 +279,7 @@ public class CryptoTest {
 
     assertTrue(cryptoModule instanceof DefaultCryptoModule);
     assertNotNull(params.getKeyEncryptionStrategyClass());
-    assertEquals("org.apache.accumulo.core.security.crypto.DefaultSecretKeyEncryptionStrategy", params.getKeyEncryptionStrategyClass());
+    assertEquals("org.apache.accumulo.core.security.crypto.CachingHDFSSecretKeyEncryptionStrategy", params.getKeyEncryptionStrategyClass());
     
     byte[] resultingBytes = setUpSampleEncryptedBytes(cryptoModule, params);
 
@@ -313,7 +313,7 @@ public class CryptoTest {
 
     assertTrue(cryptoModule instanceof DefaultCryptoModule);
     assertNotNull(params.getKeyEncryptionStrategyClass());
-    assertEquals("org.apache.accumulo.core.security.crypto.DefaultSecretKeyEncryptionStrategy", params.getKeyEncryptionStrategyClass());
+    assertEquals("org.apache.accumulo.core.security.crypto.CachingHDFSSecretKeyEncryptionStrategy", params.getKeyEncryptionStrategyClass());
     
     byte[] resultingBytes = setUpSampleEncryptedBytes(cryptoModule, params);
 

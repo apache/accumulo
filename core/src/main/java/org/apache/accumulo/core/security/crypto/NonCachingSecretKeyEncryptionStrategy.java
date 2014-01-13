@@ -35,9 +35,9 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 
-public class DefaultSecretKeyEncryptionStrategy implements SecretKeyEncryptionStrategy {
+public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptionStrategy {
   
-  private static final Logger log = Logger.getLogger(DefaultSecretKeyEncryptionStrategy.class);
+  private static final Logger log = Logger.getLogger(NonCachingSecretKeyEncryptionStrategy.class);
 
   private void doKeyEncryptionOperation(int encryptionMode, CryptoModuleParameters params, String pathToKeyName, Path pathToKey, FileSystem fs)
       throws IOException {
