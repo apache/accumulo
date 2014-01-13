@@ -17,13 +17,9 @@
 package org.apache.accumulo.minicluster;
 
 import java.io.File;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.util.StringUtil;
-import org.apache.accumulo.server.util.PortUtils;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 
 /**
  * Holds configuration for {@link MiniAccumuloCluster}. Required configurations must be passed to constructor(s) and all other configurations are optional.
@@ -32,35 +28,15 @@ import org.apache.accumulo.server.util.PortUtils;
  */
 public class MiniAccumuloConfig {
 
-  private static final String DEFAULT_INSTANCE_SECRET = "DONTTELL";
-
-  private File dir = null;
-  private String rootPassword = null;
-  private Map<String,String> siteConfig = new HashMap<String,String>();
-  private int numTservers = 2;
-  private Map<ServerType,Long> memoryConfig = new HashMap<ServerType,Long>();
-  private boolean jdwpEnabled = false;
-  private Map<String,String> systemProperties = new HashMap<String,String>();
-
-  private String instanceName = "miniInstance";
-
-  private File libDir;
-  private File confDir;
-  private File zooKeeperDir;
-  private File accumuloDir;
-  private File logDir;
-  private File walogDir;
-
-  private Integer zooKeeperPort;
-  private long defaultMemorySize = 128 * 1024 * 1024;
-
-  private boolean initialized = false;
-
-  private boolean useMiniDFS = false;
-
-  private String[] classpathItems = null;
-
-  private String[] nativePathItems = null;
+  private MiniAccumuloConfigImpl impl;
+  
+  MiniAccumuloConfig(MiniAccumuloConfigImpl config) {
+    this.impl = config;
+  }
+  
+  MiniAccumuloConfigImpl getImpl() {
+    return impl;
+  }
 
   /**
    * @param dir
@@ -70,86 +46,9 @@ public class MiniAccumuloConfig {
    *          The initial password for the Accumulo root user
    */
   public MiniAccumuloConfig(File dir, String rootPassword) {
-    this.dir = dir;
-    this.rootPassword = rootPassword;
+    this.impl = new MiniAccumuloConfigImpl(dir, rootPassword);
   }
-
-  /**
-   * Set directories and fully populate site config
-   */
-  MiniAccumuloConfig initialize() {
-
-    // Sanity checks
-    if (this.getDir().exists() && !this.getDir().isDirectory())
-      throw new IllegalArgumentException("Must pass in directory, " + this.getDir() + " is a file");
-
-    if (this.getDir().exists() && this.getDir().list().length != 0)
-      throw new IllegalArgumentException("Directory " + this.getDir() + " is not empty");
-
-    if (!initialized) {
-      libDir = new File(dir, "lib");
-      confDir = new File(dir, "conf");
-      accumuloDir = new File(dir, "accumulo");
-      zooKeeperDir = new File(dir, "zookeeper");
-      logDir = new File(dir, "logs");
-      walogDir = new File(dir, "walogs");
-
-      String[] paths = {"$ACCUMULO_HOME/lib/.*.jar", "$ZOOKEEPER_HOME/zookeeper[^.].*.jar", "$HADOOP_PREFIX/[^.].*.jar", "$HADOOP_PREFIX/lib/[^.].*.jar",
-          "$HADOOP_PREFIX/share/hadoop/common/.*.jar", "$HADOOP_PREFIX/share/hadoop/common/lib/.*.jar", "$HADOOP_PREFIX/share/hadoop/hdfs/.*.jar",
-          "$HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar"};
-
-      String classpath = StringUtil.join(Arrays.asList(paths), ",");
-
-      mergeProp(Property.INSTANCE_DFS_URI.getKey(), "file:///");
-      mergeProp(Property.INSTANCE_DFS_DIR.getKey(), accumuloDir.getAbsolutePath());
-      mergeProp(Property.INSTANCE_SECRET.getKey(), DEFAULT_INSTANCE_SECRET);
-      mergeProp(Property.TSERV_PORTSEARCH.getKey(), "true");
-      mergeProp(Property.LOGGER_DIR.getKey(), walogDir.getAbsolutePath());
-      mergeProp(Property.TSERV_DATACACHE_SIZE.getKey(), "10M");
-      mergeProp(Property.TSERV_INDEXCACHE_SIZE.getKey(), "10M");
-      mergeProp(Property.TSERV_MAXMEM.getKey(), "50M");
-      mergeProp(Property.TSERV_WALOG_MAX_SIZE.getKey(), "100M");
-      mergeProp(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "false");
-      mergeProp(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + ".password", getRootPassword());
-      // since there is a small amount of memory, check more frequently for majc... setting may not be needed in 1.5
-      mergeProp(Property.TSERV_MAJC_DELAY.getKey(), "3");
-      mergeProp(Property.GENERAL_CLASSPATHS.getKey(), classpath);
-      mergeProp(Property.GENERAL_DYNAMIC_CLASSPATHS.getKey(), libDir.getAbsolutePath() + "/[^.].*[.]jar");
-      mergeProp(Property.GC_CYCLE_DELAY.getKey(), "4s");
-      mergeProp(Property.GC_CYCLE_START.getKey(), "0s");
-      mergePropWithRandomPort(Property.MASTER_CLIENTPORT.getKey());
-      mergePropWithRandomPort(Property.TRACE_PORT.getKey());
-      mergePropWithRandomPort(Property.TSERV_CLIENTPORT.getKey());
-      mergePropWithRandomPort(Property.MONITOR_PORT.getKey());
-      mergePropWithRandomPort(Property.GC_PORT.getKey());
-
-      // zookeeper port should be set explicitly in this class, not just on the site config
-      if (zooKeeperPort == null)
-        zooKeeperPort = PortUtils.getRandomFreePort();
-      siteConfig.put(Property.INSTANCE_ZK_HOST.getKey(), "localhost:" + zooKeeperPort);
-      initialized = true;
-    }
-    return this;
-  }
-
-  /**
-   * Set a given key/value on the site config if it doesn't already exist
-   */
-  private void mergeProp(String key, String value) {
-    if (!siteConfig.containsKey(key)) {
-      siteConfig.put(key, value);
-    }
-  }
-
-  /**
-   * Sets a given key with a random port for the value on the site config if it doesn't already exist.
-   */
-  private void mergePropWithRandomPort(String key) {
-    if (!siteConfig.containsKey(key)) {
-      siteConfig.put(key, "0");
-    }
-  }
-
+  
   /**
    * Calling this method is optional. If not set, it defaults to two.
    * 
@@ -157,9 +56,7 @@ public class MiniAccumuloConfig {
    *          the number of tablet servers that mini accumulo cluster should start
    */
   public MiniAccumuloConfig setNumTservers(int numTservers) {
-    if (numTservers < 1)
-      throw new IllegalArgumentException("Must have at least one tablet server");
-    this.numTservers = numTservers;
+    impl.setNumTservers(numTservers);
     return this;
   }
 
@@ -169,7 +66,7 @@ public class MiniAccumuloConfig {
    * @since 1.6.0
    */
   public MiniAccumuloConfig setInstanceName(String instanceName) {
-    this.instanceName = instanceName;
+    impl.setInstanceName(instanceName);
     return this;
   }
 
@@ -180,7 +77,7 @@ public class MiniAccumuloConfig {
    *          key/values that you normally put in accumulo-site.xml can be put here.
    */
   public MiniAccumuloConfig setSiteConfig(Map<String,String> siteConfig) {
-    this.siteConfig = new HashMap<String,String>(siteConfig);
+    impl.setSiteConfig(siteConfig);
     return this;
   }
 
@@ -193,7 +90,7 @@ public class MiniAccumuloConfig {
    * @since 1.6.0
    */
   public MiniAccumuloConfig setZooKeeperPort(int zooKeeperPort) {
-    this.zooKeeperPort = zooKeeperPort;
+    impl.setZooKeeperPort(zooKeeperPort);
     return this;
   }
 
@@ -211,7 +108,7 @@ public class MiniAccumuloConfig {
    * @since 1.6.0
    */
   public MiniAccumuloConfig setMemory(ServerType serverType, long memory, MemoryUnit memoryUnit) {
-    this.memoryConfig.put(serverType, memoryUnit.toBytes(memory));
+    impl.setMemory(serverType, memory, memoryUnit);
     return this;
   }
 
@@ -228,7 +125,7 @@ public class MiniAccumuloConfig {
    * @since 1.6.0
    */
   public MiniAccumuloConfig setDefaultMemory(long memory, MemoryUnit memoryUnit) {
-    this.defaultMemorySize = memoryUnit.toBytes(memory);
+    impl.setDefaultMemory(memory, memoryUnit);
     return this;
   }
 
@@ -236,7 +133,7 @@ public class MiniAccumuloConfig {
    * @return a copy of the site config
    */
   public Map<String,String> getSiteConfig() {
-    return new HashMap<String,String>(siteConfig);
+    return impl.getSiteConfig();
   }
 
   /**
@@ -245,7 +142,7 @@ public class MiniAccumuloConfig {
    * @since 1.6.0
    */
   public String getInstanceName() {
-    return instanceName;
+    return impl.getInstanceName();
   }
 
   /**
@@ -254,31 +151,7 @@ public class MiniAccumuloConfig {
    * @since 1.6.0
    */
   public int getZooKeeperPort() {
-    return zooKeeperPort;
-  }
-
-  File getLibDir() {
-    return libDir;
-  }
-
-  File getConfDir() {
-    return confDir;
-  }
-
-  File getZooKeeperDir() {
-    return zooKeeperDir;
-  }
-
-  public File getAccumuloDir() {
-    return accumuloDir;
-  }
-
-  public File getLogDir() {
-    return logDir;
-  }
-
-  File getWalogDir() {
-    return walogDir;
+    return impl.getZooKeeperPort();
   }
 
   /**
@@ -290,7 +163,7 @@ public class MiniAccumuloConfig {
    * @since 1.6.0
    */
   public long getMemory(ServerType serverType) {
-    return memoryConfig.containsKey(serverType) ? memoryConfig.get(serverType) : defaultMemorySize;
+    return impl.getMemory(serverType);
   }
 
   /**
@@ -299,37 +172,28 @@ public class MiniAccumuloConfig {
    * @since 1.6.0
    */
   public long getDefaultMemory() {
-    return defaultMemorySize;
-  }
-
-  /**
-   * @return zookeeper connection string
-   * 
-   * @since 1.6.0
-   */
-  public String getZooKeepers() {
-    return siteConfig.get(Property.INSTANCE_ZK_HOST.getKey());
+    return impl.getDefaultMemory();
   }
 
   /**
    * @return the base directory of the cluster configuration
    */
   public File getDir() {
-    return dir;
+    return impl.getDir();
   }
 
   /**
    * @return the root password of this cluster configuration
    */
   public String getRootPassword() {
-    return rootPassword;
+    return impl.getRootPassword();
   }
 
   /**
    * @return the number of tservers configured for this cluster
    */
   public int getNumTservers() {
-    return numTservers;
+    return impl.getNumTservers();
   }
 
   /**
@@ -338,7 +202,7 @@ public class MiniAccumuloConfig {
    * @since 1.6.0
    */
   public boolean isJDWPEnabled() {
-    return jdwpEnabled;
+    return impl.isJDWPEnabled();
   }
 
   /**
@@ -349,65 +213,8 @@ public class MiniAccumuloConfig {
    * @since 1.6.0
    */
   public MiniAccumuloConfig setJDWPEnabled(boolean jdwpEnabled) {
-    this.jdwpEnabled = jdwpEnabled;
+    impl.setJDWPEnabled(jdwpEnabled);
     return this;
-  }
-
-  public boolean useMiniDFS() {
-    return useMiniDFS;
-  }
-
-  public void useMiniDFS(boolean useMiniDFS) {
-    this.useMiniDFS = useMiniDFS;
-  }
-
-  /**
-   * @return location of client conf file containing connection parameters for connecting to this minicluster
-   * 
-   * @since 1.6.0
-   */
-  public File getClientConfFile() {
-    return new File(getConfDir(), "client.conf");
-  }
-
-  /**
-   * sets system properties set for service processes
-   * 
-   * @since 1.6.0
-   */
-  public void setSystemProperties(Map<String,String> systemProperties) {
-    this.systemProperties = new HashMap<String,String>(systemProperties);
-  }
-
-  /**
-   * @return a copy of the system properties for service processes
-   * 
-   * @since 1.6.0
-   */
-  public Map<String,String> getSystemProperties() {
-    return new HashMap<String,String>(systemProperties);
-  }
-
-  /**
-   * Gets the classpath elements to use when spawning processes.
-   * 
-   * @return the classpathItems, if set
-   * 
-   * @since 1.6.0
-   */
-  public String[] getClasspathItems() {
-    return classpathItems;
-  }
-
-  /**
-   * Sets the classpath elements to use when spawning processes.
-   * 
-   * @param classpathItems
-   *          the classpathItems to set
-   * @since 1.6.0
-   */
-  public void setClasspathItems(String... classpathItems) {
-    this.classpathItems = classpathItems;
   }
 
   /**
@@ -416,7 +223,7 @@ public class MiniAccumuloConfig {
    * @since 1.6.0
    */
   public String[] getNativeLibPaths() {
-    return this.nativePathItems == null ? new String[0] : this.nativePathItems;
+    return impl.getNativeLibPaths();
   }
 
   /**
@@ -424,18 +231,11 @@ public class MiniAccumuloConfig {
    * 
    * @param nativePathItems
    *          the nativePathItems to set
-   * @since 1.6.0
-   */
-  public void setNativeLibPaths(String... nativePathItems) {
-    this.nativePathItems = nativePathItems;
-  }
-
-  /**
-   * Sets arbitrary configuration properties.
    * 
    * @since 1.6.0
    */
-  public void setProperty(Property p, String value) {
-    this.siteConfig.put(p.getKey(), value);
+  public MiniAccumuloConfig setNativeLibPaths(String... nativePathItems) {
+    impl.setNativeLibPaths(nativePathItems);
+    return this;
   }
 }

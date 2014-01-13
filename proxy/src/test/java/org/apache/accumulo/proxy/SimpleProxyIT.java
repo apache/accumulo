@@ -168,7 +168,7 @@ public class SimpleProxyIT {
 
     Properties props = new Properties();
     props.put("instance", accumulo.getConfig().getInstanceName());
-    props.put("zookeepers", accumulo.getConfig().getZooKeepers());
+    props.put("zookeepers", accumulo.getZooKeepers());
     props.put("tokenClass", PasswordToken.class.getName());
 
     protocolClass = getRandomProtocol();

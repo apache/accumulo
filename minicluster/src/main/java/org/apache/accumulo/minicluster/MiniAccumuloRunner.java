@@ -122,8 +122,6 @@ public class MiniAccumuloRunner {
       setMemoryOnConfig(config, opts.prop.getProperty("defaultMemory"));
     if (opts.prop.containsKey("shutdownPort"))
       shutdownPort = Integer.parseInt(opts.prop.getProperty("shutdownPort"));
-    if (opts.prop.containsKey("useMiniDFS"))
-      config.useMiniDFS(Boolean.parseBoolean(opts.prop.getProperty("useMiniDFS")));
 
     Map<String,String> siteConfig = new HashMap<String,String>();
     for (Map.Entry<Object,Object> entry : opts.prop.entrySet()) {
@@ -195,10 +193,10 @@ public class MiniAccumuloRunner {
   private static void printInfo(MiniAccumuloCluster accumulo, int shutdownPort) {
     System.out.println("Mini Accumulo Cluster\n");
     System.out.println(String.format(FORMAT_STRING, "Directory:", accumulo.getConfig().getDir().getAbsoluteFile()));
-    System.out.println(String.format(FORMAT_STRING, "Logs:", accumulo.getConfig().getLogDir().getAbsoluteFile()));
+    System.out.println(String.format(FORMAT_STRING, "Logs:", accumulo.getConfig().getImpl().getLogDir().getAbsoluteFile()));
     System.out.println(String.format(FORMAT_STRING, "Instance Name:", accumulo.getConfig().getInstanceName()));
     System.out.println(String.format(FORMAT_STRING, "Root Password:", accumulo.getConfig().getRootPassword()));
-    System.out.println(String.format(FORMAT_STRING, "ZooKeeper:", accumulo.getConfig().getZooKeepers()));
+    System.out.println(String.format(FORMAT_STRING, "ZooKeeper:", accumulo.getZooKeepers()));
 
     for (Pair<ServerType,Integer> pair : accumulo.getDebugPorts()) {
       System.out.println(String.format(FORMAT_STRING, pair.getFirst().prettyPrint() + " JDWP Host:", "localhost:" + pair.getSecond()));

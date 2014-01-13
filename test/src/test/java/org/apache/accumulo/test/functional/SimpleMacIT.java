@@ -23,9 +23,9 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.minicluster.MiniAccumuloInstance;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -35,17 +35,17 @@ public class SimpleMacIT extends AbstractMacIT {
   public static final Logger log = Logger.getLogger(SimpleMacIT.class);
 
   private static File folder;
-  private static MiniAccumuloCluster cluster = null;
+  private static MiniAccumuloClusterImpl cluster = null;
 
   @BeforeClass
   public static synchronized void setUp() throws Exception {
     if (getInstanceOneConnector() == null && cluster == null) {
       folder = createSharedTestDir(SimpleMacIT.class.getName());
-      MiniAccumuloConfig cfg = new MiniAccumuloConfig(folder, ROOT_PASSWORD);
+      MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(folder, ROOT_PASSWORD);
       cfg.setNativeLibPaths(NativeMapIT.nativeMapLocation().getAbsolutePath());
       cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.TRUE.toString());
       configureForEnvironment(cfg, SimpleMacIT.class, createSharedTestDir(SimpleMacIT.class.getName() + "-ssl"));
-      cluster = new MiniAccumuloCluster(cfg);
+      cluster = new MiniAccumuloClusterImpl(cfg);
       cluster.start();
       Runtime.getRuntime().addShutdownHook(new Thread() {
         @Override
@@ -67,7 +67,7 @@ public class SimpleMacIT extends AbstractMacIT {
     return (getInstanceOneConnector() == null ? cluster.getConfig().getDir() : getInstanceOnePath()).getAbsolutePath();
   }
 
-  public static MiniAccumuloCluster getStaticCluster() {
+  public static MiniAccumuloClusterImpl getStaticCluster() {
     return cluster;
   }
 

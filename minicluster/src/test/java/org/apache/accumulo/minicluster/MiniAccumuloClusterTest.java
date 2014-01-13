@@ -19,9 +19,7 @@ package org.apache.accumulo.minicluster;
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
@@ -207,23 +205,6 @@ public class MiniAccumuloClusterTest {
     Assert.assertEquals(5, debugPorts.size());
     for (Pair<ServerType,Integer> debugPort : debugPorts) {
       Assert.assertTrue(debugPort.getSecond() > 0);
-    }
-  }
-
-  @Test(timeout = 10000)
-  public void testAccurateProcessListReturned() throws Exception {
-    Map<ServerType,Collection<ProcessReference>> procs = accumulo.getProcesses();
-
-    Assert.assertTrue(procs.containsKey(ServerType.GARBAGE_COLLECTOR));
-
-    for (ServerType t : new ServerType[] {ServerType.MASTER, ServerType.TABLET_SERVER, ServerType.ZOOKEEPER}) {
-      Assert.assertTrue(procs.containsKey(t));
-      Collection<ProcessReference> procRefs = procs.get(t);
-      Assert.assertTrue(1 <= procRefs.size());
-
-      for (ProcessReference procRef : procRefs) {
-        Assert.assertNotNull(procRef);
-      }
     }
   }
 

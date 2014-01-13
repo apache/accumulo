@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.minicluster;
+package org.apache.accumulo.minicluster.impl;
 
 import java.io.File;
 import java.util.Collection;
@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.SuffixFileFilter;
 import org.apache.commons.io.filefilter.TrueFileFilter;
@@ -46,10 +47,9 @@ import com.google.common.collect.ImmutableMap;
  */
 public class MiniAccumuloClusterGCTest {
   private static final Logger log = Logger.getLogger(MiniAccumuloClusterGCTest.class);
-  
   private static File testDir = new File(System.getProperty("user.dir") + "/target/" + MiniAccumuloClusterGCTest.class.getName());
-  private static MiniAccumuloConfig macConfig;
-  private static MiniAccumuloCluster accumulo;
+  private static MiniAccumuloConfigImpl macConfig;
+  private static MiniAccumuloClusterImpl accumulo;
   private static final String passwd = "password";
   
   @BeforeClass
@@ -58,14 +58,14 @@ public class MiniAccumuloClusterGCTest {
     testDir.mkdir();
     Logger.getLogger("org.apache.zookeeper").setLevel(Level.ERROR);
 
-    macConfig = new MiniAccumuloConfig(testDir, passwd);
+    macConfig = new MiniAccumuloConfigImpl(testDir, passwd);
     macConfig.setNumTservers(1);
 
     // And tweak the settings to make it run often
     Map<String,String> config = ImmutableMap.of(Property.GC_CYCLE_DELAY.getKey(), "1s", Property.GC_CYCLE_START.getKey(), "0s");
     macConfig.setSiteConfig(config);
 
-    accumulo = new MiniAccumuloCluster(macConfig);
+    accumulo = new MiniAccumuloClusterImpl(macConfig);
     accumulo.start();
   }
   

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.accumulo.minicluster;
+package org.apache.accumulo.minicluster.impl;
 
 /**
  * Opaque handle to a process.

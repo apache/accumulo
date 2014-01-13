@@ -17,7 +17,8 @@
 package org.apache.accumulo.maven.plugin;
 
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster.LogWriter;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl.LogWriter;
 import org.apache.http.annotation.ThreadSafe;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -33,7 +34,7 @@ public class StopMojo extends AbstractAccumuloMojo {
   
   @Override
   public void execute() throws MojoExecutionException {
-    for (MiniAccumuloCluster mac : StartMojo.runningClusters) {
+    for (MiniAccumuloClusterImpl mac : StartMojo.runningClusters) {
       System.out.println("Stopping MiniAccumuloCluster: " + mac.getInstanceName());
       try {
         mac.stop();
