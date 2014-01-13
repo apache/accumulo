@@ -22,7 +22,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-import org.apache.accumulo.minicluster.MiniAccumuloConfig;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.http.annotation.ThreadSafe;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -49,7 +50,7 @@ public class StartMojo extends AbstractAccumuloMojo {
 
   private String miniClasspath;
 
-  static Set<MiniAccumuloCluster> runningClusters = Collections.synchronizedSet(new HashSet<MiniAccumuloCluster>());
+  static Set<MiniAccumuloClusterImpl> runningClusters = Collections.synchronizedSet(new HashSet<MiniAccumuloClusterImpl>());
 
   @Override
   public void execute() throws MojoExecutionException {
@@ -60,10 +61,10 @@ public class StartMojo extends AbstractAccumuloMojo {
       if (subdir.exists())
         FileUtils.forceDelete(subdir);
       subdir.mkdirs();
-      MiniAccumuloConfig cfg = new MiniAccumuloConfig(subdir, rootPassword);
+      MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(subdir, rootPassword);
       cfg.setInstanceName(instanceName);
       configureMiniClasspath(cfg, miniClasspath);
-      MiniAccumuloCluster mac = new MiniAccumuloCluster(cfg);
+      MiniAccumuloClusterImpl mac = new MiniAccumuloClusterImpl(cfg);
       System.out.println("Starting MiniAccumuloCluster: " + mac.getInstanceName() + " in " + mac.getConfig().getDir());
       mac.start();
       runningClusters.add(mac);

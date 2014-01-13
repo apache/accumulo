@@ -38,7 +38,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.examples.simple.mapreduce.RowHash;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.hadoop.io.Text;
 import org.codehaus.plexus.util.Base64;
 import org.junit.Test;
@@ -58,7 +58,7 @@ public class MapReduceIT extends ConfigurableMacIT {
     runTest(getConnector(), getCluster());
   }
 
-  static void runTest(Connector c, MiniAccumuloCluster cluster) throws AccumuloException, AccumuloSecurityException, TableExistsException,
+  static void runTest(Connector c, MiniAccumuloClusterImpl cluster) throws AccumuloException, AccumuloSecurityException, TableExistsException,
       TableNotFoundException, MutationsRejectedException, IOException, InterruptedException, NoSuchAlgorithmException {
     c.tableOperations().create(tablename);
     BatchWriter bw = c.createBatchWriter(tablename, new BatchWriterConfig());

@@ -27,8 +27,8 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-import org.apache.accumulo.minicluster.MiniAccumuloConfig;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.util.CertUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
@@ -45,7 +45,7 @@ public abstract class AbstractMacIT {
   @Rule
   public TestName testName = new TestName();
 
-  protected static void cleanUp(MiniAccumuloCluster cluster) {
+  protected static void cleanUp(MiniAccumuloClusterImpl cluster) {
     if (cluster != null)
       try {
         cluster.stop();
@@ -85,13 +85,13 @@ public abstract class AbstractMacIT {
     return names;
   }
 
-  protected static void configureForEnvironment(MiniAccumuloConfig cfg, Class<?> testClass, File folder) {
+  protected static void configureForEnvironment(MiniAccumuloConfigImpl cfg, Class<?> testClass, File folder) {
     if ("true".equals(System.getProperty("org.apache.accumulo.test.functional.useSslForIT"))) {
       configureForSsl(cfg, folder);
     }
   }
 
-  protected static void configureForSsl(MiniAccumuloConfig cfg, File folder) {
+  protected static void configureForSsl(MiniAccumuloConfigImpl cfg, File folder) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     if ("true".equals(siteConfig.get(Property.INSTANCE_RPC_SSL_ENABLED.getKey()))) {
       // already enabled; don't mess with it

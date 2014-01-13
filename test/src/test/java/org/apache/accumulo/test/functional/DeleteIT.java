@@ -20,7 +20,7 @@ import static org.junit.Assert.assertEquals;
 
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestRandomDeletes;
@@ -37,7 +37,7 @@ public class DeleteIT extends ConfigurableMacIT {
     assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
   }
 
-  public static void deleteTest(Connector c, MiniAccumuloCluster cluster) throws Exception {
+  public static void deleteTest(Connector c, MiniAccumuloClusterImpl cluster) throws Exception {
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     TestIngest.Opts opts = new TestIngest.Opts();
     vopts.rows = opts.rows = 1000;

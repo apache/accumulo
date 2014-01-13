@@ -71,8 +71,8 @@ import org.apache.accumulo.examples.simple.shard.Index;
 import org.apache.accumulo.examples.simple.shard.Query;
 import org.apache.accumulo.examples.simple.shard.Reverse;
 import org.apache.accumulo.minicluster.MemoryUnit;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster.LogWriter;
-import org.apache.accumulo.minicluster.MiniAccumuloConfig;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl.LogWriter;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.tracer.TraceServer;
@@ -86,7 +86,7 @@ public class ExamplesIT extends ConfigurableMacIT {
   BatchWriterOpts bwOpts = new BatchWriterOpts();
 
   @Override
-  public void configure(MiniAccumuloConfig cfg) {
+  public void configure(MiniAccumuloConfigImpl cfg) {
     cfg.setDefaultMemory(cfg.getDefaultMemory() * 2, MemoryUnit.BYTE);
   }
 

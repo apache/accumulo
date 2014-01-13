@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.minicluster;
+package org.apache.accumulo.minicluster.impl;
 
 public class ProcessNotFoundException extends Exception {
 

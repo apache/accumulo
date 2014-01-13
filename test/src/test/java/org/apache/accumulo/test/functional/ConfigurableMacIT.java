@@ -25,8 +25,8 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.MonitorUtil;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-import org.apache.accumulo.minicluster.MiniAccumuloConfig;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.junit.After;
@@ -35,18 +35,18 @@ import org.junit.Before;
 public class ConfigurableMacIT extends AbstractMacIT {
   public static final Logger log = Logger.getLogger(ConfigurableMacIT.class);
 
-  public MiniAccumuloCluster cluster;
+  public MiniAccumuloClusterImpl cluster;
 
-  public void configure(MiniAccumuloConfig cfg) {}
+  public void configure(MiniAccumuloConfigImpl cfg) {}
 
   @Before
   public void setUp() throws Exception {
-    MiniAccumuloConfig cfg = new MiniAccumuloConfig(createTestDir(this.getClass().getName()), ROOT_PASSWORD);
+    MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(createTestDir(this.getClass().getName()), ROOT_PASSWORD);
     cfg.setNativeLibPaths(NativeMapIT.nativeMapLocation().getAbsolutePath());
     configure(cfg);
     cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.TRUE.toString());
     configureForEnvironment(cfg, getClass(), createSharedTestDir(this.getClass().getName() + "-ssl"));
-    cluster = new MiniAccumuloCluster(cfg);
+    cluster = new MiniAccumuloClusterImpl(cfg);
     cluster.start();
   }
 
@@ -55,7 +55,7 @@ public class ConfigurableMacIT extends AbstractMacIT {
     cleanUp(cluster);
   }
 
-  public MiniAccumuloCluster getCluster() {
+  public MiniAccumuloClusterImpl getCluster() {
     return cluster;
   }
 
