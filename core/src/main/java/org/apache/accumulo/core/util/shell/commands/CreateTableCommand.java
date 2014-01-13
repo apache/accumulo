@@ -75,11 +75,14 @@ public class CreateTableCommand extends Command {
       
       String line;
       Scanner file = new Scanner(new File(f));
-      while (file.hasNextLine()) {
-        line = file.nextLine();
-        if (!line.isEmpty()) {
-          partitions.add(decode ? new Text(Base64.decodeBase64(line.getBytes())) : new Text(line));
+      try {
+        while (file.hasNextLine()) {
+          line = file.nextLine();
+          if (!line.isEmpty())
+            partitions.add(decode ? new Text(Base64.decodeBase64(line.getBytes())) : new Text(line));
         }
+      } finally {
+        file.close();
       }
     } else if (cl.hasOption(createTableOptCopySplits.getOpt())) {
       final String oldTable = cl.getOptionValue(createTableOptCopySplits.getOpt());
