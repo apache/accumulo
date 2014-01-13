@@ -20,6 +20,8 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.MultiTableBatchWriter;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.server.test.randomwalk.Fixture;
 import org.apache.accumulo.server.test.randomwalk.State;
@@ -40,6 +42,18 @@ public class MultiTableFixture extends Fixture {
   
   @Override
   public void tearDown(State state) throws Exception {
+    // We have resources we need to clean up
+    if (state.isMultiTableBatchWriterInitialized()) {
+      MultiTableBatchWriter mtbw = state.getMultiTableBatchWriter();
+      try {
+        mtbw.close();
+      } catch (MutationsRejectedException e) {
+        log.error("Ignoring mutations that weren't flushed", e);
+      }
+
+      // Reset the MTBW on the state to null
+      state.resetMultiTableBatchWriter();
+    }
     
     Connector conn = state.getConnector();
     

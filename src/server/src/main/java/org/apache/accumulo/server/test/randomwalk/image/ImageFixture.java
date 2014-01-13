@@ -27,6 +27,8 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.MultiTableBatchWriter;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.server.test.randomwalk.Fixture;
@@ -105,7 +107,20 @@ public class ImageFixture extends Fixture {
   
   @Override
   public void tearDown(State state) throws Exception {
-    
+    // We have resources we need to clean up
+    if (state.isMultiTableBatchWriterInitialized()) {
+      MultiTableBatchWriter mtbw = state.getMultiTableBatchWriter();
+      try {
+        mtbw.close();
+      } catch (MutationsRejectedException e) {
+        log.error("Ignoring mutations that weren't flushed", e);
+      }
+
+      // Reset the MTBW on the state to null
+      state.resetMultiTableBatchWriter();
+    }
+
+    // Now we can safely delete the tables
     log.debug("Dropping tables: " + imageTableName + " " + indexTableName);
     
     Connector conn = state.getConnector();
