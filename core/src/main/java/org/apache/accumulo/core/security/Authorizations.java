@@ -227,7 +227,13 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
    * @return authorizations, each as a string encoded in UTF-8 and within a buffer
    */
   public List<ByteBuffer> getAuthorizationsBB() {
-    return ByteBufferUtil.toImmutableByteBufferList(getAuthorizations());
+    ArrayList<ByteBuffer> copy = new ArrayList<ByteBuffer>(authsList.size());
+    for (byte[] auth : authsList) {
+      byte[] bytes = new byte[auth.length];
+      System.arraycopy(auth, 0, bytes, 0, auth.length);
+      copy.add(ByteBuffer.wrap(bytes));
+    }
+    return Collections.unmodifiableList(copy);
   }
 
   @Override
