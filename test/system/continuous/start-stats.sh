@@ -15,9 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if [ -z "${ACCUMULO_CONF_DIR}" ]; then
-    ACCUMULO_CONF_DIR=${ACCUMULO_HOME}/conf
-fi
 # Start: Resolve Script Directory
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "${SOURCE}" ]; do # resolve $SOURCE until the file is no longer a symlink
