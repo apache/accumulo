@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
@@ -27,8 +28,24 @@ import org.apache.hadoop.fs.Path;
  * 
  */
 public class ViewFSUtils {
+
+  public static final String VIEWFS_CLASSNAME = "org.apache.hadoop.fs.viewfs.ViewFileSystem";
+
+  public static boolean isViewFSSupported() {
+    try {
+      Class.forName(VIEWFS_CLASSNAME);
+      return true;
+    } catch (ClassNotFoundException e) {
+      return false;
+    }
+  }
+
+  public static boolean isViewFS(Path source, Configuration conf) throws IOException {
+    return isViewFS(source.getFileSystem(conf));
+  }
+
   public static boolean isViewFS(FileSystem fs) {
-    return fs.getClass().getName().equals("org.apache.hadoop.fs.viewfs.ViewFileSystem");
+    return fs.getClass().getName().equals(VIEWFS_CLASSNAME);
   }
 
   public static Path resolvePath(FileSystem fs, Path path) throws IOException {
@@ -48,4 +65,44 @@ public class ViewFSUtils {
       throw new IOException(e);
     }
   }
+
+  public static Path matchingFileSystem(Path source, String[] options, Configuration conf) throws IOException {
+
+    if (!isViewFS(source, conf))
+      throw new IllegalArgumentException("source " + source + " is not view fs");
+
+    String sourceUriPath = source.toUri().getPath();
+
+    Path match = null;
+    int matchPrefixLen = 0;
+
+    // find the option with the longest commmon path prefix
+    for (String option : options) {
+      Path optionPath = new Path(option);
+      if (isViewFS(optionPath, conf)) {
+        String optionUriPath = optionPath.toUri().getPath();
+
+        int commonPrefixLen = 0;
+        for (int i = 0; i < Math.min(sourceUriPath.length(), optionUriPath.length()); i++) {
+          if (sourceUriPath.charAt(i) == optionUriPath.charAt(i)) {
+            if (sourceUriPath.charAt(i) == '/')
+              commonPrefixLen++;
+          } else {
+            break;
+          }
+        }
+
+        if (commonPrefixLen > matchPrefixLen) {
+          matchPrefixLen = commonPrefixLen;
+          match = optionPath;
+        } else if (match != null && commonPrefixLen == matchPrefixLen && optionPath.depth() < match.depth()) {
+          // take path with less depth when match perfix length is the same
+          match = optionPath;
+        }
+      }
+    }
+
+    return match;
+  }
+
 }

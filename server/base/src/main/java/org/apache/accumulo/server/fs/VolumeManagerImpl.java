@@ -439,6 +439,14 @@ public class VolumeManagerImpl implements VolumeManager {
 
   @Override
   public Path matchingFileSystem(Path source, String[] options) {
+    try {
+      if (ViewFSUtils.isViewFS(source, CachedConfiguration.getInstance())) {
+        return ViewFSUtils.matchingFileSystem(source, options, CachedConfiguration.getInstance());
+      }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+
     URI uri1 = source.toUri();
     for (String option : options) {
       URI uri3 = URI.create(option);
