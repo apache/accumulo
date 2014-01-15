@@ -77,7 +77,6 @@ import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.zookeeper.ZooLock;
@@ -271,14 +270,7 @@ public class MetadataTableUtil {
   }
 
   public static Mutation createDeleteMutation(String tableId, String pathToRemove) throws IOException {
-    if (!pathToRemove.contains(":")) {
-      if (pathToRemove.startsWith("../"))
-        pathToRemove = pathToRemove.substring(2);
-      else
-        pathToRemove = "/" + tableId + pathToRemove;
-    }
-
-    Path path = VolumeManagerImpl.get().getFullPath(FileType.TABLE, pathToRemove);
+    Path path = VolumeManagerImpl.get().getFullPath(tableId, pathToRemove);
     Mutation delFlag = new Mutation(new Text(MetadataSchema.DeletesSection.getRowPrefix() + path.toString()));
     delFlag.put(EMPTY_TEXT, EMPTY_TEXT, new Value(new byte[] {}));
     return delFlag;
