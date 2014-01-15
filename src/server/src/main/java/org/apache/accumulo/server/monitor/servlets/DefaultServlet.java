@@ -270,7 +270,7 @@ public class DefaultServlet extends BasicServlet {
           diskUsed = bytes(acu.getSpaceConsumed());
           ContentSummary rootSummary = fs.getContentSummary(new Path("/"));
           consumed = String.format("%.2f%%", acu.getSpaceConsumed() * 100. / rootSummary.getSpaceConsumed());
-        } catch (Exception e) {
+        } catch (Exception ex) {
           log.trace("Unable to get disk usage information from hdfs", ex);
         }
 
