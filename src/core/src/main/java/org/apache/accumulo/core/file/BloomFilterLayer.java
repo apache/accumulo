@@ -249,11 +249,11 @@ public class BloomFilterLayer {
           } catch (IllegalAccessException e) {
             LOG.error("Illegal acess exception", e);
             bloomFilter = null;
-          } catch (NullPointerException npe) {
+          } catch (RuntimeException rte) {
             if (!closed)
-              throw npe;
+              throw rte;
             else
-              LOG.debug("Can't open BloomFilter, NPE after closed ", npe);
+              LOG.debug("Can't open BloomFilter, RTE after closed ", rte);
 
           } finally {
             if (in != null) {
