@@ -33,8 +33,8 @@ import org.apache.accumulo.test.randomwalk.Test;
  */
 public class CheckBalance extends Test {
   
-  private static final String LAST_UNBALANCED_TIME = "lastUnbalancedTime";
-  private static final String UNBALANCED_COUNT = "unbalancedCount";
+  static final String LAST_UNBALANCED_TIME = "lastUnbalancedTime";
+  static final String UNBALANCED_COUNT = "unbalancedCount";
 
   /* (non-Javadoc)
    * @see org.apache.accumulo.test.randomwalk.Node#visit(org.apache.accumulo.test.randomwalk.State, java.util.Properties)
@@ -59,11 +59,17 @@ public class CheckBalance extends Test {
     final double average = total / counts.size();
     
     // Check for even # of tablets on each node
+    double maxDifference = Math.max(1, average / 5);
+    String unbalancedLocation = null;
+    long lastCount = 0L;
     boolean balanced = true;
     for (Entry<String,Long> entry : counts.entrySet()) {
-      if (Math.abs(entry.getValue().longValue() - average) > Math.max(1, average / 5)) {
+      long thisCount = entry.getValue().longValue();
+      if (Math.abs(thisCount - average) > maxDifference) {
         balanced = false;
         log.debug("unbalanced: " + entry.getKey() + " has " + entry.getValue() + " tablets and the average is " + average);
+        unbalancedLocation = entry.getKey();
+        lastCount = thisCount;
       }
     }
     
@@ -71,20 +77,21 @@ public class CheckBalance extends Test {
     // periods of time. Don't complain unless we've seen it only unbalanced
     // over a 15 minute period and it's been at least three checks.
     if (!balanced) {
-      String last = props.getProperty(LAST_UNBALANCED_TIME);
-      if (last != null && System.currentTimeMillis() - Long.parseLong(last) > 15 * 60 * 1000) {
-        String countString = props.getProperty(UNBALANCED_COUNT, "0");
-        int count = Integer.parseInt(countString);
+      Long last = state.getLong(LAST_UNBALANCED_TIME);
+      if (last != null && System.currentTimeMillis() - last > 15 * 60 * 1000) {
+        Integer count = state.getInteger(UNBALANCED_COUNT);
+        if (count == null)
+          count = Integer.valueOf(0);
         if (count > 3)
-          throw new Exception("servers are unbalanced!");
+          throw new Exception("servers are unbalanced! location " + unbalancedLocation + " count " + lastCount + " too far from average " + average);
         count++;
-        props.setProperty(UNBALANCED_COUNT, "" + count);
+        state.set(UNBALANCED_COUNT, count);
       }
       if (last == null)
-        props.setProperty(LAST_UNBALANCED_TIME, Long.toString(System.currentTimeMillis()));
+        state.set(LAST_UNBALANCED_TIME, System.currentTimeMillis());
     } else {
-      props.remove(LAST_UNBALANCED_TIME);
-      props.remove(UNBALANCED_COUNT);
+      state.remove(LAST_UNBALANCED_TIME);
+      state.remove(UNBALANCED_COUNT);
     }
   }
   

@@ -71,6 +71,10 @@ public class State {
   public void set(String key, Object value) {
     stateMap.put(key, value);
   }
+
+  public void remove(String key) {
+    stateMap.remove(key);
+  }
   
   public Object get(String key) {
     if (stateMap.containsKey(key) == false) {
@@ -95,6 +99,10 @@ public class State {
     return (String) stateMap.get(key);
   }
   
+  public Integer getInteger(String key) {
+    return (Integer) stateMap.get(key);
+  }
+
   public Long getLong(String key) {
     return (Long) stateMap.get(key);
   }
