@@ -71,6 +71,10 @@ public class State {
     stateMap.put(key, value);
   }
 
+  public void remove(String key) {
+    stateMap.remove(key);
+  }
+
   public Object get(String key) {
     if (stateMap.containsKey(key) == false) {
       throw new RuntimeException("State does not contain " + key);
@@ -92,6 +96,10 @@ public class State {
 
   public String getString(String key) {
     return (String) stateMap.get(key);
+  }
+
+  public Integer getInteger(String key) {
+    return (Integer) stateMap.get(key);
   }
 
   public Long getLong(String key) {
