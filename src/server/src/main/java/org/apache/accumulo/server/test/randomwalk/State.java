@@ -64,6 +64,10 @@ public class State {
   public void set(String key, Object value) {
     stateMap.put(key, value);
   }
+
+  public void remove(String key) {
+    stateMap.remove(key);
+  }
   
   public Object get(String key) {
     if (stateMap.containsKey(key) == false) {

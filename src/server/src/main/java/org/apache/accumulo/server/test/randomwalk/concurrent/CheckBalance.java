@@ -33,13 +33,15 @@ import org.apache.accumulo.server.test.randomwalk.Test;
  */
 public class CheckBalance extends Test {
   
-  private static final String LAST_UNBALANCED_TIME = "lastUnbalancedTime";
+  static final String LAST_UNBALANCED_TIME = "lastUnbalancedTime";
+  static final String UNBALANCED_COUNT = "unbalancedCount";
 
   /* (non-Javadoc)
    * @see org.apache.accumulo.server.test.randomwalk.Node#visit(org.apache.accumulo.server.test.randomwalk.State, java.util.Properties)
    */
   @Override
   public void visit(State state, Properties props) throws Exception {
+    log.debug("checking balance");
     Map<String,Long> counts = new HashMap<String,Long>();
     Scanner scanner = state.getConnector().createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
     scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
@@ -57,25 +59,38 @@ public class CheckBalance extends Test {
     final double average = total / counts.size();
     
     // Check for even # of tablets on each node
+    double maxDifference = Math.max(1, average / 5);
+    String unbalancedLocation = null;
+    long lastCount = 0L;
     boolean balanced = true;
     for (Entry<String,Long> entry : counts.entrySet()) {
-      if (Math.abs(entry.getValue().longValue() - average) > Math.max(1, average / 5)) {
+      lastCount = entry.getValue().longValue();
+      if (Math.abs(lastCount - average) > maxDifference) {
         balanced = false;
+        unbalancedLocation = entry.getKey();
         break;
       }
     }
     
     // It is expected that the number of tablets will be uneven for short
     // periods of time. Don't complain unless we've seen it only unbalanced
-    // over a 15 minute period.
+    // over a 15 minute period and it's been at least three checks.
     if (!balanced) {
-      String last = props.getProperty(LAST_UNBALANCED_TIME);
-      if (last != null && System.currentTimeMillis() - Long.parseLong(last) > 15 * 60 * 1000) {
-        throw new Exception("servers are unbalanced!");
+      Long last = state.getLong(LAST_UNBALANCED_TIME);
+      if (last != null && System.currentTimeMillis() - last > 15 * 60 * 1000) {
+        Integer count = state.getInteger(UNBALANCED_COUNT);
+        if (count == null)
+          count = Integer.valueOf(0);
+        if (count > 3)
+          throw new Exception("servers are unbalanced! location " + unbalancedLocation + " count " + lastCount + " too far from average " + average);
+        count++;
+        state.set(UNBALANCED_COUNT, count);
+      } else if (last == null) {
+        state.set(LAST_UNBALANCED_TIME, System.currentTimeMillis());
       }
-      props.setProperty(LAST_UNBALANCED_TIME, Long.toString(System.currentTimeMillis()));
     } else {
-      props.remove(LAST_UNBALANCED_TIME);
+      state.remove(LAST_UNBALANCED_TIME);
+      state.remove(UNBALANCED_COUNT);
     }
   }
   
