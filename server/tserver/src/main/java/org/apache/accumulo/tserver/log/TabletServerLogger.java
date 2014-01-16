@@ -212,7 +212,7 @@ public class TabletServerLogger {
         } catch (DfsLogger.LogClosedException ex) {
           // ignore
         } catch (Throwable ex) {
-          log.error("Unable to cleanly close log " + logger.getFileName() + ": " + ex);
+          log.error("Unable to cleanly close log " + logger.getFileName() + ": " + ex, ex);
         }
       }
       loggers.clear();
