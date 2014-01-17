@@ -49,6 +49,7 @@ public class CreateUser extends Test {
             if (!exists) {
               state.getConnector().securityOperations().createLocalUser(tableUserName, tabUserPass);
               WalkingSecurity.get(state).createUser(tableUserName, tabUserPass);
+              Thread.sleep(1000);
             }
             return;
           }

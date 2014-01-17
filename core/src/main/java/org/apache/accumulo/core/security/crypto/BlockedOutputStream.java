@@ -44,7 +44,7 @@ public class BlockedOutputStream extends OutputStream {
   }
 
   @Override
-  public void flush() throws IOException {
+  public synchronized void flush() throws IOException {
     int size = bb.position();
     if (size == 0)
       return;
@@ -64,9 +64,10 @@ public class BlockedOutputStream extends OutputStream {
 
   @Override
   public void write(int b) throws IOException {
-    bb.put((byte) b);
+    // Checking before provides same functionality but causes the case of previous flush() failing to now throw a buffer out of bounds error
     if (bb.remaining() == 0)
       flush();
+    bb.put((byte) b);
   }
 
   @Override
@@ -90,7 +91,6 @@ public class BlockedOutputStream extends OutputStream {
   @Override
   public void close() throws IOException {
     flush();
-    bb = null;
     out.close();
   }
 }

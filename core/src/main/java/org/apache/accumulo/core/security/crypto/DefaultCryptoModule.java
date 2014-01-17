@@ -355,7 +355,7 @@ public class DefaultCryptoModule implements CryptoModule {
         if (marker.equals(ENCRYPTION_HEADER_MARKER_V2))
           params.setBlockStreamSize(dataIn.readInt());
         else
-          params.setBlockStreamSize(-1);
+          params.setBlockStreamSize(0);
       } else {
         
         log.trace("Read something off of the encrypted input stream that was not the encryption header marker, so pushing back bytes and returning the given stream");
@@ -398,7 +398,7 @@ public class DefaultCryptoModule implements CryptoModule {
     
     InputStream blockedDecryptingInputStream = new CipherInputStream(params.getEncryptedInputStream(), cipher);
     
-    if (params.getBlockStreamSize() != -1)
+    if (params.getBlockStreamSize() > 0)
       blockedDecryptingInputStream = new BlockedInputStream(blockedDecryptingInputStream, cipher.getBlockSize(), params.getBlockStreamSize());
 
     log.trace("Initialized cipher input stream with transformation ["+getCipherTransformation(params)+"]");

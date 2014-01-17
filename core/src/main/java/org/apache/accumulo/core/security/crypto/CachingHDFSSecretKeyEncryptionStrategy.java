@@ -35,6 +35,9 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 
+/**
+ * A {@link SecretKeyEncryptionStrategy} that gets its key from HDFS and caches it for IO.
+ */
 public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncryptionStrategy {
   
   private static final Logger log = Logger.getLogger(CachingHDFSSecretKeyEncryptionStrategy.class);

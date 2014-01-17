@@ -134,7 +134,7 @@
     </property>
     <property>
       <name>crypto.secret.key.encryption.strategy.class</name>
-      <value>org.apache.accumulo.core.security.crypto.DefaultSecretKeyEncryptionStrategy</value>
+      <value>org.apache.accumulo.core.security.crypto.CachingHDFSSecretKeyEncryptionStrategy</value>
     </property>
     <property>
       <name>instance.dfs.dir</name>
