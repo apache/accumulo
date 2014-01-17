@@ -53,6 +53,7 @@ public class CreateUser extends Test {
               state.getConnector().securityOperations().createUser(tableUserName, tabUserPass, new Authorizations());
               SecurityHelper.setTabUserPass(state, tabUserPass);
               SecurityHelper.setTabUserExists(state, true);
+              Thread.sleep(1000);
             }
             return;
           }
