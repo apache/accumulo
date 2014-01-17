@@ -29,7 +29,6 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -226,7 +225,7 @@ public class TraceServer implements Watcher {
   private void flush() {
     try {
       writer.flush();
-    } catch (MutationsRejectedException e) {
+    } catch (Exception e) {
       log.error("Error flushing traces", e);
       resetWriter();
     }
