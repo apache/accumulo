@@ -27,7 +27,6 @@ import org.apache.accumulo.cloudtrace.thrift.SpanReceiver;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -189,7 +188,7 @@ public class TraceServer implements Watcher {
   private void flush() {
     try {
       writer.flush();
-    } catch (MutationsRejectedException e) {
+    } catch (Exception e) {
       log.error("Error flushing traces", e);
       resetWriter();
     }
