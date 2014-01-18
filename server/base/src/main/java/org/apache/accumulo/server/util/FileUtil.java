@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -81,7 +82,7 @@ public class FileUtil {
     
     Path result = null;
     while (result == null) {
-      result = new Path(accumuloDir + "/tmp/idxReduce_" + String.format("%09d", (int) (Math.random() * Integer.MAX_VALUE)));
+      result = new Path(accumuloDir + "/tmp/idxReduce_" + String.format("%09d", new Random().nextInt(Integer.MAX_VALUE)));
       
       try {
         fs.getFileStatus(result);
@@ -100,9 +101,9 @@ public class FileUtil {
     return result;
   }
   
-  public static Collection<FileRef> reduceFiles(AccumuloConfiguration acuConf, Configuration conf, VolumeManager fs, Text prevEndRow, Text endRow,
-      Collection<FileRef> mapFiles, int maxFiles, Path tmpDir, int pass) throws IOException {
-    ArrayList<FileRef> paths = new ArrayList<FileRef>(mapFiles);
+  public static Collection<String> reduceFiles(AccumuloConfiguration acuConf, Configuration conf, VolumeManager fs, Text prevEndRow, Text endRow,
+      Collection<String> mapFiles, int maxFiles, Path tmpDir, int pass) throws IOException {
+    ArrayList<String> paths = new ArrayList<String>(mapFiles);
     
     if (paths.size() <= maxFiles)
       return paths;
@@ -111,29 +112,29 @@ public class FileUtil {
     
     int start = 0;
     
-    ArrayList<FileRef> outFiles = new ArrayList<FileRef>();
+    ArrayList<String> outFiles = new ArrayList<String>();
     
     int count = 0;
     
     while (start < paths.size()) {
       int end = Math.min(maxFiles + start, paths.size());
-      List<FileRef> inFiles = paths.subList(start, end);
+      List<String> inFiles = paths.subList(start, end);
       
       start = end;
       
-      FileRef newMapFile = new FileRef(String.format("%s/%04d.%s", newDir, count++, RFile.EXTENSION));
+      String newMapFile = String.format("%s/%04d.%s", newDir, count++, RFile.EXTENSION);
       
       outFiles.add(newMapFile);
-      FileSystem ns = fs.getFileSystemByPath(newMapFile.path());
+      FileSystem ns = fs.getFileSystemByPath(new Path(newMapFile));
       FileSKVWriter writer = new RFileOperations().openWriter(newMapFile.toString(), ns, ns.getConf(), acuConf);
       writer.startDefaultLocalityGroup();
       List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<SortedKeyValueIterator<Key,Value>>(inFiles.size());
       
       FileSKVIterator reader = null;
       try {
-        for (FileRef s : inFiles) {
-          ns = fs.getFileSystemByPath(s.path());
-          reader = FileOperations.getInstance().openIndex(s.path().toString(), ns, ns.getConf(), acuConf);
+        for (String s : inFiles) {
+          ns = fs.getFileSystemByPath(new Path(s));
+          reader = FileOperations.getInstance().openIndex(s, ns, ns.getConf(), acuConf);
           iters.add(reader);
         }
         
@@ -182,12 +183,12 @@ public class FileUtil {
     return reduceFiles(acuConf, conf, fs, prevEndRow, endRow, outFiles, maxFiles, tmpDir, pass + 1);
   }
 
-  public static SortedMap<Double,Key> findMidPoint(VolumeManager fs, AccumuloConfiguration acuConf, Text prevEndRow, Text endRow, Collection<FileRef> mapFiles,
+  public static SortedMap<Double,Key> findMidPoint(VolumeManager fs, AccumuloConfiguration acuConf, Text prevEndRow, Text endRow, Collection<String> mapFiles,
       double minSplit) throws IOException {
     return findMidPoint(fs, acuConf, prevEndRow, endRow, mapFiles, minSplit, true);
   }
   
-  public static double estimatePercentageLTE(VolumeManager fs, AccumuloConfiguration acuconf, Text prevEndRow, Text endRow, Collection<FileRef> mapFiles,
+  public static double estimatePercentageLTE(VolumeManager fs, AccumuloConfiguration acuconf, Text prevEndRow, Text endRow, Collection<String> mapFiles,
       Text splitRow) throws IOException {
     
     Configuration conf = CachedConfiguration.getInstance();
@@ -259,11 +260,11 @@ public class FileUtil {
    *          ISSUES : This method used the index files to find the mid point. If the map files have different index intervals this method will not return an
    *          accurate mid point. Also, it would be tricky to use this method in conjunction with an in memory map because the indexing interval is unknown.
    */
-  public static SortedMap<Double,Key> findMidPoint(VolumeManager fs, AccumuloConfiguration acuConf, Text prevEndRow, Text endRow, Collection<FileRef> mapFiles,
+  public static SortedMap<Double,Key> findMidPoint(VolumeManager fs, AccumuloConfiguration acuConf, Text prevEndRow, Text endRow, Collection<String> mapFiles,
       double minSplit, boolean useIndex) throws IOException {
     Configuration conf = CachedConfiguration.getInstance();
     
-    Collection<FileRef> origMapFiles = mapFiles;
+    Collection<String> origMapFiles = mapFiles;
     
     Path tmpDir = null;
     
@@ -380,15 +381,15 @@ public class FileUtil {
     }
   }
   
-  private static long countIndexEntries(AccumuloConfiguration acuConf, Text prevEndRow, Text endRow, Collection<FileRef> mapFiles, boolean useIndex,
+  private static long countIndexEntries(AccumuloConfiguration acuConf, Text prevEndRow, Text endRow, Collection<String> mapFiles, boolean useIndex,
       Configuration conf, VolumeManager fs, ArrayList<FileSKVIterator> readers) throws IOException {
     
     long numKeys = 0;
     
     // count the total number of index entries
-    for (FileRef ref : mapFiles) {
+    for (String ref : mapFiles) {
       FileSKVIterator reader = null;
-      Path path = ref.path();
+      Path path = new Path(ref);
       FileSystem ns = fs.getFileSystemByPath(path);
       try {
         if (useIndex)
@@ -548,4 +549,13 @@ public class FileUtil {
     return results;
   }
   
+  public static Collection<String> toPathStrings(Collection<FileRef> refs) {
+    ArrayList<String> ret = new ArrayList<String>();
+    for (FileRef fileRef : refs) {
+      ret.add(fileRef.path().toString());
+    }
+
+    return ret;
+  }
+
 }

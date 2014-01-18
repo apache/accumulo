@@ -1159,7 +1159,7 @@ public class Tablet {
           break;
         }
 
-        FileRef ref = new FileRef(entry.getKey().getColumnQualifier().toString(), fs.getFullPath(entry.getKey()));
+        FileRef ref = new FileRef(fs, entry.getKey());
         datafiles.put(ref, new DataFileValue(entry.getValue().get()));
       }
     }
@@ -1199,9 +1199,7 @@ public class Tablet {
     for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
       Key key = entry.getKey();
       if (key.getRow().equals(row) && key.getColumnFamily().equals(ScanFileColumnFamily.NAME)) {
-        String meta = key.getColumnQualifier().toString();
-        Path path = fs.getFullPath(extent.getTableId().toString(), meta);
-        scanFiles.add(new FileRef(meta, path));
+        scanFiles.add(new FileRef(fs, key));
       }
     }
 
@@ -2974,7 +2972,7 @@ public class Tablet {
 
     try {
       // we should make .25 below configurable
-      keys = FileUtil.findMidPoint(fs, tabletServer.getSystemConfiguration(), extent.getPrevEndRow(), extent.getEndRow(), files, .25);
+      keys = FileUtil.findMidPoint(fs, tabletServer.getSystemConfiguration(), extent.getPrevEndRow(), extent.getEndRow(), FileUtil.toPathStrings(files), .25);
     } catch (IOException e) {
       log.error("Failed to find midpoint " + e.getMessage());
       return null;
@@ -3531,7 +3529,7 @@ public class Tablet {
       else {
         Text tsp = new Text(sp);
         splitPoint = new SplitRowSpec(FileUtil.estimatePercentageLTE(fs, tabletServer.getSystemConfiguration(), extent.getPrevEndRow(), extent.getEndRow(),
-            datafileManager.getFiles(), tsp), tsp);
+            FileUtil.toPathStrings(datafileManager.getFiles()), tsp), tsp);
       }
 
       if (splitPoint == null || splitPoint.row == null) {
