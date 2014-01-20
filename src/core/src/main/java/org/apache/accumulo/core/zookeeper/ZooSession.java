@@ -21,6 +21,7 @@ import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.WatchedEvent;
@@ -88,11 +89,13 @@ public class ZooSession {
         if (System.currentTimeMillis() - startTime > 2 * timeout)
           throw new RuntimeException("Failed to connect to zookeeper (" + host + ") within 2x zookeeper timeout period " + timeout);
 
-      } catch (UnknownHostException uhe) {
-        // do not expect to recover from this
-        log.warn(uhe.getClass().getName() + " : " + uhe.getMessage());
-        throw new RuntimeException(uhe);
       } catch (IOException e) {
+        if (e instanceof UnknownHostException) {
+          /*
+             Make sure we wait atleast as long as the JVM TTL for negative DNS responses
+           */
+          sleepTime = Math.max(sleepTime, (AddressUtil.getAddressCacheNegativeTtl((UnknownHostException) e) + 1) * 1000);
+        }
         log.warn("Connection to zooKeeper failed, will try again in " + String.format("%.2f secs", sleepTime / 1000.0), e);
       } finally {
         if (tryAgain && zooKeeper != null)
