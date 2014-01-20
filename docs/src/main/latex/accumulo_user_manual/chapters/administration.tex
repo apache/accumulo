@@ -378,9 +378,9 @@ Accumulo processes each write to a set of log files. By default these are found 
 In the event of TabletServer failure or error on shutting Accumulo down, some
 mutations may not have been minor compacted to HDFS properly. In this case,
 Accumulo will automatically reapply such mutations from the write-ahead log
-either when the tablets from the failed server are reassigned by the Master, in the
-case of a single TabletServer failure or the next time Accumulo starts, in the event of
-failure during shutdown.
+either when the tablets from the failed server are reassigned by the Master (in the
+case of a single TabletServer failure) or the next time Accumulo starts (in the event of
+failure during shutdown).
 
 Recovery is performed by asking a tablet server to sort the logs so that tablets can easily find their missing
 updates. The sort status of each file is displayed on
