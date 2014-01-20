@@ -55,7 +55,7 @@ public class BlockedOutputStream extends OutputStream {
       remainder = blockSize - remainder;
 
     // This is garbage
-    bb.position(bb.position() + remainder);
+    bb.position(size + remainder);
     out.write(bb.array(), 0, size + remainder);
 
     out.flush();

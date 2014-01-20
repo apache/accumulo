@@ -148,13 +148,12 @@ introduced in Accumulo 1.4. This is discussed in more detail later.
 If a TabletServer fails, the Master detects it and automatically reassigns the tablets
 assigned from the failed server to other servers. Any key-value pairs that were in
 memory at the time the TabletServer fails are automatically reapplied from the Write-Ahead
-Log to prevent any loss of data.
+Log(WAL) to prevent any loss of data.
 
-The Master will coordinate the copying of write-ahead logs to HDFS so the logs
-are available to all tablet servers. To make recovery efficient, the updates
-within a log are grouped by tablet. TabletServers can quickly apply the
-mutations from the sorted logs that are destined for the tablets they have now
-been assigned.
+Tablet servers write their WALs directly to HDFS so the logs are available to all tablet
+servers for recovery. To make the recovery process efficient, the updates within a log are
+grouped by tablet.  TabletServers can quickly apply the mutations from the sorted logs
+that are destined for the tablets they have now been assigned.
 
 TabletServer failures are noted on the Master's monitor page, accessible via\\
 \mbox{http://master-address:50095/monitor}.

@@ -21,6 +21,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
@@ -34,16 +35,22 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
+import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.junit.After;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -66,9 +73,16 @@ public class VolumeIT extends ConfigurableMacIT {
     v2 = new Path("file://" + v2f.getAbsolutePath());
   }
 
+  @After
+  public void clearDirs() throws IOException {
+    FileUtils.deleteDirectory(new File(v1.toUri()));
+    FileUtils.deleteDirectory(new File(v2.toUri()));
+  }
+
   @Override
   public void configure(MiniAccumuloConfigImpl cfg) {
     // Run MAC on two locations in the local file system
+    cfg.setProperty(Property.INSTANCE_DFS_URI, v1.toString());
     cfg.setProperty(Property.INSTANCE_VOLUMES, v1.toString() + "," + v2.toString());
     super.configure(cfg);
   }
@@ -120,4 +134,103 @@ public class VolumeIT extends ConfigurableMacIT {
     assertTrue(usage > 700 && usage < 800);
   }
 
+  private void verifyData(List<String> expected, Scanner createScanner) {
+
+    List<String> actual = new ArrayList<String>();
+
+    for (Entry<Key,Value> entry : createScanner) {
+      Key k = entry.getKey();
+      actual.add(k.getRow() + ":" + k.getColumnFamily() + ":" + k.getColumnQualifier() + ":" + entry.getValue());
+    }
+
+    Collections.sort(expected);
+    Collections.sort(actual);
+
+    Assert.assertEquals(expected, actual);
+  }
+
+  @Test
+  public void testRelativePaths() throws Exception {
+
+    List<String> expected = new ArrayList<String>();
+
+    Connector connector = getConnector();
+    String tableName = getTableNames(1)[0];
+    connector.tableOperations().create(tableName, false);
+
+    String tableId = connector.tableOperations().tableIdMap().get(tableName);
+
+    SortedSet<Text> partitions = new TreeSet<Text>();
+    // with some splits
+    for (String s : "c,g,k,p,s,v".split(","))
+      partitions.add(new Text(s));
+
+    connector.tableOperations().addSplits(tableName, partitions);
+
+    BatchWriter bw = connector.createBatchWriter(tableName, new BatchWriterConfig());
+
+    // create two files in each tablet
+
+    String[] rows = "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z".split(",");
+    for (String s : rows) {
+      Mutation m = new Mutation(s);
+      m.put("cf1", "cq1", "1");
+      bw.addMutation(m);
+      expected.add(s + ":cf1:cq1:1");
+    }
+
+    bw.flush();
+    connector.tableOperations().flush(tableName, null, null, true);
+
+    for (String s : rows) {
+      Mutation m = new Mutation(s);
+      m.put("cf1", "cq1", "2");
+      bw.addMutation(m);
+      expected.add(s + ":cf1:cq1:2");
+    }
+
+    bw.close();
+    connector.tableOperations().flush(tableName, null, null, true);
+
+    verifyData(expected, connector.createScanner(tableName, Authorizations.EMPTY));
+
+    connector.tableOperations().offline(tableName, true);
+
+    connector.securityOperations().grantTablePermission("root", MetadataTable.NAME, TablePermission.WRITE);
+
+    Scanner metaScanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    metaScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+    metaScanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
+
+    BatchWriter mbw = connector.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+
+    for (Entry<Key,Value> entry : metaScanner) {
+      String cq = entry.getKey().getColumnQualifier().toString();
+      if (cq.startsWith(v1.toString())) {
+        Path path = new Path(cq);
+        String relPath = "/" + path.getParent().getName() + "/" + path.getName();
+        Mutation fileMut = new Mutation(entry.getKey().getRow());
+        fileMut.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
+        fileMut.put(entry.getKey().getColumnFamily().toString(), relPath, entry.getValue().toString());
+        mbw.addMutation(fileMut);
+      }
+    }
+
+    mbw.close();
+
+    connector.tableOperations().online(tableName, true);
+
+    verifyData(expected, connector.createScanner(tableName, Authorizations.EMPTY));
+
+    connector.tableOperations().compact(tableName, null, null, true, true);
+
+    verifyData(expected, connector.createScanner(tableName, Authorizations.EMPTY));
+
+    for (Entry<Key,Value> entry : metaScanner) {
+      String cq = entry.getKey().getColumnQualifier().toString();
+      Path path = new Path(cq);
+      Assert.assertTrue("relative path not deleted " + path.toString(), path.depth() > 2);
+    }
+
+  }
 }

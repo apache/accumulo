@@ -37,7 +37,7 @@ public class SizeLimitCompactionStrategyTest {
 
     HashMap<FileRef,DataFileValue> ret = new HashMap<FileRef,DataFileValue>();
     for (int i = 0; i < sa.length; i += 2) {
-      ret.put(new FileRef(sa[i]), new DataFileValue(AccumuloConfiguration.getMemoryInBytes(sa[i + 1]), 1));
+      ret.put(new FileRef("hdfs://nn1/accumulo/tables/5/t-0001/" + sa[i]), new DataFileValue(AccumuloConfiguration.getMemoryInBytes(sa[i + 1]), 1));
     }
 
     return ret;

@@ -24,6 +24,7 @@ import static org.apache.accumulo.tserver.logger.LogEvents.MUTATION;
 import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -136,7 +137,19 @@ public class SortedLogRecovery {
     }
   }
   
+  private String getPathSuffix(String pathString) {
+    Path path = new Path(pathString);
+    if (path.depth() < 2)
+      throw new IllegalArgumentException("Bad path " + pathString);
+    return path.getParent().getName() + "/" + path.getName();
+  }
+
   int findLastStartToFinish(MultiReader reader, int fileno, KeyExtent extent, Set<String> tabletFiles, LastStartToFinish lastStartToFinish) throws IOException, EmptyMapFileException, UnusedException {
+
+    HashSet<String> suffixes = new HashSet<String>();
+    for (String path : tabletFiles)
+      suffixes.add(getPathSuffix(path));
+
     // Scan for tableId for this extent (should always be in the log)
     LogFileKey key = new LogFileKey();
     LogFileValue value = new LogFileValue();
@@ -195,7 +208,7 @@ public class SortedLogRecovery {
         
         // Tablet server finished the minor compaction, but didn't remove the entry from the METADATA table.
         log.debug("minor compaction into " + key.filename + " finished, but was still in the METADATA");
-        if (tabletFiles.contains(key.filename))
+        if (suffixes.contains(getPathSuffix(key.filename)))
           lastStartToFinish.update(-1);
       } else if (key.event == COMPACTION_FINISH) {
         if (key.seq <= lastStartToFinish.lastStart)

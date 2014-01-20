@@ -157,7 +157,7 @@ public class DefaultCompactionStrategyTest {
   private MajorCompactionRequest createRequest(KeyExtent extent, MajorCompactionReason reason, Object... objs) throws IOException {
     Map<FileRef,DataFileValue> files = new HashMap<FileRef,DataFileValue>();
     for (int i = 0; i < objs.length; i += 2) {
-      files.put(new FileRef((String) objs[i]), new DataFileValue(((Number) objs[i + 1]).longValue(), 0));
+      files.put(new FileRef("hdfs://nn1/accumulo/tables/5/t-0001/" + (String) objs[i]), new DataFileValue(((Number) objs[i + 1]).longValue(), 0));
     }
     return new TestCompactionRequest(extent, reason, files);
   }
@@ -176,7 +176,8 @@ public class DefaultCompactionStrategyTest {
 
   private static Set<String> asSet(Collection<String> strings) {
     HashSet<String> result = new HashSet<String>();
-    result.addAll(strings);
+    for (String string : strings)
+      result.add("hdfs://nn1/accumulo/tables/5/t-0001/" + string);
     return result;
   }
 

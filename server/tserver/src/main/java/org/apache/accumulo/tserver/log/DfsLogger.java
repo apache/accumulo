@@ -440,7 +440,7 @@ public class DfsLogger {
 
     if (encryptingLogFile != null)
       try {
-        encryptingLogFile.close();
+        logFile.close();
       } catch (IOException ex) {
         log.error(ex);
         throw new LogClosedException();
