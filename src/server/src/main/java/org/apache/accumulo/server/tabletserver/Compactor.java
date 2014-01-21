@@ -180,6 +180,8 @@ public class Compactor implements Callable<CompactionStats> {
         }
       } catch (IOException e) {
         log.warn(e, e);
+      } catch (RuntimeException exception) {
+        log.warn(exception, exception);
       }
     }
   }

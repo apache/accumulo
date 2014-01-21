@@ -20,6 +20,7 @@
 package org.apache.accumulo.server.test.randomwalk.security;
 
 import java.io.IOException;
+import java.net.UnknownHostException;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.Connector;
@@ -192,8 +193,14 @@ public class SecurityHelper {
       try {
         fs = FileSystem.get(CachedConfiguration.getInstance());
       } catch (IOException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
+        log.error("problem getting default file system.", e);
+      } catch (IllegalArgumentException exception) {
+        /* Hadoop throws a wrapped UHE in some edge cases of DNS trouble */
+        if (exception.getCause() instanceof UnknownHostException) {
+          log.error("problem getting default file system.", exception);
+        } else {
+          throw exception;
+        }
       }
       state.set(filesystem, fs);
     }
