@@ -112,7 +112,7 @@ public class BlockedIOStreamTest {
     blockOut.write(filler);
     blockOut.flush();
     
-    baos.close();
+    blockOut.close();
     assertEquals(16*8, baos.toByteArray().length);
   }
 }
