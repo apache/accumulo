@@ -12,6 +12,7 @@ not specifying any runs all benchmarks.
 -v <log_level> is a number representing the verbosity of the debugging output: 10 is debug, 20 is info, 30 is warning, etc.
 -u <user> user to use when connecting with accumulo.  If not set you will be prompted to input it.
 -p <password> password to use when connecting with accumulo.  If not set you will be prompted to input it.
+-z <zookeepers> comma delimited lit of zookeeper host:port pairs to use when connecting with accumulo.  If not set you will be prompted to input it.
 -i <instance> instance to use when connecting with accumulo.  If not set you will be prompted to input it.
 
 **********************************************
