@@ -184,6 +184,9 @@ public class ContinuousVerify extends Configured implements Tool {
     Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
     job.setJarByClass(this.getClass());
     
+    job.setInputFormatClass(AccumuloInputFormat.class);
+    opts.setAccumuloConfigs(job);
+
     String clone = opts.getTableName();
     Connector conn = null;
     if (opts.scanOffline) {
@@ -192,12 +195,9 @@ public class ContinuousVerify extends Configured implements Tool {
       conn = opts.getConnector();
       conn.tableOperations().clone(opts.getTableName(), clone, true, new HashMap<String,String>(), new HashSet<String>());
       conn.tableOperations().offline(clone);
+      AccumuloInputFormat.setInputTableName(job, clone);
+      AccumuloInputFormat.setOfflineTableScan(job, true);
     }
-    
-    job.setInputFormatClass(AccumuloInputFormat.class);
-    
-    opts.setAccumuloConfigs(job);
-    AccumuloInputFormat.setOfflineTableScan(job, opts.scanOffline);
     
     // set up ranges
     try {
