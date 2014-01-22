@@ -23,6 +23,8 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.commons.codec.binary.Base64;
@@ -229,10 +231,16 @@ public class ConfiguratorBase {
     String instanceType = conf.get(enumToConfKey(implementingClass, InstanceOpts.TYPE), "");
     if ("MockInstance".equals(instanceType))
       return new MockInstance(conf.get(enumToConfKey(implementingClass, InstanceOpts.NAME)));
-    else if ("ZooKeeperInstance".equals(instanceType))
-      return new ZooKeeperInstance(conf.get(enumToConfKey(implementingClass, InstanceOpts.NAME)), conf.get(enumToConfKey(implementingClass,
+    else if ("ZooKeeperInstance".equals(instanceType)) {
+      ZooKeeperInstance zki = new ZooKeeperInstance(conf.get(enumToConfKey(implementingClass, InstanceOpts.NAME)), conf.get(enumToConfKey(implementingClass,
           InstanceOpts.ZOO_KEEPERS)));
-    else if (instanceType.isEmpty())
+
+      // Wrap the DefaultConfiguration with a SiteConfiguration
+      AccumuloConfiguration xmlConfig = SiteConfiguration.getInstance(zki.getConfiguration());
+      zki.setConfiguration(xmlConfig);
+
+      return zki;
+    } else if (instanceType.isEmpty())
       throw new IllegalStateException("Instance has not been configured for " + implementingClass.getSimpleName());
     else
       throw new IllegalStateException("Unrecognized instance type " + instanceType);

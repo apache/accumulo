@@ -18,6 +18,7 @@ package org.apache.accumulo.test.continuous;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,6 +34,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.test.continuous.ContinuousWalk.BadChecksumException;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.filecache.DistributedCache;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
@@ -44,6 +47,7 @@ import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.apache.log4j.Logger;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.validators.PositiveInteger;
@@ -53,6 +57,7 @@ import com.beust.jcommander.validators.PositiveInteger;
  */
 
 public class ContinuousVerify extends Configured implements Tool {
+  private static final Logger log = Logger.getLogger(ContinuousVerify.class);
   
   // work around hadoop-1/hadoop-2 runtime incompatibility
   static private Method INCREMENT;
@@ -170,6 +175,9 @@ public class ContinuousVerify extends Configured implements Tool {
     @Parameter(names = "--offline", description = "perform the verification directly on the files while the table is offline")
     boolean scanOffline = false;
     
+    @Parameter(names = "--sitefile", description = "location of accumulo-site.xml in HDFS", required = true)
+    String siteFile;
+    
     public Opts() {
       super("ci");
     }
@@ -219,6 +227,20 @@ public class ContinuousVerify extends Configured implements Tool {
     job.getConfiguration().setBoolean("mapred.map.tasks.speculative.execution", opts.scanOffline);
     
     TextOutputFormat.setOutputPath(job, new Path(opts.outputDir));
+    
+    Path sitePath = new Path(opts.siteFile);
+    Path siteParentPath = sitePath.getParent();
+    if (null == siteParentPath) {
+      siteParentPath = new Path("/");
+    }
+    
+    URI siteUri = new URI("hdfs://" + opts.siteFile);
+    
+    log.info("Adding " + siteUri + " to DistributedCache");
+    
+    // Make sure that accumulo-site.xml is available for mappers running offline scans
+    // as they need to correctly choose instance.dfs.dir for the installation
+    DistributedCache.addFileToClassPath(siteParentPath, job.getConfiguration(), FileSystem.get(siteUri, job.getConfiguration()));
     
     job.waitForCompletion(true);
     
