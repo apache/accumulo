@@ -294,8 +294,15 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   public static Set<Pair<Text,Text>> getFetchedColumns(Class<?> implementingClass, Configuration conf) {
     notNull(conf);
-
-    return deserializeFetchedColumns(conf.getStringCollection(enumToConfKey(implementingClass, ScanOpts.COLUMNS)));
+    String confValue = conf.get(enumToConfKey(implementingClass, ScanOpts.COLUMNS));
+    List<String> serialized = new ArrayList<String>();
+    if (confValue != null) {
+      // Split and include any trailing empty strings to allow empty column families
+      for (String val : confValue.split(",", -1)) {
+        serialized.add(val);
+      }
+    }
+    return deserializeFetchedColumns(serialized);
   }
 
   public static Set<Pair<Text,Text>> deserializeFetchedColumns(Collection<String> serialized) {
