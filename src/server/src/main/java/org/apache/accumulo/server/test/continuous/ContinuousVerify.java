@@ -17,6 +17,7 @@
 package org.apache.accumulo.server.test.continuous;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,6 +35,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.server.test.continuous.ContinuousWalk.BadChecksumException;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.filecache.DistributedCache;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
@@ -44,12 +47,14 @@ import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.apache.log4j.Logger;
 
 /**
  * A map reduce job that verifies a table created by continuous ingest. It verifies that all referenced nodes are defined.
  */
 
 public class ContinuousVerify extends Configured implements Tool {
+  private static final Logger log = Logger.getLogger(ContinuousVerify.class);
   
   public static final VLongWritable DEF = new VLongWritable(-1);
   
@@ -150,9 +155,9 @@ public class ContinuousVerify extends Configured implements Tool {
     
     args = argsList.toArray(new String[0]);
 
-    if (args.length != 9) {
+    if (args.length != 10) {
       throw new IllegalArgumentException("Usage : " + ContinuousVerify.class.getName()
-          + " <instance name> <zookeepers> <user> <pass> <table> <output dir> <max mappers> <num reducers> <scan offline>");
+          + " <instance name> <zookeepers> <user> <pass> <table> <output dir> <max mappers> <num reducers> <scan offline> <sitexml>");
     }
     
     String instance = args[0];
@@ -164,6 +169,7 @@ public class ContinuousVerify extends Configured implements Tool {
     String maxMaps = args[6];
     String reducers = args[7];
     boolean scanOffline = Boolean.parseBoolean(args[8]);
+    String siteFile = args[9];
     
     Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
     job.setJarByClass(this.getClass());
@@ -210,6 +216,20 @@ public class ContinuousVerify extends Configured implements Tool {
     job.setOutputFormatClass(TextOutputFormat.class);
     
     job.getConfiguration().setBoolean("mapred.map.tasks.speculative.execution", scanOffline);
+    
+    Path sitePath = new Path(siteFile);
+    Path siteParentPath = sitePath.getParent();
+    if (null == siteParentPath) {
+      siteParentPath = new Path("/");
+    }
+    
+    URI siteUri = new URI("hdfs://" + siteFile);
+    
+    log.info("Adding " + siteUri + " to DistributedCache");
+    
+    // Make sure that accumulo-site.xml is available for mappers running offline scans
+    // as they need to correctly choose instance.dfs.dir for the installation
+    DistributedCache.addFileToClassPath(siteParentPath, job.getConfiguration(), FileSystem.get(siteUri, job.getConfiguration()));
 
     TextOutputFormat.setOutputPath(job, new Path(outputdir));
     
