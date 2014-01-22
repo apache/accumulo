@@ -29,6 +29,8 @@ import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
@@ -346,14 +348,21 @@ public class ConfiguratorBase {
     if ("MockInstance".equals(instanceType))
       return new MockInstance(conf.get(enumToConfKey(implementingClass, InstanceOpts.NAME)));
     else if ("ZooKeeperInstance".equals(instanceType)) {
+      ZooKeeperInstance zki;
       String clientConfigString = conf.get(enumToConfKey(implementingClass, InstanceOpts.CLIENT_CONFIG));
       if (clientConfigString == null) {
         String instanceName = conf.get(enumToConfKey(implementingClass, InstanceOpts.NAME));
         String zookeepers = conf.get(enumToConfKey(implementingClass, InstanceOpts.ZOO_KEEPERS));
-        return new ZooKeeperInstance(ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zookeepers));
+        zki = new ZooKeeperInstance(ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zookeepers));
       } else {
-        return new ZooKeeperInstance(ClientConfiguration.deserialize(clientConfigString));
+        zki = new ZooKeeperInstance(ClientConfiguration.deserialize(clientConfigString));
       }
+
+      // Wrap the DefaultConfiguration with a SiteConfiguration
+      AccumuloConfiguration xmlConfig = SiteConfiguration.getInstance(zki.getConfiguration());
+      zki.setConfiguration(xmlConfig);
+
+      return zki;
     } else if (instanceType.isEmpty())
       throw new IllegalStateException("Instance has not been configured for " + implementingClass.getSimpleName());
     else
