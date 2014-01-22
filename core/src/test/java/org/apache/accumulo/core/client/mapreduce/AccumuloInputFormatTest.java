@@ -25,7 +25,9 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -395,5 +397,19 @@ public class AccumuloInputFormatTest {
             BadPasswordSplitsAccumuloInputFormat.class.getCanonicalName()}));
     assertNull(e1);
     assertNull(e2);
+  }
+
+  @Test
+  public void testEmptyColumnFamily() throws IOException {
+    Job job = new Job();
+    Set<Pair<Text,Text>> cols = new HashSet<Pair<Text,Text>>();
+    cols.add(new Pair<Text,Text>(new Text(""), null));
+    cols.add(new Pair<Text,Text>(new Text("foo"), new Text("bar")));
+    cols.add(new Pair<Text,Text>(new Text(""), new Text("bar")));
+    cols.add(new Pair<Text,Text>(new Text(""), new Text("")));
+    cols.add(new Pair<Text,Text>(new Text("foo"), new Text("")));
+    AccumuloInputFormat.fetchColumns(job, cols);
+    Set<Pair<Text,Text>> setCols = AccumuloInputFormat.getFetchedColumns(job);
+    assertEquals(cols, setCols);
   }
 }
