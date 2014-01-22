@@ -50,3 +50,13 @@ start-local.sh All.xml	    Copies configuration from HDFS into tmp/ and
 			    and starts only one local random walker.
  
 pkill -f randomwalk.Framework	Stops all local random walkers
+
+-----------------------------------------------------------------------------
+
+If you are running randomwalk tests while exercising Hadoop's high availability
+(HA) failover capabilities, you should use Hadoop version 2.1.0 or later.
+Failover scenarios are more likely to cause randomwalk test failures under
+earlier Hadoop versions. See the following issue reports for more details.
+
+* https://issues.apache.org/jira/browse/HDFS-4404
+* https://issues.apache.org/jira/browse/HADOOP-9792
