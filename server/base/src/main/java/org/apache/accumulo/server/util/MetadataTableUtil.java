@@ -613,7 +613,7 @@ public class MetadataTableUtil {
     } else {
       Mutation m = new Mutation(extent.getMetadataEntry());
       for (LogEntry entry : logEntries) {
-        m.putDelete(LogColumnFamily.NAME, new Text(entry.toString()));
+        m.putDelete(LogColumnFamily.NAME, new Text(entry.getName()));
       }
       update(SystemCredentials.get(), zooLock, m, extent);
     }
