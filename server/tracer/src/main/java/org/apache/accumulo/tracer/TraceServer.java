@@ -22,6 +22,7 @@ import java.nio.channels.ServerSocketChannel;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -32,6 +33,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -76,8 +78,8 @@ public class TraceServer implements Watcher {
   final private static Logger log = Logger.getLogger(TraceServer.class);
   final private ServerConfiguration serverConfiguration;
   final private TServer server;
-  private BatchWriter writer = null;
-  private Connector connector;
+  final private AtomicReference<BatchWriter> writer;
+  final private Connector connector;
   final String table;
   
   private static void put(Mutation m, String cf, String cq, byte[] bytes, int len) {
@@ -140,16 +142,27 @@ public class TraceServer implements Watcher {
         put(timeMutation, "id", idString, transport.get(), transport.len());
       }
       try {
-        if (writer == null)
-          resetWriter();
-        if (writer == null)
+        final BatchWriter writer = TraceServer.this.writer.get();
+        /* Check for null, because we expect spans to come in much faster than flush calls.
+           In the case of failure, we'd rather avoid logging tons of NPEs.
+         */
+        if (null == writer) {
+          log.warn("writer is not ready; discarding span.");
           return;
+        }
         writer.addMutation(spanMutation);
         writer.addMutation(indexMutation);
         if (timeMutation != null)
           writer.addMutation(timeMutation);
-      } catch (Exception ex) {
-        log.error("Unable to write mutation to table: " + spanMutation, ex);
+      } catch (MutationsRejectedException exception) {
+        log.warn("Unable to write mutation to table; discarding span. set log level to DEBUG for span information and stacktrace. cause: " + exception);
+        if (log.isDebugEnabled()) {
+          log.debug("discarded span due to rejection of mutation: " + spanMutation, exception);
+        }
+      /* XXX this could be e.g. an IllegalArgumentExceptoion if we're trying to write this mutation to a writer that has been closed since we retrieved it */
+      } catch (RuntimeException exception) {
+        log.warn("Unable to write mutation to table; discarding span. set log level to DEBUG for stacktrace. cause: " + exception);
+        log.debug("unable to write mutation to table due to exception.", exception);
       }
     }
     
@@ -159,6 +172,7 @@ public class TraceServer implements Watcher {
     this.serverConfiguration = serverConfiguration;
     AccumuloConfiguration conf = serverConfiguration.getConfiguration();
     table = conf.get(Property.TRACE_TABLE);
+    Connector connector = null;
     while (true) {
       try {
         String principal = conf.get(Property.TRACE_USER);
@@ -196,6 +210,9 @@ public class TraceServer implements Watcher {
         UtilWaitThread.sleep(1000);
       }
     }
+    this.connector = connector;
+    // make sure we refer to the final variable from now on.
+    connector = null;
     
     int port = conf.getPort(Property.TRACE_PORT);
     final ServerSocket sock = ServerSocketChannel.open().socket();
@@ -206,7 +223,7 @@ public class TraceServer implements Watcher {
     options.processor(new Processor<Iface>(new Receiver()));
     server = new TThreadPoolServer(options);
     registerInZooKeeper(sock.getInetAddress().getHostAddress() + ":" + sock.getLocalPort());
-    writer = connector.createBatchWriter(table, new BatchWriterConfig().setMaxLatency(5, TimeUnit.SECONDS));
+    writer = new AtomicReference<BatchWriter>(this.connector.createBatchWriter(table, new BatchWriterConfig().setMaxLatency(5, TimeUnit.SECONDS)));
   }
   
   public void run() throws Exception {
@@ -221,25 +238,39 @@ public class TraceServer implements Watcher {
   
   private void flush() {
     try {
-      writer.flush();
-    } catch (Exception e) {
-      log.error("Error flushing traces", e);
+      final BatchWriter writer = this.writer.get();
+      if (null != writer) {
+        writer.flush();
+      }
+    } catch (MutationsRejectedException exception) {
+      log.warn("Problem flushing traces, resetting writer. Set log level to DEBUG to see stacktrace. cause: " + exception);
+      log.debug("flushing traces failed due to exception", exception);
+      resetWriter();
+    /* XXX e.g. if the writer was closed between when we grabbed it and when we called flush. */
+    } catch (RuntimeException exception) {
+      log.warn("Problem flushing traces, resetting writer. Set log level to DEBUG to see stacktrace. cause: " + exception);
+      log.debug("flushing traces failed due to exception", exception);
       resetWriter();
     }
   }
   
-  synchronized private void resetWriter() {
+  private void resetWriter() {
+    BatchWriter writer = null;
     try {
-      if (writer != null)
-        writer.close();
+      writer = connector.createBatchWriter(table, new BatchWriterConfig().setMaxLatency(5, TimeUnit.SECONDS));
     } catch (Exception ex) {
-      log.error("Error closing batch writer", ex);
+      log.warn("Unable to create a batch writer, will retry. Set log level to DEBUG to see stacktrace. cause: " + ex);
+      log.debug("batch writer creation failed with exception.", ex);
     } finally {
-      writer = null;
+      /* Trade in the new writer (even if null) for the one we need to close. */
+      writer = this.writer.getAndSet(writer);
       try {
-        writer = connector.createBatchWriter(table, new BatchWriterConfig());
+        if (null != writer) {
+          writer.close();
+        }
       } catch (Exception ex) {
-        log.error("Unable to create a batch writer: " + ex);
+        log.warn("Problem closing batch writer. Set log level to DEBUG to see stacktrace. cause: " + ex);
+        log.debug("batch writer close failed with exception", ex);
       }
     }
   }

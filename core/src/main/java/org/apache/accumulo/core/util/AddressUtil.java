@@ -18,7 +18,7 @@ package org.apache.accumulo.core.util;
 
 import com.google.common.net.HostAndPort;
 
-public class AddressUtil {
+public class AddressUtil extends org.apache.accumulo.fate.util.AddressUtil {
 
 
   static public HostAndPort parseAddress(String address) throws NumberFormatException {

@@ -18,6 +18,7 @@ package org.apache.accumulo.core.zookeeper;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.UnknownHostException;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
@@ -68,7 +69,14 @@ public class ZooUtil extends org.apache.accumulo.fate.zookeeper.ZooUtil {
         return result;
       }
     } catch (IOException e) {
-      throw new RuntimeException("Accumulo not initialized, there is no instance id at " + instanceDirectory, e);
+      log.error("Problem reading instance id out of hdfs at " + instanceDirectory, e);
+      throw new RuntimeException("Can't tell if Accumulo is initialized; can't read instance id at " + instanceDirectory, e);
+    } catch (IllegalArgumentException exception) {
+      /* HDFS throws this when there's a UnknownHostException due to DNS troubles. */
+      if (exception.getCause() instanceof UnknownHostException) {
+        log.error("Problem reading instance id out of hdfs at " + instanceDirectory, exception);
+      }
+      throw exception;
     }
   }
 }
