@@ -67,12 +67,12 @@ public class DUCommand extends Command {
         }
       }
     }
-    
+
     // If we didn't get any tables, and we have a table selected, add the current table
     if (tables.isEmpty() && !shellState.getTableName().isEmpty()) {
       tables.add(shellState.getTableName());
     }
-    
+
     try {
       String valueFormat = prettyPrint ? "%9s" : "%,24d";
       for (DiskUsage usage : shellState.getConnector().tableOperations().getDiskUsage(tables)) {

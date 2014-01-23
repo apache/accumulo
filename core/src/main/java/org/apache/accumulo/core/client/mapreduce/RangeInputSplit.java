@@ -369,7 +369,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
     if (null == zooKeepers) {
       return null;
     }
-    
+
     ZooKeeperInstance zki = new ZooKeeperInstance(ClientConfiguration.loadDefault().withInstance(getInstanceName()).withZkHosts(getZooKeepers()));
 
     // Wrap the DefaultConfiguration with a SiteConfiguration so we use accumulo-site.xml
