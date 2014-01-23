@@ -268,7 +268,11 @@ public class ShellServerIT extends SimpleMacIT {
 
   @Test(timeout = 30 * 1000)
   public void du() throws Exception {
-    // du
+    // Calling du not in a table context shouldn't throw an error
+    output.clear();
+    exec("du", true, "", true);
+    
+    output.clear();
     exec("createtable t");
     make10();
     exec("flush -t t -w");

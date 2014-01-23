@@ -59,18 +59,20 @@ public class DUCommand extends Command {
 
     boolean prettyPrint = cl.hasOption(optHumanReadble.getOpt()) ? true : false;
 
+    // Add any patterns
     if (cl.hasOption(optTablePattern.getOpt())) {
       for (String table : shellState.getConnector().tableOperations().list()) {
         if (table.matches(cl.getOptionValue(optTablePattern.getOpt()))) {
           tables.add(table);
         }
       }
-    } else {
-      if (tables.isEmpty()) {
-        shellState.checkTableState();
-        tables.add(shellState.getTableName());
-      }
     }
+    
+    // If we didn't get any tables, and we have a table selected, add the current table
+    if (tables.isEmpty() && !shellState.getTableName().isEmpty()) {
+      tables.add(shellState.getTableName());
+    }
+    
     try {
       String valueFormat = prettyPrint ? "%9s" : "%,24d";
       for (DiskUsage usage : shellState.getConnector().tableOperations().getDiskUsage(tables)) {
