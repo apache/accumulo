@@ -64,34 +64,34 @@ import org.junit.rules.TemporaryFolder;
 public class ShellServerTest {
   public static class TestOutputStream extends OutputStream {
     StringBuilder sb = new StringBuilder();
-    
+
     @Override
     public void write(int b) throws IOException {
       sb.append((char) (0xff & b));
     }
-    
+
     public String get() {
       return sb.toString();
     }
-    
+
     public void clear() {
       sb.setLength(0);
     }
   }
-  
+
   private static String secret = "superSecret";
   public static TemporaryFolder folder = new TemporaryFolder();
   public static MiniAccumuloCluster cluster;
   public static TestOutputStream output;
   public static Shell shell;
   private static Process traceProcess;
-  
+
   static String exec(String cmd) throws IOException {
     output.clear();
     shell.execCommand(cmd, true, true);
     return output.get();
   }
-  
+
   static String exec(String cmd, boolean expectGoodExit) throws IOException {
     String result = exec(cmd);
     if (expectGoodExit)
@@ -100,11 +100,11 @@ public class ShellServerTest {
       assertBadExit("", true);
     return result;
   }
-  
+
   static String exec(String cmd, boolean expectGoodExit, String expectString) throws IOException {
     return exec(cmd, expectGoodExit, expectString, true);
   }
-  
+
   static String exec(String cmd, boolean expectGoodExit, String expectString, boolean stringPresent) throws IOException {
     String result = exec(cmd);
     if (expectGoodExit)
@@ -113,15 +113,15 @@ public class ShellServerTest {
       assertBadExit(expectString, stringPresent);
     return result;
   }
-  
+
   static void assertGoodExit(String s, boolean stringPresent) {
     Shell.log.debug(output.get());
     assertEquals(0, shell.getExitCode());
-    
+
     if (s.length() > 0)
       assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent, output.get().contains(s));
   }
-  
+
   static void assertBadExit(String s, boolean stringPresent) {
     Shell.log.debug(output.get());
     assertTrue(shell.getExitCode() > 0);
@@ -129,16 +129,16 @@ public class ShellServerTest {
       assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent, output.get().contains(s));
     shell.resetExitCode();
   }
-  
+
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
     folder.create();
     MiniAccumuloConfig cfg = new MiniAccumuloConfig(folder.newFolder("miniAccumulo"), secret);
     cluster = new MiniAccumuloCluster(cfg);
     cluster.start();
-    
+
     System.setProperty("HOME", folder.getRoot().getAbsolutePath());
-    
+
     // start the shell
     output = new TestOutputStream();
     shell = new Shell(new ConsoleReader(new FileInputStream(FileDescriptor.in), new OutputStreamWriter(output)));
@@ -147,23 +147,23 @@ public class ShellServerTest {
     exec("quit", true);
     shell.start();
     shell.setExit(false);
-    
+
     // use reflection to call this method so it does not need to be made public
     Method method = cluster.getClass().getDeclaredMethod("exec", Class.class, String[].class);
     method.setAccessible(true);
     traceProcess = (Process) method.invoke(cluster, TraceServer.class, new String[0]);
-    
+
     // give the tracer some time to start
     UtilWaitThread.sleep(1000);
   }
-  
+
   @AfterClass
   public static void tearDownAfterClass() throws Exception {
     cluster.stop();
     traceProcess.destroy();
     folder.delete();
   }
-  
+
   @Test(timeout = 30000)
   public void exporttableImporttable() throws Exception {
     // exporttable / importtable
@@ -185,7 +185,7 @@ public class ShellServerTest {
     exec("deletetable -f t", true);
     exec("deletetable -f t2", true);
   }
-  
+
   private DistCp newDistCp() {
     try {
       @SuppressWarnings("unchecked")
@@ -205,7 +205,7 @@ public class ShellServerTest {
     }
     throw new RuntimeException("Unexpected constructors for DistCp");
   }
-  
+
   @Test(timeout = 30000)
   public void setscaniterDeletescaniter() throws Exception {
     // setscaniter, deletescaniter
@@ -219,9 +219,9 @@ public class ShellServerTest {
     exec("deletescaniter -n name", true);
     exec("scan", true, "1", true);
     exec("deletetable -f t");
-    
+
   }
-  
+
   @Test(timeout = 30000)
   public void execfile() throws Exception {
     // execfile
@@ -230,9 +230,9 @@ public class ShellServerTest {
     writer.println("about");
     writer.close();
     exec("execfile " + file.getAbsolutePath(), true, Constants.VERSION, true);
-    
+
   }
-  
+
   @Test(timeout = 30000)
   public void egrep() throws Exception {
     // egrep
@@ -242,13 +242,17 @@ public class ShellServerTest {
     assertTrue(lines.split("\n").length - 1 == 3);
     exec("deletetable -f t");
   }
-  
+
   @Test(timeout = 30000)
   public void du() throws Exception {
+    // create and delete a table so we get out of a table context in the shell
+    exec("createtable du_test_table", true);
+    exec("deletetable -f du_test_table", true);
+
     // Calling du not in a table context shouldn't throw an error
     output.clear();
     exec("du", true, "", true);
-    
+
     output.clear();
     exec("createtable t");
     make10();
@@ -258,10 +262,10 @@ public class ShellServerTest {
     shell.execCommand("du -h", false, false);
     String o = output.get();
     // for some reason, there's a bit of fluctuation
-    assertTrue("Output did not match regex: '" + o + "'", o.matches(".*2[6-7][0-9]B\\s\\[t\\]\\n")); 
+    assertTrue("Output did not match regex: '" + o + "'", o.matches(".*2[6-7][0-9]B\\s\\[t\\]\\n"));
     exec("deletetable -f t");
   }
-  
+
   @Test(timeout = 1000)
   public void debug() throws Exception {
     exec("debug", true, "off", true);
@@ -272,7 +276,7 @@ public class ShellServerTest {
     exec("debug debug", false);
     exec("debug debug debug", false);
   }
-  
+
   @Test(timeout = 30000)
   public void user() throws Exception {
     // createuser, deleteuser, user, users, droptable, grant, revoke
@@ -306,7 +310,7 @@ public class ShellServerTest {
     exec("deleteuser xyzzy", true);
     exec("users", true, "xyzzy", false);
   }
-  
+
   @Test(timeout = 30000)
   public void iter() throws Exception {
     // setshelliter, listshelliter, deleteshelliter
@@ -347,9 +351,9 @@ public class ShellServerTest {
     exec("listiter -scan", true, "Iterator name", false);
     exec("listiter -scan", true, "Iterator xyzzy", true);
     exec("deletetable -f t");
-    
+
   }
-  
+
   @Test(timeout = 30000)
   public void notable() throws Exception {
     // notable
@@ -361,7 +365,7 @@ public class ShellServerTest {
     assertFalse(output.get().contains(" xyzzy>"));
     exec("deletetable -f xyzzy");
   }
-  
+
   @Test(timeout = 30000)
   public void sleep() throws Exception {
     // sleep
@@ -371,7 +375,7 @@ public class ShellServerTest {
     assertTrue(diff >= 200);
     assertTrue(diff < 400);
   }
-  
+
   @Test(timeout = 30000)
   public void addauths() throws Exception {
     // addauths
@@ -385,7 +389,7 @@ public class ShellServerTest {
     exec("scan -s bar", true, "[foo]", false);
     exec("deletetable -f xyzzy");
   }
-  
+
   @Test(timeout = 30000)
   public void byeQuitExit() throws Exception {
     // bye, quit, exit
@@ -396,20 +400,20 @@ public class ShellServerTest {
       shell.setExit(false);
     }
   }
-  
+
   @Test(timeout = 30000)
   public void classpath() throws Exception {
     // classpath
     exec("classpath", true, "Level 2: Java Classloader (loads everything defined by java classpath) URL classpath items are", true);
   }
-  
+
   @Test(timeout = 30000)
   public void clearCls() throws Exception {
     // clear/cls
     exec("cls", true, "[1;1H");
     exec("clear", true, "[2J");
   }
-  
+
   @Test(timeout = 30000)
   public void clonetable() throws Exception {
     // clonetable
@@ -454,7 +458,7 @@ public class ShellServerTest {
     exec("deletetable -f clone");
     exec("deletetable -f c");
   }
-  
+
   @Test(timeout = 30000)
   public void constraint() throws Exception {
     // constraint
@@ -467,7 +471,7 @@ public class ShellServerTest {
     exec("constraint -l -t c", true, "VisibilityConstraint=1", false);
     exec("deletetable -f c");
   }
-  
+
   @Test(timeout = 30000)
   public void deletemany() throws Exception {
     // deletemany
@@ -494,7 +498,7 @@ public class ShellServerTest {
     assertEquals(9, countkeys("t"));
     exec("deletetable -f t");
   }
-  
+
   @Test(timeout = 30000)
   public void deleterows() throws Exception {
     // deleterows
@@ -508,7 +512,7 @@ public class ShellServerTest {
     assertTrue(base + 2 == countFiles());
     exec("deletetable -f t");
   }
-  
+
   @Test(timeout = 30000)
   public void groups() throws Exception {
     exec("createtable t");
@@ -517,7 +521,7 @@ public class ShellServerTest {
     exec("getgroups -t t", true, "num=1,2,3", true);
     exec("deletetable -f t");
   }
-  
+
   @Test(timeout = 30000)
   public void grep() throws Exception {
     exec("createtable t", true);
@@ -526,7 +530,7 @@ public class ShellServerTest {
     exec("grep row5", true, "row5", true);
     exec("deletetable -f t", true);
   }
-  
+
   @Test(timeout = 30000)
   public void help() throws Exception {
     exec("help -np", true, "Help Commands", true);
@@ -540,7 +544,7 @@ public class ShellServerTest {
       exec("help " + c, true);
     }
   }
-  
+
   // @Test(timeout = 30000)
   public void history() throws Exception {
     exec("history -c", true);
@@ -549,7 +553,7 @@ public class ShellServerTest {
     exec("history", true, "unusualstring", true);
     exec("history", true, "history", true);
   }
-  
+
   @Test(timeout = 30000)
   public void importDirectory() throws Exception {
     Configuration conf = new Configuration();
@@ -582,12 +586,12 @@ public class ShellServerTest {
     exec("scan -r 00000099", true, "00000099", true);
     exec("deletetable -f t");
   }
-  
+
   @Test(timeout = 30000)
   public void info() throws Exception {
     exec("info", true, Constants.VERSION, true);
   }
-  
+
   @Test(timeout = 30000)
   public void interpreter() throws Exception {
     exec("createtable t", true);
@@ -599,7 +603,7 @@ public class ShellServerTest {
     exec("scan -b 02", true, "value", true);
     exec("deletetable -f t", true);
   }
-  
+
   @Test(timeout = 30000)
   public void listcompactions() throws Exception {
     exec("createtable t", true);
@@ -618,7 +622,7 @@ public class ShellServerTest {
     assertEquals(12, parts.length);
     exec("deletetable -f t", true);
   }
-  
+
   @Test(timeout = 30000)
   public void maxrow() throws Exception {
     exec("createtable t", true);
@@ -631,7 +635,7 @@ public class ShellServerTest {
     exec("maxrow", true, "ccc", true);
     exec("deletetable -f t", true);
   }
-  
+
   @Test(timeout = 30000)
   public void merge() throws Exception {
     exec("createtable t");
@@ -646,7 +650,7 @@ public class ShellServerTest {
     exec("getsplits -t !METADATA", true);
     assertEquals(2, output.get().split("\n").length);
   }
-  
+
   @Test(timeout = 30000)
   public void ping() throws Exception {
     for (int i = 0; i < 10; i++) {
@@ -655,11 +659,11 @@ public class ShellServerTest {
       if (output.get().split("\n").length == 3)
         break;
       UtilWaitThread.sleep(1000);
-      
+
     }
     assertEquals(3, output.get().split("\n").length);
   }
-  
+
   @Test(timeout = 30000)
   public void renametable() throws Exception {
     exec("createtable aaaa");
@@ -670,7 +674,7 @@ public class ShellServerTest {
     exec("scan -t xyzzy", true, "value", true);
     exec("deletetable -f xyzzy", true);
   }
-  
+
   @Test(timeout = 30000)
   public void systempermission() throws Exception {
     exec("systempermissions");
@@ -678,7 +682,7 @@ public class ShellServerTest {
     exec("tablepermissions", true);
     assertEquals(6, output.get().split("\n").length - 1);
   }
-  
+
   @Test(timeout = 30000)
   public void listscans() throws Exception {
     exec("createtable t", true);
@@ -713,52 +717,52 @@ public class ShellServerTest {
     thread.join();
     exec("deletetable -f t", true);
   }
-  
+
   @Test(timeout = 30000)
   public void testPertableClasspath() throws Exception {
     File fooFilterJar = File.createTempFile("FooFilter", ".jar");
     FileUtils.copyURLToFile(this.getClass().getResource("/FooFilter.jar"), fooFilterJar);
     fooFilterJar.deleteOnExit();
-    
+
     File fooConstraintJar = File.createTempFile("FooConstraint", ".jar");
     FileUtils.copyURLToFile(this.getClass().getResource("/FooConstraint.jar"), fooConstraintJar);
     fooConstraintJar.deleteOnExit();
-    
+
     exec(
         "config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1=" + fooFilterJar.toURI().toString() + "," + fooConstraintJar.toURI().toString(),
         true);
-    
+
     exec("createtable ptc", true);
     exec("config -t ptc -s " + Property.TABLE_CLASSPATH.getKey() + "=cx1", true);
-    
+
     UtilWaitThread.sleep(200);
-    
-    // We can't use the setiter command as Filter implements OptionDescriber which 
+
+    // We can't use the setiter command as Filter implements OptionDescriber which
     // forces us to enter more input that I don't know how to input
     // Instead, we can just manually set the property on the table.
     exec("config -t ptc -s " + Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.foo=10,org.apache.accumulo.test.FooFilter");
-    
+
     exec("insert foo f q v", true);
-    
+
     UtilWaitThread.sleep(100);
-    
+
     exec("scan -np", true, "foo", false);
-    
+
     exec("constraint -a FooConstraint", true);
-    
+
     exec("offline ptc");
     UtilWaitThread.sleep(500);
     exec("online ptc");
-    
+
     exec("table ptc", true);
     exec("insert foo f q v", false);
     exec("insert ok foo q v", true);
-    
+
     exec("deletetable -f ptc", true);
     exec("config -d " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
-    
+
   }
-  
+
   @Test(timeout = 30000)
   public void trace() throws Exception {
     exec("trace on", true);
@@ -772,21 +776,21 @@ public class ShellServerTest {
     assertTrue(trace.contains("update"));
     assertTrue(trace.contains("DeleteTable"));
   }
-  
+
   private int countkeys(String table) throws IOException {
     exec("scan -np -t " + table);
     return output.get().split("\n").length - 1;
   }
-  
+
   private void make10() throws IOException {
     for (int i = 0; i < 10; i++) {
       exec(String.format("insert row%d cf col%d value", i, i));
     }
   }
-  
+
   private int countFiles() throws IOException {
     exec("scan -t !METADATA -np -c file");
     return output.get().split("\n").length - 1;
   }
-  
+
 }
