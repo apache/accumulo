@@ -44,16 +44,20 @@ public class DUCommand extends Command {
 
     boolean prettyPrint = cl.hasOption(optHumanReadble.getOpt()) ? true : false;
 
+    // Add any patterns
     if (cl.hasOption(optTablePattern.getOpt())) {
       for (String table : shellState.getConnector().tableOperations().list()) {
         if (table.matches(cl.getOptionValue(optTablePattern.getOpt()))) {
           tablesToFlush.add(table);
         }
       }
-    } else {
-      shellState.checkTableState();
+    }
+    
+    // If we didn't get any tables, and we have a table selected, add the current table
+    if (tablesToFlush.isEmpty() && !shellState.getTableName().isEmpty()) {
       tablesToFlush.add(shellState.getTableName());
     }
+    
     try {
       final AccumuloConfiguration acuConf = new ConfigurationCopy(shellState.getConnector().instanceOperations().getSystemConfiguration());
       TableDiskUsage.printDiskUsage(acuConf, tablesToFlush, FileSystem.get(new Configuration()), shellState.getConnector(), new Printer() {
