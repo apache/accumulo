@@ -17,6 +17,7 @@
 package org.apache.accumulo.server.util;
 
 import java.io.IOException;
+import java.net.UnknownHostException;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -75,7 +76,14 @@ public class TabletOperations {
         VolumeManager fs = VolumeManagerImpl.get();
         return createTabletDirectory(fs, tableDir, endRow);
       } catch (IOException e) {
-        log.warn(e);
+        log.warn("problem creating tablet directory", e);
+      } catch (IllegalArgumentException exception) {
+        /* thrown in some edge cases of DNS failure by Hadoop instead of UnknownHostException */
+        if (exception.getCause() instanceof UnknownHostException) {
+          log.warn("problem creating tablet directory", exception);
+        } else {
+          throw exception;
+        }
       }
       UtilWaitThread.sleep(3000);
     }

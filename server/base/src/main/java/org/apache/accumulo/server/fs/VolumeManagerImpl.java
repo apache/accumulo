@@ -412,6 +412,9 @@ public class VolumeManagerImpl implements VolumeManager {
         if (inSafeMode) {
           return false;
         }
+      } catch (IllegalArgumentException exception) {
+        /* Send IAEs back as-is, so that those that wrap UnknownHostException can be handled in the same place as similar sources of failure. */
+        throw exception;
       } catch (Exception ex) {
         throw new RuntimeException("cannot find method setSafeMode");
       }
