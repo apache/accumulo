@@ -21,7 +21,8 @@ import java.net.InetSocketAddress;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.transport.TSocket;
 
-public class AddressUtil {
+public class AddressUtil extends org.apache.accumulo.fate.util.AddressUtil {
+
   static public InetSocketAddress parseAddress(String address, int defaultPort) throws NumberFormatException {
     String[] parts = address.split(":", 2);
     if (address.contains("+"))

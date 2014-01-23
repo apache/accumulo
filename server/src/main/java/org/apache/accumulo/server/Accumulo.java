@@ -29,6 +29,7 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.trace.DistributedTrace;
+import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.Version;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -258,16 +259,33 @@ public class Accumulo {
     }
     log.info("Zookeeper connected and initialized, attemping to talk to HDFS");
     long sleep = 1000;
+    int unknownHostTries = 3;
     while (true) {
       try {
         if (!isInSafeMode(fs))
           break;
         log.warn("Waiting for the NameNode to leave safemode");
       } catch (IOException ex) {
-        log.warn("Unable to connect to HDFS");
+        log.warn("Unable to connect to HDFS", ex);
+      } catch (IllegalArgumentException exception) {
+        /* Unwrap the UnknownHostException so we can deal with it directly */
+        if (exception.getCause() instanceof UnknownHostException) {
+          if (unknownHostTries > 0) {
+            log.warn("Unable to connect to HDFS, will retry. cause: " + exception.getCause());
+            /* We need to make sure our sleep period is long enough to avoid getting a cached failure of the host lookup. */
+            sleep = Math.max(sleep, (AddressUtil.getAddressCacheNegativeTtl((UnknownHostException)(exception.getCause()))+1)*1000);
+          } else {
+            log.error("Unable to connect to HDFS and have exceeded max number of retries.", exception);
+            throw exception;
+          }
+          unknownHostTries--;
+        } else {
+          throw exception;
+        }
       }
-      log.info("Sleeping " + sleep / 1000. + " seconds");
+      log.info("Backing off due to failure; current sleep period is " + sleep / 1000. + " seconds");
       UtilWaitThread.sleep(sleep);
+      /* Back off to give transient failures more time to clear. */
       sleep = Math.min(60 * 1000, sleep * 2);
     }
     log.info("Connected to HDFS");
@@ -302,8 +320,11 @@ public class Accumulo {
     try {
       Method setSafeMode = dfs.getClass().getMethod("setSafeMode", safeModeAction);
       return (Boolean) setSafeMode.invoke(dfs, get);
+    } catch (IllegalArgumentException exception) {
+      /* Send IAEs back as-is, so that those that wrap UnknownHostException can be handled in the same place as similar sources of failure. */
+      throw exception;
     } catch (Exception ex) {
-      throw new RuntimeException("cannot find method setSafeMode");
+      throw new RuntimeException("cannot find method setSafeMode", ex);
     }
   }
 }
