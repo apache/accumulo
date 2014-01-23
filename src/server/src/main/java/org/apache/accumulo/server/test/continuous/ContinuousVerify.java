@@ -55,22 +55,22 @@ import org.apache.log4j.Logger;
 
 public class ContinuousVerify extends Configured implements Tool {
   private static final Logger log = Logger.getLogger(ContinuousVerify.class);
-  
+
   public static final VLongWritable DEF = new VLongWritable(-1);
-  
+
   public static class CMapper extends Mapper<Key,Value,LongWritable,VLongWritable> {
-    
+
     private LongWritable row = new LongWritable();
     private LongWritable ref = new LongWritable();
     private VLongWritable vrow = new VLongWritable();
-    
+
     private long corrupt = 0;
-    
+
     public void map(Key key, Value data, Context context) throws IOException, InterruptedException {
       long r = Long.parseLong(key.getRow().toString(), 16);
       if (r < 0)
         throw new IllegalArgumentException();
-      
+
       try {
         ContinuousWalk.validate(key, data);
       } catch (BadChecksumException bce) {
@@ -83,12 +83,12 @@ public class ContinuousVerify extends Configured implements Tool {
         corrupt++;
         return;
       }
-      
+
       row.set(r);
-      
+
       context.write(row, DEF);
       byte[] val = data.get();
-      
+
       int offset = ContinuousWalk.getPrevRowOffset(val);
       if (offset > 0) {
         ref.set(Long.parseLong(new String(val, offset, 16), 16));
@@ -97,18 +97,18 @@ public class ContinuousVerify extends Configured implements Tool {
       }
     }
   }
-  
+
   public static enum Counts {
     UNREFERENCED, UNDEFINED, REFERENCED, CORRUPT
   }
-  
+
   public static class CReducer extends Reducer<LongWritable,VLongWritable,Text,Text> {
     private ArrayList<Long> refs = new ArrayList<Long>();
-    
+
     public void reduce(LongWritable key, Iterable<VLongWritable> values, Context context) throws IOException, InterruptedException {
-      
+
       int defCount = 0;
-      
+
       refs.clear();
       for (VLongWritable type : values) {
         if (type.get() == -1) {
@@ -117,7 +117,7 @@ public class ContinuousVerify extends Configured implements Tool {
           refs.add(type.get());
         }
       }
-      
+
       if (defCount == 0 && refs.size() > 0) {
         StringBuilder sb = new StringBuilder();
         String comma = "";
@@ -126,25 +126,25 @@ public class ContinuousVerify extends Configured implements Tool {
           comma = ",";
           sb.append(new String(ContinuousIngest.genRow(ref)));
         }
-        
+
         context.write(new Text(ContinuousIngest.genRow(key.get())), new Text(sb.toString()));
         context.getCounter(Counts.UNDEFINED).increment(1);
-        
+
       } else if (defCount > 0 && refs.size() == 0) {
         context.getCounter(Counts.UNREFERENCED).increment(1);
       } else {
         context.getCounter(Counts.REFERENCED).increment(1);
       }
-      
+
     }
   }
-  
+
   @Override
   public int run(String[] args) throws Exception {
-    
+
     String auths = "";
     ArrayList<String> argsList = new ArrayList<String>();
-    
+
     for (int i = 0; i < args.length; i++) {
       if (args[i].equals("--auths")) {
         auths = args[++i];
@@ -152,14 +152,14 @@ public class ContinuousVerify extends Configured implements Tool {
         argsList.add(args[i]);
       }
     }
-    
+
     args = argsList.toArray(new String[0]);
 
     if (args.length != 10) {
       throw new IllegalArgumentException("Usage : " + ContinuousVerify.class.getName()
           + " <instance name> <zookeepers> <user> <pass> <table> <output dir> <max mappers> <num reducers> <scan offline> <sitexml>");
     }
-    
+
     String instance = args[0];
     String zookeepers = args[1];
     String user = args[2];
@@ -170,10 +170,10 @@ public class ContinuousVerify extends Configured implements Tool {
     String reducers = args[7];
     boolean scanOffline = Boolean.parseBoolean(args[8]);
     String siteFile = args[9];
-    
+
     Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
     job.setJarByClass(this.getClass());
-    
+
     String clone = table;
     Connector conn = null;
     if (scanOffline) {
@@ -205,43 +205,43 @@ public class ContinuousVerify extends Configured implements Tool {
     } catch (Exception e) {
       throw new IOException(e);
     }
-    
+
     job.setMapperClass(CMapper.class);
     job.setMapOutputKeyClass(LongWritable.class);
     job.setMapOutputValueClass(VLongWritable.class);
-    
+
     job.setReducerClass(CReducer.class);
     job.setNumReduceTasks(Integer.parseInt(reducers));
-    
+
     job.setOutputFormatClass(TextOutputFormat.class);
-    
+
     job.getConfiguration().setBoolean("mapred.map.tasks.speculative.execution", scanOffline);
-    
+
     Path sitePath = new Path(siteFile);
     Path siteParentPath = sitePath.getParent();
     if (null == siteParentPath) {
       siteParentPath = new Path("/");
     }
-    
+
     URI siteUri = new URI("hdfs://" + siteFile);
-    
+
     log.info("Adding " + siteUri + " to DistributedCache");
-    
+
     // Make sure that accumulo-site.xml is available for mappers running offline scans
     // as they need to correctly choose instance.dfs.dir for the installation
     DistributedCache.addFileToClassPath(siteParentPath, job.getConfiguration(), FileSystem.get(siteUri, job.getConfiguration()));
 
     TextOutputFormat.setOutputPath(job, new Path(outputdir));
-    
+
     job.waitForCompletion(true);
-    
+
     if (scanOffline) {
       conn.tableOperations().delete(clone);
     }
 
     return job.isSuccessful() ? 0 : 1;
   }
-  
+
   /**
    * 
    * @param args
