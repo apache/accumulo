@@ -24,27 +24,5 @@ if [ -n "$VERIFY_AUTHS" ] ; then
 	AUTH_OPT="--auths $VERIFY_AUTHS";
 fi
 
-if [ ! -r $ACCUMULO_CONF_DIR/accumulo-site.xml ]; then
-    echo "Could not find accumulo-site.xml in $ACCUMULO_CONF_DIR"
-    exit 1
-fi
-
-TARGET_DIR="ci-conf-`date '+%s'`"
-hadoop fs -mkdir $TARGET_DIR
-
-if [ $? -ne 0 ]; then
-    echo "Could not create $TAGET_DIR in HDFS"
-    exit 1
-fi
-
-hadoop fs -put $ACCUMULO_CONF_DIR/accumulo-site.xml ${TARGET_DIR}/
-
-if [ $? -ne 0 ]; then
-    echo "Could not upload accumulo-site.xml to HDFS"
-    exit 1
-fi
-
-ABS_DIR="/user/`whoami`/${TARGET_DIR}/accumulo-site.xml"
-
-$ACCUMULO_HOME/bin/tool.sh "$SERVER_LIBJAR" org.apache.accumulo.server.test.continuous.ContinuousVerify -libjars "$SERVER_LIBJAR" $AUTH_OPT $INSTANCE_NAME $ZOO_KEEPERS $USER $PASS $TABLE $VERIFY_OUT $VERIFY_MAX_MAPS $VERIFY_REDUCERS --sitefile $ABS_DIR  $SCAN_OFFLINE
+$ACCUMULO_HOME/bin/tool.sh "$SERVER_LIBJAR" org.apache.accumulo.server.test.continuous.ContinuousVerify -libjars "$SERVER_LIBJAR" $AUTH_OPT $INSTANCE_NAME $ZOO_KEEPERS $USER $PASS $TABLE $VERIFY_OUT $VERIFY_MAX_MAPS $VERIFY_REDUCERS $SCAN_OFFLINE
 

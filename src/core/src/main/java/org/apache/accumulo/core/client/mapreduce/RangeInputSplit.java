@@ -29,8 +29,6 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.mapreduce.InputFormatBase.AccumuloIterator;
 import org.apache.accumulo.core.client.mapreduce.InputFormatBase.AccumuloIteratorOption;
 import org.apache.accumulo.core.client.mock.MockInstance;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
@@ -356,14 +354,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
       return null;
     }
     
-    ZooKeeperInstance zki = new ZooKeeperInstance(getInstanceName(), getZooKeepers());
-
-    // Wrap the DefaultConfiguration with a SiteConfiguration so we use accumulo-site.xml
-    // when it's present
-    AccumuloConfiguration xmlConfig = SiteConfiguration.getInstance(zki.getConfiguration());
-    zki.setConfiguration(xmlConfig);
-
-    return zki;
+    return new ZooKeeperInstance(getInstanceName(), getZooKeepers());
   }
 
   public String getInstanceName() {

@@ -58,8 +58,6 @@ import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.mock.MockTabletLocator;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.PartialKey;
@@ -737,14 +735,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static Instance getInstance(Configuration conf) {
     if (conf.getBoolean(MOCK, false))
       return new MockInstance(conf.get(INSTANCE_NAME));
-
-    ZooKeeperInstance zki = new ZooKeeperInstance(conf.get(INSTANCE_NAME), conf.get(ZOOKEEPERS));
-
-    // Wrap the DefaultConfiguration with a SiteConfiguration
-    AccumuloConfiguration xmlConfig = SiteConfiguration.getInstance(zki.getConfiguration());
-    zki.setConfiguration(xmlConfig);
-
-    return zki;
+    return new ZooKeeperInstance(conf.get(INSTANCE_NAME), conf.get(ZOOKEEPERS));
   }
 
   /**
