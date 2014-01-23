@@ -26,6 +26,7 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
+import org.apache.zookeeper.KeeperException.NoNodeException;
 
 public class DeadServerList {
   private static final Logger log = Logger.getLogger(DeadServerList.class);
@@ -49,7 +50,15 @@ public class DeadServerList {
       if (children != null) {
         for (String child : children) {
           Stat stat = new Stat();
-          byte[] data = zoo.getData(path + "/" + child, stat);
+          byte[] data;
+          try {
+            data = zoo.getData(path + "/" + child, stat);
+          } catch (NoNodeException nne) {
+            // Another thread or process can delete child while this loop is running.
+            // We ignore this error since it's harmless if we miss the deleted server
+            // in the dead server list.
+            continue;
+          }
           DeadServer server = new DeadServer(child, stat.getMtime(), new String(data));
           result.add(server);
         }
