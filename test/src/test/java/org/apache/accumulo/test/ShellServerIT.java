@@ -187,7 +187,7 @@ public class ShellServerIT extends SimpleMacIT {
     }
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void exporttableImporttable() throws Exception {
     // exporttable / importtable
     exec("createtable t -evc", true);
@@ -229,7 +229,7 @@ public class ShellServerIT extends SimpleMacIT {
     throw new RuntimeException("Unexpected constructors for DistCp");
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void setscaniterDeletescaniter() throws Exception {
     // setscaniter, deletescaniter
     exec("createtable t");
@@ -245,7 +245,7 @@ public class ShellServerIT extends SimpleMacIT {
 
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void execfile() throws Exception {
     // execfile
     File file = File.createTempFile("ShellServerIT.execfile", ".conf", getFolder());
@@ -256,7 +256,7 @@ public class ShellServerIT extends SimpleMacIT {
 
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void egrep() throws Exception {
     // egrep
     exec("createtable t");
@@ -266,12 +266,16 @@ public class ShellServerIT extends SimpleMacIT {
     exec("deletetable -f t");
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void du() throws Exception {
+    // create and delete a table so we get out of a table context in the shell
+    exec("createtable du_test_table", true);
+    exec("deletetable -f du_test_table", true);
+
     // Calling du not in a table context shouldn't throw an error
     output.clear();
     exec("du", true, "", true);
-    
+
     output.clear();
     exec("createtable t");
     make10();
@@ -296,7 +300,7 @@ public class ShellServerIT extends SimpleMacIT {
     exec("debug debug debug", false);
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void user() throws Exception {
     // createuser, deleteuser, user, users, droptable, grant, revoke
     input.set("secret\nsecret\n");
@@ -330,7 +334,7 @@ public class ShellServerIT extends SimpleMacIT {
     exec("users", true, "xyzzy", false);
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void iter() throws Exception {
     // setshelliter, listshelliter, deleteshelliter
     exec("createtable t");
@@ -376,17 +380,17 @@ public class ShellServerIT extends SimpleMacIT {
     exec("deletetable -f t");
 
   }
-  
-  @Test(timeout = 30 * 1000)
+
+  @Test(timeout = 30000)
   public void setIterOptionPrompt() throws Exception {
     Connector conn = getConnector();
     String tableName = "setIterOptionPrompt";
-    
+
     exec("createtable " + tableName);
     input.set("\n\n");
     // Setting a non-optiondescriber with no name should fail
     exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 30", false);
-    
+
     // Name as option will work
     exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 30 -name cfcounter", true);
 
@@ -397,11 +401,11 @@ public class ShellServerIT extends SimpleMacIT {
 
     exec("deletetable " + tableName, true);
     tableName = tableName + "1";
-    
+
     exec("createtable " + tableName, true);
-    
+
     input.set("customcfcounter\n\n");
-    
+
     // Name on the CLI should override OptionDescriber (or user input name, in this case)
     exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 30", true);
     expectedKey = "table.iterator.scan.customcfcounter";
@@ -410,11 +414,11 @@ public class ShellServerIT extends SimpleMacIT {
 
     exec("deletetable " + tableName, true);
     tableName = tableName + "1";
-    
+
     exec("createtable " + tableName, true);
-    
+ 
     input.set("customcfcounter\nname1 value1\nname2 value2\n\n");
-    
+ 
     // Name on the CLI should override OptionDescriber (or user input name, in this case)
     exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 30", true);
     expectedKey = "table.iterator.scan.customcfcounter";
@@ -429,11 +433,11 @@ public class ShellServerIT extends SimpleMacIT {
 
     exec("deletetable " + tableName, true);
     tableName = tableName + "1";
-    
+ 
     exec("createtable " + tableName, true);
-    
+
     input.set("\nname1 value1.1,value1.2,value1.3\nname2 value2\n\n");
-    
+
     // Name on the CLI should override OptionDescriber (or user input name, in this case)
     exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 30 -name cfcounter", true);
     expectedKey = "table.iterator.scan.cfcounter";
@@ -461,7 +465,7 @@ public class ShellServerIT extends SimpleMacIT {
     fail("Failed to find expected property on " + tableName + ": " + expectedKey + "=" + expectedValue);
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void notable() throws Exception {
     // notable
     exec("createtable xyzzy", true);
@@ -473,7 +477,7 @@ public class ShellServerIT extends SimpleMacIT {
     exec("deletetable -f xyzzy");
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void sleep() throws Exception {
     // sleep
     long now = System.currentTimeMillis();
@@ -483,7 +487,7 @@ public class ShellServerIT extends SimpleMacIT {
     assertTrue(diff < 400);
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void addauths() throws Exception {
     // addauths
     exec("createtable xyzzy -evc");
@@ -497,7 +501,7 @@ public class ShellServerIT extends SimpleMacIT {
     exec("deletetable -f xyzzy");
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void byeQuitExit() throws Exception {
     // bye, quit, exit
     for (String cmd : "bye quit exit".split(" ")) {
@@ -508,13 +512,13 @@ public class ShellServerIT extends SimpleMacIT {
     }
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void classpath() throws Exception {
     // classpath
     exec("classpath", true, "Level 2: Java Classloader (loads everything defined by java classpath) URL classpath items are", true);
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void clearCls() throws Exception {
     // clear/cls
     if (shell.getReader().getTerminal().isAnsiSupported()) {
@@ -526,7 +530,7 @@ public class ShellServerIT extends SimpleMacIT {
     }
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void testCompactions() throws IOException {
     // compact
     exec("createtable c");
@@ -558,7 +562,7 @@ public class ShellServerIT extends SimpleMacIT {
     exec("deletetable -f c");
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void clonetable() throws Exception {
     // clonetable
     exec("createtable orig -evc");
@@ -575,7 +579,7 @@ public class ShellServerIT extends SimpleMacIT {
     exec("deletetable -f clone");
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void constraint() throws Exception {
     // constraint
     exec("constraint -l -t " + MetadataTable.NAME + "", true, "MetadataConstraints=1", true);
@@ -588,7 +592,7 @@ public class ShellServerIT extends SimpleMacIT {
     exec("deletetable -f c");
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void deletemany() throws Exception {
     // deletemany
     exec("createtable t");
@@ -615,7 +619,7 @@ public class ShellServerIT extends SimpleMacIT {
     exec("deletetable -f t");
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void deleterows() throws Exception {
     // deleterows
     int base = countFiles();
@@ -629,7 +633,7 @@ public class ShellServerIT extends SimpleMacIT {
     exec("deletetable -f t");
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void groups() throws Exception {
     exec("createtable t");
     exec("setgroups -t t alpha=a,b,c num=3,2,1");
@@ -638,7 +642,7 @@ public class ShellServerIT extends SimpleMacIT {
     exec("deletetable -f t");
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void grep() throws Exception {
     exec("createtable t", true);
     make10();
@@ -647,8 +651,7 @@ public class ShellServerIT extends SimpleMacIT {
     exec("deletetable -f t", true);
   }
 
-  @Test
-  // (timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void help() throws Exception {
     exec("help -np", true, "Help Commands", true);
     exec("?", true, "Help Commands", true);
@@ -660,8 +663,7 @@ public class ShellServerIT extends SimpleMacIT {
       exec("help " + c, true);
     }
   }
-
-  // @Test(timeout = 30 * 1000)
+  // @Test(timeout = 30000)
   public void history() throws Exception {
     exec("history -c", true);
     exec("createtable unusualstring");
@@ -670,7 +672,7 @@ public class ShellServerIT extends SimpleMacIT {
     exec("history", true, "history", true);
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void importDirectory() throws Exception {
     Configuration conf = new Configuration();
     FileSystem fs = FileSystem.get(conf);
@@ -706,12 +708,12 @@ public class ShellServerIT extends SimpleMacIT {
     exec("deletetable -f t");
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void info() throws Exception {
     exec("info", true, Constants.VERSION, true);
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void interpreter() throws Exception {
     exec("createtable t", true);
     exec("interpreter -l", true, "HexScan", false);
@@ -724,7 +726,7 @@ public class ShellServerIT extends SimpleMacIT {
     exec("deletetable -f t", true);
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void listcompactions() throws Exception {
     exec("createtable t", true);
     exec("config -t t -s table.iterator.minc.slow=30,org.apache.accumulo.test.functional.SlowIterator", true);
@@ -743,7 +745,7 @@ public class ShellServerIT extends SimpleMacIT {
     exec("deletetable -f t", true);
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void maxrow() throws Exception {
     exec("createtable t", true);
     exec("insert a cf cq value", true);
@@ -756,7 +758,7 @@ public class ShellServerIT extends SimpleMacIT {
     exec("deletetable -f t", true);
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void merge() throws Exception {
     exec("createtable t");
     exec("addsplits a m z");
@@ -773,7 +775,7 @@ public class ShellServerIT extends SimpleMacIT {
     assertEquals(1, output.get().split("\n").length);
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void ping() throws Exception {
     for (int i = 0; i < 10; i++) {
       exec("ping", true, "OK", true);
@@ -786,7 +788,7 @@ public class ShellServerIT extends SimpleMacIT {
     assertEquals(3, output.get().split("\n").length);
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void renametable() throws Exception {
     exec("createtable aaaa");
     exec("insert this is a value");
@@ -797,7 +799,7 @@ public class ShellServerIT extends SimpleMacIT {
     exec("deletetable -f xyzzy", true);
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void tables() throws Exception {
     exec("createtable zzzz");
     exec("createtable aaaa");
@@ -808,7 +810,7 @@ public class ShellServerIT extends SimpleMacIT {
     assertTrue(lst.indexOf("zzzz") < lst.indexOf("aaaa"));
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void systempermission() throws Exception {
     exec("systempermissions");
     assertEquals(11, output.get().split("\n").length - 1);
@@ -816,7 +818,7 @@ public class ShellServerIT extends SimpleMacIT {
     assertEquals(6, output.get().split("\n").length - 1);
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void listscans() throws Exception {
     exec("createtable t", true);
     exec("config -t t -s table.iterator.scan.slow=30,org.apache.accumulo.test.functional.SlowIterator", true);
@@ -858,7 +860,7 @@ public class ShellServerIT extends SimpleMacIT {
     exec("deletetable -f t", true);
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void testPertableClasspath() throws Exception {
     File fooFilterJar = File.createTempFile("FooFilter", ".jar", getFolder());
     FileUtils.copyURLToFile(this.getClass().getResource("/FooFilter.jar"), fooFilterJar);
@@ -902,7 +904,7 @@ public class ShellServerIT extends SimpleMacIT {
 
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void trace() throws Exception {
     exec("trace on", true);
     exec("createtable t", true);
@@ -917,14 +919,14 @@ public class ShellServerIT extends SimpleMacIT {
     assertTrue(trace.contains("DeleteTable"));
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void badLogin() throws Exception {
     input.set(ROOT_PASSWORD + "\n");
     String err = exec("user NoSuchUser", false);
     assertTrue(err.contains("BAD_CREDENTIALS for user NoSuchUser"));
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void namespaces() throws Exception {
     exec("namespaces", true, "(default)", true); // default namespace for display purposes only
     exec("namespaces", true, Namespaces.ACCUMULO_NAMESPACE, true);
@@ -1001,7 +1003,7 @@ public class ShellServerIT extends SimpleMacIT {
     return output.get().split("\n").length - 1;
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void scans() throws Exception {
     exec("createtable t");
     make10();
@@ -1020,7 +1022,7 @@ public class ShellServerIT extends SimpleMacIT {
     exec("deletetable -f t");
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 30000)
   public void whoami() throws Exception {
     assertTrue(exec("whoami", true).contains("root"));
     input.set("secret\nsecret\n");
