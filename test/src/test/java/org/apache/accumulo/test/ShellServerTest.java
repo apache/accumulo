@@ -246,8 +246,7 @@ public class ShellServerTest {
   @Test(timeout = 30000)
   public void du() throws Exception {
     // create and delete a table so we get out of a table context in the shell
-    exec("createtable du_test_table", true);
-    exec("deletetable -f du_test_table", true);
+    exec("notable", true);
 
     // Calling du not in a table context shouldn't throw an error
     output.clear();
