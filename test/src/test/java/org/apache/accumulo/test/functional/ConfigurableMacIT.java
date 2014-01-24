@@ -41,7 +41,8 @@ public class ConfigurableMacIT extends AbstractMacIT {
 
   @Before
   public void setUp() throws Exception {
-    MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(createTestDir(this.getClass().getName()), ROOT_PASSWORD);
+    MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(
+        createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName()), ROOT_PASSWORD);
     cfg.setNativeLibPaths(NativeMapIT.nativeMapLocation().getAbsolutePath());
     configure(cfg);
     cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.TRUE.toString());

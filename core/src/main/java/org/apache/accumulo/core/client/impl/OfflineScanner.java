@@ -22,16 +22,19 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
@@ -117,7 +120,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   private Instance instance;
   private ScannerOptions options;
   private ArrayList<SortedKeyValueIterator<Key,Value>> readers;
-  
+  private AccumuloConfiguration config;
+
   public OfflineIterator(ScannerOptions options, Instance instance, Credentials credentials, Authorizations authorizations, Text table, Range range) {
     this.options = new ScannerOptions(options);
     this.instance = instance;
@@ -133,6 +137,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     
     try {
       conn = instance.getConnector(credentials.getPrincipal(), credentials.getToken());
+      config = new ConfigurationCopy(conn.instanceOperations().getSiteConfiguration());
       nextTablet();
       
       while (iter != null && !iter.hasTop())
@@ -225,8 +230,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     
     if (currentExtent != null && !extent.isPreviousExtent(currentExtent))
       throw new AccumuloException(" " + currentExtent + " is not previous extent " + extent);
-    
-    String tablesDir = ServerConfigurationUtil.getConfiguration(instance).get(Property.INSTANCE_DFS_DIR) + "/tables";
+
+    String tablesDir = config.get(Property.INSTANCE_DFS_DIR) + "/tables";
 
     List<String> absFiles = new ArrayList<String>();
     for (String relPath : relFiles) {
@@ -294,7 +299,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     AccumuloConfiguration acuTableConf = AccumuloConfiguration.getTableConfiguration(conn, tableId);
     
     Configuration conf = CachedConfiguration.getInstance();
-    
+
     for (SortedKeyValueIterator<Key,Value> reader : readers) {
       ((FileSKVIterator) reader).close();
     }
@@ -303,7 +308,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     
     // TODO need to close files - ACCUMULO-1303
     for (String file : absFiles) {
-      FileSystem fs = FileUtil.getFileSystem(file, conf, ServerConfigurationUtil.getConfiguration(instance));
+      FileSystem fs = FileUtil.getFileSystem(file, conf, config);
       FileSKVIterator reader = FileOperations.getInstance().openReader(file, false, fs, conf, acuTableConf, null, null);
       readers.add(reader);
     }
