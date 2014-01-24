@@ -26,6 +26,7 @@ import java.util.UUID;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.ConnectorImpl;
 import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.security.SystemCredentials.SystemToken;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -37,11 +38,17 @@ public class SystemCredentialsTest {
   
   @BeforeClass
   public static void setUp() throws IOException {
-    File testInstanceId = new File(new File(new File(new File("target"), "instanceTest"), "instance_id"), UUID.fromString(
+    File testInstanceId = new File(new File(new File(new File("target"), "instanceTest"), ServerConstants.INSTANCE_ID_DIR), UUID.fromString(
         "00000000-0000-0000-0000-000000000000").toString());
     if (!testInstanceId.exists()) {
       testInstanceId.getParentFile().mkdirs();
       testInstanceId.createNewFile();
+    }
+
+    File testInstanceVersion = new File(new File(new File(new File("target"), "instanceTest"), ServerConstants.VERSION_DIR), ServerConstants.DATA_VERSION + "");
+    if (!testInstanceVersion.exists()) {
+      testInstanceVersion.getParentFile().mkdirs();
+      testInstanceVersion.createNewFile();
     }
   }
   

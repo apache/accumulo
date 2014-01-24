@@ -263,7 +263,7 @@ public class MiniAccumuloConfigImpl {
     return libDir;
   }
 
-  File getConfDir() {
+  public File getConfDir() {
     return confDir;
   }
 

@@ -211,11 +211,6 @@ public class TabletServerSyncCheckTest {
     }
 
     @Override
-    public FileSystem getDefaultVolume() {
-      return null;
-    }
-
-    @Override
     public FileStatus[] globStatus(Path path) throws IOException {
       return null;
     }

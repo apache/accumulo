@@ -94,6 +94,7 @@ public class InitializeTest {
     expect(sconf.get(Property.INSTANCE_DFS_URI)).andReturn("hdfs://foo");
     expectLastCall().anyTimes();
     expect(sconf.get(Property.INSTANCE_DFS_DIR)).andReturn("/bar");
+    expect(sconf.get(Property.INSTANCE_VOLUMES)).andReturn("");
     expect(sconf.get(Property.INSTANCE_ZK_HOST)).andReturn("zk1");
     expect(sconf.get(Property.INSTANCE_SECRET)).andReturn(Property.INSTANCE_SECRET.getDefaultValue());
     replay(sconf);

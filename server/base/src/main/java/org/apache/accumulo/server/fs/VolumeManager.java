@@ -117,9 +117,6 @@ public interface VolumeManager {
   // all volume are ready to provide service (not in SafeMode, for example)
   boolean isReady() throws IOException;
   
-  // ambiguous references to files go here
-  FileSystem getDefaultVolume();
-  
   // forward to the appropriate FileSystem object
   FileStatus[] globStatus(Path path) throws IOException;
 
