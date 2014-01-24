@@ -111,4 +111,6 @@ public class Constants {
 
   // Variables that will be substituted with environment vars in PropertyType.PATH values
   public static final String[] PATH_PROPERTY_ENV_VARS = new String[] {"ACCUMULO_HOME", "ACCUMULO_CONF_DIR"};
+
+  public static final String HDFS_TABLES_DIR = "/tables";
 }
