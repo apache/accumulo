@@ -232,14 +232,8 @@ public class ConfiguratorBase {
     if ("MockInstance".equals(instanceType))
       return new MockInstance(conf.get(enumToConfKey(implementingClass, InstanceOpts.NAME)));
     else if ("ZooKeeperInstance".equals(instanceType)) {
-      ZooKeeperInstance zki = new ZooKeeperInstance(conf.get(enumToConfKey(implementingClass, InstanceOpts.NAME)), conf.get(enumToConfKey(implementingClass,
+      return new ZooKeeperInstance(conf.get(enumToConfKey(implementingClass, InstanceOpts.NAME)), conf.get(enumToConfKey(implementingClass,
           InstanceOpts.ZOO_KEEPERS)));
-
-      // Wrap the DefaultConfiguration with a SiteConfiguration
-      AccumuloConfiguration xmlConfig = SiteConfiguration.getInstance(zki.getConfiguration());
-      zki.setConfiguration(xmlConfig);
-
-      return zki;
     } else if (instanceType.isEmpty())
       throw new IllegalStateException("Instance has not been configured for " + implementingClass.getSimpleName());
     else

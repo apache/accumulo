@@ -28,26 +28,4 @@ if [ "$SCAN_OFFLINE" == "false" ] ; then
        SCAN_OPT=
 fi
 
-if [ ! -r $ACCUMULO_CONF_DIR/accumulo-site.xml ]; then
-    echo "Could not find accumulo-site.xml in $ACCUMULO_CONF_DIR"
-    exit 1
-fi
-
-TARGET_DIR="ci-conf-`date '+%s'`"
-hadoop fs -mkdir $TARGET_DIR
-
-if [ $? -ne 0 ]; then
-    echo "Could not create $TAGET_DIR in HDFS"
-    exit 1
-fi
-
-hadoop fs -put $ACCUMULO_CONF_DIR/accumulo-site.xml ${TARGET_DIR}/
-
-if [ $? -ne 0 ]; then
-    echo "Could not upload accumulo-site.xml to HDFS"
-    exit 1
-fi
-
-ABS_DIR="/user/`whoami`/${TARGET_DIR}/accumulo-site.xml"
-
-$ACCUMULO_HOME/bin/tool.sh "$SERVER_LIBJAR" org.apache.accumulo.test.continuous.ContinuousVerify -libjars "$SERVER_LIBJAR" $AUTH_OPT -i $INSTANCE_NAME -z $ZOO_KEEPERS -u $USER -p $PASS --table $TABLE --output $VERIFY_OUT --maxMappers $VERIFY_MAX_MAPS --reducers $VERIFY_REDUCERS --sitefile $ABS_DIR $SCAN_OPT
+$ACCUMULO_HOME/bin/tool.sh "$SERVER_LIBJAR" org.apache.accumulo.test.continuous.ContinuousVerify -libjars "$SERVER_LIBJAR" $AUTH_OPT -i $INSTANCE_NAME -z $ZOO_KEEPERS -u $USER -p $PASS --table $TABLE --output $VERIFY_OUT --maxMappers $VERIFY_MAX_MAPS --reducers $VERIFY_REDUCERS $SCAN_OPT

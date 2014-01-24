@@ -22,16 +22,19 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
@@ -115,7 +118,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   private Instance instance;
   private ScannerOptions options;
   private ArrayList<SortedKeyValueIterator<Key,Value>> readers;
-  
+  private AccumuloConfiguration config;
+
   /**
    * @param instance
    * @param credentials
@@ -137,6 +141,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     
     try {
       conn = instance.getConnector(credentials.getPrincipal(), CredentialHelper.extractToken(credentials));
+      config = new ConfigurationCopy(conn.instanceOperations().getSiteConfiguration());
       nextTablet();
       
       while (iter != null && !iter.hasTop())
@@ -229,8 +234,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     
     if (currentExtent != null && !extent.isPreviousExtent(currentExtent))
       throw new AccumuloException(" " + currentExtent + " is not previous extent " + extent);
-    
-    String tablesDir = Constants.getTablesDir(instance.getConfiguration());
+
+    String tablesDir = Constants.getTablesDir(config);
     List<String> absFiles = new ArrayList<String>();
     for (String relPath : relFiles) {
       if (relPath.startsWith(".."))
@@ -291,9 +296,9 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     AccumuloConfiguration acuTableConf = AccumuloConfiguration.getTableConfiguration(conn, tableId);
     
     Configuration conf = CachedConfiguration.getInstance();
-    
-    FileSystem fs = FileUtil.getFileSystem(conf, instance.getConfiguration());
-    
+
+    FileSystem fs = FileUtil.getFileSystem(conf, config);
+
     for (SortedKeyValueIterator<Key,Value> reader : readers) {
       ((FileSKVIterator) reader).close();
     }
