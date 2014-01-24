@@ -118,7 +118,10 @@ public enum Property {
           + " Change it before initialization. To change it later use ./bin/accumulo accumulo.server.util.ChangeSecret [oldpasswd] [newpasswd], "
           + " and then update conf/accumulo-site.xml everywhere."),
   INSTANCE_VOLUMES("instance.volumes", "", PropertyType.STRING,
-      "A comma seperated list of dfs uris to use.  Files will be stored across these filesystems.  If this is empty, then instance.dfs.uri will be used."),
+      "A comma seperated list of dfs uris to use.  Files will be stored across these filesystems.  If this is empty, then instance.dfs.uri will be used.  "
+          + "After adding uris to this list, run 'accumulo init --add-volume' and then restart tservers.  If entries are removed from this list then tservers "
+          + "will need to be restarted.  After a uri is removed from the list Accumulo will not create new files in that location, however Accumulo can still "
+          + "reference files created at that location before the config change."),
   INSTANCE_SECURITY_AUTHENTICATOR("instance.security.authenticator", "org.apache.accumulo.server.security.handler.ZKAuthenticator", PropertyType.CLASSNAME,
       "The authenticator class that accumulo will use to determine if a user has privilege to perform an action"),
   INSTANCE_SECURITY_AUTHORIZOR("instance.security.authorizor", "org.apache.accumulo.server.security.handler.ZKAuthorizor", PropertyType.CLASSNAME,

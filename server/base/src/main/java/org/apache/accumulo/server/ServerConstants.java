@@ -17,11 +17,12 @@
 package org.apache.accumulo.server;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -29,6 +30,10 @@ import org.apache.hadoop.fs.Path;
 
 public class ServerConstants {
   
+  public static final String VERSION_DIR = "version";
+
+  public static final String INSTANCE_ID_DIR = "instance_id";
+
   /**
    * current version (3) reflects additional namespace operations (ACCUMULO-802) in version 1.6.0 <br />
    * (versions should never be negative)
@@ -70,26 +75,78 @@ public class ServerConstants {
     return defaultBaseDir;
   }
 
+  public static String[] getConfiguredBaseDirs() {
+    String singleNamespace = ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_DFS_DIR);
+    String ns = ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_VOLUMES);
+
+    String configuredBaseDirs[];
+
+    if (ns == null || ns.isEmpty()) {
+      configuredBaseDirs = new String[] {getDefaultBaseDir()};
+    } else {
+      String namespaces[] = ns.split(",");
+      for (String namespace : namespaces) {
+        if (!namespace.contains(":")) {
+          throw new IllegalArgumentException("Expected fully qualified URI for " + Property.INSTANCE_VOLUMES.getKey() + " got " + namespace);
+        }
+      }
+      configuredBaseDirs = prefix(namespaces, singleNamespace);
+    }
+
+    return configuredBaseDirs;
+  }
+
   // these are functions to delay loading the Accumulo configuration unless we must
   public static synchronized String[] getBaseDirs() {
     if (baseDirs == null) {
-      String singleNamespace = ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_DFS_DIR);
-      String ns = ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_VOLUMES);
-      
-      if (ns == null || ns.isEmpty()) {
-        baseDirs = new String[] {getDefaultBaseDir()};
-      } else {
-        String namespaces[] = ns.split(",");
-        for (String namespace : namespaces) {
-          if (!namespace.contains(":")) {
-            throw new IllegalArgumentException("Expected fully qualified URI for " + Property.INSTANCE_VOLUMES.getKey() + " got " + namespace);
-          }
-        }
-        baseDirs = prefix(namespaces, singleNamespace);
-      }
+      baseDirs = checkBaseDirs(getConfiguredBaseDirs(), false);
     }
     
+
     return baseDirs;
+  }
+
+  public static String[] checkBaseDirs(String[] configuredBaseDirs, boolean ignore) {
+    // all base dirs must have same instance id and data version, any dirs that have neither should be ignored
+    String firstDir = null;
+    String firstIid = null;
+    Integer firstVersion = null;
+    ArrayList<String> baseDirsList = new ArrayList<String>();
+    for (String baseDir : configuredBaseDirs) {
+      Path path = new Path(baseDir, INSTANCE_ID_DIR);
+      String currentIid;
+      Integer currentVersion;
+      try {
+        currentIid = ZooUtil.getInstanceIDFromHdfs(new Path(baseDir, INSTANCE_ID_DIR));
+        Path vpath = new Path(baseDir, VERSION_DIR);
+        currentVersion = Accumulo.getAccumuloPersistentVersion(vpath.getFileSystem(CachedConfiguration.getInstance()), vpath);
+      } catch (Exception e) {
+        if (ignore)
+          continue;
+        else
+          throw new IllegalArgumentException("Accumulo volume " + path + " not initialized", e);
+      }
+
+      if (firstIid == null) {
+        firstIid = currentIid;
+        firstDir = baseDir;
+        firstVersion = currentVersion;
+      } else if (!currentIid.equals(firstIid)) {
+        throw new IllegalArgumentException("Configuration " + Property.INSTANCE_VOLUMES.getKey() + " contains paths that have different instance ids "
+            + baseDir + " has " + currentIid + " and " + firstDir + " has " + firstIid);
+      } else if (!currentVersion.equals(firstVersion)) {
+        throw new IllegalArgumentException("Configuration " + Property.INSTANCE_VOLUMES.getKey() + " contains paths that have different versions " + baseDir
+            + " has " + currentVersion + " and " + firstDir + " has " + firstVersion);
+      }
+
+      baseDirsList.add(baseDir);
+    }
+
+    if (baseDirsList.size() == 0) {
+      throw new RuntimeException("None of the configured paths are initialized.");
+    }
+
+    return baseDirsList.toArray(new String[baseDirsList.size()]);
   }
   
   public static String[] prefix(String bases[], String suffix) {
@@ -123,17 +180,16 @@ public class ServerConstants {
   }
   
   public static Path getInstanceIdLocation() {
-    return new Path(getBaseDirs()[0], "instance_id");
+    // all base dirs should have the same instance id, so can choose any one
+    return new Path(getBaseDirs()[0], INSTANCE_ID_DIR);
   }
   
   public static Path getDataVersionLocation() {
-    return new Path(getBaseDirs()[0], "version");
+    // all base dirs should have the same version, so can choose any one
+    return new Path(getBaseDirs()[0], VERSION_DIR);
   }
   
-  public static String[] getRootTableDirs() {
-    return prefix(getTablesDirs(), RootTable.ID);
-  }
-  
+
   public static String[] getMetadataTableDirs() {
     return prefix(getTablesDirs(), MetadataTable.ID);
   }

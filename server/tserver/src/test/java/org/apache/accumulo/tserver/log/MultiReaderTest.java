@@ -48,7 +48,7 @@ public class MultiReaderTest {
     Path root = new Path("file://" + path + "/manyMaps");
     fs.mkdirs(root);
     fs.create(new Path(root, "finished")).close();
-    FileSystem ns = fs.getDefaultVolume();
+    FileSystem ns = fs.getFileSystemByPath(root);
 
     @SuppressWarnings("deprecation")
     Writer oddWriter = new Writer(ns.getConf(), ns, new Path(root, "odd").toString(), IntWritable.class, BytesWritable.class);

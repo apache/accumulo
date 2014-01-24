@@ -38,6 +38,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -63,10 +64,10 @@ public class Accumulo {
     }
   }
   
-  public static synchronized int getAccumuloPersistentVersion(VolumeManager fs) {
+  public static synchronized int getAccumuloPersistentVersion(FileSystem fs, Path path) {
     int dataVersion;
     try {
-      FileStatus[] files = fs.getDefaultVolume().listStatus(ServerConstants.getDataVersionLocation());
+      FileStatus[] files = fs.listStatus(path);
       if (files == null || files.length == 0) {
         dataVersion = -1; // assume it is 0.5 or earlier
       } else {
@@ -78,6 +79,11 @@ public class Accumulo {
     }
   }
   
+  public static synchronized int getAccumuloPersistentVersion(VolumeManager fs) {
+    Path path = ServerConstants.getDataVersionLocation();
+    return getAccumuloPersistentVersion(fs.getFileSystemByPath(path), path);
+  }
+
   public static void enableTracing(String address, String application) {
     try {
       DistributedTrace.enable(HdfsZooInstance.getInstance(), ZooReaderWriter.getInstance(), application, address);

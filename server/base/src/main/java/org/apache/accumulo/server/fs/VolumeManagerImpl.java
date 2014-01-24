@@ -61,13 +61,13 @@ public class VolumeManagerImpl implements VolumeManager {
   private static final Logger log = Logger.getLogger(VolumeManagerImpl.class);
 
   Map<String,? extends FileSystem> volumes;
-  String defaultVolume;
+  FileSystem defaultVolume;
   AccumuloConfiguration conf;
   VolumeChooser chooser;
 
   protected VolumeManagerImpl(Map<String,? extends FileSystem> volumes, String defaultVolume, AccumuloConfiguration conf) {
     this.volumes = volumes;
-    this.defaultVolume = defaultVolume;
+    this.defaultVolume = volumes.get(defaultVolume);
     this.conf = conf;
     ensureSyncIsEnabled();
     chooser = Property.createInstanceFromPropertyName(conf, Property.GENERAL_VOLUME_CHOOSER, VolumeChooser.class, new RandomVolumeChooser());
@@ -284,7 +284,7 @@ public class VolumeManagerImpl implements VolumeManager {
       }
     }
 
-    return volumes.get(defaultVolume);
+    return defaultVolume;
   }
 
   @Override
@@ -371,7 +371,7 @@ public class VolumeManagerImpl implements VolumeManager {
         if (space.contains(":")) {
           fileSystems.put(space, new Path(space).getFileSystem(hadoopConf));
         } else {
-          fileSystems.put(space, FileSystem.get(hadoopConf));
+          throw new IllegalArgumentException("Expected fully qualified URI for " + Property.INSTANCE_VOLUMES.getKey() + " got " + space);
         }
       }
     }
@@ -420,11 +420,6 @@ public class VolumeManagerImpl implements VolumeManager {
       }
     }
     return true;
-  }
-
-  @Override
-  public FileSystem getDefaultVolume() {
-    return volumes.get(defaultVolume);
   }
 
   @Override
