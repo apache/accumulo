@@ -108,7 +108,7 @@ public class Validate extends Test {
       auths = WalkingSecurity.get(state).getUserAuthorizations(WalkingSecurity.get(state).getTabCredentials());
       accuAuths = conn.securityOperations().getUserAuthorizations(WalkingSecurity.get(state).getTabUserName());
     } catch (ThriftSecurityException ae) {
-      if (ae.getCode().equals(org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode.USER_DOESNT_EXIST)) {
+      if (ae.getCode() == org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode.USER_DOESNT_EXIST) {
         if (tableUserExists)
           throw new AccumuloException("Table user didn't exist when they should.", ae);
         else
