@@ -16,11 +16,12 @@
  */
 package org.apache.accumulo.tserver;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
@@ -81,8 +82,6 @@ public class TabletServerResourceManager {
   private ExecutorService readAheadThreadPool;
   private ExecutorService defaultReadAheadThreadPool;
   private Map<String,ExecutorService> threadPools = new TreeMap<String,ExecutorService>();
-
-  private HashSet<TabletResourceManager> tabletResources;
 
   private final VolumeManager fs;
 
@@ -198,8 +197,6 @@ public class TabletServerResourceManager {
 
     readAheadThreadPool = createEs(Property.TSERV_READ_AHEAD_MAXCONCURRENT, "tablet read ahead");
     defaultReadAheadThreadPool = createEs(Property.TSERV_METADATA_READ_AHEAD_MAXCONCURRENT, "metadata tablets read ahead");
-
-    tabletResources = new HashSet<TabletResourceManager>();
 
     int maxOpenFiles = acuConf.getCount(Property.TSERV_SCAN_MAX_OPENFILES);
 
@@ -330,12 +327,13 @@ public class TabletServerResourceManager {
       while (true) {
         MemoryManagementActions mma = null;
 
+        Map<KeyExtent,TabletStateImpl> tabletReportsCopy = null;
         try {
-          ArrayList<TabletState> tablets;
           synchronized (tabletReports) {
-            tablets = new ArrayList<TabletState>(tabletReports.values());
+            tabletReportsCopy = new HashMap<KeyExtent,TabletStateImpl>(tabletReports);
           }
-          mma = memoryManager.getMemoryManagementActions(tablets);
+          ArrayList<TabletState> tabletStates = new ArrayList<TabletState>(tabletReportsCopy.values());
+          mma = memoryManager.getMemoryManagementActions(tabletStates);
 
         } catch (Throwable t) {
           log.error("Memory manager failed " + t.getMessage(), t);
@@ -344,16 +342,27 @@ public class TabletServerResourceManager {
         try {
           if (mma != null && mma.tabletsToMinorCompact != null && mma.tabletsToMinorCompact.size() > 0) {
             for (KeyExtent keyExtent : mma.tabletsToMinorCompact) {
-              TabletStateImpl tabletReport = tabletReports.get(keyExtent);
+              TabletStateImpl tabletReport = tabletReportsCopy.get(keyExtent);
 
               if (tabletReport == null) {
-                log.warn("Memory manager asked to compact nonexistant tablet " + keyExtent);
+                log.warn("Memory manager asked to compact nonexistent tablet " + keyExtent + "; manager implementation might be misbehaving");
                 continue;
               }
-
-              if (!tabletReport.getTablet().initiateMinorCompaction(MinorCompactionReason.SYSTEM)) {
-                if (tabletReport.getTablet().isClosed()) {
-                  tabletReports.remove(tabletReport.getExtent());
+              Tablet tablet = tabletReport.getTablet();
+              if (!tablet.initiateMinorCompaction(MinorCompactionReason.SYSTEM)) {
+                if (tablet.isClosed()) {
+                  // attempt to remove it from the current reports if still there
+                  synchronized(tabletReports) {
+                    TabletStateImpl latestReport = tabletReports.remove(keyExtent);
+                    if (latestReport != null) {
+                      if (latestReport.getTablet() != tablet) {
+                        // different tablet instance => put it back
+                        tabletReports.put(keyExtent, latestReport);
+                      } else {
+                        log.debug("Cleaned up report for closed tablet " + keyExtent);
+                      }
+                    }
+                  }
                   log.debug("Ignoring memory manager recommendation: not minor compacting closed tablet " + keyExtent);
                 } else {
                   log.info("Ignoring memory manager recommendation: not minor compacting " + keyExtent);
@@ -443,17 +452,9 @@ public class TabletServerResourceManager {
     }
   }
 
-  public synchronized TabletResourceManager createTabletResourceManager() {
-    TabletResourceManager trm = new TabletResourceManager();
+  public synchronized TabletResourceManager createTabletResourceManager(KeyExtent extent, AccumuloConfiguration conf) {
+    TabletResourceManager trm = new TabletResourceManager(extent, conf);
     return trm;
-  }
-
-  synchronized private void addTabletResource(TabletResourceManager tr) {
-    tabletResources.add(tr);
-  }
-
-  synchronized private void removeTabletResource(TabletResourceManager tr) {
-    tabletResources.remove(tr);
   }
 
   public class TabletResourceManager {
@@ -464,20 +465,22 @@ public class TabletServerResourceManager {
 
     private volatile boolean closed = false;
 
-    private Tablet tablet;
+    private final KeyExtent extent;
 
-    private AccumuloConfiguration tableConf;
+    private final AccumuloConfiguration tableConf;
 
-    TabletResourceManager() {}
-
-    void setTablet(Tablet tablet, AccumuloConfiguration tableConf) {
-      this.tablet = tablet;
+    TabletResourceManager(KeyExtent extent, AccumuloConfiguration tableConf) {
+      checkNotNull(extent, "extent is null");
+      checkNotNull(tableConf, "tableConf is null");
+      this.extent = extent;
       this.tableConf = tableConf;
-      // TabletResourceManager is not really initialized until this
-      // function is called.... so do not make it publicly available
-      // until now
+    }
 
-      addTabletResource(this);
+    KeyExtent getExtent() {
+      return extent;
+    }
+    AccumuloConfiguration getTableConfiguration() {
+      return tableConf;
     }
 
     // BEGIN methods that Tablets call to manage their set of open map files
@@ -489,7 +492,7 @@ public class TabletServerResourceManager {
     synchronized ScanFileManager newScanFileManager() {
       if (closed)
         throw new IllegalStateException("closed");
-      return fileManager.newScanFileManager(tablet.getExtent());
+      return fileManager.newScanFileManager(extent);
     }
 
     // END methods that Tablets call to manage their set of open map files
@@ -500,7 +503,7 @@ public class TabletServerResourceManager {
     private AtomicLong lastReportedMincSize = new AtomicLong();
     private volatile long lastReportedCommitTime = 0;
 
-    public void updateMemoryUsageStats(long size, long mincSize) {
+    public void updateMemoryUsageStats(Tablet tablet, long size, long mincSize) {
 
       // do not want to update stats for every little change,
       // so only do it under certain circumstances... the reason
@@ -563,7 +566,7 @@ public class TabletServerResourceManager {
       CompactionStrategy strategy = Property.createInstanceFromPropertyName(tableConf, Property.TABLE_COMPACTION_STRATEGY, CompactionStrategy.class,
           new DefaultCompactionStrategy());
       strategy.init(Property.getCompactionStrategyOptions(tableConf));
-      MajorCompactionRequest request = new MajorCompactionRequest(tablet.getExtent(), reason, TabletServerResourceManager.this.fs, tableConf);
+      MajorCompactionRequest request = new MajorCompactionRequest(extent, reason, TabletServerResourceManager.this.fs, tableConf);
       request.setFiles(tabletFiles);
       try {
         return strategy.shouldCompact(request);
@@ -590,10 +593,8 @@ public class TabletServerResourceManager {
           if (openFilesReserved)
             throw new IOException("tired to close files while open files reserved");
 
-          TabletServerResourceManager.this.removeTabletResource(this);
-
-          memMgmt.tabletClosed(tablet.getExtent());
-          memoryManager.tabletClosed(tablet.getExtent());
+          memMgmt.tabletClosed(extent);
+          memoryManager.tabletClosed(extent);
 
           closed = true;
         }

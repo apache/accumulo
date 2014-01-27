@@ -2670,10 +2670,12 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     Tablet[] newTablets = new Tablet[2];
 
     Entry<KeyExtent,SplitInfo> first = tabletInfo.firstEntry();
-    newTablets[0] = new Tablet(first.getKey(), TabletServer.this, resourceManager.createTabletResourceManager(), first.getValue());
+    TabletResourceManager newTrm0 = resourceManager.createTabletResourceManager(first.getKey(), getTableConfiguration(first.getKey()));
+    newTablets[0] = new Tablet(first.getKey(), TabletServer.this, newTrm0, first.getValue());
 
     Entry<KeyExtent,SplitInfo> last = tabletInfo.lastEntry();
-    newTablets[1] = new Tablet(last.getKey(), TabletServer.this, resourceManager.createTabletResourceManager(), last.getValue());
+    TabletResourceManager newTrm1 = resourceManager.createTabletResourceManager(last.getKey(), getTableConfiguration(last.getKey()));
+    newTablets[1] = new Tablet(last.getKey(), TabletServer.this, newTrm1, last.getValue());
 
     // roll tablet stats over into tablet server's statsKeeper object as
     // historical data
@@ -2895,7 +2897,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       boolean successful = false;
 
       try {
-        TabletResourceManager trm = resourceManager.createTabletResourceManager();
+        TabletResourceManager trm = resourceManager.createTabletResourceManager(extent, getTableConfiguration(extent));
 
         // this opens the tablet file and fills in the endKey in the
         // extent

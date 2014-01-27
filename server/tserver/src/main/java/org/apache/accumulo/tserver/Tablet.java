@@ -299,7 +299,7 @@ public class Tablet {
       commitSession = new CommitSession(nextSeq, memTable);
       nextSeq += 2;
 
-      tabletResources.updateMemoryUsageStats(memTable.estimatedSizeInBytes(), otherMemTable.estimatedSizeInBytes());
+      tabletResources.updateMemoryUsageStats(Tablet.this, memTable.estimatedSizeInBytes(), otherMemTable.estimatedSizeInBytes());
 
       return oldCommitSession;
     }
@@ -335,7 +335,7 @@ public class Tablet {
 
           deletingMemTable = null;
 
-          tabletResources.updateMemoryUsageStats(memTable.estimatedSizeInBytes(), 0);
+          tabletResources.updateMemoryUsageStats(Tablet.this, memTable.estimatedSizeInBytes(), 0);
         }
       }
     }
@@ -365,7 +365,7 @@ public class Tablet {
       else if (deletingMemTable != null)
         other = deletingMemTable.estimatedSizeInBytes();
 
-      tabletResources.updateMemoryUsageStats(memTable.estimatedSizeInBytes(), other);
+      tabletResources.updateMemoryUsageStats(Tablet.this, memTable.estimatedSizeInBytes(), other);
     }
 
     List<MemoryIterator> getIterators() {
@@ -405,7 +405,7 @@ public class Tablet {
   private Configuration conf;
   private VolumeManager fs;
 
-  private TableConfiguration acuTableConf;
+  private final TableConfiguration acuTableConf;
 
   private volatile boolean tableDirChecked = false;
 
@@ -1356,7 +1356,6 @@ public class Tablet {
     // Force a load of any per-table properties
     configObserver.propertiesChanged();
 
-    tabletResources.setTablet(this, acuTableConf);
     if (!logEntries.isEmpty()) {
       log.info("Starting Write-Ahead Log recovery for " + this.extent);
       final long[] count = new long[2];
