@@ -441,8 +441,9 @@ public class MiniAccumuloClusterImpl {
       // sleep a little bit to let zookeeper come up before calling init, seems to work better
       long startTime = System.currentTimeMillis();
       while (true) {
+        Socket s = null;
         try {
-          Socket s = new Socket("localhost", config.getZooKeeperPort());
+          s = new Socket("localhost", config.getZooKeeperPort());
           s.getOutputStream().write("ruok\n".getBytes());
           s.getOutputStream().flush();
           byte buffer[] = new byte[100];
@@ -454,6 +455,9 @@ public class MiniAccumuloClusterImpl {
             throw new RuntimeException("Zookeeper did not start within 10 seconds . Check the logs in " + config.getLogDir() + " for errors.");
           }
           UtilWaitThread.sleep(250);
+        } finally {
+          if (s != null)
+            s.close();
         }
       }
       Process initProcess = exec(Initialize.class, "--instance-name", config.getInstanceName(), "--password", config.getRootPassword());
