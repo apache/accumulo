@@ -34,13 +34,13 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
 public class CreateNamespaceCommand extends Command {
-  private Option createTableOptCopyConfig, createNamespaceOptCopyConfig;
+  private Option createNamespaceOptCopyConfig;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
       TableExistsException, TableNotFoundException, IOException, ClassNotFoundException, NamespaceExistsException, NamespaceNotFoundException {
 
-    if (createTableOptCopyConfig == null) {
+    if (createNamespaceOptCopyConfig == null) {
       getOptions();
     }
 
@@ -55,12 +55,7 @@ public class CreateNamespaceCommand extends Command {
       if (shellState.getConnector().namespaceOperations().exists(namespace)) {
         configuration = shellState.getConnector().namespaceOperations().getProperties(copy);
       }
-    } else if (cl.hasOption(createTableOptCopyConfig.getOpt())) {
-      String copy = cl.getOptionValue(createTableOptCopyConfig.getOpt());
-      if (shellState.getConnector().namespaceOperations().exists(namespace)) {
-        configuration = shellState.getConnector().tableOperations().getProperties(copy);
-      }
-    }
+    } 
     if (configuration != null) {
       for (Entry<String,String> entry : configuration) {
         if (Property.isValidTablePropertyKey(entry.getKey())) {
@@ -89,11 +84,7 @@ public class CreateNamespaceCommand extends Command {
     createNamespaceOptCopyConfig = new Option("cc", "copy-config", true, "namespace to copy configuration from");
     createNamespaceOptCopyConfig.setArgName("namespace");
 
-    createTableOptCopyConfig = new Option("ctc", "copy-table-config", true, "table to copy configuration from");
-    createTableOptCopyConfig.setArgName("tableName");
-
     OptionGroup ogp = new OptionGroup();
-    ogp.addOption(createTableOptCopyConfig);
     ogp.addOption(createNamespaceOptCopyConfig);
 
     o.addOptionGroup(ogp);
