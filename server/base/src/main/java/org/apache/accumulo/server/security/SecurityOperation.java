@@ -242,41 +242,15 @@ public class SecurityOperation {
     }
   }
 
-  private boolean hasSystemPermission(TCredentials credentials, SystemPermission permission, boolean useCached) throws ThriftSecurityException {
-    return hasSystemPermissionWithNamespaceId(credentials, permission, null, useCached);
-  }
-
-  private boolean hasSystemPermissionWithTableId(TCredentials credentials, SystemPermission permission, String tableId, boolean useCached)
-      throws ThriftSecurityException {
-    if (isSystemUser(credentials))
-      return true;
-    String namespaceId = null;
-    try {
-      namespaceId = Namespaces.getNamespaceId(HdfsZooInstance.getInstance(), Tables.getNamespace(HdfsZooInstance.getInstance(), tableId));
-    } catch (NamespaceNotFoundException nnfe) {
-      // Don't care, we won't pay any attention to namespace permissions
-    }
-
-    return hasSystemPermissionWithNamespaceId(credentials, permission, namespaceId, useCached);
-  }
-
   /**
    * Checks if a user has a system permission
    * 
    * @return true if a user exists and has permission; false otherwise
    */
-  private boolean hasSystemPermissionWithNamespaceId(TCredentials credentials, SystemPermission permission, String namespaceId, boolean useCached)
-      throws ThriftSecurityException {
+  private boolean hasSystemPermission(TCredentials credentials, SystemPermission permission, boolean useCached) throws ThriftSecurityException {
     if (isSystemUser(credentials))
       return true;
-
-    if (_hasSystemPermission(credentials.getPrincipal(), permission, useCached))
-      return true;
-    if (namespaceId != null) {
-      return _hasNamespacePermission(credentials.getPrincipal(), namespaceId, NamespacePermission.getEquivalent(permission), useCached);
-    }
-
-    return false;
+    return _hasSystemPermission(credentials.getPrincipal(), permission, useCached);
   }
 
   /**
@@ -308,9 +282,7 @@ public class SecurityOperation {
   protected boolean hasTablePermission(TCredentials credentials, String table, TablePermission permission, boolean useCached) throws ThriftSecurityException {
     if (isSystemUser(credentials))
       return true;
-    return _hasTablePermission(credentials.getPrincipal(), table, permission, useCached)
-        || _hasNamespacePermission(credentials.getPrincipal(), Tables.getNamespace(HdfsZooInstance.getInstance(), table),
-            NamespacePermission.getEquivalent(permission), useCached);
+    return _hasTablePermission(credentials.getPrincipal(), table, permission, useCached);
   }
 
   /**
@@ -337,15 +309,51 @@ public class SecurityOperation {
   }
 
   /**
+   * Checks if a user has a namespace permission
+   * 
+   * @return true if a user exists and has permission; false otherwise
+   */
+  protected boolean hasNamespacePermission(TCredentials credentials, String namespace, NamespacePermission permission, boolean useCached)
+      throws ThriftSecurityException {
+    if (isSystemUser(credentials))
+      return true;
+    return _hasNamespacePermission(credentials.getPrincipal(), namespace, permission, useCached);
+  }
+
+  /**
+   * Checks if a user has a namespace permission given a tableId
+   * 
+   * @return true if a user exists and has permission; false otherwise
+   */
+  protected boolean hasNamespacePermissionForTableId(TCredentials credentials, String tableId, NamespacePermission permission, boolean useCached)
+      throws ThriftSecurityException {
+    String namespace = Tables.getNamespace(HdfsZooInstance.getInstance(), tableId);
+    return hasNamespacePermission(credentials, namespace, permission, useCached);
+  }
+
+  /**
+   * Checks if a user has a namespace permission given a tableName
+   * 
+   * @return true if a user exists and has permission; false otherwise
+   */
+  protected boolean hasNamespacePermissionForTableName(TCredentials credentials, String tableName, NamespacePermission permission, boolean useCached)
+      throws ThriftSecurityException {
+    String namespace = Tables.qualify(tableName).getFirst();
+    try {
+      String namespaceId = Namespaces.getNamespaceId(HdfsZooInstance.getInstance(), namespace);
+      return hasNamespacePermission(credentials, namespaceId, permission, useCached);
+    } catch (NamespaceNotFoundException e) {
+      throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
+    }
+  }
+
+  /**
    * Checks if a user has a namespace permission<br/>
    * This cannot check if a system user has permission.
    * 
    * @return true if a user exists and has permission; false otherwise
    */
   protected boolean _hasNamespacePermission(String user, String namespace, NamespacePermission permission, boolean useCached) throws ThriftSecurityException {
-    if (permission == null)
-      return false;
-
     targetUserExists(user);
 
     if (namespace.equals(Namespaces.ACCUMULO_NAMESPACE_ID) && permission.equals(NamespacePermission.READ))
@@ -383,7 +391,8 @@ public class SecurityOperation {
 
   public boolean canScan(TCredentials credentials, String table) throws ThriftSecurityException {
     authenticate(credentials);
-    return hasTablePermission(credentials, table, TablePermission.READ, true);
+    return hasTablePermission(credentials, table, TablePermission.READ, true)
+        || hasNamespacePermissionForTableId(credentials, table, NamespacePermission.READ, true);
   }
 
   public boolean canScan(TCredentials credentials, String table, TRange range, List<TColumn> columns, List<IterInfo> ssiList,
@@ -398,21 +407,25 @@ public class SecurityOperation {
 
   public boolean canWrite(TCredentials credentials, String table) throws ThriftSecurityException {
     authenticate(credentials);
-    return hasTablePermission(credentials, table, TablePermission.WRITE, true);
+    return hasTablePermission(credentials, table, TablePermission.WRITE, true)
+        || hasNamespacePermissionForTableId(credentials, table, NamespacePermission.WRITE, true);
   }
 
   public boolean canConditionallyUpdate(TCredentials credentials, String tableID, List<ByteBuffer> authorizations) throws ThriftSecurityException {
 
     authenticate(credentials);
 
-    return hasTablePermission(credentials, tableID, TablePermission.WRITE, true) && hasTablePermission(credentials, tableID, TablePermission.READ, true);
+    return (hasTablePermission(credentials, tableID, TablePermission.WRITE, true) || hasNamespacePermissionForTableId(credentials, tableID,
+        NamespacePermission.WRITE, true))
+        && (hasTablePermission(credentials, tableID, TablePermission.READ, true) || hasNamespacePermissionForTableId(credentials, tableID,
+            NamespacePermission.READ, true));
   }
 
-  public boolean canSplitTablet(TCredentials credentials, String tableId) throws ThriftSecurityException {
+  public boolean canSplitTablet(TCredentials credentials, String table) throws ThriftSecurityException {
     authenticate(credentials);
-    return hasSystemPermissionWithTableId(credentials, SystemPermission.ALTER_TABLE, tableId, false)
-        || hasSystemPermissionWithTableId(credentials, SystemPermission.SYSTEM, tableId, false)
-        || hasTablePermission(credentials, tableId, TablePermission.ALTER_TABLE, false);
+    return hasSystemPermission(credentials, SystemPermission.ALTER_TABLE, false) || hasSystemPermission(credentials, SystemPermission.SYSTEM, false)
+        || hasTablePermission(credentials, table, TablePermission.ALTER_TABLE, false)
+        || hasNamespacePermissionForTableId(credentials, table, NamespacePermission.ALTER_TABLE, false);
   }
 
   /**
@@ -425,53 +438,64 @@ public class SecurityOperation {
 
   public boolean canFlush(TCredentials c, String tableId) throws ThriftSecurityException {
     authenticate(c);
-    return hasTablePermission(c, tableId, TablePermission.WRITE, false) || hasTablePermission(c, tableId, TablePermission.ALTER_TABLE, false);
+    return hasTablePermission(c, tableId, TablePermission.WRITE, false) || hasTablePermission(c, tableId, TablePermission.ALTER_TABLE, false)
+        || hasNamespacePermissionForTableId(c, tableId, NamespacePermission.ALTER_TABLE, false)
+        || hasNamespacePermissionForTableId(c, tableId, NamespacePermission.WRITE, false);
   }
 
   public boolean canAlterTable(TCredentials c, String tableId) throws ThriftSecurityException {
     authenticate(c);
-    return hasTablePermission(c, tableId, TablePermission.ALTER_TABLE, false)
-        || hasSystemPermissionWithTableId(c, SystemPermission.ALTER_TABLE, tableId, false);
+    return hasTablePermission(c, tableId, TablePermission.ALTER_TABLE, false) || hasSystemPermission(c, SystemPermission.ALTER_TABLE, false)
+        || hasNamespacePermissionForTableId(c, tableId, NamespacePermission.ALTER_TABLE, false);
   }
 
-  public boolean canCreateTable(TCredentials c, String table, String namespaceId) throws ThriftSecurityException {
+  public boolean canCreateTable(TCredentials c, String tableName) throws ThriftSecurityException {
     authenticate(c);
-    return hasSystemPermissionWithNamespaceId(c, SystemPermission.CREATE_TABLE, namespaceId, false);
+    return hasNamespacePermissionForTableName(c, tableName, NamespacePermission.CREATE_TABLE, false) || canCreateTable(c);
+  }
+
+  public boolean canCreateTable(TCredentials c) throws ThriftSecurityException {
+    authenticate(c);
+    return hasSystemPermission(c, SystemPermission.CREATE_TABLE, false);
   }
 
   public boolean canRenameTable(TCredentials c, String tableId, String oldTableName, String newTableName) throws ThriftSecurityException {
     authenticate(c);
-    return hasSystemPermissionWithTableId(c, SystemPermission.ALTER_TABLE, tableId, false)
-        || hasTablePermission(c, tableId, TablePermission.ALTER_TABLE, false);
+    return hasSystemPermission(c, SystemPermission.ALTER_TABLE, false) || hasTablePermission(c, tableId, TablePermission.ALTER_TABLE, false)
+        || hasNamespacePermissionForTableId(c, tableId, NamespacePermission.ALTER_TABLE, false);
   }
 
   public boolean canCloneTable(TCredentials c, String tableId, String tableName) throws ThriftSecurityException {
     authenticate(c);
-    return hasSystemPermissionWithTableId(c, SystemPermission.CREATE_TABLE, tableId, false) && hasTablePermission(c, tableId, TablePermission.READ, false);
+    return (hasSystemPermission(c, SystemPermission.CREATE_TABLE, false) || hasNamespacePermissionForTableName(c, tableName, NamespacePermission.CREATE_TABLE,
+        false))
+        && (hasTablePermission(c, tableId, TablePermission.READ, false) || hasNamespacePermissionForTableId(c, tableId, NamespacePermission.READ, false));
   }
 
   public boolean canDeleteTable(TCredentials c, String tableId) throws ThriftSecurityException {
     authenticate(c);
-    return hasSystemPermissionWithTableId(c, SystemPermission.DROP_TABLE, tableId, false) || hasTablePermission(c, tableId, TablePermission.DROP_TABLE, false);
+    return hasSystemPermission(c, SystemPermission.DROP_TABLE, false) || hasTablePermission(c, tableId, TablePermission.DROP_TABLE, false)
+        || hasNamespacePermissionForTableId(c, tableId, NamespacePermission.DROP_TABLE, false);
   }
 
   public boolean canOnlineOfflineTable(TCredentials c, String tableId, FateOperation op) throws ThriftSecurityException {
     authenticate(c);
-    return hasSystemPermissionWithTableId(c, SystemPermission.SYSTEM, tableId, false)
-        || hasSystemPermissionWithTableId(c, SystemPermission.ALTER_TABLE, tableId, false)
-        || hasTablePermission(c, tableId, TablePermission.ALTER_TABLE, false);
+    return hasSystemPermission(c, SystemPermission.SYSTEM, false) || hasSystemPermission(c, SystemPermission.ALTER_TABLE, false)
+        || hasTablePermission(c, tableId, TablePermission.ALTER_TABLE, false)
+        || hasNamespacePermissionForTableId(c, tableId, NamespacePermission.ALTER_TABLE, false);
   }
 
   public boolean canMerge(TCredentials c, String tableId) throws ThriftSecurityException {
     authenticate(c);
-    return hasSystemPermissionWithTableId(c, SystemPermission.SYSTEM, tableId, false)
-        || hasSystemPermissionWithTableId(c, SystemPermission.ALTER_TABLE, tableId, false)
-        || hasTablePermission(c, tableId, TablePermission.ALTER_TABLE, false);
+    return hasSystemPermission(c, SystemPermission.SYSTEM, false) || hasSystemPermission(c, SystemPermission.ALTER_TABLE, false)
+        || hasTablePermission(c, tableId, TablePermission.ALTER_TABLE, false)
+        || hasNamespacePermissionForTableId(c, tableId, NamespacePermission.ALTER_TABLE, false);
   }
 
   public boolean canDeleteRange(TCredentials c, String tableId, String tableName, Text startRow, Text endRow) throws ThriftSecurityException {
     authenticate(c);
-    return hasSystemPermissionWithTableId(c, SystemPermission.SYSTEM, tableId, false) || hasTablePermission(c, tableId, TablePermission.WRITE, false);
+    return hasSystemPermission(c, SystemPermission.SYSTEM, false) || hasTablePermission(c, tableId, TablePermission.WRITE, false)
+        || hasNamespacePermissionForTableId(c, tableId, NamespacePermission.WRITE, false);
   }
 
   public boolean canBulkImport(TCredentials c, String tableId, String tableName, String dir, String failDir) throws ThriftSecurityException {
@@ -485,8 +509,9 @@ public class SecurityOperation {
 
   public boolean canCompact(TCredentials c, String tableId) throws ThriftSecurityException {
     authenticate(c);
-    return hasSystemPermissionWithTableId(c, SystemPermission.ALTER_TABLE, tableId, false)
-        || hasTablePermission(c, tableId, TablePermission.ALTER_TABLE, false) || hasTablePermission(c, tableId, TablePermission.WRITE, false);
+    return hasSystemPermission(c, SystemPermission.ALTER_TABLE, false) || hasTablePermission(c, tableId, TablePermission.ALTER_TABLE, false)
+        || hasTablePermission(c, tableId, TablePermission.WRITE, false) || hasNamespacePermissionForTableId(c, tableId, NamespacePermission.ALTER_TABLE, false)
+        || hasNamespacePermissionForTableId(c, tableId, NamespacePermission.WRITE, false);
   }
 
   public boolean canChangeAuthorizations(TCredentials c, String user) throws ThriftSecurityException {
@@ -521,21 +546,13 @@ public class SecurityOperation {
 
   public boolean canGrantTable(TCredentials c, String user, String table) throws ThriftSecurityException {
     authenticate(c);
-    return hasSystemPermissionWithTableId(c, SystemPermission.ALTER_TABLE, table, false) || hasTablePermission(c, table, TablePermission.GRANT, false);
+    return hasSystemPermission(c, SystemPermission.ALTER_TABLE, false) || hasTablePermission(c, table, TablePermission.GRANT, false)
+        || hasNamespacePermissionForTableId(c, table, NamespacePermission.ALTER_TABLE, false);
   }
 
   public boolean canGrantNamespace(TCredentials c, String user, String namespace) throws ThriftSecurityException {
-    return canModifyNamespacePermission(c, user, namespace);
-  }
-
-  private boolean canModifyNamespacePermission(TCredentials c, String user, String namespace) throws ThriftSecurityException {
     authenticate(c);
-    // The one case where Table/SystemPermission -> NamespacePermission breaks down. The alternative is to make SystemPermission.ALTER_NAMESPACE provide
-    // NamespacePermission.GRANT & ALTER_NAMESPACE, but then it would cause some permission checks to succeed with GRANT when they shouldn't
-    
-    // This is a bit hackier then I (vines) wanted, but I think this one hackiness makes the overall SecurityOperations more succinct.
-    return hasSystemPermissionWithNamespaceId(c, SystemPermission.ALTER_NAMESPACE, namespace, false)
-        || hasNamespacePermission(c, c.principal, namespace, NamespacePermission.GRANT);
+    return hasSystemPermission(c, SystemPermission.ALTER_NAMESPACE, false) || hasNamespacePermission(c, namespace, NamespacePermission.GRANT, false);
   }
 
   public boolean canRevokeSystem(TCredentials c, String user, SystemPermission sysPerm) throws ThriftSecurityException {
@@ -553,11 +570,13 @@ public class SecurityOperation {
 
   public boolean canRevokeTable(TCredentials c, String user, String table) throws ThriftSecurityException {
     authenticate(c);
-    return hasSystemPermissionWithTableId(c, SystemPermission.ALTER_TABLE, table, false) || hasTablePermission(c, table, TablePermission.GRANT, false);
+    return hasSystemPermission(c, SystemPermission.ALTER_TABLE, false) || hasTablePermission(c, table, TablePermission.GRANT, false)
+        || hasNamespacePermissionForTableId(c, table, NamespacePermission.ALTER_TABLE, false);
   }
 
   public boolean canRevokeNamespace(TCredentials c, String user, String namespace) throws ThriftSecurityException {
-    return canModifyNamespacePermission(c, user, namespace);
+    authenticate(c);
+    return hasSystemPermission(c, SystemPermission.ALTER_NAMESPACE, false) || hasNamespacePermission(c, namespace, NamespacePermission.GRANT, false);
   }
 
   public void changeAuthorizations(TCredentials credentials, String user, Authorizations authorizations) throws ThriftSecurityException {
@@ -768,17 +787,20 @@ public class SecurityOperation {
 
   public boolean canExport(TCredentials credentials, String tableId, String tableName, String exportDir) throws ThriftSecurityException {
     authenticate(credentials);
-    return hasTablePermission(credentials, tableId, TablePermission.READ, false);
+    return hasTablePermission(credentials, tableId, TablePermission.READ, false)
+        || hasNamespacePermissionForTableId(credentials, tableId, NamespacePermission.READ, false);
   }
 
   public boolean canImport(TCredentials credentials, String tableName, String importDir) throws ThriftSecurityException {
     authenticate(credentials);
-    return hasSystemPermissionWithNamespaceId(credentials, SystemPermission.CREATE_TABLE, Tables.qualify(tableName).getFirst(), false);
+    return hasSystemPermission(credentials, SystemPermission.CREATE_TABLE, false)
+        || hasNamespacePermissionForTableName(credentials, tableName, NamespacePermission.CREATE_TABLE, false);
   }
 
   public boolean canAlterNamespace(TCredentials credentials, String namespaceId) throws ThriftSecurityException {
     authenticate(credentials);
-    return hasSystemPermissionWithNamespaceId(credentials, SystemPermission.ALTER_NAMESPACE, namespaceId, false);
+    return hasNamespacePermission(credentials, namespaceId, NamespacePermission.ALTER_NAMESPACE, false)
+        || hasSystemPermission(credentials, SystemPermission.ALTER_NAMESPACE, false);
   }
 
   public boolean canCreateNamespace(TCredentials credentials, String namespace) throws ThriftSecurityException {
@@ -793,12 +815,13 @@ public class SecurityOperation {
 
   public boolean canDeleteNamespace(TCredentials credentials, String namespaceId) throws ThriftSecurityException {
     authenticate(credentials);
-    return hasSystemPermissionWithNamespaceId(credentials, SystemPermission.DROP_NAMESPACE, namespaceId, false);
+    return hasSystemPermission(credentials, SystemPermission.DROP_NAMESPACE, false);
   }
 
   public boolean canRenameNamespace(TCredentials credentials, String namespaceId, String oldName, String newName) throws ThriftSecurityException {
     authenticate(credentials);
-    return hasSystemPermissionWithNamespaceId(credentials, SystemPermission.ALTER_NAMESPACE, namespaceId, false);
+    return hasNamespacePermission(credentials, namespaceId, NamespacePermission.ALTER_NAMESPACE, false)
+        || hasSystemPermission(credentials, SystemPermission.ALTER_NAMESPACE, false);
   }
 
 }
