@@ -1455,9 +1455,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     try {
       Map<Key, Value> future = new HashMap<Key, Value>();
       Map<Key, Value> assigned = new HashMap<Key, Value>();
-      KeyExtent extent = new KeyExtent(row, new Value(new byte[]{0}));
-      String table = Constants.METADATA_TABLE_NAME;
-      Scanner scanner = getConnector().createScanner(table, Constants.NO_AUTHS);
+      Scanner scanner = getConnector().createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
       scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
       scanner.fetchColumnFamily(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY);
       scanner.setRange(new Range(row));
@@ -1485,7 +1483,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         TServerInstance alive = tserverSet.find(entry.getValue().toString());
         if (alive == null) {
           Master.log.info("Removing entry " + entry);
-          BatchWriter bw = getConnector().createBatchWriter(table, new BatchWriterConfig());
+          BatchWriter bw = getConnector().createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
           Mutation m = new Mutation(entry.getKey().getRow());
           m.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
           bw.addMutation(m);
