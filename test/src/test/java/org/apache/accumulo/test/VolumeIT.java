@@ -31,6 +31,7 @@ import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -49,11 +50,13 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.init.Initialize;
@@ -65,6 +68,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.zookeeper.ZooKeeper;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -298,33 +302,40 @@ public class VolumeIT extends ConfigurableMacIT {
   }
 
   private void verifyVolumesUsed(String tableName, Path... paths) throws AccumuloException, AccumuloSecurityException, TableExistsException,
-      TableNotFoundException,
-      MutationsRejectedException {
-    TreeSet<Text> splits = new TreeSet<Text>();
-    for (int i = 0; i < 100; i++) {
-      splits.add(new Text(String.format("%06d", i * 100)));
-    }
+      TableNotFoundException, MutationsRejectedException {
 
     Connector conn = cluster.getConnector("root", ROOT_PASSWORD);
-    conn.tableOperations().create(tableName);
-    conn.tableOperations().addSplits(tableName, splits);
 
     List<String> expected = new ArrayList<String>();
-
-    BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {
       String row = String.format("%06d", i * 100 + 3);
-      Mutation m = new Mutation(row);
-      m.put("cf1", "cq1", "1");
-      bw.addMutation(m);
       expected.add(row + ":cf1:cq1:1");
     }
 
-    bw.close();
+    if (!conn.tableOperations().exists(tableName)) {
 
-    verifyData(expected, conn.createScanner(tableName, Authorizations.EMPTY));
+      TreeSet<Text> splits = new TreeSet<Text>();
+      for (int i = 0; i < 100; i++) {
+        splits.add(new Text(String.format("%06d", i * 100)));
+      }
 
-    conn.tableOperations().flush(tableName, null, null, true);
+      conn.tableOperations().create(tableName);
+      conn.tableOperations().addSplits(tableName, splits);
+
+      BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
+      for (int i = 0; i < 100; i++) {
+        String row = String.format("%06d", i * 100 + 3);
+        Mutation m = new Mutation(row);
+        m.put("cf1", "cq1", "1");
+        bw.addMutation(m);
+      }
+
+      bw.close();
+
+      verifyData(expected, conn.createScanner(tableName, Authorizations.EMPTY));
+
+      conn.tableOperations().flush(tableName, null, null, true);
+    }
 
     verifyData(expected, conn.createScanner(tableName, Authorizations.EMPTY));
 
@@ -335,13 +346,16 @@ public class VolumeIT extends ConfigurableMacIT {
 
     int counts[] = new int[paths.length];
 
-    for (Entry<Key,Value> entry : metaScanner) {
+    outer: for (Entry<Key,Value> entry : metaScanner) {
       String cq = entry.getKey().getColumnQualifier().toString();
       for (int i = 0; i < paths.length; i++) {
         if (cq.startsWith(paths[i].toString())) {
           counts[i]++;
+          continue outer;
         }
       }
+
+      Assert.fail("Unexpected volume " + cq);
     }
 
     // if a volume is chosen randomly for each tablet, then the probability that a volume will not be chosen for any tablet is ((num_volumes -
@@ -356,4 +370,37 @@ public class VolumeIT extends ConfigurableMacIT {
     Assert.assertEquals(100, sum);
   }
 
+  @Test
+  public void testRemoveVolumes() throws Exception {
+    String[] tableNames = getTableNames(1);
+
+    verifyVolumesUsed(tableNames[0], v1, v2);
+
+    Assert.assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+    cluster.stop();
+
+    Configuration conf = new Configuration(false);
+    conf.addResource(new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
+
+    conf.set(Property.INSTANCE_VOLUMES.getKey(), v2.toString());
+    BufferedOutputStream fos = new BufferedOutputStream(new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
+    conf.writeXml(fos);
+    fos.close();
+
+    // start cluster and verify that volume was decommisioned
+    cluster.start();
+
+    Connector conn = cluster.getConnector("root", ROOT_PASSWORD);
+    conn.tableOperations().compact(tableNames[0], null, null, true, true);
+
+    verifyVolumesUsed(tableNames[0], v2);
+
+    // check that root tablet is not on volume 1
+    String zpath = ZooUtil.getRoot(new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers())) + RootTable.ZROOT_TABLET_PATH;
+    ZooKeeper zookeeper = new ZooKeeper(cluster.getZooKeepers(), 30000, null);
+    String rootTabletDir = new String(zookeeper.getData(zpath, false, null), Constants.UTF8);
+    Assert.assertTrue(rootTabletDir.startsWith(v2.toString()));
+    zookeeper.close();
+
+  }
 }
