@@ -55,8 +55,8 @@ public class ClientConfiguration extends CompositeConfiguration {
     INSTANCE_RPC_SSL_ENABLED(Property.INSTANCE_RPC_SSL_ENABLED),
     INSTANCE_ZK_HOST(Property.INSTANCE_ZK_HOST),
     INSTANCE_ZK_TIMEOUT(Property.INSTANCE_ZK_TIMEOUT),
-    INSTANCE_NAME("client.instance.name", null, PropertyType.STRING, "Name of Accumulo instance to connect to"),
-    INSTANCE_ID("client.instance.id", null, PropertyType.STRING, "UUID of Accumulo instance to connect to"),
+    INSTANCE_NAME("instance.name", null, PropertyType.STRING, "Name of Accumulo instance to connect to"),
+    INSTANCE_ID("instance.id", null, PropertyType.STRING, "UUID of Accumulo instance to connect to"),
     ;
 
     private String key;
