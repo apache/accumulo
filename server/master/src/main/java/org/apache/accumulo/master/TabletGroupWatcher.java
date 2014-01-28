@@ -50,7 +50,9 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.Daemon;
@@ -69,6 +71,7 @@ import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.master.state.MergeState;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
+import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.master.state.TabletStateStore;
 import org.apache.accumulo.server.security.SystemCredentials;
@@ -77,6 +80,8 @@ import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
+
+import com.google.common.collect.Iterators;
 
 class TabletGroupWatcher extends Daemon {
   
@@ -276,11 +281,67 @@ class TabletGroupWatcher extends Daemon {
         eventListener.waitForEvents(Master.TIME_TO_WAIT_BETWEEN_SCANS);
       } catch (Exception ex) {
         Master.log.error("Error processing table state for store " + store.name(), ex);
-        UtilWaitThread.sleep(Master.WAIT_BETWEEN_ERRORS);
+        if (ex.getCause() != null && ex.getCause() instanceof BadLocationStateException) { 
+          repairMetadata(((BadLocationStateException) ex.getCause()).getEncodedEndRow());
+        } else {
+          UtilWaitThread.sleep(Master.WAIT_BETWEEN_ERRORS);
+        }
       }
     }
   }
   
+  private void repairMetadata(Text row) {
+    Master.log.debug("Attempting repair on " + row);
+    // ACCUMULO-2261 if a dying tserver writes a location before its lock information propagates, it may cause duplicate assignment.
+    // Attempt to find the dead server entry and remove it.
+    try {
+      Map<Key, Value> future = new HashMap<Key, Value>();
+      Map<Key, Value> assigned = new HashMap<Key, Value>();
+      KeyExtent extent = new KeyExtent(row, new Value(new byte[]{0}));
+      String table = MetadataTable.NAME;
+      if (extent.isMeta())
+        table = RootTable.NAME;
+      Scanner scanner = this.master.getConnector().createScanner(table, Authorizations.EMPTY);
+      scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
+      scanner.fetchColumnFamily(FutureLocationColumnFamily.NAME);
+      scanner.setRange(new Range(row));
+      for (Entry<Key,Value> entry : scanner) {
+        if (entry.getKey().getColumnFamily().equals(CurrentLocationColumnFamily.NAME)) {
+          assigned.put(entry.getKey(), entry.getValue());
+        } else if (entry.getKey().getColumnFamily().equals(FutureLocationColumnFamily.NAME)) {
+          future.put(entry.getKey(), entry.getValue());
+        }
+      }
+      if (future.size() > 0 && assigned.size() > 0) {
+        Master.log.warn("Found a tablet assigned and hosted, attempting to repair");
+      } else if (future.size() > 1 && assigned.size() == 0) {
+        Master.log.warn("Found a tablet assigned to multiple servers, attempting to repair");
+      } else if (future.size() == 0 && assigned.size() > 1) {
+        Master.log.warn("Found a tablet hosted on multiple servers, attempting to repair");
+      } else {
+        Master.log.info("Attempted a repair, but nothing seems to be obviously wrong. " + assigned + " " + future);
+        return;
+      }
+      Iterator<Entry<Key, Value>> iter = Iterators.concat(future.entrySet().iterator(), assigned.entrySet().iterator());
+      while (iter.hasNext()) {
+        Entry<Key, Value> entry = iter.next();
+        TServerInstance alive = master.tserverSet.find(entry.getValue().toString());
+        if (alive == null) {
+          Master.log.info("Removing entry " + entry);
+          BatchWriter bw = this.master.getConnector().createBatchWriter(table, new BatchWriterConfig());
+          Mutation m = new Mutation(entry.getKey().getRow());
+          m.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
+          bw.addMutation(m);
+          bw.close();
+          return;
+        }
+      }
+      Master.log.error("Metadata table is inconsistent at " + row + " and all assigned/future tservers are still online.");
+    } catch (Throwable e) {
+      Master.log.error("Error attempting repair of metadata " + row + ": " + e, e);
+    }
+  }
+
   private int assignedOrHosted() {
     int result = 0;
     for (TableCounts counts : stats.getLast().values()) {

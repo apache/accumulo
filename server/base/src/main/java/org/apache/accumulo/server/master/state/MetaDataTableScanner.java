@@ -123,14 +123,7 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
   
   @Override
   public TabletLocationState next() {
-    try {
       return fetch();
-    } catch (RuntimeException ex) {
-      // something is wrong with the metadata records, just skip over it
-      log.error(ex, ex);
-      mdScanner.close();
-      return null;
-    }
   }
   
   public static TabletLocationState createTabletLocationState(Key k, Value v) throws IOException, BadLocationStateException {
@@ -152,13 +145,13 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
       if (cf.compareTo(TabletsSection.FutureLocationColumnFamily.NAME) == 0) {
         TServerInstance location = new TServerInstance(entry.getValue(), cq);
         if (future != null) {
-          throw new BadLocationStateException("found two assignments for the same extent " + key.getRow() + ": " + future + " and " + location);
+          throw new BadLocationStateException("found two assignments for the same extent " + key.getRow() + ": " + future + " and " + location, entry.getKey().getRow());
         }
         future = location;
       } else if (cf.compareTo(TabletsSection.CurrentLocationColumnFamily.NAME) == 0) {
         TServerInstance location = new TServerInstance(entry.getValue(), cq);
         if (current != null) {
-          throw new BadLocationStateException("found two locations for the same extent " + key.getRow() + ": " + current + " and " + location);
+          throw new BadLocationStateException("found two locations for the same extent " + key.getRow() + ": " + current + " and " + location, entry.getKey().getRow());
         }
         current = location;
       } else if (cf.compareTo(LogColumnFamily.NAME) == 0) {
