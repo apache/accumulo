@@ -22,9 +22,7 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.admin.TimeType;
-import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
@@ -35,7 +33,6 @@ import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
@@ -279,14 +276,13 @@ public class CreateTable extends MasterRepo {
 
   private TableInfo tableInfo;
 
-  public CreateTable(String user, String tableName, TimeType timeType, Map<String,String> props) throws NamespaceNotFoundException {
+  public CreateTable(String user, String tableName, TimeType timeType, Map<String,String> props, String namespaceId) {
     tableInfo = new TableInfo();
     tableInfo.tableName = tableName;
     tableInfo.timeType = TabletTime.getTimeID(timeType);
     tableInfo.user = user;
     tableInfo.props = props;
-    Instance inst = HdfsZooInstance.getInstance();
-    tableInfo.namespaceId = Namespaces.getNamespaceId(inst, Tables.qualify(tableInfo.tableName).getFirst());
+    tableInfo.namespaceId = namespaceId;
   }
 
   @Override
