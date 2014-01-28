@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.Set;
 
 import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.hadoop.io.Text;
 
 /**
  * When a tablet is assigned, we mark its future location. When the tablet is opened, we set its current location. A tablet should never have both a future and
@@ -33,8 +34,11 @@ public class TabletLocationState {
   
   static public class BadLocationStateException extends Exception {
     private static final long serialVersionUID = 1L;
+    private Text metadataTableEntry;
 
-    BadLocationStateException(String msg) { super(msg); }
+    BadLocationStateException(String msg, Text row) { super(msg); this.metadataTableEntry = row; }
+
+    public Text getEncodedEndRow() { return metadataTableEntry; }
   }
   
   public TabletLocationState(KeyExtent extent, TServerInstance future, TServerInstance current, TServerInstance last, Collection<Collection<String>> walogs,
@@ -48,7 +52,7 @@ public class TabletLocationState {
     this.walogs = walogs;
     this.chopped = chopped;
     if (current != null && future != null) {
-      throw new BadLocationStateException(extent + " is both assigned and hosted, which should never happen: " + this);
+      throw new BadLocationStateException(extent + " is both assigned and hosted, which should never happen: " + this, extent.getMetadataEntry());
     }
   }
   
