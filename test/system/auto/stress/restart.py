@@ -104,7 +104,7 @@ class KilledTabletServerSplitTest(KilledTabletServerTest):
     settings.update({
         'tserver.memory.maps.max':'5K',
         'tserver.compaction.major.delay': 1,
-        'tserver.walog.max.size': '50K',
+        'tserver.walog.max.size': '2M',
         })
 
     def ingest(self, host, count, start=0, timestamp=None, size=50, colf=None, **kwargs):
