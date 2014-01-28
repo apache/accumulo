@@ -1995,7 +1995,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         checkPermission(credentials, null, true, "getScans");
       } catch (ThriftSecurityException e) {
         log.error(e, e);
-        throw new RuntimeException(e);
+        throw e;
       }
       
       return sessionManager.getActiveScans();
@@ -2120,7 +2120,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         checkPermission(credentials, null, true, "getActiveCompactions");
       } catch (ThriftSecurityException e) {
         log.error(e, e);
-        throw new RuntimeException(e);
+        throw e;
       } 
       
       List<CompactionInfo> compactions = Compactor.getRunningCompactions();
