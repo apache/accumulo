@@ -177,6 +177,12 @@ public class MetadataTableUtil {
     update(credentials, zooLock, m, extent);
   }
 
+  public static void updateTabletDir(KeyExtent extent, String newDir, Credentials creds, ZooLock lock) {
+    Mutation m = new Mutation(extent.getMetadataEntry());
+    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(newDir.getBytes()));
+    update(creds, lock, m, extent);
+  }
+
   public static void addTablet(KeyExtent extent, String path, Credentials credentials, char timeType, ZooLock lock) {
     Mutation m = extent.getPrevRowUpdateMutation();
 
@@ -418,6 +424,19 @@ public class MetadataTableUtil {
     }
   }
 
+  public static void setRootTabletDir(String dir) throws IOException {
+    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    String zpath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + RootTable.ZROOT_TABLET_PATH;
+    try {
+      zoo.putPersistentData(zpath, dir.getBytes(Constants.UTF8), -1, NodeExistsPolicy.OVERWRITE);
+    } catch (KeeperException e) {
+      throw new IOException(e);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IOException(e);
+    }
+  }
+
   public static String getRootTabletDir() throws IOException {
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     String zpath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + RootTable.ZROOT_TABLET_PATH;
@@ -426,6 +445,7 @@ public class MetadataTableUtil {
     } catch (KeeperException e) {
       throw new IOException(e);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       throw new IOException(e);
     }
   }

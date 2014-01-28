@@ -1256,8 +1256,10 @@ public class Tablet {
     } else {
       locationPath = fs.getFullPath(FileType.TABLE, extent.getTableId().toString() + location.toString());
     }
-    FileSystem fsForPath = fs.getFileSystemByPath(locationPath);
-    this.location = locationPath.makeQualified(fsForPath.getUri(), fsForPath.getWorkingDirectory());
+
+    locationPath = DirectoryDecommissioner.checkTabletDirectory(tabletServer, fs, extent, locationPath);
+
+    this.location = locationPath;
     this.lastLocation = lastLocation;
     this.tabletDirectory = location.toString();
     this.conf = conf;
