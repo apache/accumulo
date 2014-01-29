@@ -476,19 +476,20 @@ class LoadFiles extends MasterRepo {
       return 500;
     return 0;
   }
-  
-  synchronized void initializeThreadPool(Master master) {
+
+  private static synchronized ExecutorService getThreadPool(Master master) {
     if (threadPool == null) {
       int threadPoolSize = master.getSystemConfiguration().getCount(Property.MASTER_BULK_THREADPOOL_SIZE);
       ThreadPoolExecutor pool = new SimpleThreadPool(threadPoolSize, "bulk import");
       pool.allowCoreThreadTimeOut(true);
       threadPool = new TraceExecutorService(pool);
     }
+    return threadPool;
   }
 
   @Override
   public Repo<Master> call(final long tid, final Master master) throws Exception {
-    initializeThreadPool(master);
+    ExecutorService executor = getThreadPool(master);
     final SiteConfiguration conf = ServerConfiguration.getSiteConfiguration();
     FileSystem fs = master.getFileSystem();
     List<FileStatus> files = new ArrayList<FileStatus>();
@@ -525,7 +526,7 @@ class LoadFiles extends MasterRepo {
       // Use the threadpool to assign files one-at-a-time to the server
       final List<String> loaded = Collections.synchronizedList(new ArrayList<String>());
       for (final String file : filesToLoad) {
-        results.add(threadPool.submit(new Callable<List<String>>() {
+        results.add(executor.submit(new Callable<List<String>>() {
           @Override
           public List<String> call() {
             List<String> failures = new ArrayList<String>();
