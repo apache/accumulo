@@ -138,6 +138,10 @@ public class LogService implements MutationLogger.Iface, Watcher {
   }
 
   public LogService(String[] args) throws UnknownHostException, KeeperException, InterruptedException, IOException {
+    // Before we try anything, check to see if we can read users/root out of Zookeeper, as it should be guaranteed to exist and ACLed
+    // This is to ensure we have the right secret before we can muck around with anything
+    ZooReaderWriter.validateSecret();
+    
     try {
       Accumulo.init("logger");
     } catch (UnknownHostException e1) {

@@ -23,6 +23,7 @@ import java.lang.reflect.Proxy;
 import java.security.SecurityPermission;
 import java.util.List;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -209,4 +210,21 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
     putPersistentData(path, new byte[] {}, NodeExistsPolicy.SKIP);
   }
   
+  public static void validateSecret() {
+    // Before we try anything, check to see if we can read users/root out of Zookeeper, as it should be guaranteed to exist and ACLed
+    // This is to ensure we have the right secret before we can muck around with anything
+    try {
+      ZooReaderWriter.getInstance().getStatus(Constants.ZROOT+Constants.ZUSERS+Constants.ZROOT+"/root");
+    } catch (KeeperException ke) {
+      switch (ke.code()) {
+        case NOAUTH:
+        case AUTHFAILED:
+          throw new RuntimeException("Could not read ACLed zookeeper data. Please make sure instance secret is correct.", ke);
+        default:
+          throw new RuntimeException("Had issues reading data from zookeeper.", ke);
+      } 
+    } catch (InterruptedException ie) {
+      throw new RuntimeException("Interrupted from zookeeper, exitting.", ie);
+    }
+  }
 }

@@ -2143,6 +2143,10 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
   }
   
   private void getMasterLock(final String zMasterLoc) throws KeeperException, InterruptedException {
+    // Before we try anything, check to see if we can read users/root out of Zookeeper, as it should be guaranteed to exist and ACLed
+    // This is to ensure we have the right secret before we can muck around with anything
+    ZooReaderWriter.validateSecret();
+    
     log.info("trying to get master lock");
     LockWatcher masterLockWatcher = new ZooLock.LockWatcher() {
       public void lostLock(LockLossReason reason) {
