@@ -20,7 +20,7 @@ import unittest
 import time
 from subprocess import PIPE
 
-from TestUtils import TestUtilsMixin
+from TestUtils import ROOT, ROOT_PASSWORD, TestUtilsMixin
 
 log = logging.getLogger('test.auto')
 
@@ -42,11 +42,11 @@ class LotsOfTablets(TestUtilsMixin, unittest.TestCase):
         # initialize the database
         handle = self.runClassOn(self.masterHost(), 
 		               'org.apache.accumulo.test.CreateTestTable', 
-		               [str(N)])
+		               ['-count', str(N), '-u', ROOT, '-p', ROOT_PASSWORD])
 	self.waitForStop(handle, WAIT)
         handle = self.runClassOn(self.masterHost(), 
 		               'org.apache.accumulo.test.CreateTestTable', 
-		               ['-readonly', str(N)])
+		               ['-readonly', '-count', str(N), '-u', ROOT, '-p', ROOT_PASSWORD])
         self.waitForStop(handle, WAIT)
 
 def suite():
