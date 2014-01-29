@@ -170,7 +170,7 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_CLONE: {
         TableOperation tableOp = TableOperation.CLONE;
-        String srcTableId = validateTableIdArgument(arguments.get(0), tableOp, null);
+        String srcTableId = validateTableIdArgument(arguments.get(0), tableOp, Tables.NOT_ROOT_ID);
         String tableName = validateTableNameArgument(arguments.get(1), tableOp, Tables.NOT_SYSTEM);
 
         if (!master.security.canCloneTable(c, srcTableId, tableName))

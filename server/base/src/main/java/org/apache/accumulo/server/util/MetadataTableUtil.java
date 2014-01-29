@@ -674,7 +674,10 @@ public class MetadataTableUtil {
   }
 
   private static Scanner createCloneScanner(String tableId, Connector conn) throws TableNotFoundException {
-    Scanner mscanner = new IsolatedScanner(conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
+    String tableName = MetadataTable.NAME;
+    if (tableId.equals(MetadataTable.ID))
+      tableName = RootTable.NAME;
+    Scanner mscanner = new IsolatedScanner(conn.createScanner(tableName, Authorizations.EMPTY));
     mscanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
     mscanner.fetchColumnFamily(DataFileColumnFamily.NAME);
     mscanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
@@ -686,7 +689,11 @@ public class MetadataTableUtil {
   }
 
   static void initializeClone(String srcTableId, String tableId, Connector conn, BatchWriter bw) throws TableNotFoundException, MutationsRejectedException {
-    TabletIterator ti = new TabletIterator(createCloneScanner(srcTableId, conn), new KeyExtent(new Text(srcTableId), null, null).toMetadataRange(), true, true);
+    TabletIterator ti;
+    if (srcTableId.equals(MetadataTable.ID))
+      ti = new TabletIterator(createCloneScanner(srcTableId, conn), new Range(), true, true);
+    else
+      ti = new TabletIterator(createCloneScanner(srcTableId, conn), new KeyExtent(new Text(srcTableId), null, null).toMetadataRange(), true, true);
 
     if (!ti.hasNext())
       throw new RuntimeException(" table deleted during clone?  srcTableId = " + srcTableId);
