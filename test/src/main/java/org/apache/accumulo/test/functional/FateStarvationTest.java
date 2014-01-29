@@ -50,8 +50,9 @@ public class FateStarvationTest extends FunctionalTest {
     
     getConnector().tableOperations().addSplits("test_ingest", TestIngest.getSplitPoints(0, 100000, 50));
     
-    TestIngest.main(new String[] {"-random", "89", "-timestamp", "7", "-size", "" + 50, "100000", "0", "1"});
-    
+    TestIngest.main(new String[] {"-u", "root", "-p", "secret", "--random", "89", "--timestamp", "7", "--size", "" + 50, "--rows", "100000", "--start", "0",
+        "--cols", "1"});
+
     getConnector().tableOperations().flush("test_ingest", null, null, true);
     
     List<Text> splits = new ArrayList<Text>(TestIngest.getSplitPoints(0, 100000, 67));
