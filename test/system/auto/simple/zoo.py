@@ -44,7 +44,7 @@ class SessionExpired(SunnyDayTest):
         # handles)
         for h in self.accumuloHandles[1:-1]:
             if 'tserver' in h.cmd:
-                self.waitForStop(h, 5)
+                self.waitForStop(h, 5 * self.timeout_factor)
         self.cleanupAccumuloHandles()
 
         
