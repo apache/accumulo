@@ -42,14 +42,24 @@ do
       ${bin}/stop-server.sh $master "$ACCUMULO_HOME/.*/accumulo-start.*.jar" master $signal
    done
 
-   for gc in `grep -v '^#' "$ACCUMULO_CONF_DIR/gc"`
+   if [[ -r $ACCUMULO_CONF_DIR/gc ]]; then
+      GC=`grep -v '^#' "$ACCUMULO_CONF_DIR/gc"`
+   else
+      GC=$MASTER1
+   fi
+   for gc in $GC
    do
       ${bin}/stop-server.sh $gc "$ACCUMULO_HOME/.*/accumulo-start.*.jar" gc $signal
    done
 
    ${bin}/stop-server.sh $MONITOR "$ACCUMULO_HOME/.*/accumulo-start.*.jar" monitor $signal
 
-   for tracer in `grep -v '^#' "$ACCUMULO_CONF_DIR/tracers"`
+   if [[ -r $ACCUMULO_CONF_DIR/tracers ]]; then
+      TRACERS=`grep -v '^#' "$ACCUMULO_CONF_DIR/tracers"`
+   else
+      TRACERS=$MASTER1
+   fi
+   for tracer in $TRACERS
    do
       ${bin}/stop-server.sh $tracer "$ACCUMULO_HOME/.*/accumulo-start.*.jar" tracer $signal
    done
