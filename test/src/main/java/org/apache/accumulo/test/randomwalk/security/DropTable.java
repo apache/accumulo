@@ -50,9 +50,10 @@ public class DropTable extends Test {
     Connector conn = state.getInstance().getConnector(principal, token);
     
     String tableName = WalkingSecurity.get(state).getTableName();
+    String namespaceName = WalkingSecurity.get(state).getNamespaceName();
     
     boolean exists = WalkingSecurity.get(state).getTableExists();
-    boolean hasPermission = WalkingSecurity.get(state).canDeleteTable(new Credentials(principal, token).toThrift(state.getInstance()), tableName);
+    boolean hasPermission = WalkingSecurity.get(state).canDeleteTable(new Credentials(principal, token).toThrift(state.getInstance()), tableName, namespaceName);
     
     try {
       conn.tableOperations().delete(tableName);

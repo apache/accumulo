@@ -106,7 +106,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     conn.tableOperations().create(tableName);
 
     ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig());
-
+    
     // mutation conditional on column tx:seq not existing
     ConditionalMutation cm0 = new ConditionalMutation("99006", new Condition("tx", "seq"));
     cm0.put("name", "last", "doe");

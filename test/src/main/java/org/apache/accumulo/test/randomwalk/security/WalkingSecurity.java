@@ -56,6 +56,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   protected final static Logger log = Logger.getLogger(WalkingSecurity.class);
 
   private static final String tableName = "SecurityTableName";
+  private static final String namespaceName = "SecurityNamespaceName";
   private static final String userName = "UserName";
 
   private static final String userPass = "UserPass";
@@ -335,6 +336,10 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
     return state.getString(tableName);
   }
 
+  public String getNamespaceName() {
+    return state.getString(namespaceName);
+  }
+
   public boolean getTableExists() {
     return Boolean.parseBoolean(state.getString(tableExists));
   }
@@ -385,6 +390,10 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
 
   public void setTableName(String tName) {
     state.set(tableName, tName);
+  }
+
+  public void setNamespaceName(String nsName) {
+    state.set(namespaceName, nsName);
   }
 
   @Override

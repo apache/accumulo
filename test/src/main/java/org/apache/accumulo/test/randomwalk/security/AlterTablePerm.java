@@ -76,7 +76,7 @@ public class AlterTablePerm extends Test {
     Connector conn = state.getInstance().getConnector(sourceUser, sourceToken);
     
     canGive = WalkingSecurity.get(state).canGrantTable(new Credentials(sourceUser, sourceToken).toThrift(state.getInstance()), target,
-        WalkingSecurity.get(state).getTableName());
+        WalkingSecurity.get(state).getTableName(), WalkingSecurity.get(state).getNamespaceName());
     
     // toggle
     if (!"take".equals(action) && !"give".equals(action)) {

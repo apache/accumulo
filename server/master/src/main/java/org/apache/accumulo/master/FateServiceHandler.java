@@ -58,7 +58,6 @@ import org.apache.accumulo.master.tableOps.RenameTable;
 import org.apache.accumulo.master.tableOps.TableRangeOp;
 import org.apache.accumulo.master.tableOps.TraceRepo;
 import org.apache.accumulo.server.client.ClientServiceHandler;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.accumulo.trace.thrift.TInfo;
@@ -130,7 +129,7 @@ class FateServiceHandler implements FateService.Iface {
         String namespaceId;
 
         try {
-          namespaceId = Namespaces.getNamespaceId(HdfsZooInstance.getInstance(), Tables.qualify(tableName).getFirst());
+          namespaceId = Namespaces.getNamespaceId(master.getInstance(), Tables.qualify(tableName).getFirst());
         } catch (NamespaceNotFoundException e) {
           throw new ThriftTableOperationException(null, tableName, tableOp, TableOperationExceptionType.NAMESPACE_NOTFOUND, "");
         }
@@ -162,8 +161,9 @@ class FateServiceHandler implements FateService.Iface {
         });
 
         String tableId = ClientServiceHandler.checkTableId(master.getInstance(), oldTableName, tableOp);
+        String namespaceId = Tables.getNamespace(master.getInstance(), tableId);
 
-        if (!master.security.canRenameTable(c, tableId, oldTableName, newTableName))
+        if (!master.security.canRenameTable(c, tableId, oldTableName, newTableName, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
         try {
@@ -178,8 +178,15 @@ class FateServiceHandler implements FateService.Iface {
         TableOperation tableOp = TableOperation.CLONE;
         String srcTableId = validateTableIdArgument(arguments.get(0), tableOp, Tables.NOT_ROOT_ID);
         String tableName = validateTableNameArgument(arguments.get(1), tableOp, Tables.NOT_SYSTEM);
-
-        if (!master.security.canCloneTable(c, srcTableId, tableName))
+        String namespaceId;
+        try {
+          namespaceId = Namespaces.getNamespaceId(master.getInstance(), Tables.qualify(tableName).getFirst());
+        } catch (NamespaceNotFoundException e) {
+          // shouldn't happen, but possible once cloning between namespaces is supported
+          throw new ThriftTableOperationException(null, tableName, tableOp, TableOperationExceptionType.NAMESPACE_NOTFOUND, "");
+        }
+        
+        if (!master.security.canCloneTable(c, srcTableId, tableName, namespaceId, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
         Map<String,String> propertiesToSet = new HashMap<String,String>();
@@ -209,7 +216,9 @@ class FateServiceHandler implements FateService.Iface {
         String tableName = validateTableNameArgument(arguments.get(0), tableOp, Tables.NOT_SYSTEM);
 
         final String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp);
-        if (!master.security.canDeleteTable(c, tableId))
+        String namespaceId = Tables.getNamespace(master.getInstance(), tableId);
+
+        if (!master.security.canDeleteTable(c, tableId, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
         master.fate.seedTransaction(opid, new TraceRepo<Master>(new DeleteTable(tableId)), autoCleanup);
         break;
@@ -217,8 +226,9 @@ class FateServiceHandler implements FateService.Iface {
       case TABLE_ONLINE: {
         TableOperation tableOp = TableOperation.ONLINE;
         final String tableId = validateTableIdArgument(arguments.get(0), tableOp, Tables.NOT_ROOT_ID);
+        String namespaceId = Tables.getNamespace(master.getInstance(), tableId);
 
-        if (!master.security.canOnlineOfflineTable(c, tableId, op))
+        if (!master.security.canOnlineOfflineTable(c, tableId, op, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
         master.fate.seedTransaction(opid, new TraceRepo<Master>(new ChangeTableState(tableId, tableOp)), autoCleanup);
@@ -227,8 +237,9 @@ class FateServiceHandler implements FateService.Iface {
       case TABLE_OFFLINE: {
         TableOperation tableOp = TableOperation.OFFLINE;
         final String tableId = validateTableIdArgument(arguments.get(0), tableOp, Tables.NOT_ROOT_ID);
+        String namespaceId = Tables.getNamespace(master.getInstance(), tableId);
 
-        if (!master.security.canOnlineOfflineTable(c, tableId, op))
+        if (!master.security.canOnlineOfflineTable(c, tableId, op, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
         master.fate.seedTransaction(opid, new TraceRepo<Master>(new ChangeTableState(tableId, tableOp)), autoCleanup);
@@ -241,7 +252,9 @@ class FateServiceHandler implements FateService.Iface {
         Text endRow = ByteBufferUtil.toText(arguments.get(2));
 
         final String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp);
-        if (!master.security.canMerge(c, tableId))
+        String namespaceId = Tables.getNamespace(master.getInstance(), tableId);
+
+        if (!master.security.canMerge(c, tableId, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
         Master.log.debug("Creating merge op: " + tableId + " " + startRow + " " + endRow);
@@ -255,7 +268,9 @@ class FateServiceHandler implements FateService.Iface {
         Text endRow = ByteBufferUtil.toText(arguments.get(2));
 
         final String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp);
-        if (!master.security.canDeleteRange(c, tableId, tableName, startRow, endRow))
+        String namespaceId = Tables.getNamespace(master.getInstance(), tableId);
+
+        if (!master.security.canDeleteRange(c, tableId, tableName, startRow, endRow, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
         master.fate.seedTransaction(opid, new TraceRepo<Master>(new TableRangeOp(MergeInfo.Operation.DELETE, tableId, startRow, endRow)), autoCleanup);
@@ -269,7 +284,9 @@ class FateServiceHandler implements FateService.Iface {
         boolean setTime = Boolean.parseBoolean(ByteBufferUtil.toString(arguments.get(3)));
 
         final String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp);
-        if (!master.security.canBulkImport(c, tableId, tableName, dir, failDir))
+        String namespaceId = Tables.getNamespace(master.getInstance(), tableId);
+        
+        if (!master.security.canBulkImport(c, tableId, tableName, dir, failDir, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
         master.fate.seedTransaction(opid, new TraceRepo<Master>(new BulkImport(tableId, dir, failDir, setTime)), autoCleanup);
@@ -281,8 +298,9 @@ class FateServiceHandler implements FateService.Iface {
         byte[] startRow = ByteBufferUtil.toBytes(arguments.get(1));
         byte[] endRow = ByteBufferUtil.toBytes(arguments.get(2));
         List<IteratorSetting> iterators = IteratorUtil.decodeIteratorSettings(ByteBufferUtil.toBytes(arguments.get(3)));
+        String namespaceId = Tables.getNamespace(master.getInstance(), tableId);
 
-        if (!master.security.canCompact(c, tableId))
+        if (!master.security.canCompact(c, tableId, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
         master.fate.seedTransaction(opid, new TraceRepo<Master>(new CompactRange(tableId, startRow, endRow, iterators)), autoCleanup);
@@ -291,8 +309,9 @@ class FateServiceHandler implements FateService.Iface {
       case TABLE_CANCEL_COMPACT: {
         TableOperation tableOp = TableOperation.COMPACT_CANCEL;
         String tableId = validateTableIdArgument(arguments.get(0), tableOp, null);
+        String namespaceId = Tables.getNamespace(master.getInstance(), tableId);
 
-        if (!master.security.canCompact(c, tableId))
+        if (!master.security.canCompact(c, tableId, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
         master.fate.seedTransaction(opid, new TraceRepo<Master>(new CancelCompactions(tableId)), autoCleanup);
@@ -302,15 +321,17 @@ class FateServiceHandler implements FateService.Iface {
         TableOperation tableOp = TableOperation.IMPORT;
         String tableName = validateTableNameArgument(arguments.get(0), tableOp, Tables.NOT_SYSTEM);
         String exportDir = ByteBufferUtil.toString(arguments.get(1));
-
-        if (!master.security.canImport(c, tableName, exportDir))
-          throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
-
+        String namespaceId;
         try {
-          master.fate.seedTransaction(opid, new TraceRepo<Master>(new ImportTable(c.getPrincipal(), tableName, exportDir)), autoCleanup);
+          namespaceId = Namespaces.getNamespaceId(master.getInstance(), Tables.qualify(tableName).getFirst());
         } catch (NamespaceNotFoundException e) {
           throw new ThriftTableOperationException(null, tableName, tableOp, TableOperationExceptionType.NAMESPACE_NOTFOUND, "");
         }
+
+        if (!master.security.canImport(c, tableName, exportDir, namespaceId))
+          throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+
+        master.fate.seedTransaction(opid, new TraceRepo<Master>(new ImportTable(c.getPrincipal(), tableName, exportDir, namespaceId)), autoCleanup);
         break;
       }
       case TABLE_EXPORT: {
@@ -319,7 +340,9 @@ class FateServiceHandler implements FateService.Iface {
         String exportDir = ByteBufferUtil.toString(arguments.get(1));
 
         String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp);
-        if (!master.security.canExport(c, tableId, tableName, exportDir))
+        String namespaceId = Tables.getNamespace(master.getInstance(), tableId);
+        
+        if (!master.security.canExport(c, tableId, tableName, exportDir, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
         master.fate.seedTransaction(opid, new TraceRepo<Master>(new ExportTable(tableName, tableId, exportDir)), autoCleanup);

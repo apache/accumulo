@@ -204,7 +204,7 @@ class CleanUp extends MasterRepo {
     
     // remove any permissions associated with this table
     try {
-      AuditedSecurityOperation.getInstance().deleteTable(SystemCredentials.get().toThrift(master.getInstance()), tableId);
+      AuditedSecurityOperation.getInstance().deleteTable(SystemCredentials.get().toThrift(master.getInstance()), tableId, namespaceId);
     } catch (ThriftSecurityException e) {
       log.error(e.getMessage(), e);
     }
