@@ -289,7 +289,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
             NodeExistsPolicy.SKIP);
         Initialize.initMetadataConfig(RootTable.ID);
         // ensure root user can flush root table
-        security.grantTablePermission(SystemCredentials.get().toThrift(instance), security.getRootUsername(), RootTable.ID, TablePermission.ALTER_TABLE);
+        security.grantTablePermission(SystemCredentials.get().toThrift(instance), security.getRootUsername(), RootTable.ID, TablePermission.ALTER_TABLE, Namespaces.ACCUMULO_NAMESPACE_ID);
 
         // put existing tables in the correct namespaces
         String tables = ZooUtil.getRoot(instance) + Constants.ZTABLES;

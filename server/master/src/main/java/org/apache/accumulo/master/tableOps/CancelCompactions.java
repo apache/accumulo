@@ -59,7 +59,7 @@ public class CancelCompactions extends MasterRepo {
   public CancelCompactions(String tableId) {
     this.tableId = tableId;
     Instance inst = HdfsZooInstance.getInstance();
-    this.namespaceId = Tables.getNamespace(inst, tableId);
+    this.namespaceId = Tables.getNamespaceId(inst, tableId);
   }
   
   @Override

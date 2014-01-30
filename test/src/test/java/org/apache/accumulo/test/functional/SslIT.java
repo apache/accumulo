@@ -49,7 +49,7 @@ public class SslIT extends ConfigurableMacIT {
     ShutdownIT.runAdminStopTest(getConnector(), getCluster());
   }
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Test(timeout = 5 * 60 * 1000)
   public void bulk() throws Exception {
     BulkIT.runTest(getConnector(), getTableNames(1)[0]);
   }

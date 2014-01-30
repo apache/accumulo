@@ -28,6 +28,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
@@ -90,14 +91,17 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
 class MasterClientServiceHandler extends FateServiceHandler implements MasterClientService.Iface {
 
   private static final Logger log = Master.log;
+  private Instance instance;
 
   MasterClientServiceHandler(Master master) {
     super(master);
+    this.instance = master.getInstance();
   }
 
   @Override
   public long initiateFlush(TInfo tinfo, TCredentials c, String tableId) throws ThriftSecurityException, ThriftTableOperationException {
-    master.security.canFlush(c, tableId);
+    String namespaceId = Tables.getNamespaceId(instance, tableId);
+    master.security.canFlush(c, tableId, namespaceId);
 
     String zTablePath = Constants.ZROOT + "/" + master.getConfiguration().getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId
         + Constants.ZTABLE_FLUSH_ID;
@@ -125,7 +129,8 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
   @Override
   public void waitForFlush(TInfo tinfo, TCredentials c, String tableId, ByteBuffer startRow, ByteBuffer endRow, long flushID, long maxLoops)
       throws ThriftSecurityException, ThriftTableOperationException {
-    master.security.canFlush(c, tableId);
+    String namespaceId = Tables.getNamespaceId(instance, tableId);
+    master.security.canFlush(c, tableId, namespaceId);
 
     if (endRow != null && startRow != null && ByteBufferUtil.toText(startRow).compareTo(ByteBufferUtil.toText(endRow)) >= 0)
       throw new ThriftTableOperationException(tableId, null, TableOperation.FLUSH, TableOperationExceptionType.BAD_RANGE, "start row must be less than end row");
@@ -430,7 +435,8 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
   private void alterTableProperty(TCredentials c, String tableName, String property, String value, TableOperation op) throws ThriftSecurityException,
       ThriftTableOperationException {
     final String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, op);
-    if (!master.security.canAlterTable(c, tableId))
+    String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId); 
+    if (!master.security.canAlterTable(c, tableId, namespaceId))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
     try {

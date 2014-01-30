@@ -28,10 +28,8 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
-import org.apache.log4j.Logger;
 
 public class DropTable extends Test {
-  private static final Logger log = Logger.getLogger(DropTable.class);
   
   @Override
   public void visit(State state, Properties props) throws Exception {
@@ -52,26 +50,10 @@ public class DropTable extends Test {
     Connector conn = state.getInstance().getConnector(principal, token);
     
     String tableName = WalkingSecurity.get(state).getTableName();
-    String tableId = conn.tableOperations().tableIdMap().get(tableName);
+    String namespaceName = WalkingSecurity.get(state).getNamespaceName();
     
     boolean exists = WalkingSecurity.get(state).getTableExists();
-    
-    if ((null == tableId && exists) || (null != tableId && !exists)) {
-      log.error("For table " + tableName + ": found table ID " + tableId + " and " + (exists ? "expect" : "did not expect") + " it to exist");
-      throw new AccumuloException("Test and Accumulo state differ on " + tableName + " existence.");
-    }
-    
-    boolean hasPermission;
-    try {
-      hasPermission = WalkingSecurity.get(state).canDeleteTable(new Credentials(principal, token).toThrift(state.getInstance()), tableId);
-    } catch (Exception e) {
-      if (!exists) {
-        log.error("Ignoring exception checking permissions on non-existent table", e);
-        return;
-      }
-      
-      throw e;
-    }
+    boolean hasPermission = WalkingSecurity.get(state).canDeleteTable(new Credentials(principal, token).toThrift(state.getInstance()), tableName, namespaceName);
     
     try {
       conn.tableOperations().delete(tableName);

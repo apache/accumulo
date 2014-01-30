@@ -42,7 +42,7 @@ import org.junit.Test;
  */
 public class TimeoutIT extends SimpleMacIT {
 
-  @Test(timeout = 60 * 1000)
+  @Test(timeout = 75 * 1000)
   public void run() throws Exception {
     Connector conn = getConnector();
     String[] tableNames = getTableNames(2);

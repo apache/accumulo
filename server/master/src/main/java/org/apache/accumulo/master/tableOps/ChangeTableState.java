@@ -37,7 +37,7 @@ public class ChangeTableState extends MasterRepo {
     this.tableId = tableId;
     this.top = top;
     Instance inst = HdfsZooInstance.getInstance();
-    this.namespaceId = Tables.getNamespace(inst, tableId);
+    this.namespaceId = Tables.getNamespaceId(inst, tableId);
 
     if (top != TableOperation.ONLINE && top != TableOperation.OFFLINE)
       throw new IllegalArgumentException(top.toString());

@@ -23,21 +23,20 @@ import java.util.List;
  * Accumulo namespace permissions. Each permission has an associated byte ID.
  */
 public enum NamespacePermission {
-  /*
-   * One may add new permissions, but new permissions must use new numbers.
-   * Current numbers in use must not be changed.
-   */
+  // One may add new permissions, but new permissions must use new numbers. Current numbers in use must not be changed.
   READ((byte) 0),
   WRITE((byte) 1),
   ALTER_NAMESPACE((byte) 2),
   GRANT((byte) 3),
   ALTER_TABLE((byte) 4),
   CREATE_TABLE((byte) 5),
-  DROP_TABLE((byte) 6);
+  DROP_TABLE((byte) 6), 
+  BULK_IMPORT((byte) 7), 
+  DROP_NAMESPACE((byte) 8);
 
   final private byte permID;
 
-  final private static NamespacePermission mapping[] = new NamespacePermission[8];
+  final private static NamespacePermission mapping[] = new NamespacePermission[9];
   static {
     for (NamespacePermission perm : NamespacePermission.values())
       mapping[perm.permID] = perm;
@@ -49,7 +48,7 @@ public enum NamespacePermission {
 
   /**
    * Gets the byte ID of this permission.
-   *
+   * 
    * @return byte ID
    */
   public byte getId() {
@@ -58,7 +57,7 @@ public enum NamespacePermission {
 
   /**
    * Returns a list of printable permission values.
-   *
+   * 
    * @return list of namespace permission values, as "Namespace." + permission name
    */
   public static List<String> printableValues() {
@@ -74,16 +73,62 @@ public enum NamespacePermission {
 
   /**
    * Gets the permission matching the given byte ID.
-   *
-   * @param id byte ID
+   * 
+   * @param id
+   *          byte ID
    * @return system permission
-   * @throws IndexOutOfBoundsException if the byte ID is invalid
+   * @throws IndexOutOfBoundsException
+   *           if the byte ID is invalid
    */
   public static NamespacePermission getPermissionById(byte id) {
     NamespacePermission result = mapping[id];
     if (result != null)
       return result;
     throw new IndexOutOfBoundsException("No such permission");
+  }
+
+  public static NamespacePermission getEquivalent(TablePermission permission) {
+    switch (permission) {
+      case READ:
+        return NamespacePermission.READ;
+      case WRITE:
+        return NamespacePermission.WRITE;
+      case ALTER_TABLE:
+        return NamespacePermission.ALTER_TABLE;
+      case GRANT:
+        return NamespacePermission.GRANT;
+      case DROP_TABLE:
+        return NamespacePermission.DROP_TABLE;
+      case BULK_IMPORT:
+        return NamespacePermission.BULK_IMPORT;
+      default:
+        return null;
+    }
+
+  }
+
+  public static NamespacePermission getEquivalent(SystemPermission permission) {
+    switch (permission) {
+      case CREATE_TABLE:
+        return NamespacePermission.CREATE_TABLE;
+      case DROP_TABLE:
+        return NamespacePermission.DROP_TABLE;
+      case ALTER_TABLE:
+        return NamespacePermission.ALTER_TABLE;
+      case ALTER_NAMESPACE:
+        return NamespacePermission.ALTER_NAMESPACE;
+      case DROP_NAMESPACE:
+        return NamespacePermission.DROP_NAMESPACE;
+      case GRANT:
+        return NamespacePermission.ALTER_NAMESPACE;
+      case CREATE_NAMESPACE:
+      case CREATE_USER:
+      case DROP_USER:
+      case ALTER_USER:
+      case SYSTEM:
+      default:
+        return null;
+    }
   }
 
 }

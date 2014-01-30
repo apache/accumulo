@@ -80,7 +80,7 @@ class CompactionDriver extends MasterRepo {
     this.startRow = startRow;
     this.endRow = endRow;
     Instance inst = HdfsZooInstance.getInstance();
-    this.namespaceId = Tables.getNamespace(inst, tableId);
+    this.namespaceId = Tables.getNamespaceId(inst, tableId);
   }
 
   @Override
@@ -294,7 +294,7 @@ public class CompactRange extends MasterRepo {
     this.startRow = startRow.length == 0 ? null : startRow;
     this.endRow = endRow.length == 0 ? null : endRow;
     Instance inst = HdfsZooInstance.getInstance();
-    this.namespaceId = Tables.getNamespace(inst, tableId);
+    this.namespaceId = Tables.getNamespaceId(inst, tableId);
 
     if (iterators.size() > 0) {
       this.iterators = WritableUtils.toByteArray(new CompactionIterators(this.startRow, this.endRow, iterators));

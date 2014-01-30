@@ -290,7 +290,7 @@ public class ExportTable extends MasterRepo {
     tableInfo.exportDir = exportDir;
     tableInfo.tableID = tableId;
     Instance inst = HdfsZooInstance.getInstance();
-    tableInfo.namespaceID = Tables.getNamespace(inst, tableId);
+    tableInfo.namespaceID = Tables.getNamespaceId(inst, tableId);
   }
   
   @Override

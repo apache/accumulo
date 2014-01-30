@@ -202,7 +202,7 @@ class ClonePermissions extends MasterRepo {
     for (TablePermission permission : TablePermission.values()) {
       try {
         AuditedSecurityOperation.getInstance().grantTablePermission(SystemCredentials.get().toThrift(environment.getInstance()), cloneInfo.user,
-            cloneInfo.tableId, permission);
+            cloneInfo.tableId, permission, cloneInfo.namespaceId);
       } catch (ThriftSecurityException e) {
         Logger.getLogger(FinishCloneTable.class).error(e.getMessage(), e);
         throw e;
@@ -222,7 +222,7 @@ class ClonePermissions extends MasterRepo {
 
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    AuditedSecurityOperation.getInstance().deleteTable(SystemCredentials.get().toThrift(environment.getInstance()), cloneInfo.tableId);
+    AuditedSecurityOperation.getInstance().deleteTable(SystemCredentials.get().toThrift(environment.getInstance()), cloneInfo.tableId, cloneInfo.namespaceId);
   }
 }
 
@@ -239,7 +239,7 @@ public class CloneTable extends MasterRepo {
     cloneInfo.propertiesToExclude = propertiesToExclude;
     cloneInfo.propertiesToSet = propertiesToSet;
     Instance inst = HdfsZooInstance.getInstance();
-    cloneInfo.srcNamespaceId = Tables.getNamespace(inst, cloneInfo.srcTableId);
+    cloneInfo.srcNamespaceId = Tables.getNamespaceId(inst, cloneInfo.srcTableId);
   }
 
   @Override

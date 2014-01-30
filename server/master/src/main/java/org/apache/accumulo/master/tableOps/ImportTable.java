@@ -34,7 +34,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperationsImpl;
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -495,7 +494,7 @@ class ImportSetupPermissions extends MasterRepo {
     SecurityOperation security = AuditedSecurityOperation.getInstance();
     for (TablePermission permission : TablePermission.values()) {
       try {
-        security.grantTablePermission(SystemCredentials.get().toThrift(env.getInstance()), tableInfo.user, tableInfo.tableId, permission);
+        security.grantTablePermission(SystemCredentials.get().toThrift(env.getInstance()), tableInfo.user, tableInfo.tableId, permission, tableInfo.namespaceId);
       } catch (ThriftSecurityException e) {
         Logger.getLogger(ImportSetupPermissions.class).error(e.getMessage(), e);
         throw e;
@@ -510,7 +509,7 @@ class ImportSetupPermissions extends MasterRepo {
 
   @Override
   public void undo(long tid, Master env) throws Exception {
-    AuditedSecurityOperation.getInstance().deleteTable(SystemCredentials.get().toThrift(env.getInstance()), tableInfo.tableId);
+    AuditedSecurityOperation.getInstance().deleteTable(SystemCredentials.get().toThrift(env.getInstance()), tableInfo.tableId, tableInfo.namespaceId);
   }
 }
 
@@ -519,13 +518,12 @@ public class ImportTable extends MasterRepo {
 
   private ImportedTableInfo tableInfo;
 
-  public ImportTable(String user, String tableName, String exportDir) throws NamespaceNotFoundException {
+  public ImportTable(String user, String tableName, String exportDir, String namespaceId) {
     tableInfo = new ImportedTableInfo();
     tableInfo.tableName = tableName;
     tableInfo.user = user;
     tableInfo.exportDir = exportDir;
-    Instance inst = HdfsZooInstance.getInstance();
-    tableInfo.namespaceId = Namespaces.getNamespaceId(inst, Tables.qualify(tableName).getFirst());
+    tableInfo.namespaceId = namespaceId;
   }
 
   @Override
