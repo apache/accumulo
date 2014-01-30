@@ -560,7 +560,7 @@ public class NamespacesIT extends SimpleMacIT {
     c.securityOperations().createLocalUser(u1, pass);
 
     Connector user1Con = c.getInstance().getConnector(u1, pass);
-
+    
     try {
       user1Con.tableOperations().create(t2);
       fail();
@@ -680,6 +680,7 @@ public class NamespacesIT extends SimpleMacIT {
     user1Con.namespaceOperations().create(n2);
     c.securityOperations().revokeSystemPermission(u1, SystemPermission.CREATE_NAMESPACE);
 
+    c.securityOperations().revokeNamespacePermission(u1, n2, NamespacePermission.DROP_NAMESPACE);
     try {
       user1Con.namespaceOperations().delete(n2);
       fail();

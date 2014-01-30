@@ -204,7 +204,7 @@ class CleanUp extends MasterRepo {
     
     // remove any permissions associated with this table
     try {
-      AuditedSecurityOperation.getInstance().deleteTable(SystemCredentials.get().toThrift(master.getInstance()), tableId);
+      AuditedSecurityOperation.getInstance().deleteTable(SystemCredentials.get().toThrift(master.getInstance()), tableId, namespaceId);
     } catch (ThriftSecurityException e) {
       log.error(e.getMessage(), e);
     }
@@ -233,7 +233,7 @@ public class DeleteTable extends MasterRepo {
   public DeleteTable(String tableId) {
     this.tableId = tableId;
     Instance inst = HdfsZooInstance.getInstance();
-    this.namespaceId = Tables.getNamespace(inst, tableId);
+    this.namespaceId = Tables.getNamespaceId(inst, tableId);
   }
   
   @Override

@@ -67,6 +67,7 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.CompressedIterators;
 import org.apache.accumulo.core.client.impl.CompressedIterators.IterConfig;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
+import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletType;
 import org.apache.accumulo.core.client.impl.Translator;
 import org.apache.accumulo.core.client.impl.Translator.TKeyExtentTranslator;
@@ -1181,7 +1182,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, boolean isolated,
         long readaheadThreshold) throws NotServingTabletException, ThriftSecurityException, org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException {
 
-      if (!security.canScan(credentials, new String(textent.getTable()), range, columns, ssiList, ssio, authorizations))
+      String tableId = new String(textent.getTable());
+      if (!security.canScan(credentials, tableId, Tables.getNamespaceId(instance, tableId), range, columns, ssiList, ssio, authorizations))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
       if (!security.userHasAuthorizations(credentials, authorizations))
@@ -1338,8 +1340,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         throw new IllegalArgumentException("Cannot batch scan over multiple tables");
 
       // check if user has permission to the tables
-      for (String table : tables)
-        if (!security.canScan(credentials, table, tbatch, tcolumns, ssiList, ssio, authorizations))
+      for (String tableId : tables)
+        if (!security.canScan(credentials, tableId, Tables.getNamespaceId(instance, tableId), tbatch, tcolumns, ssiList, ssio, authorizations))
           throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
       try {
@@ -1475,7 +1477,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         // if user has no permission to write to this table, add it to
         // the failures list
         boolean sameTable = us.currentTablet != null && (us.currentTablet.getExtent().getTableId().equals(keyExtent.getTableId()));
-        if (sameTable || security.canWrite(us.credentials, keyExtent.getTableId().toString())) {
+        String tableId = keyExtent.getTableId().toString();
+        if (sameTable || security.canWrite(us.credentials, tableId, Tables.getNamespaceId(instance, tableId))) {
           long t2 = System.currentTimeMillis();
           us.authTimes.addStat(t2 - t1);
           us.currentTablet = onlineTablets.get(keyExtent);
@@ -1739,7 +1742,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     public void update(TInfo tinfo, TCredentials credentials, TKeyExtent tkeyExtent, TMutation tmutation) throws NotServingTabletException,
         ConstraintViolationException, ThriftSecurityException {
 
-      if (!security.canWrite(credentials, new String(tkeyExtent.getTable())))
+      String tableId = new String(tkeyExtent.getTable());
+      if (!security.canWrite(credentials, tableId, Tables.getNamespaceId(instance, tableId)))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
       KeyExtent keyExtent = new KeyExtent(tkeyExtent);
       Tablet tablet = onlineTablets.get(new KeyExtent(keyExtent));
@@ -1997,11 +2001,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
 
     @Override
-    public TConditionalSession startConditionalUpdate(TInfo tinfo, TCredentials credentials, List<ByteBuffer> authorizations, String tableID)
+    public TConditionalSession startConditionalUpdate(TInfo tinfo, TCredentials credentials, List<ByteBuffer> authorizations, String tableId)
         throws ThriftSecurityException, TException {
 
       Authorizations userauths = null;
-      if (!security.canConditionallyUpdate(credentials, tableID, authorizations))
+      if (!security.canConditionallyUpdate(credentials, tableId, Tables.getNamespaceId(instance, tableId), authorizations))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
       userauths = security.getUserAuthorizations(credentials);
@@ -2012,7 +2016,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       ConditionalSession cs = new ConditionalSession();
       cs.auths = new Authorizations(authorizations);
       cs.credentials = credentials;
-      cs.tableId = tableID;
+      cs.tableId = tableId;
       cs.interruptFlag = new AtomicBoolean();
 
       long sid = sessionManager.createSession(cs, false);
@@ -2083,7 +2087,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         ThriftSecurityException {
 
       String tableId = new String(ByteBufferUtil.toBytes(tkeyExtent.table));
-      if (!security.canSplitTablet(credentials, tableId))
+      String namespaceId = Tables.getNamespaceId(instance, tableId);
+      
+      if (!security.canSplitTablet(credentials, tableId, namespaceId))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
       KeyExtent keyExtent = new KeyExtent(tkeyExtent);

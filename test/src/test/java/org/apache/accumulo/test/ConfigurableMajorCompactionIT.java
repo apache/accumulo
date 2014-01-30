@@ -74,7 +74,7 @@ public class ConfigurableMajorCompactionIT extends ConfigurableMacIT {
     }
   }
 
-  @Test(timeout = 20 * 1000)
+  @Test(timeout = 30 * 1000)
   public void test() throws Exception {
     Connector conn = getConnector();
     String tableName = "test";

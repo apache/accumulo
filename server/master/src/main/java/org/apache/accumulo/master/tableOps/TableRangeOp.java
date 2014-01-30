@@ -54,7 +54,7 @@ class TableRangeOpWait extends MasterRepo {
   public TableRangeOpWait(String tableId) {
     this.tableId = tableId;
     Instance inst = HdfsZooInstance.getInstance();
-    this.namespaceId = Tables.getNamespace(inst, tableId);
+    this.namespaceId = Tables.getNamespaceId(inst, tableId);
   }
 
   @Override
@@ -102,7 +102,7 @@ public class TableRangeOp extends MasterRepo {
     this.endRow = TextUtil.getBytes(endRow);
     this.op = op;
     Instance inst = HdfsZooInstance.getInstance();
-    this.namespaceId = Tables.getNamespace(inst, tableId);
+    this.namespaceId = Tables.getNamespaceId(inst, tableId);
   }
 
   @Override
