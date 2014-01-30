@@ -75,14 +75,13 @@ public class TableOp extends Test {
 
     switch (tp) {
       case READ: {
+        boolean canRead = WalkingSecurity.get(state).canScan(WalkingSecurity.get(state).getTabCredentials(), tableId);
         Authorizations auths = WalkingSecurity.get(state).getUserAuthorizations(WalkingSecurity.get(state).getTabCredentials());
         boolean ambiguousZone = WalkingSecurity.get(state).inAmbiguousZone(conn.whoami(), tp);
         boolean ambiguousAuths = WalkingSecurity.get(state).ambiguousAuthorizations(conn.whoami());
 
         Scanner scan = null;
-        boolean canRead = false;
         try {
-          canRead = WalkingSecurity.get(state).canScan(WalkingSecurity.get(state).getTabCredentials(), tableId);
           scan = conn.createScanner(tableName, conn.securityOperations().getUserAuthorizations(conn.whoami()));
           int seen = 0;
           Iterator<Entry<Key,Value>> iter = scan.iterator();

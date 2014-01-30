@@ -27,32 +27,30 @@ import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
-import org.apache.log4j.Logger;
 
 public class AlterTablePerm extends Test {
-  private static final Logger log = Logger.getLogger(AlterTablePerm.class);
-
+  
   @Override
   public void visit(State state, Properties props) throws Exception {
     alter(state, props);
   }
-
+  
   public static void alter(State state, Properties props) throws Exception {
     String action = props.getProperty("task", "toggle");
     String perm = props.getProperty("perm", "random");
     String sourceUserProp = props.getProperty("source", "system");
     String targetUser = props.getProperty("target", "table");
     boolean tabExists = WalkingSecurity.get(state).getTableExists();
-
+    
     String target;
     if ("table".equals(targetUser))
       target = WalkingSecurity.get(state).getTabUserName();
     else
       target = WalkingSecurity.get(state).getSysUserName();
-
+    
     boolean exists = WalkingSecurity.get(state).userExists(target);
     boolean tableExists = WalkingSecurity.get(state).getTableExists();
-
+    
     TablePermission tabPerm;
     if (perm.equals("random")) {
       Random r = new Random();
@@ -76,25 +74,10 @@ public class AlterTablePerm extends Test {
       sourceToken = state.getToken();
     }
     Connector conn = state.getInstance().getConnector(sourceUser, sourceToken);
-    String tableId = conn.tableOperations().tableIdMap().get(tableName);
-
-    // Make sure we get an ID when we can
-    if ((null == tableId && tableExists) || (null != tableId && !tableExists)) {
-      log.error("For table " + tableName + ": found table ID " + tableId + " and we " + (exists ? "expect" : "did not expect") + " it to exist");
-      throw new AccumuloException("Could not find table ID for " + tableName + " but it should have existed");
-    }
-
-    try {
-      canGive = WalkingSecurity.get(state).canGrantTable(new Credentials(sourceUser, sourceToken).toThrift(state.getInstance()), target, tableId);
-    } catch (Exception e) {
-      if (!tableExists) {
-        log.debug("Ignoring exception checking permission on non-existent table", e);
-        return;
-      }
-
-      throw e;
-    }
-
+    
+    canGive = WalkingSecurity.get(state).canGrantTable(new Credentials(sourceUser, sourceToken).toThrift(state.getInstance()), target,
+        WalkingSecurity.get(state).getTableName());
+    
     // toggle
     if (!"take".equals(action) && !"give".equals(action)) {
       try {
@@ -102,7 +85,7 @@ public class AlterTablePerm extends Test {
         if (hasPerm != (res = state.getConnector().securityOperations().hasTablePermission(target, tableName, tabPerm)))
           throw new AccumuloException("Test framework and accumulo are out of sync for user " + conn.whoami() + " for perm " + tabPerm.name()
               + " with local vs. accumulo being " + hasPerm + " " + res);
-
+        
         if (hasPerm)
           action = "take";
         else
@@ -124,7 +107,7 @@ public class AlterTablePerm extends Test {
         }
       }
     }
-
+    
     boolean trans = WalkingSecurity.get(state).userPassTransient(conn.whoami());
     if ("take".equals(action)) {
       try {
@@ -183,14 +166,14 @@ public class AlterTablePerm extends Test {
       }
       WalkingSecurity.get(state).grantTablePermission(target, tableName, tabPerm);
     }
-
+    
     if (!exists)
       throw new AccumuloException("User shouldn't have existed, but apparantly does");
     if (!tableExists)
       throw new AccumuloException("Table shouldn't have existed, but apparantly does");
     if (!canGive)
       throw new AccumuloException(conn.whoami() + " shouldn't have been able to grant privilege");
-
+    
   }
-
+  
 }
