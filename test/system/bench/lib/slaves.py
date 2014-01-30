@@ -24,7 +24,7 @@ from lib.path import accumulo
 from lib.options import log
 
 def slaveNames():
-    return [s.strip() for s in open(accumulo('conf', 'slaves'))]
+    return [s.strip() for s in open(accumuloConf('slaves'))]
 
 def runEach(commandMap):
     result = {}
