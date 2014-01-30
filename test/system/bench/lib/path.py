@@ -18,9 +18,16 @@ import os
 
 HERE = os.path.dirname(__file__)
 ACCUMULO_HOME = os.getenv('ACCUMULO_HOME')
+if not os.getenv('ACCUMULO_CONF_DIR'):
+  ACCUMULO_CONF_DIR = ACCUMULO_HOME+'/conf'
+else:
+  ACCUMULO_CONF_DIR = os.getenv('ACCUMULO_CONF_DIR')
 
 def accumulo(*args):
     return os.path.join(ACCUMULO_HOME, *args)
+
+def accumuloConf(*args):
+    return os.path.join(ACCUMULO_CONF_DIR, *args)
 
 def accumuloJar():
     import glob
