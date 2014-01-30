@@ -25,10 +25,11 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.util.StringUtil;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
+
+import com.google.common.base.Joiner;
 
 public class LogEntry {
   public KeyExtent extent;
@@ -104,7 +105,7 @@ public class LogEntry {
   }
   
   public Value getValue() {
-    return new Value((StringUtil.join(logSet, ";") + "|" + tabletId).getBytes());
+    return new Value((Joiner.on(";").join(logSet) + "|" + tabletId).getBytes());
   }
   
 }

@@ -43,7 +43,6 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.NumUtil;
-import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -53,6 +52,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 import com.beust.jcommander.Parameter;
+import com.google.common.base.Joiner;
 
 public class TableDiskUsage {
 
@@ -175,7 +175,7 @@ public class TableDiskUsage {
           }
           if (file.contains(":") && parts.length > 3) {
             List<String> base = Arrays.asList(Arrays.copyOf(parts, parts.length - 3));
-            nameSpacesReferenced.add(StringUtil.join(base, "/"));
+            nameSpacesReferenced.add(Joiner.on("/").join(base));
           }
         }
 

@@ -51,7 +51,6 @@ import org.apache.accumulo.core.security.crypto.DefaultCryptoModule;
 import org.apache.accumulo.core.security.crypto.NoFlushOutputStream;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.master.state.TServerInstance;
@@ -62,6 +61,8 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
+
+import com.google.common.base.Joiner;
 
 /**
  * Wrap a connection to a logger.
@@ -322,7 +323,7 @@ public class DfsLogger {
   
   public synchronized void open(String address) throws IOException {
     String filename = UUID.randomUUID().toString();
-    String logger = StringUtil.join(Arrays.asList(address.split(":")), "+");
+    String logger = Joiner.on("+").join(address.split(":"));
 
     log.debug("DfsLogger.open() begin");
     VolumeManager fs = conf.getFileSystem();
@@ -539,7 +540,7 @@ public class DfsLogger {
 
   public String getLogger() {
     String parts[] = logPath.split("/");
-    return StringUtil.join(Arrays.asList(parts[parts.length - 2].split("[+]")), ":");
+    return Joiner.on(":").join(parts[parts.length - 2].split("[+]"));
   }
   
 }

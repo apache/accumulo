@@ -35,12 +35,13 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SkippingIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.util.AddressUtil;
-import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
+
+import com.google.common.base.Joiner;
 
 public class TabletStateChangeIterator extends SkippingIterator {
   
@@ -161,13 +162,13 @@ public class TabletStateChangeIterator extends SkippingIterator {
       List<String> servers = new ArrayList<String>();
       for (TServerInstance server : goodServers)
         servers.add(server.toString());
-      cfg.addOption(SERVERS_OPTION, StringUtil.join(servers, ","));
+      cfg.addOption(SERVERS_OPTION, Joiner.on(",").join(servers));
     }
   }
   
   public static void setOnlineTables(IteratorSetting cfg, Set<String> onlineTables) {
     if (onlineTables != null)
-      cfg.addOption(TABLES_OPTION, StringUtil.join(onlineTables, ","));
+      cfg.addOption(TABLES_OPTION, Joiner.on(",").join(onlineTables));
   }
   
   public static void setMerges(IteratorSetting cfg, Collection<MergeInfo> merges) {

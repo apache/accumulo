@@ -35,7 +35,6 @@ import org.apache.accumulo.core.master.thrift.MasterState;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.util.AddressUtil;
-import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.util.Table;
 import org.apache.accumulo.monitor.util.TableRow;
@@ -47,6 +46,8 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.monitor.DedupedLogEvent;
 import org.apache.accumulo.server.monitor.LogService;
 import org.apache.log4j.Level;
+
+import com.google.common.base.Joiner;
 
 public class MasterServlet extends BasicServlet {
   
@@ -117,7 +118,7 @@ public class MasterServlet extends BasicServlet {
         sb.append("<span class='warning'>Master State: " + Monitor.getMmi().state.name() + " Goal: " + Monitor.getMmi().goalState.name() + "</span>\n");
       }
       if (Monitor.getMmi().serversShuttingDown != null && Monitor.getMmi().serversShuttingDown.size() > 0 && Monitor.getMmi().state == MasterState.NORMAL) {
-        sb.append("<span class='warning'>Servers being stopped: " + StringUtil.join(Monitor.getMmi().serversShuttingDown, ", ") + "</span>\n");
+        sb.append("<span class='warning'>Servers being stopped: " + Joiner.on(", ").join(Monitor.getMmi().serversShuttingDown) + "</span>\n");
       }
       
       int guessHighLoad = ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors();

@@ -17,12 +17,10 @@
 package org.apache.accumulo.minicluster.impl;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.util.PortUtils;

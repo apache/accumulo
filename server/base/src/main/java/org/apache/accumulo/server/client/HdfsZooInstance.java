@@ -36,7 +36,6 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.OpTimer;
-import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
@@ -46,6 +45,8 @@ import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+
+import com.google.common.base.Joiner;
 
 /**
  * An implementation of Instance that looks in HDFS and ZooKeeper to find the master and root tablet location.
@@ -186,6 +187,6 @@ public class HdfsZooInstance implements Instance {
     System.out.println("Instance Name: " + instance.getInstanceName());
     System.out.println("Instance ID: " + instance.getInstanceID());
     System.out.println("ZooKeepers: " + instance.getZooKeepers());
-    System.out.println("Masters: " + StringUtil.join(instance.getMasterLocations(), ", "));
+    System.out.println("Masters: " + Joiner.on(", ").join(instance.getMasterLocations()));
   }
 }

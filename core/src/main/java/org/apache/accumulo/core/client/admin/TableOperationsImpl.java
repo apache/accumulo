@@ -105,7 +105,6 @@ import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -119,6 +118,8 @@ import org.apache.log4j.Logger;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
+
+import com.google.common.base.Joiner;
 
 public class TableOperationsImpl extends TableOperationsHelper {
   private Instance instance;
@@ -1002,7 +1003,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
 
     try {
-      setProperty(tableName, Property.TABLE_LOCALITY_GROUPS.getKey(), StringUtil.join(groups.keySet(), ","));
+      setProperty(tableName, Property.TABLE_LOCALITY_GROUPS.getKey(), Joiner.on(",").join(groups.keySet()));
     } catch (AccumuloException e) {
       if (e.getCause() instanceof TableNotFoundException)
         throw (TableNotFoundException) e.getCause();

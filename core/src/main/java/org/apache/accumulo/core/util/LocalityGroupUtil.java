@@ -40,6 +40,8 @@ import org.apache.accumulo.core.data.thrift.TMutation;
 import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.hadoop.io.Text;
 
+import com.google.common.base.Joiner;
+
 public class LocalityGroupUtil {
   
   // private static final Logger log = Logger.getLogger(ColumnFamilySet.class);
@@ -157,7 +159,7 @@ public class LocalityGroupUtil {
       ecfs.add(ecf);
     }
     
-    return StringUtil.join(ecfs, ",");
+    return Joiner.on(",").join(ecfs);
   }
   
   public static String encodeColumnFamily(ByteSequence bs) {
