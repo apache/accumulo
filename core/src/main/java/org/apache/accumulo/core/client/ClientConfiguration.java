@@ -56,8 +56,7 @@ public class ClientConfiguration extends CompositeConfiguration {
     INSTANCE_ZK_HOST(Property.INSTANCE_ZK_HOST),
     INSTANCE_ZK_TIMEOUT(Property.INSTANCE_ZK_TIMEOUT),
     INSTANCE_NAME("instance.name", null, PropertyType.STRING, "Name of Accumulo instance to connect to"),
-    INSTANCE_ID("instance.id", null, PropertyType.STRING, "UUID of Accumulo instance to connect to"),
-    ;
+    INSTANCE_ID("instance.id", null, PropertyType.STRING, "UUID of Accumulo instance to connect to"), ;
 
     private String key;
     private String defaultValue;
@@ -114,10 +113,31 @@ public class ClientConfiguration extends CompositeConfiguration {
     this(Arrays.asList(configs));
   }
 
+  /**
+   * Attempts to load a configuration file from the system. Uses the "ACCUMULO_CLIENT_CONF_PATH" environment variable for a list of targets If not set, uses the
+   * following in this order- ~/.accumulo/config $ACCUMULO_CONF_DIR/client.conf -OR- $ACCUMULO_HOME/conf/client.conf (depending on whether $ACCUMULO_CONF_DIR is
+   * set) /etc/accumulo/client.conf
+   * 
+   * A client configuration will then be read from each location using PropertiesConfiguration to construct a configuration. That means the latest item will be
+   * the one in the configuration.
+   * 
+   * @return
+   * @see PropertiesConfiguration(String)
+   */
   public static ClientConfiguration loadDefault() {
     return loadFromSearchPath(getDefaultSearchPath());
   }
 
+  /**
+   * Attempts to load the overridePropertiesFilename using PropertiesConfiguration. Uses {@link #loadDefault()} if argument is null
+   * 
+   * @param overridePropertiesFilename
+   * @return
+   * @throws FileNotFoundException
+   * @throws ConfigurationException
+   * @see PropertiesConfiguration(String)
+   * @see #loadDefault()
+   */
   public static ClientConfiguration loadDefault(String overridePropertiesFilename) throws FileNotFoundException, ConfigurationException {
     if (overridePropertiesFilename == null)
       return loadDefault();
@@ -132,7 +152,7 @@ public class ClientConfiguration extends CompositeConfiguration {
         File conf = new File(path);
         if (conf.canRead()) {
           configs.add(new PropertiesConfiguration(conf));
-       }
+        }
       }
       return new ClientConfiguration(configs);
     } catch (ConfigurationException e) {
@@ -185,6 +205,12 @@ public class ClientConfiguration extends CompositeConfiguration {
     return writer.toString();
   }
 
+  /**
+   * Returns the value for prop, the default value if not present.
+   * 
+   * @param prop
+   * @return
+   */
   public String get(ClientProperty prop) {
     if (this.containsKey(prop.getKey()))
       return this.getString(prop.getKey());
@@ -192,47 +218,111 @@ public class ClientConfiguration extends CompositeConfiguration {
       return prop.getDefaultValue();
   }
 
+  /**
+   * Sets the value of property to value
+   * 
+   * @param prop
+   * @param value
+   */
   public void setProperty(ClientProperty prop, String value) {
     this.setProperty(prop.getKey(), value);
   }
 
+  /**
+   * Same as {@link #setProperty(ClientProperty, String)} but returns the ClientConfiguration for chaining purposes
+   * 
+   * @param prop
+   * @param value
+   * @return
+   */
   public ClientConfiguration with(ClientProperty prop, String value) {
     this.setProperty(prop.getKey(), value);
     return this;
   }
 
+  /**
+   * Same as {@link #with(ClientProperty, String)} for ClientProperty.INSTANCE_NAME
+   * 
+   * @param instanceName
+   * @return
+   */
   public ClientConfiguration withInstance(String instanceName) {
     ArgumentChecker.notNull(instanceName);
     return with(ClientProperty.INSTANCE_NAME, instanceName);
   }
 
+  /**
+   * Same as {@link #with(ClientProperty, String)} for ClientProperty.INSTANCE_ID
+   * 
+   * @param instanceId
+   * @return
+   */
   public ClientConfiguration withInstance(UUID instanceId) {
     ArgumentChecker.notNull(instanceId);
     return with(ClientProperty.INSTANCE_ID, instanceId.toString());
   }
 
+  /**
+   * Same as {@link #with(ClientProperty, String)} for ClientProperty.INSTANCE_ZK_HOST
+   * 
+   * @param zooKeepers
+   * @return
+   */
   public ClientConfiguration withZkHosts(String zooKeepers) {
     ArgumentChecker.notNull(zooKeepers);
     return with(ClientProperty.INSTANCE_ZK_HOST, zooKeepers);
   }
 
+  /**
+   * Same as {@link #with(ClientProperty, String)} for ClientProperty.INSTANCE_ZK_TIMEOUT
+   * 
+   * @param timeout
+   * @return
+   */
   public ClientConfiguration withZkTimeout(int timeout) {
     return with(ClientProperty.INSTANCE_ZK_TIMEOUT, String.valueOf(timeout));
   }
 
+  /**
+   * Same as {@link #withSsl(boolean, boolean)} with useJsseConfig set to false
+   * 
+   * @param sslEnabled
+   * @return
+   */
   public ClientConfiguration withSsl(boolean sslEnabled) {
     return withSsl(sslEnabled, false);
   }
 
+  /**
+   * Same as {@link #with(ClientProperty, String)} for ClientProperty.INSTANCE_RPC_SSL_ENABLED and ClientProperty.RPC_USE_JSSE
+   * 
+   * @param sslEnabled
+   * @param useJsseConfig
+   * @return
+   */
   public ClientConfiguration withSsl(boolean sslEnabled, boolean useJsseConfig) {
-    return with(ClientProperty.INSTANCE_RPC_SSL_ENABLED, String.valueOf(sslEnabled))
-        .with(ClientProperty.RPC_USE_JSSE, String.valueOf(useJsseConfig));
+    return with(ClientProperty.INSTANCE_RPC_SSL_ENABLED, String.valueOf(sslEnabled)).with(ClientProperty.RPC_USE_JSSE, String.valueOf(useJsseConfig));
   }
 
+  /**
+   * Same as {@link #withTruststore(String)} with password null and type null
+   * 
+   * @param path
+   * @return
+   */
   public ClientConfiguration withTruststore(String path) {
     return withTruststore(path, null, null);
   }
 
+  /**
+   * Same as {@link #with(ClientProperty, String)} for ClientProperty.RPC_SSL_TRUSTORE_PATH, ClientProperty.RPC_SSL_TRUSTORE_PASSWORD, and
+   * ClientProperty.RPC_SSL_TRUSTORE_TYPE
+   * 
+   * @param path
+   * @param password
+   * @param type
+   * @return
+   */
   public ClientConfiguration withTruststore(String path, String password, String type) {
     ArgumentChecker.notNull(path);
     setProperty(ClientProperty.RPC_SSL_TRUSTSTORE_PATH, path);
@@ -243,10 +333,25 @@ public class ClientConfiguration extends CompositeConfiguration {
     return this;
   }
 
+  /**
+   * Same as {@link #withKeystore(String, String, String)} with password null and type null
+   * 
+   * @param path
+   * @return
+   */
   public ClientConfiguration withKeystore(String path) {
     return withKeystore(path, null, null);
   }
 
+  /**
+   * Same as {@link #with(ClientProperty, String)} for ClientProperty.INSTANCE_RPC_SSL_CLIENT_AUTH, ClientProperty.RPC_SSL_KEYSTORE_PATH,
+   * ClientProperty.RPC_SSL_KEYSTORE_PASSWORD, and ClientProperty.RPC_SSL_KEYSTORE_TYPE
+   * 
+   * @param path
+   * @param password
+   * @param type
+   * @return
+   */
   public ClientConfiguration withKeystore(String path, String password, String type) {
     ArgumentChecker.notNull(path);
     setProperty(ClientProperty.INSTANCE_RPC_SSL_CLIENT_AUTH, "true");
