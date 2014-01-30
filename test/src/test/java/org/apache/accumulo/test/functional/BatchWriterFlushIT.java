@@ -42,7 +42,7 @@ public class BatchWriterFlushIT extends SimpleMacIT {
 
   private static final int NUM_TO_FLUSH = 100000;
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 60 * 1000)
   public void run() throws Exception {
     Connector c = getConnector();
     String[] tableNames = getTableNames(2);

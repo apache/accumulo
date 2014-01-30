@@ -230,7 +230,7 @@ public class ReadWriteIT extends ConfigurableMacIT {
     assertTrue(foundFile);
   }
   
-  @Test(timeout = 4 * 60 * 1000)
+  @Test(timeout = 5 * 60 * 1000)
   public void localityGroupChange() throws Exception {
     // Make changes to locality groups and ensure nothing is lostssh
     final Connector connector = getConnector();
