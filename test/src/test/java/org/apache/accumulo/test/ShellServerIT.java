@@ -978,21 +978,20 @@ public class ShellServerIT extends SimpleMacIT {
     // can copy properties when creating
     exec("createnamespace thing3 -cc thing2", true);
     exec("config -ns thing3", true, "44444", true);
-    exec("createnamespace thing4 -ctc thing2.thingy", true);
-    exec("config -ns thing4", true, "55555", true);
 
     exec("deletenamespace -f thing2", true);
     exec("namespaces", true, "thing2", false);
     exec("tables", true, "thing2.thingy", false);
 
     // put constraints on a namespace
-    exec("constraint -ns thing4 -a org.apache.accumulo.examples.simple.constraints.NumericValueConstraint", true);
-    exec("createtable thing4.constrained", true);
-    exec("table thing4.constrained", true);
+    exec("constraint -ns thing3 -a org.apache.accumulo.examples.simple.constraints.NumericValueConstraint", true);
+    exec("createtable thing3.constrained", true);
+    exec("table thing3.constrained", true);
+    exec("constraint -d 1");
     // should fail
-    exec("insert r cf cq abc", false);
     exec("constraint -l", true, "NumericValueConstraint", true);
-    exec("constraint -ns thing4 -d 2");
+    exec("insert r cf cq abc", false);
+    exec("constraint -ns thing3 -d 1");
     exec("sleep 1");
     exec("insert r cf cq abc", true);
   }
