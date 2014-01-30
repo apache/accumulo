@@ -183,7 +183,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   public void grantTablePermission(TInfo tinfo, TCredentials credentials, String user, String tableName, byte permission) throws ThriftSecurityException,
       ThriftTableOperationException {
     String tableId = checkTableId(instance, tableName, TableOperation.PERMISSION);
-    String namespaceId = Tables.getNamespace(instance, tableId); 
+    String namespaceId = Tables.getNamespaceId(instance, tableId); 
 
     security.grantTablePermission(credentials, user, tableId, TablePermission.getPermissionById(permission), namespaceId);
   }
@@ -204,7 +204,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   public void revokeTablePermission(TInfo tinfo, TCredentials credentials, String user, String tableName, byte permission) throws ThriftSecurityException,
       ThriftTableOperationException {
     String tableId = checkTableId(instance, tableName, TableOperation.PERMISSION);
-    String namespaceId = Tables.getNamespace(instance, tableId); 
+    String namespaceId = Tables.getNamespaceId(instance, tableId); 
 
     security.revokeTablePermission(credentials, user, tableId, TablePermission.getPermissionById(permission), namespaceId);
   }
@@ -405,7 +405,7 @@ public class ClientServiceHandler implements ClientService.Iface {
         // ensure that table table exists
         String tableId = checkTableId(instance, table, null);
         tableIds.add(tableId);
-        String namespaceId = Tables.getNamespace(instance, tableId);
+        String namespaceId = Tables.getNamespaceId(instance, tableId);
         if (!security.canScan(credentials, tableId, namespaceId))
           throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
       }

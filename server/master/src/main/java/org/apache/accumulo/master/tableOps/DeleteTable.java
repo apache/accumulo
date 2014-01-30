@@ -233,7 +233,7 @@ public class DeleteTable extends MasterRepo {
   public DeleteTable(String tableId) {
     this.tableId = tableId;
     Instance inst = HdfsZooInstance.getInstance();
-    this.namespaceId = Tables.getNamespace(inst, tableId);
+    this.namespaceId = Tables.getNamespaceId(inst, tableId);
   }
   
   @Override

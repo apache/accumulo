@@ -286,13 +286,13 @@ public class Tables {
   }
 
   /**
-   * Returns the namespace for a given table ID.
+   * Returns the namespace id for a given table ID.
    * @param instance The Accumulo Instance
    * @param tableId The tableId
-   * @return The namespace which this table resides in.
+   * @return The namespace id which this table resides in.
    * @throws IllegalArgumentException if the table doesn't exist in ZooKeeper
    */
-  public static String getNamespace(Instance instance, String tableId) throws IllegalArgumentException {
+  public static String getNamespaceId(Instance instance, String tableId) throws IllegalArgumentException {
     ArgumentChecker.notNull(instance, tableId);
     
     ZooCache zc = getZooCache(instance);

@@ -100,7 +100,7 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
 
   @Override
   public long initiateFlush(TInfo tinfo, TCredentials c, String tableId) throws ThriftSecurityException, ThriftTableOperationException {
-    String namespaceId = Tables.getNamespace(instance, tableId);
+    String namespaceId = Tables.getNamespaceId(instance, tableId);
     master.security.canFlush(c, tableId, namespaceId);
 
     String zTablePath = Constants.ZROOT + "/" + master.getConfiguration().getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId
@@ -129,7 +129,7 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
   @Override
   public void waitForFlush(TInfo tinfo, TCredentials c, String tableId, ByteBuffer startRow, ByteBuffer endRow, long flushID, long maxLoops)
       throws ThriftSecurityException, ThriftTableOperationException {
-    String namespaceId = Tables.getNamespace(instance, tableId);
+    String namespaceId = Tables.getNamespaceId(instance, tableId);
     master.security.canFlush(c, tableId, namespaceId);
 
     if (endRow != null && startRow != null && ByteBufferUtil.toText(startRow).compareTo(ByteBufferUtil.toText(endRow)) >= 0)
@@ -435,7 +435,7 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
   private void alterTableProperty(TCredentials c, String tableName, String property, String value, TableOperation op) throws ThriftSecurityException,
       ThriftTableOperationException {
     final String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, op);
-    String namespaceId = Tables.getNamespace(master.getInstance(), tableId); 
+    String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId); 
     if (!master.security.canAlterTable(c, tableId, namespaceId))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 

@@ -161,7 +161,7 @@ class FateServiceHandler implements FateService.Iface {
         });
 
         String tableId = ClientServiceHandler.checkTableId(master.getInstance(), oldTableName, tableOp);
-        String namespaceId = Tables.getNamespace(master.getInstance(), tableId);
+        String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
 
         if (!master.security.canRenameTable(c, tableId, oldTableName, newTableName, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
@@ -216,7 +216,7 @@ class FateServiceHandler implements FateService.Iface {
         String tableName = validateTableNameArgument(arguments.get(0), tableOp, Tables.NOT_SYSTEM);
 
         final String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp);
-        String namespaceId = Tables.getNamespace(master.getInstance(), tableId);
+        String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
 
         if (!master.security.canDeleteTable(c, tableId, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
@@ -226,7 +226,7 @@ class FateServiceHandler implements FateService.Iface {
       case TABLE_ONLINE: {
         TableOperation tableOp = TableOperation.ONLINE;
         final String tableId = validateTableIdArgument(arguments.get(0), tableOp, Tables.NOT_ROOT_ID);
-        String namespaceId = Tables.getNamespace(master.getInstance(), tableId);
+        String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
 
         if (!master.security.canOnlineOfflineTable(c, tableId, op, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
@@ -237,7 +237,7 @@ class FateServiceHandler implements FateService.Iface {
       case TABLE_OFFLINE: {
         TableOperation tableOp = TableOperation.OFFLINE;
         final String tableId = validateTableIdArgument(arguments.get(0), tableOp, Tables.NOT_ROOT_ID);
-        String namespaceId = Tables.getNamespace(master.getInstance(), tableId);
+        String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
 
         if (!master.security.canOnlineOfflineTable(c, tableId, op, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
@@ -252,7 +252,7 @@ class FateServiceHandler implements FateService.Iface {
         Text endRow = ByteBufferUtil.toText(arguments.get(2));
 
         final String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp);
-        String namespaceId = Tables.getNamespace(master.getInstance(), tableId);
+        String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
 
         if (!master.security.canMerge(c, tableId, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
@@ -268,7 +268,7 @@ class FateServiceHandler implements FateService.Iface {
         Text endRow = ByteBufferUtil.toText(arguments.get(2));
 
         final String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp);
-        String namespaceId = Tables.getNamespace(master.getInstance(), tableId);
+        String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
 
         if (!master.security.canDeleteRange(c, tableId, tableName, startRow, endRow, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
@@ -284,7 +284,7 @@ class FateServiceHandler implements FateService.Iface {
         boolean setTime = Boolean.parseBoolean(ByteBufferUtil.toString(arguments.get(3)));
 
         final String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp);
-        String namespaceId = Tables.getNamespace(master.getInstance(), tableId);
+        String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
         
         if (!master.security.canBulkImport(c, tableId, tableName, dir, failDir, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
@@ -298,7 +298,7 @@ class FateServiceHandler implements FateService.Iface {
         byte[] startRow = ByteBufferUtil.toBytes(arguments.get(1));
         byte[] endRow = ByteBufferUtil.toBytes(arguments.get(2));
         List<IteratorSetting> iterators = IteratorUtil.decodeIteratorSettings(ByteBufferUtil.toBytes(arguments.get(3)));
-        String namespaceId = Tables.getNamespace(master.getInstance(), tableId);
+        String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
 
         if (!master.security.canCompact(c, tableId, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
@@ -309,7 +309,7 @@ class FateServiceHandler implements FateService.Iface {
       case TABLE_CANCEL_COMPACT: {
         TableOperation tableOp = TableOperation.COMPACT_CANCEL;
         String tableId = validateTableIdArgument(arguments.get(0), tableOp, null);
-        String namespaceId = Tables.getNamespace(master.getInstance(), tableId);
+        String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
 
         if (!master.security.canCompact(c, tableId, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
@@ -340,7 +340,7 @@ class FateServiceHandler implements FateService.Iface {
         String exportDir = ByteBufferUtil.toString(arguments.get(1));
 
         String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp);
-        String namespaceId = Tables.getNamespace(master.getInstance(), tableId);
+        String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
         
         if (!master.security.canExport(c, tableId, tableName, exportDir, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);

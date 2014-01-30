@@ -239,7 +239,7 @@ public class CloneTable extends MasterRepo {
     cloneInfo.propertiesToExclude = propertiesToExclude;
     cloneInfo.propertiesToSet = propertiesToSet;
     Instance inst = HdfsZooInstance.getInstance();
-    cloneInfo.srcNamespaceId = Tables.getNamespace(inst, cloneInfo.srcTableId);
+    cloneInfo.srcNamespaceId = Tables.getNamespaceId(inst, cloneInfo.srcTableId);
   }
 
   @Override

@@ -1183,7 +1183,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         long readaheadThreshold) throws NotServingTabletException, ThriftSecurityException, org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException {
 
       String tableId = new String(textent.getTable());
-      if (!security.canScan(credentials, tableId, Tables.getNamespace(instance, tableId), range, columns, ssiList, ssio, authorizations))
+      if (!security.canScan(credentials, tableId, Tables.getNamespaceId(instance, tableId), range, columns, ssiList, ssio, authorizations))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
       if (!security.userHasAuthorizations(credentials, authorizations))
@@ -1341,7 +1341,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
       // check if user has permission to the tables
       for (String tableId : tables)
-        if (!security.canScan(credentials, tableId, Tables.getNamespace(instance, tableId), tbatch, tcolumns, ssiList, ssio, authorizations))
+        if (!security.canScan(credentials, tableId, Tables.getNamespaceId(instance, tableId), tbatch, tcolumns, ssiList, ssio, authorizations))
           throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
       try {
@@ -1478,7 +1478,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         // the failures list
         boolean sameTable = us.currentTablet != null && (us.currentTablet.getExtent().getTableId().equals(keyExtent.getTableId()));
         String tableId = keyExtent.getTableId().toString();
-        if (sameTable || security.canWrite(us.credentials, tableId, Tables.getNamespace(instance, tableId))) {
+        if (sameTable || security.canWrite(us.credentials, tableId, Tables.getNamespaceId(instance, tableId))) {
           long t2 = System.currentTimeMillis();
           us.authTimes.addStat(t2 - t1);
           us.currentTablet = onlineTablets.get(keyExtent);
@@ -1743,7 +1743,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         ConstraintViolationException, ThriftSecurityException {
 
       String tableId = new String(tkeyExtent.getTable());
-      if (!security.canWrite(credentials, tableId, Tables.getNamespace(instance, tableId)))
+      if (!security.canWrite(credentials, tableId, Tables.getNamespaceId(instance, tableId)))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
       KeyExtent keyExtent = new KeyExtent(tkeyExtent);
       Tablet tablet = onlineTablets.get(new KeyExtent(keyExtent));
@@ -2005,7 +2005,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         throws ThriftSecurityException, TException {
 
       Authorizations userauths = null;
-      if (!security.canConditionallyUpdate(credentials, tableId, Tables.getNamespace(instance, tableId), authorizations))
+      if (!security.canConditionallyUpdate(credentials, tableId, Tables.getNamespaceId(instance, tableId), authorizations))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
       userauths = security.getUserAuthorizations(credentials);
@@ -2087,7 +2087,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         ThriftSecurityException {
 
       String tableId = new String(ByteBufferUtil.toBytes(tkeyExtent.table));
-      String namespaceId = Tables.getNamespace(instance, tableId);
+      String namespaceId = Tables.getNamespaceId(instance, tableId);
       
       if (!security.canSplitTablet(credentials, tableId, namespaceId))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
