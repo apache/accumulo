@@ -88,6 +88,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
     if (instance == null || instance.state != state) {
       instance = new WalkingSecurity(state);
       state.set(tableExists, Boolean.toString(false));
+      state.set(namespaceExists, Boolean.toString(false));
       state.set(authsMap, new HashMap<String,Integer>());
     }
 
@@ -342,6 +343,10 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
 
   public boolean getTableExists() {
     return Boolean.parseBoolean(state.getString(tableExists));
+  }
+
+  public boolean getNamespaceExists() {
+    return Boolean.parseBoolean(state.getString(namespaceExists));
   }
 
   public TCredentials getSysCredentials() {

@@ -87,6 +87,13 @@ public class SecurityFixture extends Fixture {
       conn.tableOperations().delete(secTableName);
     }
     
+    if (WalkingSecurity.get(state).getNamespaceExists()) {
+      String secNamespaceName = WalkingSecurity.get(state).getNamespaceName();
+      log.debug("Dropping namespace: " + secNamespaceName);
+      
+      conn.namespaceOperations().delete(secNamespaceName);
+    }
+    
     if (WalkingSecurity.get(state).userExists(WalkingSecurity.get(state).getTabUserName())) {
       String tableUserName = WalkingSecurity.get(state).getTabUserName();
       log.debug("Dropping user: " + tableUserName);
