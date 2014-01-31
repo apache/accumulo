@@ -134,7 +134,7 @@ public class ExamplesIT extends AbstractMacIT {
     return cluster.getConfig().getDir().getAbsolutePath();
   }
 
-  @Test(timeout = 15 * 1000)
+  @Test(timeout = 45 * 1000)
   public void testTrace() throws Exception {
     Process trace = exec(TraceServer.class);
     while (!c.tableOperations().exists("trace"))
@@ -161,7 +161,7 @@ public class ExamplesIT extends AbstractMacIT {
     return cluster.exec(class1);
   }
 
-  @Test(timeout = 45 * 1000)
+  @Test(timeout = 90 * 1000)
   public void testDirList() throws Exception {
     goodExec(Ingest.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--dirTable", "dirTable", "--indexTable", "indexTable", "--dataTable",
         "dataTable", "--vis", visibility, "--chunkSize", 10000 + "", cluster.getConfig().getDir().getAbsolutePath());
@@ -193,7 +193,7 @@ public class ExamplesIT extends AbstractMacIT {
     assertEquals(0, count);
   }
 
-  @Test(timeout = 20 * 1000)
+  @Test(timeout = 50 * 1000)
   public void testBloomFilters() throws Exception {
     c.tableOperations().create("bloom_test");
     c.tableOperations().setProperty("bloom_test", Property.TABLE_BLOOM_ENABLED.getKey(), "true");
@@ -217,7 +217,7 @@ public class ExamplesIT extends AbstractMacIT {
     assertTrue(diff2 < diff);
   }
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Test(timeout = 3 * 60 * 1000)
   public void testShardedIndex() throws Exception {
     c.tableOperations().create("shard");
     c.tableOperations().create("doc2term");
@@ -242,7 +242,7 @@ public class ExamplesIT extends AbstractMacIT {
         "5", "--count", "1000");
   }
 
-  @Test(timeout = 2 * 1000)
+  @Test(timeout = 10 * 1000)
   public void testMaxMutationConstraint() throws Exception {
     c.tableOperations().create("test_ingest");
     c.tableOperations().addConstraint("test_ingest", MaxMutationSize.class.getName());
@@ -256,7 +256,7 @@ public class ExamplesIT extends AbstractMacIT {
     }
   }
 
-  @Test(timeout = 20 * 1000)
+  @Test(timeout = 60 * 1000)
   public void testBulkIngest() throws Exception {
     goodExec(GenerateTestData.class, "--start-row", "0", "--count", "10000", "--output", dir + "/tmp/input/data");
     goodExec(SetupTable.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", "bulkTable");
@@ -264,7 +264,7 @@ public class ExamplesIT extends AbstractMacIT {
         "--workDir", dir + "/tmp");
   }
 
-  @Test(timeout = 1 * 60 * 1000)
+  @Test(timeout = 2 * 60 * 1000)
   public void testTeraSortAndRead() throws Exception {
     String sorted = "sorted";
     goodExec(TeraSortIngest.class, "--count", (1000 * 1000) + "", "-nk", "10", "-xk", "10", "-nv", "10", "-xv", "10", "-t", sorted, "-i", instance, "-z",
@@ -274,7 +274,7 @@ public class ExamplesIT extends AbstractMacIT {
     goodExec(TableToFile.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", sorted, "--output", dir + "/tmp/tableFile");
   }
 
-  @Test(timeout = 10 * 1000)
+  @Test(timeout = 30 * 1000)
   public void testWordCount() throws Exception {
     c.tableOperations().create("wordCount");
     is = new IteratorSetting(10, SummingCombiner.class);
@@ -292,22 +292,22 @@ public class ExamplesIT extends AbstractMacIT {
     goodExec(ReadData.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", helloBatch);
   }
 
-  @Test(timeout = 90 * 1000)
+  @Test(timeout = 5 * 60 * 1000)
   public void testIsolatedScansWithInterference() throws Exception {
     goodExec(InterferenceTest.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", "itest1", "--iterations", "100000", "--isolated");
   }
 
-  @Test(timeout = 75 * 1000)
+  @Test(timeout = 3 * 60 * 1000)
   public void testScansWithInterference() throws Exception {
     goodExec(InterferenceTest.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", "itest2", "--iterations", "100000");
   }
 
-  @Test(timeout = 5 * 1000)
+  @Test(timeout = 20 * 1000)
   public void testRowOperations() throws Exception {
     goodExec(RowOperations.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd);
   }
 
-  @Test(timeout = 6 * 1000)
+  @Test(timeout = 15 * 1000)
   public void testBatchWriter() throws Exception {
     c.tableOperations().create("test");
     goodExec(SequentialBatchWriter.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", "test", "--start", "0", "--num", "100000", "--size",
@@ -315,7 +315,7 @@ public class ExamplesIT extends AbstractMacIT {
 
   }
 
-  @Test(timeout = 12 * 1000)
+  @Test(timeout = 45 * 1000)
   public void testReadWriteAndDelete() throws Exception {
     String test2 = "test2";
     goodExec(ReadWriteExample.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--auths", auths, "--table", test2, "--createtable", "-c",
@@ -324,7 +324,7 @@ public class ExamplesIT extends AbstractMacIT {
 
   }
 
-  @Test(timeout = 20 * 1000)
+  @Test(timeout = 50 * 1000)
   public void testRandomBatchesAndFlush() throws Exception {
     String test3 = "test3";
     c.tableOperations().create(test3);

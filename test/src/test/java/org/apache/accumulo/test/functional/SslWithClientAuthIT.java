@@ -58,7 +58,7 @@ public class SslWithClientAuthIT extends SslIT {
   }
 
   @Override
-  @Test(timeout = 120000)
+  @Test(timeout = 4 * 60 * 1000)
   public void bulk() throws Exception {
     super.bulk();
   }

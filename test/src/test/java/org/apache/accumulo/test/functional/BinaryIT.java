@@ -28,14 +28,14 @@ import org.junit.Test;
 
 public class BinaryIT extends ConfigurableMacIT {
 
-  @Test(timeout = 60 * 1000)
+  @Test(timeout = 90 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("bt");
     runTest(c);
   }
 
-  @Test(timeout = 60 * 1000)
+  @Test(timeout = 90 * 1000)
   public void testPreSplit() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("bt");
