@@ -65,7 +65,7 @@ public abstract class AbstractMacIT {
     return testDir;
   }
 
-  protected File createTestDir(String name) {
+  protected static File createTestDir(String name) {
     File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
     baseDir.mkdirs();
     if (name == null)
