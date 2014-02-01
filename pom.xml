@@ -810,6 +810,7 @@
         <artifactId>findbugs-maven-plugin</artifactId>
         <version>2.5.2</version>
         <configuration>
+          <excludeFilterFile>contrib/findbugs-exclude.xml</excludeFilterFile>
           <findbugsXmlOutput>true</findbugsXmlOutput>
           <findbugsXmlWithMessages>true</findbugsXmlWithMessages>
           <xmlOutput>true</xmlOutput>
