@@ -148,7 +148,7 @@ public class RestartIT extends ConfigurableMacIT {
     assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
   }
 
-  @Test(timeout = 10 * 60 * 1000)
+  @Test(timeout = 8 * 60 * 1000)
   public void shutdownDuringCompactingSplitting() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");

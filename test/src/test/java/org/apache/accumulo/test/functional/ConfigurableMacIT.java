@@ -46,7 +46,7 @@ public class ConfigurableMacIT extends AbstractMacIT {
     cfg.setNativeLibPaths(NativeMapIT.nativeMapLocation().getAbsolutePath());
     configure(cfg);
     cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.TRUE.toString());
-    configureForEnvironment(cfg, getClass(), createSharedTestDir(this.getClass().getName() + "-ssl"));
+    configureForEnvironment(cfg, getClass());
     cluster = new MiniAccumuloClusterImpl(cfg);
     cluster.start();
   }

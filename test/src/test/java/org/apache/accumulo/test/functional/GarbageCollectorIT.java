@@ -119,7 +119,7 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
 
     // restart GC
     getCluster().start();
-    UtilWaitThread.sleep(10 * 1000);
+    UtilWaitThread.sleep(15 * 1000);
     int after = countFiles();
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
     assertTrue(after < before);

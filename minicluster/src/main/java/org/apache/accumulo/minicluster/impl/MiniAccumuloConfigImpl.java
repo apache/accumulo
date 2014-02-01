@@ -85,8 +85,10 @@ public class MiniAccumuloConfigImpl {
     if (this.getDir().exists() && !this.getDir().isDirectory())
       throw new IllegalArgumentException("Must pass in directory, " + this.getDir() + " is a file");
 
-    if (this.getDir().exists() && this.getDir().list().length != 0)
-      throw new IllegalArgumentException("Directory " + this.getDir() + " is not empty");
+    String[] dirList;
+    if (this.getDir().exists() && (dirList = this.getDir().list()).length != 0)
+      if (!(dirList.length == 1 && dirList[0].equals("ssl")))
+        throw new IllegalArgumentException("Directory " + this.getDir() + " is not empty");
 
     if (!initialized) {
       libDir = new File(dir, "lib");
@@ -371,7 +373,7 @@ public class MiniAccumuloConfigImpl {
   public File getClientConfFile() {
     return new File(getConfDir(), "client.conf");
   }
-  
+
   /**
    * sets system properties set for service processes
    * 
