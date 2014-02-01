@@ -85,20 +85,20 @@ public abstract class AbstractMacIT {
     return names;
   }
 
-  protected static void configureForEnvironment(MiniAccumuloConfigImpl cfg, Class<?> testClass, File folder) {
+  protected static void configureForEnvironment(MiniAccumuloConfigImpl cfg, Class<?> testClass) {
     if ("true".equals(System.getProperty("org.apache.accumulo.test.functional.useSslForIT"))) {
-      configureForSsl(cfg, folder);
+      configureForSsl(cfg);
     }
   }
 
-  protected static void configureForSsl(MiniAccumuloConfigImpl cfg, File folder) {
+  protected static void configureForSsl(MiniAccumuloConfigImpl cfg) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     if ("true".equals(siteConfig.get(Property.INSTANCE_RPC_SSL_ENABLED.getKey()))) {
       // already enabled; don't mess with it
       return;
     }
 
-    File sslDir = new File(folder, "ssl");
+    File sslDir = new File(cfg.getDir(), "ssl");
     sslDir.mkdirs();
     File rootKeystoreFile = new File(sslDir, "root-" + cfg.getInstanceName() + ".jks");
     File localKeystoreFile = new File(sslDir, "local-" + cfg.getInstanceName() + ".jks");

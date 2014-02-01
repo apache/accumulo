@@ -30,7 +30,7 @@ public class SslIT extends ConfigurableMacIT {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg) {
     super.configure(cfg);
-    configureForSsl(cfg, createSharedTestDir(this.getClass().getName() + "-ssl"));
+    configureForSsl(cfg);
   }
 
   @Test(timeout = 60 * 1000)
@@ -51,7 +51,7 @@ public class SslIT extends ConfigurableMacIT {
 
   @Test(timeout = 5 * 60 * 1000)
   public void bulk() throws Exception {
-    BulkIT.runTest(getConnector(), getTableNames(1)[0], this.getClass().getName());
+    BulkIT.runTest(getConnector(), getTableNames(1)[0], this.getClass().getName(), cluster.getConfig().getDir());
   }
 
   @Test(timeout = 60 * 1000)
