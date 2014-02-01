@@ -39,10 +39,10 @@ public class BulkIT extends SimpleMacIT {
 
   @Test(timeout = 4 * 60 * 1000)
   public void test() throws Exception {
-    runTest(getConnector(), getTableNames(1)[0]);
+    runTest(getConnector(), getTableNames(1)[0], this.getClass().getName());
   }
 
-  static void runTest(Connector c, String tableName) throws AccumuloException, AccumuloSecurityException, TableExistsException, IOException, TableNotFoundException,
+  static void runTest(Connector c, String tableName, String filePrefix) throws AccumuloException, AccumuloSecurityException, TableExistsException, IOException, TableNotFoundException,
       MutationsRejectedException {
     c.tableOperations().create(tableName);
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
@@ -57,12 +57,13 @@ public class BulkIT extends SimpleMacIT {
     opts.instance = c.getInstance().getInstanceName();
     opts.cols = 1;
     opts.tableName = tableName;
+    String fileFormat = "/testrf/"+filePrefix+"rf%02d";
     for (int i = 0; i < COUNT; i++) {
-      opts.outputFile = base + String.format("/testrf/rf%02d", i);
+      opts.outputFile = base + String.format(fileFormat, i);
       opts.startRow = N * i;
       TestIngest.ingest(c, opts, BWOPTS);
     }
-    opts.outputFile = base + String.format("/testrf/rf%02d", N);
+    opts.outputFile = base + String.format(fileFormat, N);
     opts.startRow = N;
     opts.rows = 1;
     // create an rfile with one entry, there was a bug with this:
