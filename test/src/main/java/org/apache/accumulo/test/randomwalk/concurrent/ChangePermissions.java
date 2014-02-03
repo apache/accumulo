@@ -66,9 +66,9 @@ public class ChangePermissions extends Test {
     } catch (AccumuloException ex) {
       Throwable cause = ex.getCause();
       if (cause != null && cause instanceof ThriftTableOperationException) {
-        ThriftTableOperationException toe = (ThriftTableOperationException)cause.getCause();
+        ThriftTableOperationException toe = (ThriftTableOperationException)cause;
         if (toe.type == TableOperationExceptionType.NAMESPACE_NOTFOUND) {
-          log.debug("Unable to change user permissions: " + toe.getCause());
+          log.debug("Unable to change user permissions: " + toe);
           return;
         }
       }
