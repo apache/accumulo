@@ -47,6 +47,7 @@ public class MiniAccumuloConfigImpl {
   private String instanceName = "miniInstance";
 
   private File libDir;
+  private File libExtDir;
   private File confDir;
   private File zooKeeperDir;
   private File accumuloDir;
@@ -92,17 +93,12 @@ public class MiniAccumuloConfigImpl {
 
     if (!initialized) {
       libDir = new File(dir, "lib");
+      libExtDir = new File(libDir, "ext");
       confDir = new File(dir, "conf");
       accumuloDir = new File(dir, "accumulo");
       zooKeeperDir = new File(dir, "zookeeper");
       logDir = new File(dir, "logs");
       walogDir = new File(dir, "walogs");
-
-      String[] paths = {"$ACCUMULO_HOME/lib/.*.jar", "$ZOOKEEPER_HOME/zookeeper[^.].*.jar", "$HADOOP_PREFIX/[^.].*.jar", "$HADOOP_PREFIX/lib/[^.].*.jar",
-          "$HADOOP_PREFIX/share/hadoop/common/.*.jar", "$HADOOP_PREFIX/share/hadoop/common/lib/.*.jar", "$HADOOP_PREFIX/share/hadoop/hdfs/.*.jar",
-          "$HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar"};
-
-      String classpath = StringUtil.join(Arrays.asList(paths), ",");
 
       mergeProp(Property.INSTANCE_DFS_URI.getKey(), "file:///");
       mergeProp(Property.INSTANCE_DFS_DIR.getKey(), accumuloDir.getAbsolutePath());
@@ -117,8 +113,8 @@ public class MiniAccumuloConfigImpl {
       mergeProp(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + ".password", getRootPassword());
       // since there is a small amount of memory, check more frequently for majc... setting may not be needed in 1.5
       mergeProp(Property.TSERV_MAJC_DELAY.getKey(), "3");
-      mergeProp(Property.GENERAL_CLASSPATHS.getKey(), classpath);
-      mergeProp(Property.GENERAL_DYNAMIC_CLASSPATHS.getKey(), libDir.getAbsolutePath() + "/[^.].*[.]jar");
+      mergeProp(Property.GENERAL_CLASSPATHS.getKey(), libDir.getAbsolutePath() + "/[^.].*[.]jar");
+      mergeProp(Property.GENERAL_DYNAMIC_CLASSPATHS.getKey(), libExtDir.getAbsolutePath() + "/[^.].*[.]jar");
       mergeProp(Property.GC_CYCLE_DELAY.getKey(), "4s");
       mergeProp(Property.GC_CYCLE_START.getKey(), "0s");
       mergePropWithRandomPort(Property.MASTER_CLIENTPORT.getKey());
@@ -263,6 +259,10 @@ public class MiniAccumuloConfigImpl {
 
   File getLibDir() {
     return libDir;
+  }
+
+  File getLibExtDir() {
+    return libExtDir;
   }
 
   public File getConfDir() {
