@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.client;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.Arrays;
@@ -109,6 +108,13 @@ public class ClientConfiguration extends CompositeConfiguration {
     super(configs);
   }
 
+  /**
+   * Iterates through the Configuration objects, populating this object.
+   * 
+   * @see PropertiesConfiguration
+   * @see #loadDefault()
+   */
+
   public ClientConfiguration(Configuration... configs) {
     this(Arrays.asList(configs));
   }
@@ -126,23 +132,6 @@ public class ClientConfiguration extends CompositeConfiguration {
    */
   public static ClientConfiguration loadDefault() {
     return loadFromSearchPath(getDefaultSearchPath());
-  }
-
-  /**
-   * Attempts to load the overridePropertiesFilename as a configuration file using PropertiesConfiguration. Uses {@link #loadDefault()} if argument is null
-   * 
-   * @throws FileNotFoundException
-   *           Cannot find overridePropertiesFilename
-   * @throws ConfigurationException
-   *           Error while loading the properties file
-   * @see PropertiesConfiguration
-   * @see #loadDefault()
-   */
-  public static ClientConfiguration loadDefault(String overridePropertiesFilename) throws FileNotFoundException, ConfigurationException {
-    if (overridePropertiesFilename == null)
-      return loadDefault();
-    else
-      return new ClientConfiguration(new PropertiesConfiguration(overridePropertiesFilename));
   }
 
   private static ClientConfiguration loadFromSearchPath(List<String> paths) {
