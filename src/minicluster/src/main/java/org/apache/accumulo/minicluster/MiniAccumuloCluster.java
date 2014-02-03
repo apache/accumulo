@@ -106,6 +106,7 @@ public class MiniAccumuloCluster {
   }
   
   private File libDir;
+  private File libExtDir;
   private File confDir;
   private File zooKeeperDir;
   private File accumuloDir;
@@ -206,6 +207,7 @@ public class MiniAccumuloCluster {
     this.config = config;
     
     libDir = new File(config.getDir(), "lib");
+    libExtDir = new File(libDir, "ext");
     confDir = new File(config.getDir(), "conf");
     accumuloDir = new File(config.getDir(), "accumulo");
     zooKeeperDir = new File(config.getDir(), "zookeeper");
@@ -218,6 +220,10 @@ public class MiniAccumuloCluster {
     logDir.mkdirs();
     walogDir.mkdirs();
     libDir.mkdirs();
+    
+    // Avoid the classloader yelling that the general.dynamic.classpaths value is invalid because
+    // $ACCUMULO_HOME/lib/ext isn't defined.
+    libExtDir.mkdirs();
     
     zooKeeperPort = PortUtils.getRandomFreePort();
     
@@ -250,12 +256,14 @@ public class MiniAccumuloCluster {
     
     // since there is a small amount of memory, check more frequently for majc... setting may not be needed in 1.5
     appendProp(fileWriter, Property.TSERV_MAJC_DELAY, "3", siteConfig);
-    String cp = System.getenv("ACCUMULO_HOME") + "/lib/.*.jar," + "$ZOOKEEPER_HOME/zookeeper[^.].*.jar," + "$HADOOP_HOME/[^.].*.jar,"
-        + "$HADOOP_HOME/lib/[^.].*.jar," + "$HADOOP_PREFIX/share/hadoop/common/.*.jar," + "$HADOOP_PREFIX/share/hadoop/common/lib/.*.jar,"
-        + "$HADOOP_PREFIX/share/hadoop/hdfs/.*.jar," + "$HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar";
-    appendProp(fileWriter, Property.GENERAL_CLASSPATHS, cp, siteConfig);
-    appendProp(fileWriter, Property.GENERAL_DYNAMIC_CLASSPATHS, libDir.getAbsolutePath(), siteConfig);
     
+    // ACCUMULO-1472 -- Use the classpath, not what might be installed on the system.
+    // We have to set *something* here, otherwise the AccumuloClassLoader will default to pulling from 
+    // environment variables (e.g. ACCUMULO_HOME, HADOOP_HOME/PREFIX) which will result in multiple copies
+    // of artifacts on the classpath as they'll be provided by the invoking application
+    appendProp(fileWriter, Property.GENERAL_CLASSPATHS, libDir.getAbsolutePath() + "/[^.].*.jar", siteConfig);
+    appendProp(fileWriter, Property.GENERAL_DYNAMIC_CLASSPATHS, libExtDir.getAbsolutePath() + "/[^.].*.jar", siteConfig);
+
     for (Entry<String,String> entry : siteConfig.entrySet())
       fileWriter.append("<property><name>" + entry.getKey() + "</name><value>" + entry.getValue() + "</value></property>\n");
     fileWriter.append("</configuration>\n");
