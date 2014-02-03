@@ -150,7 +150,7 @@ class FateServiceHandler implements FateService.Iface {
           public boolean isValid(String argument) {
             // verify they are in the same namespace
             String oldNamespace = Tables.qualify(oldTableName).getFirst();
-            return oldNamespace.equals(Tables.qualify(argument, oldNamespace).getFirst());
+            return oldNamespace.equals(Tables.qualify(argument).getFirst());
           }
 
           @Override
@@ -160,7 +160,7 @@ class FateServiceHandler implements FateService.Iface {
 
         });
 
-        String tableId = ClientServiceHandler.checkTableId(master.getInstance(), oldTableName, tableOp);
+        String tableId = ClientServiceHandler.checkTableId(master.getInstance(), oldTableName, tableOp, true);
         String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
 
         if (!master.security.canRenameTable(c, tableId, oldTableName, newTableName, namespaceId))
@@ -215,7 +215,7 @@ class FateServiceHandler implements FateService.Iface {
         TableOperation tableOp = TableOperation.DELETE;
         String tableName = validateTableNameArgument(arguments.get(0), tableOp, Tables.NOT_SYSTEM);
 
-        final String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp);
+        final String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp, true);
         String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
 
         if (!master.security.canDeleteTable(c, tableId, namespaceId))
@@ -251,7 +251,7 @@ class FateServiceHandler implements FateService.Iface {
         Text startRow = ByteBufferUtil.toText(arguments.get(1));
         Text endRow = ByteBufferUtil.toText(arguments.get(2));
 
-        final String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp);
+        final String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp, true);
         String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
 
         if (!master.security.canMerge(c, tableId, namespaceId))
@@ -267,7 +267,7 @@ class FateServiceHandler implements FateService.Iface {
         Text startRow = ByteBufferUtil.toText(arguments.get(1));
         Text endRow = ByteBufferUtil.toText(arguments.get(2));
 
-        final String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp);
+        final String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp, true);
         String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
 
         if (!master.security.canDeleteRange(c, tableId, tableName, startRow, endRow, namespaceId))
@@ -283,7 +283,7 @@ class FateServiceHandler implements FateService.Iface {
         String failDir = ByteBufferUtil.toString(arguments.get(2));
         boolean setTime = Boolean.parseBoolean(ByteBufferUtil.toString(arguments.get(3)));
 
-        final String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp);
+        final String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp, true);
         String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
         
         if (!master.security.canBulkImport(c, tableId, tableName, dir, failDir, namespaceId))
@@ -339,7 +339,7 @@ class FateServiceHandler implements FateService.Iface {
         String tableName = validateTableNameArgument(arguments.get(0), tableOp, Tables.NOT_SYSTEM);
         String exportDir = ByteBufferUtil.toString(arguments.get(1));
 
-        String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp);
+        String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp, true);
         String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
         
         if (!master.security.canExport(c, tableId, tableName, exportDir, namespaceId))

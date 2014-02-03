@@ -434,7 +434,7 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
 
   private void alterTableProperty(TCredentials c, String tableName, String property, String value, TableOperation op) throws ThriftSecurityException,
       ThriftTableOperationException {
-    final String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, op);
+    final String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, op, false);
     String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId); 
     if (!master.security.canAlterTable(c, tableId, namespaceId))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
@@ -447,7 +447,7 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
       }
     } catch (KeeperException.NoNodeException e) {
       // race condition... table no longer exists? This call will throw an exception if the table was deleted:
-      ClientServiceHandler.checkTableId(master.getInstance(), tableName, op);
+      ClientServiceHandler.checkTableId(master.getInstance(), tableName, op, true);
       log.info("Error altering table property", e);
       throw new ThriftTableOperationException(tableId, tableName, op, TableOperationExceptionType.OTHER, "Problem altering table property");
     } catch (Exception e) {
