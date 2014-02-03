@@ -150,7 +150,7 @@ class FateServiceHandler implements FateService.Iface {
           public boolean isValid(String argument) {
             // verify they are in the same namespace
             String oldNamespace = Tables.qualify(oldTableName).getFirst();
-            return oldNamespace.equals(Tables.qualify(argument, oldNamespace).getFirst());
+            return oldNamespace.equals(Tables.qualify(argument).getFirst());
           }
 
           @Override
