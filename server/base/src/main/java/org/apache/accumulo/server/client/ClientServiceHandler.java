@@ -80,12 +80,15 @@ public class ClientServiceHandler implements ClientService.Iface {
     this.fs = fs;
   }
 
-  public static String checkTableId(Instance instance, String tableName, TableOperation operation) throws ThriftTableOperationException {
+  public static String checkTableId(Instance instance, String tableName, TableOperation operation, boolean allowNamespaceNotFound) throws ThriftTableOperationException {
     TableOperationExceptionType reason = null;
     try {
       return Tables._getTableId(instance, tableName);
     } catch (NamespaceNotFoundException e) {
-      reason = TableOperationExceptionType.NAMESPACE_NOTFOUND;
+      if (allowNamespaceNotFound)
+        reason = TableOperationExceptionType.NAMESPACE_NOTFOUND;
+      else
+        reason = TableOperationExceptionType.NOTFOUND;
     } catch (TableNotFoundException e) {
       reason = TableOperationExceptionType.NOTFOUND;
     }
@@ -182,7 +185,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   @Override
   public void grantTablePermission(TInfo tinfo, TCredentials credentials, String user, String tableName, byte permission) throws ThriftSecurityException,
       ThriftTableOperationException {
-    String tableId = checkTableId(instance, tableName, TableOperation.PERMISSION);
+    String tableId = checkTableId(instance, tableName, TableOperation.PERMISSION, false);
     String namespaceId = Tables.getNamespaceId(instance, tableId); 
 
     security.grantTablePermission(credentials, user, tableId, TablePermission.getPermissionById(permission), namespaceId);
@@ -203,7 +206,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   @Override
   public void revokeTablePermission(TInfo tinfo, TCredentials credentials, String user, String tableName, byte permission) throws ThriftSecurityException,
       ThriftTableOperationException {
-    String tableId = checkTableId(instance, tableName, TableOperation.PERMISSION);
+    String tableId = checkTableId(instance, tableName, TableOperation.PERMISSION, false);
     String namespaceId = Tables.getNamespaceId(instance, tableId); 
 
     security.revokeTablePermission(credentials, user, tableId, TablePermission.getPermissionById(permission), namespaceId);
@@ -217,7 +220,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   @Override
   public boolean hasTablePermission(TInfo tinfo, TCredentials credentials, String user, String tableName, byte tblPerm) throws ThriftSecurityException,
       ThriftTableOperationException {
-    String tableId = checkTableId(instance, tableName, TableOperation.PERMISSION);
+    String tableId = checkTableId(instance, tableName, TableOperation.PERMISSION, false);
     return security.hasTablePermission(credentials, user, tableId, TablePermission.getPermissionById(tblPerm));
   }
 
@@ -268,7 +271,7 @@ public class ClientServiceHandler implements ClientService.Iface {
 
   @Override
   public Map<String,String> getTableConfiguration(TInfo tinfo, TCredentials credentials, String tableName) throws TException, ThriftTableOperationException {
-    String tableId = checkTableId(instance, tableName, null);
+    String tableId = checkTableId(instance, tableName, null, true);
     AccumuloConfiguration config = ServerConfiguration.getTableConfiguration(instance, tableId);
     return conf(credentials, config);
   }
@@ -331,7 +334,7 @@ public class ClientServiceHandler implements ClientService.Iface {
 
     security.authenticateUser(credentials, credentials);
 
-    String tableId = checkTableId(instance, tableName, null);
+    String tableId = checkTableId(instance, tableName, null, true);
 
     ClassLoader loader = getClass().getClassLoader();
     Class<?> shouldMatch;
@@ -403,7 +406,7 @@ public class ClientServiceHandler implements ClientService.Iface {
 
       for (String table : tables) {
         // ensure that table table exists
-        String tableId = checkTableId(instance, table, null);
+        String tableId = checkTableId(instance, table, null, true);
         tableIds.add(tableId);
         String namespaceId = Tables.getNamespaceId(instance, tableId);
         if (!security.canScan(credentials, tableId, namespaceId))

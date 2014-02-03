@@ -528,13 +528,6 @@ public class NamespacesIT extends SimpleMacIT {
     assertFalse(c.tableOperations().exists(t2));
     assertTrue(c.tableOperations().exists(t3));
     assertFalse(c.tableOperations().exists(t4));
-
-    // unqualified rename
-    c.tableOperations().rename(t3, Tables.qualify(t4).getSecond());
-    assertFalse(c.tableOperations().exists(t1));
-    assertFalse(c.tableOperations().exists(t2));
-    assertFalse(c.tableOperations().exists(t3));
-    assertTrue(c.tableOperations().exists(t4));
   }
 
   /**
@@ -871,8 +864,7 @@ public class NamespacesIT extends SimpleMacIT {
         }
       } catch (Exception e) {
         numRun++;
-        if (!(e instanceof AccumuloException) || !(e.getCause() instanceof TableNotFoundException)
-            || !(e.getCause().getCause() instanceof NamespaceNotFoundException))
+        if (!(e instanceof TableNotFoundException || (e instanceof AccumuloException && e.getCause() instanceof TableNotFoundException)))
           throw new Exception("Case " + i + " resulted in " + e.getClass().getName(), e);
       }
 
@@ -976,7 +968,7 @@ public class NamespacesIT extends SimpleMacIT {
         }
       } catch (Exception e) {
         numRun++;
-        if (!(e instanceof TableNotFoundException) || !(e.getCause() instanceof NamespaceNotFoundException))
+        if (!(e instanceof TableNotFoundException) && !(e.getCause() instanceof NamespaceNotFoundException))
           throw new Exception("Case " + i + " resulted in " + e.getClass().getName(), e);
       }
   }
