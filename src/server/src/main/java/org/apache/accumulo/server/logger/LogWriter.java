@@ -287,7 +287,7 @@ class LogWriter implements MutationLogger.Iface {
 
         FileSystem local = TraceFileSystem.wrap(FileSystem.getLocal(fs.getConf()).getRaw());
         Path dest = new Path(fullyQualifiedFileName + ".recovered");
-        log.debug("Sorting log file to DSF " + dest);
+        log.debug("Sorting log file to DFS " + dest);
         fs.mkdirs(dest);
         int part = 0;
 
@@ -325,7 +325,7 @@ class LogWriter implements MutationLogger.Iface {
 
       private void writeSortedEntries(Path dest, int part, final List<Pair<LogFileKey,LogFileValue>> kv) throws IOException {
         String path = dest + String.format("/part-r-%05d", part);
-        log.debug("Writing partial log file to DSF " + path);
+        log.debug("Writing partial log file to DFS " + path);
         log.debug("Sorting");
         Span span = Trace.start("Logger sort");
         span.data("logfile", dest.getName());
@@ -353,7 +353,7 @@ class LogWriter implements MutationLogger.Iface {
 
       private void copyLog(final String localLog, final String fullyQualifiedFileName) throws IOException {
         Path dest = new Path(fullyQualifiedFileName + ".copy");
-        log.debug("Copying log file to DSF " + dest);
+        log.debug("Copying log file to DFS " + dest);
         fs.delete(dest, true);
         LogFileKey key = new LogFileKey();
         LogFileValue value = new LogFileValue();

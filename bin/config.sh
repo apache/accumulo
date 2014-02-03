@@ -28,7 +28,7 @@
 #  HADOOP_HOME        Home dir for hadoop.
 #  MONITOR            Machine to run monitor daemon on. Used by start-here.sh script
 #
-# Iff ACCUMULO_VERIFY_ONLY is not set, this script will
+# If and only if ACCUMULO_VERIFY_ONLY is not set, this script will
 #   * Check for standalone mode (lack of masters and slaves files)
 #     - Do appropriate set up
 #   * Ensure the existence of ACCUMULO_LOG_DIR on the current host
