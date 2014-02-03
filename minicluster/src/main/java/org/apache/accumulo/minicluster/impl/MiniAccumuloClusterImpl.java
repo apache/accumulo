@@ -324,6 +324,7 @@ public class MiniAccumuloClusterImpl {
     config.getLogDir().mkdirs();
     config.getWalogDir().mkdirs();
     config.getLibDir().mkdirs();
+    config.getLibExtDir().mkdirs();
 
     if (config.useMiniDFS()) {
       File nn = new File(config.getAccumuloDir(), "nn");
