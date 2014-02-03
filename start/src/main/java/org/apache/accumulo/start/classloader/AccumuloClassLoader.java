@@ -55,7 +55,12 @@ public class AccumuloClassLoader {
           "$HADOOP_PREFIX/share/hadoop/common/.*.jar,\n" +
           "$HADOOP_PREFIX/share/hadoop/common/lib/.*.jar,\n" +
           "$HADOOP_PREFIX/share/hadoop/hdfs/.*.jar,\n" +
-          "$HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar,\n"
+          "$HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar,\n" +
+          "/usr/lib/hadoop/[^.].*.jar,\n" +
+          "/usr/lib/hadoop/lib/[^.].*.jar,\n" +
+          "/usr/lib/hadoop-hdfs/[^.].*.jar,\n" +
+          "/usr/lib/hadoop-mapreduce/[^.].*.jar,\n" +
+          "/usr/lib/hadoop-yarn/[^.].*.jar,\n"
           ;
   
   private static String SITE_CONF;
