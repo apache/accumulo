@@ -3667,7 +3667,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     logger.minorCompactionStarted(tablet, lastUpdateSequence, newMapfileLocation);
   }
 
-  public void recover(VolumeManager fs, Tablet tablet, List<LogEntry> logEntries, Set<String> tabletFiles, MutationReceiver mutationReceiver)
+  public void recover(VolumeManager fs, KeyExtent extent, TableConfiguration tconf, List<LogEntry> logEntries, Set<String> tabletFiles, MutationReceiver mutationReceiver)
       throws IOException {
     List<Path> recoveryLogs = new ArrayList<Path>();
     List<LogEntry> sorted = new ArrayList<LogEntry>(logEntries);
@@ -3689,10 +3689,10 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         }
       }
       if (recovery == null)
-        throw new IOException("Unable to find recovery files for extent " + tablet.getExtent() + " logEntry: " + entry);
+        throw new IOException("Unable to find recovery files for extent " + extent + " logEntry: " + entry);
       recoveryLogs.add(recovery);
     }
-    logger.recover(fs, tablet, recoveryLogs, tabletFiles, mutationReceiver);
+    logger.recover(fs, extent, tconf, recoveryLogs, tabletFiles, mutationReceiver);
   }
 
   private final AtomicInteger logIdGenerator = new AtomicInteger();

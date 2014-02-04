@@ -34,6 +34,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.tserver.Tablet;
 import org.apache.accumulo.tserver.Tablet.CommitSession;
@@ -76,12 +77,12 @@ public class TabletServerLogger {
   
   private final AtomicInteger seqGen = new AtomicInteger();
   
-  private static boolean enabled(Tablet tablet) {
-    return tablet.getTableConfiguration().getBoolean(Property.TABLE_WALOG_ENABLED);
+  private static boolean enabled(TableConfiguration tconf) {
+    return tconf.getBoolean(Property.TABLE_WALOG_ENABLED);
   }
   
   private static boolean enabled(CommitSession commitSession) {
-    return enabled(commitSession.getTablet());
+    return enabled(commitSession.getTablet().getTableConfiguration());
   }
   
   static private abstract class TestCallWithWriteLock {
@@ -415,12 +416,11 @@ public class TabletServerLogger {
     return seq;
   }
   
-  public void recover(VolumeManager fs, Tablet tablet, List<Path> logs, Set<String> tabletFiles, MutationReceiver mr) throws IOException {
-    if (!enabled(tablet))
+  public void recover(VolumeManager fs, KeyExtent extent, TableConfiguration tconf, List<Path> logs, Set<String> tabletFiles, MutationReceiver mr) throws IOException {
+    if (!enabled(tconf))
       return;
     try {
       SortedLogRecovery recovery = new SortedLogRecovery(fs);
-      KeyExtent extent = tablet.getExtent();
       recovery.recover(extent, logs, tabletFiles, mr);
     } catch (Exception e) {
       throw new IOException(e);
