@@ -1,5 +1,3 @@
-#! /usr/bin/env bash
-
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -14,12 +12,4 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-# This script will regenerate the thrift code for accumulo-trace.
-INCLUDED_MODULES=(-)
-BASE_OUTPUT_PACKAGE='org.apache.accumulo'
-PACKAGES_TO_GENERATE=(proxy)
-LANGUAGES_TO_GENERATE=(cpp java rb py)
-
-. ../core/src/main/scripts/generate-thrift.sh
-
+__all__ = ['ttypes', 'constants', 'AccumuloProxy']

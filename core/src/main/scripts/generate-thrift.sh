@@ -31,7 +31,8 @@
 [ -z $BASE_OUTPUT_PACKAGE ]     && BASE_OUTPUT_PACKAGE='org.apache.accumulo.core'
 [ -z $PACKAGES_TO_GENERATE ]    && PACKAGES_TO_GENERATE=(gc master tabletserver security client.impl data)
 [ -z $BUILD_DIR ]               && BUILD_DIR='target'
-[ -z $FINAL_DIR ]               && FINAL_DIR='src/main/java'
+[ -z $LANGUAGES_TO_GENERATE ]   && LANGUAGES_TO_GENERATE=(java)
+[ -z $FINAL_DIR ]               && FINAL_DIR='src/main'
 # ========================================================================================================================
 
 fail() {
@@ -73,37 +74,101 @@ done
 # For all generated thrift code, suppress all warnings and add the LICENSE header
 find $BUILD_DIR/gen-java -name '*.java' -print0 | xargs -0 sed -i.orig -e 's/public class /@SuppressWarnings("all") public class /'
 find $BUILD_DIR/gen-java -name '*.java' -print0 | xargs -0 sed -i.orig -e 's/public enum /@SuppressWarnings("all") public enum /'
-for f in $(find $BUILD_DIR/gen-java -name '*.java'); do
-  cat - $f >${f}-with-license <<EOF
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+
+for lang in "${LANGUAGES_TO_GENERATE[@]}"; do
+  case $lang in
+    cpp)
+      PREFIX="/*
+"
+      LINE_NOTATION=" *"
+      SUFFIX="
+ */"
+      FILE_SUFFIX=(.h .cpp)
+      ;;
+    java)
+      PREFIX="/*
+"
+      LINE_NOTATION=" *"
+      SUFFIX="
+ */"
+      FILE_SUFFIX=(.java)
+      ;;
+    rb)
+      PREFIX=""
+      LINE_NOTATION="#"
+      SUFFIX=""
+      FILE_SUFFIX=(.rb)
+      ;;
+    py)
+      PREFIX=""
+      LINE_NOTATION="#"
+      SUFFIX=""
+      FILE_SUFFIX=(.py -remote)
+      ;;
+    *)
+      continue
+      ;;
+  esac
+  
+  for file in ${FILE_SUFFIX[@]}; do
+    for f in $(find $BUILD_DIR/gen-$lang -name "*$file"); do
+      cat - $f >${f}-with-license <<EOF
+${PREFIX}${LINE_NOTATION} Licensed to the Apache Software Foundation (ASF) under one or more
+${LINE_NOTATION} contributor license agreements.  See the NOTICE file distributed with
+${LINE_NOTATION} this work for additional information regarding copyright ownership.
+${LINE_NOTATION} The ASF licenses this file to You under the Apache License, Version 2.0
+${LINE_NOTATION} (the "License"); you may not use this file except in compliance with
+${LINE_NOTATION} the License.  You may obtain a copy of the License at
+${LINE_NOTATION}
+${LINE_NOTATION}     http://www.apache.org/licenses/LICENSE-2.0
+${LINE_NOTATION}
+${LINE_NOTATION} Unless required by applicable law or agreed to in writing, software
+${LINE_NOTATION} distributed under the License is distributed on an "AS IS" BASIS,
+${LINE_NOTATION} WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+${LINE_NOTATION} See the License for the specific language governing permissions and
+${LINE_NOTATION} limitations under the License.${SUFFIX}
 EOF
+    done
+  done
 done
 
 # For every generated java file, compare it with the version-controlled one, and copy the ones that have changed into place
 for d in "${PACKAGES_TO_GENERATE[@]}"; do
-  SDIR="${BUILD_DIR}/gen-java/${BASE_OUTPUT_PACKAGE//.//}/${d//.//}/thrift"
-  DDIR="${FINAL_DIR}/${BASE_OUTPUT_PACKAGE//.//}/${d//.//}/thrift"
-  mkdir -p "$DDIR"
-  for f in "$SDIR"/*.java; do
-    DEST="$DDIR/`basename $f`"
-    if ! cmp -s "${f}-with-license" "${DEST}" ; then
-      echo cp -f "${f}-with-license" "${DEST}" 
-      cp -f "${f}-with-license" "${DEST}" || fail unable to copy files to java workspace
-    fi
+  for lang in "${LANGUAGES_TO_GENERATE[@]}"; do
+    case $lang in
+      cpp)
+        SDIR="${BUILD_DIR}/gen-$lang/"
+        DDIR="${FINAL_DIR}/cpp/"
+        FILE_SUFFIX=(.h .cpp)
+        ;;
+      java)
+        SDIR="${BUILD_DIR}/gen-$lang/${BASE_OUTPUT_PACKAGE//.//}/${d//.//}/thrift"
+        DDIR="${FINAL_DIR}/java/${BASE_OUTPUT_PACKAGE//.//}/${d//.//}/thrift"
+        FILE_SUFFIX=(.java)
+        ;;
+      rb)
+        SDIR="${BUILD_DIR}/gen-$lang/"
+        DDIR="${FINAL_DIR}/ruby/"
+        FILE_SUFFIX=(.rb)
+        ;;
+      py)
+        SDIR="${BUILD_DIR}/gen-$lang/accumulo"
+        DDIR="${FINAL_DIR}/python/"
+        FILE_SUFFIX=(.py -remote)
+        ;;
+      *)
+        continue
+        ;;
+    esac
+    mkdir -p "$DDIR"
+    for file in ${FILE_SUFFIX[@]}; do
+      for f in `find $SDIR -name *$file`; do
+        DEST="$DDIR/`basename $f`"
+        if ! cmp -s "${f}-with-license" "${DEST}" ; then
+          echo cp -f "${f}-with-license" "${DEST}" 
+          cp -f "${f}-with-license" "${DEST}" || fail unable to copy files to java workspace
+        fi
+      done
+    done
   done
 done
