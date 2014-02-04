@@ -56,7 +56,7 @@ public class ClassLoaderIT extends SimpleMacIT {
     bw.close();
     scanCheck(c, tableName, "Test");
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    Path jarPath = new Path(rootPath() + "/lib/Test.jar");
+    Path jarPath = new Path(rootPath() + "/lib/ext/Test.jar");
     fs.copyFromLocalFile(new Path(System.getProperty("user.dir") + "/src/test/resources/TestCombinerX.jar"), jarPath);
     UtilWaitThread.sleep(1000);
     IteratorSetting is = new IteratorSetting(10, "TestCombiner", "org.apache.accumulo.test.functional.TestCombiner");
