@@ -17,12 +17,16 @@
 package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
@@ -54,6 +58,7 @@ import org.apache.accumulo.examples.simple.client.RowOperations;
 import org.apache.accumulo.examples.simple.client.SequentialBatchWriter;
 import org.apache.accumulo.examples.simple.client.TraceDumpExample;
 import org.apache.accumulo.examples.simple.client.TracingExample;
+import org.apache.accumulo.examples.simple.combiner.StatsCombiner;
 import org.apache.accumulo.examples.simple.constraints.MaxMutationSize;
 import org.apache.accumulo.examples.simple.dirlist.Ingest;
 import org.apache.accumulo.examples.simple.dirlist.QueryUtil;
@@ -77,6 +82,7 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl.LogWriter;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.start.Main;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.tracer.TraceServer;
 import org.apache.hadoop.fs.FileSystem;
@@ -157,6 +163,31 @@ public class ExamplesIT extends AbstractMacIT {
     trace.destroy();
   }
 
+  @Test(timeout = 20 * 1000)
+  public void testClasspath() throws Exception {
+    Process p = cluster.exec(Main.class, Collections.singletonList(MapReduceIT.hadoopTmpDirArg), "classpath");
+    BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
+    String line;
+    boolean stage1 = false, stage2=false, stage3=false, stage4=false;
+    while ((line = br.readLine()) != null && !line.contains("Level 1"));
+    stage1 = true;
+    
+    while ((line = br.readLine()) != null && !line.contains("Level 2"));
+    stage2 = true;
+
+    while ((line = br.readLine()) != null && !line.contains("Level 3"));
+    stage3 = true;
+
+    while ((line = br.readLine()) != null && !line.contains("Level 4"));
+    stage4 = true;
+
+    assertTrue("Level 1 classloader not present.", stage1);
+    assertTrue("Level 2 classloader not present.", stage2);
+    assertTrue("Level 3 classloader not present.", stage3);
+    assertTrue("Level 4 classloader not present.", stage4);
+    assertEquals(0, p.waitFor());
+  }
+
   private Process exec(Class<TraceServer> class1) throws IOException {
     return cluster.exec(class1);
   }
@@ -185,12 +216,47 @@ public class ExamplesIT extends AbstractMacIT {
     Mutation m = new Mutation("foo");
     m.put("a", "b", "c");
     bw.addMutation(m);
+    bw.close();
     UtilWaitThread.sleep(1000);
     int count = 0;
     for (@SuppressWarnings("unused")
     Entry<Key,Value> line : c.createScanner("filtertest", Authorizations.EMPTY))
       count++;
     assertEquals(0, count);
+  }
+
+  @Test(timeout = 60 * 1000)
+  public void testStatsCombiner() throws Exception {
+    String table = "statscombinertest";
+    c.tableOperations().create(table);
+    is = new IteratorSetting(10, StatsCombiner.class);
+    StatsCombiner.setCombineAllColumns(is, true);
+
+    c.tableOperations().attachIterator(table, is);
+    bw = c.createBatchWriter(table, bwc);
+    Mutation m = new Mutation("foo");
+    m.put("a", "b", "1");
+    m.put("a", "b", "3");
+    bw.addMutation(m);
+    bw.flush();
+
+    
+    Iterator<Entry<Key, Value>> iter = c.createScanner(table, Authorizations.EMPTY).iterator();
+    assertTrue("Iterator had no results", iter.hasNext());
+    Entry<Key, Value> e = iter.next();
+    assertEquals("Results ", "1,3,4,2", e.getValue().toString());
+    assertFalse("Iterator had additional results", iter.hasNext());
+    
+    m = new Mutation("foo");
+    m.put("a", "b", "0,20,20,2");
+    bw.addMutation(m);
+    bw.close();
+    
+    iter = c.createScanner(table, Authorizations.EMPTY).iterator();
+    assertTrue("Iterator had no results", iter.hasNext());
+    e = iter.next();
+    assertEquals("Results ", "0,20,24,4", e.getValue().toString());
+    assertFalse("Iterator had additional results", iter.hasNext());
   }
 
   @Test(timeout = 90 * 1000)
