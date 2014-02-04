@@ -90,7 +90,6 @@
     <module>server/native</module>
     <module>server/tracer</module>
     <module>server/tserver</module>
-    <module>server/extras</module>
   </modules>
   <scm>
     <connection>scm:git:git://git.apache.org/accumulo.git</connection>
@@ -344,18 +343,6 @@
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-server-base</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-server-extras</artifactId>
-        <version>${project.version}</version>
-        <classifier>el6</classifier>
-        <type>rpm</type>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-server-extras</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
