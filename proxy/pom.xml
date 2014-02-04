@@ -160,11 +160,11 @@
                           </includes>
                         </source>
                         <source>
-                          <location>target</location>
+                          <location>src/main</location>
                           <includes>
-                            <include>gen-cpp/**</include>
-                            <include>gen-py/**</include>
-                            <include>gen-rb/**</include>
+                            <include>cpp/**</include>
+                            <include>python/**</include>
+                            <include>ruby/**</include>
                           </includes>
                         </source>
                       </sources>
