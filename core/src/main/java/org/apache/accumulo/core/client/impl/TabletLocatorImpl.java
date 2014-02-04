@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -57,8 +58,10 @@ public class TabletLocatorImpl extends TabletLocator {
   // putting null, put MAX_TEXT
   static final Text MAX_TEXT = new Text();
   
-  private static class EndRowComparator implements Comparator<Text> {
+  private static class EndRowComparator implements Comparator<Text>, Serializable {
     
+    private static final long serialVersionUID = 1L;
+
     public int compare(Text o1, Text o2) {
       
       int ret;

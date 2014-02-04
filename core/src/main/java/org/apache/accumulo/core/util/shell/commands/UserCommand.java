@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -43,7 +44,7 @@ public class UserCommand extends Command {
       shellState.getReader().printNewline();
       return 0;
     } // user canceled
-    pass = p.getBytes();
+    pass = p.getBytes(Constants.UTF8);
     shellState.updateUser(user, new PasswordToken(pass));
     return 0;
   }

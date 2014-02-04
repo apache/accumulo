@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -120,7 +121,7 @@ public class BulkInsert extends Test {
       log.debug("Bulk inserting document " + docID);
     }
     
-    state.set("nextDocID", new Long(nextDocID));
+    state.set("nextDocID", Long.valueOf(nextDocID));
     
     dataWriter.close();
     indexWriter.close();
@@ -161,13 +162,13 @@ public class BulkInsert extends Test {
   
   private void sort(State state, FileSystem fs, String tableName, String seqFile, String outputDir, String workDir, int maxSplits) throws Exception {
     
-    PrintStream out = new PrintStream(new BufferedOutputStream(fs.create(new Path(workDir + "/splits.txt"))));
+    PrintStream out = new PrintStream(new BufferedOutputStream(fs.create(new Path(workDir + "/splits.txt"))), false, Constants.UTF8.name());
     
     Connector conn = state.getConnector();
     
     Collection<Text> splits = conn.tableOperations().listSplits(tableName, maxSplits);
     for (Text split : splits)
-      out.println(new String(Base64.encodeBase64(TextUtil.getBytes(split))));
+      out.println(new String(Base64.encodeBase64(TextUtil.getBytes(split)), Constants.UTF8));
     
     out.close();
     

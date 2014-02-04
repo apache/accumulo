@@ -17,8 +17,6 @@
 package org.apache.accumulo.trace.instrument;
 
 import org.junit.Assert;
-
-import org.apache.accumulo.trace.instrument.CountSampler;
 import org.junit.Test;
 
 public class CountSamplerTest {

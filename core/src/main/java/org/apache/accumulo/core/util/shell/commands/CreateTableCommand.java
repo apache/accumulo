@@ -51,7 +51,6 @@ public class CreateTableCommand extends Command {
   private Option createTableOptEVC;
   private Option base64Opt;
   private Option createTableOptFormatter;
-  public static String testTable;
   
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, TableExistsException,
       TableNotFoundException, IOException, ClassNotFoundException {
@@ -74,12 +73,12 @@ public class CreateTableCommand extends Command {
       final String f = cl.getOptionValue(createTableOptSplit.getOpt());
       
       String line;
-      Scanner file = new Scanner(new File(f));
+      Scanner file = new Scanner(new File(f), Constants.UTF8.name());
       try {
         while (file.hasNextLine()) {
           line = file.nextLine();
           if (!line.isEmpty())
-            partitions.add(decode ? new Text(Base64.decodeBase64(line.getBytes())) : new Text(line));
+            partitions.add(decode ? new Text(Base64.decodeBase64(line.getBytes(Constants.UTF8 ))) : new Text(line));
         }
       } finally {
         file.close();

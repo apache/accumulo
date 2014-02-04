@@ -33,7 +33,7 @@ public class Commit extends Test {
     log.debug("Committed " + numWrites + " writes.  Total writes: " + totalWrites);
     
     state.set("totalWrites", totalWrites);
-    state.set("numWrites", new Long(0));
+    state.set("numWrites", Long.valueOf(0));
   }
   
 }

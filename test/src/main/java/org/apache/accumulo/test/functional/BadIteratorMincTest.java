@@ -56,7 +56,7 @@ public class BadIteratorMincTest extends FunctionalTest {
     BatchWriter bw = getConnector().createBatchWriter("foo", new BatchWriterConfig());
     
     Mutation m = new Mutation(new Text("r1"));
-    m.put(new Text("acf"), new Text("foo"), new Value("1".getBytes()));
+    m.put(new Text("acf"), new Text("foo"), new Value("1".getBytes(Constants.UTF8)));
     
     bw.addMutation(m);
     
@@ -101,7 +101,7 @@ public class BadIteratorMincTest extends FunctionalTest {
     getConnector().tableOperations().setProperty("foo", Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.badi", "30," + BadIterator.class.getName());
     bw = getConnector().createBatchWriter("foo", new BatchWriterConfig());
     m = new Mutation(new Text("r2"));
-    m.put(new Text("acf"), new Text("foo"), new Value("1".getBytes()));
+    m.put(new Text("acf"), new Text("foo"), new Value("1".getBytes(Constants.UTF8)));
     bw.addMutation(m);
     bw.close();
     

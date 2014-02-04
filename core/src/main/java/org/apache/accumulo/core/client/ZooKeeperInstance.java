@@ -164,13 +164,13 @@ public class ZooKeeperInstance implements Instance {
 
     OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Looking up master location in zoocache.");
     byte[] loc = ZooUtil.getLockData(zooCache, masterLocPath);
-    opTimer.stop("Found master at " + (loc == null ? null : new String(loc)) + " in %DURATION%");
+    opTimer.stop("Found master at " + (loc == null ? null : new String(loc, Constants.UTF8)) + " in %DURATION%");
 
     if (loc == null) {
       return Collections.emptyList();
     }
 
-    return Collections.singletonList(new String(loc));
+    return Collections.singletonList(new String(loc, Constants.UTF8));
   }
 
   @Override
@@ -179,13 +179,13 @@ public class ZooKeeperInstance implements Instance {
 
     OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Looking up root tablet location in zookeeper.");
     byte[] loc = zooCache.get(zRootLocPath);
-    opTimer.stop("Found root tablet at " + (loc == null ? null : new String(loc)) + " in %DURATION%");
+    opTimer.stop("Found root tablet at " + (loc == null ? null : new String(loc, Constants.UTF8)) + " in %DURATION%");
 
     if (loc == null) {
       return null;
     }
 
-    return new String(loc).split("\\|")[0];
+    return new String(loc, Constants.UTF8).split("\\|")[0];
   }
 
   @Override

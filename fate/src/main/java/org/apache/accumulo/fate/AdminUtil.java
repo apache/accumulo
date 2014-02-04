@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.fate;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,6 +34,8 @@ import org.apache.zookeeper.KeeperException;
  * A utility to administer FATE operations
  */
 public class AdminUtil<T> {
+  private static final Charset UTF8 = Charset.forName("UTF-8");
+  
   public void print(ZooStore<T> zs, IZooReaderWriter zk, String lockPath) throws KeeperException, InterruptedException {
     Map<Long,List<String>> heldLocks = new HashMap<Long,List<String>>();
     Map<Long,List<String>> waitingLocks = new HashMap<Long,List<String>>();
@@ -51,7 +54,7 @@ public class AdminUtil<T> {
         for (String node : lockNodes) {
           try {
             byte[] data = zk.getData(lockPath + "/" + id + "/" + node, null);
-            String lda[] = new String(data).split(":");
+            String lda[] = new String(data, UTF8).split(":");
             
             if (lda[0].charAt(0) == 'W')
               sawWriteLock = true;
@@ -129,22 +132,30 @@ public class AdminUtil<T> {
     }
   }
   
-  public void prepDelete(ZooStore<T> zs, IZooReaderWriter zk, String path, String txidStr) {
-    checkGlobalLock(zk, path);
+  public boolean prepDelete(ZooStore<T> zs, IZooReaderWriter zk, String path, String txidStr) {
+    if (!checkGlobalLock(zk, path)) {
+      return false;
+    }
     
     long txid = Long.parseLong(txidStr, 16);
     zs.reserve(txid);
     zs.delete(txid);
     zs.unreserve(txid, 0);
+    
+    return true;
   }
   
-  public void prepFail(ZooStore<T> zs, IZooReaderWriter zk, String path, String txidStr) {
-    checkGlobalLock(zk, path);
+  public boolean prepFail(ZooStore<T> zs, IZooReaderWriter zk, String path, String txidStr) {
+    if (!checkGlobalLock(zk, path)) {
+      return false;
+    }
     
     long txid = Long.parseLong(txidStr, 16);
     zs.reserve(txid);
     zs.setStatus(txid, TStatus.FAILED_IN_PROGRESS);
     zs.unreserve(txid, 0);
+    
+    return true;
   }
   
   public void deleteLocks(ZooStore<T> zs, IZooReaderWriter zk, String path, String txidStr) throws KeeperException, InterruptedException {
@@ -156,25 +167,27 @@ public class AdminUtil<T> {
       for (String node : lockNodes) {
         String lockPath = path + "/" + id + "/" + node;
         byte[] data = zk.getData(path + "/" + id + "/" + node, null);
-        String lda[] = new String(data).split(":");
+        String lda[] = new String(data, UTF8).split(":");
         if (lda[1].equals(txidStr))
           zk.recursiveDelete(lockPath, NodeMissingPolicy.SKIP);
       }
     }
   }
   
-  public void checkGlobalLock(IZooReaderWriter zk, String path) {
+  public boolean checkGlobalLock(IZooReaderWriter zk, String path) {
     try {
       if (ZooLock.getLockData(zk.getZooKeeper(), path) != null) {
         System.err.println("ERROR: Master lock is held, not running");
-        System.exit(-1);
+        return false;
       }
     } catch (KeeperException e) {
       System.err.println("ERROR: Could not read master lock, not running " + e.getMessage());
-      System.exit(-1);
+      return false;
     } catch (InterruptedException e) {
       System.err.println("ERROR: Could not read master lock, not running" + e.getMessage());
-      System.exit(-1);
+      return false;
     }
+    
+    return true;
   }
 }

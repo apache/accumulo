@@ -59,8 +59,10 @@ public class ListIterCommand extends Command {
       throw new IllegalArgumentException("You must select at least one scope to configure");
     }    
     final StringBuilder sb = new StringBuilder("-\n");
-    for (String name : iterators.keySet()) {
-      for (IteratorScope scope : iterators.get(name)) {
+    for (Entry<String,EnumSet<IteratorScope>> entry : iterators.entrySet()) {
+      final String name = entry.getKey();
+      final EnumSet<IteratorScope> scopes = entry.getValue();
+      for (IteratorScope scope : scopes) {
         if (cl.hasOption(scopeOpts.get(scope).getOpt())) {
           IteratorSetting setting = shellState.getConnector().tableOperations().getIteratorSetting(tableName, name, scope);
           sb.append("-    Iterator ").append(setting.getName()).append(", ").append(scope).append(" scope options:\n");

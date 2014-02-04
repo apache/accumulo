@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -192,7 +193,7 @@ public class RegExFilter extends Filter {
         this.encoding = options.get(ENCODING);
         if ("".equals(this.encoding))
           encoding = ENCODING_DEFAULT;
-        new String("test".getBytes(), encoding);
+        new String("test".getBytes(Constants.UTF8), encoding);
       } catch (UnsupportedEncodingException e) {
         throw new IllegalArgumentException("invalid encoding " + ENCODING + ":" + this.encoding, e);
       }

@@ -307,9 +307,9 @@ public class CompactRange extends MasterRepo {
       cid = zoo.mutate(zTablePath, null, null, new Mutator() {
         @Override
         public byte[] mutate(byte[] currentValue) throws Exception {
-          String cvs = new String(currentValue);
+          String cvs = new String(currentValue, Constants.UTF8);
           String[] tokens = cvs.split(",");
-          long flushID = Long.parseLong(new String(tokens[0]));
+          long flushID = Long.parseLong(tokens[0]);
           flushID++;
           
           String txidString = String.format("%016x", tid);
@@ -329,14 +329,14 @@ public class CompactRange extends MasterRepo {
             encodedIterators.append(",");
             encodedIterators.append(txidString);
             encodedIterators.append("=");
-            encodedIterators.append(new String(hex.encode(iterators)));
+            encodedIterators.append(new String(hex.encode(iterators), Constants.UTF8));
           }
           
-          return ("" + flushID + encodedIterators).getBytes();
+          return (Long.toString(flushID) + encodedIterators).getBytes(Constants.UTF8);
         }
       });
       
-      return new CompactionDriver(Long.parseLong(new String(cid).split(",")[0]), tableId, startRow, endRow);
+      return new CompactionDriver(Long.parseLong(new String(cid, Constants.UTF8).split(",")[0]), tableId, startRow, endRow);
     } catch (NoNodeException nne) {
       throw new ThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.NOTFOUND, null);
     }
@@ -351,9 +351,9 @@ public class CompactRange extends MasterRepo {
     zoo.mutate(zTablePath, null, null, new Mutator() {
       @Override
       public byte[] mutate(byte[] currentValue) throws Exception {
-        String cvs = new String(currentValue);
+        String cvs = new String(currentValue, Constants.UTF8);
         String[] tokens = cvs.split(",");
-        long flushID = Long.parseLong(new String(tokens[0]));
+        long flushID = Long.parseLong(tokens[0]);
 
         String txidString = String.format("%016x", txid);
         
@@ -365,7 +365,7 @@ public class CompactRange extends MasterRepo {
           encodedIterators.append(tokens[i]);
         }
         
-        return ("" + flushID + encodedIterators).getBytes();
+        return (Long.toString(flushID) + encodedIterators).getBytes(Constants.UTF8);
       }
     });
 

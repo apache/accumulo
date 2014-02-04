@@ -348,7 +348,7 @@ public class PermissionsTest {
         // put in some initial data
         BatchWriter writer = getConnector().createBatchWriter(TEST_TABLE, new BatchWriterConfig());
         Mutation m = new Mutation(new Text("row"));
-        m.put(new Text("cf"), new Text("cq"), new Value("val".getBytes()));
+        m.put(new Text("cf"), new Text("cq"), new Value("val".getBytes(Constants.UTF8)));
         writer.addMutation(m);
         writer.close();
         
@@ -386,7 +386,7 @@ public class PermissionsTest {
           try {
             writer = test_user_conn.createBatchWriter(TEST_TABLE, new BatchWriterConfig());
             m = new Mutation(new Text("row"));
-            m.put(new Text("a"), new Text("b"), new Value("c".getBytes()));
+            m.put(new Text("a"), new Text("b"), new Value("c".getBytes(Constants.UTF8)));
             writer.addMutation(m);
             try {
               writer.close();
@@ -456,7 +456,7 @@ public class PermissionsTest {
         case WRITE:
           writer = test_user_conn.createBatchWriter(TEST_TABLE, new BatchWriterConfig());
           m = new Mutation(new Text("row"));
-          m.put(new Text("a"), new Text("b"), new Value("c".getBytes()));
+          m.put(new Text("a"), new Text("b"), new Value("c".getBytes(Constants.UTF8)));
           writer.addMutation(m);
           writer.close();
           break;

@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Properties;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.test.randomwalk.State;
@@ -66,7 +67,7 @@ public class ExportIndex extends Test {
     long t3 = System.currentTimeMillis();
 
     // copy files
-    BufferedReader reader = new BufferedReader(new InputStreamReader(fs.open(new Path(exportDir, "distcp.txt"))));
+    BufferedReader reader = new BufferedReader(new InputStreamReader(fs.open(new Path(exportDir, "distcp.txt")), Constants.UTF8));
     String file = null;
     while ((file = reader.readLine()) != null) {
       Path src = new Path(file);

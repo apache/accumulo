@@ -28,6 +28,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.accumulo.trace.instrument.Tracer;
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.master.thrift.DeadServer;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
@@ -167,7 +168,7 @@ public class TServersServlet extends BasicServlet {
       if (extent.getEndRow() != null && extent.getEndRow().getLength() > 0) {
         digester.update(extent.getEndRow().getBytes(), 0, extent.getEndRow().getLength());
       }
-      String obscuredExtent = new String(Base64.encodeBase64(digester.digest()));
+      String obscuredExtent = new String(Base64.encodeBase64(digester.digest()), Constants.UTF8);
       String displayExtent = String.format("<code>[%s]</code>", obscuredExtent);
       
       TableRow row = perTabletResults.prepareRow();

@@ -30,7 +30,6 @@ import org.apache.commons.cli.Options;
 
 public class UserPermissionsCommand extends Command {
   private Option userOpt;
-  private static int runOnce = 0;
   
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
@@ -46,20 +45,21 @@ public class UserPermissionsCommand extends Command {
     }
     shellState.getReader().printNewline();
     
+    boolean runOnce = true;
     for (String t : shellState.getConnector().tableOperations().list()) {
       delim = "";
       for (TablePermission p : TablePermission.values()) {
         if (shellState.getConnector().securityOperations().hasTablePermission(user, t, p) && p != null) {
-          if (runOnce == 0) {
+          if (runOnce) {
             shellState.getReader().printString("\nTable permissions (" + t + "): ");
-            runOnce++;
+            runOnce = false;
           }
           shellState.getReader().printString(delim + "Table." + p.name());
           delim = ", ";
         }
         
       }
-      runOnce = 0;
+      runOnce = true;
     }
     shellState.getReader().printNewline();
     return 0;

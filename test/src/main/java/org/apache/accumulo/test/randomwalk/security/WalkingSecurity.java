@@ -363,7 +363,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   public void increaseAuthMap(String s, int increment) {
     Integer curVal = getAuthsMap().get(s);
     if (curVal == null) {
-      curVal = new Integer(0);
+      curVal = Integer.valueOf(0);
       getAuthsMap().put(s, curVal);
     }
     curVal += increment;

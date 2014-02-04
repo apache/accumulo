@@ -124,7 +124,7 @@ public class AddFilesWithMissingEntries {
         String size = Long.toString(file.getLen());
         String entries = "1"; // lie
         String value = size + "," + entries;
-        m.put(Constants.METADATA_DATAFILE_COLUMN_FAMILY, new Text(filename), new Value(value.getBytes()));
+        m.put(Constants.METADATA_DATAFILE_COLUMN_FAMILY, new Text(filename), new Value(value.getBytes(Constants.UTF8)));
         if (update) {
           writer.getBatchWriter(Constants.METADATA_TABLE_NAME).addMutation(m);
         }

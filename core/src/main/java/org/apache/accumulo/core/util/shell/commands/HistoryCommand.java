@@ -17,12 +17,16 @@
 package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -43,22 +47,25 @@ public class HistoryCommand extends Command {
     int counter = 0;
     
     if (cl.hasOption(clearHist.getOpt())) {
-      
+      PrintWriter out = null;
       try {
-        
-        final FileWriter outFile = new FileWriter(histDir + "/shell_history.txt");
-        final PrintWriter out = new PrintWriter(outFile);
-        out.close();
-        
-      } catch (IOException e) {
-        
+        FileOutputStream file = new FileOutputStream(histDir + "/shell_history.txt");
+        final BufferedWriter fileWriter = new BufferedWriter(new OutputStreamWriter(file, Constants.UTF8));
+        out = new PrintWriter(fileWriter);
+      } catch (FileNotFoundException e) { 
         e.printStackTrace();
+      } finally {
+        // If the file existed, closing the 
+        if (null != out) {
+          out.close();
+        }
       }
     }
     
     else {
+      BufferedReader in = null;
       try {
-        final BufferedReader in = new BufferedReader(new FileReader(histDir + "/shell_history.txt"));
+        in = new BufferedReader(new InputStreamReader(new FileInputStream(histDir + "/shell_history.txt"), Constants.UTF8));
         String Line;
         try {
           Line = in.readLine();
@@ -74,6 +81,10 @@ public class HistoryCommand extends Command {
       } catch (FileNotFoundException e) {
         
         e.printStackTrace();
+      } finally {
+        if (null != in) {
+          in.close();
+        }
       }
     }
     

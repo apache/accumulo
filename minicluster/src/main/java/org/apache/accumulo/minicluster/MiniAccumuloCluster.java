@@ -19,10 +19,13 @@ package org.apache.accumulo.minicluster;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -31,6 +34,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.gc.SimpleGarbageCollector;
@@ -62,8 +66,8 @@ public class MiniAccumuloCluster {
      */
     public LogWriter(InputStream stream, File logFile) throws IOException {
       this.setDaemon(true);
-      this.in = new BufferedReader(new InputStreamReader(stream));
-      out = new BufferedWriter(new FileWriter(logFile));
+      this.in = new BufferedReader(new InputStreamReader(stream, Constants.UTF8));
+      out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(logFile), Constants.UTF8));
       
       SimpleTimer.getInstance().schedule(new Runnable() {
         @Override
@@ -164,11 +168,11 @@ public class MiniAccumuloCluster {
     return process;
   }
   
-  private void appendProp(FileWriter fileWriter, Property key, String value, Map<String,String> siteConfig) throws IOException {
+  private void appendProp(Writer fileWriter, Property key, String value, Map<String,String> siteConfig) throws IOException {
     appendProp(fileWriter, key.getKey(), value, siteConfig);
   }
   
-  private void appendProp(FileWriter fileWriter, String key, String value, Map<String,String> siteConfig) throws IOException {
+  private void appendProp(Writer fileWriter, String key, String value, Map<String,String> siteConfig) throws IOException {
     if (!siteConfig.containsKey(key))
       fileWriter.append("<property><name>" + key + "</name><value>" + value + "</value></property>\n");
   }
@@ -234,7 +238,7 @@ public class MiniAccumuloCluster {
     
     File siteFile = new File(confDir, "accumulo-site.xml");
     
-    FileWriter fileWriter = new FileWriter(siteFile);
+    OutputStreamWriter fileWriter = new OutputStreamWriter(new FileOutputStream(siteFile), Constants.UTF8);
     fileWriter.append("<configuration>\n");
     
     HashMap<String,String> siteConfig = new HashMap<String,String>(config.getSiteConfig());
@@ -275,7 +279,7 @@ public class MiniAccumuloCluster {
     fileWriter.close();
     
     zooCfgFile = new File(confDir, "zoo.cfg");
-    fileWriter = new FileWriter(zooCfgFile);
+    fileWriter = new OutputStreamWriter(new FileOutputStream(zooCfgFile), Constants.UTF8);
     
     // zookeeper uses Properties to read its config, so use that to write in order to properly escape things like Windows paths
     Properties zooCfg = new Properties();

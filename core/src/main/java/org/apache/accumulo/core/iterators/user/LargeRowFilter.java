@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -44,7 +45,7 @@ import org.apache.hadoop.io.Text;
  */
 public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, OptionDescriber {
   
-  public static final Value SUPPRESS_ROW_VALUE = new Value("SUPPRESS_ROW".getBytes());
+  public static final Value SUPPRESS_ROW_VALUE = new Value("SUPPRESS_ROW".getBytes(Constants.UTF8));
   
   private static final ByteSequence EMPTY = new ArrayByteSequence(new byte[] {});
   

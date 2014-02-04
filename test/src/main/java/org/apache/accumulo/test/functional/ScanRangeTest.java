@@ -237,7 +237,7 @@ public class ScanRangeTest extends FunctionalTest {
       for (int j = 0; j < CF_LIMIT; j++) {
         for (int k = 0; k < CQ_LIMIT; k++) {
           for (int t = 0; t < TS_LIMIT; t++) {
-            m.put(createCF(j), createCQ(k), t, new Value(String.format("%06d_%03d_%03d_%03d", i, j, k, t).getBytes()));
+            m.put(createCF(j), createCQ(k), t, new Value(String.format("%06d_%03d_%03d_%03d", i, j, k, t).getBytes(Constants.UTF8)));
           }
         }
       }

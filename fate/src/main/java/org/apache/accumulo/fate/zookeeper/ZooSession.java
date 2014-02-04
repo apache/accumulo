@@ -18,8 +18,10 @@ package org.apache.accumulo.fate.zookeeper;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
+
 import org.apache.accumulo.fate.util.AddressUtil;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.log4j.Logger;
@@ -30,6 +32,7 @@ import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.ZooKeeper.States;
 
 public class ZooSession {
+  private static final Charset UTF8 = Charset.forName("UTF-8");
   
   public static class ZooSessionShutdownException extends RuntimeException {
 
@@ -50,7 +53,7 @@ public class ZooSession {
   private static Map<String,ZooSessionInfo> sessions = new HashMap<String,ZooSessionInfo>();
   
   private static String sessionKey(String keepers, int timeout, String scheme, byte[] auth) {
-    return keepers + ":" + timeout + ":" + (scheme == null ? "" : scheme) + ":" + (auth == null ? "" : new String(auth));
+    return keepers + ":" + timeout + ":" + (scheme == null ? "" : scheme) + ":" + (auth == null ? "" : new String(auth, UTF8));
   }
   
   private static class ZooWatcher implements Watcher {

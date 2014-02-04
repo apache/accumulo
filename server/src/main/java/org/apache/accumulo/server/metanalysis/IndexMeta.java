@@ -104,14 +104,14 @@ public class IndexMeta extends Configured implements Tool {
       
       if (prevRow != null) {
         Mutation createEvent = new Mutation(new Text(m.getRow()));
-        createEvent.put(prevRow, new Text(String.format("%020d", timestamp)), new Value(metaTablet.toString().getBytes()));
+        createEvent.put(prevRow, new Text(String.format("%020d", timestamp)), new Value(metaTablet.toString().getBytes(Constants.UTF8)));
         context.write(CREATE_EVENTS_TABLE, createEvent);
       }
       
       Mutation tabletEvent = new Mutation(new Text(m.getRow()));
       tabletEvent.put(new Text(String.format("%020d", timestamp)), new Text("mut"), new Value(serMut));
-      tabletEvent.put(new Text(String.format("%020d", timestamp)), new Text("mtab"), new Value(metaTablet.toString().getBytes()));
-      tabletEvent.put(new Text(String.format("%020d", timestamp)), new Text("log"), new Value(logFile.getBytes()));
+      tabletEvent.put(new Text(String.format("%020d", timestamp)), new Text("mtab"), new Value(metaTablet.toString().getBytes(Constants.UTF8)));
+      tabletEvent.put(new Text(String.format("%020d", timestamp)), new Text("log"), new Value(logFile.getBytes(Constants.UTF8)));
       context.write(TABLET_EVENTS_TABLE, tabletEvent);
     }
   }

@@ -110,7 +110,7 @@ public class RecoveryManager {
   
   private void initiateSort(String host, final String file) throws KeeperException, InterruptedException {
     String source = getSource(host, file).toString();
-    new DistributedWorkQueue(ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY).addWork(file, source.getBytes());
+    new DistributedWorkQueue(ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY).addWork(file, source.getBytes(Constants.UTF8));
     
     synchronized (this) {
       sortsQueued.add(file);

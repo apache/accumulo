@@ -17,8 +17,10 @@
 package org.apache.accumulo.server.metrics;
 
 import java.io.File;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.lang.management.ManagementFactory;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -28,6 +30,7 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.StandardMBean;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.time.DateUtils;
 
@@ -99,7 +102,7 @@ public abstract class AbstractMetricsImpl {
   
   private File logFile = null;
   
-  private FileWriter logWriter = null;
+  private Writer logWriter = null;
   
   private SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
   
@@ -176,7 +179,8 @@ public abstract class AbstractMetricsImpl {
       if (null != mDir) {
         File dir = new File(mDir);
         if (!dir.isDirectory())
-          dir.mkdir();
+          if (!dir.mkdir()) 
+            log.warn("Could not create log directory: " + dir);
         logDir = dir;
         // Create new log file
         startNewLog();
@@ -198,7 +202,7 @@ public abstract class AbstractMetricsImpl {
         return;
       }
     }
-    logWriter = new FileWriter(logFile, true);
+    logWriter = new OutputStreamWriter(new FileOutputStream(logFile, true), Constants.UTF8);
   }
   
   private void writeToLog(String name) throws IOException {

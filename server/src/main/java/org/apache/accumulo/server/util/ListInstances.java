@@ -146,7 +146,7 @@ public class ListInstances {
       if (master == null) {
         return null;
       }
-      return new String(master);
+      return new String(master, Constants.UTF8);
     } catch (Exception e) {
       handleException(e);
       return null;
@@ -171,7 +171,7 @@ public class ListInstances {
     for (String name : names) {
       String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + name;
       try {
-        UUID iid = UUID.fromString(new String(zk.getData(instanceNamePath, null)));
+        UUID iid = UUID.fromString(new String(zk.getData(instanceNamePath, null), Constants.UTF8));
         tm.put(name, iid);
       } catch (Exception e) {
         handleException(e);

@@ -76,7 +76,7 @@ public class BatchWriterFlushTest extends FunctionalTest {
     Scanner scanner = getConnector().createScanner("bwlt", Constants.NO_AUTHS);
     
     Mutation m = new Mutation(new Text(String.format("r_%10d", 1)));
-    m.put(new Text("cf"), new Text("cq"), new Value(("" + 1).getBytes()));
+    m.put(new Text("cf"), new Text("cq"), new Value("1".getBytes(Constants.UTF8)));
     bw.addMutation(m);
     
     UtilWaitThread.sleep(1000);

@@ -17,14 +17,17 @@
 package org.apache.accumulo.core.client.mapreduce.lib.partition;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Scanner;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
@@ -87,10 +90,10 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
         for (Path path : cf) {
           if (path.toUri().getPath().endsWith(cutFileName.substring(cutFileName.lastIndexOf('/')))) {
             TreeSet<Text> cutPoints = new TreeSet<Text>();
-            Scanner in = new Scanner(new BufferedReader(new FileReader(path.toString())));
+            Scanner in = new Scanner(new BufferedReader(new InputStreamReader(new FileInputStream(path.toString()), Constants.UTF8)));
             try {
               while (in.hasNextLine())
-                cutPoints.add(new Text(Base64.decodeBase64(in.nextLine().getBytes())));
+                cutPoints.add(new Text(Base64.decodeBase64(in.nextLine().getBytes(Constants.UTF8))));
             } finally {
               in.close();
             }

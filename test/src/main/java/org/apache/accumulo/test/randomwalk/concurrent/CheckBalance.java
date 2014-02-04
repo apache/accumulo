@@ -49,7 +49,7 @@ public class CheckBalance extends Test {
       String location = entry.getKey().getColumnQualifier().toString();
       Long count = counts.get(location);
       if (count == null)
-        count = new Long(0);
+        count = Long.valueOf(0);
       counts.put(location, count + 1);
     }
     double total = 0.;

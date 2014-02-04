@@ -21,6 +21,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
@@ -150,8 +151,8 @@ public class TestIngest {
     return bytevals;
   }
   
-  private static byte ROW_PREFIX[] = "row_".getBytes();
-  private static byte COL_PREFIX[] = "col_".getBytes();
+  private static byte ROW_PREFIX[] = "row_".getBytes(Constants.UTF8);
+  private static byte COL_PREFIX[] = "col_".getBytes(Constants.UTF8);
   
   public static Text generateRow(int rowid, int startRow) {
     return new Text(FastFormat.toZeroPaddedString(rowid + startRow, 10, 10, ROW_PREFIX));

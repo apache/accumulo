@@ -53,9 +53,9 @@ public class Tables {
       byte[] tblPath = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME);
       if (tblPath != null) {
         if (nameAsKey)
-          tableMap.put(new String(tblPath), tableId);
+          tableMap.put(new String(tblPath, Constants.UTF8), tableId);
         else
-          tableMap.put(tableId, new String(tblPath));
+          tableMap.put(tableId, new String(tblPath, Constants.UTF8));
       }
     }
     
@@ -112,7 +112,7 @@ public class Tables {
     if (state == null)
       return TableState.UNKNOWN;
     
-    return TableState.valueOf(new String(state));
+    return TableState.valueOf(new String(state, Constants.UTF8));
   }
   
   public static long getCacheResetCount() {

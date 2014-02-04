@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
+import java.nio.charset.Charset;
+
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.log4j.Logger;
@@ -25,6 +27,7 @@ import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.data.Stat;
 
 public class ZooReservation {
+  private static final Charset UTF8 = Charset.forName("UTF-8");
   
   public static boolean attempt(IZooReaderWriter zk, String path, String reservationID, String debugInfo) throws KeeperException, InterruptedException {
     if (reservationID.contains(":"))
@@ -32,7 +35,7 @@ public class ZooReservation {
     
     while (true) {
       try {
-        zk.putPersistentData(path, (reservationID + ":" + debugInfo).getBytes(), NodeExistsPolicy.FAIL);
+        zk.putPersistentData(path, (reservationID + ":" + debugInfo).getBytes(UTF8), NodeExistsPolicy.FAIL);
         return true;
       } catch (NodeExistsException nee) {
         Stat stat = new Stat();
@@ -43,9 +46,9 @@ public class ZooReservation {
           continue;
         }
         
-        String idInZoo = new String(zooData).split(":")[0];
+        String idInZoo = new String(zooData, UTF8).split(":")[0];
         
-        return idInZoo.equals(new String(reservationID));
+        return idInZoo.equals(reservationID);
       }
     }
     
@@ -63,10 +66,11 @@ public class ZooReservation {
       return;
     }
     
-    String idInZoo = new String(zooData).split(":")[0];
+    String zooDataStr = new String(zooData, UTF8);
+    String idInZoo = zooDataStr.split(":")[0];
     
-    if (!idInZoo.equals(new String(reservationID))) {
-      throw new IllegalStateException("Tried to release reservation " + path + " with data mismatch " + new String(reservationID) + " " + new String(zooData));
+    if (!idInZoo.equals(reservationID)) {
+      throw new IllegalStateException("Tried to release reservation " + path + " with data mismatch " + reservationID + " " + zooDataStr);
     }
     
     zk.recursiveDelete(path, stat.getVersion(), NodeMissingPolicy.SKIP);

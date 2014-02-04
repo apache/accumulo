@@ -424,7 +424,7 @@ public class Monitor {
       List<String> locks = zk.getChildren(path, null);
       if (locks != null && locks.size() > 0) {
         Collections.sort(locks);
-        address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0), null))).getAddress(Service.GC_CLIENT);
+        address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0), null), Constants.UTF8)).getAddress(Service.GC_CLIENT);
         GCMonitorService.Client client = ThriftUtil.getClient(new GCMonitorService.Client.Factory(), address, config.getConfiguration());
         try {
           result = client.getStatus(Tracer.traceInfo(), SecurityConstants.getSystemCredentials());
@@ -489,7 +489,7 @@ public class Monitor {
       log.debug("Using " + hostname + " to advertise monitor location in ZooKeeper");
       
       String monitorAddress = org.apache.accumulo.core.util.AddressUtil.toString(new InetSocketAddress(hostname, server.getPort()));
-      ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instance) + Constants.ZMONITOR, monitorAddress.getBytes(),
+      ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instance) + Constants.ZMONITOR, monitorAddress.getBytes(Constants.UTF8),
           NodeExistsPolicy.OVERWRITE);
       log.info("Set monitor address in zookeeper to " + monitorAddress);
     } catch (Exception ex) {

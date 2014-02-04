@@ -233,7 +233,7 @@ public class Merge {
           Entry<Key,Value> entry = iterator.next();
           Key key = entry.getKey();
           if (key.getColumnFamily().equals(Constants.METADATA_DATAFILE_COLUMN_FAMILY)) {
-            String[] sizeEntries = new String(entry.getValue().get()).split(",");
+            String[] sizeEntries = new String(entry.getValue().get(), Constants.UTF8).split(",");
             if (sizeEntries.length == 2) {
               tabletSize += Long.parseLong(sizeEntries[0]);
             }

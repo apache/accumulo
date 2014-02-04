@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -32,7 +33,7 @@ import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 
 public class ZooLock implements Watcher {
-  
+  private static final Charset UTF8 = Charset.forName("UTF-8");
   protected static final Logger log = Logger.getLogger(ZooLock.class);
   
   public static final String LOCK_PREFIX = "zlock-";
@@ -346,9 +347,7 @@ public class ZooLock implements Watcher {
     watchingParent = false;
 
     if (event.getState() == KeeperState.Expired && lock != null) {
-      if (lock != null) {
-        lostLock(LockLossReason.SESSION_EXPIRED);
-      }
+      lostLock(LockLossReason.SESSION_EXPIRED);
     } else {
       
       try { // set the watch on the parent node again
@@ -504,7 +503,7 @@ public class ZooLock implements Watcher {
     Stat stat = new Stat();
     byte[] data = zk.getData(path + "/" + lockNode, stat);
     
-    if (lockData.equals(new String(data))) {
+    if (lockData.equals(new String(data, UTF8))) {
       zk.recursiveDelete(path + "/" + lockNode, stat.getVersion(), NodeMissingPolicy.FAIL);
       return true;
     }

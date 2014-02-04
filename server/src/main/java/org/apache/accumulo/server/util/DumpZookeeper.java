@@ -60,8 +60,6 @@ public class DumpZookeeper {
     
     Logger.getRootLogger().setLevel(Level.WARN);
     PrintStream out = System.out;
-    if (args.length > 0)
-      opts.root = opts.root;
     try {
       zk = ZooReaderWriter.getInstance();
       

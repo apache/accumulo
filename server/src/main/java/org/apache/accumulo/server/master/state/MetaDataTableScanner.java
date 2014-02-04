@@ -91,7 +91,7 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
     }
   }
   
-  public void finalize() {
+  protected void finalize() {
     close();
   }
   

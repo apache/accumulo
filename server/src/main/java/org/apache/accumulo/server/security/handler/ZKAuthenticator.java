@@ -70,7 +70,7 @@ public final class ZKAuthenticator implements Authenticator {
         }
         
         // prep parent node of users with root username
-        zoo.putPersistentData(ZKUserPath, principal.getBytes(), NodeExistsPolicy.FAIL);
+        zoo.putPersistentData(ZKUserPath, principal.getBytes(Constants.UTF8), NodeExistsPolicy.FAIL);
         
         constructUser(principal, ZKSecurityTool.createPass(token));
       }

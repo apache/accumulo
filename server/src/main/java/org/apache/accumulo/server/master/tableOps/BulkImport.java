@@ -378,7 +378,7 @@ class CopyFailed extends MasterRepo {
     HashMap<String,String> loadedFailures = new HashMap<String,String>();
     
     FSDataInputStream failFile = fs.open(new Path(error, BulkImport.FAILURES_TXT));
-    BufferedReader in = new BufferedReader(new InputStreamReader(failFile));
+    BufferedReader in = new BufferedReader(new InputStreamReader(failFile, Constants.UTF8));
     try {
       String line = null;
       while ((line = in.readLine()) != null) {
@@ -432,7 +432,7 @@ class CopyFailed extends MasterRepo {
         if (fs.exists(dest))
           continue;
         
-        bifCopyQueue.addWork(orig.getName(), (failure + "," + dest).getBytes());
+        bifCopyQueue.addWork(orig.getName(), (failure + "," + dest).getBytes(Constants.UTF8));
         workIds.add(orig.getName());
         log.debug("tid " + tid + " added to copyq: " + orig + " to " + dest + ": failed");
       }
@@ -567,7 +567,7 @@ class LoadFiles extends MasterRepo {
     }
     
     FSDataOutputStream failFile = fs.create(new Path(errorDir, BulkImport.FAILURES_TXT), true);
-    BufferedWriter out = new BufferedWriter(new OutputStreamWriter(failFile));
+    BufferedWriter out = new BufferedWriter(new OutputStreamWriter(failFile, Constants.UTF8));
     try {
       for (String f : filesToLoad) {
         out.write(f);

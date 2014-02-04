@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.iterators.conf.ColumnUtil.ColFamHashKey;
 import org.apache.accumulo.core.iterators.conf.ColumnUtil.ColHashKey;
@@ -135,7 +136,7 @@ public class ColumnSet {
   static Text decode(String s) {
     Text t = new Text();
     
-    byte[] sb = s.getBytes();
+    byte[] sb = s.getBytes(Constants.UTF8);
     
     // very inefficient code
     for (int i = 0; i < sb.length; i++) {
@@ -143,7 +144,7 @@ public class ColumnSet {
         t.append(new byte[] {sb[i]}, 0, 1);
       } else {
         byte hex[] = new byte[] {sb[++i], sb[++i]};
-        String hs = new String(hex);
+        String hs = new String(hex, Constants.UTF8);
         int b = Integer.parseInt(hs, 16);
         t.append(new byte[] {(byte) b}, 0, 1);
       }

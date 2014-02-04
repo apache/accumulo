@@ -72,19 +72,19 @@ public class CancelCompactions extends MasterRepo {
     
     byte[] currentValue = zoo.getData(zCompactID, null);
     
-    String cvs = new String(currentValue);
+    String cvs = new String(currentValue, Constants.UTF8);
     String[] tokens = cvs.split(",");
-    final long flushID = Long.parseLong(new String(tokens[0]));
+    final long flushID = Long.parseLong(tokens[0]);
     
     zoo.mutate(zCancelID, null, null, new Mutator() {
       @Override
       public byte[] mutate(byte[] currentValue) throws Exception {
-        long cid = Long.parseLong(new String(currentValue));
+        long cid = Long.parseLong(new String(currentValue, Constants.UTF8));
         
         if (cid < flushID)
-          return (flushID + "").getBytes();
+          return Long.toString(flushID).getBytes(Constants.UTF8);
         else
-          return (cid + "").getBytes();
+          return Long.toString(cid).getBytes(Constants.UTF8);
 
       }
     });

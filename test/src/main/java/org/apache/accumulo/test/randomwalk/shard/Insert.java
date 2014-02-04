@@ -50,7 +50,7 @@ public class Insert extends Test {
     
     log.debug("Inserted document " + docID);
     
-    state.set("nextDocID", new Long(nextDocID));
+    state.set("nextDocID", Long.valueOf(nextDocID));
   }
   
   static String insertRandomDocument(long did, BatchWriter dataWriter, BatchWriter indexWriter, String indexTableName, String dataTableName, int numPartitions,

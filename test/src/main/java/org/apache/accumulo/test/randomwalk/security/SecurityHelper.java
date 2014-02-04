@@ -19,6 +19,7 @@ package org.apache.accumulo.test.randomwalk.security;
 import java.io.IOException;
 import java.util.Map;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -76,7 +77,7 @@ public class SecurityHelper {
   }
   
   public static void setSysUserPass(State state, byte[] sysUserPass) {
-    log.debug("Setting system user pass to " + new String(sysUserPass));
+    log.debug("Setting system user pass to " + new String(sysUserPass, Constants.UTF8));
     state.set(masterPass, sysUserPass);
     state.set(masterPass + "time", System.currentTimeMillis());
     
@@ -91,7 +92,7 @@ public class SecurityHelper {
   }
   
   public static void setTabUserPass(State state, byte[] tabUserPass) {
-    log.debug("Setting table user pass to " + new String(tabUserPass));
+    log.debug("Setting table user pass to " + new String(tabUserPass, Constants.UTF8));
     state.set(tUserPass, tabUserPass);
     state.set(tUserPass + "time", System.currentTimeMillis());
   }
@@ -177,7 +178,7 @@ public class SecurityHelper {
   public static void increaseAuthMap(State state, String s, int increment) {
     Integer curVal = getAuthsMap(state).get(s);
     if (curVal == null) {
-      curVal = new Integer(0);
+      curVal = Integer.valueOf(0);
       getAuthsMap(state).put(s, curVal);
     }
     curVal += increment;

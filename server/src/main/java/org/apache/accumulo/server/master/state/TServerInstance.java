@@ -54,7 +54,7 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
   }
   
   public TServerInstance(Value address, Text session) {
-    this(AddressUtil.parseAddress(new String(address.get()), Property.TSERV_CLIENTPORT), session.toString());
+    this(AddressUtil.parseAddress(new String(address.get(), Constants.UTF8), Property.TSERV_CLIENTPORT), session.toString());
   }
   
   public void putLocation(Mutation m) {
@@ -115,7 +115,7 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
   }
   
   public Value asMutationValue() {
-    return new Value(org.apache.accumulo.core.util.AddressUtil.toString(getLocation()).getBytes());
+    return new Value(org.apache.accumulo.core.util.AddressUtil.toString(getLocation()).getBytes(Constants.UTF8));
   }
   
   public InetSocketAddress getLocation() {

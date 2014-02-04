@@ -90,7 +90,7 @@ public class ConcurrencyTest extends FunctionalTest {
     BatchWriter bw = getConnector().createBatchWriter("cct", new BatchWriterConfig());
     for (int i = 0; i < 50; i++) {
       Mutation m = new Mutation(new Text(String.format("%06d", i)));
-      m.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes()));
+      m.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes(Constants.UTF8)));
       bw.addMutation(m);
     }
     
@@ -107,7 +107,7 @@ public class ConcurrencyTest extends FunctionalTest {
     
     for (int i = 0; i < 50; i++) {
       Mutation m = new Mutation(new Text(String.format("%06d", i)));
-      m.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes()));
+      m.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes(Constants.UTF8)));
       bw.addMutation(m);
     }
     

@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.iterators;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -54,8 +55,9 @@ public class IteratorUtil {
     majc, minc, scan;
   }
   
-  public static class IterInfoComparator implements Comparator<IterInfo> {
-    
+  public static class IterInfoComparator implements Comparator<IterInfo>, Serializable {
+    private static final long serialVersionUID = 1L;
+
     @Override
     public int compare(IterInfo o1, IterInfo o2) {
       return (o1.priority < o2.priority ? -1 : (o1.priority == o2.priority ? 0 : 1));

@@ -87,7 +87,7 @@ public class ZKAuthorizor implements Authorizor {
     try {
       // prep parent node of users with root username
       if (!zoo.exists(ZKUserPath))
-        zoo.putPersistentData(ZKUserPath, rootuser.getBytes(), NodeExistsPolicy.FAIL);
+        zoo.putPersistentData(ZKUserPath, rootuser.getBytes(Constants.UTF8), NodeExistsPolicy.FAIL);
       
       initUser(rootuser);
       zoo.putPersistentData(ZKUserPath + "/" + rootuser + ZKUserAuths, ZKSecurityTool.convertAuthorizations(Constants.NO_AUTHS), NodeExistsPolicy.FAIL);

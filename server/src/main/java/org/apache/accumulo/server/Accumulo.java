@@ -99,7 +99,7 @@ public class Accumulo {
     
     private void setMonitorPort() {
       try {
-        String port = new String(ZooReaderWriter.getInstance().getData(path, null));
+        String port = new String(ZooReaderWriter.getInstance().getData(path, null), Constants.UTF8);
         System.setProperty("org.apache.accumulo.core.host.log.port", port);
         log.info("Changing monitor log4j port to "+port);
         doOnChange();
@@ -215,7 +215,7 @@ public class Accumulo {
             try {
               byte[] buffer = new byte[10];
               int bytes = is.read(buffer);
-              String setting = new String(buffer, 0, bytes);
+              String setting = new String(buffer, 0, bytes, Constants.UTF8);
               setting = setting.trim();
               if (bytes > 0 && Integer.parseInt(setting) > 10) {
                 log.warn("System swappiness setting is greater than ten (" + setting + ") which can cause time-sensitive operations to be delayed. "

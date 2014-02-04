@@ -26,7 +26,7 @@ public class Info {
   public static void main(String[] args) throws Exception {
     ZooReaderWriter zrw = ZooReaderWriter.getInstance();
     Instance instance = HdfsZooInstance.getInstance();
-    System.out.println("monitor: " + new String(zrw.getData(ZooUtil.getRoot(instance) + Constants.ZMONITOR, null)));
+    System.out.println("monitor: " + new String(zrw.getData(ZooUtil.getRoot(instance) + Constants.ZMONITOR, null), Constants.UTF8));
     System.out.println("masters: " + instance.getMasterLocations());
     System.out.println("zookeepers: " + instance.getZooKeepers());
   }

@@ -70,7 +70,7 @@ public class BloomFilterTest extends FunctionalTest {
     // test inserting an empty key
     BatchWriter bw = getConnector().createBatchWriter("bt4", new BatchWriterConfig());
     Mutation m = new Mutation(new Text(""));
-    m.put(new Text(""), new Text(""), new Value("foo1".getBytes()));
+    m.put(new Text(""), new Text(""), new Value("foo1".getBytes(Constants.UTF8)));
     bw.addMutation(m);
     bw.close();
     getConnector().tableOperations().flush("bt4", null, null, true);
@@ -207,15 +207,15 @@ public class BloomFilterTest extends FunctionalTest {
       switch (depth) {
         case 1:
           m = new Mutation(new Text(key));
-          m.put(new Text("cf"), new Text("cq"), new Value(("" + i).getBytes()));
+          m.put(new Text("cf"), new Text("cq"), new Value(Long.toString(i).getBytes(Constants.UTF8)));
           break;
         case 2:
           m = new Mutation(new Text("row"));
-          m.put(new Text(key), new Text("cq"), new Value(("" + i).getBytes()));
+          m.put(new Text(key), new Text("cq"), new Value(Long.toString(i).getBytes(Constants.UTF8)));
           break;
         case 3:
           m = new Mutation(new Text("row"));
-          m.put(new Text("cf"), new Text(key), new Value(("" + i).getBytes()));
+          m.put(new Text("cf"), new Text(key), new Value(Long.toString(i).getBytes(Constants.UTF8)));
           break;
       }
       

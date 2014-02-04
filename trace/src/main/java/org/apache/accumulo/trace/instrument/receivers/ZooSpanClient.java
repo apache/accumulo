@@ -17,6 +17,7 @@
 package org.apache.accumulo.trace.instrument.receivers;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +39,7 @@ public class ZooSpanClient extends SendSpansViaThrift {
   private static final Logger log = Logger.getLogger(ZooSpanClient.class);
   private static final int TOTAL_TIME_WAIT_CONNECT_MS = 10 * 1000;
   private static final int TIME_WAIT_CONNECT_CHECK_MS = 100;
+  private static final Charset UTF8 = Charset.forName("UTF-8");
   
   ZooKeeper zoo = null;
   final String path;
@@ -108,7 +110,7 @@ public class ZooSpanClient extends SendSpansViaThrift {
       List<String> hosts = new ArrayList<String>();
       for (String child : children) {
         byte[] data = zoo.getData(path + "/" + child, null, null);
-        hosts.add(new String(data));
+        hosts.add(new String(data, UTF8));
       }
       this.hosts.clear();
       this.hosts.addAll(hosts);

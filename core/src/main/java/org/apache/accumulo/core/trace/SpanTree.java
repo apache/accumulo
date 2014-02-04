@@ -42,7 +42,7 @@ public class SpanTree {
   
   public Set<Long> visit(SpanTreeVisitor visitor) {
     Set<Long> visited = new HashSet<Long>();
-    List<Long> root = parentChildren.get(new Long(Span.ROOT_SPAN_ID));
+    List<Long> root = parentChildren.get(Long.valueOf(Span.ROOT_SPAN_ID));
     if (root == null || root.isEmpty())
       return visited;
     RemoteSpan rootSpan = nodes.get(root.iterator().next());

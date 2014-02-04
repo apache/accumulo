@@ -131,7 +131,7 @@ public class ZombieTServer {
       }
     };
     
-    byte[] lockContent = new ServerServices(addressString, Service.TSERV_CLIENT).toString().getBytes();
+    byte[] lockContent = new ServerServices(addressString, Service.TSERV_CLIENT).toString().getBytes(Constants.UTF8);
     if (zlock.tryLock(lw, lockContent)) {
       log.debug("Obtained tablet server lock " + zlock.getLockPath());
     }

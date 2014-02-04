@@ -18,13 +18,15 @@ package org.apache.accumulo.core.security;
 
 import java.text.ParseException;
 
+import org.apache.accumulo.core.Constants;
+
 public class VisibilityParseException extends ParseException {
   private static final long serialVersionUID = 1L;
   private String visibility;
   
   public VisibilityParseException(String reason, byte[] visibility, int errorOffset) {
     super(reason, errorOffset);
-    this.visibility = new String(visibility);
+    this.visibility = new String(visibility, Constants.UTF8);
   }
   
   @Override

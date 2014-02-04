@@ -24,6 +24,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -89,7 +90,7 @@ public class TableOp extends Test {
           if (!canRead && !ambiguousZone)
             throw new AccumuloException("Was able to read when I shouldn't have had the perm with connection user " + conn.whoami() + " table " + tableName);
           for (Entry<String,Integer> entry : WalkingSecurity.get(state).getAuthsMap().entrySet()) {
-            if (auths.contains(entry.getKey().getBytes()))
+            if (auths.contains(entry.getKey().getBytes(Constants.UTF8)))
               seen = seen - entry.getValue();
           }
           if (seen != 0 && !ambiguousAuths)
@@ -146,7 +147,7 @@ public class TableOp extends Test {
         String key = WalkingSecurity.get(state).getLastKey() + "1";
         Mutation m = new Mutation(new Text(key));
         for (String s : WalkingSecurity.get(state).getAuthsArray()) {
-          m.put(new Text(), new Text(), new ColumnVisibility(s), new Value("value".getBytes()));
+          m.put(new Text(), new Text(), new ColumnVisibility(s), new Value("value".getBytes(Constants.UTF8)));
         }
         BatchWriter writer = null;
         try {
@@ -204,7 +205,7 @@ public class TableOp extends Test {
         f.startDefaultLocalityGroup();
         fs.mkdirs(fail);
         for (Key k : keys)
-          f.append(k, new Value("Value".getBytes()));
+          f.append(k, new Value("Value".getBytes(Constants.UTF8)));
         f.close();
         try {
           conn.tableOperations().importDirectory(tableName, dir.toString(), fail.toString(), true);

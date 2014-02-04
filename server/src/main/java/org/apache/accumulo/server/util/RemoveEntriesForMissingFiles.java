@@ -68,7 +68,7 @@ public class RemoveEntriesForMissingFiles {
     for (Entry<Key,Value> entry : metadata) {
       count++;
       Key key = entry.getKey();
-      String table = new String(KeyExtent.tableOfMetadataRow(entry.getKey().getRow()));
+      String table = new String(KeyExtent.tableOfMetadataRow(entry.getKey().getRow()), Constants.UTF8);
       String file = key.getColumnQualifier().toString();
       if (!file.startsWith("/"))
         file = "/" + file;

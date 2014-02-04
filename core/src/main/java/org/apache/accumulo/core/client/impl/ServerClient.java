@@ -140,11 +140,13 @@ public class ServerClient {
     for (String tserver : zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTSERVERS)) {
       String path = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + tserver;
       byte[] data = ZooUtil.getLockData(zc, path);
-      if (data != null && !new String(data).equals("master"))
-        servers.add(new ThriftTransportKey(
-            new ServerServices(new String(data)).getAddressString(Service.TSERV_CLIENT), 
-            conf.getPort(Property.TSERV_CLIENTPORT), 
-            rpcTimeout));
+      if (data != null) {
+        String tserverData = new String(data, Constants.UTF8);
+        if (!tserverData.equals("master")) {
+          servers.add(new ThriftTransportKey(new ServerServices(tserverData).getAddressString(Service.TSERV_CLIENT), conf.getPort(Property.TSERV_CLIENTPORT),
+              rpcTimeout));
+        }
+      }
     }
     
     boolean opened = false;

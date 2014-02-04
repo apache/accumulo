@@ -24,8 +24,10 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -110,7 +112,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
     if (scanning) {
       String auths = options.get(AUTH_OPT);
       if (auths != null && !auths.isEmpty()) {
-        ve = new VisibilityEvaluator(new Authorizations(auths.getBytes()));
+        ve = new VisibilityEvaluator(new Authorizations(auths.getBytes(Constants.UTF8)));
         visibleCache = new LRUMap(100);
       }
     }
@@ -141,15 +143,15 @@ abstract public class TransformingIterator extends WrappingIterator implements O
   @Override
   public boolean validateOptions(Map<String,String> options) {
     
-    for (String opt : options.keySet()) {
+    for (Entry<String,String> option : options.entrySet()) {
       try {
-        if (opt.equals(AUTH_OPT)) {
-          new Authorizations(options.get(opt).getBytes());
-        } else if (opt.equals(MAX_BUFFER_SIZE_OPT)) {
-          AccumuloConfiguration.getMemoryInBytes(options.get(opt));
+        if (option.getKey().equals(AUTH_OPT)) {
+          new Authorizations(option.getValue().getBytes(Constants.UTF8));
+        } else if (option.getKey().equals(MAX_BUFFER_SIZE_OPT)) {
+          AccumuloConfiguration.getMemoryInBytes(option.getValue());
         }
       } catch (Exception e) {
-        throw new IllegalArgumentException("Failed to parse opt " + opt + " " + options.get(opt), e);
+        throw new IllegalArgumentException("Failed to parse opt " + option.getKey() + " " + option.getValue(), e);
       }
     }
     

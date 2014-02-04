@@ -23,6 +23,7 @@ import java.util.Stack;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -78,9 +79,9 @@ public class RestoreZookeeper {
     }
     
     private void create(String path, String value, String encoding) {
-      byte[] data = value.getBytes();
+      byte[] data = value.getBytes(Constants.UTF8);
       if ("base64".equals(encoding))
-        data = Base64.decodeBase64(value.getBytes());
+        data = Base64.decodeBase64(data);
       try {
         try {
           zk.putPersistentData(path, data, overwrite ? NodeExistsPolicy.OVERWRITE : NodeExistsPolicy.FAIL);

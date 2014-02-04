@@ -22,6 +22,7 @@ import java.util.Map.Entry;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
@@ -74,7 +75,7 @@ abstract class Basic extends BasicServlet {
     Map<String,String> loginMap = conf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
     if (loginMap.isEmpty()) {
       Property p = Property.TRACE_PASSWORD;
-      at = new PasswordToken(conf.get(p).getBytes());
+      at = new PasswordToken(conf.get(p).getBytes(Constants.UTF8));
     } else {
       Properties props = new Properties();
       int prefixLength = Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey().length() + 1;

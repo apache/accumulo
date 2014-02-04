@@ -46,9 +46,9 @@ public class DeleteRowsSplitTest extends FunctionalTest {
   static final SortedSet<Text> SPLITS = new TreeSet<Text>();
   static final List<String> ROWS = new ArrayList<String>();
   static {
-    for (byte b : LETTERS.getBytes()) {
+    for (byte b : LETTERS.getBytes(Constants.UTF8)) {
       SPLITS.add(new Text(new byte[] {b}));
-      ROWS.add(new String(new byte[] {b}));
+      ROWS.add(new String(new byte[] {b}, Constants.UTF8));
     }
   }
 

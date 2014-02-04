@@ -152,7 +152,7 @@ public class Compactor implements Callable<CompactionStats> {
     entriesWritten.set(0);
   }
 
-  protected static Set<Compactor> runningCompactions = Collections.synchronizedSet(new HashSet<Compactor>());
+  protected static final Set<Compactor> runningCompactions = Collections.synchronizedSet(new HashSet<Compactor>());
   
   public static class CompactionInfo {
     

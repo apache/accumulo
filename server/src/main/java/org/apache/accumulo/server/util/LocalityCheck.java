@@ -62,12 +62,14 @@ public class LocalityCheck {
         addBlocks(fs, host, files, totalBlocks, localBlocks);
         files.clear();
       } else if (key.compareColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY) == 0) {
-        files.add(new String(KeyExtent.tableOfMetadataRow(key.getRow())) + slash(key.getColumnQualifier().toString()));
+        files.add(new String(KeyExtent.tableOfMetadataRow(key.getRow()), Constants.UTF8) + slash(key.getColumnQualifier().toString()));
       }
     }
     System.out.println(" Server         %local  total blocks");
-    for (String host : totalBlocks.keySet()) {
-      System.out.println(String.format("%15s %5.1f %8d", host, (localBlocks.get(host) * 100.) / totalBlocks.get(host), totalBlocks.get(host)));
+    for (Entry<String,Long> entry : totalBlocks.entrySet()) {
+      final String host = entry.getKey();
+      final Long blocksForHost = entry.getValue();
+      System.out.println(String.format("%15s %5.1f %8d", host, (localBlocks.get(host) * 100.) / blocksForHost, blocksForHost));
     }
     return 0;
   }

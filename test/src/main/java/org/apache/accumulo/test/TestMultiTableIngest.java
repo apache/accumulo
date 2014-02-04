@@ -19,6 +19,7 @@ package org.apache.accumulo.test;
 import java.util.ArrayList;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -96,7 +97,7 @@ public class TestMultiTableIngest {
       // populate
       for (int i = 0; i < opts.count; i++) {
         Mutation m = new Mutation(new Text(String.format("%05d", i)));
-        m.put(new Text("col" + Integer.toString((i % 3) + 1)), new Text("qual"), new Value("junk".getBytes()));
+        m.put(new Text("col" + Integer.toString((i % 3) + 1)), new Text("qual"), new Value("junk".getBytes(Constants.UTF8)));
         b.getBatchWriter(tableNames.get(i % tableNames.size())).addMutation(m);
       }
       try {

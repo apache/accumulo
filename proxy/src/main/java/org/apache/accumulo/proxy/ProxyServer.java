@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.SortedSet;
@@ -394,10 +395,10 @@ public class ProxyServer implements AccumuloProxy.Iface {
     try {
       Map<String,Set<Text>> groups = getConnector(login).tableOperations().getLocalityGroups(tableName);
       Map<String,Set<String>> ret = new HashMap<String,Set<String>>();
-      for (String key : groups.keySet()) {
-        ret.put(key, new HashSet<String>());
-        for (Text val : groups.get(key)) {
-          ret.get(key).add(val.toString());
+      for (Entry<String,Set<Text>> groupEntry : groups.entrySet()) {
+        ret.put(groupEntry.getKey(), new HashSet<String>());
+        for (Text val : groupEntry.getValue()) {
+          ret.get(groupEntry.getKey()).add(val.toString());
         }
       }
       return ret;
@@ -551,10 +552,10 @@ public class ProxyServer implements AccumuloProxy.Iface {
       org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
     try {
       Map<String,Set<Text>> groups = new HashMap<String,Set<Text>>();
-      for (String key : groupStrings.keySet()) {
-        groups.put(key, new HashSet<Text>());
-        for (String val : groupStrings.get(key)) {
-          groups.get(key).add(new Text(val));
+      for (Entry<String,Set<String>> groupEntry : groupStrings.entrySet()) {
+        groups.put(groupEntry.getKey(), new HashSet<Text>());
+        for (String val : groupEntry.getValue()) {
+          groups.get(groupEntry.getKey()).add(new Text(val));
         }
       }
       getConnector(login).tableOperations().setLocalityGroups(tableName, groups);

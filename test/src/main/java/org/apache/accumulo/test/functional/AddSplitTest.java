@@ -138,7 +138,7 @@ public class AddSplitTest extends FunctionalTest {
       String row = String.format("%09d", i);
       
       Mutation m = new Mutation(new Text(row));
-      m.put(new Text("cf1"), new Text("cq1"), ts, new Value(("" + i).getBytes()));
+      m.put(new Text("cf1"), new Text("cq1"), ts, new Value(Integer.toString(i).getBytes(Constants.UTF8)));
       bw.addMutation(m);
     }
     

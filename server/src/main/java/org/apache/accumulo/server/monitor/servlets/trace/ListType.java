@@ -64,7 +64,7 @@ public class ListType extends Basic {
     for (Entry<Key,Value> entry : scanner) {
       RemoteSpan span = TraceFormatter.getRemoteSpan(entry);
       if (span.description.equals(type)) {
-        trace.addRow(span, new Long(span.stop - span.start), span.svc + ":" + span.sender);
+        trace.addRow(span, Long.valueOf(span.stop - span.start), span.svc + ":" + span.sender);
       }
     }
     trace.generate(req, sb);

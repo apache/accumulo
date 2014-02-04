@@ -20,11 +20,13 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.log4j.Logger;
 
 public class DefaultConfiguration extends AccumuloConfiguration {
@@ -62,7 +64,7 @@ public class DefaultConfiguration extends AccumuloConfiguration {
       int n;
       try {
         while ((n = data.read(buffer)) > 0)
-          doc.print(new String(buffer, 0, n));
+          doc.print(new String(buffer, 0, n, Constants.UTF8));
       } catch (IOException e) {
         e.printStackTrace();
         return;
@@ -176,9 +178,9 @@ public class DefaultConfiguration extends AccumuloConfiguration {
   /*
    * Generate documentation for conf/accumulo-site.xml file usage
    */
-  public static void main(String[] args) throws FileNotFoundException {
+  public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException {
     if (args.length == 2 && args[0].equals("--generate-doc")) {
-      generateDocumentation(new PrintStream(args[1]));
+      generateDocumentation(new PrintStream(args[1], Constants.UTF8.name()));
     } else {
       throw new IllegalArgumentException("Usage: " + DefaultConfiguration.class.getName() + " --generate-doc <filename>");
     }

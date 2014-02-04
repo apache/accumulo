@@ -65,7 +65,7 @@ public class BatchScanSplitTest extends FunctionalTest {
     
     for (int i = 0; i < numRows; i++) {
       Mutation m = new Mutation(new Text(String.format("%09x", i)));
-      m.put(new Text("cf1"), new Text("cq1"), new Value(String.format("%016x", numRows - i).getBytes()));
+      m.put(new Text("cf1"), new Text("cq1"), new Value(String.format("%016x", numRows - i).getBytes(Constants.UTF8)));
       bw.addMutation(m);
     }
     
@@ -89,7 +89,7 @@ public class BatchScanSplitTest extends FunctionalTest {
     for (int i = 0; i < 100; i++) {
       int r = random.nextInt(numRows);
       Text row = new Text(String.format("%09x", r));
-      expected.put(row, new Value(String.format("%016x", numRows - r).getBytes()));
+      expected.put(row, new Value(String.format("%016x", numRows - r).getBytes(Constants.UTF8)));
       ranges.add(new Range(row));
     }
     

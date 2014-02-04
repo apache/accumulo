@@ -16,13 +16,14 @@
  */
 package org.apache.accumulo.core.util;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.io.Text;
 
 public class Encoding {
   
   public static String encodeAsBase64FileName(Text data) {
-    String encodedRow = new String(Base64.encodeBase64(TextUtil.getBytes(data)));
+    String encodedRow = new String(Base64.encodeBase64(TextUtil.getBytes(data)), Constants.UTF8);
     encodedRow = encodedRow.replace('/', '_').replace('+', '-');
     
     int index = encodedRow.length() - 1;
@@ -39,7 +40,7 @@ public class Encoding {
     
     node = node.replace('_', '/').replace('-', '+');
     
-    return Base64.decodeBase64(node.getBytes());
+    return Base64.decodeBase64(node.getBytes(Constants.UTF8));
   }
   
 }

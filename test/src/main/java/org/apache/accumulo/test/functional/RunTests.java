@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -97,7 +98,7 @@ public class RunTests extends Configured implements Tool {
       Text result = new Text();
       try {
         while ((len = out.read(buffer)) > 0) {
-          log.info("More: " + new String(buffer, 0, len));
+          log.info("More: " + new String(buffer, 0, len, Constants.UTF8));
           result.append(buffer, 0, len);
         }
       } catch (Exception ex) {

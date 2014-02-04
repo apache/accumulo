@@ -101,10 +101,10 @@ public class MetadataBatchScanTest {
         
         String dir = "/t-" + UUID.randomUUID();
         
-        Constants.METADATA_DIRECTORY_COLUMN.put(mut, new Value(dir.getBytes()));
+        Constants.METADATA_DIRECTORY_COLUMN.put(mut, new Value(dir.getBytes(Constants.UTF8)));
         
         for (int i = 0; i < 5; i++) {
-          mut.put(Constants.METADATA_DATAFILE_COLUMN_FAMILY, new Text(dir + "/00000_0000" + i + ".map"), new Value("10000,1000000".getBytes()));
+          mut.put(Constants.METADATA_DATAFILE_COLUMN_FAMILY, new Text(dir + "/00000_0000" + i + ".map"), new Value("10000,1000000".getBytes(Constants.UTF8)));
         }
         
         bw.addMutation(mut);

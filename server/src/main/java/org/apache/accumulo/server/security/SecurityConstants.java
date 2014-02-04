@@ -43,7 +43,7 @@ public class SecurityConstants {
   private static final AuthenticationToken SYSTEM_TOKEN = makeSystemPassword();
   private static final TCredentials systemCredentials = CredentialHelper.createSquelchError(SYSTEM_PRINCIPAL, SYSTEM_TOKEN, HdfsZooInstance.getInstance()
       .getInstanceID());
-  public static byte[] confChecksum = null;
+  static byte[] confChecksum = null;
   
   public static AuthenticationToken getSystemToken() {
     return SYSTEM_TOKEN;

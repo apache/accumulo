@@ -59,7 +59,7 @@ public class ShutdownTServer extends MasterRepo {
       ZooLock.deleteLock(path);
       path = ZooUtil.getRoot(master.getInstance()) + Constants.ZDEADTSERVERS + "/" + tserver;
       IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-      zoo.putPersistentData(path, "forced down".getBytes(), NodeExistsPolicy.OVERWRITE);
+      zoo.putPersistentData(path, "forced down".getBytes(Constants.UTF8), NodeExistsPolicy.OVERWRITE);
       return null;
     }
     

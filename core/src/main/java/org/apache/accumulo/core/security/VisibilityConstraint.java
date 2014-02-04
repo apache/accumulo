@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.constraints.Constraint;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
@@ -54,7 +55,7 @@ public class VisibilityConstraint implements Constraint {
       byte[] cv = update.getColumnVisibility();
       if (cv.length > 0) {
         String key = null;
-        if (ok != null && ok.contains(key = new String(cv)))
+        if (ok != null && ok.contains(key = new String(cv, Constants.UTF8)))
           continue;
         
         try {
@@ -63,7 +64,7 @@ public class VisibilityConstraint implements Constraint {
             ve = new VisibilityEvaluator(env.getAuthorizations());
           
           if (!ve.evaluate(new ColumnVisibility(cv)))
-            return Collections.singletonList(new Short((short) 2));
+            return Collections.singletonList(Short.valueOf((short) 2));
           
         } catch (BadArgumentException bae) {
           return Collections.singletonList(new Short((short) 1));

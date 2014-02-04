@@ -222,8 +222,6 @@ public class SetIterCommand extends Command {
           if (input == null) {
             reader.printNewline();
             throw new IOException("Input stream closed");
-          } else {
-            input = new String(input);
           }
           // Places all Parameters and Values into the LocalOptions, even if the value is "".
           // This allows us to check for "" values when setting the iterators and allows us to remove
@@ -244,8 +242,6 @@ public class SetIterCommand extends Command {
             if (input == null) {
               reader.printNewline();
               throw new IOException("Input stream closed");
-            } else {
-              input = new String(input);
             }
             
             if (input.length() == 0)

@@ -68,11 +68,11 @@ public class LogServlet extends BasicServlet {
         }
         
       }
-      msg = text.toString();
+      StringBuilder builder = new StringBuilder(text.toString());
       if (ev.getThrowableStrRep() != null)
         for (String line : ev.getThrowableStrRep())
-          msg += "\n\t" + line;
-      msg = sanitize(msg.trim());
+          builder.append("\n\t").append(line);
+      msg = sanitize(builder.toString().trim());
       msg = "<pre class='logevent'>" + msg + "</pre>";
       logTable.addRow(ev.getTimeStamp(), application, dev.getCount(), ev.getLevel(), msg);
     }

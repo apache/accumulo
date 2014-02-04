@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -225,7 +226,7 @@ public class DfsLogger {
   public static FSDataInputStream readHeader(FileSystem fs, Path path, Map<String,String> opts) throws IOException {
     FSDataInputStream file = fs.open(path);
     try {
-      byte[] magic = LOG_FILE_HEADER_V2.getBytes();
+      byte[] magic = LOG_FILE_HEADER_V2.getBytes(Constants.UTF8);
       byte[] buffer = new byte[magic.length];
       file.readFully(buffer);
       if (Arrays.equals(buffer, magic)) {
@@ -286,13 +287,13 @@ public class DfsLogger {
           .getConfiguration().get(Property.CRYPTO_MODULE_CLASS));
 
       // Initialize the log file with a header and the crypto params used to set up this log file.
-      logFile.write(LOG_FILE_HEADER_V2.getBytes());
+      logFile.write(LOG_FILE_HEADER_V2.getBytes(Constants.UTF8));
       Map<String,String> cryptoOpts = conf.getConfiguration().getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX);
 
       logFile.writeInt(cryptoOpts.size());
-      for (String key : cryptoOpts.keySet()) {
-        logFile.writeUTF(key);
-        logFile.writeUTF(cryptoOpts.get(key));
+      for (Entry<String,String> entry : cryptoOpts.entrySet()) {
+        logFile.writeUTF(entry.getKey());
+        logFile.writeUTF(entry.getValue());
       }
 
       @SuppressWarnings("deprecation")

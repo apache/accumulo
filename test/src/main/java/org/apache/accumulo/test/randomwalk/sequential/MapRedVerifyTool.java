@@ -70,7 +70,7 @@ public class MapRedVerifyTool extends Configured implements Tool {
     
     public void writeMutation(Context output, int start, int end) throws IOException, InterruptedException {
       Mutation m = new Mutation(new Text(String.format("%010d", start)));
-      m.put(new Text(String.format("%010d", end)), new Text(""), new Value("".getBytes()));
+      m.put(new Text(String.format("%010d", end)), new Text(""), new Value(new byte[0]));
       output.write(null, m);
     }
   }

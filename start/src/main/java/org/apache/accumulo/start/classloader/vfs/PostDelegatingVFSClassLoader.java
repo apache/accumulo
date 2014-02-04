@@ -41,7 +41,7 @@ public class PostDelegatingVFSClassLoader extends VFSClassLoader {
     if (c == null) {
       try {
         // try finding this class here instead of parent
-        c = findClass(name);
+        findClass(name);
       } catch (ClassNotFoundException e) {
 
       }

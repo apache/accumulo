@@ -61,7 +61,7 @@ public class MetadataTable {
     }
     
     public DataFileValue(byte[] encodedDFV) {
-      String[] ba = new String(encodedDFV).split(",");
+      String[] ba = new String(encodedDFV, Constants.UTF8).split(",");
       
       size = Long.parseLong(ba[0]);
       numEntries = Long.parseLong(ba[1]);
@@ -90,8 +90,8 @@ public class MetadataTable {
     
     public byte[] encode() {
       if (time >= 0)
-        return ("" + size + "," + numEntries + "," + time).getBytes();
-      return ("" + size + "," + numEntries).getBytes();
+        return ("" + size + "," + numEntries + "," + time).getBytes(Constants.UTF8);
+      return ("" + size + "," + numEntries).getBytes(Constants.UTF8);
     }
     
     public boolean equals(Object o) {

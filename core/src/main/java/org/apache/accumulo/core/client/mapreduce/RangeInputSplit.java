@@ -67,7 +67,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
   public RangeInputSplit(Range range, String[] locations) {
     this.range = range;
-    this.locations = locations;
+    setLocations(locations);
   }
 
   public Range getRange() {
@@ -138,7 +138,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
   @Override
   public String[] getLocations() throws IOException {
-    return locations;
+    return Arrays.copyOf(locations, locations.length);
   }
 
   @Override
@@ -368,7 +368,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
   }
 
   public void setLocations(String[] locations) {
-    this.locations = locations;
+    this.locations = Arrays.copyOf(locations, locations.length);
   }
 
   public Boolean isMockInstance() {

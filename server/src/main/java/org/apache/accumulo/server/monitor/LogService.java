@@ -82,7 +82,7 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
     try {
       SocketServer server = new SocketServer(conf.getPort(Property.MONITOR_LOG4J_PORT));
       ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instanceId) + Constants.ZMONITOR_LOG4J_PORT,
-          Integer.toString(server.getLocalPort()).getBytes(), NodeExistsPolicy.OVERWRITE);
+          Integer.toString(server.getLocalPort()).getBytes(Constants.UTF8), NodeExistsPolicy.OVERWRITE);
       new Daemon(server).start();
     } catch (Throwable t) {
       log.info("Unable to listen to cluster-wide ports", t);

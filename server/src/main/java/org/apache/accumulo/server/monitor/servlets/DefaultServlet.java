@@ -39,6 +39,7 @@ import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
@@ -85,7 +86,7 @@ public class DefaultServlet extends BasicServlet {
           while ((n = data.read(buffer)) > 0)
             out.write(buffer, 0, n);
         } else {
-          out.write(("could not get resource " + path + "").getBytes());
+          out.write(("could not get resource " + path + "").getBytes(Constants.UTF8));
         }
       } finally {
         if (data != null)

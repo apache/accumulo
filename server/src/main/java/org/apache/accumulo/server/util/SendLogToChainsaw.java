@@ -18,10 +18,12 @@ package org.apache.accumulo.server.util;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.URLEncoder;
@@ -35,6 +37,7 @@ import java.util.regex.Pattern;
 
 import javax.net.SocketFactory;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.commons.lang.math.LongRange;
@@ -114,19 +117,19 @@ public class SendLogToChainsaw extends XMLLayout {
   public void processLogFiles() throws IOException {
     String line = null;
     String out = null;
-    FileReader fReader = null;
+    InputStreamReader isReader = null;
     BufferedReader reader = null;
     try {
       for (File log : logFiles) {
         // Parse the server type and name from the log file name
         String threadName = log.getName().substring(0, log.getName().indexOf("."));
         try {
-          fReader = new FileReader(log);
+          isReader = new InputStreamReader(new FileInputStream(log), Constants.UTF8);
         } catch (FileNotFoundException e) {
           System.out.println("Unable to find file: " + log.getAbsolutePath());
           throw e;
 	    }
-        reader = new BufferedReader(fReader);
+        reader = new BufferedReader(isReader);
         
         try {
           line = reader.readLine();
@@ -134,7 +137,7 @@ public class SendLogToChainsaw extends XMLLayout {
                 out = convertLine(line, threadName);
                 if (null != out) {
                   if (socket != null && socket.isConnected())
-                    socket.getOutputStream().write(out.getBytes());
+                    socket.getOutputStream().write(out.getBytes(Constants.UTF8));
                   else
                     System.err.println("Unable to send data to transport");
                 }
@@ -147,8 +150,8 @@ public class SendLogToChainsaw extends XMLLayout {
           if (reader != null) {
             reader.close();
           }
-          if (fReader != null) {
-            fReader.close();
+          if (isReader != null) {
+            isReader.close();
           }
         }
       }

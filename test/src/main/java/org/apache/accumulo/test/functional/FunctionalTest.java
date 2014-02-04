@@ -290,6 +290,6 @@ public abstract class FunctionalTest {
   }
   
   static Mutation nm(String row, String cf, String cq, String value) {
-    return nm(row, cf, cq, new Value(value.getBytes()));
+    return nm(row, cf, cq, new Value(value.getBytes(Constants.UTF8)));
   }
 }

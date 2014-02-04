@@ -49,8 +49,8 @@ public class ZKPermHandler implements PermissionHandler {
   private String ZKUserPath;
   private String ZKTablePath;
   private final ZooCache zooCache;
-  private final String ZKUserSysPerms = "/System";
-  private final String ZKUserTablePerms = "/Tables";
+  private static final String ZKUserSysPerms = "/System";
+  private static final String ZKUserTablePerms = "/Tables";
   
   public static synchronized PermissionHandler getInstance() {
     if (zkPermHandlerInstance == null)
@@ -257,7 +257,7 @@ public class ZKPermHandler implements PermissionHandler {
     try {
       // prep parent node of users with root username
       if (!zoo.exists(ZKUserPath))
-        zoo.putPersistentData(ZKUserPath, rootuser.getBytes(), NodeExistsPolicy.FAIL);
+        zoo.putPersistentData(ZKUserPath, rootuser.getBytes(Constants.UTF8), NodeExistsPolicy.FAIL);
       
       initUser(rootuser);
       zoo.putPersistentData(ZKUserPath + "/" + rootuser + ZKUserSysPerms, ZKSecurityTool.convertSystemPermissions(rootPerms), NodeExistsPolicy.FAIL);

@@ -48,7 +48,7 @@ public class StopTabletServer extends Test {
           Collections.sort(children);
           Stat stat = new Stat();
           byte[] data = rdr.getData(base + "/" + child + "/" + children.get(0), stat);
-          if (!"master".equals(new String(data))) {
+          if (!"master".equals(new String(data, Constants.UTF8))) {
             result.add(new TServerInstance(AddressUtil.parseAddress(child, Property.TSERV_CLIENTPORT), stat.getEphemeralOwner()));
           }
         }

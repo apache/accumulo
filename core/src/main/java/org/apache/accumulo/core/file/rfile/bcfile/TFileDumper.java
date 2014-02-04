@@ -24,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.BlockRegion;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.MetaIndexEntry;
 import org.apache.accumulo.core.file.rfile.bcfile.TFile.TFileIndexEntry;
@@ -208,7 +209,7 @@ class TFileDumper {
               out.printf("%X", b);
             }
           } else {
-            out.print(new String(key, 0, sampleLen));
+            out.print(new String(key, 0, sampleLen, Constants.UTF8));
           }
           if (sampleLen < key.length) {
             out.print("...");

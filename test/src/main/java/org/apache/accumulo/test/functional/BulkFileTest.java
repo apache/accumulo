@@ -112,7 +112,7 @@ public class BulkFileTest extends FunctionalTest {
   
   private void writeData(FileSKVWriter w, int s, int e) throws Exception {
     for (int i = s; i <= e; i++) {
-      w.append(new Key(new Text(String.format("%04d", i))), new Value(("" + i).getBytes()));
+      w.append(new Key(new Text(String.format("%04d", i))), new Value(Integer.toString(i).getBytes(Constants.UTF8)));
     }
   }
   

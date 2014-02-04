@@ -126,6 +126,7 @@ public class AgeOffStore<T> implements TStore<T> {
           case FAILED:
           case SUCCESSFUL:
             addCandidate(txid);
+            break;
           default:
             break;
         }

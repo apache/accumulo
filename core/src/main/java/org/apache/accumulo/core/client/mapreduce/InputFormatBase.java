@@ -1180,8 +1180,8 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     List<IteratorSetting> iteratorSettings = InputConfigurator.getIterators(CLASS, conf);
     List<AccumuloIterator> deprecatedIterators = new ArrayList<AccumuloIterator>(iteratorSettings.size());
     for (IteratorSetting setting : iteratorSettings) {
-      AccumuloIterator deprecatedIter = new AccumuloIterator(new String(setting.getPriority() + AccumuloIterator.FIELD_SEP + setting.getIteratorClass()
-          + AccumuloIterator.FIELD_SEP + setting.getName()));
+      AccumuloIterator deprecatedIter = new AccumuloIterator(setting.getPriority() + AccumuloIterator.FIELD_SEP + setting.getIteratorClass()
+          + AccumuloIterator.FIELD_SEP + setting.getName());
       deprecatedIterators.add(deprecatedIter);
     }
     return deprecatedIterators;
@@ -1198,8 +1198,8 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       for (Entry<String,String> opt : setting.getOptions().entrySet()) {
         String deprecatedOption;
         try {
-          deprecatedOption = new String(setting.getName() + AccumuloIteratorOption.FIELD_SEP + URLEncoder.encode(opt.getKey(), "UTF-8")
-              + AccumuloIteratorOption.FIELD_SEP + URLEncoder.encode(opt.getValue(), "UTF-8"));
+          deprecatedOption = setting.getName() + AccumuloIteratorOption.FIELD_SEP + URLEncoder.encode(opt.getKey(), "UTF-8")
+              + AccumuloIteratorOption.FIELD_SEP + URLEncoder.encode(opt.getValue(), "UTF-8");
         } catch (UnsupportedEncodingException e) {
           throw new RuntimeException(e);
         }
@@ -1250,7 +1250,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
 
     @Override
     public String toString() {
-      return new String(priority + FIELD_SEP + iteratorClass + FIELD_SEP + iteratorName);
+      return priority + FIELD_SEP + iteratorClass + FIELD_SEP + iteratorName;
     }
 
   }
@@ -1299,7 +1299,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     @Override
     public String toString() {
       try {
-        return new String(iteratorName + FIELD_SEP + URLEncoder.encode(key, "UTF-8") + FIELD_SEP + URLEncoder.encode(value, "UTF-8"));
+        return iteratorName + FIELD_SEP + URLEncoder.encode(key, "UTF-8") + FIELD_SEP + URLEncoder.encode(value, "UTF-8");
       } catch (UnsupportedEncodingException e) {
         throw new RuntimeException(e);
       }

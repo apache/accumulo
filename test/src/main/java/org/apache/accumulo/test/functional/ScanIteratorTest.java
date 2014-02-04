@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -58,8 +59,8 @@ public class ScanIteratorTest extends FunctionalTest {
     
     for (int i = 0; i < 1000; i++) {
       Mutation m = new Mutation(new Text(String.format("%06d", i)));
-      m.put(new Text("cf1"), new Text("cq1"), new Value(("" + (1000 - i)).getBytes()));
-      m.put(new Text("cf1"), new Text("cq2"), new Value(("" + (i - 1000)).getBytes()));
+      m.put(new Text("cf1"), new Text("cq1"), new Value(Integer.toString(1000 - i).getBytes(Constants.UTF8)));
+      m.put(new Text("cf1"), new Text("cq2"), new Value(Integer.toString(i - 1000).getBytes(Constants.UTF8)));
       
       bw.addMutation(m);
     }

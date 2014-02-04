@@ -87,8 +87,8 @@ public class ColumnUpdate {
   
   @Override
   public String toString() {
-    return new String(Arrays.toString(columnFamily)) + ":" + new String(Arrays.toString(columnQualifier)) + " ["
-        + new String(Arrays.toString(columnVisibility)) + "] " + (hasTimestamp ? timestamp : "NO_TIME_STAMP") + " " + Arrays.toString(val) + " " + deleted;
+    return Arrays.toString(columnFamily) + ":" + Arrays.toString(columnQualifier) + " ["
+        + Arrays.toString(columnVisibility) + "] " + (hasTimestamp ? timestamp : "NO_TIME_STAMP") + " " + Arrays.toString(val) + " " + deleted;
   }
   
   @Override
@@ -104,7 +104,7 @@ public class ColumnUpdate {
   @Override
   public int hashCode() {
     return Arrays.hashCode(columnFamily) + Arrays.hashCode(columnQualifier) + Arrays.hashCode(columnVisibility)
-        + (hasTimestamp ? (Boolean.TRUE.hashCode() + new Long(timestamp).hashCode()) : Boolean.FALSE.hashCode())
+        + (hasTimestamp ? (Boolean.TRUE.hashCode() + Long.valueOf(timestamp).hashCode()) : Boolean.FALSE.hashCode())
         + (deleted ? Boolean.TRUE.hashCode() : (Boolean.FALSE.hashCode() + Arrays.hashCode(val)));
   }
 }

@@ -79,9 +79,13 @@ public class Admin {
     ZooStore<Master> zs = new ZooStore<Master>(path, zk);
     
     if (jc.getParsedCommand().equals("fail")) {
-      admin.prepFail(zs, zk, masterPath, args[1]);
+      if (!admin.prepFail(zs, zk, masterPath, args[1])) {
+        System.exit(1);
+      }
     } else if (jc.getParsedCommand().equals("delete")) {
-      admin.prepDelete(zs, zk, masterPath, args[1]);
+      if (!admin.prepDelete(zs, zk, masterPath, args[1])) {
+        System.exit(1);
+      }
       admin.deleteLocks(zs, zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS, args[1]);
     } else if (jc.getParsedCommand().equals("print")) {
       admin.print(zs, zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS);

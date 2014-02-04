@@ -16,12 +16,14 @@
  */
 package org.apache.accumulo.core.util;
 
+import org.apache.accumulo.core.Constants;
+
 public class FastFormat {
   // this 7 to 8 times faster than String.format("%s%06d",prefix, num)
   public static byte[] toZeroPaddedString(long num, int width, int radix, byte[] prefix) {
     byte ret[] = new byte[width + prefix.length];
     if (toZeroPaddedString(ret, 0, num, width, radix, prefix) != ret.length)
-      throw new RuntimeException(" Did not format to expected width " + num + " " + width + " " + radix + " " + new String(prefix));
+      throw new RuntimeException(" Did not format to expected width " + num + " " + width + " " + radix + " " + new String(prefix, Constants.UTF8));
     return ret;
   }
   

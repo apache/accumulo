@@ -71,7 +71,7 @@ public class CreateAndUseTest extends FunctionalTest {
     
     for (int i = 1; i < 257; i++) {
       Mutation m = new Mutation(new Text(String.format("%08x", (i << 8) - 16)));
-      m.put(cf, cq, new Value(("" + i).getBytes()));
+      m.put(cf, cq, new Value(Integer.toString(i).getBytes(Constants.UTF8)));
       
       bw.addMutation(m);
     }

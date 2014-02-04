@@ -243,9 +243,9 @@ public class MergeStats {
     
     Connector conn = opts.getConnector();
     Map<String,String> tableIdMap = conn.tableOperations().tableIdMap();
-    for (String table : tableIdMap.keySet()) {
-      String tableId = tableIdMap.get(table);
-      String path = ZooUtil.getRoot(conn.getInstance().getInstanceID()) + Constants.ZTABLES + "/" + tableId.toString() + "/merge";
+    for (Entry<String,String> entry : tableIdMap.entrySet()) {
+      final String table = entry.getKey(), tableId = entry.getValue();
+      String path = ZooUtil.getRoot(conn.getInstance().getInstanceID()) + Constants.ZTABLES + "/" + tableId + "/merge";
       MergeInfo info = new MergeInfo();
       if (ZooReaderWriter.getInstance().exists(path)) {
         byte[] data = ZooReaderWriter.getInstance().getData(path, new Stat());

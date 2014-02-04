@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.cli;
 
-import java.nio.charset.Charset;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -80,12 +79,12 @@ public class ClientOpts extends Help {
     public byte[] value;
     
     public Password(String dfault) {
-      value = dfault.getBytes(Charset.forName("UTF-8"));
+      value = dfault.getBytes(Constants.UTF8);
     }
     
     @Override
     public String toString() {
-      return new String(value);
+      return new String(value, Constants.UTF8);
     }
   }
   

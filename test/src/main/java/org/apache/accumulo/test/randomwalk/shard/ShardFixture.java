@@ -75,10 +75,10 @@ public class ShardFixture extends Fixture {
     
     state.set("indexTableName", String.format("ST_index_%s_%s_%d", hostname, pid, System.currentTimeMillis()));
     state.set("docTableName", String.format("ST_docs_%s_%s_%d", hostname, pid, System.currentTimeMillis()));
-    state.set("numPartitions", new Integer(numPartitions));
+    state.set("numPartitions", Integer.valueOf(numPartitions));
     state.set("cacheIndex", rand.nextDouble() < .5);
     state.set("rand", rand);
-    state.set("nextDocID", new Long(0));
+    state.set("nextDocID", Long.valueOf(0));
     
     Connector conn = state.getConnector();
     

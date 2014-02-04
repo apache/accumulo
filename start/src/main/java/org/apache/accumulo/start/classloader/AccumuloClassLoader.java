@@ -240,10 +240,8 @@ public class AccumuloClassLoader {
             if (c == null) {
               try {
                 // try finding this class here instead of parent
-                c = findClass(name);
-              } catch (ClassNotFoundException e) {
-                
-              }
+                findClass(name);
+              } catch (ClassNotFoundException e) {}
             }
           }
           return super.loadClass(name, resolve);

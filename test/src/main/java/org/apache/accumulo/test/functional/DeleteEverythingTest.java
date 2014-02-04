@@ -55,7 +55,7 @@ public class DeleteEverythingTest extends FunctionalTest {
   public void run() throws Exception {
     BatchWriter bw = getConnector().createBatchWriter("de", new BatchWriterConfig());
     Mutation m = new Mutation(new Text("foo"));
-    m.put(new Text("bar"), new Text("1910"), new Value("5".getBytes()));
+    m.put(new Text("bar"), new Text("1910"), new Value("5".getBytes(Constants.UTF8)));
     bw.addMutation(m);
     bw.flush();
     

@@ -24,6 +24,7 @@ import java.io.Writer;
 
 import jline.ConsoleReader;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 
@@ -77,7 +78,7 @@ public class MockShell extends Shell {
       printInfo();
     
     if (execFile != null) {
-      java.util.Scanner scanner = new java.util.Scanner(new File(execFile));
+      java.util.Scanner scanner = new java.util.Scanner(new File(execFile), Constants.UTF8.name());
       try {
         while (scanner.hasNextLine() && !hasExited()) {
           execCommand(scanner.nextLine(), true, isVerbose());
@@ -137,6 +138,6 @@ public class MockShell extends Shell {
       sb.append(command).append(NEWLINE);
     }
     
-    return new ByteArrayInputStream(sb.toString().getBytes());
+    return new ByteArrayInputStream(sb.toString().getBytes(Constants.UTF8));
   }
 }
