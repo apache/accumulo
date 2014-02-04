@@ -619,7 +619,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
         Connector conn = instance.getConnector(principal, token);
         log.debug("Creating scanner for table: " + table);
         log.debug("Authorizations are: " + authorizations);
-        if (isOfflineScan(job)) {
+        if (isOffline) {
           String tokenClass = token.getClass().getCanonicalName();
           ByteBuffer tokenBuffer = ByteBuffer.wrap(CredentialHelper.toBytes(token));
           scanner = new OfflineScanner(instance, new TCredentials(principal, tokenClass, tokenBuffer, instance.getInstanceID()), Tables.getTableId(instance,
