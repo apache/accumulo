@@ -526,12 +526,6 @@
         </dependency>
         <dependency>
           <groupId>org.apache.accumulo</groupId>
-          <artifactId>accumulo-server-extras</artifactId>
-          <classifier>el6</classifier>
-          <type>rpm</type>
-        </dependency>
-        <dependency>
-          <groupId>org.apache.accumulo</groupId>
           <artifactId>accumulo-start</artifactId>
           <classifier>el6</classifier>
           <type>rpm</type>
