@@ -90,11 +90,11 @@
     <module>server/native</module>
     <module>server/tracer</module>
     <module>server/tserver</module>
-    <module>server/extras</module>
   </modules>
   <scm>
     <connection>scm:git:git://git.apache.org/accumulo.git</connection>
     <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/accumulo.git</developerConnection>
+    <tag>${project.version}</tag>
     <url>https://git-wip-us.apache.org/repos/asf?p=accumulo.git</url>
   </scm>
   <issueManagement>
@@ -344,18 +344,6 @@
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-server-base</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-server-extras</artifactId>
-        <version>${project.version}</version>
-        <classifier>el6</classifier>
-        <type>rpm</type>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-server-extras</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

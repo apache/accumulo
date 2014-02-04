@@ -90,10 +90,6 @@
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-server-extras</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-start</artifactId>
     </dependency>
     <dependency>
@@ -352,13 +348,13 @@
                       <includes>*.thrift</includes>
                     </data>
                     <data>
-                      <src>${accumulo-top}/proxy/target</src>
+                      <src>${accumulo-top}/proxy/src/main/</src>
                       <type>directory</type>
                       <mapper>
                         <type>perm</type>
                         <prefix>/usr/lib/accumulo/proxy/thrift</prefix>
                       </mapper>
-                      <includes>gen-cpp/**,gen-py/**,gen-rb/**</includes>
+                      <includes>cpp/**,python/**,ruby/**</includes>
                     </data>
                     <data>
                       <src>${accumulo-top}/bin</src>
@@ -525,12 +521,6 @@
         <dependency>
           <groupId>org.apache.accumulo</groupId>
           <artifactId>accumulo-server-base</artifactId>
-          <classifier>el6</classifier>
-          <type>rpm</type>
-        </dependency>
-        <dependency>
-          <groupId>org.apache.accumulo</groupId>
-          <artifactId>accumulo-server-extras</artifactId>
           <classifier>el6</classifier>
           <type>rpm</type>
         </dependency>
