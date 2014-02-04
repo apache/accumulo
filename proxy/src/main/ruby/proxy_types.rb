@@ -71,6 +71,16 @@ module Accumulo
     VALID_VALUES = Set.new([IDLE, RUNNING, QUEUED]).freeze
   end
 
+  module ConditionalStatus
+    ACCEPTED = 0
+    REJECTED = 1
+    VIOLATED = 2
+    UNKNOWN = 3
+    INVISIBLE_VISIBILITY = 4
+    VALUE_MAP = {0 => "ACCEPTED", 1 => "REJECTED", 2 => "VIOLATED", 3 => "UNKNOWN", 4 => "INVISIBLE_VISIBILITY"}
+    VALID_VALUES = Set.new([ACCEPTED, REJECTED, VIOLATED, UNKNOWN, INVISIBLE_VISIBILITY]).freeze
+  end
+
   module CompactionType
     MINOR = 0
     MERGE = 1
@@ -145,6 +155,24 @@ module Accumulo
       TIMESTAMP => {:type => ::Thrift::Types::I64, :name => 'timestamp', :optional => true},
       VALUE => {:type => ::Thrift::Types::STRING, :name => 'value', :binary => true, :optional => true},
       DELETECELL => {:type => ::Thrift::Types::BOOL, :name => 'deleteCell', :optional => true}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class DiskUsage
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    TABLES = 1
+    USAGE = 2
+
+    FIELDS = {
+      TABLES => {:type => ::Thrift::Types::LIST, :name => 'tables', :element => {:type => ::Thrift::Types::STRING}},
+      USAGE => {:type => ::Thrift::Types::I64, :name => 'usage'}
     }
 
     def struct_fields; FIELDS; end
@@ -349,6 +377,68 @@ module Accumulo
       COLFAMILY => {:type => ::Thrift::Types::STRING, :name => 'colFamily', :binary => true},
       COLQUALIFIER => {:type => ::Thrift::Types::STRING, :name => 'colQualifier', :binary => true},
       COLVISIBILITY => {:type => ::Thrift::Types::STRING, :name => 'colVisibility', :binary => true}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Condition
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    COLUMN = 1
+    TIMESTAMP = 2
+    VALUE = 3
+    ITERATORS = 4
+
+    FIELDS = {
+      COLUMN => {:type => ::Thrift::Types::STRUCT, :name => 'column', :class => ::Accumulo::Column},
+      TIMESTAMP => {:type => ::Thrift::Types::I64, :name => 'timestamp', :optional => true},
+      VALUE => {:type => ::Thrift::Types::STRING, :name => 'value', :binary => true, :optional => true},
+      ITERATORS => {:type => ::Thrift::Types::LIST, :name => 'iterators', :element => {:type => ::Thrift::Types::STRUCT, :class => ::Accumulo::IteratorSetting}, :optional => true}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class ConditionalUpdates
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    CONDITIONS = 2
+    UPDATES = 3
+
+    FIELDS = {
+      CONDITIONS => {:type => ::Thrift::Types::LIST, :name => 'conditions', :element => {:type => ::Thrift::Types::STRUCT, :class => ::Accumulo::Condition}},
+      UPDATES => {:type => ::Thrift::Types::LIST, :name => 'updates', :element => {:type => ::Thrift::Types::STRUCT, :class => ::Accumulo::ColumnUpdate}}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class ConditionalWriterOptions
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    MAXMEMORY = 1
+    TIMEOUTMS = 2
+    THREADS = 3
+    AUTHORIZATIONS = 4
+
+    FIELDS = {
+      MAXMEMORY => {:type => ::Thrift::Types::I64, :name => 'maxMemory', :optional => true},
+      TIMEOUTMS => {:type => ::Thrift::Types::I64, :name => 'timeoutMs', :optional => true},
+      THREADS => {:type => ::Thrift::Types::I32, :name => 'threads', :optional => true},
+      AUTHORIZATIONS => {:type => ::Thrift::Types::SET, :name => 'authorizations', :element => {:type => ::Thrift::Types::STRING, :binary => true}, :optional => true}
     }
 
     def struct_fields; FIELDS; end

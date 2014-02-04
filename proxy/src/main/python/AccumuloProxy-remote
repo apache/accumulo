@@ -51,6 +51,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print '  void deleteRows(string login, string tableName, string startRow, string endRow)'
   print '  void exportTable(string login, string tableName, string exportDir)'
   print '  void flushTable(string login, string tableName, string startRow, string endRow, bool wait)'
+  print '   getDiskUsage(string login,  tables)'
   print '   getLocalityGroups(string login, string tableName)'
   print '  IteratorSetting getIteratorSetting(string login, string tableName, string iteratorName, IteratorScope scope)'
   print '  string getMaxRow(string login, string tableName,  auths, string startRow, bool startInclusive, string endRow, bool endInclusive)'
@@ -62,8 +63,8 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print '   listIterators(string login, string tableName)'
   print '   listConstraints(string login, string tableName)'
   print '  void mergeTablets(string login, string tableName, string startRow, string endRow)'
-  print '  void offlineTable(string login, string tableName)'
-  print '  void onlineTable(string login, string tableName)'
+  print '  void offlineTable(string login, string tableName, bool wait)'
+  print '  void onlineTable(string login, string tableName, bool wait)'
   print '  void removeConstraint(string login, string tableName, i32 constraint)'
   print '  void removeIterator(string login, string tableName, string iterName,  scopes)'
   print '  void removeTableProperty(string login, string tableName, string property)'
@@ -107,6 +108,10 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print '  void update(string writer,  cells)'
   print '  void flush(string writer)'
   print '  void closeWriter(string writer)'
+  print '  ConditionalStatus updateRowConditionally(string login, string tableName, string row, ConditionalUpdates updates)'
+  print '  string createConditionalWriter(string login, string tableName, ConditionalWriterOptions options)'
+  print '   updateRowsConditionally(string conditionalWriter,  updates)'
+  print '  void closeConditionalWriter(string conditionalWriter)'
   print '  Range getRowRange(string row)'
   print '  Key getFollowing(Key key, PartialKey part)'
   print ''
@@ -244,6 +249,12 @@ elif cmd == 'flushTable':
     sys.exit(1)
   pp.pprint(client.flushTable(args[0],args[1],args[2],args[3],eval(args[4]),))
 
+elif cmd == 'getDiskUsage':
+  if len(args) != 2:
+    print 'getDiskUsage requires 2 args'
+    sys.exit(1)
+  pp.pprint(client.getDiskUsage(args[0],eval(args[1]),))
+
 elif cmd == 'getLocalityGroups':
   if len(args) != 2:
     print 'getLocalityGroups requires 2 args'
@@ -311,16 +322,16 @@ elif cmd == 'mergeTablets':
   pp.pprint(client.mergeTablets(args[0],args[1],args[2],args[3],))
 
 elif cmd == 'offlineTable':
-  if len(args) != 2:
-    print 'offlineTable requires 2 args'
+  if len(args) != 3:
+    print 'offlineTable requires 3 args'
     sys.exit(1)
-  pp.pprint(client.offlineTable(args[0],args[1],))
+  pp.pprint(client.offlineTable(args[0],args[1],eval(args[2]),))
 
 elif cmd == 'onlineTable':
-  if len(args) != 2:
-    print 'onlineTable requires 2 args'
+  if len(args) != 3:
+    print 'onlineTable requires 3 args'
     sys.exit(1)
-  pp.pprint(client.onlineTable(args[0],args[1],))
+  pp.pprint(client.onlineTable(args[0],args[1],eval(args[2]),))
 
 elif cmd == 'removeConstraint':
   if len(args) != 3:
@@ -579,6 +590,30 @@ elif cmd == 'closeWriter':
     print 'closeWriter requires 1 args'
     sys.exit(1)
   pp.pprint(client.closeWriter(args[0],))
+
+elif cmd == 'updateRowConditionally':
+  if len(args) != 4:
+    print 'updateRowConditionally requires 4 args'
+    sys.exit(1)
+  pp.pprint(client.updateRowConditionally(args[0],args[1],args[2],eval(args[3]),))
+
+elif cmd == 'createConditionalWriter':
+  if len(args) != 3:
+    print 'createConditionalWriter requires 3 args'
+    sys.exit(1)
+  pp.pprint(client.createConditionalWriter(args[0],args[1],eval(args[2]),))
+
+elif cmd == 'updateRowsConditionally':
+  if len(args) != 2:
+    print 'updateRowsConditionally requires 2 args'
+    sys.exit(1)
+  pp.pprint(client.updateRowsConditionally(args[0],eval(args[1]),))
+
+elif cmd == 'closeConditionalWriter':
+  if len(args) != 1:
+    print 'closeConditionalWriter requires 1 args'
+    sys.exit(1)
+  pp.pprint(client.closeConditionalWriter(args[0],))
 
 elif cmd == 'getRowRange':
   if len(args) != 1:

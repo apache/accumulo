@@ -263,6 +263,24 @@ module Accumulo
         return
       end
 
+      def getDiskUsage(login, tables)
+        send_getDiskUsage(login, tables)
+        return recv_getDiskUsage()
+      end
+
+      def send_getDiskUsage(login, tables)
+        send_message('getDiskUsage', GetDiskUsage_args, :login => login, :tables => tables)
+      end
+
+      def recv_getDiskUsage()
+        result = receive_message(GetDiskUsage_result)
+        return result.success unless result.success.nil?
+        raise result.ouch1 unless result.ouch1.nil?
+        raise result.ouch2 unless result.ouch2.nil?
+        raise result.ouch3 unless result.ouch3.nil?
+        raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'getDiskUsage failed: unknown result')
+      end
+
       def getLocalityGroups(login, tableName)
         send_getLocalityGroups(login, tableName)
         return recv_getLocalityGroups()
@@ -455,13 +473,13 @@ module Accumulo
         return
       end
 
-      def offlineTable(login, tableName)
-        send_offlineTable(login, tableName)
+      def offlineTable(login, tableName, wait)
+        send_offlineTable(login, tableName, wait)
         recv_offlineTable()
       end
 
-      def send_offlineTable(login, tableName)
-        send_message('offlineTable', OfflineTable_args, :login => login, :tableName => tableName)
+      def send_offlineTable(login, tableName, wait)
+        send_message('offlineTable', OfflineTable_args, :login => login, :tableName => tableName, :wait => wait)
       end
 
       def recv_offlineTable()
@@ -472,13 +490,13 @@ module Accumulo
         return
       end
 
-      def onlineTable(login, tableName)
-        send_onlineTable(login, tableName)
+      def onlineTable(login, tableName, wait)
+        send_onlineTable(login, tableName, wait)
         recv_onlineTable()
       end
 
-      def send_onlineTable(login, tableName)
-        send_message('onlineTable', OnlineTable_args, :login => login, :tableName => tableName)
+      def send_onlineTable(login, tableName, wait)
+        send_message('onlineTable', OnlineTable_args, :login => login, :tableName => tableName, :wait => wait)
       end
 
       def recv_onlineTable()
@@ -1201,6 +1219,74 @@ module Accumulo
         return
       end
 
+      def updateRowConditionally(login, tableName, row, updates)
+        send_updateRowConditionally(login, tableName, row, updates)
+        return recv_updateRowConditionally()
+      end
+
+      def send_updateRowConditionally(login, tableName, row, updates)
+        send_message('updateRowConditionally', UpdateRowConditionally_args, :login => login, :tableName => tableName, :row => row, :updates => updates)
+      end
+
+      def recv_updateRowConditionally()
+        result = receive_message(UpdateRowConditionally_result)
+        return result.success unless result.success.nil?
+        raise result.ouch1 unless result.ouch1.nil?
+        raise result.ouch2 unless result.ouch2.nil?
+        raise result.ouch3 unless result.ouch3.nil?
+        raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'updateRowConditionally failed: unknown result')
+      end
+
+      def createConditionalWriter(login, tableName, options)
+        send_createConditionalWriter(login, tableName, options)
+        return recv_createConditionalWriter()
+      end
+
+      def send_createConditionalWriter(login, tableName, options)
+        send_message('createConditionalWriter', CreateConditionalWriter_args, :login => login, :tableName => tableName, :options => options)
+      end
+
+      def recv_createConditionalWriter()
+        result = receive_message(CreateConditionalWriter_result)
+        return result.success unless result.success.nil?
+        raise result.ouch1 unless result.ouch1.nil?
+        raise result.ouch2 unless result.ouch2.nil?
+        raise result.ouch3 unless result.ouch3.nil?
+        raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'createConditionalWriter failed: unknown result')
+      end
+
+      def updateRowsConditionally(conditionalWriter, updates)
+        send_updateRowsConditionally(conditionalWriter, updates)
+        return recv_updateRowsConditionally()
+      end
+
+      def send_updateRowsConditionally(conditionalWriter, updates)
+        send_message('updateRowsConditionally', UpdateRowsConditionally_args, :conditionalWriter => conditionalWriter, :updates => updates)
+      end
+
+      def recv_updateRowsConditionally()
+        result = receive_message(UpdateRowsConditionally_result)
+        return result.success unless result.success.nil?
+        raise result.ouch1 unless result.ouch1.nil?
+        raise result.ouch2 unless result.ouch2.nil?
+        raise result.ouch3 unless result.ouch3.nil?
+        raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'updateRowsConditionally failed: unknown result')
+      end
+
+      def closeConditionalWriter(conditionalWriter)
+        send_closeConditionalWriter(conditionalWriter)
+        recv_closeConditionalWriter()
+      end
+
+      def send_closeConditionalWriter(conditionalWriter)
+        send_message('closeConditionalWriter', CloseConditionalWriter_args, :conditionalWriter => conditionalWriter)
+      end
+
+      def recv_closeConditionalWriter()
+        result = receive_message(CloseConditionalWriter_result)
+        return
+      end
+
       def getRowRange(row)
         send_getRowRange(row)
         return recv_getRowRange()
@@ -1440,6 +1526,21 @@ module Accumulo
         write_result(result, oprot, 'flushTable', seqid)
       end
 
+      def process_getDiskUsage(seqid, iprot, oprot)
+        args = read_args(iprot, GetDiskUsage_args)
+        result = GetDiskUsage_result.new()
+        begin
+          result.success = @handler.getDiskUsage(args.login, args.tables)
+        rescue ::Accumulo::AccumuloException => ouch1
+          result.ouch1 = ouch1
+        rescue ::Accumulo::AccumuloSecurityException => ouch2
+          result.ouch2 = ouch2
+        rescue ::Accumulo::TableNotFoundException => ouch3
+          result.ouch3 = ouch3
+        end
+        write_result(result, oprot, 'getDiskUsage', seqid)
+      end
+
       def process_getLocalityGroups(seqid, iprot, oprot)
         args = read_args(iprot, GetLocalityGroups_args)
         result = GetLocalityGroups_result.new()
@@ -1601,7 +1702,7 @@ module Accumulo
         args = read_args(iprot, OfflineTable_args)
         result = OfflineTable_result.new()
         begin
-          @handler.offlineTable(args.login, args.tableName)
+          @handler.offlineTable(args.login, args.tableName, args.wait)
         rescue ::Accumulo::AccumuloException => ouch1
           result.ouch1 = ouch1
         rescue ::Accumulo::AccumuloSecurityException => ouch2
@@ -1616,7 +1717,7 @@ module Accumulo
         args = read_args(iprot, OnlineTable_args)
         result = OnlineTable_result.new()
         begin
-          @handler.onlineTable(args.login, args.tableName)
+          @handler.onlineTable(args.login, args.tableName, args.wait)
         rescue ::Accumulo::AccumuloException => ouch1
           result.ouch1 = ouch1
         rescue ::Accumulo::AccumuloSecurityException => ouch2
@@ -2195,6 +2296,58 @@ module Accumulo
           result.ouch2 = ouch2
         end
         write_result(result, oprot, 'closeWriter', seqid)
+      end
+
+      def process_updateRowConditionally(seqid, iprot, oprot)
+        args = read_args(iprot, UpdateRowConditionally_args)
+        result = UpdateRowConditionally_result.new()
+        begin
+          result.success = @handler.updateRowConditionally(args.login, args.tableName, args.row, args.updates)
+        rescue ::Accumulo::AccumuloException => ouch1
+          result.ouch1 = ouch1
+        rescue ::Accumulo::AccumuloSecurityException => ouch2
+          result.ouch2 = ouch2
+        rescue ::Accumulo::TableNotFoundException => ouch3
+          result.ouch3 = ouch3
+        end
+        write_result(result, oprot, 'updateRowConditionally', seqid)
+      end
+
+      def process_createConditionalWriter(seqid, iprot, oprot)
+        args = read_args(iprot, CreateConditionalWriter_args)
+        result = CreateConditionalWriter_result.new()
+        begin
+          result.success = @handler.createConditionalWriter(args.login, args.tableName, args.options)
+        rescue ::Accumulo::AccumuloException => ouch1
+          result.ouch1 = ouch1
+        rescue ::Accumulo::AccumuloSecurityException => ouch2
+          result.ouch2 = ouch2
+        rescue ::Accumulo::TableNotFoundException => ouch3
+          result.ouch3 = ouch3
+        end
+        write_result(result, oprot, 'createConditionalWriter', seqid)
+      end
+
+      def process_updateRowsConditionally(seqid, iprot, oprot)
+        args = read_args(iprot, UpdateRowsConditionally_args)
+        result = UpdateRowsConditionally_result.new()
+        begin
+          result.success = @handler.updateRowsConditionally(args.conditionalWriter, args.updates)
+        rescue ::Accumulo::UnknownWriter => ouch1
+          result.ouch1 = ouch1
+        rescue ::Accumulo::AccumuloException => ouch2
+          result.ouch2 = ouch2
+        rescue ::Accumulo::AccumuloSecurityException => ouch3
+          result.ouch3 = ouch3
+        end
+        write_result(result, oprot, 'updateRowsConditionally', seqid)
+      end
+
+      def process_closeConditionalWriter(seqid, iprot, oprot)
+        args = read_args(iprot, CloseConditionalWriter_args)
+        result = CloseConditionalWriter_result.new()
+        @handler.closeConditionalWriter(args.conditionalWriter)
+        write_result(result, oprot, 'closeConditionalWriter', seqid)
       end
 
       def process_getRowRange(seqid, iprot, oprot)
@@ -2794,6 +2947,46 @@ module Accumulo
       ::Thrift::Struct.generate_accessors self
     end
 
+    class GetDiskUsage_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      LOGIN = 1
+      TABLES = 2
+
+      FIELDS = {
+        LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true},
+        TABLES => {:type => ::Thrift::Types::SET, :name => 'tables', :element => {:type => ::Thrift::Types::STRING}}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class GetDiskUsage_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      SUCCESS = 0
+      OUCH1 = 1
+      OUCH2 = 2
+      OUCH3 = 3
+
+      FIELDS = {
+        SUCCESS => {:type => ::Thrift::Types::LIST, :name => 'success', :element => {:type => ::Thrift::Types::STRUCT, :class => ::Accumulo::DiskUsage}},
+        OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::AccumuloException},
+        OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::AccumuloSecurityException},
+        OUCH3 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch3', :class => ::Accumulo::TableNotFoundException}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
     class GetLocalityGroups_args
       include ::Thrift::Struct, ::Thrift::Struct_Union
       LOGIN = 1
@@ -3255,10 +3448,12 @@ module Accumulo
       include ::Thrift::Struct, ::Thrift::Struct_Union
       LOGIN = 1
       TABLENAME = 2
+      WAIT = 3
 
       FIELDS = {
         LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true},
-        TABLENAME => {:type => ::Thrift::Types::STRING, :name => 'tableName'}
+        TABLENAME => {:type => ::Thrift::Types::STRING, :name => 'tableName'},
+        WAIT => {:type => ::Thrift::Types::BOOL, :name => 'wait', :default => false}
       }
 
       def struct_fields; FIELDS; end
@@ -3293,10 +3488,12 @@ module Accumulo
       include ::Thrift::Struct, ::Thrift::Struct_Union
       LOGIN = 1
       TABLENAME = 2
+      WAIT = 3
 
       FIELDS = {
         LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true},
-        TABLENAME => {:type => ::Thrift::Types::STRING, :name => 'tableName'}
+        TABLENAME => {:type => ::Thrift::Types::STRING, :name => 'tableName'},
+        WAIT => {:type => ::Thrift::Types::BOOL, :name => 'wait', :default => false}
       }
 
       def struct_fields; FIELDS; end
@@ -4988,6 +5185,166 @@ module Accumulo
       FIELDS = {
         OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::UnknownWriter},
         OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::MutationsRejectedException}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class UpdateRowConditionally_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      LOGIN = 1
+      TABLENAME = 2
+      ROW = 3
+      UPDATES = 4
+
+      FIELDS = {
+        LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true},
+        TABLENAME => {:type => ::Thrift::Types::STRING, :name => 'tableName'},
+        ROW => {:type => ::Thrift::Types::STRING, :name => 'row', :binary => true},
+        UPDATES => {:type => ::Thrift::Types::STRUCT, :name => 'updates', :class => ::Accumulo::ConditionalUpdates}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class UpdateRowConditionally_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      SUCCESS = 0
+      OUCH1 = 1
+      OUCH2 = 2
+      OUCH3 = 3
+
+      FIELDS = {
+        SUCCESS => {:type => ::Thrift::Types::I32, :name => 'success', :enum_class => ::Accumulo::ConditionalStatus},
+        OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::AccumuloException},
+        OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::AccumuloSecurityException},
+        OUCH3 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch3', :class => ::Accumulo::TableNotFoundException}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+        unless @success.nil? || ::Accumulo::ConditionalStatus::VALID_VALUES.include?(@success)
+          raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Invalid value of field success!')
+        end
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class CreateConditionalWriter_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      LOGIN = 1
+      TABLENAME = 2
+      OPTIONS = 3
+
+      FIELDS = {
+        LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true},
+        TABLENAME => {:type => ::Thrift::Types::STRING, :name => 'tableName'},
+        OPTIONS => {:type => ::Thrift::Types::STRUCT, :name => 'options', :class => ::Accumulo::ConditionalWriterOptions}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class CreateConditionalWriter_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      SUCCESS = 0
+      OUCH1 = 1
+      OUCH2 = 2
+      OUCH3 = 3
+
+      FIELDS = {
+        SUCCESS => {:type => ::Thrift::Types::STRING, :name => 'success'},
+        OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::AccumuloException},
+        OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::AccumuloSecurityException},
+        OUCH3 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch3', :class => ::Accumulo::TableNotFoundException}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class UpdateRowsConditionally_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      CONDITIONALWRITER = 1
+      UPDATES = 2
+
+      FIELDS = {
+        CONDITIONALWRITER => {:type => ::Thrift::Types::STRING, :name => 'conditionalWriter'},
+        UPDATES => {:type => ::Thrift::Types::MAP, :name => 'updates', :key => {:type => ::Thrift::Types::STRING, :binary => true}, :value => {:type => ::Thrift::Types::STRUCT, :class => ::Accumulo::ConditionalUpdates}}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class UpdateRowsConditionally_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      SUCCESS = 0
+      OUCH1 = 1
+      OUCH2 = 2
+      OUCH3 = 3
+
+      FIELDS = {
+        SUCCESS => {:type => ::Thrift::Types::MAP, :name => 'success', :key => {:type => ::Thrift::Types::STRING, :binary => true}, :value => {:type => ::Thrift::Types::I32, :enum_class => ::Accumulo::ConditionalStatus}},
+        OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::UnknownWriter},
+        OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::AccumuloException},
+        OUCH3 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch3', :class => ::Accumulo::AccumuloSecurityException}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class CloseConditionalWriter_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      CONDITIONALWRITER = 1
+
+      FIELDS = {
+        CONDITIONALWRITER => {:type => ::Thrift::Types::STRING, :name => 'conditionalWriter'}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class CloseConditionalWriter_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+
+      FIELDS = {
+
       }
 
       def struct_fields; FIELDS; end

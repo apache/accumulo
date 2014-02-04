@@ -45,6 +45,7 @@ class AccumuloProxyIf {
   virtual void deleteRows(const std::string& login, const std::string& tableName, const std::string& startRow, const std::string& endRow) = 0;
   virtual void exportTable(const std::string& login, const std::string& tableName, const std::string& exportDir) = 0;
   virtual void flushTable(const std::string& login, const std::string& tableName, const std::string& startRow, const std::string& endRow, const bool wait) = 0;
+  virtual void getDiskUsage(std::vector<DiskUsage> & _return, const std::string& login, const std::set<std::string> & tables) = 0;
   virtual void getLocalityGroups(std::map<std::string, std::set<std::string> > & _return, const std::string& login, const std::string& tableName) = 0;
   virtual void getIteratorSetting(IteratorSetting& _return, const std::string& login, const std::string& tableName, const std::string& iteratorName, const IteratorScope::type scope) = 0;
   virtual void getMaxRow(std::string& _return, const std::string& login, const std::string& tableName, const std::set<std::string> & auths, const std::string& startRow, const bool startInclusive, const std::string& endRow, const bool endInclusive) = 0;
@@ -56,8 +57,8 @@ class AccumuloProxyIf {
   virtual void listIterators(std::map<std::string, std::set<IteratorScope::type> > & _return, const std::string& login, const std::string& tableName) = 0;
   virtual void listConstraints(std::map<std::string, int32_t> & _return, const std::string& login, const std::string& tableName) = 0;
   virtual void mergeTablets(const std::string& login, const std::string& tableName, const std::string& startRow, const std::string& endRow) = 0;
-  virtual void offlineTable(const std::string& login, const std::string& tableName) = 0;
-  virtual void onlineTable(const std::string& login, const std::string& tableName) = 0;
+  virtual void offlineTable(const std::string& login, const std::string& tableName, const bool wait) = 0;
+  virtual void onlineTable(const std::string& login, const std::string& tableName, const bool wait) = 0;
   virtual void removeConstraint(const std::string& login, const std::string& tableName, const int32_t constraint) = 0;
   virtual void removeIterator(const std::string& login, const std::string& tableName, const std::string& iterName, const std::set<IteratorScope::type> & scopes) = 0;
   virtual void removeTableProperty(const std::string& login, const std::string& tableName, const std::string& property) = 0;
@@ -101,6 +102,10 @@ class AccumuloProxyIf {
   virtual void update(const std::string& writer, const std::map<std::string, std::vector<ColumnUpdate> > & cells) = 0;
   virtual void flush(const std::string& writer) = 0;
   virtual void closeWriter(const std::string& writer) = 0;
+  virtual ConditionalStatus::type updateRowConditionally(const std::string& login, const std::string& tableName, const std::string& row, const ConditionalUpdates& updates) = 0;
+  virtual void createConditionalWriter(std::string& _return, const std::string& login, const std::string& tableName, const ConditionalWriterOptions& options) = 0;
+  virtual void updateRowsConditionally(std::map<std::string, ConditionalStatus::type> & _return, const std::string& conditionalWriter, const std::map<std::string, ConditionalUpdates> & updates) = 0;
+  virtual void closeConditionalWriter(const std::string& conditionalWriter) = 0;
   virtual void getRowRange(Range& _return, const std::string& row) = 0;
   virtual void getFollowing(Key& _return, const Key& key, const PartialKey::type part) = 0;
 };
@@ -175,6 +180,9 @@ class AccumuloProxyNull : virtual public AccumuloProxyIf {
   void flushTable(const std::string& /* login */, const std::string& /* tableName */, const std::string& /* startRow */, const std::string& /* endRow */, const bool /* wait */) {
     return;
   }
+  void getDiskUsage(std::vector<DiskUsage> & /* _return */, const std::string& /* login */, const std::set<std::string> & /* tables */) {
+    return;
+  }
   void getLocalityGroups(std::map<std::string, std::set<std::string> > & /* _return */, const std::string& /* login */, const std::string& /* tableName */) {
     return;
   }
@@ -208,10 +216,10 @@ class AccumuloProxyNull : virtual public AccumuloProxyIf {
   void mergeTablets(const std::string& /* login */, const std::string& /* tableName */, const std::string& /* startRow */, const std::string& /* endRow */) {
     return;
   }
-  void offlineTable(const std::string& /* login */, const std::string& /* tableName */) {
+  void offlineTable(const std::string& /* login */, const std::string& /* tableName */, const bool /* wait */) {
     return;
   }
-  void onlineTable(const std::string& /* login */, const std::string& /* tableName */) {
+  void onlineTable(const std::string& /* login */, const std::string& /* tableName */, const bool /* wait */) {
     return;
   }
   void removeConstraint(const std::string& /* login */, const std::string& /* tableName */, const int32_t /* constraint */) {
@@ -348,6 +356,19 @@ class AccumuloProxyNull : virtual public AccumuloProxyIf {
     return;
   }
   void closeWriter(const std::string& /* writer */) {
+    return;
+  }
+  ConditionalStatus::type updateRowConditionally(const std::string& /* login */, const std::string& /* tableName */, const std::string& /* row */, const ConditionalUpdates& /* updates */) {
+    ConditionalStatus::type _return = (ConditionalStatus::type)0;
+    return _return;
+  }
+  void createConditionalWriter(std::string& /* _return */, const std::string& /* login */, const std::string& /* tableName */, const ConditionalWriterOptions& /* options */) {
+    return;
+  }
+  void updateRowsConditionally(std::map<std::string, ConditionalStatus::type> & /* _return */, const std::string& /* conditionalWriter */, const std::map<std::string, ConditionalUpdates> & /* updates */) {
+    return;
+  }
+  void closeConditionalWriter(const std::string& /* conditionalWriter */) {
     return;
   }
   void getRowRange(Range& /* _return */, const std::string& /* row */) {
@@ -2473,6 +2494,153 @@ class AccumuloProxy_flushTable_presult {
 
 };
 
+typedef struct _AccumuloProxy_getDiskUsage_args__isset {
+  _AccumuloProxy_getDiskUsage_args__isset() : login(false), tables(false) {}
+  bool login;
+  bool tables;
+} _AccumuloProxy_getDiskUsage_args__isset;
+
+class AccumuloProxy_getDiskUsage_args {
+ public:
+
+  AccumuloProxy_getDiskUsage_args() : login() {
+  }
+
+  virtual ~AccumuloProxy_getDiskUsage_args() throw() {}
+
+  std::string login;
+  std::set<std::string>  tables;
+
+  _AccumuloProxy_getDiskUsage_args__isset __isset;
+
+  void __set_login(const std::string& val) {
+    login = val;
+  }
+
+  void __set_tables(const std::set<std::string> & val) {
+    tables = val;
+  }
+
+  bool operator == (const AccumuloProxy_getDiskUsage_args & rhs) const
+  {
+    if (!(login == rhs.login))
+      return false;
+    if (!(tables == rhs.tables))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_getDiskUsage_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_getDiskUsage_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_getDiskUsage_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_getDiskUsage_pargs() throw() {}
+
+  const std::string* login;
+  const std::set<std::string> * tables;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_getDiskUsage_result__isset {
+  _AccumuloProxy_getDiskUsage_result__isset() : success(false), ouch1(false), ouch2(false), ouch3(false) {}
+  bool success;
+  bool ouch1;
+  bool ouch2;
+  bool ouch3;
+} _AccumuloProxy_getDiskUsage_result__isset;
+
+class AccumuloProxy_getDiskUsage_result {
+ public:
+
+  AccumuloProxy_getDiskUsage_result() {
+  }
+
+  virtual ~AccumuloProxy_getDiskUsage_result() throw() {}
+
+  std::vector<DiskUsage>  success;
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  TableNotFoundException ouch3;
+
+  _AccumuloProxy_getDiskUsage_result__isset __isset;
+
+  void __set_success(const std::vector<DiskUsage> & val) {
+    success = val;
+  }
+
+  void __set_ouch1(const AccumuloException& val) {
+    ouch1 = val;
+  }
+
+  void __set_ouch2(const AccumuloSecurityException& val) {
+    ouch2 = val;
+  }
+
+  void __set_ouch3(const TableNotFoundException& val) {
+    ouch3 = val;
+  }
+
+  bool operator == (const AccumuloProxy_getDiskUsage_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    if (!(ouch1 == rhs.ouch1))
+      return false;
+    if (!(ouch2 == rhs.ouch2))
+      return false;
+    if (!(ouch3 == rhs.ouch3))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_getDiskUsage_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_getDiskUsage_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_getDiskUsage_presult__isset {
+  _AccumuloProxy_getDiskUsage_presult__isset() : success(false), ouch1(false), ouch2(false), ouch3(false) {}
+  bool success;
+  bool ouch1;
+  bool ouch2;
+  bool ouch3;
+} _AccumuloProxy_getDiskUsage_presult__isset;
+
+class AccumuloProxy_getDiskUsage_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_getDiskUsage_presult() throw() {}
+
+  std::vector<DiskUsage> * success;
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  TableNotFoundException ouch3;
+
+  _AccumuloProxy_getDiskUsage_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
 typedef struct _AccumuloProxy_getLocalityGroups_args__isset {
   _AccumuloProxy_getLocalityGroups_args__isset() : login(false), tableName(false) {}
   bool login;
@@ -4148,21 +4316,23 @@ class AccumuloProxy_mergeTablets_presult {
 };
 
 typedef struct _AccumuloProxy_offlineTable_args__isset {
-  _AccumuloProxy_offlineTable_args__isset() : login(false), tableName(false) {}
+  _AccumuloProxy_offlineTable_args__isset() : login(false), tableName(false), wait(true) {}
   bool login;
   bool tableName;
+  bool wait;
 } _AccumuloProxy_offlineTable_args__isset;
 
 class AccumuloProxy_offlineTable_args {
  public:
 
-  AccumuloProxy_offlineTable_args() : login(), tableName() {
+  AccumuloProxy_offlineTable_args() : login(), tableName(), wait(false) {
   }
 
   virtual ~AccumuloProxy_offlineTable_args() throw() {}
 
   std::string login;
   std::string tableName;
+  bool wait;
 
   _AccumuloProxy_offlineTable_args__isset __isset;
 
@@ -4174,11 +4344,17 @@ class AccumuloProxy_offlineTable_args {
     tableName = val;
   }
 
+  void __set_wait(const bool val) {
+    wait = val;
+  }
+
   bool operator == (const AccumuloProxy_offlineTable_args & rhs) const
   {
     if (!(login == rhs.login))
       return false;
     if (!(tableName == rhs.tableName))
+      return false;
+    if (!(wait == rhs.wait))
       return false;
     return true;
   }
@@ -4202,6 +4378,7 @@ class AccumuloProxy_offlineTable_pargs {
 
   const std::string* login;
   const std::string* tableName;
+  const bool* wait;
 
   uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
 
@@ -4285,21 +4462,23 @@ class AccumuloProxy_offlineTable_presult {
 };
 
 typedef struct _AccumuloProxy_onlineTable_args__isset {
-  _AccumuloProxy_onlineTable_args__isset() : login(false), tableName(false) {}
+  _AccumuloProxy_onlineTable_args__isset() : login(false), tableName(false), wait(true) {}
   bool login;
   bool tableName;
+  bool wait;
 } _AccumuloProxy_onlineTable_args__isset;
 
 class AccumuloProxy_onlineTable_args {
  public:
 
-  AccumuloProxy_onlineTable_args() : login(), tableName() {
+  AccumuloProxy_onlineTable_args() : login(), tableName(), wait(false) {
   }
 
   virtual ~AccumuloProxy_onlineTable_args() throw() {}
 
   std::string login;
   std::string tableName;
+  bool wait;
 
   _AccumuloProxy_onlineTable_args__isset __isset;
 
@@ -4311,11 +4490,17 @@ class AccumuloProxy_onlineTable_args {
     tableName = val;
   }
 
+  void __set_wait(const bool val) {
+    wait = val;
+  }
+
   bool operator == (const AccumuloProxy_onlineTable_args & rhs) const
   {
     if (!(login == rhs.login))
       return false;
     if (!(tableName == rhs.tableName))
+      return false;
+    if (!(wait == rhs.wait))
       return false;
     return true;
   }
@@ -4339,6 +4524,7 @@ class AccumuloProxy_onlineTable_pargs {
 
   const std::string* login;
   const std::string* tableName;
+  const bool* wait;
 
   uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
 
@@ -10334,6 +10520,562 @@ class AccumuloProxy_closeWriter_presult {
 
 };
 
+typedef struct _AccumuloProxy_updateRowConditionally_args__isset {
+  _AccumuloProxy_updateRowConditionally_args__isset() : login(false), tableName(false), row(false), updates(false) {}
+  bool login;
+  bool tableName;
+  bool row;
+  bool updates;
+} _AccumuloProxy_updateRowConditionally_args__isset;
+
+class AccumuloProxy_updateRowConditionally_args {
+ public:
+
+  AccumuloProxy_updateRowConditionally_args() : login(), tableName(), row() {
+  }
+
+  virtual ~AccumuloProxy_updateRowConditionally_args() throw() {}
+
+  std::string login;
+  std::string tableName;
+  std::string row;
+  ConditionalUpdates updates;
+
+  _AccumuloProxy_updateRowConditionally_args__isset __isset;
+
+  void __set_login(const std::string& val) {
+    login = val;
+  }
+
+  void __set_tableName(const std::string& val) {
+    tableName = val;
+  }
+
+  void __set_row(const std::string& val) {
+    row = val;
+  }
+
+  void __set_updates(const ConditionalUpdates& val) {
+    updates = val;
+  }
+
+  bool operator == (const AccumuloProxy_updateRowConditionally_args & rhs) const
+  {
+    if (!(login == rhs.login))
+      return false;
+    if (!(tableName == rhs.tableName))
+      return false;
+    if (!(row == rhs.row))
+      return false;
+    if (!(updates == rhs.updates))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_updateRowConditionally_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_updateRowConditionally_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_updateRowConditionally_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_updateRowConditionally_pargs() throw() {}
+
+  const std::string* login;
+  const std::string* tableName;
+  const std::string* row;
+  const ConditionalUpdates* updates;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_updateRowConditionally_result__isset {
+  _AccumuloProxy_updateRowConditionally_result__isset() : success(false), ouch1(false), ouch2(false), ouch3(false) {}
+  bool success;
+  bool ouch1;
+  bool ouch2;
+  bool ouch3;
+} _AccumuloProxy_updateRowConditionally_result__isset;
+
+class AccumuloProxy_updateRowConditionally_result {
+ public:
+
+  AccumuloProxy_updateRowConditionally_result() : success((ConditionalStatus::type)0) {
+  }
+
+  virtual ~AccumuloProxy_updateRowConditionally_result() throw() {}
+
+  ConditionalStatus::type success;
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  TableNotFoundException ouch3;
+
+  _AccumuloProxy_updateRowConditionally_result__isset __isset;
+
+  void __set_success(const ConditionalStatus::type val) {
+    success = val;
+  }
+
+  void __set_ouch1(const AccumuloException& val) {
+    ouch1 = val;
+  }
+
+  void __set_ouch2(const AccumuloSecurityException& val) {
+    ouch2 = val;
+  }
+
+  void __set_ouch3(const TableNotFoundException& val) {
+    ouch3 = val;
+  }
+
+  bool operator == (const AccumuloProxy_updateRowConditionally_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    if (!(ouch1 == rhs.ouch1))
+      return false;
+    if (!(ouch2 == rhs.ouch2))
+      return false;
+    if (!(ouch3 == rhs.ouch3))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_updateRowConditionally_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_updateRowConditionally_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_updateRowConditionally_presult__isset {
+  _AccumuloProxy_updateRowConditionally_presult__isset() : success(false), ouch1(false), ouch2(false), ouch3(false) {}
+  bool success;
+  bool ouch1;
+  bool ouch2;
+  bool ouch3;
+} _AccumuloProxy_updateRowConditionally_presult__isset;
+
+class AccumuloProxy_updateRowConditionally_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_updateRowConditionally_presult() throw() {}
+
+  ConditionalStatus::type* success;
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  TableNotFoundException ouch3;
+
+  _AccumuloProxy_updateRowConditionally_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _AccumuloProxy_createConditionalWriter_args__isset {
+  _AccumuloProxy_createConditionalWriter_args__isset() : login(false), tableName(false), options(false) {}
+  bool login;
+  bool tableName;
+  bool options;
+} _AccumuloProxy_createConditionalWriter_args__isset;
+
+class AccumuloProxy_createConditionalWriter_args {
+ public:
+
+  AccumuloProxy_createConditionalWriter_args() : login(), tableName() {
+  }
+
+  virtual ~AccumuloProxy_createConditionalWriter_args() throw() {}
+
+  std::string login;
+  std::string tableName;
+  ConditionalWriterOptions options;
+
+  _AccumuloProxy_createConditionalWriter_args__isset __isset;
+
+  void __set_login(const std::string& val) {
+    login = val;
+  }
+
+  void __set_tableName(const std::string& val) {
+    tableName = val;
+  }
+
+  void __set_options(const ConditionalWriterOptions& val) {
+    options = val;
+  }
+
+  bool operator == (const AccumuloProxy_createConditionalWriter_args & rhs) const
+  {
+    if (!(login == rhs.login))
+      return false;
+    if (!(tableName == rhs.tableName))
+      return false;
+    if (!(options == rhs.options))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_createConditionalWriter_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_createConditionalWriter_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_createConditionalWriter_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_createConditionalWriter_pargs() throw() {}
+
+  const std::string* login;
+  const std::string* tableName;
+  const ConditionalWriterOptions* options;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_createConditionalWriter_result__isset {
+  _AccumuloProxy_createConditionalWriter_result__isset() : success(false), ouch1(false), ouch2(false), ouch3(false) {}
+  bool success;
+  bool ouch1;
+  bool ouch2;
+  bool ouch3;
+} _AccumuloProxy_createConditionalWriter_result__isset;
+
+class AccumuloProxy_createConditionalWriter_result {
+ public:
+
+  AccumuloProxy_createConditionalWriter_result() : success() {
+  }
+
+  virtual ~AccumuloProxy_createConditionalWriter_result() throw() {}
+
+  std::string success;
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  TableNotFoundException ouch3;
+
+  _AccumuloProxy_createConditionalWriter_result__isset __isset;
+
+  void __set_success(const std::string& val) {
+    success = val;
+  }
+
+  void __set_ouch1(const AccumuloException& val) {
+    ouch1 = val;
+  }
+
+  void __set_ouch2(const AccumuloSecurityException& val) {
+    ouch2 = val;
+  }
+
+  void __set_ouch3(const TableNotFoundException& val) {
+    ouch3 = val;
+  }
+
+  bool operator == (const AccumuloProxy_createConditionalWriter_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    if (!(ouch1 == rhs.ouch1))
+      return false;
+    if (!(ouch2 == rhs.ouch2))
+      return false;
+    if (!(ouch3 == rhs.ouch3))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_createConditionalWriter_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_createConditionalWriter_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_createConditionalWriter_presult__isset {
+  _AccumuloProxy_createConditionalWriter_presult__isset() : success(false), ouch1(false), ouch2(false), ouch3(false) {}
+  bool success;
+  bool ouch1;
+  bool ouch2;
+  bool ouch3;
+} _AccumuloProxy_createConditionalWriter_presult__isset;
+
+class AccumuloProxy_createConditionalWriter_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_createConditionalWriter_presult() throw() {}
+
+  std::string* success;
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  TableNotFoundException ouch3;
+
+  _AccumuloProxy_createConditionalWriter_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _AccumuloProxy_updateRowsConditionally_args__isset {
+  _AccumuloProxy_updateRowsConditionally_args__isset() : conditionalWriter(false), updates(false) {}
+  bool conditionalWriter;
+  bool updates;
+} _AccumuloProxy_updateRowsConditionally_args__isset;
+
+class AccumuloProxy_updateRowsConditionally_args {
+ public:
+
+  AccumuloProxy_updateRowsConditionally_args() : conditionalWriter() {
+  }
+
+  virtual ~AccumuloProxy_updateRowsConditionally_args() throw() {}
+
+  std::string conditionalWriter;
+  std::map<std::string, ConditionalUpdates>  updates;
+
+  _AccumuloProxy_updateRowsConditionally_args__isset __isset;
+
+  void __set_conditionalWriter(const std::string& val) {
+    conditionalWriter = val;
+  }
+
+  void __set_updates(const std::map<std::string, ConditionalUpdates> & val) {
+    updates = val;
+  }
+
+  bool operator == (const AccumuloProxy_updateRowsConditionally_args & rhs) const
+  {
+    if (!(conditionalWriter == rhs.conditionalWriter))
+      return false;
+    if (!(updates == rhs.updates))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_updateRowsConditionally_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_updateRowsConditionally_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_updateRowsConditionally_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_updateRowsConditionally_pargs() throw() {}
+
+  const std::string* conditionalWriter;
+  const std::map<std::string, ConditionalUpdates> * updates;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_updateRowsConditionally_result__isset {
+  _AccumuloProxy_updateRowsConditionally_result__isset() : success(false), ouch1(false), ouch2(false), ouch3(false) {}
+  bool success;
+  bool ouch1;
+  bool ouch2;
+  bool ouch3;
+} _AccumuloProxy_updateRowsConditionally_result__isset;
+
+class AccumuloProxy_updateRowsConditionally_result {
+ public:
+
+  AccumuloProxy_updateRowsConditionally_result() {
+  }
+
+  virtual ~AccumuloProxy_updateRowsConditionally_result() throw() {}
+
+  std::map<std::string, ConditionalStatus::type>  success;
+  UnknownWriter ouch1;
+  AccumuloException ouch2;
+  AccumuloSecurityException ouch3;
+
+  _AccumuloProxy_updateRowsConditionally_result__isset __isset;
+
+  void __set_success(const std::map<std::string, ConditionalStatus::type> & val) {
+    success = val;
+  }
+
+  void __set_ouch1(const UnknownWriter& val) {
+    ouch1 = val;
+  }
+
+  void __set_ouch2(const AccumuloException& val) {
+    ouch2 = val;
+  }
+
+  void __set_ouch3(const AccumuloSecurityException& val) {
+    ouch3 = val;
+  }
+
+  bool operator == (const AccumuloProxy_updateRowsConditionally_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    if (!(ouch1 == rhs.ouch1))
+      return false;
+    if (!(ouch2 == rhs.ouch2))
+      return false;
+    if (!(ouch3 == rhs.ouch3))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_updateRowsConditionally_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_updateRowsConditionally_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_updateRowsConditionally_presult__isset {
+  _AccumuloProxy_updateRowsConditionally_presult__isset() : success(false), ouch1(false), ouch2(false), ouch3(false) {}
+  bool success;
+  bool ouch1;
+  bool ouch2;
+  bool ouch3;
+} _AccumuloProxy_updateRowsConditionally_presult__isset;
+
+class AccumuloProxy_updateRowsConditionally_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_updateRowsConditionally_presult() throw() {}
+
+  std::map<std::string, ConditionalStatus::type> * success;
+  UnknownWriter ouch1;
+  AccumuloException ouch2;
+  AccumuloSecurityException ouch3;
+
+  _AccumuloProxy_updateRowsConditionally_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _AccumuloProxy_closeConditionalWriter_args__isset {
+  _AccumuloProxy_closeConditionalWriter_args__isset() : conditionalWriter(false) {}
+  bool conditionalWriter;
+} _AccumuloProxy_closeConditionalWriter_args__isset;
+
+class AccumuloProxy_closeConditionalWriter_args {
+ public:
+
+  AccumuloProxy_closeConditionalWriter_args() : conditionalWriter() {
+  }
+
+  virtual ~AccumuloProxy_closeConditionalWriter_args() throw() {}
+
+  std::string conditionalWriter;
+
+  _AccumuloProxy_closeConditionalWriter_args__isset __isset;
+
+  void __set_conditionalWriter(const std::string& val) {
+    conditionalWriter = val;
+  }
+
+  bool operator == (const AccumuloProxy_closeConditionalWriter_args & rhs) const
+  {
+    if (!(conditionalWriter == rhs.conditionalWriter))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_closeConditionalWriter_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_closeConditionalWriter_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_closeConditionalWriter_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_closeConditionalWriter_pargs() throw() {}
+
+  const std::string* conditionalWriter;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_closeConditionalWriter_result {
+ public:
+
+  AccumuloProxy_closeConditionalWriter_result() {
+  }
+
+  virtual ~AccumuloProxy_closeConditionalWriter_result() throw() {}
+
+
+  bool operator == (const AccumuloProxy_closeConditionalWriter_result & /* rhs */) const
+  {
+    return true;
+  }
+  bool operator != (const AccumuloProxy_closeConditionalWriter_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_closeConditionalWriter_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_closeConditionalWriter_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_closeConditionalWriter_presult() throw() {}
+
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
 typedef struct _AccumuloProxy_getRowRange_args__isset {
   _AccumuloProxy_getRowRange_args__isset() : row(false) {}
   bool row;
@@ -10621,6 +11363,9 @@ class AccumuloProxyClient : virtual public AccumuloProxyIf {
   void flushTable(const std::string& login, const std::string& tableName, const std::string& startRow, const std::string& endRow, const bool wait);
   void send_flushTable(const std::string& login, const std::string& tableName, const std::string& startRow, const std::string& endRow, const bool wait);
   void recv_flushTable();
+  void getDiskUsage(std::vector<DiskUsage> & _return, const std::string& login, const std::set<std::string> & tables);
+  void send_getDiskUsage(const std::string& login, const std::set<std::string> & tables);
+  void recv_getDiskUsage(std::vector<DiskUsage> & _return);
   void getLocalityGroups(std::map<std::string, std::set<std::string> > & _return, const std::string& login, const std::string& tableName);
   void send_getLocalityGroups(const std::string& login, const std::string& tableName);
   void recv_getLocalityGroups(std::map<std::string, std::set<std::string> > & _return);
@@ -10654,11 +11399,11 @@ class AccumuloProxyClient : virtual public AccumuloProxyIf {
   void mergeTablets(const std::string& login, const std::string& tableName, const std::string& startRow, const std::string& endRow);
   void send_mergeTablets(const std::string& login, const std::string& tableName, const std::string& startRow, const std::string& endRow);
   void recv_mergeTablets();
-  void offlineTable(const std::string& login, const std::string& tableName);
-  void send_offlineTable(const std::string& login, const std::string& tableName);
+  void offlineTable(const std::string& login, const std::string& tableName, const bool wait);
+  void send_offlineTable(const std::string& login, const std::string& tableName, const bool wait);
   void recv_offlineTable();
-  void onlineTable(const std::string& login, const std::string& tableName);
-  void send_onlineTable(const std::string& login, const std::string& tableName);
+  void onlineTable(const std::string& login, const std::string& tableName, const bool wait);
+  void send_onlineTable(const std::string& login, const std::string& tableName, const bool wait);
   void recv_onlineTable();
   void removeConstraint(const std::string& login, const std::string& tableName, const int32_t constraint);
   void send_removeConstraint(const std::string& login, const std::string& tableName, const int32_t constraint);
@@ -10788,6 +11533,18 @@ class AccumuloProxyClient : virtual public AccumuloProxyIf {
   void closeWriter(const std::string& writer);
   void send_closeWriter(const std::string& writer);
   void recv_closeWriter();
+  ConditionalStatus::type updateRowConditionally(const std::string& login, const std::string& tableName, const std::string& row, const ConditionalUpdates& updates);
+  void send_updateRowConditionally(const std::string& login, const std::string& tableName, const std::string& row, const ConditionalUpdates& updates);
+  ConditionalStatus::type recv_updateRowConditionally();
+  void createConditionalWriter(std::string& _return, const std::string& login, const std::string& tableName, const ConditionalWriterOptions& options);
+  void send_createConditionalWriter(const std::string& login, const std::string& tableName, const ConditionalWriterOptions& options);
+  void recv_createConditionalWriter(std::string& _return);
+  void updateRowsConditionally(std::map<std::string, ConditionalStatus::type> & _return, const std::string& conditionalWriter, const std::map<std::string, ConditionalUpdates> & updates);
+  void send_updateRowsConditionally(const std::string& conditionalWriter, const std::map<std::string, ConditionalUpdates> & updates);
+  void recv_updateRowsConditionally(std::map<std::string, ConditionalStatus::type> & _return);
+  void closeConditionalWriter(const std::string& conditionalWriter);
+  void send_closeConditionalWriter(const std::string& conditionalWriter);
+  void recv_closeConditionalWriter();
   void getRowRange(Range& _return, const std::string& row);
   void send_getRowRange(const std::string& row);
   void recv_getRowRange(Range& _return);
@@ -10823,6 +11580,7 @@ class AccumuloProxyProcessor : public ::apache::thrift::TDispatchProcessor {
   void process_deleteRows(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_exportTable(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_flushTable(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_getDiskUsage(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_getLocalityGroups(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_getIteratorSetting(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_getMaxRow(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
@@ -10879,6 +11637,10 @@ class AccumuloProxyProcessor : public ::apache::thrift::TDispatchProcessor {
   void process_update(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_flush(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_closeWriter(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_updateRowConditionally(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_createConditionalWriter(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_updateRowsConditionally(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_closeConditionalWriter(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_getRowRange(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_getFollowing(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
  public:
@@ -10898,6 +11660,7 @@ class AccumuloProxyProcessor : public ::apache::thrift::TDispatchProcessor {
     processMap_["deleteRows"] = &AccumuloProxyProcessor::process_deleteRows;
     processMap_["exportTable"] = &AccumuloProxyProcessor::process_exportTable;
     processMap_["flushTable"] = &AccumuloProxyProcessor::process_flushTable;
+    processMap_["getDiskUsage"] = &AccumuloProxyProcessor::process_getDiskUsage;
     processMap_["getLocalityGroups"] = &AccumuloProxyProcessor::process_getLocalityGroups;
     processMap_["getIteratorSetting"] = &AccumuloProxyProcessor::process_getIteratorSetting;
     processMap_["getMaxRow"] = &AccumuloProxyProcessor::process_getMaxRow;
@@ -10954,6 +11717,10 @@ class AccumuloProxyProcessor : public ::apache::thrift::TDispatchProcessor {
     processMap_["update"] = &AccumuloProxyProcessor::process_update;
     processMap_["flush"] = &AccumuloProxyProcessor::process_flush;
     processMap_["closeWriter"] = &AccumuloProxyProcessor::process_closeWriter;
+    processMap_["updateRowConditionally"] = &AccumuloProxyProcessor::process_updateRowConditionally;
+    processMap_["createConditionalWriter"] = &AccumuloProxyProcessor::process_createConditionalWriter;
+    processMap_["updateRowsConditionally"] = &AccumuloProxyProcessor::process_updateRowsConditionally;
+    processMap_["closeConditionalWriter"] = &AccumuloProxyProcessor::process_closeConditionalWriter;
     processMap_["getRowRange"] = &AccumuloProxyProcessor::process_getRowRange;
     processMap_["getFollowing"] = &AccumuloProxyProcessor::process_getFollowing;
   }
@@ -11111,6 +11878,16 @@ class AccumuloProxyMultiface : virtual public AccumuloProxyIf {
     ifaces_[i]->flushTable(login, tableName, startRow, endRow, wait);
   }
 
+  void getDiskUsage(std::vector<DiskUsage> & _return, const std::string& login, const std::set<std::string> & tables) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->getDiskUsage(_return, login, tables);
+    }
+    ifaces_[i]->getDiskUsage(_return, login, tables);
+    return;
+  }
+
   void getLocalityGroups(std::map<std::string, std::set<std::string> > & _return, const std::string& login, const std::string& tableName) {
     size_t sz = ifaces_.size();
     size_t i = 0;
@@ -11218,22 +11995,22 @@ class AccumuloProxyMultiface : virtual public AccumuloProxyIf {
     ifaces_[i]->mergeTablets(login, tableName, startRow, endRow);
   }
 
-  void offlineTable(const std::string& login, const std::string& tableName) {
+  void offlineTable(const std::string& login, const std::string& tableName, const bool wait) {
     size_t sz = ifaces_.size();
     size_t i = 0;
     for (; i < (sz - 1); ++i) {
-      ifaces_[i]->offlineTable(login, tableName);
+      ifaces_[i]->offlineTable(login, tableName, wait);
     }
-    ifaces_[i]->offlineTable(login, tableName);
+    ifaces_[i]->offlineTable(login, tableName, wait);
   }
 
-  void onlineTable(const std::string& login, const std::string& tableName) {
+  void onlineTable(const std::string& login, const std::string& tableName, const bool wait) {
     size_t sz = ifaces_.size();
     size_t i = 0;
     for (; i < (sz - 1); ++i) {
-      ifaces_[i]->onlineTable(login, tableName);
+      ifaces_[i]->onlineTable(login, tableName, wait);
     }
-    ifaces_[i]->onlineTable(login, tableName);
+    ifaces_[i]->onlineTable(login, tableName, wait);
   }
 
   void removeConstraint(const std::string& login, const std::string& tableName, const int32_t constraint) {
@@ -11635,6 +12412,44 @@ class AccumuloProxyMultiface : virtual public AccumuloProxyIf {
       ifaces_[i]->closeWriter(writer);
     }
     ifaces_[i]->closeWriter(writer);
+  }
+
+  ConditionalStatus::type updateRowConditionally(const std::string& login, const std::string& tableName, const std::string& row, const ConditionalUpdates& updates) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->updateRowConditionally(login, tableName, row, updates);
+    }
+    return ifaces_[i]->updateRowConditionally(login, tableName, row, updates);
+  }
+
+  void createConditionalWriter(std::string& _return, const std::string& login, const std::string& tableName, const ConditionalWriterOptions& options) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->createConditionalWriter(_return, login, tableName, options);
+    }
+    ifaces_[i]->createConditionalWriter(_return, login, tableName, options);
+    return;
+  }
+
+  void updateRowsConditionally(std::map<std::string, ConditionalStatus::type> & _return, const std::string& conditionalWriter, const std::map<std::string, ConditionalUpdates> & updates) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->updateRowsConditionally(_return, conditionalWriter, updates);
+    }
+    ifaces_[i]->updateRowsConditionally(_return, conditionalWriter, updates);
+    return;
+  }
+
+  void closeConditionalWriter(const std::string& conditionalWriter) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->closeConditionalWriter(conditionalWriter);
+    }
+    ifaces_[i]->closeConditionalWriter(conditionalWriter);
   }
 
   void getRowRange(Range& _return, const std::string& row) {

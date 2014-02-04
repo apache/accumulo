@@ -92,6 +92,18 @@ struct ScanState {
 
 extern const std::map<int, const char*> _ScanState_VALUES_TO_NAMES;
 
+struct ConditionalStatus {
+  enum type {
+    ACCEPTED = 0,
+    REJECTED = 1,
+    VIOLATED = 2,
+    UNKNOWN = 3,
+    INVISIBLE_VISIBILITY = 4
+  };
+};
+
+extern const std::map<int, const char*> _ConditionalStatus_VALUES_TO_NAMES;
+
 struct CompactionType {
   enum type {
     MINOR = 0,
@@ -306,6 +318,57 @@ class ColumnUpdate {
 };
 
 void swap(ColumnUpdate &a, ColumnUpdate &b);
+
+typedef struct _DiskUsage__isset {
+  _DiskUsage__isset() : tables(false), usage(false) {}
+  bool tables;
+  bool usage;
+} _DiskUsage__isset;
+
+class DiskUsage {
+ public:
+
+  static const char* ascii_fingerprint; // = "D26F4F5E2867D41CF7E0391263932D6B";
+  static const uint8_t binary_fingerprint[16]; // = {0xD2,0x6F,0x4F,0x5E,0x28,0x67,0xD4,0x1C,0xF7,0xE0,0x39,0x12,0x63,0x93,0x2D,0x6B};
+
+  DiskUsage() : usage(0) {
+  }
+
+  virtual ~DiskUsage() throw() {}
+
+  std::vector<std::string>  tables;
+  int64_t usage;
+
+  _DiskUsage__isset __isset;
+
+  void __set_tables(const std::vector<std::string> & val) {
+    tables = val;
+  }
+
+  void __set_usage(const int64_t val) {
+    usage = val;
+  }
+
+  bool operator == (const DiskUsage & rhs) const
+  {
+    if (!(tables == rhs.tables))
+      return false;
+    if (!(usage == rhs.usage))
+      return false;
+    return true;
+  }
+  bool operator != (const DiskUsage &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const DiskUsage & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(DiskUsage &a, DiskUsage &b);
 
 typedef struct _KeyValue__isset {
   _KeyValue__isset() : key(false), value(false) {}
@@ -945,6 +1008,212 @@ class Column {
 };
 
 void swap(Column &a, Column &b);
+
+typedef struct _Condition__isset {
+  _Condition__isset() : column(false), timestamp(false), value(false), iterators(false) {}
+  bool column;
+  bool timestamp;
+  bool value;
+  bool iterators;
+} _Condition__isset;
+
+class Condition {
+ public:
+
+  static const char* ascii_fingerprint; // = "C4022914C22D89E33B1A46A7D511C58F";
+  static const uint8_t binary_fingerprint[16]; // = {0xC4,0x02,0x29,0x14,0xC2,0x2D,0x89,0xE3,0x3B,0x1A,0x46,0xA7,0xD5,0x11,0xC5,0x8F};
+
+  Condition() : timestamp(0), value() {
+  }
+
+  virtual ~Condition() throw() {}
+
+  Column column;
+  int64_t timestamp;
+  std::string value;
+  std::vector<IteratorSetting>  iterators;
+
+  _Condition__isset __isset;
+
+  void __set_column(const Column& val) {
+    column = val;
+  }
+
+  void __set_timestamp(const int64_t val) {
+    timestamp = val;
+    __isset.timestamp = true;
+  }
+
+  void __set_value(const std::string& val) {
+    value = val;
+    __isset.value = true;
+  }
+
+  void __set_iterators(const std::vector<IteratorSetting> & val) {
+    iterators = val;
+    __isset.iterators = true;
+  }
+
+  bool operator == (const Condition & rhs) const
+  {
+    if (!(column == rhs.column))
+      return false;
+    if (__isset.timestamp != rhs.__isset.timestamp)
+      return false;
+    else if (__isset.timestamp && !(timestamp == rhs.timestamp))
+      return false;
+    if (__isset.value != rhs.__isset.value)
+      return false;
+    else if (__isset.value && !(value == rhs.value))
+      return false;
+    if (__isset.iterators != rhs.__isset.iterators)
+      return false;
+    else if (__isset.iterators && !(iterators == rhs.iterators))
+      return false;
+    return true;
+  }
+  bool operator != (const Condition &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const Condition & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(Condition &a, Condition &b);
+
+typedef struct _ConditionalUpdates__isset {
+  _ConditionalUpdates__isset() : conditions(false), updates(false) {}
+  bool conditions;
+  bool updates;
+} _ConditionalUpdates__isset;
+
+class ConditionalUpdates {
+ public:
+
+  static const char* ascii_fingerprint; // = "1C1808872D1A8E04F114974ADD77F356";
+  static const uint8_t binary_fingerprint[16]; // = {0x1C,0x18,0x08,0x87,0x2D,0x1A,0x8E,0x04,0xF1,0x14,0x97,0x4A,0xDD,0x77,0xF3,0x56};
+
+  ConditionalUpdates() {
+  }
+
+  virtual ~ConditionalUpdates() throw() {}
+
+  std::vector<Condition>  conditions;
+  std::vector<ColumnUpdate>  updates;
+
+  _ConditionalUpdates__isset __isset;
+
+  void __set_conditions(const std::vector<Condition> & val) {
+    conditions = val;
+  }
+
+  void __set_updates(const std::vector<ColumnUpdate> & val) {
+    updates = val;
+  }
+
+  bool operator == (const ConditionalUpdates & rhs) const
+  {
+    if (!(conditions == rhs.conditions))
+      return false;
+    if (!(updates == rhs.updates))
+      return false;
+    return true;
+  }
+  bool operator != (const ConditionalUpdates &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const ConditionalUpdates & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(ConditionalUpdates &a, ConditionalUpdates &b);
+
+typedef struct _ConditionalWriterOptions__isset {
+  _ConditionalWriterOptions__isset() : maxMemory(false), timeoutMs(false), threads(false), authorizations(false) {}
+  bool maxMemory;
+  bool timeoutMs;
+  bool threads;
+  bool authorizations;
+} _ConditionalWriterOptions__isset;
+
+class ConditionalWriterOptions {
+ public:
+
+  static const char* ascii_fingerprint; // = "2A7184C7CE319A61E12C337D8EAB3FB9";
+  static const uint8_t binary_fingerprint[16]; // = {0x2A,0x71,0x84,0xC7,0xCE,0x31,0x9A,0x61,0xE1,0x2C,0x33,0x7D,0x8E,0xAB,0x3F,0xB9};
+
+  ConditionalWriterOptions() : maxMemory(0), timeoutMs(0), threads(0) {
+  }
+
+  virtual ~ConditionalWriterOptions() throw() {}
+
+  int64_t maxMemory;
+  int64_t timeoutMs;
+  int32_t threads;
+  std::set<std::string>  authorizations;
+
+  _ConditionalWriterOptions__isset __isset;
+
+  void __set_maxMemory(const int64_t val) {
+    maxMemory = val;
+    __isset.maxMemory = true;
+  }
+
+  void __set_timeoutMs(const int64_t val) {
+    timeoutMs = val;
+    __isset.timeoutMs = true;
+  }
+
+  void __set_threads(const int32_t val) {
+    threads = val;
+    __isset.threads = true;
+  }
+
+  void __set_authorizations(const std::set<std::string> & val) {
+    authorizations = val;
+    __isset.authorizations = true;
+  }
+
+  bool operator == (const ConditionalWriterOptions & rhs) const
+  {
+    if (__isset.maxMemory != rhs.__isset.maxMemory)
+      return false;
+    else if (__isset.maxMemory && !(maxMemory == rhs.maxMemory))
+      return false;
+    if (__isset.timeoutMs != rhs.__isset.timeoutMs)
+      return false;
+    else if (__isset.timeoutMs && !(timeoutMs == rhs.timeoutMs))
+      return false;
+    if (__isset.threads != rhs.__isset.threads)
+      return false;
+    else if (__isset.threads && !(threads == rhs.threads))
+      return false;
+    if (__isset.authorizations != rhs.__isset.authorizations)
+      return false;
+    else if (__isset.authorizations && !(authorizations == rhs.authorizations))
+      return false;
+    return true;
+  }
+  bool operator != (const ConditionalWriterOptions &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const ConditionalWriterOptions & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(ConditionalWriterOptions &a, ConditionalWriterOptions &b);
 
 typedef struct _ActiveScan__isset {
   _ActiveScan__isset() : client(false), user(false), table(false), age(false), idleTime(false), type(false), state(false), extent(false), columns(false), iterators(false), authorizations(false) {}

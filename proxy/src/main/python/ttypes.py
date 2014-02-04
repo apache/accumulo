@@ -145,6 +145,29 @@ class ScanState:
     "QUEUED": 2,
   }
 
+class ConditionalStatus:
+  ACCEPTED = 0
+  REJECTED = 1
+  VIOLATED = 2
+  UNKNOWN = 3
+  INVISIBLE_VISIBILITY = 4
+
+  _VALUES_TO_NAMES = {
+    0: "ACCEPTED",
+    1: "REJECTED",
+    2: "VIOLATED",
+    3: "UNKNOWN",
+    4: "INVISIBLE_VISIBILITY",
+  }
+
+  _NAMES_TO_VALUES = {
+    "ACCEPTED": 0,
+    "REJECTED": 1,
+    "VIOLATED": 2,
+    "UNKNOWN": 3,
+    "INVISIBLE_VISIBILITY": 4,
+  }
+
 class CompactionType:
   MINOR = 0
   MERGE = 1
@@ -448,6 +471,86 @@ class ColumnUpdate:
   def __ne__(self, other):
     return not (self == other)
 
+class DiskUsage:
+  """
+  Attributes:
+   - tables
+   - usage
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.LIST, 'tables', (TType.STRING,None), None, ), # 1
+    (2, TType.I64, 'usage', None, None, ), # 2
+  )
+
+  def __init__(self, tables=None, usage=None,):
+    self.tables = tables
+    self.usage = usage
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.LIST:
+          self.tables = []
+          (_etype3, _size0) = iprot.readListBegin()
+          for _i4 in xrange(_size0):
+            _elem5 = iprot.readString();
+            self.tables.append(_elem5)
+          iprot.readListEnd()
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.I64:
+          self.usage = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('DiskUsage')
+    if self.tables is not None:
+      oprot.writeFieldBegin('tables', TType.LIST, 1)
+      oprot.writeListBegin(TType.STRING, len(self.tables))
+      for iter6 in self.tables:
+        oprot.writeString(iter6)
+      oprot.writeListEnd()
+      oprot.writeFieldEnd()
+    if self.usage is not None:
+      oprot.writeFieldBegin('usage', TType.I64, 2)
+      oprot.writeI64(self.usage)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
 class KeyValue:
   """
   Attributes:
@@ -550,11 +653,11 @@ class ScanResult:
       if fid == 1:
         if ftype == TType.LIST:
           self.results = []
-          (_etype3, _size0) = iprot.readListBegin()
-          for _i4 in xrange(_size0):
-            _elem5 = KeyValue()
-            _elem5.read(iprot)
-            self.results.append(_elem5)
+          (_etype10, _size7) = iprot.readListBegin()
+          for _i11 in xrange(_size7):
+            _elem12 = KeyValue()
+            _elem12.read(iprot)
+            self.results.append(_elem12)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -576,8 +679,8 @@ class ScanResult:
     if self.results is not None:
       oprot.writeFieldBegin('results', TType.LIST, 1)
       oprot.writeListBegin(TType.STRUCT, len(self.results))
-      for iter6 in self.results:
-        iter6.write(oprot)
+      for iter13 in self.results:
+        iter13.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.more is not None:
@@ -822,11 +925,11 @@ class IteratorSetting:
       elif fid == 4:
         if ftype == TType.MAP:
           self.properties = {}
-          (_ktype8, _vtype9, _size7 ) = iprot.readMapBegin() 
-          for _i11 in xrange(_size7):
-            _key12 = iprot.readString();
-            _val13 = iprot.readString();
-            self.properties[_key12] = _val13
+          (_ktype15, _vtype16, _size14 ) = iprot.readMapBegin() 
+          for _i18 in xrange(_size14):
+            _key19 = iprot.readString();
+            _val20 = iprot.readString();
+            self.properties[_key19] = _val20
           iprot.readMapEnd()
         else:
           iprot.skip(ftype)
@@ -855,9 +958,9 @@ class IteratorSetting:
     if self.properties is not None:
       oprot.writeFieldBegin('properties', TType.MAP, 4)
       oprot.writeMapBegin(TType.STRING, TType.STRING, len(self.properties))
-      for kiter14,viter15 in self.properties.items():
-        oprot.writeString(kiter14)
-        oprot.writeString(viter15)
+      for kiter21,viter22 in self.properties.items():
+        oprot.writeString(kiter21)
+        oprot.writeString(viter22)
       oprot.writeMapEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
@@ -916,10 +1019,10 @@ class ScanOptions:
       if fid == 1:
         if ftype == TType.SET:
           self.authorizations = set()
-          (_etype19, _size16) = iprot.readSetBegin()
-          for _i20 in xrange(_size16):
-            _elem21 = iprot.readString();
-            self.authorizations.add(_elem21)
+          (_etype26, _size23) = iprot.readSetBegin()
+          for _i27 in xrange(_size23):
+            _elem28 = iprot.readString();
+            self.authorizations.add(_elem28)
           iprot.readSetEnd()
         else:
           iprot.skip(ftype)
@@ -932,22 +1035,22 @@ class ScanOptions:
       elif fid == 3:
         if ftype == TType.LIST:
           self.columns = []
-          (_etype25, _size22) = iprot.readListBegin()
-          for _i26 in xrange(_size22):
-            _elem27 = ScanColumn()
-            _elem27.read(iprot)
-            self.columns.append(_elem27)
+          (_etype32, _size29) = iprot.readListBegin()
+          for _i33 in xrange(_size29):
+            _elem34 = ScanColumn()
+            _elem34.read(iprot)
+            self.columns.append(_elem34)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
       elif fid == 4:
         if ftype == TType.LIST:
           self.iterators = []
-          (_etype31, _size28) = iprot.readListBegin()
-          for _i32 in xrange(_size28):
-            _elem33 = IteratorSetting()
-            _elem33.read(iprot)
-            self.iterators.append(_elem33)
+          (_etype38, _size35) = iprot.readListBegin()
+          for _i39 in xrange(_size35):
+            _elem40 = IteratorSetting()
+            _elem40.read(iprot)
+            self.iterators.append(_elem40)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -969,8 +1072,8 @@ class ScanOptions:
     if self.authorizations is not None:
       oprot.writeFieldBegin('authorizations', TType.SET, 1)
       oprot.writeSetBegin(TType.STRING, len(self.authorizations))
-      for iter34 in self.authorizations:
-        oprot.writeString(iter34)
+      for iter41 in self.authorizations:
+        oprot.writeString(iter41)
       oprot.writeSetEnd()
       oprot.writeFieldEnd()
     if self.range is not None:
@@ -980,15 +1083,15 @@ class ScanOptions:
     if self.columns is not None:
       oprot.writeFieldBegin('columns', TType.LIST, 3)
       oprot.writeListBegin(TType.STRUCT, len(self.columns))
-      for iter35 in self.columns:
-        iter35.write(oprot)
+      for iter42 in self.columns:
+        iter42.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.iterators is not None:
       oprot.writeFieldBegin('iterators', TType.LIST, 4)
       oprot.writeListBegin(TType.STRUCT, len(self.iterators))
-      for iter36 in self.iterators:
-        iter36.write(oprot)
+      for iter43 in self.iterators:
+        iter43.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.bufferSize is not None:
@@ -1051,43 +1154,43 @@ class BatchScanOptions:
       if fid == 1:
         if ftype == TType.SET:
           self.authorizations = set()
-          (_etype40, _size37) = iprot.readSetBegin()
-          for _i41 in xrange(_size37):
-            _elem42 = iprot.readString();
-            self.authorizations.add(_elem42)
+          (_etype47, _size44) = iprot.readSetBegin()
+          for _i48 in xrange(_size44):
+            _elem49 = iprot.readString();
+            self.authorizations.add(_elem49)
           iprot.readSetEnd()
         else:
           iprot.skip(ftype)
       elif fid == 2:
         if ftype == TType.LIST:
           self.ranges = []
-          (_etype46, _size43) = iprot.readListBegin()
-          for _i47 in xrange(_size43):
-            _elem48 = Range()
-            _elem48.read(iprot)
-            self.ranges.append(_elem48)
+          (_etype53, _size50) = iprot.readListBegin()
+          for _i54 in xrange(_size50):
+            _elem55 = Range()
+            _elem55.read(iprot)
+            self.ranges.append(_elem55)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
       elif fid == 3:
         if ftype == TType.LIST:
           self.columns = []
-          (_etype52, _size49) = iprot.readListBegin()
-          for _i53 in xrange(_size49):
-            _elem54 = ScanColumn()
-            _elem54.read(iprot)
-            self.columns.append(_elem54)
+          (_etype59, _size56) = iprot.readListBegin()
+          for _i60 in xrange(_size56):
+            _elem61 = ScanColumn()
+            _elem61.read(iprot)
+            self.columns.append(_elem61)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
       elif fid == 4:
         if ftype == TType.LIST:
           self.iterators = []
-          (_etype58, _size55) = iprot.readListBegin()
-          for _i59 in xrange(_size55):
-            _elem60 = IteratorSetting()
-            _elem60.read(iprot)
-            self.iterators.append(_elem60)
+          (_etype65, _size62) = iprot.readListBegin()
+          for _i66 in xrange(_size62):
+            _elem67 = IteratorSetting()
+            _elem67.read(iprot)
+            self.iterators.append(_elem67)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -1109,29 +1212,29 @@ class BatchScanOptions:
     if self.authorizations is not None:
       oprot.writeFieldBegin('authorizations', TType.SET, 1)
       oprot.writeSetBegin(TType.STRING, len(self.authorizations))
-      for iter61 in self.authorizations:
-        oprot.writeString(iter61)
+      for iter68 in self.authorizations:
+        oprot.writeString(iter68)
       oprot.writeSetEnd()
       oprot.writeFieldEnd()
     if self.ranges is not None:
       oprot.writeFieldBegin('ranges', TType.LIST, 2)
       oprot.writeListBegin(TType.STRUCT, len(self.ranges))
-      for iter62 in self.ranges:
-        iter62.write(oprot)
+      for iter69 in self.ranges:
+        iter69.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.columns is not None:
       oprot.writeFieldBegin('columns', TType.LIST, 3)
       oprot.writeListBegin(TType.STRUCT, len(self.columns))
-      for iter63 in self.columns:
-        iter63.write(oprot)
+      for iter70 in self.columns:
+        iter70.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.iterators is not None:
       oprot.writeFieldBegin('iterators', TType.LIST, 4)
       oprot.writeListBegin(TType.STRUCT, len(self.iterators))
-      for iter64 in self.iterators:
-        iter64.write(oprot)
+      for iter71 in self.iterators:
+        iter71.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.threads is not None:
@@ -1397,6 +1500,307 @@ class Column:
   def __ne__(self, other):
     return not (self == other)
 
+class Condition:
+  """
+  Attributes:
+   - column
+   - timestamp
+   - value
+   - iterators
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRUCT, 'column', (Column, Column.thrift_spec), None, ), # 1
+    (2, TType.I64, 'timestamp', None, None, ), # 2
+    (3, TType.STRING, 'value', None, None, ), # 3
+    (4, TType.LIST, 'iterators', (TType.STRUCT,(IteratorSetting, IteratorSetting.thrift_spec)), None, ), # 4
+  )
+
+  def __init__(self, column=None, timestamp=None, value=None, iterators=None,):
+    self.column = column
+    self.timestamp = timestamp
+    self.value = value
+    self.iterators = iterators
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRUCT:
+          self.column = Column()
+          self.column.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.I64:
+          self.timestamp = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.STRING:
+          self.value = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 4:
+        if ftype == TType.LIST:
+          self.iterators = []
+          (_etype75, _size72) = iprot.readListBegin()
+          for _i76 in xrange(_size72):
+            _elem77 = IteratorSetting()
+            _elem77.read(iprot)
+            self.iterators.append(_elem77)
+          iprot.readListEnd()
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('Condition')
+    if self.column is not None:
+      oprot.writeFieldBegin('column', TType.STRUCT, 1)
+      self.column.write(oprot)
+      oprot.writeFieldEnd()
+    if self.timestamp is not None:
+      oprot.writeFieldBegin('timestamp', TType.I64, 2)
+      oprot.writeI64(self.timestamp)
+      oprot.writeFieldEnd()
+    if self.value is not None:
+      oprot.writeFieldBegin('value', TType.STRING, 3)
+      oprot.writeString(self.value)
+      oprot.writeFieldEnd()
+    if self.iterators is not None:
+      oprot.writeFieldBegin('iterators', TType.LIST, 4)
+      oprot.writeListBegin(TType.STRUCT, len(self.iterators))
+      for iter78 in self.iterators:
+        iter78.write(oprot)
+      oprot.writeListEnd()
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class ConditionalUpdates:
+  """
+  Attributes:
+   - conditions
+   - updates
+  """
+
+  thrift_spec = (
+    None, # 0
+    None, # 1
+    (2, TType.LIST, 'conditions', (TType.STRUCT,(Condition, Condition.thrift_spec)), None, ), # 2
+    (3, TType.LIST, 'updates', (TType.STRUCT,(ColumnUpdate, ColumnUpdate.thrift_spec)), None, ), # 3
+  )
+
+  def __init__(self, conditions=None, updates=None,):
+    self.conditions = conditions
+    self.updates = updates
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 2:
+        if ftype == TType.LIST:
+          self.conditions = []
+          (_etype82, _size79) = iprot.readListBegin()
+          for _i83 in xrange(_size79):
+            _elem84 = Condition()
+            _elem84.read(iprot)
+            self.conditions.append(_elem84)
+          iprot.readListEnd()
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.LIST:
+          self.updates = []
+          (_etype88, _size85) = iprot.readListBegin()
+          for _i89 in xrange(_size85):
+            _elem90 = ColumnUpdate()
+            _elem90.read(iprot)
+            self.updates.append(_elem90)
+          iprot.readListEnd()
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('ConditionalUpdates')
+    if self.conditions is not None:
+      oprot.writeFieldBegin('conditions', TType.LIST, 2)
+      oprot.writeListBegin(TType.STRUCT, len(self.conditions))
+      for iter91 in self.conditions:
+        iter91.write(oprot)
+      oprot.writeListEnd()
+      oprot.writeFieldEnd()
+    if self.updates is not None:
+      oprot.writeFieldBegin('updates', TType.LIST, 3)
+      oprot.writeListBegin(TType.STRUCT, len(self.updates))
+      for iter92 in self.updates:
+        iter92.write(oprot)
+      oprot.writeListEnd()
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class ConditionalWriterOptions:
+  """
+  Attributes:
+   - maxMemory
+   - timeoutMs
+   - threads
+   - authorizations
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.I64, 'maxMemory', None, None, ), # 1
+    (2, TType.I64, 'timeoutMs', None, None, ), # 2
+    (3, TType.I32, 'threads', None, None, ), # 3
+    (4, TType.SET, 'authorizations', (TType.STRING,None), None, ), # 4
+  )
+
+  def __init__(self, maxMemory=None, timeoutMs=None, threads=None, authorizations=None,):
+    self.maxMemory = maxMemory
+    self.timeoutMs = timeoutMs
+    self.threads = threads
+    self.authorizations = authorizations
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.I64:
+          self.maxMemory = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.I64:
+          self.timeoutMs = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.I32:
+          self.threads = iprot.readI32();
+        else:
+          iprot.skip(ftype)
+      elif fid == 4:
+        if ftype == TType.SET:
+          self.authorizations = set()
+          (_etype96, _size93) = iprot.readSetBegin()
+          for _i97 in xrange(_size93):
+            _elem98 = iprot.readString();
+            self.authorizations.add(_elem98)
+          iprot.readSetEnd()
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('ConditionalWriterOptions')
+    if self.maxMemory is not None:
+      oprot.writeFieldBegin('maxMemory', TType.I64, 1)
+      oprot.writeI64(self.maxMemory)
+      oprot.writeFieldEnd()
+    if self.timeoutMs is not None:
+      oprot.writeFieldBegin('timeoutMs', TType.I64, 2)
+      oprot.writeI64(self.timeoutMs)
+      oprot.writeFieldEnd()
+    if self.threads is not None:
+      oprot.writeFieldBegin('threads', TType.I32, 3)
+      oprot.writeI32(self.threads)
+      oprot.writeFieldEnd()
+    if self.authorizations is not None:
+      oprot.writeFieldBegin('authorizations', TType.SET, 4)
+      oprot.writeSetBegin(TType.STRING, len(self.authorizations))
+      for iter99 in self.authorizations:
+        oprot.writeString(iter99)
+      oprot.writeSetEnd()
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
 class ActiveScan:
   """
   Attributes:
@@ -1494,32 +1898,32 @@ class ActiveScan:
       elif fid == 9:
         if ftype == TType.LIST:
           self.columns = []
-          (_etype68, _size65) = iprot.readListBegin()
-          for _i69 in xrange(_size65):
-            _elem70 = Column()
-            _elem70.read(iprot)
-            self.columns.append(_elem70)
+          (_etype103, _size100) = iprot.readListBegin()
+          for _i104 in xrange(_size100):
+            _elem105 = Column()
+            _elem105.read(iprot)
+            self.columns.append(_elem105)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
       elif fid == 10:
         if ftype == TType.LIST:
           self.iterators = []
-          (_etype74, _size71) = iprot.readListBegin()
-          for _i75 in xrange(_size71):
-            _elem76 = IteratorSetting()
-            _elem76.read(iprot)
-            self.iterators.append(_elem76)
+          (_etype109, _size106) = iprot.readListBegin()
+          for _i110 in xrange(_size106):
+            _elem111 = IteratorSetting()
+            _elem111.read(iprot)
+            self.iterators.append(_elem111)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
       elif fid == 11:
         if ftype == TType.LIST:
           self.authorizations = []
-          (_etype80, _size77) = iprot.readListBegin()
-          for _i81 in xrange(_size77):
-            _elem82 = iprot.readString();
-            self.authorizations.append(_elem82)
+          (_etype115, _size112) = iprot.readListBegin()
+          for _i116 in xrange(_size112):
+            _elem117 = iprot.readString();
+            self.authorizations.append(_elem117)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -1568,22 +1972,22 @@ class ActiveScan:
     if self.columns is not None:
       oprot.writeFieldBegin('columns', TType.LIST, 9)
       oprot.writeListBegin(TType.STRUCT, len(self.columns))
-      for iter83 in self.columns:
-        iter83.write(oprot)
+      for iter118 in self.columns:
+        iter118.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.iterators is not None:
       oprot.writeFieldBegin('iterators', TType.LIST, 10)
       oprot.writeListBegin(TType.STRUCT, len(self.iterators))
-      for iter84 in self.iterators:
-        iter84.write(oprot)
+      for iter119 in self.iterators:
+        iter119.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.authorizations is not None:
       oprot.writeFieldBegin('authorizations', TType.LIST, 11)
       oprot.writeListBegin(TType.STRING, len(self.authorizations))
-      for iter85 in self.authorizations:
-        oprot.writeString(iter85)
+      for iter120 in self.authorizations:
+        oprot.writeString(iter120)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
@@ -1668,10 +2072,10 @@ class ActiveCompaction:
       elif fid == 3:
         if ftype == TType.LIST:
           self.inputFiles = []
-          (_etype89, _size86) = iprot.readListBegin()
-          for _i90 in xrange(_size86):
-            _elem91 = iprot.readString();
-            self.inputFiles.append(_elem91)
+          (_etype124, _size121) = iprot.readListBegin()
+          for _i125 in xrange(_size121):
+            _elem126 = iprot.readString();
+            self.inputFiles.append(_elem126)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -1708,11 +2112,11 @@ class ActiveCompaction:
       elif fid == 10:
         if ftype == TType.LIST:
           self.iterators = []
-          (_etype95, _size92) = iprot.readListBegin()
-          for _i96 in xrange(_size92):
-            _elem97 = IteratorSetting()
-            _elem97.read(iprot)
-            self.iterators.append(_elem97)
+          (_etype130, _size127) = iprot.readListBegin()
+          for _i131 in xrange(_size127):
+            _elem132 = IteratorSetting()
+            _elem132.read(iprot)
+            self.iterators.append(_elem132)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -1737,8 +2141,8 @@ class ActiveCompaction:
     if self.inputFiles is not None:
       oprot.writeFieldBegin('inputFiles', TType.LIST, 3)
       oprot.writeListBegin(TType.STRING, len(self.inputFiles))
-      for iter98 in self.inputFiles:
-        oprot.writeString(iter98)
+      for iter133 in self.inputFiles:
+        oprot.writeString(iter133)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.outputFile is not None:
@@ -1768,8 +2172,8 @@ class ActiveCompaction:
     if self.iterators is not None:
       oprot.writeFieldBegin('iterators', TType.LIST, 10)
       oprot.writeListBegin(TType.STRUCT, len(self.iterators))
-      for iter99 in self.iterators:
-        iter99.write(oprot)
+      for iter134 in self.iterators:
+        iter134.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
