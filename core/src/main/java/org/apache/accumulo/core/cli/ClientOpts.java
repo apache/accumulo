@@ -222,7 +222,10 @@ public class ClientOpts extends Help {
 
     ClientConfiguration clientConfig;
     try {
-      clientConfig = new ClientConfiguration(new PropertiesConfiguration(clientConfigFile));
+      if (clientConfigFile == null)
+        clientConfig = ClientConfiguration.loadDefault();
+      else
+        clientConfig = new ClientConfiguration(new PropertiesConfiguration(clientConfigFile));
     } catch (Exception e) {
       throw new IllegalArgumentException(e);
     }
