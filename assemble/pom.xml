@@ -287,11 +287,11 @@
                           </includes>
                         </source>
                         <source>
-                          <location>${accumulo-top}/proxy/target</location>
+                          <location>${accumulo-top}/proxy/src/main</location>
                           <includes>
-                            <include>gen-cpp/**</include>
-                            <include>gen-py/**</include>
-                            <include>gen-rb/**</include>
+                            <include>cpp/**</include>
+                            <include>ruby/**</include>
+                            <include>python/**</include>
                           </includes>
                         </source>
                       </sources>
@@ -524,13 +524,13 @@
                       <includes>*.thrift</includes>
                     </data>
                     <data>
-                      <src>${accumulo-top}/proxy/target</src>
+                      <src>${accumulo-top}/proxy/src/main/</src>
                       <type>directory</type>
                       <mapper>
                         <type>perm</type>
                         <prefix>/usr/lib/accumulo/proxy/thrift</prefix>
                       </mapper>
-                      <includes>gen-cpp/**,gen-py/**,gen-rb/**</includes>
+                      <includes>cpp/**,python/**,ruby/**</includes>
                     </data>
                     <data>
                       <src>${accumulo-top}/bin</src>
