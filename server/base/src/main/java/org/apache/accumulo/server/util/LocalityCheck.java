@@ -71,8 +71,10 @@ public class LocalityCheck {
       }
     }
     System.out.println(" Server         %local  total blocks");
-    for (String host : totalBlocks.keySet()) {
-      System.out.println(String.format("%15s %5.1f %8d", host, (localBlocks.get(host) * 100.) / totalBlocks.get(host), totalBlocks.get(host)));
+    for (Entry<String,Long> entry : totalBlocks.entrySet()) {
+      final String host = entry.getKey();
+      final Long blocksForHost = entry.getValue();
+      System.out.println(String.format("%15s %5.1f %8d", host, (localBlocks.get(host) * 100.) / blocksForHost, blocksForHost));
     }
     return 0;
   }

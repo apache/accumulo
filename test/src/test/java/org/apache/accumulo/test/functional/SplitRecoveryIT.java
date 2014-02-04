@@ -75,7 +75,7 @@ public class SplitRecoveryIT extends ConfigurableMacIT {
   private void run() throws Exception {
     String zPath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + "/testLock";
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-    zoo.putPersistentData(zPath, "".getBytes(), NodeExistsPolicy.OVERWRITE);
+    zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.OVERWRITE);
     ZooLock zl = new ZooLock(zPath);
     boolean gotLock = zl.tryLock(new LockWatcher() {
       
@@ -89,7 +89,7 @@ public class SplitRecoveryIT extends ConfigurableMacIT {
       public void unableToMonitorLockNode(Throwable e) {
         System.exit(-1);
       }
-    }, "foo".getBytes());
+    }, "foo".getBytes(Constants.UTF8));
     
     if (!gotLock) {
       System.err.println("Failed to get lock " + zPath);

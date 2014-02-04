@@ -22,6 +22,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Scanner;
@@ -103,7 +104,7 @@ public class GetSplitsCommand extends Command {
       return null;
     }
     BinaryFormatter.getlength(text.getLength());
-    return encode ? new String(Base64.encodeBase64(TextUtil.getBytes(text))) : BinaryFormatter.appendText(new StringBuilder(), text).toString();
+    return encode ? new String(Base64.encodeBase64(TextUtil.getBytes(text)), Constants.UTF8) : BinaryFormatter.appendText(new StringBuilder(), text).toString();
   }
   
   private static String obscuredTabletName(final KeyExtent extent) {
@@ -116,7 +117,7 @@ public class GetSplitsCommand extends Command {
     if (extent.getEndRow() != null && extent.getEndRow().getLength() > 0) {
       digester.update(extent.getEndRow().getBytes(), 0, extent.getEndRow().getLength());
     }
-    return new String(Base64.encodeBase64(digester.digest()));
+    return new String(Base64.encodeBase64(digester.digest()), Constants.UTF8);
   }
   
   @Override

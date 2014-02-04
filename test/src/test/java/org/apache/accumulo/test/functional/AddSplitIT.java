@@ -21,6 +21,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -124,7 +125,7 @@ public class AddSplitIT extends SimpleMacIT {
       String row = String.format("%09d", i);
 
       Mutation m = new Mutation(new Text(row));
-      m.put(new Text("cf1"), new Text("cq1"), ts, new Value(("" + i).getBytes()));
+      m.put(new Text("cf1"), new Text("cq1"), ts, new Value(Integer.toString(i).getBytes(Constants.UTF8)));
       bw.addMutation(m);
     }
 

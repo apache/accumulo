@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -76,12 +77,12 @@ public class VisibilityIT extends SimpleMacIT {
   }
 
   private void mput(Mutation m, String cf, String cq, String cv, String val) {
-    ColumnVisibility le = new ColumnVisibility(cv.getBytes());
-    m.put(new Text(cf), new Text(cq), le, new Value(val.getBytes()));
+    ColumnVisibility le = new ColumnVisibility(cv.getBytes(Constants.UTF8));
+    m.put(new Text(cf), new Text(cq), le, new Value(val.getBytes(Constants.UTF8)));
   }
 
   private void mputDelete(Mutation m, String cf, String cq, String cv) {
-    ColumnVisibility le = new ColumnVisibility(cv.getBytes());
+    ColumnVisibility le = new ColumnVisibility(cv.getBytes(Constants.UTF8));
     m.putDelete(new Text(cf), new Text(cq), le);
   }
 
@@ -258,7 +259,7 @@ public class VisibilityIT extends SimpleMacIT {
   private ByteArraySet nbas(Set<String> auths) {
     ByteArraySet bas = new ByteArraySet();
     for (String auth : auths) {
-      bas.add(auth.getBytes());
+      bas.add(auth.getBytes(Constants.UTF8));
     }
     return bas;
   }

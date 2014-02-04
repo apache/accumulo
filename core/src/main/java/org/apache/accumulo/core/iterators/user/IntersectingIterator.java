@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -111,7 +112,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
     }
     
     public String getTermString() {
-      return (this.term == null) ? new String("Iterator") : this.term.toString();
+      return (this.term == null) ? "Iterator" : this.term.toString();
     }
   }
   
@@ -391,7 +392,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
   protected static String encodeColumns(Text[] columns) {
     StringBuilder sb = new StringBuilder();
     for (int i = 0; i < columns.length; i++) {
-      sb.append(new String(Base64.encodeBase64(TextUtil.getBytes(columns[i]))));
+      sb.append(new String(Base64.encodeBase64(TextUtil.getBytes(columns[i])), Constants.UTF8));
       sb.append('\n');
     }
     return sb.toString();
@@ -409,14 +410,14 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
       else
         bytes[i] = 0;
     }
-    return new String(Base64.encodeBase64(bytes));
+    return new String(Base64.encodeBase64(bytes), Constants.UTF8);
   }
   
   protected static Text[] decodeColumns(String columns) {
     String[] columnStrings = columns.split("\n");
     Text[] columnTexts = new Text[columnStrings.length];
     for (int i = 0; i < columnStrings.length; i++) {
-      columnTexts[i] = new Text(Base64.decodeBase64(columnStrings[i].getBytes()));
+      columnTexts[i] = new Text(Base64.decodeBase64(columnStrings[i].getBytes(Constants.UTF8)));
     }
     return columnTexts;
   }
@@ -430,7 +431,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
     if (flags == null)
       return null;
     
-    byte[] bytes = Base64.decodeBase64(flags.getBytes());
+    byte[] bytes = Base64.decodeBase64(flags.getBytes(Constants.UTF8));
     boolean[] bFlags = new boolean[bytes.length];
     for (int i = 0; i < bytes.length; i++) {
       if (bytes[i] == 1)

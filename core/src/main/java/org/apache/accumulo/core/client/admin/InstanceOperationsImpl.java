@@ -120,7 +120,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
         List<String> copy = new ArrayList<String>(children);
         Collections.sort(copy);
         byte[] data = cache.get(path + "/" + candidate + "/" + copy.get(0));
-        if (data != null && !"master".equals(new String(data))) {
+        if (data != null && !"master".equals(new String(data, Constants.UTF8))) {
           results.add(candidate);
         }
       }

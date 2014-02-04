@@ -22,6 +22,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.Constants;
+
 public class ByteArraySet extends TreeSet<byte[]> {
   
   private static final long serialVersionUID = 1L;
@@ -38,7 +40,7 @@ public class ByteArraySet extends TreeSet<byte[]> {
   public static ByteArraySet fromStrings(Collection<String> c) {
     List<byte[]> lst = new ArrayList<byte[]>();
     for (String s : c)
-      lst.add(s.getBytes());
+      lst.add(s.getBytes(Constants.UTF8));
     return new ByteArraySet(lst);
   }
   

@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -48,7 +49,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 public class RowDeletingIterator implements SortedKeyValueIterator<Key,Value> {
   
-  public static final Value DELETE_ROW_VALUE = new Value("DEL_ROW".getBytes());
+  public static final Value DELETE_ROW_VALUE = new Value("DEL_ROW".getBytes(Constants.UTF8));
   private SortedKeyValueIterator<Key,Value> source;
   private boolean propogateDeletes;
   private ByteSequence currentRow;

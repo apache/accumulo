@@ -20,12 +20,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.accumulo.server.cli.ClientOnRequiredTable;
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.server.cli.ClientOnRequiredTable;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -49,7 +50,7 @@ public class BulkImportDirectory {
     if (args.length == 5) {
       System.err.println("Deprecated syntax for BulkImportDirectory, please use the new style (see --help)");
       final String user = args[0];
-      final byte[] pass = args[1].getBytes();
+      final byte[] pass = args[1].getBytes(Constants.UTF8);
       final String tableName = args[2];
       final String dir = args[3];
       final String failureDir = args[4];

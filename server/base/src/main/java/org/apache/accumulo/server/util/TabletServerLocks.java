@@ -59,7 +59,7 @@ public class TabletServerLocks {
         byte[] lockData = ZooLock.getLockData(cache, tserverPath + "/" + tabletServer, null);
         String holder = null;
         if (lockData != null) {
-          holder = new String(lockData);
+          holder = new String(lockData, Constants.UTF8);
         }
         
         System.out.printf("%32s %16s%n", tabletServer, holder);

@@ -293,7 +293,7 @@ public class LiveTServerSet implements Watcher {
       }
     } else {
       locklessServers.remove(zPath);
-      ServerServices services = new ServerServices(new String(lockData));
+      ServerServices services = new ServerServices(new String(lockData, Constants.UTF8));
       HostAndPort client = services.getAddress(ServerServices.Service.TSERV_CLIENT);
       TServerInstance instance = new TServerInstance(client, stat.getEphemeralOwner());
 

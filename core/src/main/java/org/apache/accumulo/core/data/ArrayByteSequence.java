@@ -19,6 +19,8 @@ package org.apache.accumulo.core.data;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 
+import org.apache.accumulo.core.Constants;
+
 /**
  * An implementation of {@link ByteSequence} that uses a backing byte array.
  */
@@ -73,7 +75,7 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
    * @param s string to represent as bytes
    */
   public ArrayByteSequence(String s) {
-    this(s.getBytes());
+    this(s.getBytes(Constants.UTF8));
   }
   
   /**
@@ -152,6 +154,6 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
   }
   
   public String toString() {
-    return new String(data, offset, length);
+    return new String(data, offset, length, Constants.UTF8);
   }
 }

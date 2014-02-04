@@ -81,7 +81,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
   protected RangeInputSplit(String table, String tableId, Range range, String[] locations) {
     this.range = range;
-    this.locations = locations;
+    setLocations(locations);
     this.tableName = table;
     this.tableId = tableId;
   }
@@ -154,7 +154,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
   @Override
   public String[] getLocations() throws IOException {
-    return locations;
+    return Arrays.copyOf(locations, locations.length);
   }
 
   @Override

@@ -23,6 +23,7 @@ import java.util.Properties;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
@@ -35,7 +36,7 @@ import org.apache.hadoop.io.Text;
 
 public class Verify extends Test {
   
-  static byte[] zero = "0".getBytes();
+  static byte[] zero = new byte[] {'0'};
   
   @Override
   public void visit(State state, Properties props) throws Exception {
@@ -142,7 +143,7 @@ public class Verify extends Test {
    * @param lastBadEntry
    */
   private static void report(Text startBadRow, Text lastBadRow, Value value) {
-    System.out.println("Bad value " + new String(value.get()));
+    System.out.println("Bad value " + new String(value.get(), Constants.UTF8));
     System.out.println(" Range [" + startBadRow + " -> " + lastBadRow + "]");
   }
   

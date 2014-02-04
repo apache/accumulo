@@ -48,6 +48,15 @@ public class TraceRunnable implements Runnable, Comparable<TraceRunnable> {
     }
   }
   
+  @Override
+  public boolean equals(Object o) {
+    if (o instanceof TraceRunnable) {
+      return 0 == this.compareTo((TraceRunnable) o);
+    }
+    
+    return false;
+  }
+  
   @SuppressWarnings({"rawtypes", "unchecked"})
   @Override
   public int compareTo(TraceRunnable o) {

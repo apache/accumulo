@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.trace.instrument;
 
-import org.apache.accumulo.trace.instrument.Span;
-import org.apache.accumulo.trace.instrument.Trace;
 import org.junit.Test;
 
 public class PerformanceTest {

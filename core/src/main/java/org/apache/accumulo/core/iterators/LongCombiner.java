@@ -23,6 +23,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Map;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -178,13 +179,13 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   public static class StringEncoder implements Encoder<Long> {
     @Override
     public byte[] encode(Long v) {
-      return Long.toString(v).getBytes();
+      return Long.toString(v).getBytes(Constants.UTF8);
     }
     
     @Override
     public Long decode(byte[] b) {
       try {
-        return Long.parseLong(new String(b));
+        return Long.parseLong(new String(b, Constants.UTF8));
       } catch (NumberFormatException nfe) {
         throw new ValueFormatException(nfe);
       }

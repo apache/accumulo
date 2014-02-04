@@ -113,7 +113,7 @@ public class TableConfiguration extends AccumuloConfiguration {
     byte[] v = zc.get(zPath);
     String value = null;
     if (v != null)
-      value = new String(v);
+      value = new String(v, Constants.UTF8);
     return value;
   }
 

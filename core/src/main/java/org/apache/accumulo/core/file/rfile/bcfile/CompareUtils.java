@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.file.rfile.bcfile;
 
+import java.io.Serializable;
 import java.util.Comparator;
 
 import org.apache.hadoop.io.RawComparator;
@@ -68,7 +69,9 @@ class CompareUtils {
     }
   }
   
-  public static final class ScalarComparator implements Comparator<Scalar> {
+  public static final class ScalarComparator implements Comparator<Scalar>, Serializable {
+    private static final long serialVersionUID = 1L;
+
     @Override
     public int compare(Scalar o1, Scalar o2) {
       long diff = o1.magnitude() - o2.magnitude();
@@ -80,7 +83,9 @@ class CompareUtils {
     }
   }
   
-  public static final class MemcmpRawComparator implements RawComparator<Object> {
+  public static final class MemcmpRawComparator implements RawComparator<Object>, Serializable {
+    private static final long serialVersionUID = 1L;
+
     @Override
     public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2) {
       return WritableComparator.compareBytes(b1, s1, l1, b2, s2, l2);

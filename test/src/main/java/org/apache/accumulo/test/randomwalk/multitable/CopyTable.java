@@ -70,6 +70,6 @@ public class CopyTable extends Test {
     log.debug("dropped " + srcTableName);
     
     nextId++;
-    state.set("nextId", new Integer(nextId));
+    state.set("nextId", Integer.valueOf(nextId));
   }
 }

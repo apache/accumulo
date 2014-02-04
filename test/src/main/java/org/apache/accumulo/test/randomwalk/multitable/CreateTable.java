@@ -45,6 +45,6 @@ public class CreateTable extends Test {
     }
     
     nextId++;
-    state.set("nextId", new Integer(nextId));
+    state.set("nextId", Integer.valueOf(nextId));
   }
 }

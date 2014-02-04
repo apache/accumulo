@@ -43,7 +43,7 @@ public final class TextUtil {
       Text newText = new Text();
       newText.append(text.getBytes(), 0, maxLen);
       String suffix = "... TRUNCATED";
-      newText.append(suffix.getBytes(), 0, suffix.length());
+      newText.append(suffix.getBytes(Constants.UTF8), 0, suffix.length());
       return newText;
     }
     

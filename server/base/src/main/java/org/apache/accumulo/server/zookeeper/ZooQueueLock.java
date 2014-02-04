@@ -19,6 +19,7 @@ package org.apache.accumulo.server.zookeeper;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.fate.zookeeper.DistributedReadWriteLock;
 import org.apache.zookeeper.KeeperException;
 
@@ -30,8 +31,8 @@ public class ZooQueueLock extends org.apache.accumulo.fate.zookeeper.ZooQueueLoc
   
   public static void main(String args[]) throws InterruptedException, KeeperException {
     ZooQueueLock lock = new ZooQueueLock("/lock", true);
-    DistributedReadWriteLock rlocker = new DistributedReadWriteLock(lock, "reader".getBytes());
-    DistributedReadWriteLock wlocker = new DistributedReadWriteLock(lock, "wlocker".getBytes());
+    DistributedReadWriteLock rlocker = new DistributedReadWriteLock(lock, "reader".getBytes(Constants.UTF8));
+    DistributedReadWriteLock wlocker = new DistributedReadWriteLock(lock, "wlocker".getBytes(Constants.UTF8));
     final Lock readLock = rlocker.readLock();
     readLock.lock();
     final Lock readLock2 = rlocker.readLock();
@@ -44,7 +45,7 @@ public class ZooQueueLock extends org.apache.accumulo.fate.zookeeper.ZooQueueLoc
     writeLock.lock();
     if (readLock.tryLock(100, TimeUnit.MILLISECONDS))
       throw new RuntimeException("Read lock achieved during write lock!");
-    final Lock writeLock2 = DistributedReadWriteLock.recoverLock(lock, "wlocker".getBytes());
+    final Lock writeLock2 = DistributedReadWriteLock.recoverLock(lock, "wlocker".getBytes(Constants.UTF8));
     writeLock2.unlock();
     readLock.lock();
     System.out.println("success");

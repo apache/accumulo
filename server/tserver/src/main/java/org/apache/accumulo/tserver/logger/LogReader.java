@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -147,7 +148,7 @@ public class LogReader {
           }
 
           if (rowMatcher != null) {
-            rowMatcher.reset(new String(m.getRow()));
+            rowMatcher.reset(new String(m.getRow(), Constants.UTF8));
             if (rowMatcher.matches()) {
               found = true;
               break;

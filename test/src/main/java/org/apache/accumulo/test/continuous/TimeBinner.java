@@ -25,6 +25,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ClientOpts.TimeConverter;
 import org.apache.accumulo.core.cli.Help;
 
@@ -71,7 +72,7 @@ public class TimeBinner {
     Operation operation = Operation.valueOf(opts.operation);
     SimpleDateFormat sdf = new SimpleDateFormat(opts.dateFormat);
     
-    BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+    BufferedReader in = new BufferedReader(new InputStreamReader(System.in, Constants.UTF8));
     
     String line = null;
     

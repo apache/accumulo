@@ -18,11 +18,12 @@ package org.apache.accumulo.test.randomwalk.image;
 
 import java.security.MessageDigest;
 import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Random;
 import java.util.UUID;
-import java.util.Map.Entry;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -57,7 +58,7 @@ public class Verify extends Test {
     String uuid = UUID.randomUUID().toString();
     
     MessageDigest alg = MessageDigest.getInstance("SHA-1");
-    alg.update(uuid.getBytes());
+    alg.update(uuid.getBytes(Constants.UTF8));
     
     indexScanner.setRange(new Range(new Text(alg.digest()), null));
     indexScanner.setBatchSize(numVerifications);
@@ -86,7 +87,7 @@ public class Verify extends Test {
     
     int verified = ((Integer) state.get("verified")).intValue() + numVerifications;
     log.debug("Verified " + numVerifications + " - Total " + verified);
-    state.set("verified", new Integer(verified));
+    state.set("verified", Integer.valueOf(verified));
   }
   
   public void verifyRow(Scanner scanner, String row) throws Exception {

@@ -193,7 +193,7 @@ public class RegExFilter extends Filter {
         this.encoding = options.get(ENCODING);
         if ("".equals(this.encoding))
           encoding = ENCODING_DEFAULT;
-        new String("test".getBytes(), encoding);
+        new String("test".getBytes(Constants.UTF8), encoding);
       } catch (UnsupportedEncodingException e) {
         throw new IllegalArgumentException("invalid encoding " + ENCODING + ":" + this.encoding, e);
       }

@@ -120,7 +120,7 @@ public class ContinuousIngest {
     visibilities = new ArrayList<ColumnVisibility>();
     
     FileSystem fs = FileSystem.get(new Configuration());
-    BufferedReader in = new BufferedReader(new InputStreamReader(fs.open(new Path(opts.visFile))));
+    BufferedReader in = new BufferedReader(new InputStreamReader(fs.open(new Path(opts.visFile)), Constants.UTF8));
     
     String line;
     
@@ -158,9 +158,9 @@ public class ContinuousIngest {
     
     Random r = new Random();
     
-    byte[] ingestInstanceId = UUID.randomUUID().toString().getBytes();
+    byte[] ingestInstanceId = UUID.randomUUID().toString().getBytes(Constants.UTF8);
     
-    System.out.printf("UUID %d %s%n", System.currentTimeMillis(), new String(ingestInstanceId));
+    System.out.printf("UUID %d %s%n", System.currentTimeMillis(), new String(ingestInstanceId, Constants.UTF8));
     
     long count = 0;
     final int flushInterval = 1000000;

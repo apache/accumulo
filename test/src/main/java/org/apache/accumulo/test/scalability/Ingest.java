@@ -20,6 +20,7 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -101,7 +102,7 @@ public class Ingest extends ScaleTest {
     while (count < numIngestEntries) {
       count++;
       long rowId = ContinuousIngest.genLong(minRow, maxRow, r);
-      Mutation m = ContinuousIngest.genMutation(rowId, r.nextInt(maxColF), r.nextInt(maxColQ), cv, ingestInstanceId.getBytes(), count, null, r, false);
+      Mutation m = ContinuousIngest.genMutation(rowId, r.nextInt(maxColF), r.nextInt(maxColQ), cv, ingestInstanceId.getBytes(Constants.UTF8), count, null, r, false);
       totalBytes += m.numBytes();
       try {
         bw.addMutation(m);
