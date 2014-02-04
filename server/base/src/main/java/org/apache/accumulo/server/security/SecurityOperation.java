@@ -70,7 +70,7 @@ public class SecurityOperation {
   private final ZooCache zooCache;
   private final String ZKUserPath;
 
-  protected static SecurityOperation instance;
+  static SecurityOperation instance;
 
   public static synchronized SecurityOperation getInstance() {
     String instanceId = HdfsZooInstance.getInstance().getInstanceID();
@@ -142,7 +142,7 @@ public class SecurityOperation {
 
   public synchronized String getRootUsername() {
     if (rootUserName == null)
-      rootUserName = new String(zooCache.get(ZKUserPath));
+      rootUserName = new String(zooCache.get(ZKUserPath), Constants.UTF8);
     return rootUserName;
   }
 

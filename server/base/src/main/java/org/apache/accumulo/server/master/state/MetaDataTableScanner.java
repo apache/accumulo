@@ -106,7 +106,7 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
   }
   
   @Override
-  public void finalize() {
+  protected void finalize() {
     close();
   }
   

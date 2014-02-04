@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.security;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -129,8 +130,9 @@ public class ColumnVisibility {
    * lexicographically. AND and OR nodes sort by number of children, or if
    * the same by corresponding children.
    */
-  public static class NodeComparator implements Comparator<Node> {
+  public static class NodeComparator implements Comparator<Node>, Serializable {
     
+    private static final long serialVersionUID = 1L;
     byte[] text;
     
     /**
@@ -211,7 +213,7 @@ public class ColumnVisibility {
    */
   public static void stringify(Node root, byte[] expression, StringBuilder out) {
     if (root.type == NodeType.TERM) {
-      out.append(new String(expression, root.start, root.end - root.start));
+      out.append(new String(expression, root.start, root.end - root.start, Constants.UTF8));
     } else {
       String sep = "";
       for (Node c : root.children) {
@@ -236,7 +238,7 @@ public class ColumnVisibility {
     Node normRoot = normalize(node, expression);
     StringBuilder builder = new StringBuilder(expression.length);
     stringify(normRoot, expression, builder);
-    return builder.toString().getBytes();
+    return builder.toString().getBytes(Constants.UTF8);
   }
   
   private static class ColumnVisibilityParser {
@@ -249,10 +251,10 @@ public class ColumnVisibility {
       if (expression.length > 0) {
         Node node = parse_(expression);
         if (node == null) {
-          throw new BadArgumentException("operator or missing parens", new String(expression), index - 1);
+          throw new BadArgumentException("operator or missing parens", new String(expression, Constants.UTF8), index - 1);
         }
         if (parens != 0) {
-          throw new BadArgumentException("parenthesis mis-match", new String(expression), index - 1);
+          throw new BadArgumentException("parenthesis mis-match", new String(expression, Constants.UTF8), index - 1);
         }
         return node;
       }
@@ -262,11 +264,11 @@ public class ColumnVisibility {
     Node processTerm(int start, int end, Node expr, byte[] expression) {
       if (start != end) {
         if (expr != null)
-          throw new BadArgumentException("expression needs | or &", new String(expression), start);
+          throw new BadArgumentException("expression needs | or &", new String(expression, Constants.UTF8), start);
         return new Node(start, end);
       }
       if (expr == null)
-        throw new BadArgumentException("empty term", new String(expression), start);
+        throw new BadArgumentException("empty term", new String(expression, Constants.UTF8), start);
       return expr;
     }
     
@@ -283,7 +285,7 @@ public class ColumnVisibility {
             expr = processTerm(subtermStart, index - 1, expr, expression);
             if (result != null) {
               if (!result.type.equals(NodeType.AND))
-                throw new BadArgumentException("cannot mix & and |", new String(expression), index - 1);
+                throw new BadArgumentException("cannot mix & and |", new String(expression, Constants.UTF8), index - 1);
             } else {
               result = new Node(NodeType.AND, wholeTermStart);
             }
@@ -297,7 +299,7 @@ public class ColumnVisibility {
             expr = processTerm(subtermStart, index - 1, expr, expression);
             if (result != null) {
               if (!result.type.equals(NodeType.OR))
-                throw new BadArgumentException("cannot mix | and &", new String(expression), index - 1);
+                throw new BadArgumentException("cannot mix | and &", new String(expression, Constants.UTF8), index - 1);
             } else {
               result = new Node(NodeType.OR, wholeTermStart);
             }
@@ -310,7 +312,7 @@ public class ColumnVisibility {
           case '(': {
             parens++;
             if (subtermStart != index - 1 || expr != null)
-              throw new BadArgumentException("expression needs & or |", new String(expression), index - 1);
+              throw new BadArgumentException("expression needs & or |", new String(expression, Constants.UTF8), index - 1);
             expr = parse_(expression);
             subtermStart = index;
             subtermComplete = false;
@@ -320,7 +322,7 @@ public class ColumnVisibility {
             parens--;
             Node child = processTerm(subtermStart, index - 1, expr, expression);
             if (child == null && result == null)
-              throw new BadArgumentException("empty expression not allowed", new String(expression), index);
+              throw new BadArgumentException("empty expression not allowed", new String(expression, Constants.UTF8), index);
             if (result == null)
               return child;
             if (result.type == child.type)
@@ -333,23 +335,23 @@ public class ColumnVisibility {
           }
           case '"': {
             if (subtermStart != index - 1)
-              throw new BadArgumentException("expression needs & or |", new String(expression), index - 1);
+              throw new BadArgumentException("expression needs & or |", new String(expression, Constants.UTF8), index - 1);
             
             while (index < expression.length && expression[index] != '"') {
               if (expression[index] == '\\') {
                 index++;
                 if (expression[index] != '\\' && expression[index] != '"')
-                  throw new BadArgumentException("invalid escaping within quotes", new String(expression), index - 1);
+                  throw new BadArgumentException("invalid escaping within quotes", new String(expression, Constants.UTF8), index - 1);
               }
               index++;
             }
             
             if (index == expression.length)
-              throw new BadArgumentException("unclosed quote", new String(expression), subtermStart);
+              throw new BadArgumentException("unclosed quote", new String(expression, Constants.UTF8), subtermStart);
             
             if (subtermStart + 1 == index)
-              throw new BadArgumentException("empty term", new String(expression), subtermStart);
-            
+              throw new BadArgumentException("empty term", new String(expression, Constants.UTF8), subtermStart);
+ 
             index++;
             
             subtermComplete = true;
@@ -358,11 +360,11 @@ public class ColumnVisibility {
           }
           default: {
             if (subtermComplete)
-              throw new BadArgumentException("expression needs & or |", new String(expression), index - 1);
+              throw new BadArgumentException("expression needs & or |", new String(expression, Constants.UTF8), index - 1);
             
             byte c = expression[index - 1];
             if (!Authorizations.isValidAuthChar(c))
-              throw new BadArgumentException("bad character (" + c + ")", new String(expression), index - 1);
+              throw new BadArgumentException("bad character (" + c + ")", new String(expression, Constants.UTF8), index - 1);
           }
         }
       }
@@ -374,7 +376,7 @@ public class ColumnVisibility {
         result = child;
       if (result.type != NodeType.TERM)
         if (result.children.size() < 2)
-          throw new BadArgumentException("missing term", new String(expression), index);
+          throw new BadArgumentException("missing term", new String(expression, Constants.UTF8), index);
       return result;
     }
   }

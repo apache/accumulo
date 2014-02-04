@@ -20,6 +20,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.shell.Shell;
 
@@ -57,7 +58,7 @@ public class QuotedStringTokenizer implements Iterable<String> {
     
     final byte[] token = new byte[input.length()];
     int tokenLength = 0;
-    final byte[] inputBytes = input.getBytes();
+    final byte[] inputBytes = input.getBytes(Constants.UTF8);
     for (int i = 0; i < input.length(); ++i) {
       final char ch = input.charAt(i);
       

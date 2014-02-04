@@ -86,7 +86,7 @@ public class ClientOpts extends Help {
     
     @Override
     public String toString() {
-      return new String(value);
+      return new String(value, Constants.UTF8);
     }
   }
   

@@ -59,7 +59,7 @@ public class NativeMapIT {
   }
 
   private Value nv(int v) {
-    return new Value(String.format("r%09d", v).getBytes());
+    return new Value(String.format("r%09d", v).getBytes(Constants.UTF8));
   }
 
   public static File nativeMapLocation() {
@@ -127,12 +127,12 @@ public class NativeMapIT {
           for (int l = 0; l < num; l++) {
             for (int ts = 0; ts < num; ts++) {
               Key key = nk(i, j, k, l, ts, true);
-              Value value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + true + "_" + run).getBytes());
+              Value value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + true + "_" + run).getBytes(Constants.UTF8));
 
               nm.put(key, value);
 
               key = nk(i, j, k, l, ts, false);
-              value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + false + "_" + run).getBytes());
+              value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + false + "_" + run).getBytes(Constants.UTF8));
 
               nm.put(key, value);
             }
@@ -149,7 +149,7 @@ public class NativeMapIT {
           for (int l = 0; l < num; l++) {
             for (int ts = num - 1; ts >= 0; ts--) {
               Key key = nk(i, j, k, l, ts, true);
-              Value value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + true + "_" + run).getBytes());
+              Value value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + true + "_" + run).getBytes(Constants.UTF8));
 
               assertTrue(iter.hasNext());
               Entry<Key,Value> entry = iter.next();
@@ -157,7 +157,7 @@ public class NativeMapIT {
               assertEquals(value, entry.getValue());
 
               key = nk(i, j, k, l, ts, false);
-              value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + false + "_" + run).getBytes());
+              value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + false + "_" + run).getBytes(Constants.UTF8));
 
               assertTrue(iter.hasNext());
               entry = iter.next();
@@ -177,7 +177,7 @@ public class NativeMapIT {
           for (int l = 0; l < num; l++) {
             for (int ts = 0; ts < num; ts++) {
               Key key = nk(i, j, k, l, ts, true);
-              Value value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + true + "_" + run).getBytes());
+              Value value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + true + "_" + run).getBytes(Constants.UTF8));
 
               assertEquals(value, nm.get(key));
 
@@ -188,7 +188,7 @@ public class NativeMapIT {
               assertEquals(value, entry.getValue());
 
               key = nk(i, j, k, l, ts, false);
-              value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + false + "_" + run).getBytes());
+              value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + false + "_" + run).getBytes(Constants.UTF8));
 
               assertEquals(value, nm.get(key));
 
@@ -314,11 +314,11 @@ public class NativeMapIT {
 
     TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
 
-    tm.put(new Key(new Text("fo")), new Value("0".getBytes()));
-    tm.put(new Key(new Text("foo")), new Value("1".getBytes()));
-    tm.put(new Key(new Text("foo1")), new Value("2".getBytes()));
-    tm.put(new Key(new Text("foo2")), new Value("3".getBytes()));
-
+    tm.put(new Key(new Text("fo")), new Value(new byte[] {'0'}));
+    tm.put(new Key(new Text("foo")), new Value(new byte[] {'1'}));
+    tm.put(new Key(new Text("foo1")), new Value(new byte[] {'2'}));
+    tm.put(new Key(new Text("foo2")), new Value(new byte[] {'3'}));
+ 
     for (Entry<Key,Value> entry : tm.entrySet()) {
       nm.put(entry.getKey(), entry.getValue());
     }

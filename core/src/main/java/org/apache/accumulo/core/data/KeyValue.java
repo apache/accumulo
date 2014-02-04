@@ -21,6 +21,8 @@ import static org.apache.accumulo.core.util.ByteBufferUtil.toBytes;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
+import org.apache.accumulo.core.Constants;
+
 public class KeyValue implements Map.Entry<Key,Value> {
   
   public Key key;
@@ -52,7 +54,7 @@ public class KeyValue implements Map.Entry<Key,Value> {
   }
   
   public String toString() {
-    return key + " " + new String(value);
+    return key + " " + new String(value, Constants.UTF8);
   }
   
 }

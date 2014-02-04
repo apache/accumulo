@@ -111,7 +111,7 @@ public class RecoveryManager {
 
   private void initiateSort(String sortId, String source, final String destination) throws KeeperException, InterruptedException, IOException {
     String work = source + "|" + destination;
-    new DistributedWorkQueue(ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY).addWork(sortId, work.getBytes());
+    new DistributedWorkQueue(ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY).addWork(sortId, work.getBytes(Constants.UTF8));
 
     synchronized (this) {
       sortsQueued.add(sortId);

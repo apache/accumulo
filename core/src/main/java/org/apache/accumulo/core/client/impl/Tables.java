@@ -250,7 +250,7 @@ public class Tables {
     if (state == null)
       return TableState.UNKNOWN;
 
-    return TableState.valueOf(new String(state));
+    return TableState.valueOf(new String(state, Constants.UTF8));
   }
 
   public static long getCacheResetCount() {

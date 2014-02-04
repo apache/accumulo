@@ -27,6 +27,7 @@ import org.mortbay.jetty.servlet.Context;
 import org.mortbay.jetty.servlet.SessionHandler;
 
 public class EmbeddedWebServer {
+  private static String EMPTY = "";
   
   Server server = null;
   SocketConnector sock;
@@ -43,10 +44,10 @@ public class EmbeddedWebServer {
     handler = new ContextHandlerCollection();
     root = new Context(handler, "/", new SessionHandler(), null, null, null);
     
-    if (Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_KEYSTORE).equals("")
-        || Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_KEYSTOREPASS).equals("")
-        || Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_TRUSTSTORE).equals("")
-        || Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_TRUSTSTOREPASS).equals("")) {
+    if (EMPTY.equals(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_KEYSTORE))
+        || EMPTY.equals(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_KEYSTOREPASS))
+        || EMPTY.equals(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_TRUSTSTORE))
+        || EMPTY.equals(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_TRUSTSTOREPASS))) {
       sock = new SocketConnector();
       usingSsl = false;
     } else {

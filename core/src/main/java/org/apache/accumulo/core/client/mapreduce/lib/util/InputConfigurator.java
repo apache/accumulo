@@ -152,7 +152,7 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   public static Authorizations getScanAuthorizations(Class<?> implementingClass, Configuration conf) {
     String authString = conf.get(enumToConfKey(implementingClass, ScanOpts.AUTHORIZATIONS));
-    return authString == null ? Authorizations.EMPTY : new Authorizations(authString.getBytes());
+    return authString == null ? Authorizations.EMPTY : new Authorizations(authString.getBytes(Constants.UTF8));
   }
 
   /**
@@ -315,7 +315,7 @@ public class InputConfigurator extends ConfiguratorBase {
     for (String col : serialized) {
       int idx = col.indexOf(":");
       Text cf = new Text(idx < 0 ? Base64.decodeBase64(col.getBytes(Constants.UTF8)) : Base64.decodeBase64(col.substring(0, idx).getBytes(Constants.UTF8)));
-      Text cq = idx < 0 ? null : new Text(Base64.decodeBase64(col.substring(idx + 1).getBytes()));
+      Text cq = idx < 0 ? null : new Text(Base64.decodeBase64(col.substring(idx + 1).getBytes(Constants.UTF8)));
       columns.add(new Pair<Text,Text>(cf, cq));
     }
     return columns;

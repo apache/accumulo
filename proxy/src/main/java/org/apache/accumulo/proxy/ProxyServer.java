@@ -581,10 +581,10 @@ public class ProxyServer implements AccumuloProxy.Iface {
       org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
     try {
       Map<String,Set<Text>> groups = new HashMap<String,Set<Text>>();
-      for (String key : groupStrings.keySet()) {
-        groups.put(key, new HashSet<Text>());
-        for (String val : groupStrings.get(key)) {
-          groups.get(key).add(new Text(val));
+      for (Entry<String,Set<String>> groupEntry : groupStrings.entrySet()) {
+        groups.put(groupEntry.getKey(), new HashSet<Text>());
+        for (String val : groupEntry.getValue()) {
+          groups.get(groupEntry.getKey()).add(new Text(val));
         }
       }
       getConnector(login).tableOperations().setLocalityGroups(tableName, groups);

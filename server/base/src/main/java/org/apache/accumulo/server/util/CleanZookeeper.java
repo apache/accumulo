@@ -53,7 +53,7 @@ public class CleanZookeeper {
     String root = Constants.ZROOT;
     IZooReaderWriter zk = ZooReaderWriter.getInstance();
     if (opts.auth != null) {
-      zk.getZooKeeper().addAuthInfo("digest", ("accumulo:"+opts.auth).getBytes());
+      zk.getZooKeeper().addAuthInfo("digest", ("accumulo:"+opts.auth).getBytes(Constants.UTF8));
     }
     
     try {
@@ -62,7 +62,7 @@ public class CleanZookeeper {
           for (String instanceName : zk.getChildren(root + Constants.ZINSTANCES)) {
             String instanceNamePath = root + Constants.ZINSTANCES + "/" + instanceName;
             byte[] id = zk.getData(instanceNamePath, null);
-            if (id != null && !new String(id).equals(HdfsZooInstance.getInstance().getInstanceID())) {
+            if (id != null && !new String(id, Constants.UTF8).equals(HdfsZooInstance.getInstance().getInstanceID())) {
               try {
                 zk.recursiveDelete(instanceNamePath, NodeMissingPolicy.SKIP);
               } catch (KeeperException.NoAuthException ex) {

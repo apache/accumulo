@@ -19,6 +19,7 @@ package org.apache.accumulo.test.functional;
 import java.util.EnumSet;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -46,7 +47,8 @@ public class BadIteratorMincIT extends SimpleMacIT {
     BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
 
     Mutation m = new Mutation(new Text("r1"));
-    m.put(new Text("acf"), new Text(tableName), new Value("1".getBytes()));
+    m.put(new Text("acf"), new Text(tableName), new Value("1".getBytes(Constants.UTF8)));
+
     bw.addMutation(m);
     bw.close();
 
@@ -89,7 +91,7 @@ public class BadIteratorMincIT extends SimpleMacIT {
     c.tableOperations().attachIterator(tableName, is, EnumSet.of(IteratorScope.minc));
     bw = c.createBatchWriter(tableName, new BatchWriterConfig());
     m = new Mutation(new Text("r2"));
-    m.put(new Text("acf"), new Text(tableName), new Value("1".getBytes()));
+    m.put(new Text("acf"), new Text(tableName), new Value("1".getBytes(Constants.UTF8)));
     bw.addMutation(m);
     bw.close();
 

@@ -17,6 +17,7 @@
 package org.apache.accumulo.tserver;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -70,8 +71,10 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 
-class MemKeyComparator implements Comparator<Key> {
+class MemKeyComparator implements Comparator<Key>, Serializable {
   
+  private static final long serialVersionUID = 1L;
+
   @Override
   public int compare(Key k1, Key k2) {
     int cmp = k1.compareTo(k2);

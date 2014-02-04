@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.security.Authorizations;
@@ -45,10 +46,10 @@ public class ChangeAuthorizations extends Test {
       if (rand.nextBoolean()) {
         String authorization = String.format("a%d", rand.nextInt(5000));
         log.debug("adding authorization " + authorization);
-        auths.add(authorization.getBytes());
+        auths.add(authorization.getBytes(Constants.UTF8));
       } else {
         if (auths.size() > 0) {
-          log.debug("removing authorization " + new String(auths.remove(0)));
+          log.debug("removing authorization " + new String(auths.remove(0), Constants.UTF8));
         }
       }
       conn.securityOperations().changeUserAuthorizations(userName, new Authorizations(auths));

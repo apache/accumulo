@@ -19,6 +19,8 @@ package org.apache.accumulo.core.data;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 
+import org.apache.accumulo.core.Constants;
+
 public class ArrayByteSequence extends ByteSequence implements Serializable {
   
   private static final long serialVersionUID = 1L;
@@ -46,7 +48,7 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
   }
   
   public ArrayByteSequence(String s) {
-    this(s.getBytes());
+    this(s.getBytes(Constants.UTF8));
   }
   
   public ArrayByteSequence(ByteBuffer buffer) {
@@ -116,6 +118,6 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
   }
   
   public String toString() {
-    return new String(data, offset, length);
+    return new String(data, offset, length, Constants.UTF8);
   }
 }

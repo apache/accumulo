@@ -18,6 +18,7 @@ package org.apache.accumulo.test.randomwalk.sequential;
 
 import java.util.Properties;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -41,7 +42,7 @@ public class Write extends Test {
     state.set("totalWrites", totalWrites);
     
     Mutation m = new Mutation(new Text(String.format("%010d", totalWrites)));
-    m.put(new Text("cf"), new Text("cq"), new Value(new String("val").getBytes()));
+    m.put(new Text("cf"), new Text("cq"), new Value("val".getBytes(Constants.UTF8)));
     bw.addMutation(m);
   }
 }

@@ -21,6 +21,7 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -103,7 +104,7 @@ public class LargeRowIT extends ConfigurableMacIT {
       TestIngest.toPrintableChars(rowData);
       
       Mutation mut = new Mutation(new Text(rowData));
-      mut.put(new Text(""), new Text(""), new Value(("" + i).getBytes()));
+      mut.put(new Text(""), new Text(""), new Value(Integer.toString(i).getBytes(Constants.UTF8)));
       bw.addMutation(mut);
     }
     
@@ -151,7 +152,7 @@ public class LargeRowIT extends ConfigurableMacIT {
         if (!entry.getKey().getRow().equals(new Text(rowData))) {
           throw new Exception("verification failed, unexpected row i =" + i);
         }
-        if (!entry.getValue().equals(Integer.toString(i).getBytes())) {
+        if (!entry.getValue().equals(Integer.toString(i).getBytes(Constants.UTF8))) {
           throw new Exception("verification failed, unexpected value i =" + i + " value = " + entry.getValue());
         }
         count++;

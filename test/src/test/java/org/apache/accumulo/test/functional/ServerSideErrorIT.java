@@ -50,7 +50,7 @@ public class ServerSideErrorIT extends SimpleMacIT {
     BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
 
     Mutation m = new Mutation(new Text("r1"));
-    m.put(new Text("acf"), new Text("foo"), new Value("1".getBytes()));
+    m.put(new Text("acf"), new Text("foo"), new Value(new byte[] {'1'}));
 
     bw.addMutation(m);
 

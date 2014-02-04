@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -54,7 +55,6 @@ public class CreateTableCommand extends Command {
   private Option createTableOptEVC;
   private Option base64Opt;
   private Option createTableOptFormatter;
-  public static String testTable;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
@@ -78,12 +78,12 @@ public class CreateTableCommand extends Command {
       final String f = cl.getOptionValue(createTableOptSplit.getOpt());
 
       String line;
-      Scanner file = new Scanner(new File(f));
+      Scanner file = new Scanner(new File(f), Constants.UTF8.name());
       try {
         while (file.hasNextLine()) {
           line = file.nextLine();
           if (!line.isEmpty())
-            partitions.add(decode ? new Text(Base64.decodeBase64(line.getBytes())) : new Text(line));
+            partitions.add(decode ? new Text(Base64.decodeBase64(line.getBytes(Constants.UTF8 ))) : new Text(line));
         }
       } finally {
         file.close();

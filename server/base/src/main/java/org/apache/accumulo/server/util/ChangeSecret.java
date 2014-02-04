@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -137,7 +138,7 @@ public class ChangeSecret {
     });
     String path = "/accumulo/instances/" + inst.getInstanceName();
     orig.recursiveDelete(path, NodeMissingPolicy.SKIP);
-    new_.putPersistentData(path, newInstanceId.getBytes(), NodeExistsPolicy.OVERWRITE);
+    new_.putPersistentData(path, newInstanceId.getBytes(Constants.UTF8), NodeExistsPolicy.OVERWRITE);
     return newInstanceId;
   }
   

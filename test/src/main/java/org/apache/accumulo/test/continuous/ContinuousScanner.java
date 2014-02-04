@@ -20,6 +20,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Random;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
@@ -93,7 +94,7 @@ public class ContinuousScanner {
         // System.out.println("P2 "+delta +" "+numToScan+" "+distance+"  "+((double)numToScan/count ));
       }
       
-      System.out.printf("SCN %d %s %d %d%n", t1, new String(scanStart), (t2 - t1), count);
+      System.out.printf("SCN %d %s %d %d%n", t1, new String(scanStart, Constants.UTF8), (t2 - t1), count);
       
       if (opts.sleepTime > 0)
         UtilWaitThread.sleep(opts.sleepTime);

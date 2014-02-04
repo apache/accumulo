@@ -21,6 +21,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
@@ -86,7 +87,7 @@ public class ContinuousMoru extends Configured implements Tool {
       
       random = new Random();
       ingestInstanceId = context.getConfiguration().get(CI_ID);
-      iiId = ingestInstanceId.getBytes();
+      iiId = ingestInstanceId.getBytes(Constants.UTF8);
       
       count = 0;
     }
@@ -102,7 +103,7 @@ public class ContinuousMoru extends Configured implements Tool {
         
         int offset = ContinuousWalk.getPrevRowOffset(val);
         if (offset > 0) {
-          long rowLong = Long.parseLong(new String(val, offset, 16), 16);
+          long rowLong = Long.parseLong(new String(val, offset, 16, Constants.UTF8), 16);
           Mutation m = ContinuousIngest.genMutation(rowLong, random.nextInt(max_cf), random.nextInt(max_cq), EMPTY_VIS, iiId, count++, key.getRowData()
               .toArray(), random, true);
           context.write(null, m);

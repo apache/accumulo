@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.commons.lang.NotImplementedException;
@@ -104,7 +105,7 @@ public class ZooTabletStateStore extends TabletStateStore {
   }
   
   protected TServerInstance parse(byte[] current) {
-    String str = new String(current);
+    String str = new String(current, Constants.UTF8);
     String[] parts = str.split("[|]", 2);
     HostAndPort address = HostAndPort.fromString(parts[0]);
     if (parts.length > 1 && parts[1] != null && parts[1].length() > 0) {
@@ -128,7 +129,7 @@ public class ZooTabletStateStore extends TabletStateStore {
     if (current.current != null) {
       throw new DistributedStoreException("Trying to set the root tablet location: it is already set to " + current.current);
     }
-    store.put(RootTable.ZROOT_TABLET_FUTURE_LOCATION, value.getBytes());
+    store.put(RootTable.ZROOT_TABLET_FUTURE_LOCATION, value.getBytes(Constants.UTF8));
   }
   
   @Override
@@ -147,8 +148,8 @@ public class ZooTabletStateStore extends TabletStateStore {
     if (!current.future.equals(assignment.server)) {
       throw new DistributedStoreException("Root tablet is already assigned to " + current.future);
     }
-    store.put(RootTable.ZROOT_TABLET_LOCATION, value.getBytes());
-    store.put(RootTable.ZROOT_TABLET_LAST_LOCATION, value.getBytes());
+    store.put(RootTable.ZROOT_TABLET_LOCATION, value.getBytes(Constants.UTF8));
+    store.put(RootTable.ZROOT_TABLET_LAST_LOCATION, value.getBytes(Constants.UTF8));
     // Make the following unnecessary by making the entire update atomic
     store.remove(RootTable.ZROOT_TABLET_FUTURE_LOCATION);
     log.debug("Put down root tablet location");

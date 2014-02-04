@@ -31,8 +31,7 @@ import org.apache.commons.cli.Options;
 
 public class UserPermissionsCommand extends Command {
   private Option userOpt;
-  private static int runOnce = 0;
-
+  
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
     final String user = cl.getOptionValue(userOpt.getOpt(), shellState.getConnector().whoami());
@@ -47,36 +46,39 @@ public class UserPermissionsCommand extends Command {
     }
     shellState.getReader().println();
 
+    boolean runOnce = true;
     for (String n : shellState.getConnector().namespaceOperations().list()) {
       delim = "";
       for (NamespacePermission p : NamespacePermission.values()) {
         if (p != null && shellState.getConnector().securityOperations().hasNamespacePermission(user, n, p)) {
-          if (runOnce == 0) {
+          if (runOnce) {
             shellState.getReader().print("\nNamespace permissions (" + n + "): ");
-            runOnce++;
+            runOnce = false;
           }
           shellState.getReader().print(delim + "Namespace." + p.name());
           delim = ", ";
         }
       }
-      runOnce = 0;
+      runOnce = true;
     }
     shellState.getReader().println();
 
+    
+    runOnce = true;
     for (String t : shellState.getConnector().tableOperations().list()) {
       delim = "";
       for (TablePermission p : TablePermission.values()) {
         if (shellState.getConnector().securityOperations().hasTablePermission(user, t, p) && p != null) {
-          if (runOnce == 0) {
+          if (runOnce) {
             shellState.getReader().print("\nTable permissions (" + t + "): ");
-            runOnce++;
+            runOnce = false;
           }
           shellState.getReader().print(delim + "Table." + p.name());
           delim = ", ";
         }
 
       }
-      runOnce = 0;
+      runOnce = true;
     }
     shellState.getReader().println();
 

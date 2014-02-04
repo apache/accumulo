@@ -44,7 +44,6 @@ public class BulkPlusOne extends BulkTest {
   public static final int COLS = 10;
   public static final int HEX_SIZE = (int) Math.ceil(Math.log(LOTS) / Math.log(16));
   public static final String FMT = "r%0" + HEX_SIZE + "x";
-  static final Value one = new Value("1".getBytes());
   public static final List<Column> COLNAMES = new ArrayList<Column>();
   public static final Text CHECK_COLUMN_FAMILY = new Text("cf");
   static {
@@ -110,7 +109,7 @@ public class BulkPlusOne extends BulkTest {
   @Override
   protected void runLater(State state) throws Exception {
     log.info("Incrementing");
-    bulkLoadLots(log, state, one);
+    bulkLoadLots(log, state, ONE);
   }
   
 }

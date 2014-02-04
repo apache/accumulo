@@ -16,9 +16,12 @@
  */
 package org.apache.accumulo.core.util.shell;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.util.Arrays;
@@ -499,7 +502,7 @@ public class Shell extends ShellOptions {
     ShellCompletor userCompletor = null;
 
     if (execFile != null) {
-      java.util.Scanner scanner = new java.util.Scanner(execFile);
+      java.util.Scanner scanner = new java.util.Scanner(execFile, Constants.UTF8.name());
       try {
         while (scanner.hasNextLine() && !hasExited()) {
           execCommand(scanner.nextLine(), true, isVerbose());
@@ -905,7 +908,7 @@ public class Shell extends ShellOptions {
     PrintWriter writer;
 
     public PrintFile(String filename) throws FileNotFoundException {
-      writer = new PrintWriter(filename);
+      writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename), Constants.UTF8)));
     }
 
     @Override
@@ -1039,7 +1042,7 @@ public class Shell extends ShellOptions {
   }
 
   private final void printHelp(String usage, String description, Options opts, int width) {
-    PrintWriter pw = new PrintWriter(System.err);
+    PrintWriter pw = new PrintWriter(new OutputStreamWriter(System.err, Constants.UTF8));
     new HelpFormatter().printHelp(pw, width, usage, description, opts, 2, 5, null, true);
     pw.flush();
     if (logErrorsToConsole && writer != null) {

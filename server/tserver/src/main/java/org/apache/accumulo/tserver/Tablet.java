@@ -742,8 +742,8 @@ public class Tablet {
         computeNumEntries();
       }
 
-      for (FileRef tpath : paths.keySet()) {
-        log.log(TLevel.TABLET_HIST, extent + " import " + tpath + " " + paths.get(tpath));
+      for (Entry<FileRef,DataFileValue> entry : paths.entrySet()) {
+        log.log(TLevel.TABLET_HIST, extent + " import " + entry.getKey() + " " + entry.getValue());
       }
     }
 
@@ -2364,7 +2364,7 @@ public class Tablet {
     try {
       String zTablePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + extent.getTableId()
           + Constants.ZTABLE_FLUSH_ID;
-      return Long.parseLong(new String(ZooReaderWriter.getRetryingInstance().getData(zTablePath, null)));
+      return Long.parseLong(new String(ZooReaderWriter.getRetryingInstance().getData(zTablePath, null), Constants.UTF8));
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     } catch (NumberFormatException nfe) {
@@ -2383,7 +2383,7 @@ public class Tablet {
         + Constants.ZTABLE_COMPACT_CANCEL_ID;
 
     try {
-      return Long.parseLong(new String(ZooReaderWriter.getRetryingInstance().getData(zTablePath, null)));
+      return Long.parseLong(new String(ZooReaderWriter.getRetryingInstance().getData(zTablePath, null), Constants.UTF8));
     } catch (KeeperException e) {
       throw new RuntimeException(e);
     } catch (InterruptedException e) {
@@ -2396,14 +2396,14 @@ public class Tablet {
       String zTablePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + extent.getTableId()
           + Constants.ZTABLE_COMPACT_ID;
 
-      String[] tokens = new String(ZooReaderWriter.getRetryingInstance().getData(zTablePath, null)).split(",");
+      String[] tokens = new String(ZooReaderWriter.getRetryingInstance().getData(zTablePath, null), Constants.UTF8).split(",");
       long compactID = Long.parseLong(tokens[0]);
 
       CompactionIterators iters = new CompactionIterators();
 
       if (tokens.length > 1) {
         Hex hex = new Hex();
-        ByteArrayInputStream bais = new ByteArrayInputStream(hex.decode(tokens[1].split("=")[1].getBytes()));
+        ByteArrayInputStream bais = new ByteArrayInputStream(hex.decode(tokens[1].split("=")[1].getBytes(Constants.UTF8)));
         DataInputStream dis = new DataInputStream(bais);
 
         try {
@@ -3637,9 +3637,8 @@ public class Tablet {
   public void importMapFiles(long tid, Map<FileRef,MapFileInfo> fileMap, boolean setTime) throws IOException {
     Map<FileRef,DataFileValue> entries = new HashMap<FileRef,DataFileValue>(fileMap.size());
 
-    for (FileRef path : fileMap.keySet()) {
-      MapFileInfo mfi = fileMap.get(path);
-      entries.put(path, new DataFileValue(mfi.estimatedSize, 0l));
+    for (Entry<FileRef,MapFileInfo> entry : fileMap.entrySet()) {
+      entries.put(entry.getKey(), new DataFileValue(entry.getValue().estimatedSize, 0l));
     }
 
     // Clients timeout and will think that this operation failed.
