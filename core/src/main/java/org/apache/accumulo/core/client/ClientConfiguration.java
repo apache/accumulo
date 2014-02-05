@@ -128,7 +128,7 @@ public class ClientConfiguration extends CompositeConfiguration {
    * the one in the configuration.
    * 
    * @see PropertiesConfiguration
-   * @see File.pathSeparator
+   * @see File#pathSeparator
    */
   public static ClientConfiguration loadDefault() {
     return loadFromSearchPath(getDefaultSearchPath());

@@ -401,7 +401,8 @@ public class AccumuloInputFormatTest {
 
   @Test
   public void testEmptyColumnFamily() throws IOException {
-    Job job = Job.getInstance();
+    @SuppressWarnings("deprecation")
+    Job job = new Job();
     Set<Pair<Text,Text>> cols = new HashSet<Pair<Text,Text>>();
     cols.add(new Pair<Text,Text>(new Text(""), null));
     cols.add(new Pair<Text,Text>(new Text("foo"), new Text("bar")));
