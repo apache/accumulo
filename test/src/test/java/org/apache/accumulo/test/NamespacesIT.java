@@ -108,6 +108,12 @@ public class NamespacesIT extends SimpleMacIT {
   }
 
   @Test
+  public void checkReservedNamespaces() throws Exception {
+    assertEquals(c.namespaceOperations().defaultNamespace(), Namespaces.DEFAULT_NAMESPACE);
+    assertEquals(c.namespaceOperations().systemNamespace(), Namespaces.ACCUMULO_NAMESPACE);
+  }
+
+  @Test
   public void checkBuiltInNamespaces() throws Exception {
     assertTrue(c.namespaceOperations().exists(Namespaces.DEFAULT_NAMESPACE));
     assertTrue(c.namespaceOperations().exists(Namespaces.ACCUMULO_NAMESPACE));
@@ -553,7 +559,7 @@ public class NamespacesIT extends SimpleMacIT {
     c.securityOperations().createLocalUser(u1, pass);
 
     Connector user1Con = c.getInstance().getConnector(u1, pass);
-    
+
     try {
       user1Con.tableOperations().create(t2);
       fail();

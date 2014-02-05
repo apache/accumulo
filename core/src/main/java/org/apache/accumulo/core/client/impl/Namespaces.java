@@ -24,7 +24,6 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.ClientConstants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.util.ArgumentChecker.Validator;
@@ -74,7 +73,7 @@ public class Namespaces {
   private static SecurityPermission TABLES_PERMISSION = new SecurityPermission("tablesPermission");
 
   public static final String DEFAULT_NAMESPACE_ID = "+default";
-  public static final String DEFAULT_NAMESPACE = ClientConstants.DEFAULT_NAMESPACE;
+  public static final String DEFAULT_NAMESPACE = "";
   public static final String ACCUMULO_NAMESPACE_ID = "+accumulo";
   public static final String ACCUMULO_NAMESPACE = "accumulo";
 
