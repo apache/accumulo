@@ -415,9 +415,9 @@ public class ShellServerIT extends SimpleMacIT {
     tableName = tableName + "1";
 
     exec("createtable " + tableName, true);
- 
+
     input.set("customcfcounter\nname1 value1\nname2 value2\n\n");
- 
+
     // Name on the CLI should override OptionDescriber (or user input name, in this case)
     exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 30", true);
     expectedKey = "table.iterator.scan.customcfcounter";
@@ -432,7 +432,7 @@ public class ShellServerIT extends SimpleMacIT {
 
     exec("deletetable " + tableName, true);
     tableName = tableName + "1";
- 
+
     exec("createtable " + tableName, true);
 
     input.set("\nname1 value1.1,value1.2,value1.3\nname2 value2\n\n");
@@ -449,7 +449,7 @@ public class ShellServerIT extends SimpleMacIT {
     expectedValue = "value2";
     checkTableForProperty(tops, tableName, expectedKey, expectedValue);
   }
-  
+
   protected void checkTableForProperty(TableOperations tops, String tableName, String expectedKey, String expectedValue) throws Exception {
     for (int i = 0; i < 5; i++) {
       for (Entry<String,String> entry : tops.getProperties(tableName)) {
@@ -460,7 +460,7 @@ public class ShellServerIT extends SimpleMacIT {
       }
       Thread.sleep(500);
     }
-    
+
     fail("Failed to find expected property on " + tableName + ": " + expectedKey + "=" + expectedValue);
   }
 
@@ -662,6 +662,7 @@ public class ShellServerIT extends SimpleMacIT {
       exec("help " + c, true);
     }
   }
+
   // @Test(timeout = 30000)
   public void history() throws Exception {
     exec("history -c", true);
@@ -927,7 +928,7 @@ public class ShellServerIT extends SimpleMacIT {
 
   @Test(timeout = 30000)
   public void namespaces() throws Exception {
-    exec("namespaces", true, "(default)", true); // default namespace for display purposes only
+    exec("namespaces", true, "\"\"", true); // default namespace, displayed as quoted empty string
     exec("namespaces", true, Namespaces.ACCUMULO_NAMESPACE, true);
     exec("createnamespace thing1", true);
     String namespaces = exec("namespaces");

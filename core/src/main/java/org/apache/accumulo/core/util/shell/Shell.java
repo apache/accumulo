@@ -751,8 +751,7 @@ public class Shell extends ShellOptions {
       modifiedUserlist.add(a.replaceAll("([\\s'\"])", "\\\\$1"));
     for (String a : namespaces) {
       String b = a.replaceAll("([\\s'\"])", "\\\\$1");
-      if (!b.isEmpty())
-        modifiedNamespaces.add(b);
+      modifiedNamespaces.add(b.isEmpty() ? "\"\"" : b);
     }
 
     options.put(Command.CompletionSet.USERNAMES, modifiedUserlist);
@@ -881,6 +880,7 @@ public class Shell extends ShellOptions {
 
   public interface PrintLine {
     void print(String s);
+
     void close();
   }
 
