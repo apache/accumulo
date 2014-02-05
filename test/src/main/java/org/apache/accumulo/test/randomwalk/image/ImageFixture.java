@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.test.randomwalk.Fixture;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.hadoop.io.Text;
 
@@ -41,10 +42,10 @@ public class ImageFixture extends Fixture {
   String indexTableName;
   
   @Override
-  public void setUp(State state) throws Exception {
+  public void setUp(State state, Environment env) throws Exception {
     
-    Connector conn = state.getConnector();
-    Instance instance = state.getInstance();
+    Connector conn = env.getConnector();
+    Instance instance = env.getInstance();
     
     SortedSet<Text> splits = new TreeSet<Text>();
     for (int i = 1; i < 256; i++) {
@@ -52,7 +53,7 @@ public class ImageFixture extends Fixture {
     }
     
     String hostname = InetAddress.getLocalHost().getHostName().replaceAll("[-.]", "_");
-    String pid = state.getPid();
+    String pid = env.getPid();
     
     imageTableName = String.format("img_%s_%s_%d", hostname, pid, System.currentTimeMillis());
     state.set("imageTableName", imageTableName);
@@ -106,10 +107,10 @@ public class ImageFixture extends Fixture {
   }
   
   @Override
-  public void tearDown(State state) throws Exception {
+  public void tearDown(State state, Environment env) throws Exception {
     // We have resources we need to clean up
-    if (state.isMultiTableBatchWriterInitialized()) {
-      MultiTableBatchWriter mtbw = state.getMultiTableBatchWriter();
+    if (env.isMultiTableBatchWriterInitialized()) {
+      MultiTableBatchWriter mtbw = env.getMultiTableBatchWriter();
       try {
         mtbw.close();
       } catch (MutationsRejectedException e) {
@@ -117,13 +118,13 @@ public class ImageFixture extends Fixture {
       }
       
       // Reset the MTBW on the state to null
-      state.resetMultiTableBatchWriter();
+      env.resetMultiTableBatchWriter();
     }
     
     // Now we can safely delete the tables
     log.debug("Dropping tables: " + imageTableName + " " + indexTableName);
     
-    Connector conn = state.getConnector();
+    Connector conn = env.getConnector();
     
     conn.tableOperations().delete(imageTableName);
     conn.tableOperations().delete(indexTableName);

@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.randomwalk;
 
+import java.io.File;
 import java.util.Properties;
 
 import org.apache.log4j.Logger;
@@ -33,9 +34,11 @@ public abstract class Node {
    * 
    * @param state
    *          Random walk state passed between nodes
+   * @param env
+   *          test environment
    * @throws Exception
    */
-  public abstract void visit(State state, Properties props) throws Exception;
+  public abstract void visit(State state, Environment env, Properties props) throws Exception;
   
   @Override
   public boolean equals(Object o) {
@@ -60,5 +63,37 @@ public abstract class Node {
   
   synchronized public long lastProgress() {
     return progress;
+  }
+
+  protected String getMapReduceJars() {
+
+    String acuHome = System.getenv("ACCUMULO_HOME");
+    String zkHome = System.getenv("ZOOKEEPER_HOME");
+
+    if (acuHome == null || zkHome == null) {
+      throw new RuntimeException("ACCUMULO or ZOOKEEPER home not set!");
+    }
+
+    String retval = null;
+
+    File zkLib = new File(zkHome);
+    String[] files = zkLib.list();
+    for (int i = 0; i < files.length; i++) {
+      String f = files[i];
+      if (f.matches("^zookeeper-.+jar$")) {
+        if (retval == null) {
+          retval = String.format("%s/%s", zkLib.getAbsolutePath(), f);
+        } else {
+          retval += String.format(",%s/%s", zkLib.getAbsolutePath(), f);
+        }
+      }
+    }
+
+    File libdir = new File(acuHome + "/lib");
+    for (String jar : "accumulo-core accumulo-server-base accumulo-fate accumulo-trace libthrift".split(" ")) {
+      retval += String.format(",%s/%s.jar", libdir.getAbsolutePath(), jar);
+    }
+
+    return retval;
   }
 }

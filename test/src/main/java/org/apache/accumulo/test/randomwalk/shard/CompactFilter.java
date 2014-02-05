@@ -30,6 +30,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.io.Text;
@@ -40,7 +41,7 @@ import org.apache.hadoop.io.Text;
 public class CompactFilter extends Test {
   
   @Override
-  public void visit(State state, Properties props) throws Exception {
+  public void visit(State state, Environment env, Properties props) throws Exception {
     String indexTableName = (String) state.get("indexTableName");
     String docTableName = (String) state.get("docTableName");
     Random rand = (Random) state.get("rand");
@@ -56,7 +57,7 @@ public class CompactFilter extends Test {
     documentFilters.add(is);
 
     long t1 = System.currentTimeMillis();
-    state.getConnector().tableOperations().compact(docTableName, null, null, documentFilters, true, true);
+    env.getConnector().tableOperations().compact(docTableName, null, null, documentFilters, true, true);
     long t2 = System.currentTimeMillis();
     long t3 = t2 - t1;
     
@@ -68,12 +69,12 @@ public class CompactFilter extends Test {
     indexFilters.add(is);
     
     t1 = System.currentTimeMillis();
-    state.getConnector().tableOperations().compact(indexTableName, null, null, indexFilters, true, true);
+    env.getConnector().tableOperations().compact(indexTableName, null, null, indexFilters, true, true);
     t2 = System.currentTimeMillis();
     
     log.debug("Filtered documents using compaction iterators " + regex + " " + (t3) + " " + (t2 - t1));
     
-    BatchScanner bscanner = state.getConnector().createBatchScanner(docTableName, new Authorizations(), 10);
+    BatchScanner bscanner = env.getConnector().createBatchScanner(docTableName, new Authorizations(), 10);
     
     List<Range> ranges = new ArrayList<Range>();
     for (int i = 0; i < 16; i++) {

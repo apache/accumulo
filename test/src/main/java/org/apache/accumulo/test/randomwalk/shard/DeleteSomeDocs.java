@@ -27,6 +27,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -34,7 +35,7 @@ import org.apache.accumulo.test.randomwalk.Test;
 public class DeleteSomeDocs extends Test {
   
   @Override
-  public void visit(State state, Properties props) throws Exception {
+  public void visit(State state, Environment env, Properties props) throws Exception {
     // delete documents that where the document id matches a given pattern from doc and index table
     // using the batch deleter
     
@@ -50,7 +51,7 @@ public class DeleteSomeDocs extends Test {
     
     String pattern = patterns.get(rand.nextInt(patterns.size()));
     BatchWriterConfig bwc = new BatchWriterConfig();
-    BatchDeleter ibd = state.getConnector().createBatchDeleter(indexTableName, Authorizations.EMPTY, 8, bwc);
+    BatchDeleter ibd = env.getConnector().createBatchDeleter(indexTableName, Authorizations.EMPTY, 8, bwc);
     ibd.setRanges(Collections.singletonList(new Range()));
     
     IteratorSetting iterSettings = new IteratorSetting(100, RegExFilter.class);
@@ -62,7 +63,7 @@ public class DeleteSomeDocs extends Test {
     
     ibd.close();
     
-    BatchDeleter dbd = state.getConnector().createBatchDeleter(dataTableName, Authorizations.EMPTY, 8, bwc);
+    BatchDeleter dbd = env.getConnector().createBatchDeleter(dataTableName, Authorizations.EMPTY, 8, bwc);
     dbd.setRanges(Collections.singletonList(new Range()));
     
     iterSettings = new IteratorSetting(100, RegExFilter.class);

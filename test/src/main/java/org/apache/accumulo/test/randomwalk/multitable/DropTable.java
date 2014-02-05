@@ -21,13 +21,14 @@ import java.util.Properties;
 import java.util.Random;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class DropTable extends Test {
   
   @Override
-  public void visit(State state, Properties props) throws Exception {
+  public void visit(State state, Environment env, Properties props) throws Exception {
     
     @SuppressWarnings("unchecked")
     ArrayList<String> tables = (ArrayList<String>) state.get("tableList");
@@ -41,7 +42,7 @@ public class DropTable extends Test {
     String tableName = tables.remove(rand.nextInt(tables.size()));
     
     try {
-      state.getConnector().tableOperations().delete(tableName);
+      env.getConnector().tableOperations().delete(tableName);
       log.debug("Dropped " + tableName);
     } catch (TableNotFoundException e) {
       log.error("Tried to drop table " + tableName + " but could not be found!");

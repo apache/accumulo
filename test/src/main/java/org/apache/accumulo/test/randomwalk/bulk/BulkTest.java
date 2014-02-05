@@ -18,18 +18,19 @@ package org.apache.accumulo.test.randomwalk.bulk;
 
 import java.util.Properties;
 
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public abstract class BulkTest extends Test {
   
   @Override
-  public void visit(final State state, Properties props) throws Exception {
+  public void visit(final State state, final Environment env, Properties props) throws Exception {
     Setup.run(state, new Runnable() {
       @Override
       public void run() {
         try {
-          runLater(state);
+          runLater(state, env);
         } catch (Throwable ex) {
           log.error(ex, ex);
         }
@@ -38,6 +39,6 @@ public abstract class BulkTest extends Test {
     });
   }
   
-  abstract protected void runLater(State state) throws Exception;
+  abstract protected void runLater(State state, Environment env) throws Exception;
   
 }

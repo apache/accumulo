@@ -18,11 +18,12 @@ package org.apache.accumulo.test.randomwalk.unit;
 
 import java.util.Properties;
 
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class DeleteTable extends Test {
   
   @Override
-  public void visit(State state, Properties props) throws Exception {}
+  public void visit(State state, Environment env, Properties props) throws Exception {}
 }

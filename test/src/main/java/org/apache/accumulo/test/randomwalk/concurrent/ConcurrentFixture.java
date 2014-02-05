@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Random;
 
 import org.apache.accumulo.test.randomwalk.Fixture;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.hadoop.io.Text;
 
@@ -33,10 +34,10 @@ import org.apache.hadoop.io.Text;
 public class ConcurrentFixture extends Fixture {
   
   @Override
-  public void setUp(State state) throws Exception {}
+  public void setUp(State state, Environment env) throws Exception {}
   
   @Override
-  public void tearDown(State state) throws Exception {
+  public void tearDown(State state, Environment env) throws Exception {
     state.remove(CheckBalance.LAST_UNBALANCED_TIME);
     state.remove(CheckBalance.UNBALANCED_COUNT);
   }

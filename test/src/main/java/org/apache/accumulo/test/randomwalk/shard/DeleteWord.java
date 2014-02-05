@@ -29,6 +29,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.io.Text;
@@ -41,7 +42,7 @@ import org.apache.hadoop.io.Text;
 public class DeleteWord extends Test {
   
   @Override
-  public void visit(State state, Properties props) throws Exception {
+  public void visit(State state, Environment env, Properties props) throws Exception {
     String indexTableName = (String) state.get("indexTableName");
     String docTableName = (String) state.get("docTableName");
     int numPartitions = (Integer) state.get("numPartitions");
@@ -50,7 +51,7 @@ public class DeleteWord extends Test {
     String wordToDelete = Insert.generateRandomWord(rand);
     
     // use index to find all documents containing word
-    Scanner scanner = state.getConnector().createScanner(indexTableName, Authorizations.EMPTY);
+    Scanner scanner = env.getConnector().createScanner(indexTableName, Authorizations.EMPTY);
     scanner.fetchColumnFamily(new Text(wordToDelete));
     
     ArrayList<Range> documentsToDelete = new ArrayList<Range>();
@@ -60,11 +61,11 @@ public class DeleteWord extends Test {
     
     if (documentsToDelete.size() > 0) {
       // use a batch scanner to fetch all documents
-      BatchScanner bscanner = state.getConnector().createBatchScanner(docTableName, Authorizations.EMPTY, 8);
+      BatchScanner bscanner = env.getConnector().createBatchScanner(docTableName, Authorizations.EMPTY, 8);
       bscanner.setRanges(documentsToDelete);
       
-      BatchWriter ibw = state.getMultiTableBatchWriter().getBatchWriter(indexTableName);
-      BatchWriter dbw = state.getMultiTableBatchWriter().getBatchWriter(docTableName);
+      BatchWriter ibw = env.getMultiTableBatchWriter().getBatchWriter(indexTableName);
+      BatchWriter dbw = env.getMultiTableBatchWriter().getBatchWriter(docTableName);
       
       int count = 0;
       
@@ -83,7 +84,7 @@ public class DeleteWord extends Test {
       
       bscanner.close();
       
-      state.getMultiTableBatchWriter().flush();
+      env.getMultiTableBatchWriter().flush();
       
       if (count != documentsToDelete.size()) {
         throw new Exception("Batch scanner did not return expected number of docs " + count + " " + documentsToDelete.size());

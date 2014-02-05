@@ -28,6 +28,7 @@ import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.SimpleThreadPool;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.fs.FileSystem;
@@ -38,14 +39,14 @@ public class Setup extends Test {
   static String tableName = null;
   
   @Override
-  public void visit(State state, Properties props) throws Exception {
+  public void visit(State state, Environment env, Properties props) throws Exception {
     Random rand = new Random();
     String hostname = InetAddress.getLocalHost().getHostName().replaceAll("[-.]", "_");
-    String pid = state.getPid();
+    String pid = env.getPid();
     tableName = String.format("bulk_%s_%s_%d", hostname, pid, System.currentTimeMillis());
     log.info("Starting bulk test on " + tableName);
     
-    TableOperations tableOps = state.getConnector().tableOperations();
+    TableOperations tableOps = env.getConnector().tableOperations();
     try {
       if (!tableOps.exists(getTableName())) {
         tableOps.create(getTableName());

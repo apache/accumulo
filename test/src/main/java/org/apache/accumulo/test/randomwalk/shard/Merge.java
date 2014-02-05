@@ -21,6 +21,7 @@ import java.util.Properties;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.io.Text;
@@ -28,16 +29,16 @@ import org.apache.hadoop.io.Text;
 public class Merge extends Test {
   
   @Override
-  public void visit(State state, Properties props) throws Exception {
+  public void visit(State state, Environment env, Properties props) throws Exception {
     String indexTableName = (String) state.get("indexTableName");
     
-    Collection<Text> splits = state.getConnector().tableOperations().listSplits(indexTableName);
+    Collection<Text> splits = env.getConnector().tableOperations().listSplits(indexTableName);
     SortedSet<Text> splitSet = new TreeSet<Text>(splits);
     log.debug("merging " + indexTableName);
-    state.getConnector().tableOperations().merge(indexTableName, null, null);
+    env.getConnector().tableOperations().merge(indexTableName, null, null);
     org.apache.accumulo.core.util.Merge merge = new org.apache.accumulo.core.util.Merge();
-    merge.mergomatic(state.getConnector(), indexTableName, null, null, 256 * 1024 * 1024, true);
-    splits = state.getConnector().tableOperations().listSplits(indexTableName);
+    merge.mergomatic(env.getConnector(), indexTableName, null, null, 256 * 1024 * 1024, true);
+    splits = env.getConnector().tableOperations().listSplits(indexTableName);
     if (splits.size() > splitSet.size()) {
       // throw an excpetion so that test will die an no further changes to table will occur...
       // this way table is left as is for debugging.

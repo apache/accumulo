@@ -25,37 +25,38 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class ChangePass extends Test {
   
   @Override
-  public void visit(State state, Properties props) throws Exception {
+  public void visit(State state, Environment env, Properties props) throws Exception {
     String target = props.getProperty("target");
     String source = props.getProperty("source");
     
     String principal;
     AuthenticationToken token;
     if (source.equals("system")) {
-      principal = WalkingSecurity.get(state).getSysUserName();
-      token = WalkingSecurity.get(state).getSysToken();
+      principal = WalkingSecurity.get(state,env).getSysUserName();
+      token = WalkingSecurity.get(state,env).getSysToken();
     } else {
-      principal = WalkingSecurity.get(state).getTabUserName();
-      token = WalkingSecurity.get(state).getTabToken();
+      principal = WalkingSecurity.get(state,env).getTabUserName();
+      token = WalkingSecurity.get(state,env).getTabToken();
     }
-    Connector conn = state.getInstance().getConnector(principal, token);
+    Connector conn = env.getInstance().getConnector(principal, token);
     
     boolean hasPerm;
     boolean targetExists;
     if (target.equals("table")) {
-      target = WalkingSecurity.get(state).getTabUserName();
+      target = WalkingSecurity.get(state,env).getTabUserName();
     } else
-      target = WalkingSecurity.get(state).getSysUserName();
+      target = WalkingSecurity.get(state,env).getSysUserName();
     
-    targetExists = WalkingSecurity.get(state).userExists(target);
+    targetExists = WalkingSecurity.get(state,env).userExists(target);
     
-    hasPerm = WalkingSecurity.get(state).canChangePassword(new Credentials(principal, token).toThrift(state.getInstance()), target);
+    hasPerm = WalkingSecurity.get(state,env).canChangePassword(new Credentials(principal, token).toThrift(env.getInstance()), target);
     
     Random r = new Random();
     
@@ -77,14 +78,14 @@ public class ChangePass extends Test {
             throw new AccumuloException("User " + target + " doesn't exist and they SHOULD.", ae);
           return;
         case BAD_CREDENTIALS:
-          if (!WalkingSecurity.get(state).userPassTransient(conn.whoami()))
+          if (!WalkingSecurity.get(state,env).userPassTransient(conn.whoami()))
             throw new AccumuloException("Bad credentials for user " + conn.whoami());
           return;
         default:
           throw new AccumuloException("Got unexpected exception", ae);
       }
     }
-    WalkingSecurity.get(state).changePassword(target, newPass);
+    WalkingSecurity.get(state,env).changePassword(target, newPass);
     // Waiting 1 second for password to propogate through Zk
     Thread.sleep(1000);
     if (!hasPerm)

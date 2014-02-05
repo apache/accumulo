@@ -26,34 +26,35 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class DropTable extends Test {
   
   @Override
-  public void visit(State state, Properties props) throws Exception {
-    dropTable(state, props);
+  public void visit(State state, Environment env, Properties props) throws Exception {
+    dropTable(state, env, props);
   }
   
-  public static void dropTable(State state, Properties props) throws Exception {
+  public static void dropTable(State state, Environment env, Properties props) throws Exception {
     String sourceUser = props.getProperty("source", "system");
     String principal;
     AuthenticationToken token;
     if (sourceUser.equals("table")) {
-      principal = WalkingSecurity.get(state).getTabUserName();
-      token = WalkingSecurity.get(state).getTabToken();
+      principal = WalkingSecurity.get(state,env).getTabUserName();
+      token = WalkingSecurity.get(state,env).getTabToken();
     } else {
-      principal = WalkingSecurity.get(state).getSysUserName();
-      token = WalkingSecurity.get(state).getSysToken();
+      principal = WalkingSecurity.get(state,env).getSysUserName();
+      token = WalkingSecurity.get(state,env).getSysToken();
     }
-    Connector conn = state.getInstance().getConnector(principal, token);
+    Connector conn = env.getInstance().getConnector(principal, token);
     
-    String tableName = WalkingSecurity.get(state).getTableName();
-    String namespaceName = WalkingSecurity.get(state).getNamespaceName();
+    String tableName = WalkingSecurity.get(state,env).getTableName();
+    String namespaceName = WalkingSecurity.get(state,env).getNamespaceName();
     
-    boolean exists = WalkingSecurity.get(state).getTableExists();
-    boolean hasPermission = WalkingSecurity.get(state).canDeleteTable(new Credentials(principal, token).toThrift(state.getInstance()), tableName, namespaceName);
+    boolean exists = WalkingSecurity.get(state,env).getTableExists();
+    boolean hasPermission = WalkingSecurity.get(state,env).canDeleteTable(new Credentials(principal, token).toThrift(env.getInstance()), tableName, namespaceName);
     
     try {
       conn.tableOperations().delete(tableName);
@@ -63,12 +64,12 @@ public class DropTable extends Test {
           throw new AccumuloException("Got a security exception when I should have had permission.", ae);
         else {
           // Drop anyway for sake of state
-          state.getConnector().tableOperations().delete(tableName);
-          WalkingSecurity.get(state).cleanTablePermissions(tableName);
+          env.getConnector().tableOperations().delete(tableName);
+          WalkingSecurity.get(state,env).cleanTablePermissions(tableName);
           return;
         }
       } else if (ae.getSecurityErrorCode().equals(SecurityErrorCode.BAD_CREDENTIALS)) {
-        if (WalkingSecurity.get(state).userPassTransient(conn.whoami()))
+        if (WalkingSecurity.get(state,env).userPassTransient(conn.whoami()))
           return;
       }
       throw new AccumuloException("Got unexpected ae error code", ae);
@@ -78,7 +79,7 @@ public class DropTable extends Test {
       else
         return;
     }
-    WalkingSecurity.get(state).cleanTablePermissions(tableName);
+    WalkingSecurity.get(state,env).cleanTablePermissions(tableName);
     if (!hasPermission)
       throw new AccumuloException("Didn't get Security Exception when we should have");
   }

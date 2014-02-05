@@ -31,6 +31,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.commons.math.distribution.ZipfDistributionImpl;
@@ -59,10 +60,10 @@ public class Transfer extends Test {
   }
 
   @Override
-  public void visit(State state, Properties props) throws Exception {
+  public void visit(State state, Environment env, Properties props) throws Exception {
     String table = state.getString("tableName");
     Random rand = (Random) state.get("rand");
-    Connector conn = state.getConnector();
+    Connector conn = env.getConnector();
 
     int numAccts = (Integer) state.get("numAccts");
     // note: non integer exponents are slow

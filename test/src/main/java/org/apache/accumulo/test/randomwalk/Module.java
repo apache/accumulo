@@ -56,7 +56,7 @@ public class Module extends Node {
     }
     
     @Override
-    public void visit(State state, Properties props) {
+    public void visit(State state, Environment env, Properties props) {
       String print;
       if ((print = props.getProperty("print")) != null) {
         Level level = Level.toLevel(print);
@@ -81,7 +81,7 @@ public class Module extends Node {
     }
     
     @Override
-    public void visit(State state, Properties props) throws Exception {
+    public void visit(State state, Environment env, Properties props) throws Exception {
       throw new Exception("You don't visit aliases!");
     }
     
@@ -168,7 +168,7 @@ public class Module extends Node {
   }
   
   @Override
-  public void visit(State state, Properties props) throws Exception {
+  public void visit(State state, Environment env, Properties props) throws Exception {
     int maxHops, maxSec;
     boolean teardown;
     
@@ -191,7 +191,7 @@ public class Module extends Node {
       teardown = false;
     
     if (fixture != null) {
-      fixture.setUp(state);
+      fixture.setUp(state, env);
     }
     
     Node initNode = getNode(initNodeId);
@@ -201,11 +201,10 @@ public class Module extends Node {
       startTimer(initNode);
       test = true;
     }
-    initNode.visit(state, getProps(initNodeId));
+    initNode.visit(state, env, getProps(initNodeId));
     if (test)
       stopTimer(initNode);
     
-    state.visitedNode();
     // update aliases
     Set<String> aliases;
     if ((aliases = aliasMap.get(initNodeId)) != null)
@@ -252,18 +251,18 @@ public class Module extends Node {
           startTimer(nextNode);
           test = true;
         }
-        nextNode.visit(state, nodeProps);
+        nextNode.visit(state, env, nodeProps);
         if (test)
           stopTimer(nextNode);
       } catch (Exception e) {
-        log.debug("Connector belongs to user: " + state.getConnector().whoami());
+        log.debug("Connector belongs to user: " + env.getConnector().whoami());
         log.debug("Exception occured at: " + System.currentTimeMillis());
         log.debug("Properties for node: " + nextNodeId);
         for (Entry<Object,Object> entry : nodeProps.entrySet()) {
           log.debug("  " + entry.getKey() + ": " + entry.getValue());
         }
-        log.debug("Overall Properties");
-        for (Entry<Object,Object> entry : state.getProperties().entrySet()) {
+        log.debug("Overall Configuration Properties");
+        for (Entry<Object,Object> entry : env.copyConfigProperties().entrySet()) {
           log.debug("  " + entry.getKey() + ": " + entry.getValue());
         }
         log.debug("State information");
@@ -285,7 +284,6 @@ public class Module extends Node {
         }
         throw new Exception("Error running node " + nextNodeId, e);
       }
-      state.visitedNode();
       
       // update aliases
       if ((aliases = aliasMap.get(curNodeId)) != null)
@@ -298,7 +296,7 @@ public class Module extends Node {
     
     if (teardown && (fixture != null)) {
       log.debug("tearing down module");
-      fixture.tearDown(state);
+      fixture.tearDown(state, env);
     }
   }
   

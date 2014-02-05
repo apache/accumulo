@@ -22,6 +22,7 @@ import java.util.Random;
 
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.util.ToolRunner;
@@ -29,7 +30,7 @@ import org.apache.hadoop.util.ToolRunner;
 public class CopyTable extends Test {
   
   @Override
-  public void visit(State state, Properties props) throws Exception {
+  public void visit(State state, Environment env, Properties props) throws Exception {
     
     @SuppressWarnings("unchecked")
     ArrayList<String> tables = (ArrayList<String>) state.get("tableList");
@@ -44,29 +45,29 @@ public class CopyTable extends Test {
     
     String[] args = new String[8];
     args[0] = "-libjars";
-    args[1] = state.getMapReduceJars();
-    args[2] = state.getProperty("USERNAME");
-    args[3] = state.getProperty("PASSWORD");
+    args[1] = getMapReduceJars();
+    args[2] = env.getUserName();
+    args[3] = env.getPassword();
     args[4] = srcTableName;
-    args[5] = state.getInstance().getInstanceName();
-    args[6] = state.getProperty("ZOOKEEPERS");
+    args[5] = env.getInstance().getInstanceName();
+    args[6] = env.getConfigProperty("ZOOKEEPERS");
     args[7] = dstTableName;
     
     log.debug("copying " + srcTableName + " to " + dstTableName);
     
-    state.getConnector().tableOperations().create(dstTableName);
+    env.getConnector().tableOperations().create(dstTableName);
     
     if (ToolRunner.run(CachedConfiguration.getInstance(), new CopyTool(), args) != 0) {
       log.error("Failed to run map/red verify");
       return;
     }
     
-    String tableId = Tables.getNameToIdMap(state.getInstance()).get(dstTableName);
+    String tableId = Tables.getNameToIdMap(env.getInstance()).get(dstTableName);
     log.debug("copied " + srcTableName + " to " + dstTableName + " (id - " + tableId + " )");
     
     tables.add(dstTableName);
     
-    state.getConnector().tableOperations().delete(srcTableName);
+    env.getConnector().tableOperations().delete(srcTableName);
     log.debug("dropped " + srcTableName);
     
     nextId++;

@@ -44,6 +44,7 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.fs.FileSystem;
@@ -53,8 +54,8 @@ import org.apache.hadoop.io.Text;
 public class TableOp extends Test {
   
   @Override
-  public void visit(State state, Properties props) throws Exception {
-    Connector conn = state.getInstance().getConnector(WalkingSecurity.get(state).getTabUserName(), WalkingSecurity.get(state).getTabToken());
+  public void visit(State state, Environment env, Properties props) throws Exception {
+    Connector conn = env.getInstance().getConnector(WalkingSecurity.get(state,env).getTabUserName(), WalkingSecurity.get(state,env).getTabToken());
     
     String action = props.getProperty("action", "_random");
     TablePermission tp;
@@ -65,16 +66,16 @@ public class TableOp extends Test {
       tp = TablePermission.valueOf(action);
     }
     
-    boolean tableExists = WalkingSecurity.get(state).getTableExists();
-    String tableName = WalkingSecurity.get(state).getTableName();
-    String namespaceName = WalkingSecurity.get(state).getNamespaceName();
+    boolean tableExists = WalkingSecurity.get(state,env).getTableExists();
+    String tableName = WalkingSecurity.get(state,env).getTableName();
+    String namespaceName = WalkingSecurity.get(state,env).getNamespaceName();
     
     switch (tp) {
       case READ: {
-        boolean canRead = WalkingSecurity.get(state).canScan(WalkingSecurity.get(state).getTabCredentials(), tableName, namespaceName);
-        Authorizations auths = WalkingSecurity.get(state).getUserAuthorizations(WalkingSecurity.get(state).getTabCredentials());
-        boolean ambiguousZone = WalkingSecurity.get(state).inAmbiguousZone(conn.whoami(), tp);
-        boolean ambiguousAuths = WalkingSecurity.get(state).ambiguousAuthorizations(conn.whoami());
+        boolean canRead = WalkingSecurity.get(state,env).canScan(WalkingSecurity.get(state,env).getTabCredentials(), tableName, namespaceName);
+        Authorizations auths = WalkingSecurity.get(state,env).getUserAuthorizations(WalkingSecurity.get(state,env).getTabCredentials());
+        boolean ambiguousZone = WalkingSecurity.get(state,env).inAmbiguousZone(conn.whoami(), tp);
+        boolean ambiguousAuths = WalkingSecurity.get(state,env).ambiguousAuthorizations(conn.whoami());
         
         Scanner scan = null;
         try {
@@ -90,7 +91,7 @@ public class TableOp extends Test {
           }
           if (!canRead && !ambiguousZone)
             throw new AccumuloException("Was able to read when I shouldn't have had the perm with connection user " + conn.whoami() + " table " + tableName);
-          for (Entry<String,Integer> entry : WalkingSecurity.get(state).getAuthsMap().entrySet()) {
+          for (Entry<String,Integer> entry : WalkingSecurity.get(state,env).getAuthsMap().entrySet()) {
             if (auths.contains(entry.getKey().getBytes(Constants.UTF8)))
               seen = seen - entry.getValue();
           }
@@ -142,12 +143,12 @@ public class TableOp extends Test {
         break;
       }
       case WRITE:
-        boolean canWrite = WalkingSecurity.get(state).canWrite(WalkingSecurity.get(state).getTabCredentials(), tableName, namespaceName);
-        boolean ambiguousZone = WalkingSecurity.get(state).inAmbiguousZone(conn.whoami(), tp);
+        boolean canWrite = WalkingSecurity.get(state,env).canWrite(WalkingSecurity.get(state,env).getTabCredentials(), tableName, namespaceName);
+        boolean ambiguousZone = WalkingSecurity.get(state,env).inAmbiguousZone(conn.whoami(), tp);
         
-        String key = WalkingSecurity.get(state).getLastKey() + "1";
+        String key = WalkingSecurity.get(state,env).getLastKey() + "1";
         Mutation m = new Mutation(new Text(key));
-        for (String s : WalkingSecurity.get(state).getAuthsArray()) {
+        for (String s : WalkingSecurity.get(state,env).getAuthsArray()) {
           m.put(new Text(), new Text(), new ColumnVisibility(s), new Value("value".getBytes(Constants.UTF8)));
         }
         BatchWriter writer = null;
@@ -182,8 +183,8 @@ public class TableOp extends Test {
             }
           }
           if (works)
-            for (String s : WalkingSecurity.get(state).getAuthsArray())
-              WalkingSecurity.get(state).increaseAuthMap(s, 1);
+            for (String s : WalkingSecurity.get(state,env).getAuthsArray())
+              WalkingSecurity.get(state,env).increaseAuthMap(s, 1);
         } finally {
           if (writer != null) {
             writer.close();
@@ -192,15 +193,15 @@ public class TableOp extends Test {
         }
         break;
       case BULK_IMPORT:
-        key = WalkingSecurity.get(state).getLastKey() + "1";
+        key = WalkingSecurity.get(state,env).getLastKey() + "1";
         SortedSet<Key> keys = new TreeSet<Key>();
-        for (String s : WalkingSecurity.get(state).getAuthsArray()) {
+        for (String s : WalkingSecurity.get(state,env).getAuthsArray()) {
           Key k = new Key(key, "", "", s);
           keys.add(k);
         }
         Path dir = new Path("/tmp", "bulk_" + UUID.randomUUID().toString());
         Path fail = new Path(dir.toString() + "_fail");
-        FileSystem fs = WalkingSecurity.get(state).getFs();
+        FileSystem fs = WalkingSecurity.get(state,env).getFs();
         FileSKVWriter f = FileOperations.getInstance().openWriter(dir + "/securityBulk." + RFile.EXTENSION, fs, fs.getConf(),
             AccumuloConfiguration.getDefaultConfiguration());
         f.startDefaultLocalityGroup();
@@ -216,26 +217,26 @@ public class TableOp extends Test {
           return;
         } catch (AccumuloSecurityException ae) {
           if (ae.getSecurityErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
-            if (WalkingSecurity.get(state).canBulkImport(WalkingSecurity.get(state).getTabCredentials(), tableName, namespaceName))
+            if (WalkingSecurity.get(state,env).canBulkImport(WalkingSecurity.get(state,env).getTabCredentials(), tableName, namespaceName))
               throw new AccumuloException("Bulk Import failed when it should have worked: " + tableName);
             return;
           } else if (ae.getSecurityErrorCode().equals(SecurityErrorCode.BAD_CREDENTIALS)) {
-            if (WalkingSecurity.get(state).userPassTransient(conn.whoami()))
+            if (WalkingSecurity.get(state,env).userPassTransient(conn.whoami()))
               return;
           }
           throw new AccumuloException("Unexpected exception!", ae);
         }
-        for (String s : WalkingSecurity.get(state).getAuthsArray())
-          WalkingSecurity.get(state).increaseAuthMap(s, 1);
+        for (String s : WalkingSecurity.get(state,env).getAuthsArray())
+          WalkingSecurity.get(state,env).increaseAuthMap(s, 1);
         fs.delete(dir, true);
         fs.delete(fail, true);
         
-        if (!WalkingSecurity.get(state).canBulkImport(WalkingSecurity.get(state).getTabCredentials(), tableName, namespaceName))
+        if (!WalkingSecurity.get(state,env).canBulkImport(WalkingSecurity.get(state,env).getTabCredentials(), tableName, namespaceName))
           throw new AccumuloException("Bulk Import succeeded when it should have failed: " + dir + " table " + tableName);
         break;
       case ALTER_TABLE:
-        AlterTable.renameTable(conn, state, tableName, tableName + "plus",
-            WalkingSecurity.get(state).canAlterTable(WalkingSecurity.get(state).getTabCredentials(), tableName, namespaceName), tableExists);
+        AlterTable.renameTable(conn, state, env, tableName, tableName + "plus",
+            WalkingSecurity.get(state,env).canAlterTable(WalkingSecurity.get(state,env).getTabCredentials(), tableName, namespaceName), tableExists);
         break;
       
       case GRANT:
@@ -243,12 +244,12 @@ public class TableOp extends Test {
         props.setProperty("perm", "random");
         props.setProperty("source", "table");
         props.setProperty("target", "system");
-        AlterTablePerm.alter(state, props);
+        AlterTablePerm.alter(state, env, props);
         break;
       
       case DROP_TABLE:
         props.setProperty("source", "table");
-        DropTable.dropTable(state, props);
+        DropTable.dropTable(state, env, props);
         break;
     }
   }

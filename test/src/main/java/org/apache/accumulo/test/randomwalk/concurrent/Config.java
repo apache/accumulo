@@ -23,6 +23,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.commons.math.random.RandomData;
@@ -105,25 +106,25 @@ public class Config extends Test {
   /* @formatter:on */
 
   @Override
-  public void visit(State state, Properties props) throws Exception {
+  public void visit(State state, Environment env, Properties props) throws Exception {
     // reset any previous setting
-    Object lastSetting = state.getMap().get(LAST_SETTING);
+    Object lastSetting = state.getOkIfAbsent(LAST_SETTING);
     if (lastSetting != null) {
       int choice = Integer.parseInt(lastSetting.toString());
       Property property = settings[choice].property;
       log.debug("Setting " + property.getKey() + " back to " + property.getDefaultValue());
-      state.getConnector().instanceOperations().setProperty(property.getKey(), property.getDefaultValue());
+      env.getConnector().instanceOperations().setProperty(property.getKey(), property.getDefaultValue());
     }
-    lastSetting = state.getMap().get(LAST_TABLE_SETTING);
+    lastSetting = state.getOkIfAbsent(LAST_TABLE_SETTING);
     if (lastSetting != null) {
       String parts[] = lastSetting.toString().split(",");
       String table = parts[0];
       int choice = Integer.parseInt(parts[1]);
       Property property = tableSettings[choice].property;
-      if (state.getConnector().tableOperations().exists(table)) {
+      if (env.getConnector().tableOperations().exists(table)) {
         log.debug("Setting " + property.getKey() + " on " + table + " back to " + property.getDefaultValue());
         try {
-          state.getConnector().tableOperations().setProperty(table, property.getKey(), property.getDefaultValue());
+          env.getConnector().tableOperations().setProperty(table, property.getKey(), property.getDefaultValue());
         } catch (AccumuloException ex) {
           if (ex.getCause() instanceof ThriftTableOperationException) {
             ThriftTableOperationException ttoe = (ThriftTableOperationException) ex.getCause();
@@ -134,16 +135,16 @@ public class Config extends Test {
         }
       }
     }
-    lastSetting = state.getMap().get(LAST_NAMESPACE_SETTING);
+    lastSetting = state.getOkIfAbsent(LAST_NAMESPACE_SETTING);
     if (lastSetting != null) {
       String parts[] = lastSetting.toString().split(",");
       String namespace = parts[0];
       int choice = Integer.parseInt(parts[1]);
       Property property = tableSettings[choice].property;
-      if (state.getConnector().namespaceOperations().exists(namespace)) {
+      if (env.getConnector().namespaceOperations().exists(namespace)) {
         log.debug("Setting " + property.getKey() + " on " + namespace + " back to " + property.getDefaultValue());
         try {
-          state.getConnector().namespaceOperations().setProperty(namespace, property.getKey(), property.getDefaultValue());
+          env.getConnector().namespaceOperations().setProperty(namespace, property.getKey(), property.getDefaultValue());
         } catch (AccumuloException ex) {
           if (ex.getCause() instanceof ThriftTableOperationException) {
             ThriftTableOperationException ttoe = (ThriftTableOperationException) ex.getCause();
@@ -154,37 +155,37 @@ public class Config extends Test {
         }
       }
     }
-    state.getMap().remove(LAST_SETTING);
-    state.getMap().remove(LAST_TABLE_SETTING);
-    state.getMap().remove(LAST_NAMESPACE_SETTING);
+    state.remove(LAST_SETTING);
+    state.remove(LAST_TABLE_SETTING);
+    state.remove(LAST_NAMESPACE_SETTING);
     RandomData random = new RandomDataImpl();
     int dice = random.nextInt(0, 2);
     if (dice == 0) {
-      changeTableSetting(random, state, props);
+      changeTableSetting(random, state, env, props);
     } else if (dice == 1) {
-      changeNamespaceSetting(random, state, props);
+      changeNamespaceSetting(random, state, env, props);
     } else {
-      changeSetting(random, state, props);
+      changeSetting(random, state, env, props);
     }
   }
 
-  private void changeTableSetting(RandomData random, State state, Properties props) throws Exception {
+  private void changeTableSetting(RandomData random, State state, Environment env, Properties props) throws Exception {
     // pick a random property
     int choice = random.nextInt(0, tableSettings.length - 1);
     Setting setting = tableSettings[choice];
 
     // pick a random table
-    SortedSet<String> tables = state.getConnector().tableOperations().list().tailSet("ctt").headSet("ctu");
+    SortedSet<String> tables = env.getConnector().tableOperations().list().tailSet("ctt").headSet("ctu");
     if (tables.isEmpty())
       return;
     String table = random.nextSample(tables, 1)[0].toString();
 
     // generate a random value
     long newValue = random.nextLong(setting.min, setting.max);
-    state.getMap().put(LAST_TABLE_SETTING, table + "," + choice);
+    state.set(LAST_TABLE_SETTING, table + "," + choice);
     log.debug("Setting " + setting.property.getKey() + " on table " + table + " to " + newValue);
     try {
-      state.getConnector().tableOperations().setProperty(table, setting.property.getKey(), "" + newValue);
+      env.getConnector().tableOperations().setProperty(table, setting.property.getKey(), "" + newValue);
     } catch (AccumuloException ex) {
       if (ex.getCause() instanceof ThriftTableOperationException) {
         ThriftTableOperationException ttoe = (ThriftTableOperationException) ex.getCause();
@@ -195,23 +196,23 @@ public class Config extends Test {
     }
   }
 
-  private void changeNamespaceSetting(RandomData random, State state, Properties props) throws Exception {
+  private void changeNamespaceSetting(RandomData random, State state, Environment env, Properties props) throws Exception {
     // pick a random property
     int choice = random.nextInt(0, tableSettings.length - 1);
     Setting setting = tableSettings[choice];
 
     // pick a random table
-    SortedSet<String> namespaces = state.getConnector().namespaceOperations().list();
+    SortedSet<String> namespaces = env.getConnector().namespaceOperations().list();
     if (namespaces.isEmpty())
       return;
     String namespace = random.nextSample(namespaces, 1)[0].toString();
 
     // generate a random value
     long newValue = random.nextLong(setting.min, setting.max);
-    state.getMap().put(LAST_NAMESPACE_SETTING, namespace + "," + choice);
+    state.set(LAST_NAMESPACE_SETTING, namespace + "," + choice);
     log.debug("Setting " + setting.property.getKey() + " on namespace " + namespace + " to " + newValue);
     try {
-      state.getConnector().namespaceOperations().setProperty(namespace, setting.property.getKey(), "" + newValue);
+      env.getConnector().namespaceOperations().setProperty(namespace, setting.property.getKey(), "" + newValue);
     } catch (AccumuloException ex) {
       if (ex.getCause() instanceof ThriftTableOperationException) {
         ThriftTableOperationException ttoe = (ThriftTableOperationException) ex.getCause();
@@ -222,15 +223,15 @@ public class Config extends Test {
     }
   }
 
-  private void changeSetting(RandomData random, State state, Properties props) throws Exception {
+  private void changeSetting(RandomData random, State state, Environment env, Properties props) throws Exception {
     // pick a random property
     int choice = random.nextInt(0, settings.length - 1);
     Setting setting = settings[choice];
     // generate a random value
     long newValue = random.nextLong(setting.min, setting.max);
-    state.getMap().put(LAST_SETTING, "" + choice);
+    state.set(LAST_SETTING, "" + choice);
     log.debug("Setting " + setting.property.getKey() + " to " + newValue);
-    state.getConnector().instanceOperations().setProperty(setting.property.getKey(), "" + newValue);
+    env.getConnector().instanceOperations().setProperty(setting.property.getKey(), "" + newValue);
   }
 
 }

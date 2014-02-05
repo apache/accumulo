@@ -16,17 +16,18 @@
  */
 package org.apache.accumulo.test.randomwalk.bulk;
 
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.hadoop.io.Text;
 
 public class Compact extends BulkTest {
   
   @Override
-  protected void runLater(State state) throws Exception {
+  protected void runLater(State state, Environment env) throws Exception {
     final Text[] points = Merge.getRandomTabletRange(state);
     final String rangeString = Merge.rangeToString(points);
     log.info("Compacting " + rangeString);
-    state.getConnector().tableOperations().compact(Setup.getTableName(), points[0], points[1], false, true);
+    env.getConnector().tableOperations().compact(Setup.getTableName(), points[0], points[1], false, true);
     log.info("Compaction " + rangeString + " finished");
   }
   

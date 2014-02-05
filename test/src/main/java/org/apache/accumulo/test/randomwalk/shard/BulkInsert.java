@@ -35,6 +35,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.commons.codec.binary.Base64;
@@ -93,7 +94,7 @@ public class BulkInsert extends Test {
   }
   
   @Override
-  public void visit(State state, Properties props) throws Exception {
+  public void visit(State state, Environment env, Properties props) throws Exception {
     
     String indexTableName = (String) state.get("indexTableName");
     String dataTableName = (String) state.get("docTableName");
@@ -127,23 +128,23 @@ public class BulkInsert extends Test {
     dataWriter.close();
     indexWriter.close();
     
-    sort(state, fs, dataTableName, rootDir + "/data.seq", rootDir + "/data_bulk", rootDir + "/data_work", maxSplits);
-    sort(state, fs, indexTableName, rootDir + "/index.seq", rootDir + "/index_bulk", rootDir + "/index_work", maxSplits);
+    sort(state, env, fs, dataTableName, rootDir + "/data.seq", rootDir + "/data_bulk", rootDir + "/data_work", maxSplits);
+    sort(state, env, fs, indexTableName, rootDir + "/index.seq", rootDir + "/index_bulk", rootDir + "/index_work", maxSplits);
     
-    bulkImport(fs, state, dataTableName, rootDir, "data");
-    bulkImport(fs, state, indexTableName, rootDir, "index");
+    bulkImport(fs, state, env, dataTableName, rootDir, "data");
+    bulkImport(fs, state, env, indexTableName, rootDir, "index");
     
     fs.delete(new Path(rootDir), true);
   }
   
-  private void bulkImport(FileSystem fs, State state, String tableName, String rootDir, String prefix) throws Exception {
+  private void bulkImport(FileSystem fs, State state, Environment env, String tableName, String rootDir, String prefix) throws Exception {
     while (true) {
       String bulkDir = rootDir + "/" + prefix + "_bulk";
       String failDir = rootDir + "/" + prefix + "_failure";
       Path failPath = new Path(failDir);
       fs.delete(failPath, true);
       fs.mkdirs(failPath);
-      state.getConnector().tableOperations().importDirectory(tableName, bulkDir, failDir, true);
+      env.getConnector().tableOperations().importDirectory(tableName, bulkDir, failDir, true);
       
       FileStatus[] failures = fs.listStatus(failPath);
       if (failures != null && failures.length > 0) {
@@ -161,11 +162,11 @@ public class BulkInsert extends Test {
     }
   }
   
-  private void sort(State state, FileSystem fs, String tableName, String seqFile, String outputDir, String workDir, int maxSplits) throws Exception {
+  private void sort(State state, Environment env, FileSystem fs, String tableName, String seqFile, String outputDir, String workDir, int maxSplits) throws Exception {
     
     PrintStream out = new PrintStream(new BufferedOutputStream(fs.create(new Path(workDir + "/splits.txt"))), false, Constants.UTF8.name());
     
-    Connector conn = state.getConnector();
+    Connector conn = env.getConnector();
     
     Collection<Text> splits = conn.tableOperations().listSplits(tableName, maxSplits);
     for (Text split : splits)
@@ -177,7 +178,7 @@ public class BulkInsert extends Test {
     
     String[] args = new String[2];
     args[0] = "-libjars";
-    args[1] = state.getMapReduceJars();
+    args[1] = getMapReduceJars();
     
     if (ToolRunner.run(CachedConfiguration.getInstance(), sortTool, args) != 0) {
       throw new Exception("Failed to run map/red verify");

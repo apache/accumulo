@@ -25,31 +25,32 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class AlterTablePerm extends Test {
   
   @Override
-  public void visit(State state, Properties props) throws Exception {
-    alter(state, props);
+  public void visit(State state, Environment env, Properties props) throws Exception {
+    alter(state, env, props);
   }
   
-  public static void alter(State state, Properties props) throws Exception {
+  public static void alter(State state, Environment env, Properties props) throws Exception {
     String action = props.getProperty("task", "toggle");
     String perm = props.getProperty("perm", "random");
     String sourceUserProp = props.getProperty("source", "system");
     String targetUser = props.getProperty("target", "table");
-    boolean tabExists = WalkingSecurity.get(state).getTableExists();
+    boolean tabExists = WalkingSecurity.get(state,env).getTableExists();
     
     String target;
     if ("table".equals(targetUser))
-      target = WalkingSecurity.get(state).getTabUserName();
+      target = WalkingSecurity.get(state,env).getTabUserName();
     else
-      target = WalkingSecurity.get(state).getSysUserName();
+      target = WalkingSecurity.get(state,env).getSysUserName();
     
-    boolean exists = WalkingSecurity.get(state).userExists(target);
-    boolean tableExists = WalkingSecurity.get(state).getTableExists();
+    boolean exists = WalkingSecurity.get(state,env).userExists(target);
+    boolean tableExists = WalkingSecurity.get(state,env).getTableExists();
     
     TablePermission tabPerm;
     if (perm.equals("random")) {
@@ -58,31 +59,31 @@ public class AlterTablePerm extends Test {
       tabPerm = TablePermission.values()[i];
     } else
       tabPerm = TablePermission.valueOf(perm);
-    String tableName = WalkingSecurity.get(state).getTableName();
-    boolean hasPerm = WalkingSecurity.get(state).hasTablePermission(target, tableName, tabPerm);
+    String tableName = WalkingSecurity.get(state,env).getTableName();
+    boolean hasPerm = WalkingSecurity.get(state,env).hasTablePermission(target, tableName, tabPerm);
     boolean canGive;
     String sourceUser;
     AuthenticationToken sourceToken;
     if ("system".equals(sourceUserProp)) {
-      sourceUser = WalkingSecurity.get(state).getSysUserName();
-      sourceToken = WalkingSecurity.get(state).getSysToken();
+      sourceUser = WalkingSecurity.get(state,env).getSysUserName();
+      sourceToken = WalkingSecurity.get(state,env).getSysToken();
     } else if ("table".equals(sourceUserProp)) {
-      sourceUser = WalkingSecurity.get(state).getTabUserName();
-      sourceToken = WalkingSecurity.get(state).getTabToken();
+      sourceUser = WalkingSecurity.get(state,env).getTabUserName();
+      sourceToken = WalkingSecurity.get(state,env).getTabToken();
     } else {
-      sourceUser = state.getUserName();
-      sourceToken = state.getToken();
+      sourceUser = env.getUserName();
+      sourceToken = env.getToken();
     }
-    Connector conn = state.getInstance().getConnector(sourceUser, sourceToken);
+    Connector conn = env.getInstance().getConnector(sourceUser, sourceToken);
     
-    canGive = WalkingSecurity.get(state).canGrantTable(new Credentials(sourceUser, sourceToken).toThrift(state.getInstance()), target,
-        WalkingSecurity.get(state).getTableName(), WalkingSecurity.get(state).getNamespaceName());
+    canGive = WalkingSecurity.get(state,env).canGrantTable(new Credentials(sourceUser, sourceToken).toThrift(env.getInstance()), target,
+        WalkingSecurity.get(state,env).getTableName(), WalkingSecurity.get(state,env).getNamespaceName());
     
     // toggle
     if (!"take".equals(action) && !"give".equals(action)) {
       try {
         boolean res;
-        if (hasPerm != (res = state.getConnector().securityOperations().hasTablePermission(target, tableName, tabPerm)))
+        if (hasPerm != (res = env.getConnector().securityOperations().hasTablePermission(target, tableName, tabPerm)))
           throw new AccumuloException("Test framework and accumulo are out of sync for user " + conn.whoami() + " for perm " + tabPerm.name()
               + " with local vs. accumulo being " + hasPerm + " " + res);
         
@@ -108,7 +109,7 @@ public class AlterTablePerm extends Test {
       }
     }
     
-    boolean trans = WalkingSecurity.get(state).userPassTransient(conn.whoami());
+    boolean trans = WalkingSecurity.get(state,env).userPassTransient(conn.whoami());
     if ("take".equals(action)) {
       try {
         conn.securityOperations().revokeTablePermission(target, tableName, tabPerm);
@@ -136,7 +137,7 @@ public class AlterTablePerm extends Test {
             throw new AccumuloException("Got unexpected exception", ae);
         }
       }
-      WalkingSecurity.get(state).revokeTablePermission(target, tableName, tabPerm);
+      WalkingSecurity.get(state,env).revokeTablePermission(target, tableName, tabPerm);
     } else if ("give".equals(action)) {
       try {
         conn.securityOperations().grantTablePermission(target, tableName, tabPerm);
@@ -164,7 +165,7 @@ public class AlterTablePerm extends Test {
             throw new AccumuloException("Got unexpected exception", ae);
         }
       }
-      WalkingSecurity.get(state).grantTablePermission(target, tableName, tabPerm);
+      WalkingSecurity.get(state,env).grantTablePermission(target, tableName, tabPerm);
     }
     
     if (!exists)

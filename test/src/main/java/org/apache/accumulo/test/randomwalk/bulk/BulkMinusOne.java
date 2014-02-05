@@ -18,6 +18,7 @@ package org.apache.accumulo.test.randomwalk.bulk;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 
 public class BulkMinusOne extends BulkTest {
@@ -25,9 +26,9 @@ public class BulkMinusOne extends BulkTest {
   private static final Value negOne = new Value("-1".getBytes(Constants.UTF8));
   
   @Override
-  protected void runLater(State state) throws Exception {
+  protected void runLater(State state, Environment env) throws Exception {
     log.info("Decrementing");
-    BulkPlusOne.bulkLoadLots(log, state, negOne);
+    BulkPlusOne.bulkLoadLots(log, state, env, negOne);
   }
   
 }

@@ -26,6 +26,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.io.Text;
@@ -40,9 +41,9 @@ public class Write extends Test {
   static final Text CONTENT_COLUMN_FAMILY = new Text("content");
   
   @Override
-  public void visit(State state, Properties props) throws Exception {
+  public void visit(State state, Environment env, Properties props) throws Exception {
     
-    MultiTableBatchWriter mtbw = state.getMultiTableBatchWriter();
+    MultiTableBatchWriter mtbw = env.getMultiTableBatchWriter();
     
     BatchWriter imagesBW = mtbw.getBatchWriter(state.getString("imageTableName"));
     BatchWriter indexBW = mtbw.getBatchWriter(state.getString("indexTableName"));

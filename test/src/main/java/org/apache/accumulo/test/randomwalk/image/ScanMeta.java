@@ -32,6 +32,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.io.Text;
@@ -39,7 +40,7 @@ import org.apache.hadoop.io.Text;
 public class ScanMeta extends Test {
   
   @Override
-  public void visit(State state, Properties props) throws Exception {
+  public void visit(State state, Environment env, Properties props) throws Exception {
     
     // scan just the metadata of the images table to find N hashes... use the batch scanner to lookup those N hashes in the index table
     // this scan will test locality groups....
@@ -49,7 +50,7 @@ public class ScanMeta extends Test {
     
     String uuid = UUID.randomUUID().toString();
     
-    Connector conn = state.getConnector();
+    Connector conn = env.getConnector();
     
     Scanner imageScanner = conn.createScanner(imageTableName, new Authorizations());
     

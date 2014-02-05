@@ -22,19 +22,20 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class CreateUser extends Test {
   
   @Override
-  public void visit(State state, Properties props) throws Exception {
-    Connector conn = state.getInstance().getConnector(WalkingSecurity.get(state).getSysUserName(), WalkingSecurity.get(state).getSysToken());
+  public void visit(State state, Environment env, Properties props) throws Exception {
+    Connector conn = env.getInstance().getConnector(WalkingSecurity.get(state,env).getSysUserName(), WalkingSecurity.get(state,env).getSysToken());
     
-    String tableUserName = WalkingSecurity.get(state).getTabUserName();
+    String tableUserName = WalkingSecurity.get(state,env).getTabUserName();
     
-    boolean exists = WalkingSecurity.get(state).userExists(tableUserName);
-    boolean hasPermission = WalkingSecurity.get(state).canCreateUser(WalkingSecurity.get(state).getSysCredentials(), tableUserName);
+    boolean exists = WalkingSecurity.get(state,env).userExists(tableUserName);
+    boolean hasPermission = WalkingSecurity.get(state,env).canCreateUser(WalkingSecurity.get(state,env).getSysCredentials(), tableUserName);
     PasswordToken tabUserPass = new PasswordToken("Super Sekret Table User Password");
     try {
       conn.securityOperations().createLocalUser(tableUserName, tabUserPass);
@@ -47,8 +48,8 @@ public class CreateUser extends Test {
           // create user anyway for sake of state
           {
             if (!exists) {
-              state.getConnector().securityOperations().createLocalUser(tableUserName, tabUserPass);
-              WalkingSecurity.get(state).createUser(tableUserName, tabUserPass);
+              env.getConnector().securityOperations().createLocalUser(tableUserName, tabUserPass);
+              WalkingSecurity.get(state,env).createUser(tableUserName, tabUserPass);
               Thread.sleep(1000);
             }
             return;
@@ -62,7 +63,7 @@ public class CreateUser extends Test {
           throw new AccumuloException("Got unexpected exception", ae);
       }
     }
-    WalkingSecurity.get(state).createUser(tableUserName, tabUserPass);
+    WalkingSecurity.get(state,env).createUser(tableUserName, tabUserPass);
     Thread.sleep(1000);
     if (!hasPermission)
       throw new AccumuloException("Didn't get Security Exception when we should have");

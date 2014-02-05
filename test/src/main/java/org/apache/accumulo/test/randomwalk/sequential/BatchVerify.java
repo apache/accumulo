@@ -30,6 +30,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.io.Text;
@@ -37,7 +38,7 @@ import org.apache.hadoop.io.Text;
 public class BatchVerify extends Test {
   
   @Override
-  public void visit(State state, Properties props) throws Exception {
+  public void visit(State state, Environment env, Properties props) throws Exception {
     
     Random rand = new Random();
     
@@ -49,7 +50,7 @@ public class BatchVerify extends Test {
       numVerify = numWrites / 4;
     }
     
-    Connector conn = state.getConnector();
+    Connector conn = env.getConnector();
     BatchScanner scanner = conn.createBatchScanner(state.getString("seqTableName"), new Authorizations(), 2);
     
     try {

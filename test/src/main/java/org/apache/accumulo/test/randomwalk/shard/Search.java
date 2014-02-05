@@ -31,6 +31,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.IntersectingIterator;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.io.Text;
@@ -38,13 +39,13 @@ import org.apache.hadoop.io.Text;
 public class Search extends Test {
   
   @Override
-  public void visit(State state, Properties props) throws Exception {
+  public void visit(State state, Environment env, Properties props) throws Exception {
     String indexTableName = (String) state.get("indexTableName");
     String dataTableName = (String) state.get("docTableName");
     
     Random rand = (Random) state.get("rand");
     
-    Entry<Key,Value> entry = findRandomDocument(state, dataTableName, rand);
+    Entry<Key,Value> entry = findRandomDocument(state, env, dataTableName, rand);
     if (entry == null)
       return;
     
@@ -68,7 +69,7 @@ public class Search extends Test {
     
     log.debug("Looking up terms " + searchTerms + " expect to find " + docID);
     
-    BatchScanner bs = state.getConnector().createBatchScanner(indexTableName, Authorizations.EMPTY, 10);
+    BatchScanner bs = env.getConnector().createBatchScanner(indexTableName, Authorizations.EMPTY, 10);
     IteratorSetting ii = new IteratorSetting(20, "ii", IntersectingIterator.class);
     IntersectingIterator.setColumnFamilies(ii, columns);
     bs.addScanIterator(ii);
@@ -89,8 +90,8 @@ public class Search extends Test {
       throw new Exception("Did not see doc " + docID + " in index.  terms:" + searchTerms + " " + indexTableName + " " + dataTableName);
   }
   
-  static Entry<Key,Value> findRandomDocument(State state, String dataTableName, Random rand) throws Exception {
-    Scanner scanner = state.getConnector().createScanner(dataTableName, Authorizations.EMPTY);
+  static Entry<Key,Value> findRandomDocument(State state, Environment env, String dataTableName, Random rand) throws Exception {
+    Scanner scanner = env.getConnector().createScanner(dataTableName, Authorizations.EMPTY);
     scanner.setBatchSize(1);
     scanner.setRange(new Range(Integer.toString(rand.nextInt(0xfffffff), 16), null));
     

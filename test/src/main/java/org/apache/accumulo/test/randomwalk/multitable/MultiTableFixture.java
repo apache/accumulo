@@ -24,16 +24,17 @@ import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.test.randomwalk.Fixture;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 
 public class MultiTableFixture extends Fixture {
   
   @Override
-  public void setUp(State state) throws Exception {
+  public void setUp(State state, Environment env) throws Exception {
     
     String hostname = InetAddress.getLocalHost().getHostName().replaceAll("[-.]", "_");
     
-    state.set("tableNamePrefix", String.format("multi_%s_%s_%d", hostname, state.getPid(), System.currentTimeMillis()));
+    state.set("tableNamePrefix", String.format("multi_%s_%s_%d", hostname, env.getPid(), System.currentTimeMillis()));
     state.set("nextId", Integer.valueOf(0));
     state.set("numWrites", Long.valueOf(0));
     state.set("totalWrites", Long.valueOf(0));
@@ -41,10 +42,10 @@ public class MultiTableFixture extends Fixture {
   }
   
   @Override
-  public void tearDown(State state) throws Exception {
+  public void tearDown(State state, Environment env) throws Exception {
     // We have resources we need to clean up
-    if (state.isMultiTableBatchWriterInitialized()) {
-      MultiTableBatchWriter mtbw = state.getMultiTableBatchWriter();
+    if (env.isMultiTableBatchWriterInitialized()) {
+      MultiTableBatchWriter mtbw = env.getMultiTableBatchWriter();
       try {
         mtbw.close();
       } catch (MutationsRejectedException e) {
@@ -52,10 +53,10 @@ public class MultiTableFixture extends Fixture {
       }
       
       // Reset the MTBW on the state to null
-      state.resetMultiTableBatchWriter();
+      env.resetMultiTableBatchWriter();
     }
     
-    Connector conn = state.getConnector();
+    Connector conn = env.getConnector();
     
     @SuppressWarnings("unchecked")
     ArrayList<String> tables = (ArrayList<String>) state.get("tableList");

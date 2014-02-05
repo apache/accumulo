@@ -26,6 +26,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
@@ -36,15 +37,15 @@ public class Insert extends Test {
   static final int MAX_WORDS_PER_DOC = 3000;
   
   @Override
-  public void visit(State state, Properties props) throws Exception {
+  public void visit(State state, Environment env, Properties props) throws Exception {
     String indexTableName = (String) state.get("indexTableName");
     String dataTableName = (String) state.get("docTableName");
     int numPartitions = (Integer) state.get("numPartitions");
     Random rand = (Random) state.get("rand");
     long nextDocID = (Long) state.get("nextDocID");
     
-    BatchWriter dataWriter = state.getMultiTableBatchWriter().getBatchWriter(dataTableName);
-    BatchWriter indexWriter = state.getMultiTableBatchWriter().getBatchWriter(indexTableName);
+    BatchWriter dataWriter = env.getMultiTableBatchWriter().getBatchWriter(dataTableName);
+    BatchWriter indexWriter = env.getMultiTableBatchWriter().getBatchWriter(indexTableName);
     
     String docID = insertRandomDocument(nextDocID++, dataWriter, indexWriter, indexTableName, dataTableName, numPartitions, rand);
     

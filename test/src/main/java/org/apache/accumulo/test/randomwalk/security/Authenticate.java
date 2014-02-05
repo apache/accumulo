@@ -25,33 +25,34 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class Authenticate extends Test {
   
   @Override
-  public void visit(State state, Properties props) throws Exception {
-    authenticate(WalkingSecurity.get(state).getSysUserName(), WalkingSecurity.get(state).getSysToken(), state, props);
+  public void visit(State state, Environment env, Properties props) throws Exception {
+    authenticate(WalkingSecurity.get(state,env).getSysUserName(), WalkingSecurity.get(state,env).getSysToken(), state, env, props);
   }
   
-  public static void authenticate(String principal, AuthenticationToken token, State state, Properties props) throws Exception {
+  public static void authenticate(String principal, AuthenticationToken token, State state, Environment env, Properties props) throws Exception {
     String targetProp = props.getProperty("target");
     boolean success = Boolean.parseBoolean(props.getProperty("valid"));
     
-    Connector conn = state.getInstance().getConnector(principal, token);
+    Connector conn = env.getInstance().getConnector(principal, token);
     
     String target;
     
     if (targetProp.equals("table")) {
-      target = WalkingSecurity.get(state).getTabUserName();
+      target = WalkingSecurity.get(state,env).getTabUserName();
     } else {
-      target = WalkingSecurity.get(state).getSysUserName();
+      target = WalkingSecurity.get(state,env).getSysUserName();
     }
-    boolean exists = WalkingSecurity.get(state).userExists(target);
+    boolean exists = WalkingSecurity.get(state,env).userExists(target);
     // Copy so if failed it doesn't mess with the password stored in state
-    byte[] password = Arrays.copyOf(WalkingSecurity.get(state).getUserPassword(target), WalkingSecurity.get(state).getUserPassword(target).length);
-    boolean hasPermission = WalkingSecurity.get(state).canAskAboutUser(new Credentials(principal, token).toThrift(state.getInstance()), target);
+    byte[] password = Arrays.copyOf(WalkingSecurity.get(state,env).getUserPassword(target), WalkingSecurity.get(state,env).getUserPassword(target).length);
+    boolean hasPermission = WalkingSecurity.get(state,env).canAskAboutUser(new Credentials(principal, token).toThrift(env.getInstance()), target);
     
     if (!success)
       for (int i = 0; i < password.length; i++)

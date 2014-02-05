@@ -18,14 +18,15 @@ package org.apache.accumulo.test.randomwalk.shard;
 
 import java.util.Properties;
 
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class Commit extends Test {
   
   @Override
-  public void visit(State state, Properties props) throws Exception {
-    state.getMultiTableBatchWriter().flush();
+  public void visit(State state, Environment env, Properties props) throws Exception {
+    env.getMultiTableBatchWriter().flush();
     log.debug("Committed inserts ");
   }
   

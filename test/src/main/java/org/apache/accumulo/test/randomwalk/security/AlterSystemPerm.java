@@ -23,20 +23,21 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.security.SystemPermission;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class AlterSystemPerm extends Test {
   
   @Override
-  public void visit(State state, Properties props) throws Exception {
-    Connector conn = state.getConnector();
-    WalkingSecurity ws = new WalkingSecurity(state);
+  public void visit(State state, Environment env, Properties props) throws Exception {
+    Connector conn = env.getConnector();
+    WalkingSecurity ws = new WalkingSecurity(state,env);
     
     String action = props.getProperty("task", "toggle");
     String perm = props.getProperty("perm", "random");
     
-    String targetUser = WalkingSecurity.get(state).getSysUserName();
+    String targetUser = WalkingSecurity.get(state,env).getSysUserName();
     
     SystemPermission sysPerm;
     if (perm.equals("random")) {

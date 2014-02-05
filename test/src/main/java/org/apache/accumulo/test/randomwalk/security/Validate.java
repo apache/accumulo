@@ -26,6 +26,7 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.log4j.Logger;
@@ -33,32 +34,32 @@ import org.apache.log4j.Logger;
 public class Validate extends Test {
   
   @Override
-  public void visit(State state, Properties props) throws Exception {
-    validate(state, log);
+  public void visit(State state, Environment env, Properties props) throws Exception {
+    validate(state, env, log);
   }
   
-  public static void validate(State state, Logger log) throws Exception {
-    Connector conn = state.getConnector();
+  public static void validate(State state, Environment env, Logger log) throws Exception {
+    Connector conn = env.getConnector();
     
-    boolean tableExists = WalkingSecurity.get(state).getTableExists();
-    boolean cloudTableExists = conn.tableOperations().list().contains(WalkingSecurity.get(state).getTableName());
+    boolean tableExists = WalkingSecurity.get(state,env).getTableExists();
+    boolean cloudTableExists = conn.tableOperations().list().contains(WalkingSecurity.get(state,env).getTableName());
     if (tableExists != cloudTableExists)
       throw new AccumuloException("Table existance out of sync");
     
-    boolean tableUserExists = WalkingSecurity.get(state).userExists(WalkingSecurity.get(state).getTabUserName());
-    boolean cloudTableUserExists = conn.securityOperations().listLocalUsers().contains(WalkingSecurity.get(state).getTabUserName());
+    boolean tableUserExists = WalkingSecurity.get(state,env).userExists(WalkingSecurity.get(state,env).getTabUserName());
+    boolean cloudTableUserExists = conn.securityOperations().listLocalUsers().contains(WalkingSecurity.get(state,env).getTabUserName());
     if (tableUserExists != cloudTableUserExists)
       throw new AccumuloException("Table User existance out of sync");
     
     Properties props = new Properties();
     props.setProperty("target", "system");
-    Authenticate.authenticate(state.getUserName(), state.getToken(), state, props);
+    Authenticate.authenticate(env.getUserName(), env.getToken(), state, env, props);
     props.setProperty("target", "table");
-    Authenticate.authenticate(state.getUserName(), state.getToken(), state, props);
+    Authenticate.authenticate(env.getUserName(), env.getToken(), state, env, props);
     
-    for (String user : new String[] {WalkingSecurity.get(state).getSysUserName(), WalkingSecurity.get(state).getTabUserName()}) {
+    for (String user : new String[] {WalkingSecurity.get(state,env).getSysUserName(), WalkingSecurity.get(state,env).getTabUserName()}) {
       for (SystemPermission sp : SystemPermission.values()) {
-        boolean hasSp = WalkingSecurity.get(state).hasSystemPermission(user, sp);
+        boolean hasSp = WalkingSecurity.get(state,env).hasSystemPermission(user, sp);
         boolean accuHasSp;
         try {
           accuHasSp = conn.securityOperations().hasSystemPermission(user, sp);
@@ -77,10 +78,10 @@ public class Validate extends Test {
       }
       
       for (TablePermission tp : TablePermission.values()) {
-        boolean hasTp = WalkingSecurity.get(state).hasTablePermission(user, WalkingSecurity.get(state).getTableName(), tp);
+        boolean hasTp = WalkingSecurity.get(state,env).hasTablePermission(user, WalkingSecurity.get(state,env).getTableName(), tp);
         boolean accuHasTp;
         try {
-          accuHasTp = conn.securityOperations().hasTablePermission(user, WalkingSecurity.get(state).getTableName(), tp);
+          accuHasTp = conn.securityOperations().hasTablePermission(user, WalkingSecurity.get(state,env).getTableName(), tp);
           log.debug("Just checked to see if user " + user + " has table perm " + tp.name() + " with answer " + accuHasTp);
         } catch (AccumuloSecurityException ae) {
           if (ae.getSecurityErrorCode().equals(SecurityErrorCode.USER_DOESNT_EXIST)) {
@@ -105,8 +106,8 @@ public class Validate extends Test {
     Authorizations accuAuths;
     Authorizations auths;
     try {
-      auths = WalkingSecurity.get(state).getUserAuthorizations(WalkingSecurity.get(state).getTabCredentials());
-      accuAuths = conn.securityOperations().getUserAuthorizations(WalkingSecurity.get(state).getTabUserName());
+      auths = WalkingSecurity.get(state,env).getUserAuthorizations(WalkingSecurity.get(state,env).getTabCredentials());
+      accuAuths = conn.securityOperations().getUserAuthorizations(WalkingSecurity.get(state,env).getTabUserName());
     } catch (ThriftSecurityException ae) {
       if (ae.getCode() == org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode.USER_DOESNT_EXIST) {
         if (tableUserExists)

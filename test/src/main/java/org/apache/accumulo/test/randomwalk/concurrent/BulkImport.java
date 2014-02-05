@@ -35,6 +35,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.conf.Configuration;
@@ -90,8 +91,8 @@ public class BulkImport extends Test {
   }
   
   @Override
-  public void visit(State state, Properties props) throws Exception {
-    Connector conn = state.getConnector();
+  public void visit(State state, Environment env, Properties props) throws Exception {
+    Connector conn = env.getConnector();
     
     Random rand = (Random) state.get("rand");
     

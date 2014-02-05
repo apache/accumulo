@@ -19,16 +19,17 @@ package org.apache.accumulo.test.randomwalk.bulk;
 import java.util.Arrays;
 import java.util.Random;
 
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.hadoop.io.Text;
 
 public class Merge extends BulkTest {
   
   @Override
-  protected void runLater(State state) throws Exception {
+  protected void runLater(State state, Environment env) throws Exception {
     Text[] points = getRandomTabletRange(state);
     log.info("merging " + rangeToString(points));
-    state.getConnector().tableOperations().merge(Setup.getTableName(), points[0], points[1]);
+    env.getConnector().tableOperations().merge(Setup.getTableName(), points[0], points[1]);
     log.info("merging " + rangeToString(points) + " complete");
   }
   

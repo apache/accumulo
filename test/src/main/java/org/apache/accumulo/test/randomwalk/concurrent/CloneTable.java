@@ -27,14 +27,15 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 
 public class CloneTable extends Test {
 
   @Override
-  public void visit(State state, Properties props) throws Exception {
-    Connector conn = state.getConnector();
+  public void visit(State state, Environment env, Properties props) throws Exception {
+    Connector conn = env.getConnector();
 
     Random rand = (Random) state.get("rand");
 

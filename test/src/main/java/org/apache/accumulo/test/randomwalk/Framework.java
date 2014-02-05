@@ -40,10 +40,6 @@ public class Framework {
     return INSTANCE;
   }
   
-  public String getConfigDir() {
-    return configDir;
-  }
-  
   public void setConfigDir(String confDir) {
     configDir = confDir;
   }
@@ -56,13 +52,13 @@ public class Framework {
    * @param state
    * @param confDir
    */
-  public int run(String startName, State state, String confDir) {
+  public int run(String startName, State state, Environment env, String confDir) {
     
     try {
       System.out.println("confDir " + confDir);
       setConfigDir(confDir);
       Node node = getNode(startName);
-      node.visit(state, new Properties());
+      node.visit(state, env, new Properties());
     } catch (Exception e) {
       log.error("Error during random walk", e);
       return -1;
@@ -121,8 +117,9 @@ public class Framework {
     
     DOMConfigurator.configure(opts.configDir + "logger.xml");
     
-    State state = new State(props);
-    int retval = getInstance().run(opts.module, state, opts.configDir);
+    State state = new State();
+    Environment env = new Environment(props);
+    int retval = getInstance().run(opts.module, state, env, opts.configDir);
     
     System.exit(retval);
   }

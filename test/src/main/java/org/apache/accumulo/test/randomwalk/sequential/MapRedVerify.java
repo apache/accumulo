@@ -26,6 +26,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.hadoop.util.ToolRunner;
@@ -33,16 +34,16 @@ import org.apache.hadoop.util.ToolRunner;
 public class MapRedVerify extends Test {
   
   @Override
-  public void visit(State state, Properties props) throws Exception {
+  public void visit(State state, Environment env, Properties props) throws Exception {
     
     String[] args = new String[8];
     args[0] = "-libjars";
-    args[1] = state.getMapReduceJars();
-    args[2] = state.getProperty("USERNAME");
-    args[3] = state.getProperty("PASSWORD");
+    args[1] = getMapReduceJars();
+    args[2] = env.getUserName();
+    args[3] = env.getPassword();
     args[4] = state.getString("seqTableName");
-    args[5] = state.getInstance().getInstanceName();
-    args[6] = state.getProperty("ZOOKEEPERS");
+    args[5] = env.getInstance().getInstanceName();
+    args[6] = env.getConfigProperty("ZOOKEEPERS");
     args[7] = args[4] + "_MR";
     
     if (ToolRunner.run(CachedConfiguration.getInstance(), new MapRedVerifyTool(), args) != 0) {
@@ -50,7 +51,7 @@ public class MapRedVerify extends Test {
       return;
     }
     
-    Scanner outputScanner = state.getConnector().createScanner(args[7], Authorizations.EMPTY);
+    Scanner outputScanner = env.getConnector().createScanner(args[7], Authorizations.EMPTY);
     outputScanner.setRange(new Range());
     
     int count = 0;
@@ -69,7 +70,7 @@ public class MapRedVerify extends Test {
     }
     
     log.debug("Dropping table: " + args[7]);
-    Connector conn = state.getConnector();
+    Connector conn = env.getConnector();
     conn.tableOperations().delete(args[7]);
   }
 }

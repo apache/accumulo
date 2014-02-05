@@ -26,6 +26,7 @@ import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.test.randomwalk.Fixture;
+import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -48,8 +49,8 @@ public class ShardFixture extends Fixture {
     return splits;
   }
   
-  static void createIndexTable(Logger log, State state, String suffix, Random rand) throws Exception {
-    Connector conn = state.getConnector();
+  static void createIndexTable(Logger log, State state, Environment env, String suffix, Random rand) throws Exception {
+    Connector conn = env.getConnector();
     String name = (String) state.get("indexTableName") + suffix;
     int numPartitions = (Integer) state.get("numPartitions");
     boolean enableCache = (Boolean) state.get("cacheIndex");
@@ -65,9 +66,9 @@ public class ShardFixture extends Fixture {
   }
   
   @Override
-  public void setUp(State state) throws Exception {
+  public void setUp(State state, Environment env) throws Exception {
     String hostname = InetAddress.getLocalHost().getHostName().replaceAll("[-.]", "_");
-    String pid = state.getPid();
+    String pid = env.getPid();
     
     Random rand = new Random();
     
@@ -80,9 +81,9 @@ public class ShardFixture extends Fixture {
     state.set("rand", rand);
     state.set("nextDocID", Long.valueOf(0));
     
-    Connector conn = state.getConnector();
+    Connector conn = env.getConnector();
     
-    createIndexTable(this.log, state, "", rand);
+    createIndexTable(this.log, state, env, "", rand);
     
     String docTableName = (String) state.get("docTableName");
     conn.tableOperations().create(docTableName);
@@ -95,10 +96,10 @@ public class ShardFixture extends Fixture {
   }
   
   @Override
-  public void tearDown(State state) throws Exception {
+  public void tearDown(State state, Environment env) throws Exception {
     // We have resources we need to clean up
-    if (state.isMultiTableBatchWriterInitialized()) {
-      MultiTableBatchWriter mtbw = state.getMultiTableBatchWriter();
+    if (env.isMultiTableBatchWriterInitialized()) {
+      MultiTableBatchWriter mtbw = env.getMultiTableBatchWriter();
       try {
         mtbw.close();
       } catch (MutationsRejectedException e) {
@@ -106,10 +107,10 @@ public class ShardFixture extends Fixture {
       }
       
       // Reset the MTBW on the state to null
-      state.resetMultiTableBatchWriter();
+      env.resetMultiTableBatchWriter();
     }
     
-    Connector conn = state.getConnector();
+    Connector conn = env.getConnector();
     
     conn.tableOperations().delete((String) state.get("indexTableName"));
     conn.tableOperations().delete((String) state.get("docTableName"));
