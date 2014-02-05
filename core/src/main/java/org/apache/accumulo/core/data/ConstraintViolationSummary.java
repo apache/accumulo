@@ -71,37 +71,9 @@ public class ConstraintViolationSummary {
   
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder("ConstraintViolationSummary(");
-    boolean first = true;
-    
-    sb.append("constrainClass:");
-    if (this.constrainClass == null) {
-      sb.append("null");
-    } else {
-      sb.append(this.constrainClass);
-    }
-    first = false;
-    if (!first)
-      sb.append(", ");
-    sb.append("violationCode:");
-    sb.append(this.violationCode);
-    first = false;
-    if (!first)
-      sb.append(", ");
-    sb.append("violationDescription:");
-    if (this.violationDescription == null) {
-      sb.append("null");
-    } else {
-      sb.append(this.violationDescription);
-    }
-    first = false;
-    if (!first)
-      sb.append(", ");
-    sb.append("numberOfViolatingMutations:");
-    sb.append(this.numberOfViolatingMutations);
-    first = false;
-    sb.append(")");
-    return sb.toString();
+    return String.format(
+        "ConstraintViolationSummary(constrainClass:%s, violationCode:%d, violationDescription:%s, numberOfViolatingMutations:%d)",
+        constrainClass, violationCode, violationDescription, numberOfViolatingMutations);
   }
   
   /**
