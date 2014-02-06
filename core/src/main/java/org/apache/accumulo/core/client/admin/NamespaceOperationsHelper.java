@@ -27,10 +27,21 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 
 public abstract class NamespaceOperationsHelper implements NamespaceOperations {
+
+  @Override
+  public String systemNamespace() {
+    return Namespaces.ACCUMULO_NAMESPACE;
+  }
+
+  @Override
+  public String defaultNamespace() {
+    return Namespaces.DEFAULT_NAMESPACE;
+  }
 
   @Override
   public void attachIterator(String namespace, IteratorSetting setting) throws AccumuloSecurityException, AccumuloException, NamespaceNotFoundException {

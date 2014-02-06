@@ -42,7 +42,6 @@ public class MiniAccumuloCluster {
     impl = new MiniAccumuloClusterImpl(config);
   }
 
-
   /**
    * 
    * @param dir

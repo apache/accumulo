@@ -37,7 +37,7 @@ import com.google.common.collect.Iterators;
 public class NamespacesCommand extends Command {
   private Option disablePaginationOpt, namespaceIdOption;
 
-  private static final String DEFAULT_NAMESPACE_DISPLAY_NAME = "(default)";
+  private static final String DEFAULT_NAMESPACE_DISPLAY_NAME = "\"\"";
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {

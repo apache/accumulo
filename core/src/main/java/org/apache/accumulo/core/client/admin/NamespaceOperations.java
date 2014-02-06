@@ -40,6 +40,22 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 public interface NamespaceOperations {
 
   /**
+   * Returns the name of the system reserved namespace
+   * 
+   * @return the name of the system namespace
+   * @since 1.6.0
+   */
+  String systemNamespace();
+
+  /**
+   * Returns the name of the default namespace
+   * 
+   * @return the name of the default namespace
+   * @since 1.6.0
+   */
+  String defaultNamespace();
+
+  /**
    * Retrieve a list of namespaces in Accumulo.
    * 
    * @return List of namespaces in accumulo
@@ -293,8 +309,8 @@ public interface NamespaceOperations {
    *           if the specified namespace doesn't exist
    * @since 1.6.0
    */
-  void checkIteratorConflicts(String namespace, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException,
-      AccumuloSecurityException, NamespaceNotFoundException;
+  void checkIteratorConflicts(String namespace, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException, AccumuloSecurityException,
+      NamespaceNotFoundException;
 
   /**
    * Add a new constraint to a namespace.
@@ -365,6 +381,5 @@ public interface NamespaceOperations {
    *           if the specified namespace doesn't exist
    * @since 1.6.0
    */
-  boolean testClassLoad(String namespace, String className, String asTypeName) throws AccumuloException, AccumuloSecurityException,
-      NamespaceNotFoundException;
+  boolean testClassLoad(String namespace, String className, String asTypeName) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
 }
