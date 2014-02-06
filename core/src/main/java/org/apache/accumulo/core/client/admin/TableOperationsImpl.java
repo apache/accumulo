@@ -309,7 +309,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
         return null;
       }
       String ret = waitForFateOperation(opid);
-      Tables.clearCache(instance);
       return ret;
     } catch (ThriftSecurityException e) {
       String tableName = ByteBufferUtil.toString(args.get(0));
@@ -340,6 +339,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     } catch (Exception e) {
       throw new AccumuloException(e.getMessage(), e);
     } finally {
+      Tables.clearCache(instance);
       // always finish table op, even when exception
       if (opid != null)
         try {
@@ -528,8 +528,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     ArgumentChecker.notNull(tableName);
     ByteBuffer EMPTY = ByteBuffer.allocate(0);
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(Constants.UTF8)), start == null ? EMPTY : TextUtil.getByteBuffer(start), end == null ? EMPTY
-        : TextUtil.getByteBuffer(end));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(Constants.UTF8)), start == null ? EMPTY : TextUtil.getByteBuffer(start),
+        end == null ? EMPTY : TextUtil.getByteBuffer(end));
     Map<String,String> opts = new HashMap<String,String>();
     try {
       doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_MERGE, args, opts);
@@ -544,8 +544,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     ArgumentChecker.notNull(tableName);
     ByteBuffer EMPTY = ByteBuffer.allocate(0);
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(Constants.UTF8)), start == null ? EMPTY : TextUtil.getByteBuffer(start), end == null ? EMPTY
-        : TextUtil.getByteBuffer(end));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(Constants.UTF8)), start == null ? EMPTY : TextUtil.getByteBuffer(start),
+        end == null ? EMPTY : TextUtil.getByteBuffer(end));
     Map<String,String> opts = new HashMap<String,String>();
     try {
       doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_DELETE_RANGE, args, opts);
@@ -787,8 +787,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     if (flush)
       _flush(tableId, start, end, true);
 
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes(Constants.UTF8)), start == null ? EMPTY : TextUtil.getByteBuffer(start), end == null ? EMPTY
-        : TextUtil.getByteBuffer(end), ByteBuffer.wrap(IteratorUtil.encodeIteratorSettings(iterators)));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes(Constants.UTF8)), start == null ? EMPTY : TextUtil.getByteBuffer(start),
+        end == null ? EMPTY : TextUtil.getByteBuffer(end), ByteBuffer.wrap(IteratorUtil.encodeIteratorSettings(iterators)));
 
     Map<String,String> opts = new HashMap<String,String>();
     try {
