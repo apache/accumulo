@@ -19,6 +19,7 @@ package org.apache.accumulo.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -30,6 +31,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import jline.ConsoleReader;
@@ -56,10 +58,14 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.tools.DistCp;
+import org.apache.log4j.Logger;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.rules.TestName;
 
 public class ShellServerTest {
   public static class TestOutputStream extends OutputStream {
@@ -78,21 +84,26 @@ public class ShellServerTest {
       sb.setLength(0);
     }
   }
+  
+  private static final Logger log = Logger.getLogger(ShellServerTest.class);
 
   private static String secret = "superSecret";
   public static TemporaryFolder folder = new TemporaryFolder();
   public static MiniAccumuloCluster cluster;
-  public static TestOutputStream output;
-  public static Shell shell;
+  public TestOutputStream output;
+  public Shell shell;
   private static Process traceProcess;
+  
+  @Rule
+  public TestName name = new TestName();
 
-  static String exec(String cmd) throws IOException {
+  String exec(String cmd) throws IOException {
     output.clear();
     shell.execCommand(cmd, true, true);
     return output.get();
   }
 
-  static String exec(String cmd, boolean expectGoodExit) throws IOException {
+  String exec(String cmd, boolean expectGoodExit) throws IOException {
     String result = exec(cmd);
     if (expectGoodExit)
       assertGoodExit("", true);
@@ -101,11 +112,11 @@ public class ShellServerTest {
     return result;
   }
 
-  static String exec(String cmd, boolean expectGoodExit, String expectString) throws IOException {
+  String exec(String cmd, boolean expectGoodExit, String expectString) throws IOException {
     return exec(cmd, expectGoodExit, expectString, true);
   }
 
-  static String exec(String cmd, boolean expectGoodExit, String expectString, boolean stringPresent) throws IOException {
+  String exec(String cmd, boolean expectGoodExit, String expectString, boolean stringPresent) throws IOException {
     String result = exec(cmd);
     if (expectGoodExit)
       assertGoodExit(expectString, stringPresent);
@@ -114,7 +125,7 @@ public class ShellServerTest {
     return result;
   }
 
-  static void assertGoodExit(String s, boolean stringPresent) {
+  void assertGoodExit(String s, boolean stringPresent) {
     Shell.log.debug(output.get());
     assertEquals(0, shell.getExitCode());
 
@@ -122,7 +133,7 @@ public class ShellServerTest {
       assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent, output.get().contains(s));
   }
 
-  static void assertBadExit(String s, boolean stringPresent) {
+  void assertBadExit(String s, boolean stringPresent) {
     Shell.log.debug(output.get());
     assertTrue(shell.getExitCode() > 0);
     if (s.length() > 0)
@@ -139,6 +150,17 @@ public class ShellServerTest {
 
     System.setProperty("HOME", folder.getRoot().getAbsolutePath());
 
+    // use reflection to call this method so it does not need to be made public
+    Method method = cluster.getClass().getDeclaredMethod("exec", Class.class, String[].class);
+    method.setAccessible(true);
+    traceProcess = (Process) method.invoke(cluster, TraceServer.class, new String[0]);
+
+    // give the tracer some time to start
+    UtilWaitThread.sleep(1000);
+  }
+  
+  @Before
+  public void setupShell() throws Exception {
     // start the shell
     output = new TestOutputStream();
     shell = new Shell(new ConsoleReader(new FileInputStream(FileDescriptor.in), new OutputStreamWriter(output)));
@@ -147,14 +169,6 @@ public class ShellServerTest {
     exec("quit", true);
     shell.start();
     shell.setExit(false);
-
-    // use reflection to call this method so it does not need to be made public
-    Method method = cluster.getClass().getDeclaredMethod("exec", Class.class, String[].class);
-    method.setAccessible(true);
-    traceProcess = (Process) method.invoke(cluster, TraceServer.class, new String[0]);
-
-    // give the tracer some time to start
-    UtilWaitThread.sleep(1000);
   }
 
   @AfterClass
@@ -164,26 +178,28 @@ public class ShellServerTest {
     folder.delete();
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 60000)
   public void exporttableImporttable() throws Exception {
+    final String table = name.getMethodName(), table2 = table + "2";
+    
     // exporttable / importtable
-    exec("createtable t -evc", true);
+    exec("createtable " + table + " -evc", true);
     make10();
     exec("addsplits row5", true);
-    exec("config -t t -s table.split.threshold=345M", true);
-    exec("offline t", true);
+    exec("config -t " + table + " -s table.split.threshold=345M", true);
+    exec("offline " + table, true);
     String export = folder.newFolder().toString();
-    exec("exporttable -t t " + export, true);
+    exec("exporttable -t " + table + " " + export, true);
     DistCp cp = newDistCp();
     String import_ = folder.newFolder().toString();
     cp.run(new String[] {"-f", export + "/distcp.txt", import_});
-    exec("importtable t2 " + import_, true);
-    exec("config -t t2 -np", true, "345M", true);
-    exec("getsplits -t t2", true, "row5", true);
-    exec("constraint --list -t t2", true, "VisibilityConstraint=1", true);
-    exec("onlinetable t", true);
-    exec("deletetable -f t", true);
-    exec("deletetable -f t2", true);
+    exec("importtable " + table2 + " " + import_, true);
+    exec("config -t " + table2 + " -np", true, "345M", true);
+    exec("getsplits -t " + table2, true, "row5", true);
+    exec("constraint --list -t " + table2, true, "VisibilityConstraint=1", true);
+    exec("onlinetable " + table, true);
+    exec("deletetable -f " + table, true);
+    exec("deletetable -f " + table2, true);
   }
 
   private DistCp newDistCp() {
@@ -206,10 +222,12 @@ public class ShellServerTest {
     throw new RuntimeException("Unexpected constructors for DistCp");
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void setscaniterDeletescaniter() throws Exception {
+    final String table = name.getMethodName();
+    
     // setscaniter, deletescaniter
-    exec("createtable t");
+    exec("createtable " + table);
     exec("insert a cf cq 1");
     exec("insert a cf cq 1");
     exec("insert a cf cq 1");
@@ -218,11 +236,11 @@ public class ShellServerTest {
     exec("scan", true, "3", true);
     exec("deletescaniter -n name", true);
     exec("scan", true, "1", true);
-    exec("deletetable -f t");
+    exec("deletetable -f " + table);
 
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void execfile() throws Exception {
     // execfile
     File file = folder.newFile();
@@ -233,18 +251,22 @@ public class ShellServerTest {
 
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void egrep() throws Exception {
+    final String table = name.getMethodName();
+    
     // egrep
-    exec("createtable t");
+    exec("createtable " + table);
     make10();
     String lines = exec("egrep row[123]", true);
     assertTrue(lines.split("\n").length - 1 == 3);
-    exec("deletetable -f t");
+    exec("deletetable -f " + table);
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void du() throws Exception {
+    final String table = name.getMethodName();
+    
     // create and delete a table so we get out of a table context in the shell
     exec("notable", true);
 
@@ -253,16 +275,16 @@ public class ShellServerTest {
     exec("du", true, "", true);
 
     output.clear();
-    exec("createtable t");
+    exec("createtable " + table);
     make10();
-    exec("flush -t t -w");
-    exec("du t", true, " [t]", true);
+    exec("flush -t " + table + " -w");
+    exec("du " + table, true, " [" + table + "]", true);
     output.clear();
     shell.execCommand("du -h", false, false);
     String o = output.get();
     // for some reason, there's a bit of fluctuation
-    assertTrue("Output did not match regex: '" + o + "'", o.matches(".*2[6-7][0-9]B\\s\\[t\\]\\n"));
-    exec("deletetable -f t");
+    assertTrue("Output did not match regex: '" + o + "'", o.matches(".*2[6-7][0-9]B\\s\\[" + table + "\\]\\n"));
+    exec("deletetable -f " + table);
   }
 
   @Test(timeout = 1000)
@@ -276,8 +298,10 @@ public class ShellServerTest {
     exec("debug debug debug", false);
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void user() throws Exception {
+    final String table = name.getMethodName();
+    
     // createuser, deleteuser, user, users, droptable, grant, revoke
     shell.getReader().setInput(new ByteArrayInputStream("secret\nsecret\n".getBytes()));
     exec("createuser xyzzy", true);
@@ -293,10 +317,10 @@ public class ShellServerTest {
     exec("grant -u xyzzy -t !METADATA foo", false);
     shell.getReader().setInput(new ByteArrayInputStream("secret\nsecret\n".getBytes()));
     exec("user xyzzy", true);
-    exec("createtable t", true, "xyzzy@", true);
+    exec("createtable " + table, true, "xyzzy@", true);
     exec("insert row1 cf cq 1", true);
     exec("scan", true, "row1", true);
-    exec("droptable -f t", true);
+    exec("droptable -f " + table, true);
     exec("deleteuser xyzzy", false, "delete yourself", true);
     shell.getReader().setInput(new ByteArrayInputStream((secret + "\n" + secret + "\n").getBytes()));
     exec("user root", true);
@@ -310,10 +334,12 @@ public class ShellServerTest {
     exec("users", true, "xyzzy", false);
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void iter() throws Exception {
+    final String table = name.getMethodName();
+    
     // setshelliter, listshelliter, deleteshelliter
-    exec("createtable t");
+    exec("createtable " + table);
     exec("insert a cf cq 1");
     exec("insert a cf cq 1");
     exec("insert a cf cq 1");
@@ -331,9 +357,9 @@ public class ShellServerTest {
     exec("deleteshelliter -pn sum -a", true);
     exec("listshelliter", true, "Iterator xyzzy", false);
     exec("listshelliter", true, "Profile : sum", false);
-    exec("deletetable -f t");
+    exec("deletetable -f " + table);
     // list iter
-    exec("createtable t");
+    exec("createtable " + table);
     exec("insert a cf cq 1");
     exec("insert a cf cq 1");
     exec("insert a cf cq 1");
@@ -349,36 +375,39 @@ public class ShellServerTest {
     exec("deleteiter -scan -n name", true);
     exec("listiter -scan", true, "Iterator name", false);
     exec("listiter -scan", true, "Iterator xyzzy", true);
-    exec("deletetable -f t");
+    exec("deletetable -f " + table);
 
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void notable() throws Exception {
+    final String table = name.getMethodName();
+    
     // notable
-    exec("createtable xyzzy", true);
-    exec("scan", true, " xyzzy>", true);
-    assertTrue(output.get().contains(" xyzzy>"));
+    exec("createtable " + table, true);
+    exec("scan", true, " " + table + ">", true);
+    assertTrue(output.get().contains(" " + table + ">"));
     exec("notable", true);
     exec("scan", false, "Not in a table context.", true);
-    assertFalse(output.get().contains(" xyzzy>"));
-    exec("deletetable -f xyzzy");
+    assertFalse(output.get().contains(" " + table + ">"));
+    exec("deletetable -f " + table);
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void sleep() throws Exception {
     // sleep
     long now = System.currentTimeMillis();
     exec("sleep 0.2", true);
     long diff = System.currentTimeMillis() - now;
-    assertTrue(diff >= 200);
-    assertTrue(diff < 400);
+    assertTrue("Diff was actually " + diff, diff >= 200);
+    assertTrue("Diff was actually " + diff, diff < 600);
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void addauths() throws Exception {
+    final String table = name.getMethodName();
     // addauths
-    exec("createtable xyzzy -evc");
+    exec("createtable " + table + " -evc");
     exec("insert a b c d -l foo", false, "does not have authorization", true);
     exec("addauths -s foo,bar", true);
     exec("getauths", true, "foo", true);
@@ -386,10 +415,10 @@ public class ShellServerTest {
     exec("insert a b c d -l foo");
     exec("scan", true, "[foo]");
     exec("scan -s bar", true, "[foo]", false);
-    exec("deletetable -f xyzzy");
+    exec("deletetable -f " + table);
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void byeQuitExit() throws Exception {
     // bye, quit, exit
     for (String cmd : "bye quit exit".split(" ")) {
@@ -400,137 +429,169 @@ public class ShellServerTest {
     }
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void classpath() throws Exception {
     // classpath
     exec("classpath", true, "Level 2: Java Classloader (loads everything defined by java classpath) URL classpath items are", true);
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void clearCls() throws Exception {
     // clear/cls
     exec("cls", true, "[1;1H");
     exec("clear", true, "[2J");
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void clonetable() throws Exception {
+    final String table = name.getMethodName(), clone = table + "_clone";
+    
     // clonetable
-    exec("createtable orig -evc");
-    exec("config -t orig -s table.split.threshold=123M", true);
-    exec("addsplits -t orig a b c", true);
+    exec("createtable " + table + " -evc");
+    exec("config -t " + table + " -s table.split.threshold=123M", true);
+    exec("addsplits -t " + table + " a b c", true);
     exec("insert a b c value");
     exec("scan", true, "value", true);
-    exec("clonetable orig clone");
+    exec("clonetable " + table + " " + clone);
     // verify constraint, config, and splits were cloned
-    exec("constraint --list -t clone", true, "VisibilityConstraint=1", true);
-    exec("config -t clone -np", true, "123M", true);
-    exec("getsplits -t clone", true, "a\nb\nc\n");
+    exec("constraint --list -t " + clone, true, "VisibilityConstraint=1", true);
+    exec("config -t " + clone + " -np", true, "123M", true);
+    exec("getsplits -t " + clone, true, "a\nb\nc\n");
+    exec("deletetable -f " + table);
+    exec("deletetable -f " + clone);
+  }
+  
+  @Test(timeout = 45000)
+  public void splitMerge() throws Exception {
+    final String table = name.getMethodName();
+    
     // compact
-    exec("createtable c");
+    exec("createtable " + table);
+    
+    String tableId = getTableId(table);
+    
     // make two files
     exec("insert a b c d");
     exec("flush -w");
     exec("insert x y z v");
     exec("flush -w");
-    int oldCount = countFiles();
+    int oldCount = countFiles(tableId);
     // merge two files into one
-    exec("compact -t c -w");
-    assertTrue(countFiles() < oldCount);
-    exec("addsplits -t c f");
+    exec("compact -t " + table + " -w");
+    assertTrue(countFiles(tableId) < oldCount);
+    exec("addsplits -t " + table + " f");
     // make two more files:
     exec("insert m 1 2 3");
     exec("flush -w");
     exec("insert n 1 2 3");
     exec("flush -w");
-    oldCount = countFiles();
-    // at this point there are 3 files in the default tablet
+    oldCount = countFiles(tableId);
+
+    // at this point there are 4 files in the default tablet
+    assertEquals(4, oldCount);
+    
     // compact some data:
     exec("compact -b g -e z -w");
-    assertTrue(countFiles() == oldCount - 2);
+    assertEquals(2, countFiles(tableId));
     exec("compact -w");
-    assertTrue(countFiles() == oldCount - 2);
-    exec("merge --all -t c");
+    assertEquals(2, countFiles(tableId));
+    exec("merge --all -t " + table);
     exec("compact -w");
-    assertTrue(countFiles() == oldCount - 3);
-    exec("deletetable -f orig");
-    exec("deletetable -f clone");
-    exec("deletetable -f c");
+    assertEquals(1, countFiles(tableId));
+    exec("deletetable -f " + table);
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void constraint() throws Exception {
+    final String table = name.getMethodName();
+    
     // constraint
     exec("constraint -l -t !METADATA", true, "MetadataConstraints=1", true);
-    exec("createtable c -evc");
-    exec("constraint -l -t c", true, "VisibilityConstraint=1", true);
+    exec("createtable " + table + " -evc");
+
+    // Make sure the table is fully propagated through zoocache
+    final String tableId = getTableId(table);
+
+    exec("constraint -l -t " + table, true, "VisibilityConstraint=1", true);
     Thread.sleep(250);
-    exec("constraint -t c -d 1", true, "Removed constraint 1 from table c");
+    exec("constraint -t " + table + " -d 1", true, "Removed constraint 1 from table c");
     Thread.sleep(250);
-    exec("constraint -l -t c", true, "VisibilityConstraint=1", false);
-    exec("deletetable -f c");
+    exec("constraint -l -t " + table, true, "VisibilityConstraint=1", false);
+    exec("deletetable -f " + table);
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void deletemany() throws Exception {
+    final String table = name.getMethodName();
+    
     // deletemany
-    exec("createtable t");
+    exec("createtable " + table);
     make10();
-    assertEquals(10, countkeys("t"));
+    assertEquals(10, countkeys(table));
     exec("deletemany -f -b row8");
-    assertEquals(8, countkeys("t"));
-    exec("scan -t t -np", true, "row8", false);
+    assertEquals(8, countkeys(table));
+    exec("scan -t " + table + " -np", true, "row8", false);
     make10();
     exec("deletemany -f -b row4 -e row5");
-    assertEquals(8, countkeys("t"));
+    assertEquals(8, countkeys(table));
     make10();
     exec("deletemany -f -c cf:col4,cf:col5");
-    assertEquals(8, countkeys("t"));
+    assertEquals(8, countkeys(table));
     make10();
     exec("deletemany -f -r row3");
-    assertEquals(9, countkeys("t"));
+    assertEquals(9, countkeys(table));
     make10();
     exec("deletemany -f -r row3");
-    assertEquals(9, countkeys("t"));
+    assertEquals(9, countkeys(table));
     make10();
     exec("deletemany -f -b row3 -be -e row5 -ee");
-    assertEquals(9, countkeys("t"));
-    exec("deletetable -f t");
+    assertEquals(9, countkeys(table));
+    exec("deletetable -f " + table);
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void deleterows() throws Exception {
+    final String table = name.getMethodName();
+
+    exec("createtable " + table);
+    final String tableId = getTableId(table);
+    
     // deleterows
-    int base = countFiles();
-    exec("createtable t");
+    int base = countFiles(tableId);
+    assertEquals(0, base);
+    
     exec("addsplits row5 row7");
     make10();
-    exec("flush -w -t t");
-    assertTrue(base + 3 == countFiles());
-    exec("deleterows -t t -b row5 -e row7", true);
-    assertTrue(base + 2 == countFiles());
-    exec("deletetable -f t");
+    exec("flush -w -t " + table);
+    assertEquals(3, countFiles(tableId));
+    exec("deleterows -t " + table + " -b row5 -e row7", true);
+    assertEquals(2, countFiles(tableId));
+    exec("deletetable -f " + table);
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void groups() throws Exception {
-    exec("createtable t");
-    exec("setgroups -t t alpha=a,b,c num=3,2,1");
-    exec("getgroups -t t", true, "alpha=a,b,c", true);
-    exec("getgroups -t t", true, "num=1,2,3", true);
-    exec("deletetable -f t");
+    final String table = name.getMethodName();
+    
+    exec("createtable " + table);
+    exec("setgroups -t " + table + " alpha=a,b,c num=3,2,1");
+    exec("getgroups -t " + table, true, "alpha=a,b,c", true);
+    exec("getgroups -t " + table, true, "num=1,2,3", true);
+    exec("deletetable -f " + table);
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void grep() throws Exception {
-    exec("createtable t", true);
+    final String table = name.getMethodName();
+    
+    exec("createtable " + table, true);
     make10();
     exec("grep row[123]", true, "row1", false);
     exec("grep row5", true, "row5", true);
-    exec("deletetable -f t", true);
+    exec("deletetable -f " + table, true);
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void help() throws Exception {
     exec("help -np", true, "Help Commands", true);
     shell.getReader().setInput(new ByteArrayInputStream("\n\n".getBytes()));
@@ -544,17 +605,21 @@ public class ShellServerTest {
     }
   }
 
-  // @Test(timeout = 30000)
+  // @Test(timeout = 45000)
   public void history() throws Exception {
+    final String table = name.getMethodName();
+    
     exec("history -c", true);
-    exec("createtable unusualstring");
-    exec("deletetable -f unusualstring");
-    exec("history", true, "unusualstring", true);
+    exec("createtable " + table);
+    exec("deletetable -f " + table);
+    exec("history", true, table, true);
     exec("history", true, "history", true);
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void importDirectory() throws Exception {
+    final String table = name.getMethodName();
+    
     Configuration conf = new Configuration();
     FileSystem fs = FileSystem.get(conf);
     File importDir = folder.newFolder("import");
@@ -579,52 +644,62 @@ public class ShellServerTest {
     }
     evenWriter.close();
     oddWriter.close();
-    exec("createtable t", true);
+    exec("createtable " + table, true);
     exec("importdirectory " + importDir + " " + errorsDir + " true", true);
     exec("scan -r 00000000", true, "00000000", true);
     exec("scan -r 00000099", true, "00000099", true);
-    exec("deletetable -f t");
+    exec("deletetable -f " + table);
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void info() throws Exception {
     exec("info", true, Constants.VERSION, true);
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void interpreter() throws Exception {
-    exec("createtable t", true);
+    final String table = name.getMethodName();
+    
+    exec("createtable " + table, true);
     exec("interpreter -l", true, "HexScan", false);
     exec("insert \\x02 cf cq value", true);
     exec("scan -b 02", true, "value", false);
     exec("interpreter -i org.apache.accumulo.core.util.interpret.HexScanInterpreter", true);
+
+    // Need to allow time for this to propagate through zoocache/zookeeper
+    Thread.sleep(3000);
+
     exec("interpreter -l", true, "HexScan", true);
     exec("scan -b 02", true, "value", true);
-    exec("deletetable -f t", true);
+    exec("deletetable -f " + table, true);
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void listcompactions() throws Exception {
-    exec("createtable t", true);
-    exec("config -t t -s table.iterator.minc.slow=30,org.apache.accumulo.test.functional.SlowIterator", true);
-    exec("config -t t -s table.iterator.minc.slow.opt.sleepTime=100", true);
+    final String table = name.getMethodName();
+    
+    exec("createtable " + table, true);
+    exec("config -t " + table + " -s table.iterator.minc.slow=30,org.apache.accumulo.test.functional.SlowIterator", true);
+    exec("config -t " + table + " -s table.iterator.minc.slow.opt.sleepTime=1000", true);
     exec("insert a cf cq value", true);
     exec("insert b cf cq value", true);
     exec("insert c cf cq value", true);
     exec("insert d cf cq value", true);
-    exec("flush -t t", true);
+    exec("flush -t " + table, true);
     exec("sleep 0.2", true);
     exec("listcompactions", true, "default_tablet");
     String[] lines = output.get().split("\n");
     String last = lines[lines.length - 1];
     String[] parts = last.split("\\|");
     assertEquals(12, parts.length);
-    exec("deletetable -f t", true);
+    exec("deletetable -f " + table, true);
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void maxrow() throws Exception {
-    exec("createtable t", true);
+    final String table = name.getMethodName();
+    
+    exec("createtable " + table, true);
     exec("insert a cf cq value", true);
     exec("insert b cf cq value", true);
     exec("insert ccc cf cq value", true);
@@ -632,17 +707,19 @@ public class ShellServerTest {
     exec("maxrow", true, "zzz", true);
     exec("delete zzz cf cq", true);
     exec("maxrow", true, "ccc", true);
-    exec("deletetable -f t", true);
+    exec("deletetable -f " + table, true);
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void merge() throws Exception {
-    exec("createtable t");
+    final String table = name.getMethodName();
+    
+    exec("createtable " + table);
     exec("addsplits a m z");
     exec("getsplits", true, "z", true);
     exec("merge --all", true);
     exec("getsplits", true, "z", false);
-    exec("deletetable -f t");
+    exec("deletetable -f " + table);
     exec("getsplits -t !METADATA", true);
     assertEquals(3, output.get().split("\n").length);
     exec("merge --all -t !METADATA");
@@ -650,7 +727,7 @@ public class ShellServerTest {
     assertEquals(2, output.get().split("\n").length);
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void ping() throws Exception {
     for (int i = 0; i < 10; i++) {
       exec("ping", true, "OK", true);
@@ -663,18 +740,20 @@ public class ShellServerTest {
     assertEquals(3, output.get().split("\n").length);
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void renametable() throws Exception {
-    exec("createtable aaaa");
+    final String table = name.getMethodName() + "1", rename = name.getMethodName() + "2";
+    
+    exec("createtable " + table);
     exec("insert this is a value");
-    exec("renametable aaaa xyzzy");
-    exec("tables", true, "xyzzy", true);
-    exec("tables", true, "aaaa", false);
-    exec("scan -t xyzzy", true, "value", true);
-    exec("deletetable -f xyzzy", true);
+    exec("renametable " + table + " " + rename);
+    exec("tables", true, rename, true);
+    exec("tables", true, table, false);
+    exec("scan -t " + rename, true, "value", true);
+    exec("deletetable -f " + rename, true);
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void systempermission() throws Exception {
     exec("systempermissions");
     assertEquals(8, output.get().split("\n").length - 1);
@@ -682,11 +761,13 @@ public class ShellServerTest {
     assertEquals(6, output.get().split("\n").length - 1);
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void listscans() throws Exception {
-    exec("createtable t", true);
-    exec("config -t t -s table.iterator.scan.slow=30,org.apache.accumulo.test.functional.SlowIterator", true);
-    exec("config -t t -s table.iterator.scan.slow.opt.sleepTime=100", true);
+    final String table = name.getMethodName();
+    
+    exec("createtable " + table, true);
+    exec("config -t " + table + " -s table.iterator.scan.slow=30,org.apache.accumulo.test.functional.SlowIterator", true);
+    exec("config -t " + table + " -s table.iterator.scan.slow.opt.sleepTime=1000", true);
     exec("insert a cf cq value", true);
     exec("insert b cf cq value", true);
     exec("insert c cf cq value", true);
@@ -696,7 +777,7 @@ public class ShellServerTest {
         try {
           ZooKeeperInstance instance = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers());
           Connector connector = instance.getConnector("root", new PasswordToken(secret));
-          Scanner s = connector.createScanner("t", Constants.NO_AUTHS);
+          Scanner s = connector.createScanner(table, Constants.NO_AUTHS);
           for (@SuppressWarnings("unused")
           Entry<Key,Value> kv : s)
             ;
@@ -714,11 +795,13 @@ public class ShellServerTest {
     String parts[] = last.split("\\|");
     assertEquals(13, parts.length);
     thread.join();
-    exec("deletetable -f t", true);
+    exec("deletetable -f " + table, true);
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void testPertableClasspath() throws Exception {
+    final String table = name.getMethodName();
+    
     File fooFilterJar = File.createTempFile("FooFilter", ".jar");
     FileUtils.copyURLToFile(this.getClass().getResource("/FooFilter.jar"), fooFilterJar);
     fooFilterJar.deleteOnExit();
@@ -731,15 +814,15 @@ public class ShellServerTest {
         "config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1=" + fooFilterJar.toURI().toString() + "," + fooConstraintJar.toURI().toString(),
         true);
 
-    exec("createtable ptc", true);
-    exec("config -t ptc -s " + Property.TABLE_CLASSPATH.getKey() + "=cx1", true);
+    exec("createtable " + table, true);
+    exec("config -t " + table + " -s " + Property.TABLE_CLASSPATH.getKey() + "=cx1", true);
 
     UtilWaitThread.sleep(200);
 
     // We can't use the setiter command as Filter implements OptionDescriber which
     // forces us to enter more input that I don't know how to input
     // Instead, we can just manually set the property on the table.
-    exec("config -t ptc -s " + Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.foo=10,org.apache.accumulo.test.FooFilter");
+    exec("config -t " + table + " -s " + Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.foo=10,org.apache.accumulo.test.FooFilter");
 
     exec("insert foo f q v", true);
 
@@ -749,26 +832,29 @@ public class ShellServerTest {
 
     exec("constraint -a FooConstraint", true);
 
-    exec("offline ptc");
+    exec("offline " + table);
     UtilWaitThread.sleep(500);
-    exec("online ptc");
+    exec("online " + table);
 
-    exec("table ptc", true);
+    exec("table " + table, true);
     exec("insert foo f q v", false);
     exec("insert ok foo q v", true);
 
-    exec("deletetable -f ptc", true);
+    exec("deletetable -f " + table, true);
     exec("config -d " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
 
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 45000)
   public void trace() throws Exception {
+    // Make sure to not collide with the "trace" table
+    final String table = name.getMethodName() + "Test";
+    
     exec("trace on", true);
-    exec("createtable t", true);
+    exec("createtable " + table, true);
     exec("insert a b c value", true);
     exec("scan -np", true, "value", true);
-    exec("deletetable -f t");
+    exec("deletetable -f " + table);
     exec("sleep 1");
     String trace = exec("trace off");
     assertTrue(trace.contains("binMutations"));
@@ -787,9 +873,30 @@ public class ShellServerTest {
     }
   }
 
-  private int countFiles() throws IOException {
-    exec("scan -t !METADATA -np -c file");
+  private int countFiles(String tableId) throws IOException {
+    exec("scan -t !METADATA -np -c file -b " + tableId + " -e " + tableId + "~");
+    
+    log.debug("countFiles(): " + output.get());
+    
     return output.get().split("\n").length - 1;
+  }
+  
+  private String getTableId(String tableName) throws Exception {
+    ZooKeeperInstance zki = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers());
+    Connector conn = zki.getConnector("root", new PasswordToken(secret));
+    
+    for (int i = 0; i < 5; i++) {
+      Map<String,String> nameToId = conn.tableOperations().tableIdMap();
+      if (nameToId.containsKey(tableName)) {
+        return nameToId.get(tableName);
+      } else {
+        Thread.sleep(1000);
+      }
+    }
+    
+    fail("Could not find ID for table: " + tableName);
+    // Will never get here
+    return null;
   }
 
 }
