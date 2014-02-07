@@ -35,8 +35,10 @@ import org.apache.log4j.Logger;
 
 public class TableConfiguration extends AccumuloConfiguration {
   private static final Logger log = Logger.getLogger(TableConfiguration.class);
+  
+  // Need volatile keyword to ensure double-checked locking works as intended
+  private static volatile ZooCache tablePropCache = null;
 
-  private static ZooCache tablePropCache = null;
   private final String instanceId;
   private final NamespaceConfiguration parent;
 
@@ -151,5 +153,16 @@ public class TableConfiguration extends AccumuloConfiguration {
    */
   public NamespaceConfiguration getParentConfiguration() {
     return parent;
+  }
+
+  @Override
+  public void invalidateCache() {
+    if (null != tablePropCache) {
+      synchronized (TableConfiguration.class) {
+        if (null != tablePropCache) {
+          tablePropCache = null;
+        }
+      }
+    }
   }
 }
