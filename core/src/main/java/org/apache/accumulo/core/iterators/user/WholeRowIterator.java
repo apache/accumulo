@@ -66,7 +66,25 @@ public class WholeRowIterator implements SortedKeyValueIterator<Key,Value> {
   WholeRowIterator(SortedKeyValueIterator<Key,Value> source) {
     this.sourceIter = source;
   }
-  
+
+  /**
+   * Returns the byte array containing the field of row key from the given DataInputStream din.
+   * Assumes that din first has the length of the field, followed by the field itself.
+   */
+  private static byte[] readField(DataInputStream din) throws IOException {
+    int len = din.readInt();
+    byte[] b = new byte[len];
+    int readLen = din.read(b);
+    // Check if expected length is not same as read length.
+    // We ignore the zero length case because DataInputStream.read can return -1
+    // if zero length was expected and end of stream has been reached.
+    if (len > 0 && len != readLen) {
+      throw new IOException(String.format("Expected to read %d bytes but read %d",
+          len, readLen));
+    }
+    return b;
+  }
+
   // decode a bunch of key value pairs that have been encoded into a single value
   public static final SortedMap<Key,Value> decodeRow(Key rowKey, Value rowValue) throws IOException {
     SortedMap<Key,Value> map = new TreeMap<Key,Value>();
@@ -74,36 +92,11 @@ public class WholeRowIterator implements SortedKeyValueIterator<Key,Value> {
     DataInputStream din = new DataInputStream(in);
     int numKeys = din.readInt();
     for (int i = 0; i < numKeys; i++) {
-      byte[] cf;
-      byte[] cq;
-      byte[] cv;
-      byte[] valBytes;
-      // read the col fam
-      {
-        int len = din.readInt();
-        cf = new byte[len];
-        din.read(cf);
-      }
-      // read the col qual
-      {
-        int len = din.readInt();
-        cq = new byte[len];
-        din.read(cq);
-      }
-      // read the col visibility
-      {
-        int len = din.readInt();
-        cv = new byte[len];
-        din.read(cv);
-      }
-      // read the timestamp
-      long timestamp = din.readLong();
-      // read the value
-      {
-        int len = din.readInt();
-        valBytes = new byte[len];
-        din.read(valBytes);
-      }
+      byte[] cf = readField(din); // read the col fam
+      byte[] cq = readField(din); // read the col qual
+      byte[] cv = readField(din); // read the col visibility
+      long timestamp = din.readLong(); // read the timestamp
+      byte[] valBytes = readField(din); // read the value
       map.put(new Key(rowKey.getRowData().toArray(), cf, cq, cv, timestamp, false, false), new Value(valBytes, false));
     }
     return map;
