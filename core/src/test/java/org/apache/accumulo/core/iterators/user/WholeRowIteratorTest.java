@@ -16,16 +16,17 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
+import static org.junit.Assert.*;
+
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
-
-import junit.framework.TestCase;
 
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -35,9 +36,22 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
-public class WholeRowIteratorTest extends TestCase {
-  
+import com.google.common.collect.ImmutableList;
+
+public class WholeRowIteratorTest {
+
+  @Test(expected=IOException.class)
+  public void testBadDecodeRow() throws IOException {
+    Key k = new Key(new Text("r1"), new Text("cf1234567890"));
+    Value v = new Value("v1".getBytes());
+    Value encoded = WholeRowIterator.encodeRow(ImmutableList.of(k), ImmutableList.of(v));
+    encoded.set(Arrays.copyOfRange(encoded.get(), 0, 10)); // truncate to 10 bytes only
+    WholeRowIterator.decodeRow(k, encoded);
+  }
+
+  @Test
   public void testEmptyStuff() throws IOException {
     SortedMap<Key,Value> map = new TreeMap<Key,Value>();
     SortedMap<Key,Value> map2 = new TreeMap<Key,Value>();
@@ -108,6 +122,7 @@ public class WholeRowIteratorTest extends TestCase {
     map.put(new Key(new Text(row), new Text(cf), new Text(cq), new Text(cv), ts), new Value(val.getBytes()));
   }
   
+  @Test
   public void testContinue() throws Exception {
     SortedMap<Key,Value> map1 = new TreeMap<Key,Value>();
     pkv(map1, "row1", "cf1", "cq1", "cv1", 5, "foo");
@@ -149,6 +164,7 @@ public class WholeRowIteratorTest extends TestCase {
     
   }
   
+  @Test
   public void testBug1() throws Exception {
     SortedMap<Key,Value> map1 = new TreeMap<Key,Value>();
     pkv(map1, "row1", "cf1", "cq1", "cv1", 5, "foo");
