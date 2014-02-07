@@ -1075,11 +1075,6 @@ public class SimpleTest {
     Map<String,String> orig = client.getTableProperties(creds, "test");
     client.setTableProperty(creds, "test", "table.split.threshold", "500M");
     Map<String,String> update = client.getTableProperties(creds, "test");
-    for (int i = 0; i < 5; i++) {
-      if (update.get("table.split.threshold").equals("500M"))
-        break;
-      UtilWaitThread.sleep(200);
-    }
     assertEquals(update.get("table.split.threshold"), "500M");
     client.removeTableProperty(creds, "test", "table.split.threshold");
     update = client.getTableProperties(creds, "test");
