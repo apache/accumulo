@@ -613,6 +613,8 @@ public class SimpleTest {
     } catch (MutationsRejectedException e) {}
     
     client.removeConstraint(creds, TABLE_TEST, 1);
+
+    UtilWaitThread.sleep(2000);
     
     writerOptions = new WriterOptions();
     writerOptions.setLatencyMs(10000);
@@ -641,6 +643,9 @@ public class SimpleTest {
     client.createTable(creds, TABLE_TEST, true, TimeType.MILLIS);
     // constraints
     client.addConstraint(creds, TABLE_TEST, NumericValueConstraint.class.getName());
+
+    UtilWaitThread.sleep(2000);
+
     client.updateAndFlush(creds, TABLE_TEST, mutation("row1", "cf", "cq", "123"));
     
     try {
@@ -649,6 +654,10 @@ public class SimpleTest {
     } catch (MutationsRejectedException ex) {}
     
     client.removeConstraint(creds, TABLE_TEST, 1);
+
+    UtilWaitThread.sleep(2000);
+
+    assertEquals(0, client.listConstraints(creds, TABLE_TEST).size());
     client.updateAndFlush(creds, TABLE_TEST, mutation("row1", "cf", "cq", "x"));
     String scanner = client.createScanner(creds, TABLE_TEST, null);
     ScanResult more = client.nextK(scanner, 2);
