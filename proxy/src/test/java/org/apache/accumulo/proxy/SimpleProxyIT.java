@@ -965,6 +965,8 @@ public class SimpleProxyIT {
 
     assertScan(new String[][] {}, TABLE_TEST);
 
+    UtilWaitThread.sleep(2000);
+    
     writerOptions = new WriterOptions();
     writerOptions.setLatencyMs(10000);
     writerOptions.setMaxMemory(3000);
@@ -990,6 +992,9 @@ public class SimpleProxyIT {
     // constraints
     client.addConstraint(creds, TABLE_TEST, NumericValueConstraint.class.getName());
     assertEquals(2, client.listConstraints(creds, TABLE_TEST).size());
+
+    UtilWaitThread.sleep(2000);
+
     client.updateAndFlush(creds, TABLE_TEST, mutation("row1", "cf", "cq", "123"));
 
     try {
@@ -998,7 +1003,11 @@ public class SimpleProxyIT {
     } catch (MutationsRejectedException ex) {}
 
     client.removeConstraint(creds, TABLE_TEST, 2);
+
+    UtilWaitThread.sleep(2000);
+
     assertEquals(1, client.listConstraints(creds, TABLE_TEST).size());
+
     client.updateAndFlush(creds, TABLE_TEST, mutation("row1", "cf", "cq", "x"));
     assertScan(new String[][] {{"row1", "cf", "cq", "x"}}, TABLE_TEST);
     // splits, merge
