@@ -76,19 +76,26 @@ public class RunTests extends Configured implements Tool {
   private static final Logger log = Logger.getLogger(RunTests.class);
   
   private Job job = null;
-  
+
+  private static final int DEFAULT_TIMEOUT_FACTOR = 1;
+
   static class Opts extends Help {
     @Parameter(names="--tests", description="newline separated list of tests to run", required=true)
     String testFile;
     @Parameter(names="--output", description="destination for the results of tests in HDFS", required=true)
     String outputPath;
+    @Parameter(names="--timeoutFactor", description="Optional scaling factor for timeout for both mapred.task.timeout and -f flag on run.py", required=false)
+    Integer intTimeoutFactor = DEFAULT_TIMEOUT_FACTOR;
   }
   
+  static final String TIMEOUT_FACTOR = RunTests.class.getName() + ".timeoutFactor";
+
   static public class TestMapper extends Mapper<LongWritable,Text,Text,Text> {
     
     private static final String REDUCER_RESULT_START = "::::: ";
     private static final int RRS_LEN = REDUCER_RESULT_START.length();
     private Text result = new Text();
+    String mapperTimeoutFactor = null;
 
     private static enum Outcome {
       SUCCESS, FAILURE, ERROR, UNEXPECTED_SUCCESS, EXPECTED_FAILURE
@@ -105,7 +112,7 @@ public class RunTests extends Configured implements Tool {
 
     @Override
     protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-      List<String> cmd = Arrays.asList("/usr/bin/python", "test/system/auto/run.py", "-m", "-t", value.toString());
+      List<String> cmd = Arrays.asList("/usr/bin/python", "test/system/auto/run.py", "-m", "-f", mapperTimeoutFactor, "-t", value.toString());
       log.info("Running test " + cmd);
       ProcessBuilder pb = new ProcessBuilder(cmd);
       pb.directory(new File(context.getConfiguration().get("accumulo.home")));
@@ -140,6 +147,10 @@ public class RunTests extends Configured implements Tool {
       p.waitFor();
     }
     
+    @Override
+    protected void setup(Mapper.Context context) throws IOException, InterruptedException {
+      mapperTimeoutFactor = Integer.toString(context.getConfiguration().getInt(TIMEOUT_FACTOR, DEFAULT_TIMEOUT_FACTOR));
+    }
   }
   
   @Override
@@ -153,7 +164,11 @@ public class RunTests extends Configured implements Tool {
     Configuration conf = job.getConfiguration();
     conf.setInt("mapred.max.split.size", 40);
     conf.set("accumulo.home", System.getenv("ACCUMULO_HOME"));
-    conf.setInt("mapred.task.timeout", 8 * 60 * 1000);
+
+    // Taking third argument as scaling factor to setting mapred.task.timeout
+    // and TIMEOUT_FACTOR
+    conf.setInt("mapred.task.timeout", opts.intTimeoutFactor * 8 * 60 * 1000);
+    conf.setInt(TIMEOUT_FACTOR, opts.intTimeoutFactor);
     conf.setBoolean("mapred.map.tasks.speculative.execution", false);
     
     // set input

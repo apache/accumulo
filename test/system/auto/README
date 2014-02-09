@@ -69,6 +69,16 @@ cluster at your disposal, you can run the tests as a MapReduce job:
 The example above runs every test. You can trim the tests file to include
 only the tests you wish to run.
 
+You may specify a 'timeout factor' via an optional integer argument:
+
+ $ ./bin/accumulo org.apache.accumulo.test.functional.RunTests --tests \
+   /user/hadoop/tests --output /user/hadoop/results --timeoutFactor <integer>
+
+Where 'timeout_factor' indicates how much we should scale up timeouts. It will
+be used to set both mapred.task.timeout and the "-f" flag used by run.py. If
+not given, 'timeout_factor' defaults to 1, which corresponds to a
+mapred.task.timeout of 480 seconds.
+
 In some clusters, the user under which MR jobs run is different from the user
 under which Accumulo is installed, and this can cause failures running the
 tests. Various configuration and permission changes can be made to help the
