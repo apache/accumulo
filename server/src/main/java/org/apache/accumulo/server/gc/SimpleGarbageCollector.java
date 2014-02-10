@@ -159,7 +159,7 @@ public class SimpleGarbageCollector implements Iface {
       gc.setVerbose();
     if (opts.address != null)
       address = opts.address;
-    
+
     String hostname = address;
 
     // Catch a few edge cases where we might get a non-useful address
