@@ -310,6 +310,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     try {
       Thread.sleep(failSleepTime);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      
       // We were interrupted (close called on batchscanner) just exit
       log.debug("Exiting failure processing on interrupt");
       return;
