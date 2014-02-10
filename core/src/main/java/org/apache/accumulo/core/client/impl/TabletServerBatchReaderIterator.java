@@ -315,7 +315,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       log.debug("Exiting failure processing on interrupt");
       return;
     }
-    
+
     failSleepTime = Math.min(5000, failSleepTime * 2);
     
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
