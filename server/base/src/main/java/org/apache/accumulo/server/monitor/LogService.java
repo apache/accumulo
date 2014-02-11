@@ -29,12 +29,12 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.net.SocketNode;
 import org.apache.log4j.spi.LoggingEvent;
+import org.apache.zookeeper.KeeperException;
 
 /**
  * Hijack log4j and capture log events for display.
@@ -79,14 +79,43 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
     }
   }
 
-  public static void startLogListener(AccumuloConfiguration conf, String instanceId) {
+  /**
+   * Place the host:port advertisement for the Monitor's Log4j listener in ZooKeeper
+   * 
+   * @param conf
+   *          configuration for the instance
+   * @param instanceId
+   *          instanceId for the instance
+   * @param hostAddress
+   *          Address that monitor process is bound to
+   */
+  public static void startLogListener(AccumuloConfiguration conf, String instanceId, String hostAddress) {
     try {
       SocketServer server = new SocketServer(conf.getPort(Property.MONITOR_LOG4J_PORT));
-      ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instanceId) + Constants.ZMONITOR_LOG4J_PORT,
-          Integer.toString(server.getLocalPort()).getBytes(Constants.UTF8), NodeExistsPolicy.OVERWRITE);
+
+      // getLocalPort will return the actual ephemeral port used when '0' was provided.
+      String logForwardingAddr = hostAddress + ":" + server.getLocalPort();
+
+      log.debug("Setting monitor log4j log-forwarding address to: " + logForwardingAddr);
+
+      final String path = ZooUtil.getRoot(instanceId) + Constants.ZMONITOR_LOG4J_ADDR;
+      final ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+
+      // Delete before we try to re-create in case the previous session hasn't yet expired
+      try {
+        zoo.delete(path, -1);
+      } catch (KeeperException e) {
+        // We don't care if the node is already gone
+        if (!KeeperException.Code.NONODE.equals(e.code())) {
+          throw e;
+        }
+      }
+
+      zoo.putEphemeralData(path, logForwardingAddr.getBytes(Constants.UTF8));
+
       new Daemon(server).start();
     } catch (Throwable t) {
-      log.info("Unable to listen to cluster-wide ports", t);
+      log.info("Unable to start/advertise Log4j listener for log-forwarding to monitor", t);
     }
   }
 
