@@ -33,6 +33,8 @@ import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.log4j.Logger;
 
+import com.google.common.annotations.VisibleForTesting;
+
 public class ConstraintChecker {
   
   private ArrayList<Constraint> constrains;
@@ -75,7 +77,12 @@ public class ConstraintChecker {
       log.error("Failed to load constraints " + conf.getTableId() + " " + e.toString(), e);
     }
   }
-  
+
+  @VisibleForTesting
+  ArrayList<Constraint> getConstraints() {
+    return constrains;
+  }
+
   public boolean classLoaderChanged() {
     
     if (constrains.size() == 0)
@@ -99,12 +106,17 @@ public class ConstraintChecker {
     }
   }
 
-  public Violations check(Environment env, Mutation m) {
-    
-    Violations violations = null;
-    
-    if (!env.getExtent().contains(new ComparableBytes(m.getRow()))) {
+  private static Violations addViolation(Violations violations, ConstraintViolationSummary cvs) {
+    if (violations == null) {
       violations = new Violations();
+    }
+    violations.add(cvs);
+    return violations;
+  }
+
+  public Violations check(Environment env, Mutation m) {
+    if (!env.getExtent().contains(new ComparableBytes(m.getRow()))) {
+      Violations violations = new Violations();
       
       ConstraintViolationSummary cvs = new ConstraintViolationSummary(SystemConstraint.class.getName(), (short) -1, "Mutation outside of tablet extent", 1);
       violations.add(cvs);
@@ -112,31 +124,26 @@ public class ConstraintChecker {
       // do not bother with further checks since this mutation does not go with this tablet
       return violations;
     }
-    
-    for (Constraint constraint : constrains) {
-      List<Short> violationCodes = null;
-      Throwable throwable = null;
-      
+
+    // violations is intentionally initialized as null for performance
+    Violations violations = null;
+    for (Constraint constraint : getConstraints()) {
       try {
-        violationCodes = constraint.check(env, m);
-      } catch (Throwable t) {
-        throwable = t;
-        log.warn("CONSTRAINT FAILED : " + throwable.getMessage(), t);
-      }
-      
-      if (violationCodes != null) {
-        for (Short vcode : violationCodes) {
-          ConstraintViolationSummary cvs = new ConstraintViolationSummary(constraint.getClass().getName(), vcode, constraint.getViolationDescription(vcode), 1);
-          if (violations == null)
-            violations = new Violations();
-          violations.add(cvs);
+        List<Short> violationCodes = constraint.check(env, m);
+        if (violationCodes != null) {
+          String className = constraint.getClass().getName();
+          for (Short vcode : violationCodes) {
+            violations = addViolation(violations, new ConstraintViolationSummary(
+                className, vcode, constraint.getViolationDescription(vcode), 1));
+          }
         }
-      } else if (throwable != null) {
+      } catch (Throwable throwable) {
+        log.warn("CONSTRAINT FAILED : " + throwable.getMessage(), throwable);
+
         // constraint failed in some way, do not allow mutation to pass
-        
         short vcode;
         String msg;
-        
+
         if (throwable instanceof NullPointerException) {
           vcode = -1;
           msg = "threw NullPointerException";
@@ -153,14 +160,12 @@ public class ConstraintChecker {
           vcode = -100;
           msg = "threw some Exception";
         }
-        
-        ConstraintViolationSummary cvs = new ConstraintViolationSummary(constraint.getClass().getName(), vcode, "CONSTRAINT FAILED : " + msg, 1);
-        if (violations == null)
-          violations = new Violations();
-        violations.add(cvs);
+
+        violations = addViolation(violations, new ConstraintViolationSummary(
+            constraint.getClass().getName(), vcode, "CONSTRAINT FAILED : " + msg, 1));
       }
     }
-    
+
     return violations;
   }
 }
