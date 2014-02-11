@@ -64,7 +64,9 @@ public class Constants {
   public static final String ZGC_LOCK = ZGC + "/lock";
   
   public static final String ZMONITOR = "/monitor";
-  public static final String ZMONITOR_LOG4J_PORT = ZMONITOR + "/log4j_port";
+  public static final String ZMONITOR_LOCK = ZMONITOR + "/lock";
+  public static final String ZMONITOR_HTTP_ADDR = ZMONITOR + "/http_addr";
+  public static final String ZMONITOR_LOG4J_ADDR = ZMONITOR + "/log4j_addr";
   
   public static final String ZCONFIG = "/config";
   
