@@ -60,7 +60,7 @@ public class MonitorLog4jWatcher extends FileWatchdog implements Watcher {
   public void run() {
     try {
       // Initially set the logger if the Monitor's log4j advertisement node exists
-      if (ZooReaderWriter.getInstance().getZooKeeper().exists(path, this) != null)
+      if (ZooReaderWriter.getInstance().exists(path, this))
         updateMonitorLog4jLocation();
       log.info("Set watch for Monitor Log4j watcher");
     } catch (Exception e) {
@@ -73,7 +73,7 @@ public class MonitorLog4jWatcher extends FileWatchdog implements Watcher {
   @Override
   protected void doOnChange() {
     // this method gets called in the parent class' constructor
-    // I'm not sure of a better way to get around this. final helps though.
+    // I'm not sure of a better way to get around this. The final modifier helps though.
     if (null == lock) {
       resetLogger();
       return;
