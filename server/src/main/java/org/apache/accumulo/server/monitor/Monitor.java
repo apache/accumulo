@@ -562,11 +562,18 @@ public class Monitor {
         // And then make the nodes that we expect for the incoming ephemeral nodes
         zoo.putPersistentData(monitorPath, new byte[0], NodeExistsPolicy.FAIL);
         zoo.putPersistentData(monitorLockPath, new byte[0], NodeExistsPolicy.FAIL);
+      } else if (!zoo.exists(monitorLockPath)) {
+        // monitor node in ZK exists and is empty as we expect
+        // but the monitor/lock node does not
+        zoo.putPersistentData(monitorLockPath, new byte[0], NodeExistsPolicy.FAIL);
       }
     } else {
       // 1.5.0 and earlier
       zoo.putPersistentData(zRoot + Constants.ZMONITOR, new byte[0], NodeExistsPolicy.FAIL);
-      zoo.putPersistentData(zRoot + Constants.ZMONITOR_LOCK, new byte[0], NodeExistsPolicy.FAIL);
+      if (!zoo.exists(monitorLockPath)) {
+        // Somehow the monitor node exists but not monitor/lock
+        zoo.putPersistentData(monitorLockPath, new byte[0], NodeExistsPolicy.FAIL);
+      }
     }
 
     // Get a ZooLock for the monitor
