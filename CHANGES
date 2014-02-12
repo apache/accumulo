@@ -235,6 +235,7 @@ Release Notes - Accumulo - Version 1.5.1
     * [ACCUMULO-1782] - SimpleBulkTest and CompactionTest fail with missing testrf directory
     * [ACCUMULO-1789] - Increase test timeouts for Accumulo 1.5.x
     * [ACCUMULO-2216] - Randomwalk module to run each test once
+    * [ACCUMULO-2170] - Remove static block from AccumuloDFSBase
 
 
 
