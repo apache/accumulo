@@ -34,7 +34,7 @@ import org.junit.Test;
 
 public class ReadOnlyHdfsFileProviderTest extends AccumuloDFSBase {
   
-  private static final String TEST_DIR1 = HDFS_URI + "/test-dir";
+  private static final String TEST_DIR1 = getHdfsUri() + "/test-dir";
   private static final Path DIR1_PATH = new Path("/test-dir");
   private static final String TEST_FILE1 = TEST_DIR1 + "/accumulo-test-1.jar";
   private static final Path FILE1_PATH = new Path(DIR1_PATH, "accumulo-test-1.jar");

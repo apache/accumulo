@@ -32,27 +32,28 @@ import org.apache.commons.vfs2.impl.FileContentInfoFilenameFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 
 @SuppressWarnings("deprecation")
 public class AccumuloDFSBase {
 
-  // Turn off the MiniDFSCluster logging
-  static {
-    System.setProperty("java.io.tmpdir", System.getProperty("user.dir") + "/target");
-    System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.NoOpLog");
-  }
-
   protected static Configuration conf = null;
   protected static DefaultFileSystemManager vfs = null;
   protected static MiniDFSCluster cluster = null;
+ 
+  private static URI HDFS_URI;
 
-  protected static final URI HDFS_URI;
+  protected static URI getHdfsUri() {
+    return HDFS_URI;
+  }
 
-  static {
-    Logger.getRootLogger().setLevel(Level.ERROR);
-
+  @BeforeClass
+  public static void miniDfsClusterSetup() {
+    System.setProperty("java.io.tmpdir", System.getProperty("user.dir") + "/target");
+    // System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.NoOpLog");
+    // Logger.getRootLogger().setLevel(Level.ERROR);
+    
     // Put the MiniDFSCluster directory in the target directory
     System.setProperty("test.build.data", "target/build/test/data");
 
@@ -118,6 +119,11 @@ public class AccumuloDFSBase {
       throw new RuntimeException("Error setting up VFS", e);
     }
 
+  }
+
+  @AfterClass
+  public static void tearDownMiniDfsCluster() {
+    cluster.shutdown();
   }
 
 }
