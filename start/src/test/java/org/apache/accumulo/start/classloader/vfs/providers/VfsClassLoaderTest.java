@@ -33,7 +33,7 @@ import org.junit.Test;
 
 public class VfsClassLoaderTest extends AccumuloDFSBase {
   
-  private static final Path TEST_DIR = new Path(HDFS_URI + "/test-dir");
+  private static final Path TEST_DIR = new Path(getHdfsUri() + "/test-dir");
 
   private FileSystem hdfs = null;
   private VFSClassLoader cl = null;
