@@ -80,6 +80,7 @@ public class VfsClassLoaderTest extends AccumuloDFSBase {
     Path dst = new Path(TEST_DIR, "HelloWorld2.jar");
     this.hdfs.copyFromLocalFile(src, dst);
 
+    // VFS-487 significantly wait to avoid failure
     Thread.sleep(7000);
     Assert.assertTrue(listener.isFileCreated());
 
@@ -89,10 +90,12 @@ public class VfsClassLoaderTest extends AccumuloDFSBase {
     dst = new Path(TEST_DIR, "HelloWorld2.jar");
     this.hdfs.copyFromLocalFile(src, dst);
 
+    // VFS-487 significantly wait to avoid failure
     Thread.sleep(7000);
     Assert.assertTrue(listener.isFileChanged());
     
     this.hdfs.delete(dst, false);
+    // VFS-487 significantly wait to avoid failure
     Thread.sleep(7000);
     Assert.assertTrue(listener.isFileDeleted());
     
