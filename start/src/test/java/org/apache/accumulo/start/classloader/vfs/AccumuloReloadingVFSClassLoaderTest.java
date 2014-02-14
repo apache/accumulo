@@ -107,11 +107,15 @@ public class AccumuloReloadingVFSClassLoaderTest {
 
     new File(folder1.getRoot(), "HelloWorld.jar").delete();
 
+    // VFS-487 significantly wait to avoid failure
+    Thread.sleep(7000);
+
     // Update the class
     FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"), folder1.newFile("HelloWorld2.jar"));
 
     // Wait for the monitor to notice
-    Thread.sleep(2000);
+    // VFS-487 significantly wait to avoid failure
+    Thread.sleep(7000);
 
     Class<?> clazz2 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     Object o2 = clazz2.newInstance();
@@ -157,9 +161,10 @@ public class AccumuloReloadingVFSClassLoaderTest {
     // Update the class
     FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"), folder1.newFile("HelloWorld.jar"));
 
-    // Wait for the monitor to notice
-    Thread.sleep(2000);
-
+    //Wait for the monitor to notice
+    // VFS-487 significantly wait to avoid failure
+    Thread.sleep(7000);
+    
     Class<?> clazz2 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     Object o2 = clazz2.newInstance();
     Assert.assertEquals("Hello World!", o2.toString());
@@ -206,7 +211,8 @@ public class AccumuloReloadingVFSClassLoaderTest {
     FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld2.jar"), folder1.newFile("HelloWorld.jar"));
 
     // Wait for the monitor to notice
-    Thread.sleep(2000);
+    // VFS-487 significantly wait to avoid failure
+    Thread.sleep(7000);
 
     Class<?> clazz2 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     Object o2 = clazz2.newInstance();
