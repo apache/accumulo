@@ -488,10 +488,20 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       return split.getProgress(currentKey);
     }
 
+    /**
+     * The Key that should be returned to the client
+     */
     protected K currentK = null;
+    
+    /**
+     * The Value that should be return to the client
+     */
     protected V currentV = null;
+    
+    /**
+     * The Key that is used to determine progress in the current InputSplit. It is not returned to the client and is only used internally
+     */
     protected Key currentKey = null;
-    protected Value currentValue = null;
 
     @Override
     public K getCurrentKey() throws IOException, InterruptedException {

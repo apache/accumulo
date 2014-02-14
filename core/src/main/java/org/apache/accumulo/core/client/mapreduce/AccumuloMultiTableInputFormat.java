@@ -77,7 +77,7 @@ public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value
           ++numKeysRead;
           Map.Entry<Key,Value> entry = scannerIterator.next();
           currentK = currentKey = entry.getKey();
-          currentV = currentValue = entry.getValue();
+          currentV = entry.getValue();
           if (log.isTraceEnabled())
             log.trace("Processing key/value pair: " + DefaultFormatter.formatEntry(entry, true));
           return true;
