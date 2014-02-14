@@ -62,7 +62,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.ThriftUtil;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.trace.instrument.TraceRunnable;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.hadoop.io.Text;

@@ -65,7 +65,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 
 public class ShellServerIT extends SimpleMacIT {
@@ -635,7 +634,7 @@ public class ShellServerIT extends SimpleMacIT {
     exec("createtable " + table + " -evc");
 
     // Make sure the table is fully propagated through zoocache
-    final String tableId = getTableId(table);
+    getTableId(table);
 
     exec("constraint -l -t " + table, true, "VisibilityConstraint=2", true);
     exec("constraint -t " + table + " -d 2", true, "Removed constraint 2 from table " + table);
