@@ -19,6 +19,7 @@ package org.apache.accumulo.core.client;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -125,7 +126,9 @@ public interface Instance {
    * Returns the AccumuloConfiguration to use when interacting with this instance.
    * 
    * @return the AccumuloConfiguration that specifies properties related to interacting with this instance
-   * @deprecated since 1.6.0
+   * @deprecated since 1.6.0.
+   * This method makes very little sense in the context of the client API and never should have been exposed.
+   * @see {@link InstanceOperations#getConfiguration()} for client-side reading of the server-side configuration.
    */
   @Deprecated
   AccumuloConfiguration getConfiguration();
@@ -135,7 +138,9 @@ public interface Instance {
    * 
    * @param conf
    *          accumulo configuration
-   * @deprecated since 1.6.0
+   * @deprecated since 1.6.0.
+   * This method makes very little sense in the context of the client API and never should have been exposed.
+   * @see {@link InstanceOperations#setProperty(String, String)}
    */
   @Deprecated
   void setConfiguration(AccumuloConfiguration conf);
