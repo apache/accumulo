@@ -78,7 +78,6 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     settings.put(Property.TSERV_MAXMEM.getKey(), "5K");
     settings.put(Property.TSERV_MAJC_DELAY.getKey(), "1");
     cfg.setSiteConfig(settings);
-    cfg.useMiniDFS();
   }
 
   private void killMacGc() throws ProcessNotFoundException, InterruptedException, KeeperException {
