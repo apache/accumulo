@@ -18,6 +18,7 @@ package org.apache.accumulo.server.gc;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -65,6 +66,7 @@ import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.ServerServices;
@@ -128,7 +130,6 @@ public class SimpleGarbageCollector implements Iface {
   private FileSystem fs;
   private Trash trash = null;
   private boolean safemode = false, offline = false, verbose = false;
-  private String address = "localhost";
   private ZooLock lock;
   private Key continueKey = null;
   
@@ -157,11 +158,19 @@ public class SimpleGarbageCollector implements Iface {
     if (opts.verbose)
       gc.setVerbose();
     if (opts.address != null)
-      gc.useAddress(opts.address);
+      address = opts.address;
+
+    String hostname = address;
+
+    // Catch a few edge cases where we might get a non-useful address
+    if ("0.0.0.0".equals(address)) {
+      // Get a better hostname for this system
+      hostname = InetAddress.getLocalHost().getHostName();
+    }
     
     gc.init(fs, instance, SecurityConstants.getSystemCredentials(), serverConf.getConfiguration().getBoolean(Property.GC_TRASH_IGNORE));
-    Accumulo.enableTracing(address, "gc");
-    gc.run();
+    Accumulo.enableTracing(hostname, "gc");
+    gc.run(hostname);
   }
   
   public SimpleGarbageCollector() {}
@@ -178,10 +187,6 @@ public class SimpleGarbageCollector implements Iface {
     this.verbose = true;
   }
   
-  public void useAddress(String address) {
-    this.address = address;
-  }
-
   public void init(FileSystem fs, Instance instance, TCredentials credentials, boolean noTrash) throws IOException {
     this.fs = TraceFileSystem.wrap(fs);
     this.credentials = credentials;
@@ -202,14 +207,14 @@ public class SimpleGarbageCollector implements Iface {
     }
   }
   
-  private void run() {
+  private void run(String hostname) {
     long tStart, tStop;
     
     // Sleep for an initial period, giving the master time to start up and
     // old data files to be unused
     if (!offline) {
       try {
-        getZooLock(startStatsService());
+        getZooLock(startStatsService(hostname));
       } catch (Exception ex) {
         log.error(ex, ex);
         System.exit(1);
@@ -383,7 +388,7 @@ public class SimpleGarbageCollector implements Iface {
   }
   
   private void getZooLock(InetSocketAddress addr) throws KeeperException, InterruptedException {
-    String address = addr.getHostName() + ":" + addr.getPort();
+    String address = AddressUtil.toString(addr);
     String path = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZGC_LOCK;
     
     LockWatcher lockWatcher = new LockWatcher() {
@@ -413,7 +418,7 @@ public class SimpleGarbageCollector implements Iface {
     }
   }
   
-  private InetSocketAddress startStatsService() throws UnknownHostException {
+  private InetSocketAddress startStatsService(String hostname) throws UnknownHostException {
     Processor<Iface> processor = new Processor<Iface>(TraceWrap.service(this));
     int port = instance.getConfiguration().getPort(Property.GC_PORT);
     long maxMessageSize = instance.getConfiguration().getMemoryInBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
@@ -423,7 +428,7 @@ public class SimpleGarbageCollector implements Iface {
       log.fatal(ex, ex);
       throw new RuntimeException(ex);
     }
-    return new InetSocketAddress(Accumulo.getLocalAddress(new String[] {"--address", address}), port);
+    return new InetSocketAddress(hostname, port);
   }
   
   /**

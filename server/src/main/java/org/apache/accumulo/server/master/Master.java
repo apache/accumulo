@@ -273,6 +273,11 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   }
   
   private void upgradeZookeeper() {
+    // 1.5.1 and 1.6.0 both do some state checking after obtaining the zoolock for the
+    // monitor and before starting up. It's not tied to the data version at all (and would
+    // introduce unnecessary complexity to try to make the master do it), but be aware
+    // that the master is not the only thing that may alter zookeeper before starting.
+
     if (Accumulo.getAccumuloPersistentVersion(fs) == Constants.PREV_DATA_VERSION) {
       try {
         log.info("Upgrading zookeeper");

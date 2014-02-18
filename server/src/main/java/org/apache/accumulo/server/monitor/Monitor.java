@@ -51,7 +51,9 @@ import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
@@ -74,17 +76,20 @@ import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.util.EmbeddedWebServer;
+import org.apache.accumulo.server.util.Halt;
+import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.KeeperException;
 
 /**
  * Serve master statistics with an embedded web server.
  */
 public class Monitor {
   private static final Logger log = Logger.getLogger(Monitor.class);
-  
+
   public static final int REFRESH_TIME = 5;
   private static long lastRecalc = 0L;
   private static double totalIngestRate = 0.0;
@@ -98,28 +103,28 @@ public class Monitor {
   private static long totalHoldTime = 0;
   private static long totalLookups = 0;
   private static int totalTables = 0;
-  
+
   private static class MaxList<T> extends LinkedList<Pair<Long,T>> {
     private static final long serialVersionUID = 1L;
-    
+
     private long maxDelta;
-    
+
     public MaxList(long maxDelta) {
       this.maxDelta = maxDelta;
     }
-    
+
     @Override
     public boolean add(Pair<Long,T> obj) {
       boolean result = super.add(obj);
-      
+
       if (obj.getFirst() - get(0).getFirst() > maxDelta)
         remove(0);
-      
+
       return result;
     }
-    
+
   }
-  
+
   private static final int MAX_TIME_PERIOD = 60 * 60 * 1000;
   private static final List<Pair<Long,Double>> loadOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
   private static final List<Pair<Long,Double>> ingestRateOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
@@ -138,19 +143,21 @@ public class Monitor {
   private static EventCounter indexCacheRequestTracker = new EventCounter();
   private static EventCounter dataCacheHitTracker = new EventCounter();
   private static EventCounter dataCacheRequestTracker = new EventCounter();
-  
+
   private static volatile boolean fetching = false;
   private static MasterMonitorInfo mmi;
   private static Map<String,Map<ProblemType,Integer>> problemSummary = Collections.emptyMap();
   private static Exception problemException;
   private static GCStatus gcStatus;
-  
+
   private static Instance instance;
-  
+
   private static ServerConfiguration config;
-  
+
   private static EmbeddedWebServer server;
-  
+
+  private ZooLock monitorLock;
+
   public static Map<String,Double> summarizeTableStats(MasterMonitorInfo mmi) {
     Map<String,Double> compactingByTable = new HashMap<String,Double>();
     if (mmi != null && mmi.tServerInfo != null) {
@@ -165,7 +172,7 @@ public class Monitor {
     }
     return compactingByTable;
   }
-  
+
   public static void add(TableInfo total, TableInfo more) {
     if (total.minors == null)
       total.minors = new Compacting();
@@ -195,7 +202,7 @@ public class Monitor {
     total.queryByteRate += more.queryByteRate;
     total.scanRate += more.scanRate;
   }
-  
+
   public static TableInfo summarizeTableStats(TabletServerStatus status) {
     TableInfo summary = new TableInfo();
     summary.majors = new Compacting();
@@ -206,21 +213,21 @@ public class Monitor {
     }
     return summary;
   }
-  
+
   private static class EventCounter {
-    
+
     Map<String,Pair<Long,Long>> prevSamples = new HashMap<String,Pair<Long,Long>>();
     Map<String,Pair<Long,Long>> samples = new HashMap<String,Pair<Long,Long>>();
     Set<String> serversUpdated = new HashSet<String>();
-    
+
     void startingUpdates() {
       serversUpdated.clear();
     }
-    
+
     void updateTabletServer(String name, long sampleTime, long numEvents) {
       Pair<Long,Long> newSample = new Pair<Long,Long>(sampleTime, numEvents);
       Pair<Long,Long> lastSample = samples.get(name);
-      
+
       if (lastSample == null || !lastSample.equals(newSample)) {
         samples.put(name, newSample);
         if (lastSample != null) {
@@ -229,40 +236,40 @@ public class Monitor {
       }
       serversUpdated.add(name);
     }
-    
+
     void finishedUpdating() {
       // remove any tablet servers not updated
       samples.keySet().retainAll(serversUpdated);
       prevSamples.keySet().retainAll(serversUpdated);
     }
-    
+
     double calculateRate() {
       double totalRate = 0;
-      
+
       for (Entry<String,Pair<Long,Long>> entry : prevSamples.entrySet()) {
         Pair<Long,Long> prevSample = entry.getValue();
         Pair<Long,Long> sample = samples.get(entry.getKey());
-        
+
         totalRate += (sample.getSecond() - prevSample.getSecond()) / ((sample.getFirst() - prevSample.getFirst()) / (double) 1000);
       }
-      
+
       return totalRate;
     }
-    
+
     long calculateCount() {
       long count = 0;
-      
+
       for (Entry<String,Pair<Long,Long>> entry : prevSamples.entrySet()) {
         Pair<Long,Long> prevSample = entry.getValue();
         Pair<Long,Long> sample = samples.get(entry.getKey());
-        
+
         count += sample.getSecond() - prevSample.getSecond();
       }
-      
+
       return count;
     }
   }
-  
+
   public static void fetchData() {
     double totalIngestRate = 0.;
     double totalIngestByteRate = 0.;
@@ -275,18 +282,18 @@ public class Monitor {
     long totalHoldTime = 0;
     long totalLookups = 0;
     boolean retry = true;
-    
+
     // only recalc every so often
     long currentTime = System.currentTimeMillis();
     if (currentTime - lastRecalc < REFRESH_TIME * 1000)
       return;
-    
+
     synchronized (Monitor.class) {
       if (fetching)
         return;
       fetching = true;
     }
-    
+
     try {
       while (retry) {
         MasterClientService.Iface client = null;
@@ -313,13 +320,13 @@ public class Monitor {
       if (mmi != null) {
         int majorCompactions = 0;
         int minorCompactions = 0;
-        
+
         lookupRateTracker.startingUpdates();
         indexCacheHitTracker.startingUpdates();
         indexCacheRequestTracker.startingUpdates();
         dataCacheHitTracker.startingUpdates();
         dataCacheRequestTracker.startingUpdates();
-        
+
         for (TabletServerStatus server : mmi.tServerInfo) {
           TableInfo summary = Monitor.summarizeTableStats(server);
           totalIngestRate += summary.ingestRate;
@@ -338,13 +345,13 @@ public class Monitor {
           dataCacheHitTracker.updateTabletServer(server.name, server.lastContact, server.dataCacheHits);
           dataCacheRequestTracker.updateTabletServer(server.name, server.lastContact, server.dataCacheRequest);
         }
-        
+
         lookupRateTracker.finishedUpdating();
         indexCacheHitTracker.finishedUpdating();
         indexCacheRequestTracker.finishedUpdating();
         dataCacheHitTracker.finishedUpdating();
         dataCacheRequestTracker.finishedUpdating();
-        
+
         int totalTables = 0;
         for (TableInfo tInfo : mmi.tableMap.values()) {
           totalTabletCount += tInfo.tablets;
@@ -364,27 +371,27 @@ public class Monitor {
         Monitor.onlineTabletCount = onlineTabletCount;
         Monitor.totalHoldTime = totalHoldTime;
         Monitor.totalLookups = totalLookups;
-        
+
         ingestRateOverTime.add(new Pair<Long,Double>(currentTime, totalIngestRate));
         ingestByteRateOverTime.add(new Pair<Long,Double>(currentTime, totalIngestByteRate));
-        
+
         double totalLoad = 0.;
         for (TabletServerStatus status : mmi.tServerInfo) {
           if (status != null)
             totalLoad += status.osLoad;
         }
         loadOverTime.add(new Pair<Long,Double>(currentTime, totalLoad));
-        
+
         minorCompactionsOverTime.add(new Pair<Long,Integer>(currentTime, minorCompactions));
         majorCompactionsOverTime.add(new Pair<Long,Integer>(currentTime, majorCompactions));
-        
+
         lookupsOverTime.add(new Pair<Long,Double>(currentTime, lookupRateTracker.calculateRate()));
-        
+
         queryRateOverTime.add(new Pair<Long,Integer>(currentTime, (int) totalQueryRate));
         queryByteRateOverTime.add(new Pair<Long,Double>(currentTime, totalQueryByteRate));
-        
+
         scanRateOverTime.add(new Pair<Long,Integer>(currentTime, (int) totalScanRate));
-        
+
         calcCacheHitRate(indexCacheHitRateOverTime, currentTime, indexCacheHitTracker, indexCacheRequestTracker);
         calcCacheHitRate(dataCacheHitRateOverTime, currentTime, dataCacheHitTracker, dataCacheRequestTracker);
       }
@@ -396,7 +403,7 @@ public class Monitor {
         Monitor.problemSummary = Collections.emptyMap();
         Monitor.problemException = e;
       }
-      
+
     } finally {
       synchronized (Monitor.class) {
         fetching = false;
@@ -404,7 +411,7 @@ public class Monitor {
       }
     }
   }
-  
+
   private static void calcCacheHitRate(List<Pair<Long,Double>> hitRate, long currentTime, EventCounter cacheHits, EventCounter cacheReq) {
     long req = cacheReq.calculateCount();
     if (req > 0)
@@ -412,7 +419,7 @@ public class Monitor {
     else
       hitRate.add(new Pair<Long,Double>(currentTime, null));
   }
-  
+
   private static GCStatus fetchGcStatus() {
     GCStatus result = null;
     InetSocketAddress address = null;
@@ -437,10 +444,10 @@ public class Monitor {
     }
     return result;
   }
-  
+
   public static void main(String[] args) throws Exception {
     SecurityUtil.serverLogin();
-    
+
     FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfiguration.getSiteConfiguration());
     String hostname = Accumulo.getLocalAddress(args);
     instance = HdfsZooInstance.getInstance();
@@ -450,10 +457,17 @@ public class Monitor {
     Accumulo.enableTracing(hostname, "monitor");
     monitor.run(hostname);
   }
-  
+
   private static long START_TIME;
-  
+
   public void run(String hostname) {
+    try {
+      getMonitorLock();
+    } catch (Exception e) {
+      log.error("Failed to get Monitor ZooKeeper lock");
+      throw new RuntimeException(e);
+    }
+
     Monitor.START_TIME = System.currentTimeMillis();
     int port = config.getConfiguration().getPort(Property.MONITOR_PORT);
     try {
@@ -463,7 +477,7 @@ public class Monitor {
       log.error("Unable to start embedded web server", ex);
       throw new RuntimeException(ex);
     }
-    
+
     server.addServlet(DefaultServlet.class, "/");
     server.addServlet(OperationServlet.class, "/op");
     server.addServlet(MasterServlet.class, "/master");
@@ -481,27 +495,34 @@ public class Monitor {
     if (server.isUsingSsl())
       server.addServlet(ShellServlet.class, "/shell");
     server.start();
-    
-    
+
+    InetSocketAddress monitorAddress = null;
     try {
       hostname = InetAddress.getLocalHost().getHostName();
-      
+
       log.debug("Using " + hostname + " to advertise monitor location in ZooKeeper");
-      
-      String monitorAddress = org.apache.accumulo.core.util.AddressUtil.toString(new InetSocketAddress(hostname, server.getPort()));
-      ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instance) + Constants.ZMONITOR, monitorAddress.getBytes(Constants.UTF8),
+
+      monitorAddress = new InetSocketAddress(hostname, server.getPort());
+      String monitorAddressAndPort = org.apache.accumulo.core.util.AddressUtil.toString(monitorAddress);
+      ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instance) + Constants.ZMONITOR_HTTP_ADDR, monitorAddressAndPort.getBytes(Constants.UTF8),
           NodeExistsPolicy.OVERWRITE);
       log.info("Set monitor address in zookeeper to " + monitorAddress);
     } catch (Exception ex) {
-      log.error("Unable to set monitor address in zookeeper");
+      log.error("Unable to set monitor HTTP address in zookeeper", ex);
     }
-    LogService.startLogListener(Monitor.getSystemConfiguration(), instance.getInstanceID());
-    
+
+    if (null != monitorAddress) {
+      LogService.startLogListener(Monitor.getSystemConfiguration(), instance.getInstanceID(),
+          org.apache.accumulo.core.util.AddressUtil.getHostAddress(monitorAddress));
+    } else {
+      log.warn("Not starting log4j listener as we could not determine address to use");
+    }
+
     new Daemon(new LoggingRunnable(log, new ZooKeeperStatus()), "ZooKeeperStatus").start();
-    
+
     // need to regularly fetch data so plot data is updated
     new Daemon(new LoggingRunnable(log, new Runnable() {
-      
+
       @Override
       public void run() {
         while (true) {
@@ -510,162 +531,278 @@ public class Monitor {
           } catch (Exception e) {
             log.warn(e.getMessage(), e);
           }
-          
+
           UtilWaitThread.sleep(333);
         }
-        
+
       }
     }), "Data fetcher").start();
   }
-  
+
+  /**
+   * Get the monitor lock in ZooKeeper
+   * 
+   * @throws KeeperException
+   * @throws InterruptedException
+   */
+  private void getMonitorLock() throws KeeperException, InterruptedException {
+    final String zRoot = ZooUtil.getRoot(instance);
+    final String monitorPath = zRoot + Constants.ZMONITOR;
+    final String monitorLockPath = zRoot + Constants.ZMONITOR_LOCK;
+
+    // Ensure that everything is kosher with ZK as this has changed.
+    ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    if (zoo.exists(monitorPath)) {
+      byte[] data = zoo.getData(monitorPath, null);
+      // If the node isn't empty, it's from a previous install (has hostname:port for HTTP server)
+      if (0 != data.length) {
+        // Recursively delete from that parent node
+        zoo.recursiveDelete(monitorPath, NodeMissingPolicy.SKIP);
+
+        // And then make the nodes that we expect for the incoming ephemeral nodes
+        zoo.putPersistentData(monitorPath, new byte[0], NodeExistsPolicy.FAIL);
+        zoo.putPersistentData(monitorLockPath, new byte[0], NodeExistsPolicy.FAIL);
+      } else if (!zoo.exists(monitorLockPath)) {
+        // monitor node in ZK exists and is empty as we expect
+        // but the monitor/lock node does not
+        zoo.putPersistentData(monitorLockPath, new byte[0], NodeExistsPolicy.FAIL);
+      }
+    } else {
+      // 1.5.0 and earlier
+      zoo.putPersistentData(zRoot + Constants.ZMONITOR, new byte[0], NodeExistsPolicy.FAIL);
+      if (!zoo.exists(monitorLockPath)) {
+        // Somehow the monitor node exists but not monitor/lock
+        zoo.putPersistentData(monitorLockPath, new byte[0], NodeExistsPolicy.FAIL);
+      }
+    }
+
+    // Get a ZooLock for the monitor
+    while (true) {
+      MoniterLockWatcher monitorLockWatcher = new MoniterLockWatcher();
+      monitorLock = new ZooLock(monitorLockPath);
+      monitorLock.lockAsync(monitorLockWatcher, new byte[0]);
+
+      monitorLockWatcher.waitForChange();
+
+      if (monitorLockWatcher.acquiredLock) {
+        break;
+      }
+
+      if (!monitorLockWatcher.failedToAcquireLock) {
+        throw new IllegalStateException("monitor lock in unknown state");
+      }
+
+      monitorLock.tryToCancelAsyncLockOrUnlock();
+
+      UtilWaitThread.sleep(instance.getConfiguration().getTimeInMillis(Property.MONITOR_LOCK_CHECK_INTERVAL));
+    }
+
+    log.info("Got Monitor lock.");
+  }
+
+  /**
+   * Async Watcher for monitor lock
+   */
+  private static class MoniterLockWatcher implements ZooLock.AsyncLockWatcher {
+
+    boolean acquiredLock = false;
+    boolean failedToAcquireLock = false;
+
+    @Override
+    public void lostLock(LockLossReason reason) {
+      Halt.halt("Monitor lock in zookeeper lost (reason = " + reason + "), exiting!", -1);
+    }
+
+    @Override
+    public void unableToMonitorLockNode(final Throwable e) {
+      Halt.halt(-1, new Runnable() {
+        @Override
+        public void run() {
+          log.fatal("No longer able to monitor Monitor lock node", e);
+        }
+      });
+
+    }
+
+    @Override
+    public synchronized void acquiredLock() {
+      if (acquiredLock || failedToAcquireLock) {
+        Halt.halt("Zoolock in unexpected state AL " + acquiredLock + " " + failedToAcquireLock, -1);
+      }
+
+      acquiredLock = true;
+      notifyAll();
+    }
+
+    @Override
+    public synchronized void failedToAcquireLock(Exception e) {
+      log.warn("Failed to get monitor lock " + e);
+
+      if (acquiredLock) {
+        Halt.halt("Zoolock in unexpected state FAL " + acquiredLock + " " + failedToAcquireLock, -1);
+      }
+
+      failedToAcquireLock = true;
+      notifyAll();
+    }
+
+    public synchronized void waitForChange() {
+      while (!acquiredLock && !failedToAcquireLock) {
+        try {
+          wait();
+        } catch (InterruptedException e) {}
+      }
+    }
+  }
+
   public static MasterMonitorInfo getMmi() {
     return mmi;
   }
-  
+
   public static int getTotalTables() {
     return totalTables;
   }
-  
+
   public static int getTotalTabletCount() {
     return totalTabletCount;
   }
-  
+
   public static int getOnlineTabletCount() {
     return onlineTabletCount;
   }
-  
+
   public static long getTotalEntries() {
     return totalEntries;
   }
-  
+
   public static double getTotalIngestRate() {
     return totalIngestRate;
   }
-  
+
   public static double getTotalIngestByteRate() {
     return totalIngestByteRate;
   }
-  
+
   public static double getTotalQueryRate() {
     return totalQueryRate;
   }
-  
+
   public static double getTotalScanRate() {
     return totalScanRate;
   }
-  
+
   public static double getTotalQueryByteRate() {
     return totalQueryByteRate;
   }
-  
+
   public static long getTotalHoldTime() {
     return totalHoldTime;
   }
-  
+
   public static Exception getProblemException() {
     return problemException;
   }
-  
+
   public static Map<String,Map<ProblemType,Integer>> getProblemSummary() {
     return problemSummary;
   }
-  
+
   public static GCStatus getGcStatus() {
     return gcStatus;
   }
-  
+
   public static long getTotalLookups() {
     return totalLookups;
   }
-  
+
   public static long getStartTime() {
     return START_TIME;
   }
-  
+
   public static List<Pair<Long,Double>> getLoadOverTime() {
     synchronized (loadOverTime) {
       return new ArrayList<Pair<Long,Double>>(loadOverTime);
     }
   }
-  
+
   public static List<Pair<Long,Double>> getIngestRateOverTime() {
     synchronized (ingestRateOverTime) {
       return new ArrayList<Pair<Long,Double>>(ingestRateOverTime);
     }
   }
-  
+
   public static List<Pair<Long,Double>> getIngestByteRateOverTime() {
     synchronized (ingestByteRateOverTime) {
       return new ArrayList<Pair<Long,Double>>(ingestByteRateOverTime);
     }
   }
-  
+
   public static List<Pair<Long,Integer>> getRecoveriesOverTime() {
     synchronized (recoveriesOverTime) {
       return new ArrayList<Pair<Long,Integer>>(recoveriesOverTime);
     }
   }
-  
+
   public static List<Pair<Long,Integer>> getMinorCompactionsOverTime() {
     synchronized (minorCompactionsOverTime) {
       return new ArrayList<Pair<Long,Integer>>(minorCompactionsOverTime);
     }
   }
-  
+
   public static List<Pair<Long,Integer>> getMajorCompactionsOverTime() {
     synchronized (majorCompactionsOverTime) {
       return new ArrayList<Pair<Long,Integer>>(majorCompactionsOverTime);
     }
   }
-  
+
   public static List<Pair<Long,Double>> getLookupsOverTime() {
     synchronized (lookupsOverTime) {
       return new ArrayList<Pair<Long,Double>>(lookupsOverTime);
     }
   }
-  
+
   public static double getLookupRate() {
     return lookupRateTracker.calculateRate();
   }
-  
+
   public static List<Pair<Long,Integer>> getQueryRateOverTime() {
     synchronized (queryRateOverTime) {
       return new ArrayList<Pair<Long,Integer>>(queryRateOverTime);
     }
   }
-  
+
   public static List<Pair<Long,Integer>> getScanRateOverTime() {
     synchronized (scanRateOverTime) {
       return new ArrayList<Pair<Long,Integer>>(scanRateOverTime);
     }
   }
-  
+
   public static List<Pair<Long,Double>> getQueryByteRateOverTime() {
     synchronized (queryByteRateOverTime) {
       return new ArrayList<Pair<Long,Double>>(queryByteRateOverTime);
     }
   }
-  
+
   public static List<Pair<Long,Double>> getIndexCacheHitRateOverTime() {
     synchronized (indexCacheHitRateOverTime) {
       return new ArrayList<Pair<Long,Double>>(indexCacheHitRateOverTime);
     }
   }
-  
+
   public static List<Pair<Long,Double>> getDataCacheHitRateOverTime() {
     synchronized (dataCacheHitRateOverTime) {
       return new ArrayList<Pair<Long,Double>>(dataCacheHitRateOverTime);
     }
   }
-  
+
   public static AccumuloConfiguration getSystemConfiguration() {
     return config.getConfiguration();
   }
-  
+
   public static Instance getInstance() {
     return instance;
   }
-  
+
   public static boolean isUsingSsl() {
     return server.isUsingSsl();
   }

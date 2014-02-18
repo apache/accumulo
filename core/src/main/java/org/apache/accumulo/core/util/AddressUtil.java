@@ -44,6 +44,10 @@ public class AddressUtil extends org.apache.accumulo.fate.util.AddressUtil {
     return new TSocket(addr.getHostName(), addr.getPort());
   }
   
+  static public String getHostAddress(InetSocketAddress addr) {
+    return addr.getAddress().getHostAddress();
+  }
+
   static public String toString(InetSocketAddress addr) {
     return addr.getAddress().getHostAddress() + ":" + addr.getPort();
   }

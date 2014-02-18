@@ -307,7 +307,16 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     if (log.isTraceEnabled())
       log.trace("Failed to execute multiscans against " + failures.size() + " tablets, retrying...");
     
-    UtilWaitThread.sleep(failSleepTime);
+    try {
+      Thread.sleep(failSleepTime);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      
+      // We were interrupted (close called on batchscanner) just exit
+      log.debug("Exiting failure processing on interrupt");
+      return;
+    }
+
     failSleepTime = Math.min(5000, failSleepTime * 2);
     
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();

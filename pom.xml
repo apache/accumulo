@@ -472,7 +472,7 @@
             <autoVersionSubmodules>true</autoVersionSubmodules>
             <goals>clean compile javadoc:aggregate deploy</goals>
             <preparationGoals>clean compile javadoc:aggregate verify</preparationGoals>
-            <tagNameFormat>@{project.version}-RC</tagNameFormat>
+            <tagNameFormat>@{project.version}</tagNameFormat>
             <releaseProfiles>seal-jars</releaseProfiles>
             <useReleaseProfile>false</useReleaseProfile>
             <pushChanges>false</pushChanges>

@@ -132,6 +132,15 @@ if [ ! -f "$ACCUMULO_CONF_DIR/tracers" -a -z "${ACCUMULO_VERIFY_ONLY}" ]; then
 
 fi
 
+if [ ! -f "$ACCUMULO_CONF_DIR/gc" -a -z "${ACCUMULO_VERIFY_ONLY}" ]; then
+  if [ -z "${MASTER1}" ] ; then
+    echo "Could not infer a GC role. You need to either set up \"${ACCUMULO_CONF_DIR}/gc\" or make sure \"${ACCUMULO_CONF_DIR}/masters\" is non-empty."
+    exit 1
+  else
+    echo "$MASTER1" > "$ACCUMULO_CONF_DIR/gc"
+  fi
+fi
+
 SSH='ssh -qnf -o ConnectTimeout=2'
 
 export HADOOP_HOME=$HADOOP_PREFIX
