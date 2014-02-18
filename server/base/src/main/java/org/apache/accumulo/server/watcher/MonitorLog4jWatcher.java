@@ -43,12 +43,6 @@ public class MonitorLog4jWatcher extends FileWatchdog implements Watcher {
   private boolean loggingDisabled = false;
   protected String path;
 
-  /**
-   * @param zkPath
-   * @param filename
-   * @param delay
-   * @param propertyName
-   */
   public MonitorLog4jWatcher(String instance, String filename, int delay) {
     super(filename);
     setDelay(delay);
@@ -78,7 +72,7 @@ public class MonitorLog4jWatcher extends FileWatchdog implements Watcher {
       resetLogger();
       return;
     }
-    
+
     synchronized (lock) {
       // We might triggered by file-reloading or from ZK update.
       // Either way will result in log-forwarding being restarted
@@ -87,7 +81,7 @@ public class MonitorLog4jWatcher extends FileWatchdog implements Watcher {
       resetLogger();
     }
   }
-  
+
   private void resetLogger() {
     // Force a reset on the logger's configuration
     LogManager.resetConfiguration();
