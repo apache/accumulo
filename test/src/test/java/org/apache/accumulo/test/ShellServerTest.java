@@ -510,7 +510,7 @@ public class ShellServerTest {
     exec("createtable " + table + " -evc");
 
     // Make sure the table is fully propagated through zoocache
-    final String tableId = getTableId(table);
+    getTableId(table);
 
     exec("constraint -l -t " + table, true, "VisibilityConstraint=1", true);
     Thread.sleep(250);
