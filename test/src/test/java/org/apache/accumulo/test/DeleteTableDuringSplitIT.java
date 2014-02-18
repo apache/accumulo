@@ -112,7 +112,6 @@ public class DeleteTableDuringSplitIT {
         }
       });
     }
-    //Collections.shuffle(tasks);
     for (Runnable r : tasks)
       results.add(es.submit(r));
     for (Future<?> f : results) {
