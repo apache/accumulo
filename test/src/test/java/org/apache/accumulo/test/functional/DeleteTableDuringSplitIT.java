@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.test;
+package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertFalse;
 
@@ -24,54 +24,15 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.Future;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.fate.util.UtilWaitThread;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 // ACCUMULO-2361
-public class DeleteTableDuringSplitIT {
-  public static TemporaryFolder folder = new TemporaryFolder();
-  private MiniAccumuloCluster accumulo;
-  private String secret = "secret";
+public class DeleteTableDuringSplitIT extends SimpleMacIT {
   
-  Connector getConnector() throws AccumuloException, AccumuloSecurityException {
-    ZooKeeperInstance zki = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers());
-    return zki.getConnector("root", new PasswordToken(secret));
-  }
-  
-  String[] getTableNames(int n) {
-    String[] result = new String[n];
-    for (int i = 0; i < n; i++) {
-      result[i] = "test_" + i;
-    }
-    return result;
-  }
-  
-  @Before
-  public void setUp() throws Exception {
-    folder.create();
-    accumulo = new MiniAccumuloCluster(folder.getRoot(), secret);
-    accumulo.start();
-  }
-  
-  @After
-  public void tearDown() throws Exception {
-    accumulo.stop();
-    folder.delete();
-  }
-  
-
   @Test(timeout= 10 * 60 * 1000)
   public void test() throws Exception {
     String[] tableNames = getTableNames(100);
