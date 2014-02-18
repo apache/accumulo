@@ -68,7 +68,7 @@ public class DeleteTableDuringSplitIT {
   @After
   public void tearDown() throws Exception {
     accumulo.stop();
-    //folder.delete();
+    folder.delete();
   }
   
 
