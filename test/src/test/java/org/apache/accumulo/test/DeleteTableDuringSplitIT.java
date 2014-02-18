@@ -68,7 +68,7 @@ public class DeleteTableDuringSplitIT {
   @After
   public void tearDown() throws Exception {
     accumulo.stop();
-    //folder.delete();
+    folder.delete();
   }
   
 
@@ -112,7 +112,6 @@ public class DeleteTableDuringSplitIT {
         }
       });
     }
-    //Collections.shuffle(tasks);
     for (Runnable r : tasks)
       results.add(es.submit(r));
     for (Future<?> f : results) {
