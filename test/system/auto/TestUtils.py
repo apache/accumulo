@@ -27,6 +27,7 @@ import random
 import re
 import shutil
 import sleep
+import getpass
 
 # mapreduce sets SIGHUP to ignore, which we use to stop child processes
 # so set it back to the default
@@ -42,7 +43,7 @@ FUZZ=os.getpid() % 997
 ACCUMULO_HOME = os.path.dirname(__file__)
 ACCUMULO_HOME = os.path.join(ACCUMULO_HOME, *(os.path.pardir,)*3)
 ACCUMULO_HOME = os.path.realpath(ACCUMULO_HOME)
-ACCUMULO_DIR = "/user/" + os.getenv('LOGNAME') + "/accumulo-" + ID
+ACCUMULO_DIR = "/user/" + getpass.getuser() + "/accumulo-" + ID
 if os.getenv('ACCUMULO_CONF_DIR'):
    ACCUMULO_CONF_DIR = os.getenv('ACCUMULO_CONF_DIR')
 else:
