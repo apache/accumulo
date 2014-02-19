@@ -71,6 +71,7 @@ class MapReduceTest(TestUtilsMixin,unittest.TestCase):
         start = globa(os.path.join('lib','accumulo-start.jar'))
         jcommander = globa(os.path.join('lib','jcommander.jar'))
         trace = globa(os.path.join('lib','accumulo-trace.jar'))
+        guava = globa(os.path.join('lib','guava.jar'))
         zkjar = globbase(os.getenv("ZOOKEEPER_HOME"),"zookeeper*[!javadoc|src|bin].jar")
         self.createInputTableInAccumulo();
         #Arguments for the Example Class
@@ -83,7 +84,7 @@ class MapReduceTest(TestUtilsMixin,unittest.TestCase):
         #MapReduce class to run
         mapred_class= [self.accumulo_sh(),self.example_class_to_run]
         #classes needed to run the mapreduce
-        libjars = ["-libjars",",".join([zkjar,thriftjar,examples,core,fate,trace,jcommander])]
+        libjars = ["-libjars",",".join([zkjar,thriftjar,examples,core,fate,trace,jcommander,guava])]
         cmd = mapred_class+libjars+arg_list
         if(self.isAccumuloRunning()):
             log.debug("COMMAND:"+str(cmd))
