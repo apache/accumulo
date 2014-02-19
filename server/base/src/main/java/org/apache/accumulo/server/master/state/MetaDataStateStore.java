@@ -17,7 +17,6 @@
 package org.apache.accumulo.server.master.state;
 
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -66,7 +65,7 @@ public class MetaDataStateStore extends TabletStateStore {
   }
   
   @Override
-  public Iterator<TabletLocationState> iterator() {
+  public ClosableIterator<TabletLocationState> iterator() {
     return new MetaDataTableScanner(instance, credentials, MetadataSchema.TabletsSection.getRange(), state);
   }
   
