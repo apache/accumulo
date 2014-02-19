@@ -16,28 +16,8 @@
  */
 package org.apache.accumulo.server.master.state;
 
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.security.Credentials;
+import java.io.Closeable;
+import java.util.Iterator;
 
-public class RootTabletStateStore extends MetaDataStateStore {
-  
-  public RootTabletStateStore(Instance instance, Credentials credentials, CurrentState state) {
-    super(instance, credentials, state, RootTable.NAME);
-  }
-  
-  public RootTabletStateStore() {
-    super(RootTable.NAME);
-  }
-  
-  @Override
-  public ClosableIterator<TabletLocationState> iterator() {
-    return new MetaDataTableScanner(instance, credentials, MetadataSchema.TabletsSection.getRange(), state, RootTable.NAME);
-  }
-  
-  @Override
-  public String name() {
-    return "Metadata Tablets";
-  }
+public interface ClosableIterator<T> extends Iterator<T>, Closeable {
 }

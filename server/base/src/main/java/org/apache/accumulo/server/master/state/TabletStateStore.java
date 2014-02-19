@@ -18,7 +18,6 @@ package org.apache.accumulo.server.master.state;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 
 /**
  * Interface for storing information about tablet assignments. There are three implementations:
@@ -38,7 +37,7 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
    * Scan the information about the tablets covered by this store
    */
   @Override
-  abstract public Iterator<TabletLocationState> iterator();
+  abstract public ClosableIterator<TabletLocationState> iterator();
   
   /**
    * Store the assigned locations in the data store.

@@ -46,7 +46,7 @@ import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationSt
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
-public class MetaDataTableScanner implements Iterator<TabletLocationState> {
+public class MetaDataTableScanner implements ClosableIterator<TabletLocationState> {
   private static final Logger log = Logger.getLogger(MetaDataTableScanner.class);
   
   BatchScanner mdScanner = null;
