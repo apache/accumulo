@@ -16,26 +16,24 @@
  */
 package org.apache.accumulo.tserver;
 
+import static org.easymock.EasyMock.createMock;
+import static org.junit.Assert.assertEquals;
+
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.*;
-import org.easymock.Capture;
-import static org.easymock.EasyMock.*;
 
 public class TabletResourceManagerTest {
   private TabletServerResourceManager tsrm;
   private TabletResourceManager trm;
-  private Tablet tablet;
   private KeyExtent extent;
   private TableConfiguration conf;
 
   @Before
   public void setUp() throws Exception {
     tsrm = createMock(TabletServerResourceManager.class);
-    tablet = createMock(Tablet.class);
     extent = createMock(KeyExtent.class);
     conf = createMock(TableConfiguration.class);
     trm = tsrm.new TabletResourceManager(extent, conf);

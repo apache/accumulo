@@ -16,10 +16,12 @@
  */
 package org.apache.accumulo.core.util;
 
-import java.util.regex.Pattern;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 public class ValidatorTest {
   private static class TestValidator extends Validator<String> {

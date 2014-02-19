@@ -18,6 +18,7 @@ package org.apache.accumulo.master;
 
 import static java.lang.Math.min;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -66,6 +67,7 @@ import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.state.Assignment;
+import org.apache.accumulo.server.master.state.ClosableIterator;
 import org.apache.accumulo.server.master.state.DistributedStoreException;
 import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.master.state.MergeState;
@@ -118,6 +120,7 @@ class TabletGroupWatcher extends Daemon {
 
       int totalUnloaded = 0;
       int unloaded = 0;
+      ClosableIterator<TabletLocationState> iter = null;
       try {
         Map<Text,MergeStats> mergeStatsCache = new HashMap<Text,MergeStats>();
         
@@ -145,7 +148,9 @@ class TabletGroupWatcher extends Daemon {
         stats.begin();
         // Walk through the tablets in our store, and work tablets
         // towards their goal
-        for (TabletLocationState tls : store) {
+        iter = store.iterator();
+        while (iter.hasNext()) {
+          TabletLocationState tls = iter.next();
           if (tls == null) {
             continue;
           }
@@ -285,6 +290,14 @@ class TabletGroupWatcher extends Daemon {
           repairMetadata(((BadLocationStateException) ex.getCause()).getEncodedEndRow());
         } else {
           UtilWaitThread.sleep(Master.WAIT_BETWEEN_ERRORS);
+        }
+      } finally {
+        if (iter != null) {
+          try {
+            iter.close();
+          } catch (IOException ex) {
+            Master.log.warn("Error closing TabletLocationState iterator: " + ex, ex);
+          }
         }
       }
     }
