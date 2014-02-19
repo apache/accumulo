@@ -219,7 +219,7 @@ public class DistributedWorkQueue {
 
   public void waitUntilDone(Set<String> workIDs) throws KeeperException, InterruptedException {
     
-    final String condVar = "cond";
+    final Object condVar = new Object();
     
     Watcher watcher = new Watcher() {
       @Override
