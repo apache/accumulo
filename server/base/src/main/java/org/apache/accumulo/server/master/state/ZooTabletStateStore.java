@@ -48,8 +48,8 @@ public class ZooTabletStateStore extends TabletStateStore {
   }
   
   @Override
-  public Iterator<TabletLocationState> iterator() {
-    return new Iterator<TabletLocationState>() {
+  public ClosableIterator<TabletLocationState> iterator() {
+    return new ClosableIterator<TabletLocationState>() {
       boolean finished = false;
       
       @Override
@@ -100,6 +100,10 @@ public class ZooTabletStateStore extends TabletStateStore {
       @Override
       public void remove() {
         throw new NotImplementedException();
+      }
+
+      @Override
+      public void close() {
       }
     };
   }
