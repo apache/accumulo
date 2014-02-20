@@ -443,9 +443,12 @@ class TestUtilsMixin:
       LOG_PROPERTIES_BACKUP='%s.bkp' % LOG_PROPERTIES 
       LOG_GENERIC_BACKUP='%s.bkp' % LOG_GENERIC
       LOG_MONITOR_BACKUP='%s.bkp' % LOG_MONITOR
-      os.remove(LOG_PROPERTIES)
-      os.remove(LOG_GENERIC)
-      os.remove(LOG_MONITOR)
+      if os.path.exists(LOG_PROPERTIES):
+        os.remove(LOG_PROPERTIES)
+      if os.path.exists(LOG_GENERIC):
+        os.remove(LOG_GENERIC)
+      if os.path.exists(LOG_MONITOR):
+        os.remove(LOG_MONITOR)
       if os.path.exists(LOG_PROPERTIES_BACKUP):
         os.rename(LOG_PROPERTIES_BACKUP, LOG_PROPERTIES)
       if os.path.exists(LOG_GENERIC_BACKUP):
