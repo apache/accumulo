@@ -936,8 +936,9 @@ public final class BCFile {
         } catch (IOException e) {
           LOG.error("Got IOException when trying to create DataIndex block");
           throw e;
+        } finally {
+          cachedDataIndex.close();
         }
-        cachedDataIndex.close();
 
       } else {
         // We have cached versions of the metaIndex, dataIndex and cryptoParams objects.
