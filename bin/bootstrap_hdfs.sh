@@ -30,7 +30,7 @@ bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 #
 # Find the system context directory in HDFS
 #
-SYSTEM_CONTEXT_HDFS_DIR=$(grep -A1 "general.vfs.classpaths" "$ACCUMULO_HOME/conf/accumulo-site.xml" | tail -1 | perl -pe 's/\s+<value>//; s/<\/value>//; print $ARGV[1]')
+SYSTEM_CONTEXT_HDFS_DIR=$(grep -A1 "general.vfs.classpaths" "$ACCUMULO_CONF_DIR/accumulo-site.xml" | tail -1 | perl -pe 's/\s+<value>//; s/<\/value>//; print $ARGV[1]')
 
 if [ -z "$SYSTEM_CONTEXT_HDFS_DIR" ]
 then
@@ -55,7 +55,7 @@ fi
 #
 # Replicate to all slaves to avoid network contention on startup
 #
-SLAVES="$ACCUMULO_HOME/conf/slaves"
+SLAVES="$ACCUMULO_CONF_DIR/slaves"
 NUM_SLAVES=$(egrep -v '(^#|^\s*$)' "$SLAVES" | wc -l)
 
 #let each datanode service around 50 clients
@@ -78,7 +78,7 @@ fi
 "$HADOOP_PREFIX/bin/hadoop" fs -rmr "$SYSTEM_CONTEXT_HDFS_DIR/commons-vfs2.jar"  > /dev/null
 "$HADOOP_PREFIX/bin/hadoop" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/accumulo-start.jar" "$ACCUMULO_HOME/lib/."  > /dev/null
 "$HADOOP_PREFIX/bin/hadoop" fs -rmr "$SYSTEM_CONTEXT_HDFS_DIR/accumulo-start.jar"  > /dev/null
-for f in `cat $ACCUMULO_HOME/conf/slaves`
+for f in `cat $ACCUMULO_CONF_DIR/slaves`
 do
   rsync -ra --delete $ACCUMULO_HOME `dirname $ACCUMULO_HOME`
 done
