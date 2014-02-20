@@ -168,6 +168,7 @@ class _TextTestResult(unittest.TestResult):
         unittest.TestResult.__init__(self)
         self.stream = stream
         self.descriptions = descriptions
+        self.successes = []
 
     def getDescription(self, test):
         if self.descriptions:
@@ -184,6 +185,7 @@ class _TextTestResult(unittest.TestResult):
 
     def addSuccess(self, test):
         unittest.TestResult.addSuccess(self, test)
+        self.successes.append(test)
         self.stream.writeln("ok")
 
     def addError(self, test, err):
@@ -230,6 +232,9 @@ def makeDiskFailureLibrary():
     except:
         compile()
     
+def emitMapReduceResult(code, test):
+    print '::::: %s %s' % (code, str(test))
+
 def main():
     makeDiskFailureLibrary()
     
@@ -256,7 +261,9 @@ def main():
     parser.add_option('-s', '--start', dest='start', default=None, 
                       help='Start the test list at the given test name')
     parser.add_option('-x', '--xml', dest='xmlreport', default=False, action='store_true',
-                      help='Output tests results to xml (jenkins conpatible)')
+                      help='Output test results to xml (jenkins compatible)')
+    parser.add_option('-m', '--mapreduce', dest='mapreduce', default=False, action='store_true',
+                      help='Output test results suitable for mapreduce')
     parser.add_option('-f', '--timeout-factor', dest='timeout_factor',
                       default=1, type=int,
                       help="Multiplier for some timeouts (use on slower hardware) (%default)")
@@ -316,8 +323,9 @@ def main():
     else:
         removeInstrumentedAccumuloJars()
 
+    results = []
     for i in range(options.repeat):
-        runner.run(suite)
+        results.append(runner.run(suite))
 
     if options.coverage:
         mergeCoverage()
@@ -326,6 +334,28 @@ def main():
              os.path.join(ACCUMULO_HOME,'src','server','src','main','java')]
             )
 
+    numFailures = 0
+    doEmitMR = options.mapreduce and not options.xmlreport
+    for result in results:
+        if doEmitMR:
+            for test in result.successes:
+                emitMapReduceResult('S', test)
+            if hasattr(result, 'expectedFailures'):
+                for test, err in result.expectedFailures:
+                    emitMapReduceResult('G', test)
+            for test, err in result.failures:
+                emitMapReduceResult('F', test)
+            for test, err in result.errors:
+                emitMapReduceResult('E', test)
+        numFailures += len(result.failures)
+        numFailures += len(result.errors)
+        if hasattr(result, 'unexpectedSuccesses'):
+            if doEmitMR:
+                for test in result.unexpectedSuccesses:
+                    emitMapReduceResult('T', test)
+            numFailures += len(result.unexpectedSuccesses)
+    if numFailures > 0:
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()

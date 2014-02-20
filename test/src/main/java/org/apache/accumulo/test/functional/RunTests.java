@@ -16,11 +16,14 @@
  */
 package org.apache.accumulo.test.functional;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
@@ -83,9 +86,26 @@ public class RunTests extends Configured implements Tool {
   
   static public class TestMapper extends Mapper<LongWritable,Text,Text,Text> {
     
+    private static final String REDUCER_RESULT_START = "::::: ";
+    private static final int RRS_LEN = REDUCER_RESULT_START.length();
+    private Text result = new Text();
+
+    private static enum Outcome {
+      SUCCESS, FAILURE, ERROR, UNEXPECTED_SUCCESS, EXPECTED_FAILURE
+    }
+    private static final Map<Character, Outcome> OUTCOME_COUNTERS;
+    static {
+      OUTCOME_COUNTERS = new java.util.HashMap<Character, Outcome>();
+      OUTCOME_COUNTERS.put('S', Outcome.SUCCESS);
+      OUTCOME_COUNTERS.put('F', Outcome.FAILURE);
+      OUTCOME_COUNTERS.put('E', Outcome.ERROR);
+      OUTCOME_COUNTERS.put('T', Outcome.UNEXPECTED_SUCCESS);
+      OUTCOME_COUNTERS.put('G', Outcome.EXPECTED_FAILURE);
+    }
+
     @Override
     protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-      List<String> cmd = Arrays.asList("/usr/bin/python", "test/system/auto/run.py", "-t", value.toString());
+      List<String> cmd = Arrays.asList("/usr/bin/python", "test/system/auto/run.py", "-m", "-t", value.toString());
       log.info("Running test " + cmd);
       ProcessBuilder pb = new ProcessBuilder(cmd);
       pb.directory(new File(context.getConfiguration().get("accumulo.home")));
@@ -93,19 +113,31 @@ public class RunTests extends Configured implements Tool {
       Process p = pb.start();
       p.getOutputStream().close();
       InputStream out = p.getInputStream();
-      byte[] buffer = new byte[1024];
-      int len = 0;
-      Text result = new Text();
+      InputStreamReader outr = new InputStreamReader(out, Constants.UTF8);
+      BufferedReader br = new BufferedReader(outr);
+      String line;
       try {
-        while ((len = out.read(buffer)) > 0) {
-          log.info("More: " + new String(buffer, 0, len, Constants.UTF8));
-          result.append(buffer, 0, len);
+        while ((line = br.readLine()) != null) {
+          log.info("More: " + line);
+          if (line.startsWith(REDUCER_RESULT_START)) {
+            String resultLine = line.substring(RRS_LEN);
+            if (resultLine.length() > 0) {
+              Outcome outcome = OUTCOME_COUNTERS.get(resultLine.charAt(0));
+              if (outcome != null) {
+                context.getCounter(outcome).increment(1);
+              }
+            }
+            String taskAttemptId = context.getTaskAttemptID().toString();
+            result.set(taskAttemptId + " " + resultLine);
+            context.write(value, result);
+          }
         }
       } catch (Exception ex) {
-        log.error(ex, ex);
+        log.error(ex);
+        context.progress();
       }
+
       p.waitFor();
-      context.write(value, result);
     }
     
   }
