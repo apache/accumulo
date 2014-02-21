@@ -28,6 +28,9 @@ Release Notes - Accumulo - Version 1.5.1
     * [ACCUMULO-1857] - Update README
     * [ACCUMULO-1988] - Example map reduce not running in functional test
     * [ACCUMULO-2011] - LaTeX broken by ACCUMULO-1956
+    * [ACCUMULO-2378] - Fix use of LOGNAME in functional tests under MR
+    * [ACCUMULO-2379] - Document config needed for running functional tests under MR
+    * [ACCUMULO-2380] - Update functional test MR job to indicate failed tests
 
 ** Bug
     * [ACCUMULO-1143] - unload of METADATA default_tablet with merging minor compactions can lockup
@@ -161,11 +164,16 @@ Release Notes - Accumulo - Version 1.5.1
     * [ACCUMULO-2275] - Auto tests use wrong options
     * [ACCUMULO-2276] - ZooCacheTest uses wrong package names for classes
     * [ACCUMULO-2293] - AccumuloSecurityException might be thrown instead of TableNotFoundException on flush or clone
+    * [ACCUMULO-2324] - DistributedWorkQueue#waitUntilDone() shouldn't synchronize on String object
     * [ACCUMULO-2329] - "egrep: /home/user/accumulo-1.5.1/conf/gc: No such file or directory"
     * [ACCUMULO-2331] - TableConfiguration should override invalidateCache
     * [ACCUMULO-2332] - SimpleGarbageCollector doesn't process address correctly
     * [ACCUMULO-2334] - Lacking fallback when ACCUMULO_LOG_HOST isn't set
     * [ACCUMULO-2344] - stack trace in shell when using grep 
+    * [ACCUMULO-2361] - droptable created infinite METADATA scan loop
+    * [ACCUMULO-2369] - AccumuloReloadingVFSClassLoaderTest failure
+    * [ACCUMULO-2385] - classload problem running functional tests
+    * [ACCUMULO-2387] - bootstrap_hdfs.sh doesn't read list of slaves and accumulo-site.xml from ACCUMULO_CONF_DIR
 
 ** New Feature
     * [ACCUMULO-1488] - support BigDecimal encoding for basic built-in combiners
