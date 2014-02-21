@@ -14,7 +14,11 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
+
+
 Release Notes - Accumulo - Version 1.5.1
+
+
 
 ** Sub-task
     * [ACCUMULO-1520] - Misc functional test fixes
@@ -24,7 +28,6 @@ Release Notes - Accumulo - Version 1.5.1
     * [ACCUMULO-1857] - Update README
     * [ACCUMULO-1988] - Example map reduce not running in functional test
     * [ACCUMULO-2011] - LaTeX broken by ACCUMULO-1956
-
 
 ** Bug
     * [ACCUMULO-1143] - unload of METADATA default_tablet with merging minor compactions can lockup
@@ -164,7 +167,6 @@ Release Notes - Accumulo - Version 1.5.1
     * [ACCUMULO-2334] - Lacking fallback when ACCUMULO_LOG_HOST isn't set
     * [ACCUMULO-2344] - stack trace in shell when using grep 
 
-
 ** New Feature
     * [ACCUMULO-1488] - support BigDecimal encoding for basic built-in combiners
     * [ACCUMULO-1639] - Server-side iterator/filter that allows you to specify a lexicographical range of column qualifier values you want to retrieve from a Scanner (ColumnSliceFilter)
@@ -218,7 +220,6 @@ Release Notes - Accumulo - Version 1.5.1
     * [ACCUMULO-2337] - org.apache.accumulo.test.MetaSplitTest.testMetaSplit times out 
     * [ACCUMULO-2342] - Proxy SimpleTest failures: might not see constraint updates 
 
-
 ** Task
     * [ACCUMULO-1643] - Make default Hadoop dependency 1.2.1 (stable)
     * [ACCUMULO-1690] - Update Apache RAT plugin to 0.10
@@ -230,7 +231,6 @@ Release Notes - Accumulo - Version 1.5.1
     * [ACCUMULO-2113] - Verify that The Hammer approach to resource leak is a viable short term fix
     * [ACCUMULO-2254] - Remove run_findbugs.sh
 
-
 ** Test
     * [ACCUMULO-1782] - SimpleBulkTest and CompactionTest fail with missing testrf directory
     * [ACCUMULO-1789] - Increase test timeouts for Accumulo 1.5.x
@@ -240,6 +240,7 @@ Release Notes - Accumulo - Version 1.5.1
 
 
 Release Notes - Accumulo - Version 1.5.0
+
 
 
 ** Sub-task
@@ -352,7 +353,6 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-1364] - Silent failure after power outage
     * [ACCUMULO-1369] - Can not configure iterators when per table classpath is configured
     * [ACCUMULO-1380] - Add MiniAccumuloCluster to the Accumulo documentation
-
 
 ** Bug
     * [ACCUMULO-58] - Misconfigured aggregator can block table deletion
@@ -671,9 +671,6 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-1441] - Add sample RFiles to excludes for rat check
     * [ACCUMULO-1443] - TableOperations.list() lacks javadoc
 
-
-
-
 ** Improvement
     * [ACCUMULO-14] - Transition from full Accumulo mocking
     * [ACCUMULO-25] - Documentation instructs maven assembly:assembly, which has undesired behavior
@@ -848,7 +845,6 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-967] - Add addAuths command to shell
     * [ACCUMULO-990] - Need command to cancel compact table operation
 
-
 ** Task
     * [ACCUMULO-82] - Look into using rat for enforcing ASF headers
     * [ACCUMULO-142] - Accumulo Pig
@@ -896,13 +892,10 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-1320] - Document "provided" dependencies
     * [ACCUMULO-1350] - Drop shell appendix for PDF documentation
 
-
 ** Test
     * [ACCUMULO-1782] - SimpleBulkTest and CompactionTest fail with missing testrf directory
     * [ACCUMULO-1789] - Increase test timeouts for Accumulo 1.5.x
     * [ACCUMULO-2216] - Randomwalk module to run each test once
 
-
 ** Wish
     * [ACCUMULO-1212] - AUDIT verbosity in build
-
