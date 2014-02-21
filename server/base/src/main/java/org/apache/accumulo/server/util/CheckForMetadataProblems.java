@@ -34,17 +34,14 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.cli.ClientOpts;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.io.Text;
 
-import com.beust.jcommander.Parameter;
-
 public class CheckForMetadataProblems {
   private static boolean sawProblems = false;
 
-  public static void checkTable(String tablename, TreeSet<KeyExtent> tablets, Opts opts) throws AccumuloSecurityException {
+  public static void checkTable(String tablename, TreeSet<KeyExtent> tablets, ClientOpts opts) throws AccumuloSecurityException {
     // sanity check of metadata table entries
     // make sure tablets has no holes, and that it starts and ends w/ null
 
@@ -91,17 +88,13 @@ public class CheckForMetadataProblems {
       sawProblems = true;
   }
 
-  public static void checkMetadataAndRootTableEntries(String tableNameToCheck, Opts opts, VolumeManager fs) throws Exception {
+  public static void checkMetadataAndRootTableEntries(String tableNameToCheck, ClientOpts opts, VolumeManager fs) throws Exception {
     System.out.println("Checking table: " + tableNameToCheck);
     Map<String,TreeSet<KeyExtent>> tables = new HashMap<String,TreeSet<KeyExtent>>();
 
     Scanner scanner;
 
-    if (opts.offline) {
-      scanner = new OfflineMetadataScanner(ServerConfiguration.getSystemConfiguration(opts.getInstance()), fs);
-    } else {
-      scanner = opts.getConnector().createScanner(tableNameToCheck, Authorizations.EMPTY);
-    }
+    scanner = opts.getConnector().createScanner(tableNameToCheck, Authorizations.EMPTY);
 
     scanner.setRange(MetadataSchema.TabletsSection.getRange());
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
@@ -165,23 +158,14 @@ public class CheckForMetadataProblems {
     // end METADATA table sanity check
   }
 
-  static class Opts extends ClientOpts {
-    @Parameter(names = "--offline", description = "perform the check on the files directly")
-    boolean offline = false;
-  }
-
   public static void main(String[] args) throws Exception {
-    Opts opts = new Opts();
+    ClientOpts opts = new ClientOpts();
     opts.parseArgs(CheckForMetadataProblems.class.getName(), args);
-    Opts dummyOpts = new Opts();
-    dummyOpts.auths = opts.auths;
-    dummyOpts.password = opts.password;
 
     VolumeManager fs = VolumeManagerImpl.get();
 
-    checkMetadataAndRootTableEntries(RootTable.NAME, dummyOpts, fs);
+    checkMetadataAndRootTableEntries(RootTable.NAME, opts, fs);
     checkMetadataAndRootTableEntries(MetadataTable.NAME, opts, fs);
-    dummyOpts.stopTracing();
     opts.stopTracing();
     if (sawProblems)
       throw new RuntimeException();
