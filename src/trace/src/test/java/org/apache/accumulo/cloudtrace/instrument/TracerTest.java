@@ -21,16 +21,15 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 
-import org.apache.accumulo.cloudtrace.instrument.Span;
-import org.apache.accumulo.cloudtrace.instrument.Trace;
-import org.apache.accumulo.cloudtrace.instrument.Tracer;
 import org.apache.accumulo.cloudtrace.instrument.receivers.SpanReceiver;
 import org.apache.accumulo.cloudtrace.instrument.thrift.TraceWrap;
 import org.apache.accumulo.cloudtrace.thrift.TInfo;
@@ -42,6 +41,7 @@ import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
+import org.junit.Before;
 import org.junit.Test;
 
 
@@ -178,5 +178,40 @@ public class TracerTest {
     
     tserver.stop();
     t.join(100);
+  }
+
+  Callable<Object> callable;
+
+  @Before
+  public void setup() {
+    callable = new Callable<Object>() {
+      @Override
+      public Object call() throws IOException {
+        throw new IOException();
+      }
+    };
+  }
+
+  /**
+   * Verify that exceptions propagate up through the trace wrapping with sampling enabled, instead of seeing the reflexive exceptions.
+   */
+  @Test(expected = IOException.class)
+  public void testTracedException() throws Exception {
+    TraceProxy.trace(callable).call();
+  }
+
+  /**
+   * Verify that exceptions propagate up through the trace wrapping with sampling disabled, instead of seeing the reflexive exceptions.
+   */
+  @Test(expected = IOException.class)
+  public void testUntracedException() throws Exception {
+    Sampler never = new Sampler() {
+      @Override
+      public boolean next() {
+        return false;
+      }
+    };
+
+    TraceProxy.trace(callable, never).call();
   }
 }
