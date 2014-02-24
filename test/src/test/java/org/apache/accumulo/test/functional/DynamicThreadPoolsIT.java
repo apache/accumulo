@@ -49,7 +49,7 @@ public class DynamicThreadPoolsIT extends ConfigurableMacIT {
     Connector c = getConnector();
     c.instanceOperations().setProperty(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), "5");
     TestIngest.Opts opts = new TestIngest.Opts();
-    opts.rows = 100 * 1000;
+    opts.rows = 500 * 1000;
     opts.createTable = true;
     TestIngest.ingest(c, opts, BWOPTS);
     c.tableOperations().flush("test_ingest", null, null, true);
@@ -78,7 +78,7 @@ public class DynamicThreadPoolsIT extends ConfigurableMacIT {
       System.out.println("count " + count);
       if (count > 3)
         return;
-      UtilWaitThread.sleep(1000);
+      UtilWaitThread.sleep(500);
     }
     fail("Could not observe higher number of threads after changing the config");
   }
