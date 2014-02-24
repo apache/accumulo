@@ -17,43 +17,56 @@
 package org.apache.accumulo.trace.instrument;
 
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
+import org.apache.log4j.Logger;
+
 public class TraceProxy {
-  // private static final Logger log = Logger.getLogger(TraceProxy.class);
-  
+  private static final Logger log = Logger.getLogger(TraceProxy.class);
+
   static final Sampler ALWAYS = new Sampler() {
     @Override
     public boolean next() {
       return true;
     }
   };
-  
+
   public static <T> T trace(T instance) {
     return trace(instance, ALWAYS);
   }
-  
+
   @SuppressWarnings("unchecked")
   public static <T> T trace(final T instance, final Sampler sampler) {
     InvocationHandler handler = new InvocationHandler() {
       @Override
       public Object invoke(Object obj, Method method, Object[] args) throws Throwable {
-        if (!sampler.next()) {
-          return method.invoke(instance, args);
+        Span span = null;
+        if (sampler.next()) {
+          span = Trace.on(method.getName());
         }
-        Span span = Trace.on(method.getName());
         try {
           return method.invoke(instance, args);
-        } catch (Throwable ex) {
-          ex.printStackTrace();
-          throw ex;
+          // Can throw RuntimeException, Error, or any checked exceptions of the method.
+        } catch (InvocationTargetException ite) {
+          Throwable cause = ite.getCause();
+          if (cause == null) {
+            // This should never happen, but account for it anyway
+            log.error("Invocation exception during trace with null cause: ", ite);
+            throw new RuntimeException(ite);
+          }
+          throw cause;
+        } catch (IllegalAccessException e) {
+          throw new RuntimeException(e);
         } finally {
-          span.stop();
+          if (span != null) {
+            span.stop();
+          }
         }
       }
     };
     return (T) Proxy.newProxyInstance(instance.getClass().getClassLoader(), instance.getClass().getInterfaces(), handler);
   }
-  
+
 }
