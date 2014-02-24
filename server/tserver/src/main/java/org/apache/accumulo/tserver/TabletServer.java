@@ -2087,7 +2087,13 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         ThriftSecurityException {
 
       String tableId = new String(ByteBufferUtil.toBytes(tkeyExtent.table));
-      String namespaceId = Tables.getNamespaceId(instance, tableId);
+      String namespaceId;
+      try {
+        namespaceId = Tables.getNamespaceId(instance, tableId);
+      } catch (IllegalArgumentException ex) {
+        // table does not exist, try to educate the client
+        throw new NotServingTabletException(tkeyExtent);
+      }
       
       if (!security.canSplitTablet(credentials, tableId, namespaceId))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
