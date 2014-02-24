@@ -56,6 +56,7 @@ import org.apache.accumulo.minicluster.impl.ProcessReference;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -69,7 +70,7 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
   private static final String OUR_SECRET = "itsreallysecret";
   
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg) {
+  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> settings = new HashMap<String,String>();
     settings.put(Property.INSTANCE_SECRET.getKey(), OUR_SECRET);
     settings.put(Property.GC_CYCLE_START.getKey(), "1");

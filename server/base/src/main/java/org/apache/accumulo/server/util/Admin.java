@@ -104,6 +104,12 @@ public class Admin {
     boolean printAll = false;
   }
 
+  @Parameters(commandDescription = "Accumulo volume utility")
+  static class VolumesCommand {
+    @Parameter(names = {"-l", "--list"}, description = "list volumes currently in use")
+    boolean printErrors = false;
+  }
+
   @Parameters(commandDescription = "print out non-default configuration settings")
   static class DumpConfigCommand {
     @Parameter(names = {"-t", "--tables"}, description = "print per-table configuration")
@@ -136,6 +142,9 @@ public class Admin {
 
     DumpConfigCommand dumpConfigCommand = new DumpConfigCommand();
     cl.addCommand("dumpConfig", dumpConfigCommand);
+
+    VolumesCommand volumesCommand = new VolumesCommand();
+    cl.addCommand("volumes", volumesCommand);
 
     StopCommand stopOpts = new StopCommand();
     cl.addCommand("stop", stopOpts);
@@ -186,6 +195,8 @@ public class Admin {
         stopTabletServer(instance, new Credentials(principal, token), stopOpts.args, opts.force);
       } else if (cl.getParsedCommand().equals("dumpConfig")) {
         printConfig(instance, principal, token, dumpConfigCommand);
+      } else if (cl.getParsedCommand().equals("volumes")) {
+        ListVolumesUsed.listVolumes(instance, principal, token);
       } else {
         everything = cl.getParsedCommand().equals("stopAll");
 

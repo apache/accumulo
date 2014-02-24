@@ -35,7 +35,9 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.master.Master;
+import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
+import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.master.recovery.HadoopLogCloser;
 import org.apache.accumulo.server.master.recovery.LogCloser;
 import org.apache.accumulo.server.master.recovery.RecoveryPath;
@@ -126,6 +128,14 @@ public class RecoveryManager {
 
     for (Collection<String> logs : walogs) {
       for (String walog : logs) {
+
+        String switchedWalog = VolumeUtil.switchVolume(walog, FileType.WAL, ServerConstants.getVolumeReplacements());
+        if (switchedWalog != null) {
+          // replaces the volume used for sorting, but do not change entry in metadata table. When the tablet loads it will change the metadata table entry. If
+          // the tablet has the same replacement config, then it will find the sorted log.
+          log.info("Volume replaced " + walog + " -> " + switchedWalog);
+          walog = switchedWalog;
+        }
 
         String parts[] = walog.split("/");
         String sortId = parts[parts.length - 1];

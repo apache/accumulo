@@ -268,7 +268,7 @@ public class DefaultServlet extends BasicServlet {
       long totalHdfsBytesUsed = 0l;
       
       try {
-        for (String baseDir : ServerConstants.getConfiguredBaseDirs()) {
+        for (String baseDir : ServerConstants.getConfiguredBaseDirs(ServerConfiguration.getSiteConfiguration())) {
           final Path basePath = new Path(baseDir);
           final FileSystem fs = vm.getFileSystemByPath(basePath);
           

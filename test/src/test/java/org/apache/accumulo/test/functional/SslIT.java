@@ -19,6 +19,7 @@ package org.apache.accumulo.test.functional;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
 /**
@@ -28,8 +29,8 @@ import org.junit.Test;
  */
 public class SslIT extends ConfigurableMacIT {
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg) {
-    super.configure(cfg);
+  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    super.configure(cfg, hadoopCoreSite);
     configureForSsl(cfg);
   }
 

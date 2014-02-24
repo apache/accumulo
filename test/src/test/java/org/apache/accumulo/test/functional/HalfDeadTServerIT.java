@@ -39,12 +39,13 @@ import org.apache.accumulo.start.Main;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.tserver.TabletServer;
+import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
 public class HalfDeadTServerIT extends ConfigurableMacIT {
   
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg) {
+  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
     Map<String,String> siteConfig = new HashMap<String,String>();
     siteConfig.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "15s");

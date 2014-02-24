@@ -104,6 +104,8 @@ import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.fs.VolumeUtil;
+import org.apache.accumulo.server.fs.VolumeUtil.TabletFiles;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.tableOps.CompactionIterators;
 import org.apache.accumulo.server.problems.ProblemReport;
@@ -1126,6 +1128,7 @@ public class Tablet {
 
     if (extent.isRootTablet()) { // the meta0 tablet
       Path location = new Path(MetadataTableUtil.getRootTabletDir());
+
       // cleanUpFiles() has special handling for delete. files
       FileStatus[] files = fs.listStatus(location);
       Collection<String> goodPaths = cleanUpFiles(fs, files, true);
@@ -1248,20 +1251,26 @@ public class Tablet {
    * yet another constructor - this one allows us to avoid costly lookups into the Metadata table if we already know the files we need - as at split time
    */
   private Tablet(final TabletServer tabletServer, final Text location, final KeyExtent extent, final TabletResourceManager trm, final Configuration conf,
-      final VolumeManager fs, final List<LogEntry> logEntries, final SortedMap<FileRef,DataFileValue> datafiles, String time,
+      final VolumeManager fs, final List<LogEntry> rawLogEntries, final SortedMap<FileRef,DataFileValue> rawDatafiles, String time,
       final TServerInstance lastLocation, Set<FileRef> scanFiles, long initFlushID, long initCompactID) throws IOException {
+
+    TabletFiles tabletPaths = VolumeUtil.updateTabletVolumes(tabletServer.getLock(), fs, extent, new TabletFiles(location.toString(), rawLogEntries,
+        rawDatafiles));
+
     Path locationPath;
-    if (location.find(":") >= 0) {
-      locationPath = new Path(location.toString());
+
+    if (tabletPaths.dir.contains(":")) {
+      locationPath = new Path(tabletPaths.dir.toString());
     } else {
-      locationPath = fs.getFullPath(FileType.TABLE, extent.getTableId().toString() + location.toString());
+      locationPath = fs.getFullPath(FileType.TABLE, extent.getTableId().toString() + tabletPaths.dir.toString());
     }
 
-    locationPath = DirectoryDecommissioner.checkTabletDirectory(tabletServer, fs, extent, locationPath);
+    final List<LogEntry> logEntries = tabletPaths.logEntries;
+    final SortedMap<FileRef,DataFileValue> datafiles = tabletPaths.datafiles;
 
     this.location = locationPath;
     this.lastLocation = lastLocation;
-    this.tabletDirectory = location.toString();
+    this.tabletDirectory = tabletPaths.dir;
     this.conf = conf;
     this.acuTableConf = tabletServer.getTableConfiguration(extent);
 

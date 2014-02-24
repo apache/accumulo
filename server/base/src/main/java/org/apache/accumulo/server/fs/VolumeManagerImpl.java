@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.fs;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -47,7 +46,6 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.Trash;
 import org.apache.hadoop.fs.permission.FsPermission;
@@ -91,26 +89,6 @@ public class VolumeManagerImpl implements VolumeManager {
     if (ex != null) {
       throw ex;
     }
-  }
-
-  @Override
-  public boolean closePossiblyOpenFile(Path path) throws IOException {
-    FileSystem fs = getFileSystemByPath(path);
-    if (fs instanceof DistributedFileSystem) {
-      DistributedFileSystem dfs = (DistributedFileSystem) fs;
-      try {
-        return dfs.recoverLease(path);
-      } catch (FileNotFoundException ex) {
-        throw ex;
-      }
-    } else if (fs instanceof LocalFileSystem) {
-      // ignore
-    } else {
-      throw new IllegalStateException("Don't know how to recover a lease for " + fs.getClass().getName());
-    }
-    fs.append(path).close();
-    log.info("Recovered lease on " + path.toString() + " using append");
-    return true;
   }
 
   @Override
@@ -207,8 +185,18 @@ public class VolumeManagerImpl implements VolumeManager {
   protected void ensureSyncIsEnabled() {
     for (Entry<String,? extends FileSystem> entry : getFileSystems().entrySet()) {
       final String volumeName = entry.getKey();
-      final FileSystem fs = entry.getValue();
-      
+      FileSystem fs = entry.getValue();
+
+      if (ViewFSUtils.isViewFS(fs)) {
+        try {
+          FileSystem resolvedFs = ViewFSUtils.resolvePath(fs, new Path("/")).getFileSystem(fs.getConf());
+          log.debug("resolved " + fs.getUri() + " to " + resolvedFs.getUri() + " for sync check");
+          fs = resolvedFs;
+        } catch (IOException e) {
+          log.warn("Failed to resolve " + fs.getUri(), e);
+        }
+      }
+
       if (fs instanceof DistributedFileSystem) {
         final String DFS_DURABLE_SYNC = "dfs.durable.sync", DFS_SUPPORT_APPEND = "dfs.support.append";
         final String ticketMessage = "See ACCUMULO-623 and ACCUMULO-1637 for more details.";
@@ -216,11 +204,11 @@ public class VolumeManagerImpl implements VolumeManager {
         try {
           // If the default is off (0.20.205.x or 1.0.x)
           DFSConfigKeys configKeys = new DFSConfigKeys();
-          
+
           // Can't use the final constant itself as Java will inline it at compile time
           Field dfsSupportAppendDefaultField = configKeys.getClass().getField("DFS_SUPPORT_APPEND_DEFAULT");
           boolean dfsSupportAppendDefaultValue = dfsSupportAppendDefaultField.getBoolean(configKeys);
-          
+
           if (!dfsSupportAppendDefaultValue) {
             // See if the user did the correct override
             if (!fs.getConf().getBoolean(DFS_SUPPORT_APPEND, false)) {
@@ -233,9 +221,10 @@ public class VolumeManagerImpl implements VolumeManager {
           // If we can't find DFSConfigKeys.DFS_SUPPORT_APPEND_DEFAULT, the user is running
           // 1.1.x or 1.2.x. This is ok, though, as, by default, these versions have append/sync enabled.
         } catch (Exception e) {
-          log.warn("Error while checking for " + DFS_SUPPORT_APPEND + " on volume " + volumeName + ". The user should ensure that Hadoop is configured to properly supports append and sync. " + ticketMessage, e);
+          log.warn("Error while checking for " + DFS_SUPPORT_APPEND + " on volume " + volumeName
+              + ". The user should ensure that Hadoop is configured to properly supports append and sync. " + ticketMessage, e);
         }
-        
+
         // If either of these parameters are configured to be false, fail.
         // This is a sign that someone is writing bad configuration.
         if (!fs.getConf().getBoolean(DFS_SUPPORT_APPEND, true) || !fs.getConf().getBoolean(DFS_DURABLE_SYNC, true)) {
@@ -243,12 +232,12 @@ public class VolumeManagerImpl implements VolumeManager {
           log.fatal(msg);
           throw new RuntimeException(msg);
         }
-        
+
         try {
           // Check DFSConfigKeys to see if DFS_DATANODE_SYNCONCLOSE_KEY exists (should be everything >=1.1.1 and the 0.23 line)
           Class<?> dfsConfigKeysClz = Class.forName("org.apache.hadoop.hdfs.DFSConfigKeys");
           dfsConfigKeysClz.getDeclaredField("DFS_DATANODE_SYNCONCLOSE_KEY");
-        
+
           // Everything else
           if (!fs.getConf().getBoolean("dfs.datanode.synconclose", false)) {
             log.warn("dfs.datanode.synconclose set to false in hdfs-site.xml: data loss is possible on system reset or power loss");
@@ -287,8 +276,7 @@ public class VolumeManagerImpl implements VolumeManager {
     return defaultVolume;
   }
 
-  @Override
-  public Map<String,? extends FileSystem> getFileSystems() {
+  private Map<String,? extends FileSystem> getFileSystems() {
     return volumes;
   }
 
@@ -362,25 +350,34 @@ public class VolumeManagerImpl implements VolumeManager {
     Map<String,FileSystem> fileSystems = new HashMap<String,FileSystem>();
     Configuration hadoopConf = CachedConfiguration.getInstance();
     fileSystems.put(DEFAULT, FileUtil.getFileSystem(hadoopConf, conf));
-    String ns = conf.get(Property.INSTANCE_VOLUMES);
-    if (ns != null && !ns.isEmpty()) {
-      for (String space : ns.split(",")) {
-        if (space.equals(DEFAULT))
-          throw new IllegalArgumentException();
+    for (String space : ServerConstants.getConfiguredBaseDirs(conf)) {
+      if (space.equals(DEFAULT))
+        throw new IllegalArgumentException();
 
-        if (space.contains(":")) {
-          fileSystems.put(space, new Path(space).getFileSystem(hadoopConf));
-        } else {
-          throw new IllegalArgumentException("Expected fully qualified URI for " + Property.INSTANCE_VOLUMES.getKey() + " got " + space);
-        }
+      if (space.contains(":")) {
+        fileSystems.put(space, new Path(space).getFileSystem(hadoopConf));
+      } else {
+        throw new IllegalArgumentException("Expected fully qualified URI for " + Property.INSTANCE_VOLUMES.getKey() + " got " + space);
       }
     }
+
     return new VolumeManagerImpl(fileSystems, DEFAULT, conf);
   }
 
   @Override
   public boolean isReady() throws IOException {
     for (FileSystem fs : getFileSystems().values()) {
+
+      if (ViewFSUtils.isViewFS(fs)) {
+        try {
+          FileSystem resolvedFs = ViewFSUtils.resolvePath(fs, new Path("/")).getFileSystem(fs.getConf());
+          log.debug("resolved " + fs.getUri() + " to " + resolvedFs.getUri() + " for ready check");
+          fs = resolvedFs;
+        } catch (IOException e) {
+          log.warn("Failed to resolve " + fs.getUri(), e);
+        }
+      }
+
       if (!(fs instanceof DistributedFileSystem))
         continue;
       DistributedFileSystem dfs = (DistributedFileSystem) fs;
@@ -462,28 +459,28 @@ public class VolumeManagerImpl implements VolumeManager {
   public Path getFullPath(String tableId, String path) {
     if (path.contains(":"))
       return new Path(path);
-    
+
     if (path.startsWith("../"))
       path = path.substring(2);
     else if (path.startsWith("/"))
       path = "/" + tableId + path;
     else
       throw new IllegalArgumentException("Unexpected path prefix " + path);
-    
+
     return getFullPath(FileType.TABLE, path);
   }
-  
+
   @Override
   public Path getFullPath(FileType fileType, String path) {
     if (path.contains(":"))
       return new Path(path);
-    
+
     // normalize the path
     Path fullPath = new Path(ServerConstants.getDefaultBaseDir(), fileType.getDirectory());
     if (path.startsWith("/"))
       path = path.substring(1);
     fullPath = new Path(fullPath, path);
-    
+
     FileSystem fs = getFileSystemByPath(fullPath);
     return fs.makeQualified(fullPath);
   }

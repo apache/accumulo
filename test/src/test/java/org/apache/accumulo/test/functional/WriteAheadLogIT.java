@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -32,12 +32,13 @@ import org.apache.accumulo.minicluster.impl.ProcessReference;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
 public class WriteAheadLogIT extends ConfigurableMacIT {
   
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg) {
+  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String, String> siteConfig = new HashMap<String, String>();
     siteConfig.put(Property.TSERV_WALOG_MAX_SIZE.getKey(), "2M");
     siteConfig.put(Property.GC_CYCLE_DELAY.getKey(), "1");

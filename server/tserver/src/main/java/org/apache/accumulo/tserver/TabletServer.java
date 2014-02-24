@@ -159,6 +159,7 @@ import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.master.recovery.RecoveryPath;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.DistributedStoreException;
@@ -2905,6 +2906,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
         // this opens the tablet file and fills in the endKey in the
         // extent
+        locationToOpen = VolumeUtil.switchRootTabletVolume(extent, locationToOpen);
         tablet = new Tablet(TabletServer.this, locationToOpen, extent, trm, tabletsKeyValues);
         /*
          * If a minor compaction starts after a tablet opens, this indicates a log recovery occurred. This recovered data must be minor compacted.

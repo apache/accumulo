@@ -121,7 +121,17 @@ public enum Property {
       "A comma seperated list of dfs uris to use.  Files will be stored across these filesystems.  If this is empty, then instance.dfs.uri will be used.  "
           + "After adding uris to this list, run 'accumulo init --add-volume' and then restart tservers.  If entries are removed from this list then tservers "
           + "will need to be restarted.  After a uri is removed from the list Accumulo will not create new files in that location, however Accumulo can still "
-          + "reference files created at that location before the config change."),
+          + "reference files created at that location before the config change. To use a comma or other reserved characters in a URI use standard URI hex encoding."
+          + "For example replace commas with %2C."),
+  INSTANCE_VOLUMES_REPLACEMENTS(
+      "instance.volumes.replacements",
+      "",
+      PropertyType.STRING,
+      "Since accumulo stores absolute URIs changing the location of a namenode could prevent Accumulo from starting.  The property helps deal with that situation.  "
+          + "Provide a comma seperated list of uri replacement pairs here if a namenode location changes. Each pair shold be separated with a space.  For example if "
+          + "hdfs://nn1 was repalced with hdfs://nnA and hdfs://nn2 was replaced with hdfs://nnB, then set this property to "
+          + "'hdfs://nn1 hdfs://nnA,hdfs://nn2 hdfs://nnB'.   Replacements must be configured for use.  To see which volumes are currently in use, run 'accumulo admin volumes -l'."
+          + "To use a comma or other reserved characters in a URI use standard URI hex encoding. For example replace commas with %2C."),
   INSTANCE_SECURITY_AUTHENTICATOR("instance.security.authenticator", "org.apache.accumulo.server.security.handler.ZKAuthenticator", PropertyType.CLASSNAME,
       "The authenticator class that accumulo will use to determine if a user has privilege to perform an action"),
   INSTANCE_SECURITY_AUTHORIZOR("instance.security.authorizor", "org.apache.accumulo.server.security.handler.ZKAuthorizor", PropertyType.CLASSNAME,
