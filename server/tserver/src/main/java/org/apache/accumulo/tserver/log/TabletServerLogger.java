@@ -238,8 +238,7 @@ public class TabletServerLogger {
     int currentLogSet = logSetId.get();
 
     int seq = -1;
-
-    int attempt = 0;
+    int attempt = 1;
     boolean success = false;
     while (!success) {
       try {
@@ -287,9 +286,11 @@ public class TabletServerLogger {
           success = (currentLogSet == logSetId.get());
         }
       } catch (DfsLogger.LogClosedException ex) {
-        log.debug("Logs closed while writing, retrying " + (attempt + 1));
+        log.debug("Logs closed while writing, retrying " + attempt);
       } catch (Exception t) {
-        log.error("Unexpected error writing to log, retrying attempt " + (attempt + 1), t);
+        if (attempt != 1) {
+          log.error("Unexpected error writing to log, retrying attempt " + attempt, t);
+        }
         UtilWaitThread.sleep(100);
       } finally {
         attempt++;
