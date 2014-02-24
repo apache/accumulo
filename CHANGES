@@ -174,6 +174,7 @@ Release Notes - Accumulo - Version 1.5.1
     * [ACCUMULO-2369] - AccumuloReloadingVFSClassLoaderTest failure
     * [ACCUMULO-2385] - classload problem running functional tests
     * [ACCUMULO-2387] - bootstrap_hdfs.sh doesn't read list of slaves and accumulo-site.xml from ACCUMULO_CONF_DIR
+    * [ACCUMULO-2390] - TraceProxy.trace should not throw InvocationTargetException
 
 ** New Feature
     * [ACCUMULO-1488] - support BigDecimal encoding for basic built-in combiners
