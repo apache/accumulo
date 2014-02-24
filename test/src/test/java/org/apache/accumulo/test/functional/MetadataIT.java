@@ -46,9 +46,10 @@ public class MetadataIT extends SimpleMacIT {
   @Test(timeout = 60 * 1000)
   public void testFlushAndCompact() throws Exception {
     Connector c = getConnector();
-
+    String tableNames[] = getTableNames(2);
+    
     // create a table to write some data to metadata table
-    c.tableOperations().create(super.getTableNames(1)[0]);
+    c.tableOperations().create(tableNames[0]);
 
     Scanner rootScanner = c.createScanner(RootTable.NAME, Authorizations.EMPTY);
     rootScanner.setRange(MetadataSchema.TabletsSection.getRange());
@@ -58,6 +59,7 @@ public class MetadataIT extends SimpleMacIT {
     for (Entry<Key,Value> entry : rootScanner)
       files1.add(entry.getKey().getColumnQualifier().toString());
 
+    c.tableOperations().create(tableNames[1]);
     c.tableOperations().flush(MetadataTable.NAME, null, null, true);
 
     Set<String> files2 = new HashSet<String>();
@@ -72,8 +74,8 @@ public class MetadataIT extends SimpleMacIT {
 
     Set<String> files3 = new HashSet<String>();
     for (Entry<Key,Value> entry : rootScanner)
-
       files3.add(entry.getKey().getColumnQualifier().toString());
+    
     // compaction of metadata table should change file set in root table
     Assert.assertNotEquals(files2, files3);
   }
@@ -116,6 +118,7 @@ public class MetadataIT extends SimpleMacIT {
       if (e != null)
         count++;
     }
+    s.close();
     assertTrue(count > 0);
 
     // batch scan root metadata table
@@ -126,6 +129,7 @@ public class MetadataIT extends SimpleMacIT {
       if (e != null)
         count++;
     }
+    s.close();
     assertTrue(count > 0);
   }
 
