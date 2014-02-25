@@ -154,7 +154,7 @@ public class ContinuousWalk {
     ArrayList<Value> values = new ArrayList<Value>();
     
     while (true) {
-      Scanner scanner = conn.createScanner(table, randomAuths.getAuths(r));
+      Scanner scanner = ContinuousUtil.createScanner(conn, table, randomAuths.getAuths(r));
       String row = findAStartRow(min, max, scanner, r);
       
       while (row != null) {

@@ -97,7 +97,7 @@ public class ContinuousScanner {
     Instance instance = new ZooKeeperInstance(instanceName, zooKeepers);
     Connector conn = instance.getConnector(user, password.getBytes());
     Authorizations auths = randomAuths.getAuths(r);
-    Scanner scanner = conn.createScanner(table, auths);
+    Scanner scanner = ContinuousUtil.createScanner(conn, table, auths);
     
     double delta = Math.min(.05, .05 / (numToScan / 1000.0));
     // System.out.println("Delta "+delta);

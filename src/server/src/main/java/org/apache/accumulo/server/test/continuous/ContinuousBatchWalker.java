@@ -98,7 +98,7 @@ public class ContinuousBatchWalker {
     Authorizations auths = randomAuths.getAuths(r);
 
     Connector conn = new ZooKeeperInstance(instanceName, zooKeepers).getConnector(user, password.getBytes());
-    Scanner scanner = conn.createScanner(table, auths);
+    Scanner scanner = ContinuousUtil.createScanner(conn, table, auths);
     BatchScanner bs = conn.createBatchScanner(table, auths, numQueryThreads);
 
     while (true) {

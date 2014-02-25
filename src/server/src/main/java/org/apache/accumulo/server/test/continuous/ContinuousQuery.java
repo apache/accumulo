@@ -50,7 +50,7 @@ public class ContinuousQuery {
     long sleepTime = Long.parseLong(args[7]);
     
     Connector conn = new ZooKeeperInstance(instanceName, zooKeepers).getConnector(user, password.getBytes());
-    Scanner scanner = conn.createScanner(table, new Authorizations());
+    Scanner scanner = ContinuousUtil.createScanner(conn, table, new Authorizations());
     
     Random r = new Random();
     

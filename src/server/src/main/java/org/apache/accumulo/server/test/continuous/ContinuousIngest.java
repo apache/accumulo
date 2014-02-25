@@ -36,7 +36,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.TableExistsException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -150,10 +150,9 @@ public class ContinuousIngest {
     String path = ZooUtil.getRoot(instance) + Constants.ZTRACERS;
     Tracer.getInstance().addReceiver(new ZooSpanClient(zooKeepers, path, localhost, "cingest", 1000));
     
-    if (!conn.tableOperations().exists(table))
-      try {
-        conn.tableOperations().create(table);
-      } catch (TableExistsException tee) {}
+    if (!conn.tableOperations().exists(table)) {
+      throw new TableNotFoundException(null, table, "Consult the README and create the table before starting ingest.");
+    }
 
     BatchWriter bw = conn.createBatchWriter(table, maxMemory, maxLatency, maxWriteThreads);
     bw = Trace.wrapAll(bw, new CountSampler(1024));
