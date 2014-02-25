@@ -27,6 +27,7 @@ import java.util.TreeMap;
 import junit.framework.TestCase;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -131,7 +132,7 @@ public class IndexedDocIteratorTest extends TestCase {
     return map;
   }
   
-  static TestRFile trf = new TestRFile();
+  static TestRFile trf = new TestRFile(AccumuloConfiguration.getDefaultConfiguration());
   
   private SortedKeyValueIterator<Key,Value> createIteratorStack(float hitRatio, int numRows, int numDocsPerRow, Text[] columnFamilies,
       Text[] otherColumnFamilies, HashSet<Text> docs) throws IOException {
