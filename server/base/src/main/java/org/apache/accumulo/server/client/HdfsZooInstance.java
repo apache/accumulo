@@ -122,7 +122,7 @@ public class HdfsZooInstance implements Instance {
 
   private static synchronized void _getInstanceID() {
     if (instanceId == null) {
-      String instanceIdFromFile = ZooUtil.getInstanceIDFromHdfs(ServerConstants.getInstanceIdLocation());
+      String instanceIdFromFile = ZooUtil.getInstanceIDFromHdfs(ServerConstants.getInstanceIdLocation(), ServerConfiguration.getSiteConfiguration());
       instanceId = instanceIdFromFile;
     }
   }

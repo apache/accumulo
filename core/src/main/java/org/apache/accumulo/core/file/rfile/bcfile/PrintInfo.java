@@ -30,11 +30,11 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 public class PrintInfo {
-  public static void printMetaBlockInfo(Configuration conf, FileSystem fs, Path path) throws IOException {
+  public static void printMetaBlockInfo(Configuration conf, FileSystem fs, Path path, AccumuloConfiguration accumuloConfiguration) throws IOException {
     FSDataInputStream fsin = fs.open(path);
     BCFile.Reader bcfr = null;
     try {
-      bcfr = new BCFile.Reader(fsin, fs.getFileStatus(path).getLen(), conf);
+      bcfr = new BCFile.Reader(fsin, fs.getFileStatus(path).getLen(), conf, accumuloConfiguration);
       
       Set<Entry<String,MetaIndexEntry>> es = bcfr.metaIndex.index.entrySet();
       
@@ -56,7 +56,8 @@ public class PrintInfo {
   public static void main(String[] args) throws Exception {
     Configuration conf = new Configuration();
     @SuppressWarnings("deprecation")
-    FileSystem hadoopFs = FileUtil.getFileSystem(conf, AccumuloConfiguration.getSiteConfiguration());
+    AccumuloConfiguration siteConf = AccumuloConfiguration.getSiteConfiguration();
+    FileSystem hadoopFs = FileUtil.getFileSystem(conf, siteConf);
     FileSystem localFs = FileSystem.getLocal(conf);
     Path path = new Path(args[0]);
     FileSystem fs;
@@ -64,6 +65,6 @@ public class PrintInfo {
       fs = path.getFileSystem(conf);
     else
       fs = hadoopFs.exists(path) ? hadoopFs : localFs; // fall back to local
-    printMetaBlockInfo(conf, fs, path);
+    printMetaBlockInfo(conf, fs, path, siteConf);
   }
 }

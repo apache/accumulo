@@ -178,7 +178,7 @@ public class RFileTest {
 
       baos = new ByteArrayOutputStream();
       dos = new FSDataOutputStream(baos, new FileSystem.Statistics("a"));
-      CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(dos, "gz", conf);
+      CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(dos, "gz", conf, AccumuloConfiguration.getDefaultConfiguration());
       writer = new RFile.Writer(_cbw, 1000, 1000);
 
       if (startDLG)
@@ -211,7 +211,7 @@ public class RFileTest {
       LruBlockCache indexCache = new LruBlockCache(100000000, 100000);
       LruBlockCache dataCache = new LruBlockCache(100000000, 100000);
 
-      CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in, fileLength, conf, dataCache, indexCache);
+      CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in, fileLength, conf, dataCache, indexCache, AccumuloConfiguration.getDefaultConfiguration());
       reader = new RFile.Reader(_cbr);
       iter = new ColumnFamilySkippingIterator(reader);
 
@@ -1546,7 +1546,9 @@ public class RFileTest {
     byte data[] = baos.toByteArray();
     SeekableByteArrayInputStream bais = new SeekableByteArrayInputStream(data);
     FSDataInputStream in2 = new FSDataInputStream(bais);
-    CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in2, data.length, CachedConfiguration.getInstance());
+    @SuppressWarnings("deprecation")
+    AccumuloConfiguration aconf = AccumuloConfiguration.getSiteConfiguration();
+    CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in2, data.length, CachedConfiguration.getInstance(), aconf);
     Reader reader = new RFile.Reader(_cbr);
     checkIndex(reader);
 

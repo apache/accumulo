@@ -573,7 +573,7 @@ public class Initialize {
     Path iidPath = new Path(aBasePath, ServerConstants.INSTANCE_ID_DIR);
     Path versionPath = new Path(aBasePath, ServerConstants.VERSION_DIR);
 
-    UUID uuid = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(iidPath));
+    UUID uuid = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(iidPath, ServerConfiguration.getSiteConfiguration()));
 
     if (ServerConstants.DATA_VERSION != Accumulo.getAccumuloPersistentVersion(versionPath.getFileSystem(CachedConfiguration.getInstance()), versionPath)) {
       throw new IOException("Accumulo " + Constants.VERSION + " cannot initialize data version " + Accumulo.getAccumuloPersistentVersion(fs));
@@ -602,10 +602,11 @@ public class Initialize {
     opts.parseArgs(Initialize.class.getName(), args);
 
     try {
-      SecurityUtil.serverLogin();
+      AccumuloConfiguration acuConf = ServerConfiguration.getSiteConfiguration();
+      SecurityUtil.serverLogin(acuConf);
       Configuration conf = CachedConfiguration.getInstance();
 
-      VolumeManager fs = VolumeManagerImpl.get(ServerConfiguration.getSiteConfiguration());
+      VolumeManager fs = VolumeManagerImpl.get(acuConf);
 
       if (opts.resetSecurity) {
         if (isInitialized(fs)) {

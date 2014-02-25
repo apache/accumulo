@@ -46,6 +46,7 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.lib.IdentityMapper;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.apache.log4j.Logger;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -108,6 +109,7 @@ public class AccumuloFileOutputFormatTest {
             if (index == 2)
               fail();
           } catch (Exception e) {
+            Logger.getLogger(this.getClass()).error(e, e);
             assertEquals(2, index);
           }
         } catch (AssertionError e) {
@@ -191,6 +193,7 @@ public class AccumuloFileOutputFormatTest {
     File f = folder.newFile("writeBadVisibility");
     f.delete();
     MRTester.main(new String[] {"root", "", BAD_TABLE, f.getAbsolutePath()});
+    Logger.getLogger(this.getClass()).error(e1, e1);
     assertNull(e1);
     assertNull(e2);
   }

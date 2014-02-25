@@ -258,7 +258,7 @@ public class ClientOpts extends Help {
       };
       this.zookeepers = config.get(Property.INSTANCE_ZK_HOST);
       Path instanceDir = new Path(config.get(Property.INSTANCE_DFS_DIR), "instance_id");
-      String instanceIDFromFile = ZooUtil.getInstanceIDFromHdfs(instanceDir);
+      String instanceIDFromFile = ZooUtil.getInstanceIDFromHdfs(instanceDir, config);
       if (config.getBoolean(Property.INSTANCE_RPC_SSL_ENABLED))
         clientConfig.setProperty(ClientProperty.INSTANCE_RPC_SSL_ENABLED, "true");
       return cachedClientConfig = clientConfig.withInstance(UUID.fromString(instanceIDFromFile)).withZkHosts(zookeepers);

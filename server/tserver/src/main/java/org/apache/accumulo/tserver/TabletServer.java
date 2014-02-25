@@ -3153,7 +3153,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
   // main loop listens for client requests
   public void run() {
-    SecurityUtil.serverLogin();
+    SecurityUtil.serverLogin(ServerConfiguration.getSiteConfiguration());
 
     try {
       clientAddress = startTabletClientService();
@@ -3646,7 +3646,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
   public static void main(String[] args) throws IOException {
     try {
-      SecurityUtil.serverLogin();
+      SecurityUtil.serverLogin(ServerConfiguration.getSiteConfiguration());
       VolumeManager fs = VolumeManagerImpl.get();
       ServerOpts opts = new ServerOpts();
       opts.parseArgs("tserver", args);

@@ -148,7 +148,7 @@ public class PropertyTest {
     TreeSet<String> expected = new TreeSet<String>();
     for (Entry<String,String> entry : conf) {
       String key = entry.getKey();
-      if (key.equals(Property.INSTANCE_SECRET.getKey()) || key.toLowerCase().contains("password") || key.toLowerCase().contains("secret")
+      if (key.equals(Property.INSTANCE_SECRET.getKey()) || key.toLowerCase().contains("password") || key.toLowerCase().endsWith("secret")
           || key.startsWith(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey()))
         expected.add(key);
     }

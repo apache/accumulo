@@ -34,6 +34,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.Map.Entry;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -42,7 +43,8 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.hadoop.conf.Configuration;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -61,7 +63,6 @@ public class CryptoTest {
   
   @Test
   public void testNoCryptoStream() throws IOException {
-    String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_OFF_CONF);    
     
     CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
@@ -82,14 +83,10 @@ public class CryptoTest {
     params = cryptoModule.getEncryptingOutputStream(params);
     assertNotNull(params.getEncryptedOutputStream());
     assertEquals(out, params.getEncryptedOutputStream());
-    
-
-    restoreOldConfiguration(oldSiteConfigProperty, conf);
   }
   
   @Test
   public void testCryptoModuleParamsParsing() {
-    String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);    
 
     CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
@@ -102,48 +99,32 @@ public class CryptoTest {
     assertEquals("SHA1PRNG", params.getRandomNumberGenerator());
     assertEquals("SUN", params.getRandomNumberGeneratorProvider());
     assertEquals("org.apache.accumulo.core.security.crypto.CachingHDFSSecretKeyEncryptionStrategy", params.getKeyEncryptionStrategyClass());
-    
-    restoreOldConfiguration(oldSiteConfigProperty, conf);    
   }
   
   @Test
   public void testCryptoModuleParamsValidation1() throws IOException {
-    String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);    
-   
-    try {
-      
-      CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
-      CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
-      
-      assertTrue(cryptoModule instanceof DefaultCryptoModule);
-      
-      exception.expect(RuntimeException.class);
-      cryptoModule.getEncryptingOutputStream(params);
-      
-      
-    } finally {
-      restoreOldConfiguration(oldSiteConfigProperty, conf);             
-    }
+
+    CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
+    CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
+
+    assertTrue(cryptoModule instanceof DefaultCryptoModule);
+
+    exception.expect(RuntimeException.class);
+    cryptoModule.getEncryptingOutputStream(params);
   }
 
   @Test
   public void testCryptoModuleParamsValidation2() throws IOException {
-    String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);    
    
-    try {
-      
-      CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
-      CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
-      
-      assertTrue(cryptoModule instanceof DefaultCryptoModule);
-      
-      exception.expect(RuntimeException.class);
-      cryptoModule.getDecryptingInputStream(params);
-    } finally {
-      restoreOldConfiguration(oldSiteConfigProperty, conf);             
-    }
+    CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
+    CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
+
+    assertTrue(cryptoModule instanceof DefaultCryptoModule);
+
+    exception.expect(RuntimeException.class);
+    cryptoModule.getDecryptingInputStream(params);
   }
   
   private String getStringifiedBytes(String s) throws IOException {
@@ -170,14 +151,12 @@ public class CryptoTest {
 
   @Test
   public void testCryptoModuleBasicReadWrite() throws IOException {
-    String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_KEK_OFF_CONF);    
   
     CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
     CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
     
     assertTrue(cryptoModule instanceof DefaultCryptoModule);
-    assertTrue(params.getKeyEncryptionStrategyClass() == null || params.getKeyEncryptionStrategyClass().equals(""));
     
     byte[] resultingBytes = setUpSampleEncryptedBytes(cryptoModule, params);
     
@@ -199,8 +178,6 @@ public class CryptoTest {
     
     assertEquals(MARKER_STRING, markerString);
     assertEquals(MARKER_INT, markerInt);
-    
-    restoreOldConfiguration(oldSiteConfigProperty, conf);
   }
 
   private byte[] setUpSampleEncryptedBytes(CryptoModule cryptoModule, CryptoModuleParameters params) throws IOException {
@@ -233,7 +210,6 @@ public class CryptoTest {
   
   @Test
   public void testKeyEncryptionAndCheckThatFileCannotBeReadWithoutKEK() throws IOException {
-    String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);    
   
     CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
@@ -259,19 +235,13 @@ public class CryptoTest {
     assertNotNull(params.getPlaintextInputStream());
     DataInputStream dataIn = new DataInputStream(params.getPlaintextInputStream());
     // We expect the following operation to fail and throw an exception
-    try {
-      exception.expect(IOException.class);
-      @SuppressWarnings("unused")
-      String markerString = dataIn.readUTF();
-    }
-    finally {
-      restoreOldConfiguration(oldSiteConfigProperty, conf);      
-    }
+    exception.expect(IOException.class);
+    @SuppressWarnings("unused")
+    String markerString = dataIn.readUTF();
  }
 
   @Test
   public void testKeyEncryptionNormalPath() throws IOException {
-    String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);    
 
     CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
@@ -299,13 +269,10 @@ public class CryptoTest {
     
     assertEquals(MARKER_STRING, markerString);
     assertEquals(MARKER_INT, markerInt);
-
-    restoreOldConfiguration(oldSiteConfigProperty, conf);
   }
   
   @Test
   public void testChangingCryptoParamsAndCanStillDecryptPreviouslyEncryptedFiles() throws IOException {
-    String oldSiteConfigProperty = System.getProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);    
 
     CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
@@ -336,27 +303,16 @@ public class CryptoTest {
     
     assertEquals(MARKER_STRING, markerString);
     assertEquals(MARKER_INT, markerInt);
-
-    restoreOldConfiguration(oldSiteConfigProperty, conf);   
   }
   
-  private void restoreOldConfiguration(String oldSiteConfigProperty, AccumuloConfiguration conf) {
-    if (oldSiteConfigProperty != null) {
-      System.setProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP, oldSiteConfigProperty);
-    } else {
-      System.clearProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP);
+  private AccumuloConfiguration setAndGetAccumuloConfig(String cryptoConfSetting) {
+    ConfigurationCopy result = new ConfigurationCopy(AccumuloConfiguration.getDefaultConfiguration());
+    Configuration conf = new Configuration(false);
+    conf.addResource(cryptoConfSetting);
+    for (Entry<String,String> e : conf) {
+      result.set(e.getKey(), e.getValue());
     }
-    ((SiteConfiguration)conf).clearAndNull();
-  }
-
-
-
-  private AccumuloConfiguration setAndGetAccumuloConfig(String cryptoConfSetting) {  
-    @SuppressWarnings("deprecation")
-    AccumuloConfiguration conf = AccumuloConfiguration.getSiteConfiguration();
-    System.setProperty(CryptoTest.CONFIG_FILE_SYSTEM_PROP, cryptoConfSetting);
-    ((SiteConfiguration)conf).clearAndNull();
-    return conf;
+    return result;
   }
   
   @Test

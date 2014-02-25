@@ -35,9 +35,7 @@ public class SecurityUtil {
    * This method is for logging a server in kerberos. If this is used in client code, it will fail unless run as the accumulo keytab's owner. Instead, use
    * {@link #login(String, String)}
    */
-  public static void serverLogin() {
-    @SuppressWarnings("deprecation")
-    AccumuloConfiguration acuConf = AccumuloConfiguration.getSiteConfiguration();
+  public static void serverLogin(AccumuloConfiguration acuConf) {
     String keyTab = acuConf.getPath(Property.GENERAL_KERBEROS_KEYTAB);
     if (keyTab == null || keyTab.length() == 0)
       return;

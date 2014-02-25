@@ -434,7 +434,7 @@ public class Shell extends ShellOptions {
       AccumuloConfiguration conf = SiteConfiguration.getInstance(ServerConfigurationUtil.convertClientConfig(DefaultConfiguration.getInstance(), clientConfig));
       if (instanceName == null) {
         Path instanceDir = new Path(conf.get(Property.INSTANCE_DFS_DIR), "instance_id");
-        instanceId = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(instanceDir));
+        instanceId = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(instanceDir, conf));
       }
       if (keepers == null) {
         keepers = conf.get(Property.INSTANCE_ZK_HOST);

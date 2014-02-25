@@ -134,7 +134,7 @@ public class SimpleGarbageCollector implements Iface {
   private Instance instance;
 
   public static void main(String[] args) throws UnknownHostException, IOException {
-    SecurityUtil.serverLogin();
+    SecurityUtil.serverLogin(ServerConfiguration.getSiteConfiguration());
     Instance instance = HdfsZooInstance.getInstance();
     ServerConfiguration serverConf = new ServerConfiguration(instance);
     final VolumeManager fs = VolumeManagerImpl.get();
