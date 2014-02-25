@@ -237,7 +237,7 @@ public class ServerConstants {
         Path p1, p2;
         try {
           // URI constructor handles hex escaping
-          p1 = new Path(new URI(VolumeUtil.removeSlash(uris[0].trim())));
+          p1 = new Path(new URI(VolumeUtil.removeTrailingSlash(uris[0].trim())));
           if (p1.toUri().getScheme() == null)
             throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey() + " contains " + uris[0] + " which is not fully qualified");
         } catch (URISyntaxException e) {
@@ -245,7 +245,7 @@ public class ServerConstants {
         }
 
         try {
-          p2 = new Path(new URI(VolumeUtil.removeSlash(uris[1].trim())));
+          p2 = new Path(new URI(VolumeUtil.removeTrailingSlash(uris[1].trim())));
           if (p2.toUri().getScheme() == null)
             throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey() + " contains " + uris[1] + " which is not fully qualified");
         } catch (URISyntaxException e) {

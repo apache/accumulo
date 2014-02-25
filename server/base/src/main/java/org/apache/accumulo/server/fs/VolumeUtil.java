@@ -45,11 +45,15 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
+/**
+ * Utility methods for managing absolute URIs contained in Accumulo metadata.
+ */
+
 public class VolumeUtil {
 
   private static final Logger log = Logger.getLogger(VolumeUtil.class);
 
-  public static boolean isActiveVolume(Path dir) {
+  private static boolean isActiveVolume(Path dir) {
 
     // consider relative path as active and take no action
     if (!dir.toString().contains(":"))
@@ -64,15 +68,15 @@ public class VolumeUtil {
     return false;
   }
 
-  public static String removeSlash(String path) {
+  public static String removeTrailingSlash(String path) {
     while (path.endsWith("/"))
       path = path.substring(0, path.length() - 1);
     return path;
   }
 
-  public static Path removeSlash(Path path) {
+  public static Path removeTrailingSlash(Path path) {
     if (path.toString().endsWith("/"))
-      return new Path(removeSlash(path.toString()));
+      return new Path(removeTrailingSlash(path.toString()));
     return path;
   }
 
@@ -83,10 +87,10 @@ public class VolumeUtil {
     Path p = new Path(path);
 
     // removing slash because new Path("hdfs://nn1").equals(new Path("hdfs://nn1/")) evaluates to false
-    Path volume = removeSlash(ft.getVolume(p));
+    Path volume = removeTrailingSlash(ft.getVolume(p));
 
     for (Pair<Path,Path> pair : replacements) {
-      Path key = removeSlash(pair.getFirst());
+      Path key = removeTrailingSlash(pair.getFirst());
 
       if (key.equals(volume))
         return new Path(pair.getSecond(), ft.removeVolume(p)).toString();
@@ -142,9 +146,10 @@ public class VolumeUtil {
     }
   }
 
+
   public static Text switchRootTabletVolume(KeyExtent extent, Text location) throws IOException {
     if (extent.isRootTablet()) {
-      String newLocation = VolumeUtil.switchVolume(location.toString(), FileType.TABLE, ServerConstants.getVolumeReplacements());
+      String newLocation = switchVolume(location.toString(), FileType.TABLE, ServerConstants.getVolumeReplacements());
       if (newLocation != null) {
         MetadataTableUtil.setRootTabletDir(newLocation);
         log.info("Volume replaced " + extent + " : " + location + " -> " + newLocation);
@@ -154,7 +159,10 @@ public class VolumeUtil {
     return location;
   }
 
-  // Change volumes used by tablet based on configuration changes
+  /**
+   * This method does two things. First, it switches any volumes a tablet is using that are configured in instance.volumes.replacements. Second, if a tablet dir
+   * is no longer configured for use it chooses a new tablet directory.
+   */
   public static TabletFiles updateTabletVolumes(ZooLock zooLock, VolumeManager vm, KeyExtent extent, TabletFiles tabletFiles) throws IOException {
     List<Pair<Path,Path>> replacements = ServerConstants.getVolumeReplacements();
 
@@ -214,7 +222,7 @@ public class VolumeUtil {
 
   }
 
-  public static String decommisionedTabletDir(ZooLock zooLock, VolumeManager vm, KeyExtent extent, String metaDir) throws IOException {
+  private static String decommisionedTabletDir(ZooLock zooLock, VolumeManager vm, KeyExtent extent, String metaDir) throws IOException {
     Path dir = new Path(metaDir);
     if (isActiveVolume(dir))
       return metaDir;
