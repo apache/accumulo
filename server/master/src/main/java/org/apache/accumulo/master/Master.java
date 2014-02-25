@@ -1059,7 +1059,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
   public static void main(String[] args) throws Exception {
     try {
-      SecurityUtil.serverLogin();
+      SecurityUtil.serverLogin(ServerConfiguration.getSiteConfiguration());
 
       VolumeManager fs = VolumeManagerImpl.get();
       ServerOpts opts = new ServerOpts();

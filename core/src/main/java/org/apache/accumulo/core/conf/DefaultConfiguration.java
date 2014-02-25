@@ -63,7 +63,7 @@ public class DefaultConfiguration extends AccumuloConfiguration {
       // the following loop is super slow, it takes a few milliseconds, so cache it
       resolvedProps = new HashMap<String,String>();
       for (Property prop : Property.values())
-        if (!prop.isExperimental() && !prop.getType().equals(PropertyType.PREFIX))
+        if (!prop.getType().equals(PropertyType.PREFIX))
           resolvedProps.put(prop.getKey(), prop.getDefaultValue());
     }
     return resolvedProps;

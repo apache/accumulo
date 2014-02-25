@@ -59,7 +59,7 @@ public class RFileOperations extends FileOperations {
     // long len = fs.getFileStatus(path).getLen();
     // FSDataInputStream in = fs.open(path);
     // Reader reader = new RFile.Reader(in, len , conf);
-    CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(fs, path, conf, dataCache, indexCache);
+    CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(fs, path, conf, dataCache, indexCache, acuconf);
     final Reader reader = new RFile.Reader(_cbr);
     
     return reader.getIndex();
@@ -75,7 +75,7 @@ public class RFileOperations extends FileOperations {
       BlockCache dataCache, BlockCache indexCache) throws IOException {
     Path path = new Path(file);
     
-    CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(fs, path, conf, dataCache, indexCache);
+    CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(fs, path, conf, dataCache, indexCache, acuconf);
     Reader iter = new RFile.Reader(_cbr);
     
     if (seekToBeginning) {
@@ -121,7 +121,7 @@ public class RFileOperations extends FileOperations {
     
     String compression = acuconf.get(Property.TABLE_FILE_COMPRESSION_TYPE);
     
-    CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(fs.create(new Path(file), false, bufferSize, (short) rep, block), compression, conf);
+    CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(fs.create(new Path(file), false, bufferSize, (short) rep, block), compression, conf, acuconf);
     Writer writer = new RFile.Writer(_cbw, (int) blockSize, (int) indexBlockSize);
     return writer;
   }

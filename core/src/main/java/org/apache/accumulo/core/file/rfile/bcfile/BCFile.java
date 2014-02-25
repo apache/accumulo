@@ -346,7 +346,7 @@ public final class BCFile {
      * @throws IOException
      * @see Compression#getSupportedAlgorithms
      */
-    public Writer(FSDataOutputStream fout, String compressionName, Configuration conf, boolean trackDataBlocks) throws IOException {
+    public Writer(FSDataOutputStream fout, String compressionName, Configuration conf, boolean trackDataBlocks, AccumuloConfiguration accumuloConfiguration) throws IOException {
       if (fout.getPos() != 0) {
         throw new IOException("Output file not at zero offset.");
       }
@@ -359,9 +359,6 @@ public final class BCFile {
       Magic.write(fout);
 
       // Set up crypto-related detail, including secret key generation and encryption
-
-      @SuppressWarnings("deprecation")
-      AccumuloConfiguration accumuloConfiguration = AccumuloConfiguration.getSiteConfiguration();
 
       this.cryptoModule = CryptoModuleFactory.getCryptoModule(accumuloConfiguration);
       this.cryptoParams = new BCFileCryptoModuleParameters();
@@ -739,7 +736,7 @@ public final class BCFile {
      *          Length of the corresponding file
      * @throws IOException
      */
-    public Reader(FSDataInputStream fin, long fileLength, Configuration conf) throws IOException {
+    public Reader(FSDataInputStream fin, long fileLength, Configuration conf, AccumuloConfiguration accumuloConfiguration) throws IOException {
 
       this.in = fin;
       this.conf = conf;
@@ -774,9 +771,6 @@ public final class BCFile {
 
       // If they exist, read the crypto parameters
       if (!version.equals(BCFile.API_VERSION_1)) {
-
-        @SuppressWarnings("deprecation")
-        AccumuloConfiguration accumuloConfiguration = AccumuloConfiguration.getSiteConfiguration();
 
         // read crypto parameters
         fin.seek(offsetCryptoParameters);
@@ -822,7 +816,7 @@ public final class BCFile {
       }
     }
 
-    public Reader(CachableBlockFile.Reader cache, FSDataInputStream fin, long fileLength, Configuration conf) throws IOException {
+    public Reader(CachableBlockFile.Reader cache, FSDataInputStream fin, long fileLength, Configuration conf, AccumuloConfiguration accumuloConfiguration) throws IOException {
       this.in = fin;
       this.conf = conf;
 
@@ -863,9 +857,6 @@ public final class BCFile {
 
         // If they exist, read the crypto parameters
         if (!version.equals(BCFile.API_VERSION_1) && cachedCryptoParams == null) {
-
-          @SuppressWarnings("deprecation")
-          AccumuloConfiguration accumuloConfiguration = AccumuloConfiguration.getSiteConfiguration();
 
           // read crypto parameters
           fin.seek(offsetCryptoParameters);

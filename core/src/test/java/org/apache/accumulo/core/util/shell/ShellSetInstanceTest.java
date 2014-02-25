@@ -179,7 +179,7 @@ public class ShellSetInstanceTest {
     if (!onlyInstance) {
       mockStatic(ZooUtil.class);
       randomUUID = UUID.randomUUID();
-      expect(ZooUtil.getInstanceIDFromHdfs(anyObject(Path.class)))
+      expect(ZooUtil.getInstanceIDFromHdfs(anyObject(Path.class), anyObject(AccumuloConfiguration.class)))
         .andReturn(randomUUID.toString());
       replay(ZooUtil.class);
       expect(clientConf.withInstance(randomUUID)).andReturn(clientConf);

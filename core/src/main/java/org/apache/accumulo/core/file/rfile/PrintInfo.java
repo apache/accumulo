@@ -49,7 +49,8 @@ public class PrintInfo {
     Configuration conf = new Configuration();
 
     @SuppressWarnings("deprecation")
-    FileSystem hadoopFs = FileUtil.getFileSystem(conf, AccumuloConfiguration.getSiteConfiguration());
+    AccumuloConfiguration aconf = AccumuloConfiguration.getSiteConfiguration();
+    FileSystem hadoopFs = FileUtil.getFileSystem(conf, aconf);
     FileSystem localFs  = FileSystem.getLocal(conf);
     Opts opts = new Opts();
     opts.parseArgs(PrintInfo.class.getName(), args);
@@ -70,7 +71,7 @@ public class PrintInfo {
       else
         fs = hadoopFs.exists(path) ? hadoopFs : localFs; // fall back to local
       
-      CachableBlockFile.Reader _rdr = new CachableBlockFile.Reader(fs, path, conf, null, null);
+      CachableBlockFile.Reader _rdr = new CachableBlockFile.Reader(fs, path, conf, null, null, aconf);
       Reader iter = new RFile.Reader(_rdr);
       
       iter.printInfo();

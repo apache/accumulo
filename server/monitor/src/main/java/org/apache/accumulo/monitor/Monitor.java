@@ -390,7 +390,7 @@ public class Monitor {
   }
 
   public static void main(String[] args) throws Exception {
-    SecurityUtil.serverLogin();
+    SecurityUtil.serverLogin(ServerConfiguration.getSiteConfiguration());
     
     VolumeManager fs = VolumeManagerImpl.get();
     ServerOpts opts = new ServerOpts();

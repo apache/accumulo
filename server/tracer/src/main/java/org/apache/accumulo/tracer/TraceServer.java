@@ -283,7 +283,7 @@ public class TraceServer implements Watcher {
   }
   
   public static void main(String[] args) throws Exception {
-    SecurityUtil.serverLogin();
+    SecurityUtil.serverLogin(ServerConfiguration.getSiteConfiguration());
     ServerOpts opts = new ServerOpts();
     opts.parseArgs("tracer", args);
     Instance instance = HdfsZooInstance.getInstance();
