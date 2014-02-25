@@ -26,12 +26,13 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ProcessReference;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
 public class MasterFailoverIT extends ConfigurableMacIT {
   
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg) {
+  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setSiteConfig(Collections.singletonMap(Property.INSTANCE_ZK_TIMEOUT.getKey(), "5s"));
   }
 

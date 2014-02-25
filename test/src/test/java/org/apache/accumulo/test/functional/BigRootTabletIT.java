@@ -30,13 +30,14 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
 public class BigRootTabletIT extends ConfigurableMacIT {
   // ACCUMULO-542: A large root tablet will fail to load if it does't fit in the tserver scan buffers
   
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg) {
+  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = new HashMap<String,String>();
     siteConfig.put(Property.TABLE_SCAN_MAXMEM.getKey(), "1024");
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "60m");

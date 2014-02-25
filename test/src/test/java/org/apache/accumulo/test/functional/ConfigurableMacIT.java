@@ -16,7 +16,11 @@
  */
 package org.apache.accumulo.test.functional;
 
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -27,6 +31,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.MonitorUtil;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.junit.After;
@@ -37,17 +42,27 @@ public class ConfigurableMacIT extends AbstractMacIT {
 
   public MiniAccumuloClusterImpl cluster;
 
-  public void configure(MiniAccumuloConfigImpl cfg) {}
+  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {}
 
   @Before
   public void setUp() throws Exception {
     MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(
         createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName()), ROOT_PASSWORD);
     cfg.setNativeLibPaths(NativeMapIT.nativeMapLocation().getAbsolutePath());
-    configure(cfg);
+    Configuration coreSite = new Configuration(false);
+    configure(cfg, coreSite);
     cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.TRUE.toString());
     configureForEnvironment(cfg, getClass());
     cluster = new MiniAccumuloClusterImpl(cfg);
+    if (coreSite.size() > 0) {
+      File csFile = new File(cluster.getConfig().getConfDir(), "core-site.xml");
+      if (csFile.exists())
+        throw new RuntimeException(csFile + " already exist");
+
+      OutputStream out = new BufferedOutputStream(new FileOutputStream(new File(cluster.getConfig().getConfDir(), "core-site.xml")));
+      coreSite.writeXml(out);
+      out.close();
+    }
     cluster.start();
   }
 

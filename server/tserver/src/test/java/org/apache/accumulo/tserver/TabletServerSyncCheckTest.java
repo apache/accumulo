@@ -88,11 +88,9 @@ public class TabletServerSyncCheckTest {
 
   private class TestVolumeManagerImpl extends VolumeManagerImpl {
 
-    protected final Map<String,? extends FileSystem> volumes;
-
+   
     public TestVolumeManagerImpl(Map<String,? extends FileSystem> volumes) {
       super(volumes, volumes.keySet().iterator().next(), new ConfigurationCopy(Collections.<String,String> emptyMap()));
-      this.volumes = volumes;
     }
 
     @Override
@@ -103,11 +101,6 @@ public class TabletServerSyncCheckTest {
     @Override
     public void close() throws IOException {
 
-    }
-
-    @Override
-    public boolean closePossiblyOpenFile(Path path) throws IOException {
-      return false;
     }
 
     @Override
@@ -158,11 +151,6 @@ public class TabletServerSyncCheckTest {
     @Override
     public FileSystem getFileSystemByPath(Path path) {
       return null;
-    }
-
-    @Override
-    public Map<String,? extends FileSystem> getFileSystems() {
-      return volumes;
     }
 
     @Override

@@ -39,6 +39,17 @@ public class LogEntry {
   public int tabletId;
   public Collection<String> logSet;
   
+  public LogEntry() {}
+
+  public LogEntry(LogEntry le) {
+    this.extent = le.extent;
+    this.timestamp = le.timestamp;
+    this.server = le.server;
+    this.filename = le.filename;
+    this.tabletId = le.tabletId;
+    this.logSet = new ArrayList<String>(le.logSet);
+  }
+
   public String toString() {
     return extent.toString() + " " + filename + " (" + tabletId + ")";
   }
@@ -107,5 +118,4 @@ public class LogEntry {
   public Value getValue() {
     return new Value((Joiner.on(";").join(logSet) + "|" + tabletId).getBytes());
   }
-  
 }

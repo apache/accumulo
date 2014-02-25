@@ -27,6 +27,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.log4j.Logger;
 
@@ -62,7 +63,7 @@ public class HadoopLogCloser implements LogCloser {
         ns.append(source).close();
         log.info("Recovered lease on " + source.toString() + " using append");
       }
-    } else if (ns instanceof LocalFileSystem) {
+    } else if (ns instanceof LocalFileSystem || ns instanceof RawLocalFileSystem) {
       // ignore
     } else {
       throw new IllegalStateException("Don't know how to recover a lease for " + ns.getClass().getName());

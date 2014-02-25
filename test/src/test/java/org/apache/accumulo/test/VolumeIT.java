@@ -26,6 +26,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.SortedSet;
@@ -67,6 +69,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.ZooKeeper;
 import org.junit.After;
@@ -95,17 +98,20 @@ public class VolumeIT extends ConfigurableMacIT {
 
   @After
   public void clearDirs() throws IOException {
-    FileUtils.deleteDirectory(new File(v1.toUri()));
-    FileUtils.deleteDirectory(new File(v2.toUri()));
+    FileUtils.deleteQuietly(new File(v1.getParent().toUri()));
   }
 
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg) {
+  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     // Run MAC on two locations in the local file system
     cfg.setProperty(Property.INSTANCE_DFS_URI, v1.toString());
     cfg.setProperty(Property.INSTANCE_DFS_DIR, "/accumulo");
     cfg.setProperty(Property.INSTANCE_VOLUMES, v1.toString() + "," + v2.toString());
-    super.configure(cfg);
+
+    // use raw local file system so walogs sync and flush will work
+    hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
+
+    super.configure(cfg, hadoopCoreSite);
   }
 
   @Test
@@ -255,7 +261,6 @@ public class VolumeIT extends ConfigurableMacIT {
 
   }
 
-
   @Test
   public void testAddVolumes() throws Exception {
 
@@ -264,23 +269,23 @@ public class VolumeIT extends ConfigurableMacIT {
     // grab this before shutting down cluster
     String uuid = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers()).getInstanceID();
 
-    verifyVolumesUsed(tableNames[0], v1, v2);
+    verifyVolumesUsed(tableNames[0], false, v1, v2);
 
     Assert.assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
     cluster.stop();
-    
+
     Configuration conf = new Configuration(false);
     conf.addResource(new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
-    
+
     File v3f = new File(volDirBase, "v3");
     v3f.mkdir();
     Path v3 = new Path("file://" + v3f.getAbsolutePath());
- 
-    conf.set(Property.INSTANCE_VOLUMES.getKey(), v1.toString() + "," + v2.toString()+","+v3.toString());
+
+    conf.set(Property.INSTANCE_VOLUMES.getKey(), v1.toString() + "," + v2.toString() + "," + v3.toString());
     BufferedOutputStream fos = new BufferedOutputStream(new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
     conf.writeXml(fos);
     fos.close();
-    
+
     // initialize volume
     Assert.assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").waitFor());
 
@@ -297,12 +302,33 @@ public class VolumeIT extends ConfigurableMacIT {
     // start cluster and verify that new volume is used
     cluster.start();
 
-    verifyVolumesUsed(tableNames[1], v1, v2, v3);
+    verifyVolumesUsed(tableNames[1], false, v1, v2, v3);
 
   }
 
-  private void verifyVolumesUsed(String tableName, Path... paths) throws AccumuloException, AccumuloSecurityException, TableExistsException,
-      TableNotFoundException, MutationsRejectedException {
+  private void writeData(String tableName, Connector conn) throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException,
+      MutationsRejectedException {
+    TreeSet<Text> splits = new TreeSet<Text>();
+    for (int i = 1; i < 100; i++) {
+      splits.add(new Text(String.format("%06d", i * 100)));
+    }
+
+    conn.tableOperations().create(tableName);
+    conn.tableOperations().addSplits(tableName, splits);
+
+    BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
+    for (int i = 0; i < 100; i++) {
+      String row = String.format("%06d", i * 100 + 3);
+      Mutation m = new Mutation(row);
+      m.put("cf1", "cq1", "1");
+      bw.addMutation(m);
+    }
+
+    bw.close();
+  }
+
+  private void verifyVolumesUsed(String tableName, boolean shouldExist, Path... paths) throws AccumuloException, AccumuloSecurityException,
+      TableExistsException, TableNotFoundException, MutationsRejectedException {
 
     Connector conn = cluster.getConnector("root", ROOT_PASSWORD);
 
@@ -313,24 +339,9 @@ public class VolumeIT extends ConfigurableMacIT {
     }
 
     if (!conn.tableOperations().exists(tableName)) {
+      Assert.assertFalse(shouldExist);
 
-      TreeSet<Text> splits = new TreeSet<Text>();
-      for (int i = 0; i < 100; i++) {
-        splits.add(new Text(String.format("%06d", i * 100)));
-      }
-
-      conn.tableOperations().create(tableName);
-      conn.tableOperations().addSplits(tableName, splits);
-
-      BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
-      for (int i = 0; i < 100; i++) {
-        String row = String.format("%06d", i * 100 + 3);
-        Mutation m = new Mutation(row);
-        m.put("cf1", "cq1", "1");
-        bw.addMutation(m);
-      }
-
-      bw.close();
+      writeData(tableName, conn);
 
       verifyData(expected, conn.createScanner(tableName, Authorizations.EMPTY));
 
@@ -341,21 +352,30 @@ public class VolumeIT extends ConfigurableMacIT {
 
     String tableId = conn.tableOperations().tableIdMap().get(tableName);
     Scanner metaScanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(metaScanner);
     metaScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
     metaScanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
 
     int counts[] = new int[paths.length];
 
     outer: for (Entry<Key,Value> entry : metaScanner) {
+      String cf = entry.getKey().getColumnFamily().toString();
       String cq = entry.getKey().getColumnQualifier().toString();
+
+      String path;
+      if (cf.equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME.toString()))
+        path = cq;
+      else
+        path = entry.getValue().toString();
+
       for (int i = 0; i < paths.length; i++) {
-        if (cq.startsWith(paths[i].toString())) {
+        if (path.startsWith(paths[i].toString())) {
           counts[i]++;
           continue outer;
         }
       }
 
-      Assert.fail("Unexpected volume " + cq);
+      Assert.fail("Unexpected volume " + path);
     }
 
     // if a volume is chosen randomly for each tablet, then the probability that a volume will not be chosen for any tablet is ((num_volumes -
@@ -367,14 +387,14 @@ public class VolumeIT extends ConfigurableMacIT {
       sum += count;
     }
 
-    Assert.assertEquals(100, sum);
+    Assert.assertEquals(200, sum);
   }
 
   @Test
   public void testRemoveVolumes() throws Exception {
-    String[] tableNames = getTableNames(1);
+    String[] tableNames = getTableNames(2);
 
-    verifyVolumesUsed(tableNames[0], v1, v2);
+    verifyVolumesUsed(tableNames[0], false, v1, v2);
 
     Assert.assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
     cluster.stop();
@@ -393,7 +413,7 @@ public class VolumeIT extends ConfigurableMacIT {
     Connector conn = cluster.getConnector("root", ROOT_PASSWORD);
     conn.tableOperations().compact(tableNames[0], null, null, true, true);
 
-    verifyVolumesUsed(tableNames[0], v2);
+    verifyVolumesUsed(tableNames[0], true, v2);
 
     // check that root tablet is not on volume 1
     String zpath = ZooUtil.getRoot(new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers())) + RootTable.ZROOT_TABLET_PATH;
@@ -402,5 +422,85 @@ public class VolumeIT extends ConfigurableMacIT {
     Assert.assertTrue(rootTabletDir.startsWith(v2.toString()));
     zookeeper.close();
 
+    conn.tableOperations().clone(tableNames[0], tableNames[1], true, new HashMap<String,String>(), new HashSet<String>());
+
+    conn.tableOperations().flush(MetadataTable.NAME, null, null, true);
+    conn.tableOperations().flush(RootTable.NAME, null, null, true);
+
+    verifyVolumesUsed(tableNames[0], true, v2);
+    verifyVolumesUsed(tableNames[1], true, v2);
+
+  }
+
+  private void testReplaceVolume(boolean cleanShutdown) throws Exception {
+    String[] tableNames = getTableNames(3);
+
+    verifyVolumesUsed(tableNames[0], false, v1, v2);
+
+    // write to 2nd table, but do not flush data to disk before shutdown
+    writeData(tableNames[1], cluster.getConnector("root", ROOT_PASSWORD));
+
+    if (cleanShutdown)
+      Assert.assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+
+    cluster.stop();
+
+    File v1f = new File(v1.toUri());
+    File v8f = new File(new File(v1.getParent().toUri()), "v8");
+    v1f.renameTo(v8f);
+    Path v8 = new Path(v8f.toURI());
+
+    File v2f = new File(v2.toUri());
+    File v9f = new File(new File(v2.getParent().toUri()), "v9");
+    v2f.renameTo(v9f);
+    Path v9 = new Path(v9f.toURI());
+
+    Configuration conf = new Configuration(false);
+    conf.addResource(new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
+
+    conf.set(Property.INSTANCE_VOLUMES.getKey(), v8 + "," + v9);
+    conf.set(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey(), v1 + " " + v8 + "," + v2 + " " + v9);
+    BufferedOutputStream fos = new BufferedOutputStream(new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
+    conf.writeXml(fos);
+    fos.close();
+
+    // start cluster and verify that volumes were replaced
+    cluster.start();
+
+    verifyVolumesUsed(tableNames[0], true, v8, v9);
+    verifyVolumesUsed(tableNames[1], true, v8, v9);
+
+    // verify writes to new dir
+    getConnector().tableOperations().compact(tableNames[0], null, null, true, true);
+    getConnector().tableOperations().compact(tableNames[1], null, null, true, true);
+
+    verifyVolumesUsed(tableNames[0], true, v8, v9);
+    verifyVolumesUsed(tableNames[1], true, v8, v9);
+
+    // check that root tablet is not on volume 1 or 2
+    String zpath = ZooUtil.getRoot(new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers())) + RootTable.ZROOT_TABLET_PATH;
+    ZooKeeper zookeeper = new ZooKeeper(cluster.getZooKeepers(), 30000, null);
+    String rootTabletDir = new String(zookeeper.getData(zpath, false, null), Constants.UTF8);
+    Assert.assertTrue(rootTabletDir.startsWith(v8.toString()) || rootTabletDir.startsWith(v9.toString()));
+    zookeeper.close();
+
+    getConnector().tableOperations().clone(tableNames[1], tableNames[2], true, new HashMap<String,String>(), new HashSet<String>());
+
+    getConnector().tableOperations().flush(MetadataTable.NAME, null, null, true);
+    getConnector().tableOperations().flush(RootTable.NAME, null, null, true);
+
+    verifyVolumesUsed(tableNames[0], true, v8, v9);
+    verifyVolumesUsed(tableNames[1], true, v8, v9);
+    verifyVolumesUsed(tableNames[2], true, v8, v9);
+  }
+
+  @Test
+  public void testCleanReplaceVolumes() throws Exception {
+    testReplaceVolume(true);
+  }
+
+  @Test
+  public void testDirtyReplaceVolumes() throws Exception {
+    testReplaceVolume(false);
   }
 }

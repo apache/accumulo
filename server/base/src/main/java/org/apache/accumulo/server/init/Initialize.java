@@ -150,7 +150,7 @@ public class Initialize {
     else
       fsUri = FileSystem.getDefaultUri(conf).toString();
     log.info("Hadoop Filesystem is " + fsUri);
-    log.info("Accumulo data dirs are " + Arrays.asList(ServerConstants.getConfiguredBaseDirs()));
+    log.info("Accumulo data dirs are " + Arrays.asList(ServerConstants.getConfiguredBaseDirs(ServerConfiguration.getSiteConfiguration())));
     log.info("Zookeeper server is " + sconf.get(Property.INSTANCE_ZK_HOST));
     log.info("Checking if Zookeeper is available. If this hangs, then you need to make sure zookeeper is running");
     if (!zookeeperAvailable()) {
@@ -172,7 +172,8 @@ public class Initialize {
     try {
       if (isInitialized(fs)) {
         String instanceDfsDir = sconf.get(Property.INSTANCE_DFS_DIR);
-        log.fatal("It appears the directories " + Arrays.asList(ServerConstants.getConfiguredBaseDirs()) + " were previously initialized.");
+        log.fatal("It appears the directories " + Arrays.asList(ServerConstants.getConfiguredBaseDirs(ServerConfiguration.getSiteConfiguration()))
+            + " were previously initialized.");
         String instanceVolumes = sconf.get(Property.INSTANCE_VOLUMES);
         String instanceDfsUri = sconf.get(Property.INSTANCE_DFS_URI);
 
@@ -218,7 +219,8 @@ public class Initialize {
 
     UUID uuid = UUID.randomUUID();
     // the actual disk locations of the root table and tablets
-    String[] configuredTableDirs = ServerConstants.prefix(ServerConstants.getConfiguredBaseDirs(), ServerConstants.TABLE_DIR);
+    String[] configuredTableDirs = ServerConstants.prefix(ServerConstants.getConfiguredBaseDirs(ServerConfiguration.getSiteConfiguration()),
+        ServerConstants.TABLE_DIR);
     final Path rootTablet = new Path(fs.choose(configuredTableDirs) + "/" + RootTable.ID + RootTable.ROOT_TABLET_LOCATION);
     try {
       initZooKeeper(opts, uuid.toString(), instanceNamePath, rootTablet);
@@ -231,22 +233,20 @@ public class Initialize {
       initFileSystem(opts, fs, uuid, rootTablet);
     } catch (Exception e) {
       log.fatal("Failed to initialize filesystem", e);
-      for (FileSystem filesystem : fs.getFileSystems().values()) {
-        log.fatal("For FileSystem:" + filesystem.getUri());
-        
-        // Try to warn the user about what the actual problem is
-        Configuration fsConf = filesystem.getConf();
-        
+
+      if (ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_VOLUMES).trim().equals("")) {
+        Configuration fsConf = CachedConfiguration.getInstance();
+
         final String defaultFsUri = "file:///";
         String fsDefaultName = fsConf.get("fs.default.name", defaultFsUri), fsDefaultFS = fsConf.get("fs.defaultFS", defaultFsUri);
-        
+
         // Try to determine when we couldn't find an appropriate core-site.xml on the classpath
         if (defaultFsUri.equals(fsDefaultName) && defaultFsUri.equals(fsDefaultFS)) {
           log.fatal("Default filesystem value ('fs.defaultFS' or 'fs.default.name') was found in the Hadoop configuration");
           log.fatal("Please ensure that the Hadoop core-site.xml is on the classpath using 'general.classpaths' in accumulo-site.xml");
         }
       }
-      
+
       return false;
     }
 
@@ -295,7 +295,7 @@ public class Initialize {
   private static void initFileSystem(Opts opts, VolumeManager fs, UUID uuid, Path rootTablet) throws IOException {
     FileStatus fstat;
 
-    initDirs(fs, uuid, ServerConstants.getConfiguredBaseDirs(), false);
+    initDirs(fs, uuid, ServerConstants.getConfiguredBaseDirs(ServerConfiguration.getSiteConfiguration()), false);
 
     // the actual disk locations of the metadata table and tablets
     final Path[] metadataTableDirs = paths(ServerConstants.getMetadataTableDirs());
@@ -425,7 +425,7 @@ public class Initialize {
     zoo.putPersistentData(instanceNamePath, uuid.getBytes(Constants.UTF8), NodeExistsPolicy.FAIL);
 
     final byte[] EMPTY_BYTE_ARRAY = new byte[0], ZERO_CHAR_ARRAY = new byte[] {'0'};
-    
+
     // setup the instance
     String zkInstanceRoot = Constants.ZROOT + "/" + uuid;
     zoo.putPersistentData(zkInstanceRoot, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
@@ -552,7 +552,7 @@ public class Initialize {
   }
 
   public static boolean isInitialized(VolumeManager fs) throws IOException {
-    for (String baseDir : ServerConstants.getConfiguredBaseDirs()) {
+    for (String baseDir : ServerConstants.getConfiguredBaseDirs(ServerConfiguration.getSiteConfiguration())) {
       if (fs.exists(new Path(baseDir, ServerConstants.INSTANCE_ID_DIR)) || fs.exists(new Path(baseDir, ServerConstants.VERSION_DIR)))
         return true;
     }
@@ -562,10 +562,11 @@ public class Initialize {
 
   private static void addVolumes(VolumeManager fs) throws IOException {
     HashSet<String> initializedDirs = new HashSet<String>();
-    initializedDirs.addAll(Arrays.asList(ServerConstants.checkBaseDirs(ServerConstants.getConfiguredBaseDirs(), true)));
+    initializedDirs
+        .addAll(Arrays.asList(ServerConstants.checkBaseDirs(ServerConstants.getConfiguredBaseDirs(ServerConfiguration.getSiteConfiguration()), true)));
 
     HashSet<String> uinitializedDirs = new HashSet<String>();
-    uinitializedDirs.addAll(Arrays.asList(ServerConstants.getConfiguredBaseDirs()));
+    uinitializedDirs.addAll(Arrays.asList(ServerConstants.getConfiguredBaseDirs(ServerConfiguration.getSiteConfiguration())));
     uinitializedDirs.removeAll(initializedDirs);
 
     Path aBasePath = new Path(initializedDirs.iterator().next());
@@ -604,8 +605,7 @@ public class Initialize {
       SecurityUtil.serverLogin();
       Configuration conf = CachedConfiguration.getInstance();
 
-      @SuppressWarnings("deprecation")
-      VolumeManager fs = VolumeManagerImpl.get(SiteConfiguration.getSiteConfiguration());
+      VolumeManager fs = VolumeManagerImpl.get(ServerConfiguration.getSiteConfiguration());
 
       if (opts.resetSecurity) {
         if (isInitialized(fs)) {

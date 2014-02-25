@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -29,12 +29,13 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
 public class RestartStressIT extends ConfigurableMacIT {
   
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg) {
+  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String, String> opts = new HashMap<String, String>();
     opts.put(Property.TSERV_MAXMEM.getKey(), "100K");
     opts.put(Property.TSERV_MAJC_DELAY.getKey(), "100ms");

@@ -65,9 +65,10 @@ import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.NamingThreadFactory;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
-import org.apache.accumulo.core.util.SslConnectionParams;
 import org.apache.accumulo.core.util.ServerServices.Service;
+import org.apache.accumulo.core.util.SslConnectionParams;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
@@ -80,6 +81,7 @@ import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.Halt;
@@ -105,32 +107,32 @@ import com.google.common.net.HostAndPort;
 
 public class SimpleGarbageCollector implements Iface {
   private static final Text EMPTY_TEXT = new Text();
-  
+
   static class Opts extends ServerOpts {
     @Parameter(names = {"-v", "--verbose"}, description = "extra information will get printed to stdout also")
     boolean verbose = false;
     @Parameter(names = {"-s", "--safemode"}, description = "safe mode will not delete files")
     boolean safeMode = false;
   }
-  
+
   // how much of the JVM's available memory should it use gathering candidates
   private static final float CANDIDATE_MEMORY_PERCENTAGE = 0.75f;
 
   private static final Logger log = Logger.getLogger(SimpleGarbageCollector.class);
-  
+
   private Credentials credentials;
   private long gcStartDelay;
   private VolumeManager fs;
   private boolean useTrash = true;
   private Opts opts = new Opts();
   private ZooLock lock;
-  
+
   private GCStatus status = new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
-  
+
   private int numDeleteThreads;
-  
+
   private Instance instance;
-  
+
   public static void main(String[] args) throws UnknownHostException, IOException {
     SecurityUtil.serverLogin();
     Instance instance = HdfsZooInstance.getInstance();
@@ -140,21 +142,21 @@ public class SimpleGarbageCollector implements Iface {
     Opts opts = new Opts();
     opts.parseArgs("gc", args);
     SimpleGarbageCollector gc = new SimpleGarbageCollector(opts);
-    
+
     gc.init(fs, instance, SystemCredentials.get(), serverConf.getConfiguration().getBoolean(Property.GC_TRASH_IGNORE));
     Accumulo.enableTracing(opts.getAddress(), "gc");
     gc.run();
   }
-  
+
   public SimpleGarbageCollector(Opts opts) {
     this.opts = opts;
   }
-  
+
   public void init(VolumeManager fs, Instance instance, Credentials credentials, boolean noTrash) throws IOException {
     this.fs = fs;
     this.credentials = credentials;
     this.instance = instance;
-    
+
     gcStartDelay = ServerConfiguration.getSystemConfiguration(instance).getTimeInMillis(Property.GC_CYCLE_START);
     long gcDelay = ServerConfiguration.getSystemConfiguration(instance).getTimeInMillis(Property.GC_CYCLE_DELAY);
     numDeleteThreads = ServerConfiguration.getSystemConfiguration(instance).getCount(Property.GC_DELETE_THREADS);
@@ -166,7 +168,7 @@ public class SimpleGarbageCollector implements Iface {
     log.info("delete threads: " + numDeleteThreads);
     useTrash = !noTrash;
   }
-  
+
   private class GCEnv implements GarbageCollectionEnvironment {
 
     private String tableName;
@@ -288,6 +290,8 @@ public class SimpleGarbageCollector implements Iface {
 
       ExecutorService deleteThreadPool = Executors.newFixedThreadPool(numDeleteThreads, new NamingThreadFactory("deleting"));
 
+      final List<Pair<Path,Path>> replacements = ServerConstants.getVolumeReplacements();
+
       for (final String delete : confirmedDeletes.values()) {
 
         Runnable deleteTask = new Runnable() {
@@ -296,7 +300,18 @@ public class SimpleGarbageCollector implements Iface {
             boolean removeFlag;
 
             try {
-              Path fullPath = fs.getFullPath(FileType.TABLE, delete);
+              Path fullPath;
+              String switchedDelete = VolumeUtil.switchVolume(delete, FileType.TABLE, replacements);
+              if (switchedDelete != null) {
+                // actually replacing the volumes in the metadata table would be tricky because the entries would be different rows. So it could not be
+                // atomically in one mutation and extreme care would need to be taken that delete entry was not lost. Instead of doing that, just deal with
+                // volume switching when something needs to be deleted. Since the rest of the code uses suffixes to compare delete entries, there is no danger
+                // of deleting something that should not be deleted. Must not change value of delete variable because thats whats stored in metadata table.
+                log.debug("Volume replaced " + delete + " -> " + switchedDelete);
+                fullPath = fs.getFullPath(FileType.TABLE, switchedDelete);
+              } else {
+                fullPath = fs.getFullPath(FileType.TABLE, delete);
+              }
 
               log.debug("Deleting " + fullPath);
 
@@ -406,10 +421,10 @@ public class SimpleGarbageCollector implements Iface {
 
   private void run() {
     long tStart, tStop;
-    
+
     // Sleep for an initial period, giving the master time to start up and
     // old data files to be unused
-      
+
     try {
       getZooLock(startStatsService());
     } catch (Exception ex) {
@@ -424,13 +439,13 @@ public class SimpleGarbageCollector implements Iface {
       log.warn(e, e);
       return;
     }
-    
+
     Sampler sampler = new CountSampler(100);
-    
+
     while (true) {
       if (sampler.next())
         Trace.on("gc");
-      
+
       Span gcSpan = Trace.start("loop");
       tStart = System.currentTimeMillis();
       try {
@@ -449,14 +464,14 @@ public class SimpleGarbageCollector implements Iface {
         status.current.finished = System.currentTimeMillis();
         status.last = status.current;
         status.current = new GcCycleStats();
-        
+
       } catch (Exception e) {
         log.error(e, e);
       }
 
       tStop = System.currentTimeMillis();
       log.info(String.format("Collect cycle took %.2f seconds", ((tStop - tStart) / 1000.0)));
-      
+
       // Clean up any unused write-ahead logs
       Span waLogs = Trace.start("walogs");
       try {
@@ -469,7 +484,7 @@ public class SimpleGarbageCollector implements Iface {
         waLogs.stop();
       }
       gcSpan.stop();
-      
+
       // we just made a lot of metadata changes: flush them out
       try {
         Connector connector = instance.getConnector(credentials.getPrincipal(), credentials.getToken());
@@ -478,7 +493,7 @@ public class SimpleGarbageCollector implements Iface {
       } catch (Exception e) {
         log.warn(e, e);
       }
-      
+
       Trace.offNoFlush();
       try {
         long gcDelay = ServerConfiguration.getSystemConfiguration(instance).getTimeInMillis(Property.GC_CYCLE_DELAY);
@@ -490,7 +505,7 @@ public class SimpleGarbageCollector implements Iface {
       }
     }
   }
-  
+
   private boolean moveToTrash(Path path) throws IOException {
     if (!useTrash)
       return false;
@@ -500,29 +515,29 @@ public class SimpleGarbageCollector implements Iface {
       return false;
     }
   }
-  
+
   private void getZooLock(HostAndPort addr) throws KeeperException, InterruptedException {
     String path = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZGC_LOCK;
-    
+
     LockWatcher lockWatcher = new LockWatcher() {
       @Override
       public void lostLock(LockLossReason reason) {
         Halt.halt("GC lock in zookeeper lost (reason = " + reason + "), exiting!");
       }
-      
+
       @Override
       public void unableToMonitorLockNode(final Throwable e) {
         Halt.halt(-1, new Runnable() {
-          
+
           @Override
           public void run() {
             log.fatal("No longer able to monitor lock node ", e);
           }
         });
-        
+
       }
     };
-    
+
     while (true) {
       lock = new ZooLock(path);
       if (lock.tryLock(lockWatcher, new ServerServices(addr.toString(), Service.GC_CLIENT).toString().getBytes())) {
@@ -531,7 +546,7 @@ public class SimpleGarbageCollector implements Iface {
       UtilWaitThread.sleep(1000);
     }
   }
-  
+
   private HostAndPort startStatsService() throws UnknownHostException {
     Processor<Iface> processor = new Processor<Iface>(TraceWrap.service(this));
     AccumuloConfiguration conf = ServerConfiguration.getSystemConfiguration(instance);
@@ -540,30 +555,27 @@ public class SimpleGarbageCollector implements Iface {
     HostAndPort result = HostAndPort.fromParts(opts.getAddress(), port);
     log.debug("Starting garbage collector listening on " + result);
     try {
-      return TServerUtils.startTServer(result, processor, this.getClass().getSimpleName(), "GC Monitor Service", 2, 1000, maxMessageSize, SslConnectionParams.forServer(conf), 0).address;
+      return TServerUtils.startTServer(result, processor, this.getClass().getSimpleName(), "GC Monitor Service", 2, 1000, maxMessageSize,
+          SslConnectionParams.forServer(conf), 0).address;
     } catch (Exception ex) {
       log.fatal(ex, ex);
       throw new RuntimeException(ex);
     }
   }
-  
 
   static public boolean almostOutOfMemory() {
     Runtime runtime = Runtime.getRuntime();
     return runtime.totalMemory() - runtime.freeMemory() > CANDIDATE_MEMORY_PERCENTAGE * runtime.maxMemory();
   }
-  
-  
+
   final static String METADATA_TABLE_DIR = "/" + MetadataTable.ID;
-  
-  private static void putMarkerDeleteMutation(final String delete, final BatchWriter writer)
-      throws MutationsRejectedException {
+
+  private static void putMarkerDeleteMutation(final String delete, final BatchWriter writer) throws MutationsRejectedException {
     Mutation m = new Mutation(MetadataSchema.DeletesSection.getRowPrefix() + delete);
     m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
     writer.addMutation(m);
   }
-  
-  
+
   private boolean isDir(String delete) {
     int slashCount = 0;
     for (int i = 0; i < delete.length(); i++)
@@ -571,7 +583,7 @@ public class SimpleGarbageCollector implements Iface {
         slashCount++;
     return slashCount == 1;
   }
-  
+
   @Override
   public GCStatus getStatus(TInfo info, TCredentials credentials) {
     return status;

@@ -38,11 +38,12 @@ import org.apache.accumulo.minicluster.impl.ProcessReference;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
 public class RestartIT extends ConfigurableMacIT {
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg) {
+  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> props = new HashMap<String,String>();
     props.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "5s");
     props.put(Property.GC_CYCLE_DELAY.getKey(), "1s");

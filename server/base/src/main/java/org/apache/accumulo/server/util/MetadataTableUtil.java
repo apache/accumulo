@@ -61,6 +61,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cl
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -179,7 +180,7 @@ public class MetadataTableUtil {
 
   public static void updateTabletDir(KeyExtent extent, String newDir, Credentials creds, ZooLock lock) {
     Mutation m = new Mutation(extent.getMetadataEntry());
-    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(newDir.getBytes()));
+    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(newDir.getBytes(Constants.UTF8)));
     update(creds, lock, m, extent);
   }
 
@@ -195,6 +196,43 @@ public class MetadataTableUtil {
   public static void updateTabletPrevEndRow(KeyExtent extent, Credentials credentials) {
     Mutation m = extent.getPrevRowUpdateMutation(); //
     update(credentials, m, extent);
+  }
+
+  public static void updateTabletVolumes(KeyExtent extent, List<LogEntry> logsToRemove, List<LogEntry> logsToAdd, List<FileRef> filesToRemove,
+      SortedMap<FileRef,DataFileValue> filesToAdd, String newDir, ZooLock zooLock, Credentials credentials) {
+
+    if (extent.isRootTablet()) {
+      if (newDir != null)
+        throw new IllegalArgumentException("newDir not expected for " + extent);
+
+      if (filesToRemove.size() != 0 || filesToAdd.size() != 0)
+        throw new IllegalArgumentException("files not expected for " + extent);
+
+      // add before removing in case of process death
+      for (LogEntry logEntry : logsToAdd)
+        addLogEntry(credentials, logEntry, zooLock);
+
+      removeUnusedWALEntries(extent, logsToRemove, zooLock);
+    } else {
+      Mutation m = new Mutation(extent.getMetadataEntry());
+
+      for (LogEntry logEntry : logsToRemove)
+        m.putDelete(logEntry.getColumnFamily(), logEntry.getColumnQualifier());
+
+      for (LogEntry logEntry : logsToAdd)
+        m.put(logEntry.getColumnFamily(), logEntry.getColumnQualifier(), logEntry.getValue());
+
+      for (FileRef fileRef : filesToRemove)
+        m.putDelete(DataFileColumnFamily.NAME, fileRef.meta());
+
+      for (Entry<FileRef,DataFileValue> entry : filesToAdd.entrySet())
+        m.put(DataFileColumnFamily.NAME, entry.getKey().meta(), new Value(entry.getValue().encode()));
+
+      if (newDir != null)
+        ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(newDir.getBytes(Constants.UTF8)));
+
+      update(credentials, m, extent);
+    }
   }
 
   public static SortedMap<FileRef,DataFileValue> getDataFileSizes(KeyExtent extent, Credentials credentials) throws IOException {
@@ -529,7 +567,7 @@ public class MetadataTableUtil {
     return result;
   }
 
-  private static void getRootLogEntries(ArrayList<LogEntry> result) throws KeeperException, InterruptedException, IOException {
+  static void getRootLogEntries(ArrayList<LogEntry> result) throws KeeperException, InterruptedException, IOException {
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     String root = getZookeeperLogLocation();
     // there's a little race between getting the children and fetching
