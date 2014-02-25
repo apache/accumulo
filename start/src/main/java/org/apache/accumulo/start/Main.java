@@ -17,6 +17,7 @@
 package org.apache.accumulo.start;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.jar.Attributes;
@@ -26,7 +27,7 @@ import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 
 public class Main {
 
-  public static void main(String[] args) throws Exception {
+  public static void main(String[] args) {
     Runnable r = null;
 
     try {
@@ -135,10 +136,15 @@ public class Main {
         public void run() {
           try {
             finalMain.invoke(null, thisIsJustOneArgument);
+          } catch (InvocationTargetException e) {
+            if (e.getCause() != null) {
+              die(e.getCause());
+            } else {
+              // Should never happen, but check anyway.
+              die(e);
+            }
           } catch (Exception e) {
-            System.err.println("Thread \"" + Thread.currentThread().getName() + "\" died " + e);
-            e.printStackTrace(System.err);
-            System.exit(1);
+            die(e);
           }
         }
       };
@@ -151,6 +157,18 @@ public class Main {
       t.printStackTrace(System.err);
       System.exit(1);
     }
+  }
+
+  /**
+   * Print a stack trace to stderr and exit with a non-zero status.
+   *
+   * @param t
+   *          The {@link Throwable} containing a stack trace to print.
+   */
+  private static void die(Throwable t) {
+    System.err.println("Thread \"" + Thread.currentThread().getName() + "\" died " + t.getMessage());
+    t.printStackTrace(System.err);
+    System.exit(1);
   }
 
   private static void printUsage() {
