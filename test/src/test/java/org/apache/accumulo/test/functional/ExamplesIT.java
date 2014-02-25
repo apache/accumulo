@@ -20,10 +20,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
@@ -166,26 +164,19 @@ public class ExamplesIT extends AbstractMacIT {
   @Test(timeout = 20 * 1000)
   public void testClasspath() throws Exception {
     Process p = cluster.exec(Main.class, Collections.singletonList(MapReduceIT.hadoopTmpDirArg), "classpath");
-    BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
-    String line;
-    boolean stage1 = false, stage2=false, stage3=false, stage4=false;
-    while ((line = br.readLine()) != null && !line.contains("Level 1"));
-    stage1 = true;
-    
-    while ((line = br.readLine()) != null && !line.contains("Level 2"));
-    stage2 = true;
-
-    while ((line = br.readLine()) != null && !line.contains("Level 3"));
-    stage3 = true;
-
-    while ((line = br.readLine()) != null && !line.contains("Level 4"));
-    stage4 = true;
-
-    assertTrue("Level 1 classloader not present.", stage1);
-    assertTrue("Level 2 classloader not present.", stage2);
-    assertTrue("Level 3 classloader not present.", stage3);
-    assertTrue("Level 4 classloader not present.", stage4);
     assertEquals(0, p.waitFor());
+    String result = FunctionalTestUtils.readAll(cluster, Main.class, p);
+    int level1 = result.indexOf("Level 1");
+    int level2 = result.indexOf("Level 2");
+    int level3 = result.indexOf("Level 3");
+    int level4 = result.indexOf("Level 4");
+    assertTrue("Level 1 classloader not present.", level1 >= 0);
+    assertTrue("Level 2 classloader not present.", level2 > 0);
+    assertTrue("Level 3 classloader not present.", level3 > 0);
+    assertTrue("Level 4 classloader not present.", level4 > 0);
+    assertTrue(level1 < level2);
+    assertTrue(level2 < level3);
+    assertTrue(level3 < level4);
   }
 
   private Process exec(Class<TraceServer> class1) throws IOException {
