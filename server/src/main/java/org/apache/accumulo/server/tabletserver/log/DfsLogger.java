@@ -58,8 +58,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.util.Progressable;
 import org.apache.log4j.Logger;
-//import org.apache.hadoop.fs.CreateFlag;
-//import org.apache.hadoop.fs.Syncable;
 
 /**
  * Wrap a connection to a logger.
@@ -180,11 +178,6 @@ public class DfsLogger {
     }
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see org.apache.accumulo.server.tabletserver.log.IRemoteLogger#equals(java.lang.Object)
-   */
   @Override
   public boolean equals(Object obj) {
     // filename is unique
@@ -195,11 +188,6 @@ public class DfsLogger {
     return false;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see org.apache.accumulo.server.tabletserver.log.IRemoteLogger#hashCode()
-   */
   @Override
   public int hashCode() {
     // filename is unique
@@ -247,6 +235,12 @@ public class DfsLogger {
     }
   }
 
+  @SuppressWarnings("deprecation")
+  private static short _getReplication(FileSystem fs) {
+    // use fs.getDefaultReplication(logPath) in hadoop 1.2 or greater
+    return fs.getDefaultReplication();
+  }
+
   public synchronized void open(String address) throws IOException {
     String filename = UUID.randomUUID().toString();
     logger = StringUtil.join(Arrays.asList(address.split(":")), "+");
@@ -258,7 +252,7 @@ public class DfsLogger {
       FileSystem fs = conf.getFileSystem();
       short replication = (short) conf.getConfiguration().getCount(Property.TSERV_WAL_REPLICATION);
       if (replication == 0)
-        replication = fs.getDefaultReplication();  // use fs.getDefaultReplication(logPath) in hadoop 1.2 or greater
+        replication = _getReplication(fs);
       long blockSize = conf.getConfiguration().getMemoryInBytes(Property.TSERV_WAL_BLOCKSIZE);
       if (blockSize == 0)
         blockSize = (long) (conf.getConfiguration().getMemoryInBytes(Property.TSERV_WALOG_MAX_SIZE) * 1.1);
@@ -363,11 +357,6 @@ public class DfsLogger {
     }
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see org.apache.accumulo.server.tabletserver.log.IRemoteLogger#toString()
-   */
   @Override
   public String toString() {
     return getLogger() + "/" + getFileName();
@@ -426,11 +415,6 @@ public class DfsLogger {
     }
   }
 
-  /**
-   * @param key
-   * @param empty2
-   * @throws IOException
-   */
   private synchronized void write(LogFileKey key, LogFileValue value) throws IOException {
     key.write(encryptingLogFile);
     value.write(encryptingLogFile);
@@ -439,8 +423,8 @@ public class DfsLogger {
   public LoggerOperation log(int seq, int tid, Mutation mutation) throws IOException {
     return logManyTablets(Collections.singletonList(new TabletMutations(tid, seq, Collections.singletonList(mutation))));
   }
-  
-  private LoggerOperation logFileData(List<Pair<LogFileKey, LogFileValue>> keys) throws IOException {
+
+  private LoggerOperation logFileData(List<Pair<LogFileKey,LogFileValue>> keys) throws IOException {
     DfsLogger.LogWork work = new DfsLogger.LogWork(new CountDownLatch(1));
     synchronized (DfsLogger.this) {
       try {
@@ -452,7 +436,7 @@ public class DfsLogger {
         work.exception = e;
       }
     }
-    
+
     synchronized (closeLock) {
       // use a different lock for close check so that adding to work queue does not need
       // to wait on walog I/O operations
@@ -466,7 +450,7 @@ public class DfsLogger {
   }
 
   public LoggerOperation logManyTablets(List<TabletMutations> mutations) throws IOException {
-    List<Pair<LogFileKey, LogFileValue>> data = new ArrayList<Pair<LogFileKey, LogFileValue>>();
+    List<Pair<LogFileKey,LogFileValue>> data = new ArrayList<Pair<LogFileKey,LogFileValue>>();
     for (TabletMutations tabletMutations : mutations) {
       LogFileKey key = new LogFileKey();
       key.event = MANY_MUTATIONS;
@@ -474,7 +458,7 @@ public class DfsLogger {
       key.tid = tabletMutations.getTid();
       LogFileValue value = new LogFileValue();
       value.mutations = tabletMutations.getMutations();
-      data.add(new Pair<LogFileKey, LogFileValue>(key, value));
+      data.add(new Pair<LogFileKey,LogFileValue>(key, value));
     }
     return logFileData(data);
   }
@@ -484,7 +468,7 @@ public class DfsLogger {
     key.event = COMPACTION_FINISH;
     key.seq = seq;
     key.tid = tid;
-    return logFileData(Collections.singletonList(new Pair<LogFileKey, LogFileValue>(key, EMPTY)));
+    return logFileData(Collections.singletonList(new Pair<LogFileKey,LogFileValue>(key, EMPTY)));
   }
 
   public LoggerOperation minorCompactionStarted(int seq, int tid, String fqfn) throws IOException {
@@ -493,7 +477,7 @@ public class DfsLogger {
     key.seq = seq;
     key.tid = tid;
     key.filename = fqfn;
-    return logFileData(Collections.singletonList(new Pair<LogFileKey, LogFileValue>(key, EMPTY)));
+    return logFileData(Collections.singletonList(new Pair<LogFileKey,LogFileValue>(key, EMPTY)));
   }
 
 }
