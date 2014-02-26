@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.File;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
@@ -68,6 +69,10 @@ public class MiniAccumuloClusterTest {
     testDir.mkdir();
 
     MiniAccumuloConfig config = new MiniAccumuloConfig(testDir, "superSecret").setJDWPEnabled(true);
+    config.setZooKeeperPort(0);
+    HashMap<String,String> site = new HashMap<String,String>();
+    site.put(Property.TSERV_WORKQ_THREADS.getKey(), "2");
+    config.setSiteConfig(site);
     accumulo = new MiniAccumuloCluster(config);
     accumulo.start();
   }
@@ -206,6 +211,15 @@ public class MiniAccumuloClusterTest {
     for (Pair<ServerType,Integer> debugPort : debugPorts) {
       Assert.assertTrue(debugPort.getSecond() > 0);
     }
+  }
+
+  @Test
+  public void testConfig() {
+    // ensure what user passed in is what comes back
+    Assert.assertEquals(0, accumulo.getConfig().getZooKeeperPort());
+    HashMap<String,String> site = new HashMap<String,String>();
+    site.put(Property.TSERV_WORKQ_THREADS.getKey(), "2");
+    Assert.assertEquals(site, accumulo.getConfig().getSiteConfig());
   }
 
   @AfterClass

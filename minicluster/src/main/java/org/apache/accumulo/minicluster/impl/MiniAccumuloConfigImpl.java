@@ -37,6 +37,7 @@ public class MiniAccumuloConfigImpl {
   private File dir = null;
   private String rootPassword = null;
   private Map<String,String> siteConfig = new HashMap<String,String>();
+  private Map<String,String> configuredSiteConig = new HashMap<String,String>();
   private int numTservers = 2;
   private Map<ServerType,Long> memoryConfig = new HashMap<ServerType,Long>();
   private boolean jdwpEnabled = false;
@@ -52,7 +53,9 @@ public class MiniAccumuloConfigImpl {
   private File logDir;
   private File walogDir;
 
-  private Integer zooKeeperPort;
+  private int zooKeeperPort = 0;
+  private int configuredZookeeperPort = 0;
+
   private long defaultMemorySize = 128 * 1024 * 1024;
 
   private boolean initialized = false;
@@ -122,7 +125,7 @@ public class MiniAccumuloConfigImpl {
       mergePropWithRandomPort(Property.GC_PORT.getKey());
 
       // zookeeper port should be set explicitly in this class, not just on the site config
-      if (zooKeeperPort == null)
+      if (zooKeeperPort == 0)
         zooKeeperPort = PortUtils.getRandomFreePort();
       siteConfig.put(Property.INSTANCE_ZK_HOST.getKey(), "localhost:" + zooKeeperPort);
       initialized = true;
@@ -179,6 +182,7 @@ public class MiniAccumuloConfigImpl {
    */
   public MiniAccumuloConfigImpl setSiteConfig(Map<String,String> siteConfig) {
     this.siteConfig = new HashMap<String,String>(siteConfig);
+    this.configuredSiteConig = new HashMap<String,String>(siteConfig);
     return this;
   }
 
@@ -191,6 +195,7 @@ public class MiniAccumuloConfigImpl {
    * @since 1.6.0
    */
   public MiniAccumuloConfigImpl setZooKeeperPort(int zooKeeperPort) {
+    this.configuredZookeeperPort = zooKeeperPort;
     this.zooKeeperPort = zooKeeperPort;
     return this;
   }
@@ -237,6 +242,10 @@ public class MiniAccumuloConfigImpl {
     return new HashMap<String,String>(siteConfig);
   }
 
+  public Map<String,String> getConfiguredSiteConfig() {
+    return new HashMap<String,String>(configuredSiteConig);
+  }
+
   /**
    * @return name of configured instance
    * 
@@ -253,6 +262,10 @@ public class MiniAccumuloConfigImpl {
    */
   public int getZooKeeperPort() {
     return zooKeeperPort;
+  }
+
+  public int getConfiguredZookeeperPort() {
+    return configuredZookeeperPort;
   }
 
   File getLibDir() {

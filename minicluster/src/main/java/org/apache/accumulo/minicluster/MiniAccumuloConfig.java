@@ -133,7 +133,7 @@ public class MiniAccumuloConfig {
    * @return a copy of the site config
    */
   public Map<String,String> getSiteConfig() {
-    return impl.getSiteConfig();
+    return impl.getConfiguredSiteConfig();
   }
 
   /**
@@ -151,7 +151,7 @@ public class MiniAccumuloConfig {
    * @since 1.6.0
    */
   public int getZooKeeperPort() {
-    return impl.getZooKeeperPort();
+    return impl.getConfiguredZookeeperPort();
   }
 
   /**
