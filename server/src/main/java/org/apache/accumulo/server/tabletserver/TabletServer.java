@@ -74,6 +74,7 @@ import org.apache.accumulo.core.client.impl.TabletType;
 import org.apache.accumulo.core.client.impl.Translator;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.client.impl.Translators;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.Constraint.Environment;
@@ -546,7 +547,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           }
           
           activeScans.add(new ActiveScan(ss.client, ss.user, ss.extent.getTableId().toString(), ct - ss.startTime, ct - ss.lastAccessTime, ScanType.SINGLE,
-              state, ss.extent.toThrift(), Translator.translate(ss.columnSet, Translator.CT), ss.ssiList, ss.ssio, ss.auths.getAuthorizationsBB()));
+              state, ss.extent.toThrift(), Translator.translate(ss.columnSet, Translators.CT), ss.ssiList, ss.ssio, ss.auths.getAuthorizationsBB()));
           
         } else if (session instanceof MultiScanSession) {
           MultiScanSession mss = (MultiScanSession) session;
@@ -572,7 +573,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           }
           
           activeScans.add(new ActiveScan(mss.client, mss.user, mss.threadPoolExtent.getTableId().toString(), ct - mss.startTime, ct - mss.lastAccessTime,
-              ScanType.BATCH, state, mss.threadPoolExtent.toThrift(), Translator.translate(mss.columnSet, Translator.CT), mss.ssiList, mss.ssio, mss.auths
+              ScanType.BATCH, state, mss.threadPoolExtent.toThrift(), Translator.translate(mss.columnSet, Translators.CT), mss.ssiList, mss.ssio, mss.auths
                   .getAuthorizationsBB()));
         }
       }
@@ -1073,8 +1074,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           List<TKeyValue> retResults = new ArrayList<TKeyValue>();
           for (KVEntry entry : results)
             retResults.add(new TKeyValue(entry.key.toThrift(), ByteBuffer.wrap(entry.value)));
-          Map<TKeyExtent,List<TRange>> retFailures = Translator.translate(failures, Translator.KET, new Translator.ListTranslator<Range,TRange>(Translator.RT));
-          List<TKeyExtent> retFullScans = Translator.translate(fullScans, Translator.KET);
+          Map<TKeyExtent,List<TRange>> retFailures = Translator.translate(failures, Translators.KET, new Translator.ListTranslator<Range,TRange>(Translators.RT));
+          List<TKeyExtent> retFullScans = Translator.translate(fullScans, Translators.KET);
           TKeyExtent retPartScan = null;
           TKey retPartNextKey = null;
           if (partScan != null) {
@@ -1271,7 +1272,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       
       KeyExtent threadPoolExtent = null;
       
-      Map<KeyExtent,List<Range>> batch = Translator.translate(tbatch, Translator.TKET, new Translator.ListTranslator<TRange,Range>(Translator.TRT));
+      Map<KeyExtent,List<Range>> batch = Translator.translate(tbatch, Translators.TKET, new Translator.ListTranslator<TRange,Range>(Translators.TRT));
       
       for (KeyExtent keyExtent : batch.keySet()) {
         if (threadPoolExtent == null) {
@@ -1642,8 +1643,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         log.debug(String.format("Authentication Failures: %d, first %s", us.authFailures.size(), first.toString()));
       }
       
-      return new UpdateErrors(Translator.translate(us.failures, Translator.KET), Translator.translate(violations, Translator.CVST), Translator.translate(
-          us.authFailures, Translator.KET));
+      return new UpdateErrors(Translator.translate(us.failures, Translators.KET), Translator.translate(violations, Translators.CVST), Translator.translate(
+          us.authFailures, Translators.KET));
     }
     
     @Override
@@ -1689,7 +1690,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         cs.commit(mutations);
         commit.stop();
       } catch (TConstraintViolationException e) {
-        throw new ConstraintViolationException(Translator.translate(e.getViolations().asList(), Translator.CVST));
+        throw new ConstraintViolationException(Translator.translate(e.getViolations().asList(), Translators.CVST));
       } finally {
         writeTracker.finishWrite(opid);
       }

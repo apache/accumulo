@@ -529,13 +529,13 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   static void trackScanning(Map<KeyExtent,List<Range>> failures, Map<KeyExtent,List<Range>> unscanned, MultiScanResult scanResult) {
     
     // translate returned failures, remove them from unscanned, and add them to failures
-    Map<KeyExtent,List<Range>> retFailures = Translator.translate(scanResult.failures, Translator.TKET, new Translator.ListTranslator<TRange,Range>(
-        Translator.TRT));
+    Map<KeyExtent,List<Range>> retFailures = Translator.translate(scanResult.failures, Translators.TKET, new Translator.ListTranslator<TRange,Range>(
+        Translators.TRT));
     unscanned.keySet().removeAll(retFailures.keySet());
     failures.putAll(retFailures);
     
     // translate full scans and remove them from unscanned
-    HashSet<KeyExtent> fullScans = new HashSet<KeyExtent>(Translator.translate(scanResult.fullScans, Translator.TKET));
+    HashSet<KeyExtent> fullScans = new HashSet<KeyExtent>(Translator.translate(scanResult.fullScans, Translators.TKET));
     unscanned.keySet().removeAll(fullScans);
     
     // remove partial scan from unscanned
@@ -647,9 +647,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         TabletType ttype = TabletType.type(requested.keySet());
         boolean waitForWrites = !ThriftScanner.serversWaitedForWrites.get(ttype).contains(server);
         
-        Map<TKeyExtent,List<TRange>> thriftTabletRanges = Translator.translate(requested, Translator.KET, new Translator.ListTranslator<Range,TRange>(
-            Translator.RT));
-        InitialMultiScan imsr = client.startMultiScan(Tracer.traceInfo(), credentials, thriftTabletRanges, Translator.translate(columns, Translator.CT),
+        Map<TKeyExtent,List<TRange>> thriftTabletRanges = Translator.translate(requested, Translators.KET, new Translator.ListTranslator<Range,TRange>(
+            Translators.RT));
+        InitialMultiScan imsr = client.startMultiScan(Tracer.traceInfo(), credentials, thriftTabletRanges, Translator.translate(columns, Translators.CT),
             options.serverSideIteratorList, options.serverSideIteratorOptions, ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()), waitForWrites);
         if (waitForWrites)
           ThriftScanner.serversWaitedForWrites.get(ttype).add(server);

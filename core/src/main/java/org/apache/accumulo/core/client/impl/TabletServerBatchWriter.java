@@ -872,7 +872,7 @@ public class TabletServerBatchWriter {
               allFailures.addAll(entry.getKey().getTableId().toString(), entry.getValue());
               TabletLocator.getInstance(instance, new Text(entry.getKey().getTableId())).invalidateCache(entry.getKey());
             } catch (ConstraintViolationException e) {
-              updatedConstraintViolations(Translator.translate(e.violationSummaries, Translator.TCVST));
+              updatedConstraintViolations(Translator.translate(e.violationSummaries, Translators.TCVST));
             }
             timeoutTracker.madeProgress();
           } else {
@@ -898,9 +898,9 @@ public class TabletServerBatchWriter {
             
             UpdateErrors updateErrors = client.closeUpdate(tinfo, usid);
             
-            Map<KeyExtent,Long> failures = Translator.translate(updateErrors.failedExtents, Translator.TKET);
-            updatedConstraintViolations(Translator.translate(updateErrors.violationSummaries, Translator.TCVST));
-            updateAuthorizationFailures(Translator.translate(updateErrors.authorizationFailures, Translator.TKET));
+            Map<KeyExtent,Long> failures = Translator.translate(updateErrors.failedExtents, Translators.TKET);
+            updatedConstraintViolations(Translator.translate(updateErrors.violationSummaries, Translators.TCVST));
+            updateAuthorizationFailures(Translator.translate(updateErrors.authorizationFailures, Translators.TKET));
             
             long totalCommitted = 0;
             

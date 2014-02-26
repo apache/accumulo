@@ -40,6 +40,7 @@ import org.apache.accumulo.core.client.impl.ServerClient;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.client.impl.Translator;
+import org.apache.accumulo.core.client.impl.Translators;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
@@ -596,9 +597,9 @@ public class BulkImporter {
         }
         
         log.debug("Asking " + location + " to bulk load " + files);
-        List<TKeyExtent> failures = client.bulkImport(Tracer.traceInfo(), credentials, tid, Translator.translate(files, Translator.KET), setTime);
+        List<TKeyExtent> failures = client.bulkImport(Tracer.traceInfo(), credentials, tid, Translator.translate(files, Translators.KET), setTime);
         
-        return Translator.translate(failures, Translator.TKET);
+        return Translator.translate(failures, Translators.TKET);
       } finally {
         ThriftUtil.returnClient((TServiceClient) client);
       }
