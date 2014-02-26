@@ -693,6 +693,8 @@ public class Shell extends ShellOptions {
         }
         if (sc != null)
           sc.printHelp(this);
+      } catch (UserInterruptException e) {
+        ++exitCode;
       } catch (Exception e) {
         ++exitCode;
         printException(e);
