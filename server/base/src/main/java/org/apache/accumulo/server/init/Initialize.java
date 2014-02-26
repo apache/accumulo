@@ -40,6 +40,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
+import org.apache.accumulo.core.file.VolumeConfiguration;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
@@ -150,7 +151,7 @@ public class Initialize {
     else
       fsUri = FileSystem.getDefaultUri(conf).toString();
     log.info("Hadoop Filesystem is " + fsUri);
-    log.info("Accumulo data dirs are " + Arrays.asList(ServerConstants.getConfiguredBaseDirs(ServerConfiguration.getSiteConfiguration())));
+    log.info("Accumulo data dirs are " + Arrays.asList(VolumeConfiguration.getConfiguredBaseDirs(ServerConfiguration.getSiteConfiguration())));
     log.info("Zookeeper server is " + sconf.get(Property.INSTANCE_ZK_HOST));
     log.info("Checking if Zookeeper is available. If this hangs, then you need to make sure zookeeper is running");
     if (!zookeeperAvailable()) {
@@ -172,7 +173,7 @@ public class Initialize {
     try {
       if (isInitialized(fs)) {
         String instanceDfsDir = sconf.get(Property.INSTANCE_DFS_DIR);
-        log.fatal("It appears the directories " + Arrays.asList(ServerConstants.getConfiguredBaseDirs(ServerConfiguration.getSiteConfiguration()))
+        log.fatal("It appears the directories " + Arrays.asList(VolumeConfiguration.getConfiguredBaseDirs(ServerConfiguration.getSiteConfiguration()))
             + " were previously initialized.");
         String instanceVolumes = sconf.get(Property.INSTANCE_VOLUMES);
         String instanceDfsUri = sconf.get(Property.INSTANCE_DFS_URI);
@@ -219,7 +220,7 @@ public class Initialize {
 
     UUID uuid = UUID.randomUUID();
     // the actual disk locations of the root table and tablets
-    String[] configuredTableDirs = ServerConstants.prefix(ServerConstants.getConfiguredBaseDirs(ServerConfiguration.getSiteConfiguration()),
+    String[] configuredTableDirs = VolumeConfiguration.prefix(VolumeConfiguration.getConfiguredBaseDirs(ServerConfiguration.getSiteConfiguration()),
         ServerConstants.TABLE_DIR);
     final Path rootTablet = new Path(fs.choose(configuredTableDirs) + "/" + RootTable.ID + RootTable.ROOT_TABLET_LOCATION);
     try {
@@ -295,13 +296,13 @@ public class Initialize {
   private static void initFileSystem(Opts opts, VolumeManager fs, UUID uuid, Path rootTablet) throws IOException {
     FileStatus fstat;
 
-    initDirs(fs, uuid, ServerConstants.getConfiguredBaseDirs(ServerConfiguration.getSiteConfiguration()), false);
+    initDirs(fs, uuid, VolumeConfiguration.getConfiguredBaseDirs(ServerConfiguration.getSiteConfiguration()), false);
 
     // the actual disk locations of the metadata table and tablets
     final Path[] metadataTableDirs = paths(ServerConstants.getMetadataTableDirs());
 
-    String tableMetadataTabletDir = fs.choose(ServerConstants.prefix(ServerConstants.getMetadataTableDirs(), TABLE_TABLETS_TABLET_DIR));
-    String defaultMetadataTabletDir = fs.choose(ServerConstants.prefix(ServerConstants.getMetadataTableDirs(), Constants.DEFAULT_TABLET_LOCATION));
+    String tableMetadataTabletDir = fs.choose(VolumeConfiguration.prefix(ServerConstants.getMetadataTableDirs(), TABLE_TABLETS_TABLET_DIR));
+    String defaultMetadataTabletDir = fs.choose(VolumeConfiguration.prefix(ServerConstants.getMetadataTableDirs(), Constants.DEFAULT_TABLET_LOCATION));
 
     // initialize initial metadata config in zookeeper
     initMetadataConfig();
@@ -552,7 +553,7 @@ public class Initialize {
   }
 
   public static boolean isInitialized(VolumeManager fs) throws IOException {
-    for (String baseDir : ServerConstants.getConfiguredBaseDirs(ServerConfiguration.getSiteConfiguration())) {
+    for (String baseDir : VolumeConfiguration.getConfiguredBaseDirs(ServerConfiguration.getSiteConfiguration())) {
       if (fs.exists(new Path(baseDir, ServerConstants.INSTANCE_ID_DIR)) || fs.exists(new Path(baseDir, ServerConstants.VERSION_DIR)))
         return true;
     }
@@ -563,10 +564,10 @@ public class Initialize {
   private static void addVolumes(VolumeManager fs) throws IOException {
     HashSet<String> initializedDirs = new HashSet<String>();
     initializedDirs
-        .addAll(Arrays.asList(ServerConstants.checkBaseDirs(ServerConstants.getConfiguredBaseDirs(ServerConfiguration.getSiteConfiguration()), true)));
+        .addAll(Arrays.asList(ServerConstants.checkBaseDirs(VolumeConfiguration.getConfiguredBaseDirs(ServerConfiguration.getSiteConfiguration()), true)));
 
     HashSet<String> uinitializedDirs = new HashSet<String>();
-    uinitializedDirs.addAll(Arrays.asList(ServerConstants.getConfiguredBaseDirs(ServerConfiguration.getSiteConfiguration())));
+    uinitializedDirs.addAll(Arrays.asList(VolumeConfiguration.getConfiguredBaseDirs(ServerConfiguration.getSiteConfiguration())));
     uinitializedDirs.removeAll(initializedDirs);
 
     Path aBasePath = new Path(initializedDirs.iterator().next());

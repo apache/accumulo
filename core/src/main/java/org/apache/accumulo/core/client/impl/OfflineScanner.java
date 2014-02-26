@@ -43,7 +43,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
-import org.apache.accumulo.core.file.FileUtil;
+import org.apache.accumulo.core.file.VolumeConfiguration;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -306,7 +306,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     
     // TODO need to close files - ACCUMULO-1303
     for (String file : absFiles) {
-      FileSystem fs = FileUtil.getFileSystem(file, conf, config);
+      FileSystem fs = VolumeConfiguration.getFileSystem(file, conf, config);
       FileSKVIterator reader = FileOperations.getInstance().openReader(file, false, fs, conf, acuTableConf, null, null);
       readers.add(reader);
     }

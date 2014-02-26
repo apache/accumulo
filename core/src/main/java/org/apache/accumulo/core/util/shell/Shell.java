@@ -63,6 +63,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.thrift.TConstraintViolationSummary;
+import org.apache.accumulo.core.file.VolumeConfiguration;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.BadArgumentException;
@@ -433,7 +434,7 @@ public class Shell extends ShellOptions {
     if (instanceName == null || keepers == null) {
       AccumuloConfiguration conf = SiteConfiguration.getInstance(ServerConfigurationUtil.convertClientConfig(DefaultConfiguration.getInstance(), clientConfig));
       if (instanceName == null) {
-        Path instanceDir = new Path(conf.get(Property.INSTANCE_DFS_DIR), "instance_id");
+        Path instanceDir = new Path(VolumeConfiguration.getConfiguredBaseDirs(conf)[0], "instance_id");
         instanceId = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(instanceDir, conf));
       }
       if (keepers == null) {

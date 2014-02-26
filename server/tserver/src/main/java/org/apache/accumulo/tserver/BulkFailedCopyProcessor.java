@@ -50,7 +50,7 @@ public class BulkFailedCopyProcessor implements Processor {
     Path tmp = new Path(dest.getParent(), dest.getName() + ".tmp");
     
     try {
-      FileSystem fs = TraceFileSystem.wrap(org.apache.accumulo.core.file.FileUtil.getFileSystem(CachedConfiguration.getInstance(),
+      FileSystem fs = TraceFileSystem.wrap(org.apache.accumulo.core.file.VolumeConfiguration.getDefaultFilesystem(CachedConfiguration.getInstance(),
           ServerConfiguration.getSiteConfiguration()));
       
       FileUtil.copy(fs, orig, fs, tmp, false, true, CachedConfiguration.getInstance());
@@ -58,7 +58,7 @@ public class BulkFailedCopyProcessor implements Processor {
       log.debug("copied " + orig + " to " + dest);
     } catch (IOException ex) {
       try {
-        FileSystem fs = TraceFileSystem.wrap(org.apache.accumulo.core.file.FileUtil.getFileSystem(CachedConfiguration.getInstance(),
+        FileSystem fs = TraceFileSystem.wrap(org.apache.accumulo.core.file.VolumeConfiguration.getDefaultFilesystem(CachedConfiguration.getInstance(),
             ServerConfiguration.getSiteConfiguration()));
         
         fs.create(dest).close();
