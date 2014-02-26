@@ -772,9 +772,9 @@ public class TabletServerBatchWriter {
           }
           
           UpdateErrors updateErrors = client.closeUpdate(null, usid);
-          Map<KeyExtent,Long> failures = Translator.translate(updateErrors.failedExtents, Translator.TKET);
-          updatedConstraintViolations(Translator.translate(updateErrors.violationSummaries, Translator.TCVST));
-          updateAuthorizationFailures(Translator.translate(updateErrors.authorizationFailures, Translator.TKET));
+          Map<KeyExtent,Long> failures = Translator.translate(updateErrors.failedExtents, Translators.TKET);
+          updatedConstraintViolations(Translator.translate(updateErrors.violationSummaries, Translators.TCVST));
+          updateAuthorizationFailures(Translator.translate(updateErrors.authorizationFailures, Translators.TKET));
           
           for (Entry<KeyExtent,Long> entry : failures.entrySet()) {
             KeyExtent failedExtent = entry.getKey();

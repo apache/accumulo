@@ -103,15 +103,6 @@ public abstract class Translator<IT,OT> {
     
   }
   
-  public static final TKeyExtentTranslator TKET = new TKeyExtentTranslator();
-  public static final TCVSTranslator TCVST = new TCVSTranslator();
-  public static final TRangeTranslator TRT = new TRangeTranslator();
-  
-  public static final KeyExtentTranslator KET = new KeyExtentTranslator();
-  public static final ColumnTranslator CT = new ColumnTranslator();
-  public static final Translator<Range,TRange> RT = new RangeTranslator();
-  public static final CVSTranslator CVST = new CVSTranslator();
-  
   public static <IKT,OKT,T> Map<OKT,T> translate(Map<IKT,T> input, Translator<IKT,OKT> keyTranslator) {
     HashMap<OKT,T> output = new HashMap<OKT,T>();
     
