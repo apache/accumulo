@@ -97,7 +97,7 @@ public class ThriftScanner {
         TabletType ttype = TabletType.type(extent);
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(server);
         InitialScan isr = client.startScan(tinfo, scanState.credentials.toThrift(instance), extent.toThrift(), scanState.range.toThrift(),
-            Translator.translate(scanState.columns, Translator.CT), scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
+            Translator.translate(scanState.columns, Translators.CT), scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
             scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated, scanState.readaheadThreshold);
         if (waitForWrites)
           serversWaitedForWrites.get(ttype).add(server);
@@ -397,7 +397,7 @@ public class ThriftScanner {
         TabletType ttype = TabletType.type(loc.tablet_extent);
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(loc.tablet_location);
         InitialScan is = client.startScan(tinfo, scanState.credentials.toThrift(scanState.instance), loc.tablet_extent.toThrift(), scanState.range.toThrift(),
-            Translator.translate(scanState.columns, Translator.CT), scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
+            Translator.translate(scanState.columns, Translators.CT), scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
             scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated, scanState.readaheadThreshold);
         if (waitForWrites)
           serversWaitedForWrites.get(ttype).add(loc.tablet_location);
