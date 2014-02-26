@@ -72,19 +72,19 @@ public class DfsLogger {
   // Package private so that LogSorter can find this
   static final String LOG_FILE_HEADER_V2 = "--- Log File Header (v2) ---";
   static final String LOG_FILE_HEADER_V3 = "--- Log File Header (v3) ---";
-  
+
   private static Logger log = Logger.getLogger(DfsLogger.class);
-  
+
   public static class LogClosedException extends IOException {
     private static final long serialVersionUID = 1L;
-    
+
     public LogClosedException() {
       super("LogClosed");
     }
   }
-  
+
   public static class DFSLoggerInputStreams {
-    
+
     private FSDataInputStream originalInput;
     private DataInputStream decryptingInputStream;
 
@@ -109,41 +109,40 @@ public class DfsLogger {
       this.decryptingInputStream = decryptingInputStream;
     }
   }
-  
-  
+
   public interface ServerResources {
     AccumuloConfiguration getConfiguration();
-    
+
     VolumeManager getFileSystem();
-    
+
     Set<TServerInstance> getCurrentTServers();
   }
-  
+
   private final LinkedBlockingQueue<DfsLogger.LogWork> workQueue = new LinkedBlockingQueue<DfsLogger.LogWork>();
-  
+
   private final Object closeLock = new Object();
-  
+
   private static final DfsLogger.LogWork CLOSED_MARKER = new DfsLogger.LogWork(null);
-  
+
   private static final LogFileValue EMPTY = new LogFileValue();
-  
+
   private boolean closed = false;
-  
+
   private class LogSyncingTask implements Runnable {
-    
+
     @Override
     public void run() {
       ArrayList<DfsLogger.LogWork> work = new ArrayList<DfsLogger.LogWork>();
       while (true) {
         work.clear();
-        
+
         try {
           work.add(workQueue.take());
         } catch (InterruptedException ex) {
           continue;
         }
         workQueue.drainTo(work);
-        
+
         synchronized (closeLock) {
           if (!closed) {
             try {
@@ -160,14 +159,14 @@ public class DfsLogger {
             }
           }
         }
-        
+
         boolean sawClosedMarker = false;
         for (DfsLogger.LogWork logWork : work)
           if (logWork == CLOSED_MARKER)
             sawClosedMarker = true;
           else
             logWork.latch.countDown();
-        
+
         if (sawClosedMarker) {
           synchronized (closeLock) {
             closeLock.notifyAll();
@@ -177,7 +176,7 @@ public class DfsLogger {
       }
     }
   }
-  
+
   static class LogWork {
     CountDownLatch latch;
     volatile Exception exception;
@@ -186,21 +185,21 @@ public class DfsLogger {
       this.latch = latch;
     }
   }
-  
+
   public static class LoggerOperation {
     private final LogWork work;
-    
+
     public LoggerOperation(LogWork work) {
       this.work = work;
     }
-    
+
     public void await() throws IOException {
       try {
         work.latch.await();
       } catch (InterruptedException e) {
         throw new RuntimeException(e);
       }
-      
+
       if (work.exception != null) {
         if (work.exception instanceof IOException)
           throw (IOException) work.exception;
@@ -211,7 +210,7 @@ public class DfsLogger {
       }
     }
   }
-  
+
   @Override
   public boolean equals(Object obj) {
     // filename is unique
@@ -221,32 +220,32 @@ public class DfsLogger {
       return getFileName().equals(((DfsLogger) obj).getFileName());
     return false;
   }
-  
+
   @Override
   public int hashCode() {
     // filename is unique
     return getFileName().hashCode();
   }
-  
+
   private final ServerResources conf;
   private FSDataOutputStream logFile;
   private DataOutputStream encryptingLogFile = null;
   private Method sync;
   private String logPath;
-  
+
   public DfsLogger(ServerResources conf) throws IOException {
     this.conf = conf;
   }
-  
+
   public DfsLogger(ServerResources conf, String filename) throws IOException {
     this.conf = conf;
     this.logPath = filename;
   }
-  
+
   public static DFSLoggerInputStreams readHeaderAndReturnStream(VolumeManager fs, Path path, AccumuloConfiguration conf) throws IOException {
     FSDataInputStream input = fs.open(path);
     DataInputStream decryptingInput = null;
-    
+
     byte[] magic = DfsLogger.LOG_FILE_HEADER_V3.getBytes();
     byte[] magicBuffer = new byte[magic.length];
     input.readFully(magicBuffer);
@@ -274,11 +273,11 @@ public class DfsLogger {
       input.readFully(magicBufferV2);
 
       if (Arrays.equals(magicBufferV2, magicV2)) {
-        // Log files from 1.5 dump their options in raw to the logger files.  Since we don't know the class
-        // that needs to read those files, we can make a couple of basic assumptions.  Either it's going to be
+        // Log files from 1.5 dump their options in raw to the logger files. Since we don't know the class
+        // that needs to read those files, we can make a couple of basic assumptions. Either it's going to be
         // the NullCryptoModule (no crypto) or the DefaultCryptoModule.
-        
-        // If it's null, we won't have any parameters whatsoever.  First, let's attempt to read 
+
+        // If it's null, we won't have any parameters whatsoever. First, let's attempt to read
         // parameters
         Map<String,String> opts = new HashMap<String,String>();
         int count = input.readInt();
@@ -287,18 +286,18 @@ public class DfsLogger {
           String value = input.readUTF();
           opts.put(key, value);
         }
-        
+
         if (opts.size() == 0) {
           // NullCryptoModule, we're done
           decryptingInput = input;
         } else {
-          
+
           // The DefaultCryptoModule will want to read the parameters from the underlying file, so we will put the file back to that spot.
           org.apache.accumulo.core.security.crypto.CryptoModule cryptoModule = org.apache.accumulo.core.security.crypto.CryptoModuleFactory
               .getCryptoModule(DefaultCryptoModule.class.getName());
 
           CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
-          
+
           input.seek(0);
           input.readFully(magicBuffer);
           params.setEncryptedInputStream(input);
@@ -310,7 +309,7 @@ public class DfsLogger {
             decryptingInput = new DataInputStream(params.getPlaintextInputStream());
           }
         }
-        
+
       } else {
 
         input.seek(0);
@@ -320,14 +319,14 @@ public class DfsLogger {
     }
     return new DFSLoggerInputStreams(input, decryptingInput);
   }
-  
+
   public synchronized void open(String address) throws IOException {
     String filename = UUID.randomUUID().toString();
     String logger = Joiner.on("+").join(address.split(":"));
 
     log.debug("DfsLogger.open() begin");
     VolumeManager fs = conf.getFileSystem();
-    
+
     logPath = fs.choose(ServerConstants.getWalDirs()) + "/" + logger + "/" + filename;
     try {
       short replication = (short) conf.getConfiguration().getCount(Property.TSERV_WAL_REPLICATION);
@@ -340,7 +339,7 @@ public class DfsLogger {
         logFile = fs.createSyncable(new Path(logPath), 0, replication, blockSize);
       else
         logFile = fs.create(new Path(logPath), true, 0, replication, blockSize);
-      
+
       try {
         NoSuchMethodException e = null;
         try {
@@ -359,11 +358,11 @@ public class DfsLogger {
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
-      
+
       // Initialize the crypto operations.
       org.apache.accumulo.core.security.crypto.CryptoModule cryptoModule = org.apache.accumulo.core.security.crypto.CryptoModuleFactory.getCryptoModule(conf
           .getConfiguration().get(Property.CRYPTO_MODULE_CLASS));
-      
+
       // Initialize the log file with a header and the crypto params used to set up this log file.
       logFile.write(LOG_FILE_HEADER_V3.getBytes(Constants.UTF8));
 
@@ -376,10 +375,9 @@ public class DfsLogger {
 
       logFile.writeUTF(conf.getConfiguration().get(Property.CRYPTO_MODULE_CLASS));
 
-      
       params = cryptoModule.getEncryptingOutputStream(params);
       OutputStream encipheringOutputStream = params.getEncryptedOutputStream();
-      
+
       // If the module just kicks back our original stream, then just use it, don't wrap it in
       // another data OutputStream.
       if (encipheringOutputStream == logFile) {
@@ -387,7 +385,7 @@ public class DfsLogger {
       } else {
         encryptingLogFile = new DataOutputStream(encipheringOutputStream);
       }
-      
+
       LogFileKey key = new LogFileKey();
       key.event = OPEN;
       key.tserverSession = filename;
@@ -402,12 +400,12 @@ public class DfsLogger {
       encryptingLogFile = null;
       throw new IOException(ex);
     }
-    
+
     Thread t = new Daemon(new LogSyncingTask());
     t.setName("Accumulo WALog thread " + toString());
     t.start();
   }
-  
+
   @Override
   public String toString() {
     String fileName = getFileName();
@@ -415,13 +413,13 @@ public class DfsLogger {
       return getLogger() + "/" + getFileName();
     return fileName;
   }
-  
+
   public String getFileName() {
     return logPath.toString();
   }
-  
+
   public void close() throws IOException {
-    
+
     synchronized (closeLock) {
       if (closed)
         return;
@@ -448,7 +446,7 @@ public class DfsLogger {
         throw new LogClosedException();
       }
   }
-  
+
   public synchronized void defineTablet(int seq, int tid, KeyExtent tablet) throws IOException {
     // write this log to the METADATA table
     final LogFileKey key = new LogFileKey();
@@ -464,23 +462,18 @@ public class DfsLogger {
       throw new IOException(ex);
     }
   }
-  
-  /**
-   * @param key
-   * @param empty2
-   * @throws IOException
-   */
+
   private synchronized void write(LogFileKey key, LogFileValue value) throws IOException {
     key.write(encryptingLogFile);
     value.write(encryptingLogFile);
     encryptingLogFile.flush();
   }
-  
+
   public LoggerOperation log(int seq, int tid, Mutation mutation) throws IOException {
     return logManyTablets(Collections.singletonList(new TabletMutations(tid, seq, Collections.singletonList(mutation))));
   }
-  
-  private LoggerOperation logFileData(List<Pair<LogFileKey, LogFileValue>> keys) throws IOException {
+
+  private LoggerOperation logFileData(List<Pair<LogFileKey,LogFileValue>> keys) throws IOException {
     DfsLogger.LogWork work = new DfsLogger.LogWork(new CountDownLatch(1));
     synchronized (DfsLogger.this) {
       try {
@@ -498,17 +491,17 @@ public class DfsLogger {
     synchronized (closeLock) {
       // use a different lock for close check so that adding to work queue does not need
       // to wait on walog I/O operations
-      
+
       if (closed)
         throw new LogClosedException();
       workQueue.add(work);
     }
-    
+
     return new LoggerOperation(work);
   }
-  
+
   public LoggerOperation logManyTablets(List<TabletMutations> mutations) throws IOException {
-    List<Pair<LogFileKey, LogFileValue>> data = new ArrayList<Pair<LogFileKey, LogFileValue>>();
+    List<Pair<LogFileKey,LogFileValue>> data = new ArrayList<Pair<LogFileKey,LogFileValue>>();
     for (TabletMutations tabletMutations : mutations) {
       LogFileKey key = new LogFileKey();
       key.event = MANY_MUTATIONS;
@@ -516,7 +509,7 @@ public class DfsLogger {
       key.tid = tabletMutations.getTid();
       LogFileValue value = new LogFileValue();
       value.mutations = tabletMutations.getMutations();
-      data.add(new Pair<LogFileKey, LogFileValue>(key, value));
+      data.add(new Pair<LogFileKey,LogFileValue>(key, value));
     }
     return logFileData(data);
   }
@@ -526,21 +519,21 @@ public class DfsLogger {
     key.event = COMPACTION_FINISH;
     key.seq = seq;
     key.tid = tid;
-    return logFileData(Collections.singletonList(new Pair<LogFileKey, LogFileValue>(key, EMPTY)));
+    return logFileData(Collections.singletonList(new Pair<LogFileKey,LogFileValue>(key, EMPTY)));
   }
-  
+
   public LoggerOperation minorCompactionStarted(int seq, int tid, String fqfn) throws IOException {
     LogFileKey key = new LogFileKey();
     key.event = COMPACTION_START;
     key.seq = seq;
     key.tid = tid;
     key.filename = fqfn;
-    return logFileData(Collections.singletonList(new Pair<LogFileKey, LogFileValue>(key, EMPTY)));
+    return logFileData(Collections.singletonList(new Pair<LogFileKey,LogFileValue>(key, EMPTY)));
   }
 
   public String getLogger() {
     String parts[] = logPath.split("/");
     return Joiner.on(":").join(parts[parts.length - 2].split("[+]"));
   }
-  
+
 }
