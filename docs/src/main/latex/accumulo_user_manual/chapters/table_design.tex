@@ -32,15 +32,16 @@ if we have the following data in a comma-separated file:
 \end{verbatim}
 \normalsize
 
-We might choose to store this data using the userid as the rowID and the rest of the
-data in column families:
+We might choose to store this data using the userid as the rowID, the column
+name in the column family, and a blank column qualifier:
 
 \small
 \begin{verbatim}
-Mutation m = new Mutation(new Text(userid));
-m.put(new Text("age"), age);
-m.put(new Text("address"), address);
-m.put(new Text("balance"), account_balance);
+Mutation m = new Mutation(userid);
+final String column_qualifier = "";
+m.put("age", column_qualifier, age);
+m.put("address", column_qualifier, address);
+m.put("balance", column_qualifier, account_balance);
 
 writer.add(m);
 \end{verbatim}
