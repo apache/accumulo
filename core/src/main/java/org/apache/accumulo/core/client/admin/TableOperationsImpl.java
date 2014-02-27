@@ -83,7 +83,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.file.FileUtil;
+import org.apache.accumulo.core.file.VolumeConfiguration;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -1147,7 +1147,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @SuppressWarnings("deprecation")
   private Path checkPath(String dir, String kind, String type) throws IOException, AccumuloException {
     Path ret;
-    FileSystem fs = FileUtil.getFileSystem(dir, CachedConfiguration.getInstance(), ServerConfigurationUtil.getConfiguration(instance));
+    FileSystem fs = VolumeConfiguration.getFileSystem(dir, CachedConfiguration.getInstance(), ServerConfigurationUtil.getConfiguration(instance));
 
     if (dir.contains(":")) {
       ret = new Path(dir);

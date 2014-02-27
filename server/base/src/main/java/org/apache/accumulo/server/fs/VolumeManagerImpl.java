@@ -34,7 +34,7 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
-import org.apache.accumulo.core.file.FileUtil;
+import org.apache.accumulo.core.file.VolumeConfiguration;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
@@ -349,8 +349,8 @@ public class VolumeManagerImpl implements VolumeManager {
   public static VolumeManager get(AccumuloConfiguration conf) throws IOException {
     Map<String,FileSystem> fileSystems = new HashMap<String,FileSystem>();
     Configuration hadoopConf = CachedConfiguration.getInstance();
-    fileSystems.put(DEFAULT, FileUtil.getFileSystem(hadoopConf, conf));
-    for (String space : ServerConstants.getConfiguredBaseDirs(conf)) {
+    fileSystems.put(DEFAULT, VolumeConfiguration.getDefaultFilesystem(hadoopConf, conf));
+    for (String space : VolumeConfiguration.getConfiguredBaseDirs(conf)) {
       if (space.equals(DEFAULT))
         throw new IllegalArgumentException();
 

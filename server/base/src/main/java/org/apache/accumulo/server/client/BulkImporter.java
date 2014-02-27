@@ -51,7 +51,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.thrift.TKeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
-import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -64,6 +63,7 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.util.FileUtil;
 import org.apache.accumulo.trace.instrument.TraceRunnable;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.hadoop.conf.Configuration;
@@ -368,8 +368,7 @@ public class BulkImporter {
           Map<KeyExtent,Long> estimatedSizes = null;
           
           try {
-            FileSystem fs = vm.getFileSystemByPath(entry.getKey());
-            estimatedSizes = FileUtil.estimateSizes(acuConf, entry.getKey(), mapFileSizes.get(entry.getKey()), extentsOf(entry.getValue()), conf, fs);
+            estimatedSizes = FileUtil.estimateSizes(acuConf, entry.getKey(), mapFileSizes.get(entry.getKey()), extentsOf(entry.getValue()), conf, vm);
           } catch (IOException e) {
             log.warn("Failed to estimate map file sizes " + e.getMessage());
           }

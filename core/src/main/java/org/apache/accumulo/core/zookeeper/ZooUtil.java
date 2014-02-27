@@ -23,7 +23,7 @@ import java.net.UnknownHostException;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.file.FileUtil;
+import org.apache.accumulo.core.file.VolumeConfiguration;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -49,7 +49,7 @@ public class ZooUtil extends org.apache.accumulo.fate.zookeeper.ZooUtil {
   public static String getInstanceIDFromHdfs(Path instanceDirectory, AccumuloConfiguration conf) {
     try {
 
-      FileSystem fs = FileUtil.getFileSystem(instanceDirectory.toString(), CachedConfiguration.getInstance(), conf);
+      FileSystem fs = VolumeConfiguration.getFileSystem(instanceDirectory.toString(), CachedConfiguration.getInstance(), conf);
       FileStatus[] files = null;
       try {
         files = fs.listStatus(instanceDirectory);

@@ -171,7 +171,10 @@ public class ShellSetInstanceTest {
       expect(clientConf.withZkHosts("host1,host2")).andReturn(clientConf);
     }
     if (!onlyInstance) {
+      expect(clientConf.containsKey(Property.INSTANCE_VOLUMES.getKey())).andReturn(false).atLeastOnce();
       expect(clientConf.containsKey(Property.INSTANCE_DFS_DIR.getKey())).andReturn(true).atLeastOnce();
+      expect(clientConf.containsKey(Property.INSTANCE_DFS_URI.getKey())).andReturn(true).atLeastOnce();
+      expect(clientConf.getString(Property.INSTANCE_DFS_URI.getKey())).andReturn("hdfs://nn1").atLeastOnce();
       expect(clientConf.getString(Property.INSTANCE_DFS_DIR.getKey())).andReturn("/dfs").atLeastOnce();
     }
 
