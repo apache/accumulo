@@ -92,15 +92,13 @@ public class MetadataIT extends SimpleMacIT {
       c.tableOperations().create(tableName);
     }
     c.tableOperations().merge(MetadataTable.NAME, null, null);
-    UtilWaitThread.sleep(2 * 1000);
-    Scanner s = c.createScanner(RootTable.NAME, Authorizations.EMPTY);
-    s.setRange(MetadataSchema.DeletesSection.getRange());
-    int count = 0;
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> e : s) {
-      count++;
+    while (true) {
+      Scanner s = c.createScanner(RootTable.NAME, Authorizations.EMPTY);
+      s.setRange(MetadataSchema.DeletesSection.getRange());
+      if (FunctionalTestUtils.count(s) > 0)
+        break;
+      UtilWaitThread.sleep(100);
     }
-    assertTrue(count > 0);
     assertEquals(0, c.tableOperations().listSplits(MetadataTable.NAME).size());
   }
 
