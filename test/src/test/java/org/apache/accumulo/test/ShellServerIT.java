@@ -50,6 +50,7 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.shell.Shell;
+import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.apache.accumulo.tracer.TraceServer;
 import org.apache.commons.io.FileUtils;
@@ -917,9 +918,7 @@ public class ShellServerIT extends SimpleMacIT {
         try {
           Connector connector = getConnector();
           Scanner s = connector.createScanner(table, Authorizations.EMPTY);
-          for (@SuppressWarnings("unused")
-          Entry<Key,Value> kv : s)
-            ;
+          FunctionalTestUtils.count(s);
         } catch (Exception ex) {
           throw new RuntimeException(ex);
         }

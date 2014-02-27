@@ -21,7 +21,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Random;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -29,9 +28,7 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
@@ -120,12 +117,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacIT {
   private int countFiles(Connector c, String tableName) throws Exception {
     Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-    int count = 0;
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : s) {
-      count++;
-    }
-    return count;
+    return FunctionalTestUtils.count(s);
   }
 
 }

@@ -20,12 +20,9 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
@@ -55,11 +52,7 @@ public class BigRootTabletIT extends ConfigurableMacIT {
     }
     cluster.stop();
     cluster.start();
-    int count = 0;
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : c.createScanner(RootTable.NAME, Authorizations.EMPTY))
-      count++;
-    assertTrue(count > 0);
+    assertTrue(FunctionalTestUtils.count(c.createScanner(RootTable.NAME, Authorizations.EMPTY)) > 0);
   }
   
 }

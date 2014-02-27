@@ -36,6 +36,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
@@ -53,11 +54,7 @@ public class SplitRecoveryIT extends SimpleMacIT {
     Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.setRange(new Range(new Text(tableId + ";"), new Text(tableId + "<")));
     scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : scanner) {
-      return false;
-    }
-    return true;
+    return FunctionalTestUtils.count(scanner) == 0;
   }
 
   @Test(timeout = 60000)

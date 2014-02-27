@@ -209,11 +209,7 @@ public class ExamplesIT extends AbstractMacIT {
     bw.addMutation(m);
     bw.close();
     UtilWaitThread.sleep(1000);
-    int count = 0;
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> line : c.createScanner("filtertest", Authorizations.EMPTY))
-      count++;
-    assertEquals(0, count);
+    assertEquals(0, FunctionalTestUtils.count(c.createScanner("filtertest", Authorizations.EMPTY)));
   }
 
   @Test(timeout = 60 * 1000)

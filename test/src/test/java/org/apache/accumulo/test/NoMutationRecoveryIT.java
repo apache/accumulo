@@ -19,7 +19,6 @@ package org.apache.accumulo.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.Map.Entry;
 
@@ -40,6 +39,7 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ProcessReference;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
+import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
@@ -69,9 +69,7 @@ public class NoMutationRecoveryIT extends ConfigurableMacIT {
     update(conn, TABLE, new Text("row"), new Text("cf"), new Text("cq"), new Value("value".getBytes()));
     Entry<Key, Value> logRef = getLogRef(conn, MetadataTable.NAME);
     conn.tableOperations().flush(TABLE, null, null, true);
-    for (@SuppressWarnings("unused") Entry<Key, Value> refs : getLogRefs(conn, MetadataTable.NAME)) {
-      fail("should not have any refs");
-    }
+    assertEquals(0, FunctionalTestUtils.count(getLogRefs(conn, MetadataTable.NAME)));
     conn.securityOperations().grantTablePermission(conn.whoami(), MetadataTable.NAME, TablePermission.WRITE);
     update(conn, MetadataTable.NAME, logRef);
     assertTrue(equals(logRef, getLogRef(conn, MetadataTable.NAME)));

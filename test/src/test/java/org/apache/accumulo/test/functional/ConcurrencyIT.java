@@ -18,7 +18,6 @@ package org.apache.accumulo.test.functional;
 
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -32,7 +31,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -59,11 +57,7 @@ public class ConcurrencyIT extends ConfigurableMacIT {
     
     @Override
     public void run() {
-      for (@SuppressWarnings("unused")
-      Entry<Key,Value> entry : scanner) {
-        count++;
-      }
-      
+      count = FunctionalTestUtils.count(scanner);
     }
     
   }
