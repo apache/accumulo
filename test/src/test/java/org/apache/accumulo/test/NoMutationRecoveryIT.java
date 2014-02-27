@@ -69,7 +69,7 @@ public class NoMutationRecoveryIT extends ConfigurableMacIT {
     update(conn, TABLE, new Text("row"), new Text("cf"), new Text("cq"), new Value("value".getBytes()));
     Entry<Key, Value> logRef = getLogRef(conn, MetadataTable.NAME);
     conn.tableOperations().flush(TABLE, null, null, true);
-    assertEquals(0, FunctionalTestUtils.count(getLogRefs(conn, MetadataTable.NAME)));
+    assertEquals("should not have any refs", 0, FunctionalTestUtils.count(getLogRefs(conn, MetadataTable.NAME)));
     conn.securityOperations().grantTablePermission(conn.whoami(), MetadataTable.NAME, TablePermission.WRITE);
     update(conn, MetadataTable.NAME, logRef);
     assertTrue(equals(logRef, getLogRef(conn, MetadataTable.NAME)));
