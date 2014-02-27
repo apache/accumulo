@@ -18,12 +18,12 @@ package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.test.functional.FunctionalTestUtils.checkRFiles;
 import static org.apache.accumulo.test.functional.FunctionalTestUtils.nm;
+import static org.junit.Assert.assertEquals;
 
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -32,8 +32,6 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.user.RowDeletingIterator;
 import org.apache.accumulo.core.security.Authorizations;
@@ -72,14 +70,9 @@ public class RowDeleteIT extends ConfigurableMacIT {
     
     checkRFiles(c, "rdel1", 1, 1, 1, 1);
     
-    int count = 0;
     Scanner scanner = c.createScanner("rdel1", Authorizations.EMPTY);
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : scanner) {
-      count++;
-    }
-    if (count != 2)
-      throw new Exception("1 count=" + count);
+    int count = FunctionalTestUtils.count(scanner);
+    assertEquals("count == " + count, 2, count);
     
     bw.addMutation(nm("r1", "", "", RowDeletingIterator.DELETE_ROW_VALUE));
     
@@ -88,28 +81,17 @@ public class RowDeleteIT extends ConfigurableMacIT {
     
     checkRFiles(c, "rdel1", 1, 1, 2, 2);
     
-    count = 0;
     scanner = c.createScanner("rdel1", Authorizations.EMPTY);
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : scanner) {
-      count++;
-    }
-    if (count != 3)
-      throw new Exception("2 count=" + count);
+    count = FunctionalTestUtils.count(scanner);
+    assertEquals("count == " + count, 3, count);
     
     c.tableOperations().compact("rdel1", null, null, false, true);
     
     checkRFiles(c, "rdel1", 1, 1, 0, 0);
     
-    count = 0;
     scanner = c.createScanner("rdel1", Authorizations.EMPTY);
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : scanner) {
-      count++;
-    }
-    if (count != 0)
-      throw new Exception("3 count=" + count);
-    
+    count = FunctionalTestUtils.count(scanner);
+    assertEquals("count == " + count, 0, count);
     bw.close();
     
   }

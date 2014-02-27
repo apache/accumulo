@@ -44,6 +44,7 @@ import org.apache.accumulo.server.master.state.RootTabletStateStore;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
+import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
@@ -133,8 +134,7 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacIT {
   private void waitForCleanStore(MetaDataStateStore store) {
     while (true) {
       try {
-        for (@SuppressWarnings("unused") TabletLocationState tls : store)
-          ;
+        FunctionalTestUtils.count(store);
       } catch (Exception ex) {
         System.out.println(ex);
         UtilWaitThread.sleep(250);

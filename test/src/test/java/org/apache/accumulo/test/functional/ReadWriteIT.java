@@ -187,16 +187,12 @@ public class ReadWriteIT extends ConfigurableMacIT {
     long now = System.currentTimeMillis();
     Scanner scanner = connector.createScanner("test_ingest", Authorizations.EMPTY);
     scanner.fetchColumnFamily(new Text("colf"));
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : scanner)
-      ;
+    FunctionalTestUtils.count(scanner);
     long diff = System.currentTimeMillis() - now;
     now = System.currentTimeMillis();
     scanner = connector.createScanner("test_ingest", Authorizations.EMPTY);
     scanner.fetchColumnFamily(new Text("colf2"));
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : scanner)
-      ;
+    FunctionalTestUtils.count(scanner);
     bw.close();
     long diff2 = System.currentTimeMillis() - now;
     assertTrue(diff2 < diff);

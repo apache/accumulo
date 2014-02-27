@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.junit.Assert.*;
+
 import java.util.Collections;
 import java.util.Map.Entry;
 
@@ -64,16 +66,8 @@ public class DeleteEverythingIT extends ConfigurableMacIT {
     
     Scanner scanner = getConnector().createScanner("de", Authorizations.EMPTY);
     scanner.setRange(new Range());
-    
-    int count = 0;
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : scanner) {
-      count++;
-    }
-    
-    if (count != 0)
-      throw new Exception("count == " + count);
-    
+    int count = FunctionalTestUtils.count(scanner);
+    assertEquals("count == " + count, 0, count);
     getConnector().tableOperations().flush("de", null, null, true);
     
     getConnector().tableOperations().setProperty("de", Property.TABLE_MAJC_RATIO.getKey(), "1.0");

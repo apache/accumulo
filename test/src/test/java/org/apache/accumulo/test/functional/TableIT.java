@@ -21,16 +21,13 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.FileNotFoundException;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
@@ -61,21 +58,11 @@ public class TableIT extends SimpleMacIT {
     Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.setRange(new KeyExtent(new Text(id), null, null).toMetadataRange());
     s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-    int count = 0;
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : s) {
-      count++;
-    }
-    assertTrue(count > 0);
+    assertTrue(FunctionalTestUtils.count(s) > 0);
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     assertTrue(fs.listStatus(new Path(rootPath() + "/accumulo/tables/" + id)).length > 0);
     to.delete(tableName);
-    count = 0;
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : s) {
-      count++;
-    }
-    assertEquals(0, count);
+    assertEquals(0, FunctionalTestUtils.count(s));
     try {
       assertEquals(0, fs.listStatus(new Path(rootPath() + "/accumulo/tables/" + id)).length);
     } catch (FileNotFoundException ex) {

@@ -23,7 +23,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
@@ -34,7 +33,6 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -163,10 +161,7 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     cluster.start();
     // did it recover?
     Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> unused : scanner) {
-
-    }
+    FunctionalTestUtils.count(scanner);
   }
 
   @Test(timeout = 60 * 1000)

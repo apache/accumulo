@@ -18,17 +18,13 @@ package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.Map.Entry;
-
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -38,6 +34,7 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ProcessReference;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
+import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
@@ -90,20 +87,11 @@ public class CleanWalIT extends ConfigurableMacIT {
   private int countLogs(String tableName, Connector conn) throws TableNotFoundException {
     Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.fetchColumnFamily(MetadataSchema.TabletsSection.LogColumnFamily.NAME);
-    int count = 0;
-    for (@SuppressWarnings("unused") Entry<Key,Value> entry : scanner) {
-      count++;
-    }
-    return count;
+    return FunctionalTestUtils.count(scanner);
   }
   
   int count(String tableName, Connector conn) throws Exception {
-    Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
-    int result = 0;
-    for (@SuppressWarnings("unused") Entry<Key,Value> entry : scanner) {
-      result++;
-    }
-    return result;
+    return FunctionalTestUtils.count(conn.createScanner(tableName, Authorizations.EMPTY));
   }
   
 }

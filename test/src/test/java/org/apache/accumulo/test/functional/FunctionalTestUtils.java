@@ -171,9 +171,9 @@ public class FunctionalTestUtils {
     return result;
   }
 
-  public static int count(Iterable<Entry<Key, Value>> i) {
+  public static int count(Iterable<?> i) {
     int count = 0;
-    for (@SuppressWarnings("unused") Entry<Key,Value> entry : i)
+    for (@SuppressWarnings("unused") Object entry : i)
       count++;
     return count;
   }

@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.EnumSet;
 import java.util.Map.Entry;
 
@@ -60,15 +62,8 @@ public class BadIteratorMincIT extends SimpleMacIT {
 
     // try to scan table
     Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
-
-    int count = 0;
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : scanner) {
-      count++;
-    }
-
-    if (count != 1)
-      throw new Exception("Did not see expected # entries " + count);
+    int count = FunctionalTestUtils.count(scanner);
+    assertEquals("Did not see expected # entries " + count, 1, count);
 
     // remove the bad iterator
     c.tableOperations().removeIterator(tableName, BadIterator.class.getSimpleName(), EnumSet.of(IteratorScope.minc));

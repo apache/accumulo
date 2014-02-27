@@ -20,16 +20,13 @@ import static org.junit.Assert.assertFalse;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
@@ -74,9 +71,7 @@ public class CleanTmpIT extends ConfigurableMacIT {
     getCluster().start();
 
     Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : scanner)
-      ;
+    FunctionalTestUtils.count(scanner);
     assertFalse(fs.exists(tmp));
   }
 }
