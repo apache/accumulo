@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.conf;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -25,10 +26,15 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.core.volume.Volume;
+import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance.AccumuloNotInitializedException;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.log4j.Logger;
 
 public class ZooConfiguration extends AccumuloConfiguration {
@@ -57,7 +63,15 @@ public class ZooConfiguration extends AccumuloConfiguration {
     if (instance == null) {
       propCache = new ZooCache(parent.get(Property.INSTANCE_ZK_HOST), (int) parent.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT));
       instance = new ZooConfiguration(parent);
-      String deprecatedInstanceIdFromHdfs = ZooUtil.getInstanceIDFromHdfs(ServerConstants.getInstanceIdLocation(), parent);
+      // InstanceID should be the same across all volumes, so just choose one
+      VolumeManager fs;
+      try {
+        fs = VolumeManagerImpl.get();
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+      Volume randVolume = fs.getVolumes().iterator().next();
+      String deprecatedInstanceIdFromHdfs = ZooUtil.getInstanceIDFromHdfs(ServerConstants.getInstanceIdLocation(randVolume), parent);
       instanceId = deprecatedInstanceIdFromHdfs;
     }
     return instance;

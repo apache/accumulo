@@ -335,6 +335,71 @@ public class GarbageCollectionTest {
     assertRemoved(gce);
   }
 
+
+  @Test
+  public void testCustomDirectories() throws Exception {
+    TestGCE gce = new TestGCE();
+
+    gce.candidates.add("/4/t-0");
+    gce.candidates.add("/4/t-0/F002.rf");
+    gce.candidates.add("hdfs://foo.com:6000/user/foo/tables/5/t-0");
+    gce.candidates.add("/6/t-0");
+    gce.candidates.add("hdfs://foo:6000/user/foo/tables/7/t-0/");
+    gce.candidates.add("/8/t-0");
+    gce.candidates.add("hdfs://foo:6000/user/foo/tables/9/t-0");
+    gce.candidates.add("/a/t-0");
+    gce.candidates.add("hdfs://foo:6000/user/foo/tables/b/t-0");
+    gce.candidates.add("/c/t-0");
+    gce.candidates.add("hdfs://foo:6000/user/foo/tables/d/t-0");
+
+    gce.addDirReference("4", null, "/t-0");
+    gce.addDirReference("5", null, "/t-0");
+    gce.addDirReference("6", null, "hdfs://foo.com:6000/user/foo/tables/6/t-0");
+    gce.addDirReference("7", null, "hdfs://foo.com:6000/user/foo/tables/7/t-0");
+
+    gce.addFileReference("8", "m", "/t-0/F00.rf");
+    gce.addFileReference("9", "m", "/t-0/F00.rf");
+
+    gce.addFileReference("a", "m", "hdfs://foo.com:6000/user/foo/tables/a/t-0/F00.rf");
+    gce.addFileReference("b", "m", "hdfs://foo.com:6000/user/foo/tables/b/t-0/F00.rf");
+
+    gce.addFileReference("e", "m", "../c/t-0/F00.rf");
+    gce.addFileReference("f", "m", "../d/t-0/F00.rf");
+
+    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
+
+    // A directory reference does not preclude a candidate file beneath that directory from deletion
+    gca.collect(gce);
+    assertRemoved(gce, "/4/t-0/F002.rf");
+
+    // Removing the dir reference for a table will delete all tablet directories
+    gce.removeDirReference("5", null);
+    gca.collect(gce);
+    assertRemoved(gce, "hdfs://foo.com:6000/user/foo/tables/5/t-0");
+
+    gce.removeDirReference("4", null);
+    gca.collect(gce);
+    assertRemoved(gce, "/4/t-0");
+
+    gce.removeDirReference("6", null);
+    gce.removeDirReference("7", null);
+    gca.collect(gce);
+    assertRemoved(gce, "/6/t-0", "hdfs://foo:6000/user/foo/tables/7/t-0/");
+
+    gce.removeFileReference("8", "m", "/t-0/F00.rf");
+    gce.removeFileReference("9", "m", "/t-0/F00.rf");
+    gce.removeFileReference("a", "m", "hdfs://foo.com:6000/user/foo/tables/a/t-0/F00.rf");
+    gce.removeFileReference("b", "m", "hdfs://foo.com:6000/user/foo/tables/b/t-0/F00.rf");
+    gce.removeFileReference("e", "m", "../c/t-0/F00.rf");
+    gce.removeFileReference("f", "m", "../d/t-0/F00.rf");
+    gca.collect(gce);
+    assertRemoved(gce, "/8/t-0", "hdfs://foo:6000/user/foo/tables/9/t-0", "/a/t-0", "hdfs://foo:6000/user/foo/tables/b/t-0", "/c/t-0",
+        "hdfs://foo:6000/user/foo/tables/d/t-0");
+
+    gca.collect(gce);
+    assertRemoved(gce);
+  }
+
   private void badRefTest(String ref) {
     TestGCE gce = new TestGCE();
 

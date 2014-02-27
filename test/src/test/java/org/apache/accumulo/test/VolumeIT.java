@@ -23,6 +23,7 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -104,8 +105,9 @@ public class VolumeIT extends ConfigurableMacIT {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     // Run MAC on two locations in the local file system
-    cfg.setProperty(Property.INSTANCE_DFS_URI, v1.toString());
-    cfg.setProperty(Property.INSTANCE_DFS_DIR, "/accumulo");
+    URI v1Uri = v1.toUri();
+    cfg.setProperty(Property.INSTANCE_DFS_DIR, v1Uri.getPath());
+    cfg.setProperty(Property.INSTANCE_DFS_URI, v1Uri.getScheme() + v1Uri.getHost());
     cfg.setProperty(Property.INSTANCE_VOLUMES, v1.toString() + "," + v2.toString());
 
     // use raw local file system so walogs sync and flush will work
@@ -114,7 +116,7 @@ public class VolumeIT extends ConfigurableMacIT {
     super.configure(cfg, hadoopCoreSite);
   }
 
-  @Test
+  @Test(timeout = 2 * 60 * 1000)
   public void test() throws Exception {
     // create a table
     Connector connector = getConnector();
@@ -176,7 +178,7 @@ public class VolumeIT extends ConfigurableMacIT {
     Assert.assertEquals(expected, actual);
   }
 
-  @Test
+  @Test(timeout = 2 * 60 * 1000)
   public void testRelativePaths() throws Exception {
 
     List<String> expected = new ArrayList<String>();
@@ -292,9 +294,8 @@ public class VolumeIT extends ConfigurableMacIT {
     // check that all volumes are initialized
     for (Path volumePath : Arrays.asList(v1, v2, v3)) {
       FileSystem fs = volumePath.getFileSystem(CachedConfiguration.getInstance());
-      Path vp = new Path(volumePath, "accumulo");
-      Path vpi = new Path(vp, ServerConstants.INSTANCE_ID_DIR);
-      FileStatus[] iids = fs.listStatus(vpi);
+      Path vp = new Path(volumePath, ServerConstants.INSTANCE_ID_DIR);
+      FileStatus[] iids = fs.listStatus(vp);
       Assert.assertEquals(1, iids.length);
       Assert.assertEquals(uuid, iids[0].getPath().getName());
     }
@@ -390,7 +391,7 @@ public class VolumeIT extends ConfigurableMacIT {
     Assert.assertEquals(200, sum);
   }
 
-  @Test
+  @Test(timeout = 5 * 60 * 1000)
   public void testRemoveVolumes() throws Exception {
     String[] tableNames = getTableNames(2);
 
@@ -447,12 +448,12 @@ public class VolumeIT extends ConfigurableMacIT {
 
     File v1f = new File(v1.toUri());
     File v8f = new File(new File(v1.getParent().toUri()), "v8");
-    v1f.renameTo(v8f);
+    Assert.assertTrue("Failed to rename " + v1f + " to " + v8f, v1f.renameTo(v8f));
     Path v8 = new Path(v8f.toURI());
 
     File v2f = new File(v2.toUri());
     File v9f = new File(new File(v2.getParent().toUri()), "v9");
-    v2f.renameTo(v9f);
+    Assert.assertTrue("Failed to rename " + v2f + " to " + v9f, v2f.renameTo(v9f));
     Path v9 = new Path(v9f.toURI());
 
     Configuration conf = new Configuration(false);
@@ -494,12 +495,12 @@ public class VolumeIT extends ConfigurableMacIT {
     verifyVolumesUsed(tableNames[2], true, v8, v9);
   }
 
-  @Test
+  @Test(timeout = 5 * 60 * 1000)
   public void testCleanReplaceVolumes() throws Exception {
     testReplaceVolume(true);
   }
 
-  @Test
+  @Test(timeout = 5 * 60 * 1000)
   public void testDirtyReplaceVolumes() throws Exception {
     testReplaceVolume(false);
   }

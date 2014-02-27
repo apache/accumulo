@@ -160,7 +160,7 @@ public class LogSorter {
 
     private void writeBuffer(String destPath, ArrayList<Pair<LogFileKey,LogFileValue>> buffer, int part) throws IOException {
       Path path = new Path(destPath, String.format("part-r-%05d", part++));
-      FileSystem ns = fs.getFileSystemByPath(path);
+      FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
       
       @SuppressWarnings("deprecation")
       MapFile.Writer output = new MapFile.Writer(ns.getConf(), ns, path.toString(), LogFileKey.class, LogFileValue.class);

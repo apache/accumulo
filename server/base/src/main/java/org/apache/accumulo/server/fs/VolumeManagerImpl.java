@@ -16,12 +16,15 @@
  */
 package org.apache.accumulo.server.fs;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -34,9 +37,9 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
-import org.apache.accumulo.core.file.VolumeConfiguration;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.core.volume.Volume;
+import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.commons.lang.NotImplementedException;
@@ -54,34 +57,49 @@ import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.util.Progressable;
 import org.apache.log4j.Logger;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+
 public class VolumeManagerImpl implements VolumeManager {
 
   private static final Logger log = Logger.getLogger(VolumeManagerImpl.class);
 
-  Map<String,? extends FileSystem> volumes;
-  FileSystem defaultVolume;
+  Map<String,Volume> volumesByName;
+  Multimap<FileSystem,Volume> volumesByFileSystem;
+  Volume defaultVolume;
   AccumuloConfiguration conf;
   VolumeChooser chooser;
 
-  protected VolumeManagerImpl(Map<String,? extends FileSystem> volumes, String defaultVolume, AccumuloConfiguration conf) {
-    this.volumes = volumes;
-    this.defaultVolume = volumes.get(defaultVolume);
+  protected VolumeManagerImpl(Map<String,Volume> volumes, Volume defaultVolume, AccumuloConfiguration conf) {
+    this.volumesByName = volumes;
+    this.defaultVolume = defaultVolume;
+    // We may have multiple directories used in a single FileSystem (e.g. testing)
+    this.volumesByFileSystem = HashMultimap.create();
+    invertVolumesByFileSystem(volumesByName, volumesByFileSystem);
     this.conf = conf;
     ensureSyncIsEnabled();
     chooser = Property.createInstanceFromPropertyName(conf, Property.GENERAL_VOLUME_CHOOSER, VolumeChooser.class, new RandomVolumeChooser());
   }
 
-  public static org.apache.accumulo.server.fs.VolumeManager getLocal() throws IOException {
-    return new VolumeManagerImpl(Collections.singletonMap("", FileSystem.getLocal(CachedConfiguration.getInstance())), "",
-        DefaultConfiguration.getDefaultConfiguration());
+  private void invertVolumesByFileSystem(Map<String,Volume> forward, Multimap<FileSystem,Volume> inverted) {
+    for (Volume volume : forward.values()) {
+      inverted.put(volume.getFileSystem(), volume);
+    }
+  }
+  
+  public static org.apache.accumulo.server.fs.VolumeManager getLocal(String localBasePath) throws IOException {
+    AccumuloConfiguration accConf = DefaultConfiguration.getDefaultConfiguration();
+    Volume defaultLocalVolume = VolumeConfiguration.create(FileSystem.getLocal(CachedConfiguration.getInstance()), localBasePath);
+    
+    return new VolumeManagerImpl(Collections.singletonMap(DEFAULT, defaultLocalVolume), defaultLocalVolume, accConf);
   }
 
   @Override
   public void close() throws IOException {
     IOException ex = null;
-    for (FileSystem fs : volumes.values()) {
+    for (Volume volume : volumesByName.values()) {
       try {
-        fs.close();
+        volume.getFileSystem().close();
       } catch (IOException e) {
         ex = e;
       }
@@ -93,14 +111,20 @@ public class VolumeManagerImpl implements VolumeManager {
 
   @Override
   public FSDataOutputStream create(Path path) throws IOException {
-    FileSystem fs = getFileSystemByPath(path);
-    return fs.create(path);
+    checkNotNull(path);
+    
+    Volume v = getVolumeByPath(path);
+    
+    return v.getFileSystem().create(path);
   }
 
   @Override
   public FSDataOutputStream create(Path path, boolean overwrite) throws IOException {
-    FileSystem fs = getFileSystemByPath(path);
-    return fs.create(path, overwrite);
+    checkNotNull(path);
+    
+    Volume v = getVolumeByPath(path);
+
+    return v.getFileSystem().create(path, overwrite);
   }
 
   private static long correctBlockSize(Configuration conf, long blockSize) {
@@ -121,7 +145,11 @@ public class VolumeManagerImpl implements VolumeManager {
 
   @Override
   public FSDataOutputStream create(Path path, boolean overwrite, int bufferSize, short replication, long blockSize) throws IOException {
-    FileSystem fs = getFileSystemByPath(path);
+    checkNotNull(path);
+
+    Volume v = getVolumeByPath(path);
+    FileSystem fs = v.getFileSystem();
+    
     if (bufferSize == 0) {
       fs.getConf().getInt("io.file.buffer.size", 4096);
     }
@@ -130,13 +158,16 @@ public class VolumeManagerImpl implements VolumeManager {
 
   @Override
   public boolean createNewFile(Path path) throws IOException {
-    FileSystem fs = getFileSystemByPath(path);
-    return fs.createNewFile(path);
+    checkNotNull(path);
+
+    Volume v = getVolumeByPath(path);
+    return v.getFileSystem().createNewFile(path);
   }
 
   @Override
   public FSDataOutputStream createSyncable(Path logPath, int bufferSize, short replication, long blockSize) throws IOException {
-    FileSystem fs = getFileSystemByPath(logPath);
+    Volume v = getVolumeByPath(logPath);
+    FileSystem fs = v.getFileSystem();
     blockSize = correctBlockSize(fs.getConf(), blockSize);
     bufferSize = correctBufferSize(fs.getConf(), bufferSize);
     try {
@@ -174,18 +205,18 @@ public class VolumeManagerImpl implements VolumeManager {
 
   @Override
   public boolean delete(Path path) throws IOException {
-    return getFileSystemByPath(path).delete(path, false);
+    return getVolumeByPath(path).getFileSystem().delete(path, false);
   }
 
   @Override
   public boolean deleteRecursively(Path path) throws IOException {
-    return getFileSystemByPath(path).delete(path, true);
+    return getVolumeByPath(path).getFileSystem().delete(path, true);
   }
 
   protected void ensureSyncIsEnabled() {
-    for (Entry<String,? extends FileSystem> entry : getFileSystems().entrySet()) {
+    for (Entry<String,Volume> entry : getFileSystems().entrySet()) {
       final String volumeName = entry.getKey();
-      FileSystem fs = entry.getValue();
+      FileSystem fs = entry.getValue().getFileSystem();
 
       if (ViewFSUtils.isViewFS(fs)) {
         try {
@@ -255,19 +286,36 @@ public class VolumeManagerImpl implements VolumeManager {
 
   @Override
   public boolean exists(Path path) throws IOException {
-    return getFileSystemByPath(path).exists(path);
+    return getVolumeByPath(path).getFileSystem().exists(path);
   }
 
   @Override
   public FileStatus getFileStatus(Path path) throws IOException {
-    return getFileSystemByPath(path).getFileStatus(path);
+    return getVolumeByPath(path).getFileSystem().getFileStatus(path);
   }
 
   @Override
-  public FileSystem getFileSystemByPath(Path path) {
+  public Volume getVolumeByPath(Path path) {
     if (path.toString().contains(":")) {
       try {
-        return path.getFileSystem(CachedConfiguration.getInstance());
+        FileSystem pathFs = path.getFileSystem(CachedConfiguration.getInstance());
+        Collection<Volume> candidateVolumes = volumesByFileSystem.get(pathFs);
+        if (null != candidateVolumes) {
+          for (Volume candidateVolume : candidateVolumes) {
+            if (candidateVolume.isValidPath(path)) {
+              return candidateVolume;
+            }
+          }
+
+          // For the same reason as we can have multiple Volumes within a single filesystem
+          // we could also not find a matching one. We should defer back to the defaultVolume
+          // e.g. volume rename with old path references
+          log.debug("Defaulting to " + defaultVolume + " as a valid volume could not be determined for " + path);
+
+          return defaultVolume;
+        }
+        
+        log.debug("Could not determine volume for Path '" + path + "' from defined volumes");
       } catch (IOException ex) {
         throw new RuntimeException(ex);
       }
@@ -276,29 +324,31 @@ public class VolumeManagerImpl implements VolumeManager {
     return defaultVolume;
   }
 
-  private Map<String,? extends FileSystem> getFileSystems() {
-    return volumes;
+  private Map<String,Volume> getFileSystems() {
+    return volumesByName;
   }
 
   @Override
   public FileStatus[] listStatus(Path path) throws IOException {
-    return getFileSystemByPath(path).listStatus(path);
+    return getVolumeByPath(path).getFileSystem().listStatus(path);
   }
 
   @Override
   public boolean mkdirs(Path path) throws IOException {
-    return getFileSystemByPath(path).mkdirs(path);
+    return getVolumeByPath(path).getFileSystem().mkdirs(path);
   }
 
   @Override
   public FSDataInputStream open(Path path) throws IOException {
-    return getFileSystemByPath(path).open(path);
+    return getVolumeByPath(path).getFileSystem().open(path);
   }
 
   @Override
   public boolean rename(Path path, Path newPath) throws IOException {
-    FileSystem source = getFileSystemByPath(path);
-    FileSystem dest = getFileSystemByPath(newPath);
+    Volume srcVolume = getVolumeByPath(path);
+    Volume destVolume = getVolumeByPath(newPath);
+    FileSystem source = srcVolume.getFileSystem();
+    FileSystem dest = destVolume.getFileSystem();
     if (source != dest) {
       throw new NotImplementedException("Cannot rename files across volumes: " + path + " -> " + newPath);
     }
@@ -307,14 +357,15 @@ public class VolumeManagerImpl implements VolumeManager {
 
   @Override
   public boolean moveToTrash(Path path) throws IOException {
-    FileSystem fs = getFileSystemByPath(path);
+    FileSystem fs = getVolumeByPath(path).getFileSystem();
     Trash trash = new Trash(fs, fs.getConf());
     return trash.moveToTrash(path);
   }
 
   @Override
   public short getDefaultReplication(Path path) {
-    FileSystem fs = getFileSystemByPath(path);
+    Volume v = getVolumeByPath(path);
+    FileSystem fs = v.getFileSystem();
     try {
       // try calling hadoop 2 method
       Method method = fs.getClass().getMethod("getDefaultReplication", Path.class);
@@ -336,7 +387,7 @@ public class VolumeManagerImpl implements VolumeManager {
 
   @Override
   public boolean isFile(Path path) throws IOException {
-    return getFileSystemByPath(path).isFile(path);
+    return getVolumeByPath(path).getFileSystem().isFile(path);
   }
 
   public static VolumeManager get() throws IOException {
@@ -347,26 +398,30 @@ public class VolumeManagerImpl implements VolumeManager {
   static private final String DEFAULT = "";
 
   public static VolumeManager get(AccumuloConfiguration conf) throws IOException {
-    Map<String,FileSystem> fileSystems = new HashMap<String,FileSystem>();
-    Configuration hadoopConf = CachedConfiguration.getInstance();
-    fileSystems.put(DEFAULT, VolumeConfiguration.getDefaultFilesystem(hadoopConf, conf));
-    for (String space : VolumeConfiguration.getConfiguredBaseDirs(conf)) {
-      if (space.equals(DEFAULT))
+    final Map<String,Volume> volumes = new HashMap<String,Volume>();
+    final Configuration hadoopConf = CachedConfiguration.getInstance();
+
+    // The "default" Volume for Accumulo (in case no volumes are specified)
+    for (String volumeUriOrDir : VolumeConfiguration.getVolumeUris(conf)) {
+      if (volumeUriOrDir.equals(DEFAULT))
+      // Cannot re-define the default volume
         throw new IllegalArgumentException();
 
-      if (space.contains(":")) {
-        fileSystems.put(space, new Path(space).getFileSystem(hadoopConf));
+      // We require a URI here, fail if it doesn't look like one
+      if (volumeUriOrDir.contains(":")) {
+        volumes.put(volumeUriOrDir, VolumeConfiguration.create(new Path(volumeUriOrDir), hadoopConf));
       } else {
-        throw new IllegalArgumentException("Expected fully qualified URI for " + Property.INSTANCE_VOLUMES.getKey() + " got " + space);
+        throw new IllegalArgumentException("Expected fully qualified URI for " + Property.INSTANCE_VOLUMES.getKey() + " got " + volumeUriOrDir);
       }
     }
 
-    return new VolumeManagerImpl(fileSystems, DEFAULT, conf);
+    return new VolumeManagerImpl(volumes, VolumeConfiguration.getDefaultVolume(hadoopConf, conf), conf);
   }
 
   @Override
   public boolean isReady() throws IOException {
-    for (FileSystem fs : getFileSystems().values()) {
+    for (Volume volume : getFileSystems().values()) {
+      FileSystem fs = volume.getFileSystem();
 
       if (ViewFSUtils.isViewFS(fs)) {
         try {
@@ -421,7 +476,7 @@ public class VolumeManagerImpl implements VolumeManager {
 
   @Override
   public FileStatus[] globStatus(Path pathPattern) throws IOException {
-    return getFileSystemByPath(pathPattern).globStatus(pathPattern);
+    return getVolumeByPath(pathPattern).getFileSystem().globStatus(pathPattern);
   }
 
   @Override
@@ -476,23 +531,33 @@ public class VolumeManagerImpl implements VolumeManager {
       return new Path(path);
 
     // normalize the path
-    Path fullPath = new Path(ServerConstants.getDefaultBaseDir(), fileType.getDirectory());
+    Path fullPath = new Path(defaultVolume.getBasePath(), fileType.getDirectory());
     if (path.startsWith("/"))
       path = path.substring(1);
     fullPath = new Path(fullPath, path);
 
-    FileSystem fs = getFileSystemByPath(fullPath);
+    FileSystem fs = getVolumeByPath(fullPath).getFileSystem();
     return fs.makeQualified(fullPath);
   }
 
   @Override
   public ContentSummary getContentSummary(Path dir) throws IOException {
-    return getFileSystemByPath(dir).getContentSummary(dir);
+    return getVolumeByPath(dir).getFileSystem().getContentSummary(dir);
   }
 
   @Override
   public String choose(String[] options) {
     return chooser.choose(options);
+  }
+
+  @Override
+  public Volume getDefaultVolume() {
+    return defaultVolume;
+  }
+  
+  @Override
+  public Collection<Volume> getVolumes() {
+    return volumesByName.values();
   }
 
 }

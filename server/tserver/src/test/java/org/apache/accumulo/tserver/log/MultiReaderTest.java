@@ -42,13 +42,13 @@ public class MultiReaderTest {
 
   @Before
   public void setUp() throws Exception {
-    fs = VolumeManagerImpl.getLocal();
     root.create();
-    String path = root.getRoot().getAbsolutePath();
-    Path root = new Path("file://" + path + "/manyMaps");
+    String path = root.getRoot().getAbsolutePath() + "/manyMaps";
+    fs = VolumeManagerImpl.getLocal(path);
+    Path root = new Path("file://" + path);
     fs.mkdirs(root);
     fs.create(new Path(root, "finished")).close();
-    FileSystem ns = fs.getFileSystemByPath(root);
+    FileSystem ns = fs.getVolumeByPath(root).getFileSystem();
 
     @SuppressWarnings("deprecation")
     Writer oddWriter = new Writer(ns.getConf(), ns, new Path(root, "odd").toString(), IntWritable.class, BytesWritable.class);

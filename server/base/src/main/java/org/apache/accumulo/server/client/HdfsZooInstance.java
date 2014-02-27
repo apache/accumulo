@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.client;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
@@ -38,10 +39,13 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
@@ -122,7 +126,17 @@ public class HdfsZooInstance implements Instance {
 
   private static synchronized void _getInstanceID() {
     if (instanceId == null) {
-      String instanceIdFromFile = ZooUtil.getInstanceIDFromHdfs(ServerConstants.getInstanceIdLocation(), ServerConfiguration.getSiteConfiguration());
+      AccumuloConfiguration acuConf = ServerConfiguration.getSiteConfiguration();
+      // InstanceID should be the same across all volumes, so just choose one
+      VolumeManager fs;
+      try {
+        fs = VolumeManagerImpl.get();
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+      Volume randVolume = fs.getVolumes().iterator().next();
+      log.trace("Looking for instanceId from " + randVolume);
+      String instanceIdFromFile = ZooUtil.getInstanceIDFromHdfs(ServerConstants.getInstanceIdLocation(randVolume), acuConf);
       instanceId = instanceIdFromFile;
     }
   }

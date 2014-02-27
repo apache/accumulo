@@ -97,7 +97,7 @@ public class MultiReader {
         foundFinish = true;
         continue;
       }
-      FileSystem ns = fs.getFileSystemByPath(child.getPath());
+      FileSystem ns = fs.getVolumeByPath(child.getPath()).getFileSystem();
       heap.add(new Index(new Reader(ns, child.getPath().toString(), ns.getConf())));
     }
     if (!foundFinish)

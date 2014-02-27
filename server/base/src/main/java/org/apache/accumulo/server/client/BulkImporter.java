@@ -339,7 +339,7 @@ public class BulkImporter {
     
     try {
       for (Path path : paths) {
-        FileSystem fs = vm.getFileSystemByPath(path);
+        FileSystem fs = vm.getVolumeByPath(path).getFileSystem();
         mapFileSizes.put(path, fs.getContentSummary(path).getLength());
       }
     } catch (IOException e) {
@@ -639,7 +639,7 @@ public class BulkImporter {
     Collection<ByteSequence> columnFamilies = Collections.emptyList();
     String filename = file.toString();
     // log.debug(filename + " finding overlapping tablets " + startRow + " -> " + endRow);
-    FileSystem fs = vm.getFileSystemByPath(file);
+    FileSystem fs = vm.getVolumeByPath(file).getFileSystem();
     FileSKVIterator reader = FileOperations.getInstance().openReader(filename, true, fs, fs.getConf(), acuConf);
     try {
       Text row = startRow;

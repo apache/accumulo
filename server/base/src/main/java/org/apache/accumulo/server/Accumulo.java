@@ -31,6 +31,7 @@ import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.Version;
+import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -50,10 +51,12 @@ public class Accumulo {
   private static final Logger log = Logger.getLogger(Accumulo.class);
   
   public static synchronized void updateAccumuloVersion(VolumeManager fs) {
+    // TODO ACCUMULO-2451 Should update all volumes, not one 
+    Volume volume = fs.getVolumes().iterator().next();
     try {
       if (getAccumuloPersistentVersion(fs) == ServerConstants.PREV_DATA_VERSION) {
-        fs.create(new Path(ServerConstants.getDataVersionLocation() + "/" + ServerConstants.DATA_VERSION));
-        fs.delete(new Path(ServerConstants.getDataVersionLocation() + "/" + ServerConstants.PREV_DATA_VERSION));
+        fs.create(new Path(ServerConstants.getDataVersionLocation(volume), Integer.toString(ServerConstants.DATA_VERSION)));
+        fs.delete(new Path(ServerConstants.getDataVersionLocation(volume), Integer.toString(ServerConstants.PREV_DATA_VERSION)));
       }
     } catch (IOException e) {
       throw new RuntimeException("Unable to set accumulo version: an error occurred.", e);
@@ -76,8 +79,10 @@ public class Accumulo {
   }
   
   public static synchronized int getAccumuloPersistentVersion(VolumeManager fs) {
-    Path path = ServerConstants.getDataVersionLocation();
-    return getAccumuloPersistentVersion(fs.getFileSystemByPath(path), path);
+    // It doesn't matter which Volume is used as they should all have the data version stored
+    Volume v = fs.getVolumes().iterator().next();
+    Path path = ServerConstants.getDataVersionLocation(v);
+    return getAccumuloPersistentVersion(v.getFileSystem(), path);
   }
 
   public static void enableTracing(String address, String application) {

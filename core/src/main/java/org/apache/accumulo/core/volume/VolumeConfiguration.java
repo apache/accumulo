@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.file;
+package org.apache.accumulo.core.volume;
 
 import java.io.IOException;
 import java.net.URI;
@@ -27,27 +27,39 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
-public class VolumeConfiguration {
+import com.google.common.base.Preconditions;
 
-  public static FileSystem getFileSystem(String path, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
-    if (path.contains(":"))
-      return new Path(path).getFileSystem(conf);
-    else
-      return getDefaultFilesystem(conf, acuconf);
+public class VolumeConfiguration {
+  
+  public static Volume getVolume(String path, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
+    Preconditions.checkNotNull(path);
+    
+    if (path.contains(":")) {
+      // An absolute path
+      return create(new Path(path), conf);
+    } else {
+      // A relative path
+      return getDefaultVolume(conf, acuconf);
+    }
   }
 
-  public static FileSystem getDefaultFilesystem(Configuration conf, AccumuloConfiguration acuconf) throws IOException {
+  public static Volume getDefaultVolume(Configuration conf, AccumuloConfiguration acuconf) throws IOException {
+    @SuppressWarnings("deprecation")
     String uri = acuconf.get(Property.INSTANCE_DFS_URI);
+
+    // By default pull from INSTANCE_DFS_URI, falling back to the Hadoop defined
+    // default filesystem (fs.defaultFS or the deprecated fs.default.name)
     if ("".equals(uri))
-      return FileSystem.get(conf);
+      return create(FileSystem.get(conf), acuconf);
     else
       try {
-        return FileSystem.get(new URI(uri), conf);
+        return create(FileSystem.get(new URI(uri), conf), acuconf);
       } catch (URISyntaxException e) {
         throw new IOException(e);
       }
   }
 
+  @Deprecated
   public static String getConfiguredBaseDir(AccumuloConfiguration conf) {
     String singleNamespace = conf.get(Property.INSTANCE_DFS_DIR);
     String dfsUri = conf.get(Property.INSTANCE_DFS_URI);
@@ -68,17 +80,22 @@ public class VolumeConfiguration {
     return baseDir;
   }
 
-  public static String[] getConfiguredBaseDirs(AccumuloConfiguration conf) {
-    String singleNamespace = conf.get(Property.INSTANCE_DFS_DIR);
+  /**
+   * Compute the URIs to be used by Accumulo
+   * @param conf
+   * @return
+   */
+  public static String[] getVolumeUris(AccumuloConfiguration conf) {
     String ns = conf.get(Property.INSTANCE_VOLUMES);
   
     String configuredBaseDirs[];
   
     if (ns == null || ns.isEmpty()) {
+      // Fall back to using the old config values
       configuredBaseDirs = new String[] {getConfiguredBaseDir(conf)};
     } else {
       String namespaces[] = ns.split(",");
-      String unescapedNamespaces[] = new String[namespaces.length];
+      configuredBaseDirs = new String[namespaces.length];
       int i = 0;
       for (String namespace : namespaces) {
         if (!namespace.contains(":")) {
@@ -87,13 +104,11 @@ public class VolumeConfiguration {
   
         try {
           // pass through URI to unescape hex encoded chars (e.g. convert %2C to "," char)
-          unescapedNamespaces[i++] = new Path(new URI(namespace)).toString();
+          configuredBaseDirs[i++] = new Path(new URI(namespace)).toString();
         } catch (URISyntaxException e) {
           throw new IllegalArgumentException(Property.INSTANCE_VOLUMES.getKey() + " contains " + namespace + " which has a syntax error", e);
         }
       }
-  
-      configuredBaseDirs = prefix(unescapedNamespaces, singleNamespace);
     }
   
     return configuredBaseDirs;
@@ -107,6 +122,30 @@ public class VolumeConfiguration {
       result[i] = bases[i] + "/" + suffix;
     }
     return result;
+  }
+
+  /**
+   * Create a Volume with the given FileSystem that writes to the default path
+   * @param fs A FileSystem to write to
+   * @return A Volume instance writing to the given FileSystem in the default path 
+   */
+  @SuppressWarnings("deprecation")
+  public static <T extends FileSystem> Volume create(T fs, AccumuloConfiguration acuconf) {
+    String dfsDir = acuconf.get(Property.INSTANCE_DFS_DIR);
+    return new VolumeImpl(fs, null == dfsDir ? Property.INSTANCE_DFS_DIR.getDefaultValue() : dfsDir);
+  }
+  
+  public static <T extends FileSystem> Volume create(T fs, String basePath) {
+    return new VolumeImpl(fs, basePath);
+  }
+  
+  public static Volume create(String path, Configuration conf) throws IOException {
+    Preconditions.checkNotNull(path);
+    return create(new Path(path), conf);
+  }
+  
+  public static Volume create(Path path, Configuration conf) throws IOException {
+    return new VolumeImpl(path, conf);
   }
 
 }

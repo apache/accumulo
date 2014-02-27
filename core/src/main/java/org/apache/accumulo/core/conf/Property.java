@@ -103,6 +103,7 @@ public enum Property {
   INSTANCE_ZK_HOST("instance.zookeeper.host", "localhost:2181", PropertyType.HOSTLIST, "Comma separated list of zookeeper servers"),
   INSTANCE_ZK_TIMEOUT("instance.zookeeper.timeout", "30s", PropertyType.TIMEDURATION,
       "Zookeeper session timeout; max value when represented as milliseconds should be no larger than " + Integer.MAX_VALUE),
+  @Deprecated
   INSTANCE_DFS_URI(
       "instance.dfs.uri",
       "",
@@ -111,6 +112,7 @@ public enum Property {
           + "will only be used when creating new files if instance.volumes is empty.  After an upgrade to 1.6.0 Accumulo will start using absolute paths to "
           + "reference files.  Files created before a 1.6.0 upgrade are referenced via relative paths.  Relative paths will always be resolved using this config "
           + "(if empty using the hadoop config)."),
+  @Deprecated
   INSTANCE_DFS_DIR("instance.dfs.dir", "/accumulo", PropertyType.ABSOLUTEPATH,
       "HDFS directory in which accumulo instance will run.  Do not change after accumulo is initialized."),
   @Sensitive

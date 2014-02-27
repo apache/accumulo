@@ -24,7 +24,7 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
@@ -32,8 +32,9 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.cli.ClientOpts;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.data.ACL;
@@ -57,7 +58,7 @@ public class ChangeSecret {
     argsList.add("--new");
     argsList.addAll(Arrays.asList(args));
     opts.parseArgs(ChangeSecret.class.getName(), argsList.toArray(new String[0]));
-    FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
+    VolumeManager fs = VolumeManagerImpl.get();
     Instance inst = opts.getInstance();
     if (!verifyAccumuloIsDown(inst, opts.oldPass))
       System.exit(-1);
@@ -142,10 +143,13 @@ public class ChangeSecret {
     return newInstanceId;
   }
   
-  private static void updateHdfs(FileSystem fs, Instance inst, String newInstanceId) throws IOException {
-    fs.delete(ServerConstants.getInstanceIdLocation(), true);
-    fs.mkdirs(ServerConstants.getInstanceIdLocation());
-    fs.create(new Path(ServerConstants.getInstanceIdLocation(), newInstanceId)).close();
+  private static void updateHdfs(VolumeManager fs, Instance inst, String newInstanceId) throws IOException {
+    // Need to recreate the instanceId on all of them to keep consistency
+    for (Volume v : fs.getVolumes()) {
+      v.getFileSystem().delete(ServerConstants.getInstanceIdLocation(v), true);
+      v.getFileSystem().mkdirs(ServerConstants.getInstanceIdLocation(v));
+      v.getFileSystem().create(new Path(ServerConstants.getInstanceIdLocation(v), newInstanceId)).close();
+    }
   }
   
   private static void deleteInstance(Instance origInstance, String oldPass) throws Exception {

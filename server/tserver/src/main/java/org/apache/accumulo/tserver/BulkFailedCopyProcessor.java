@@ -20,6 +20,7 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue.Processor;
@@ -32,35 +33,35 @@ import org.apache.log4j.Logger;
  * Copy failed bulk imports.
  */
 public class BulkFailedCopyProcessor implements Processor {
-  
+
   private static final Logger log = Logger.getLogger(BulkFailedCopyProcessor.class);
-  
+
   @Override
   public Processor newProcessor() {
     return new BulkFailedCopyProcessor();
   }
-  
+
   @Override
   public void process(String workID, byte[] data) {
-    
+
     String paths[] = new String(data, Constants.UTF8).split(",");
-    
+
     Path orig = new Path(paths[0]);
     Path dest = new Path(paths[1]);
     Path tmp = new Path(dest.getParent(), dest.getName() + ".tmp");
-    
+
     try {
-      FileSystem fs = TraceFileSystem.wrap(org.apache.accumulo.core.file.VolumeConfiguration.getDefaultFilesystem(CachedConfiguration.getInstance(),
-          ServerConfiguration.getSiteConfiguration()));
-      
+      FileSystem fs = TraceFileSystem.wrap(VolumeConfiguration.getDefaultVolume(CachedConfiguration.getInstance(),
+          ServerConfiguration.getSiteConfiguration()).getFileSystem());
+
       FileUtil.copy(fs, orig, fs, tmp, false, true, CachedConfiguration.getInstance());
       fs.rename(tmp, dest);
       log.debug("copied " + orig + " to " + dest);
     } catch (IOException ex) {
       try {
-        FileSystem fs = TraceFileSystem.wrap(org.apache.accumulo.core.file.VolumeConfiguration.getDefaultFilesystem(CachedConfiguration.getInstance(),
-            ServerConfiguration.getSiteConfiguration()));
-        
+        FileSystem fs = TraceFileSystem.wrap(VolumeConfiguration.getDefaultVolume(CachedConfiguration.getInstance(),
+            ServerConfiguration.getSiteConfiguration()).getFileSystem());
+
         fs.create(dest).close();
         log.warn(" marked " + dest + " failed", ex);
       } catch (IOException e) {
@@ -69,5 +70,5 @@ public class BulkFailedCopyProcessor implements Processor {
     }
 
   }
-  
+
 }

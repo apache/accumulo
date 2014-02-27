@@ -398,7 +398,7 @@ public class CollectTabletStats {
         // assume it is a map file
         status = fs.getFileStatus(new Path(file + "/data"));
       }
-      FileSystem ns = fs.getFileSystemByPath(file.path());
+      FileSystem ns = fs.getVolumeByPath(file.path()).getFileSystem();
       BlockLocation[] locs = ns.getFileBlockLocations(status, 0, status.getLen());
       
       System.out.println("\t\t\tBlocks for : " + file);
@@ -445,7 +445,7 @@ public class CollectTabletStats {
     HashSet<ByteSequence> columnSet = createColumnBSS(columns);
     
     for (FileRef file : files) {
-      FileSystem ns = fs.getFileSystemByPath(file.path());
+      FileSystem ns = fs.getVolumeByPath(file.path()).getFileSystem();
       FileSKVIterator reader = FileOperations.getInstance().openReader(file.path().toString(), false, ns, ns.getConf(), aconf);
       Range range = new Range(ke.getPrevEndRow(), false, ke.getEndRow(), true);
       reader.seek(range, columnSet, columnSet.size() == 0 ? false : true);
@@ -475,7 +475,7 @@ public class CollectTabletStats {
     List<SortedKeyValueIterator<Key,Value>> readers = new ArrayList<SortedKeyValueIterator<Key,Value>>(files.size());
     
     for (FileRef file : files) {
-      FileSystem ns = fs.getFileSystemByPath(file.path());
+      FileSystem ns = fs.getVolumeByPath(file.path()).getFileSystem();
       readers.add(FileOperations.getInstance().openReader(file.path().toString(), false, ns, ns.getConf(), aconf.getConfiguration()));
     }
     

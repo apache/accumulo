@@ -25,9 +25,9 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.file.VolumeConfiguration;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
+import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -50,7 +50,7 @@ public class PrintInfo {
 
     @SuppressWarnings("deprecation")
     AccumuloConfiguration aconf = AccumuloConfiguration.getSiteConfiguration();
-    FileSystem hadoopFs = VolumeConfiguration.getDefaultFilesystem(conf, aconf);
+    FileSystem hadoopFs = VolumeConfiguration.getDefaultVolume(conf, aconf).getFileSystem();
     FileSystem localFs  = FileSystem.getLocal(conf);
     Opts opts = new Opts();
     opts.parseArgs(PrintInfo.class.getName(), args);

@@ -427,7 +427,7 @@ class ImportPopulateZookeeper extends MasterRepo {
     Path path = new Path(tableInfo.exportDir, Constants.EXPORT_FILE);
 
     try {
-      FileSystem ns = fs.getFileSystemByPath(path);
+      FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
       return TableOperationsImpl.getExportedProps(ns, path);
     } catch (IOException ioe) {
       throw new ThriftTableOperationException(tableInfo.tableId, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,

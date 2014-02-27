@@ -82,7 +82,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.file.VolumeConfiguration;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -109,6 +108,7 @@ import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -1139,7 +1139,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @SuppressWarnings("deprecation")
   private Path checkPath(String dir, String kind, String type) throws IOException, AccumuloException {
     Path ret;
-    FileSystem fs = VolumeConfiguration.getFileSystem(dir, CachedConfiguration.getInstance(), ServerConfigurationUtil.getConfiguration(instance));
+    FileSystem fs = VolumeConfiguration.getVolume(dir, CachedConfiguration.getInstance(), ServerConfigurationUtil.getConfiguration(instance)).getFileSystem();
 
     if (dir.contains(":")) {
       ret = new Path(dir);

@@ -81,7 +81,7 @@ public class MajorCompactionRequest implements Cloneable {
     // @TODO verify the file isn't some random file in HDFS
     // @TODO ensure these files are always closed?
     FileOperations fileFactory = FileOperations.getInstance();
-    FileSystem ns = volumeManager.getFileSystemByPath(ref.path());
+    FileSystem ns = volumeManager.getVolumeByPath(ref.path()).getFileSystem();
     FileSKVIterator openReader = fileFactory.openReader(ref.path().toString(), true, ns, ns.getConf(), tableConfig);
     return openReader;
   }

@@ -59,26 +59,26 @@ public class ServerConstantsTest {
   }
 
   private void verifyAllPass(ArrayList<String> paths) {
-    Assert.assertEquals(paths, Arrays.asList(ServerConstants.checkBaseDirs(paths.toArray(new String[paths.size()]), true)));
-    Assert.assertEquals(paths, Arrays.asList(ServerConstants.checkBaseDirs(paths.toArray(new String[paths.size()]), false)));
+    Assert.assertEquals(paths, Arrays.asList(ServerConstants.checkBaseUris(paths.toArray(new String[paths.size()]), true)));
+    Assert.assertEquals(paths, Arrays.asList(ServerConstants.checkBaseUris(paths.toArray(new String[paths.size()]), false)));
   }
 
   private void verifySomePass(ArrayList<String> paths, int numExpected) {
-    Assert.assertEquals(paths.subList(0, 2), Arrays.asList(ServerConstants.checkBaseDirs(paths.toArray(new String[paths.size()]), true)));
+    Assert.assertEquals(paths.subList(0, 2), Arrays.asList(ServerConstants.checkBaseUris(paths.toArray(new String[paths.size()]), true)));
     try {
-      ServerConstants.checkBaseDirs(paths.toArray(new String[paths.size()]), false);
+      ServerConstants.checkBaseUris(paths.toArray(new String[paths.size()]), false);
       Assert.fail();
     } catch (Exception e) {}
   }
 
   private void verifyError(ArrayList<String> paths) {
     try {
-      ServerConstants.checkBaseDirs(paths.toArray(new String[paths.size()]), true);
+      ServerConstants.checkBaseUris(paths.toArray(new String[paths.size()]), true);
       Assert.fail();
     } catch (Exception e) {}
 
     try {
-      ServerConstants.checkBaseDirs(paths.toArray(new String[paths.size()]), false);
+      ServerConstants.checkBaseUris(paths.toArray(new String[paths.size()]), false);
       Assert.fail();
     } catch (Exception e) {}
   }

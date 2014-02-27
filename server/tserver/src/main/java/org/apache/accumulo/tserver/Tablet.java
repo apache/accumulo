@@ -1260,7 +1260,7 @@ public class Tablet {
       long rtime = Long.MIN_VALUE;
       for (FileRef ref : datafiles.keySet()) {
         Path path = ref.path();
-        FileSystem ns = fs.getFileSystemByPath(path);
+        FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
         FileSKVIterator reader = FileOperations.getInstance().openReader(path.toString(), true, ns, ns.getConf(), tabletServer.getTableConfiguration(extent));
         long maxTime = -1;
         try {
@@ -2975,7 +2975,7 @@ public class Tablet {
     FileOperations fileFactory = FileOperations.getInstance();
     for (Entry<FileRef,DataFileValue> entry : allFiles.entrySet()) {
       FileRef file = entry.getKey();
-      FileSystem ns = fs.getFileSystemByPath(file.path());
+      FileSystem ns = fs.getVolumeByPath(file.path()).getFileSystem();
       FileSKVIterator openReader = fileFactory.openReader(file.path().toString(), true, ns, ns.getConf(), this.getTableConfiguration());
       try {
         Key first = openReader.getFirstKey();
