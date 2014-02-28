@@ -2232,6 +2232,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     
     @Override
     public synchronized void acquiredLock() {
+      log.debug("Acquired master lock");
       
       if (acquiredLock || failedToAcquireLock) {
         Halt.halt("Zoolock in unexpected state AL " + acquiredLock + " " + failedToAcquireLock, -1);
