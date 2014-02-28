@@ -195,6 +195,12 @@ public class ZooLock implements Watcher {
               lw.failedToAcquireLock(new Exception("Zookeeper Session expired"));
             }
           }
+        } else {
+          try {
+            zooKeeper.getStatus(event.getPath(), this);
+          } catch (Exception ex) {
+            lw.failedToAcquireLock(ex);
+          }
         }
       }
       
