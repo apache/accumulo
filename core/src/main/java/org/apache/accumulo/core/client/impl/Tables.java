@@ -275,7 +275,7 @@ public class Tables {
 
   public static Pair<String,String> qualify(String tableName, String defaultNamespace) {
     if (!tableName.matches(Tables.VALID_NAME_REGEX))
-      throw new IllegalArgumentException("Improper table name format");
+      throw new IllegalArgumentException("Invalid table name '" + tableName + "'");
     if (MetadataTable.OLD_NAME.equals(tableName))
       tableName = MetadataTable.NAME;
     if (tableName.contains(".")) {
@@ -287,22 +287,26 @@ public class Tables {
 
   /**
    * Returns the namespace id for a given table ID.
-   * @param instance The Accumulo Instance
-   * @param tableId The tableId
+   * 
+   * @param instance
+   *          The Accumulo Instance
+   * @param tableId
+   *          The tableId
    * @return The namespace id which this table resides in.
-   * @throws IllegalArgumentException if the table doesn't exist in ZooKeeper
+   * @throws IllegalArgumentException
+   *           if the table doesn't exist in ZooKeeper
    */
   public static String getNamespaceId(Instance instance, String tableId) throws IllegalArgumentException {
     ArgumentChecker.notNull(instance, tableId);
-    
+
     ZooCache zc = getZooCache(instance);
     byte[] n = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE);
-    
+
     // We might get null out of ZooCache if this tableID doesn't exist
     if (null == n) {
       throw new IllegalArgumentException("Table with id " + tableId + " does not exist");
     }
-    
+
     return new String(n, Constants.UTF8);
   }
 
