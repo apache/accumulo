@@ -168,15 +168,21 @@ public class ContinuousVerify extends Configured implements Tool {
     Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
     job.setJarByClass(this.getClass());
 
+    Set<Range> ranges = null;
     String clone = table;
     Connector conn = null;
+
     if (scanOffline) {
       Random random = new Random();
       clone = table + "_" + String.format("%016x", Math.abs(random.nextLong()));
       ZooKeeperInstance zki = new ZooKeeperInstance(instance, zookeepers);
       conn = zki.getConnector(user, pass.getBytes());
       conn.tableOperations().clone(table, clone, true, new HashMap<String,String>(), new HashSet<String>());
+      ranges = conn.tableOperations().splitRangeByTablets(clone, new Range(), Integer.parseInt(maxMaps));
       conn.tableOperations().offline(clone);
+    } else {
+      ranges = new ZooKeeperInstance(instance, zookeepers).getConnector(user, pass).tableOperations()
+          .splitRangeByTablets(table, new Range(), Integer.parseInt(maxMaps));
     }
 
     job.setInputFormatClass(AccumuloInputFormat.class);
@@ -189,16 +195,8 @@ public class ContinuousVerify extends Configured implements Tool {
     AccumuloInputFormat.setInputInfo(job.getConfiguration(), user, pass.getBytes(), clone, authorizations);
     AccumuloInputFormat.setZooKeeperInstance(job.getConfiguration(), instance, zookeepers);
     AccumuloInputFormat.setScanOffline(job.getConfiguration(), scanOffline);
-
-    // set up ranges
-    try {
-      Set<Range> ranges = new ZooKeeperInstance(instance, zookeepers).getConnector(user, pass.getBytes()).tableOperations()
-          .splitRangeByTablets(table, new Range(), Integer.parseInt(maxMaps));
-      AccumuloInputFormat.setRanges(job.getConfiguration(), ranges);
-      AccumuloInputFormat.disableAutoAdjustRanges(job.getConfiguration());
-    } catch (Exception e) {
-      throw new IOException(e);
-    }
+    AccumuloInputFormat.setRanges(job.getConfiguration(), ranges);
+    AccumuloInputFormat.disableAutoAdjustRanges(job.getConfiguration());
 
     job.setMapperClass(CMapper.class);
     job.setMapOutputKeyClass(LongWritable.class);
