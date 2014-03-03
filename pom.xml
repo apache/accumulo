@@ -126,7 +126,7 @@
               <goal>copy-dependencies</goal>
             </goals>
             <configuration>
-              <outputDirectory>../../lib</outputDirectory>
+              <outputDirectory>${project.parent.basedir}/lib</outputDirectory>
               <!-- just grab the non-provided runtime dependencies -->
               <includeArtifactIds>commons-collections,commons-configuration,commons-io,commons-lang,jline,log4j,libthrift,commons-jci-core,commons-jci-fam,commons-logging,commons-logging-api,guava</includeArtifactIds>
               <excludeTransitive>true</excludeTransitive>
