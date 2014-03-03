@@ -432,7 +432,7 @@ class CopyFailed extends MasterRepo {
     
     if (loadedFailures.size() > 0) {
       DistributedWorkQueue bifCopyQueue = new DistributedWorkQueue(Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID()
-          + Constants.ZBULK_FAILED_COPYQ);
+          + Constants.ZBULK_FAILED_COPYQ, master.getConfiguration().getConfiguration());
       
       HashSet<String> workIds = new HashSet<String>();
       

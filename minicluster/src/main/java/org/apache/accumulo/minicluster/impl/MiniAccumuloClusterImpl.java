@@ -93,7 +93,7 @@ public class MiniAccumuloClusterImpl {
       this.in = new BufferedReader(new InputStreamReader(stream));
       out = new BufferedWriter(new FileWriter(logFile));
 
-      SimpleTimer.getInstance().schedule(new Runnable() {
+      SimpleTimer.getInstance(null).schedule(new Runnable() {
         @Override
         public void run() {
           try {

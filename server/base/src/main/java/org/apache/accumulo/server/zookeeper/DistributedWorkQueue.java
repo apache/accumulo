@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.util.time.SimpleTimer;
@@ -47,6 +48,7 @@ public class DistributedWorkQueue {
   private ThreadPoolExecutor threadPool;
   private ZooReaderWriter zoo = ZooReaderWriter.getInstance();
   private String path;
+  private AccumuloConfiguration config;
 
   private AtomicInteger numTask = new AtomicInteger(0);
 
@@ -147,8 +149,9 @@ public class DistributedWorkQueue {
     void process(String workID, byte[] data);
   }
   
-  public DistributedWorkQueue(String path) {
+  public DistributedWorkQueue(String path, AccumuloConfiguration config) {
     this.path = path;
+    this.config = config;
   }
   
   public void startProcessing(final Processor processor, ThreadPoolExecutor executorService) throws KeeperException, InterruptedException {
@@ -189,7 +192,7 @@ public class DistributedWorkQueue {
     
     Random r = new Random();
     // Add a little jitter to avoid all the tservers slamming zookeeper at once
-    SimpleTimer.getInstance().schedule(new Runnable() {
+    SimpleTimer.getInstance(config).schedule(new Runnable() {
       @Override
       public void run() {
         try {

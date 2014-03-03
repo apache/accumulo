@@ -226,7 +226,7 @@ public class LiveTServerSet implements Watcher {
 
   public synchronized void startListeningForTabletServerChanges() {
     scanServers();
-    SimpleTimer.getInstance().schedule(new Runnable() {
+    SimpleTimer.getInstance(conf).schedule(new Runnable() {
       @Override
       public void run() {
         scanServers();

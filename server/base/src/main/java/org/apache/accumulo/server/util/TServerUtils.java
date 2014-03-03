@@ -119,7 +119,8 @@ public class TServerUtils {
           port = 1024 + port % (65535 - 1024);
         try {
           HostAndPort addr = HostAndPort.fromParts(address, port);
-          return TServerUtils.startTServer(addr, timedProcessor, serverName, threadName, minThreads, timeBetweenThreadChecks, maxMessageSize,
+          return TServerUtils.startTServer(addr, timedProcessor, serverName, threadName, minThreads,
+              conf.getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), timeBetweenThreadChecks, maxMessageSize,
               SslConnectionParams.forServer(conf), conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
         } catch (TTransportException ex) {
           log.error("Unable to start TServer", ex);
@@ -234,7 +235,7 @@ public class TServerUtils {
   }
 
   public static ServerAddress createHsHaServer(HostAndPort address, TProcessor processor, final String serverName, String threadName, final int numThreads,
-      long timeBetweenThreadChecks, long maxMessageSize) throws TTransportException {
+    final int numSTThreads, long timeBetweenThreadChecks, long maxMessageSize) throws TTransportException {
     TNonblockingServerSocket transport = new TNonblockingServerSocket(new InetSocketAddress(address.getHostText(), address.getPort()));
     THsHaServer.Args options = new THsHaServer.Args(transport);
     options.protocolFactory(ThriftUtil.protocolFactory());
@@ -246,7 +247,7 @@ public class TServerUtils {
      */
     final ThreadPoolExecutor pool = new SimpleThreadPool(numThreads, "ClientPool");
     // periodically adjust the number of threads we need by checking how busy our threads are
-    SimpleTimer.getInstance().schedule(new Runnable() {
+    SimpleTimer.getInstance(numSTThreads).schedule(new Runnable() {
       @Override
       public void run() {
         if (pool.getCorePoolSize() <= pool.getActiveCount()) {
@@ -316,20 +317,20 @@ public class TServerUtils {
     return new ServerAddress(createThreadPoolServer(transport, processor), address);
   }
 
-  public static ServerAddress startTServer(HostAndPort address, TProcessor processor, String serverName, String threadName, int numThreads,
+  public static ServerAddress startTServer(HostAndPort address, TProcessor processor, String serverName, String threadName, int numThreads, int numSTThreads,
       long timeBetweenThreadChecks, long maxMessageSize, SslConnectionParams sslParams, long sslSocketTimeout) throws TTransportException {
-    return startTServer(address, new TimedProcessor(processor, serverName, threadName), serverName, threadName, numThreads, timeBetweenThreadChecks,
-        maxMessageSize, sslParams, sslSocketTimeout);
+    return startTServer(address, new TimedProcessor(processor, serverName, threadName), serverName, threadName, numThreads, numSTThreads,
+        timeBetweenThreadChecks, maxMessageSize, sslParams, sslSocketTimeout);
   }
 
   public static ServerAddress startTServer(HostAndPort address, TimedProcessor processor, String serverName, String threadName, int numThreads,
-      long timeBetweenThreadChecks, long maxMessageSize, SslConnectionParams sslParams, long sslSocketTimeout) throws TTransportException {
+    int numSTThreads, long timeBetweenThreadChecks, long maxMessageSize, SslConnectionParams sslParams, long sslSocketTimeout) throws TTransportException {
 
     ServerAddress serverAddress;
     if (sslParams != null) {
       serverAddress = createSslThreadPoolServer(address, processor, sslSocketTimeout, sslParams);
     } else {
-      serverAddress = createHsHaServer(address, processor, serverName, threadName, numThreads, timeBetweenThreadChecks, maxMessageSize);
+      serverAddress = createHsHaServer(address, processor, serverName, threadName, numThreads, numSTThreads, timeBetweenThreadChecks, maxMessageSize);
     }
     final TServer finalServer = serverAddress.server;
     Runnable serveTask = new Runnable() {

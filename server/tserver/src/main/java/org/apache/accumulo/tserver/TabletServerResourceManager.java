@@ -108,7 +108,7 @@ public class TabletServerResourceManager {
 
   private ExecutorService addEs(final Property maxThreads, String name, final ThreadPoolExecutor tp) {
     ExecutorService result = addEs(name, tp);
-    SimpleTimer.getInstance().schedule(new Runnable() {
+    SimpleTimer.getInstance(conf.getConfiguration()).schedule(new Runnable() {
       @Override
       public void run() {
         try {

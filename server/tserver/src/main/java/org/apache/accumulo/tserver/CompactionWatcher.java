@@ -102,7 +102,7 @@ public class CompactionWatcher implements Runnable {
 
   public static synchronized void startWatching(AccumuloConfiguration config) {
     if (!watching) {
-      SimpleTimer.getInstance().schedule(new CompactionWatcher(config), 10000, 10000);
+      SimpleTimer.getInstance(config).schedule(new CompactionWatcher(config), 10000, 10000);
       watching = true;
     }
   }

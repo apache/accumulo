@@ -261,8 +261,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     this.serverConfig = conf;
     this.instance = conf.getInstance();
     this.fs = fs;
-    this.logSorter = new LogSorter(instance, fs, getSystemConfiguration());
-    SimpleTimer.getInstance().schedule(new Runnable() {
+    AccumuloConfiguration aconf = getSystemConfiguration();
+    this.logSorter = new LogSorter(instance, fs, aconf);
+    SimpleTimer.getInstance(aconf).schedule(new Runnable() {
       @Override
       public void run() {
         synchronized (onlineTablets) {
@@ -358,6 +359,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     SecureRandom random;
     Map<Long,Session> sessions;
     long maxIdle;
+    AccumuloConfiguration aconf;
 
     SessionManager(AccumuloConfiguration conf) {
       random = new SecureRandom();
@@ -372,7 +374,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         }
       };
 
-      SimpleTimer.getInstance().schedule(r, 0, Math.max(maxIdle / 2, 1000));
+      SimpleTimer.getInstance(conf).schedule(r, 0, Math.max(maxIdle / 2, 1000));
+      aconf = conf;
     }
 
     synchronized long createSession(Session session, boolean reserve) {
@@ -515,7 +518,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           }
         };
 
-        SimpleTimer.getInstance().schedule(r, delay);
+        SimpleTimer.getInstance(aconf).schedule(r, delay);
       }
     }
 
@@ -2958,7 +2961,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
         long reschedule = Math.min((1l << Math.min(32, retryAttempt)) * 1000, 10 * 60 * 1000l);
         log.warn(String.format("rescheduling tablet load in %.2f seconds", reschedule / 1000.));
-        SimpleTimer.getInstance().schedule(new TimerTask() {
+        SimpleTimer.getInstance(getSystemConfiguration()).schedule(new TimerTask() {
           @Override
           public void run() {
             log.info("adding tablet " + extent + " back to the assignment pool (retry " + retryAttempt + ")");
@@ -3167,7 +3170,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
     ThreadPoolExecutor distWorkQThreadPool = new SimpleThreadPool(getSystemConfiguration().getCount(Property.TSERV_WORKQ_THREADS), "distributed work queue");
 
-    bulkFailedCopyQ = new DistributedWorkQueue(ZooUtil.getRoot(instance) + Constants.ZBULK_FAILED_COPYQ);
+    bulkFailedCopyQ = new DistributedWorkQueue(ZooUtil.getRoot(instance) + Constants.ZBULK_FAILED_COPYQ, getSystemConfiguration());
     try {
       bulkFailedCopyQ.startProcessing(new BulkFailedCopyProcessor(), distWorkQThreadPool);
     } catch (Exception e1) {
@@ -3516,9 +3519,10 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       }
     };
 
-    SimpleTimer.getInstance().schedule(contextCleaner, 60000, 60000);
+    AccumuloConfiguration aconf = getSystemConfiguration();
+    SimpleTimer.getInstance(aconf).schedule(contextCleaner, 60000, 60000);
 
-    FileSystemMonitor.start(getSystemConfiguration(), Property.TSERV_MONITOR_FS);
+    FileSystemMonitor.start(aconf, Property.TSERV_MONITOR_FS);
 
     Runnable gcDebugTask = new Runnable() {
       @Override
@@ -3527,7 +3531,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       }
     };
 
-    SimpleTimer.getInstance().schedule(gcDebugTask, 0, 1000);
+    SimpleTimer.getInstance(aconf).schedule(gcDebugTask, 0, 1000);
 
     Runnable constraintTask = new Runnable() {
 
@@ -3545,7 +3549,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       }
     };
 
-    SimpleTimer.getInstance().schedule(constraintTask, 0, 1000);
+    SimpleTimer.getInstance(aconf).schedule(constraintTask, 0, 1000);
 
     this.resourceManager = new TabletServerResourceManager(instance, fs);
 

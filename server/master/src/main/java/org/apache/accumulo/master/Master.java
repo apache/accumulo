@@ -207,7 +207,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     if (newState == MasterState.STOP) {
       // Give the server a little time before shutdown so the client
       // thread requesting the stop can return
-      SimpleTimer.getInstance().schedule(new Runnable() {
+      SimpleTimer.getInstance(serverConfig.getConfiguration()).schedule(new Runnable() {
         @Override
         public void run() {
           // This frees the main thread and will cause the master to exit
@@ -901,7 +901,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       fate = new Fate<Master>(this, store);
       fate.startTransactionRunners(threads);
 
-      SimpleTimer.getInstance().schedule(new Runnable() {
+      SimpleTimer.getInstance(serverConfig.getConfiguration()).schedule(new Runnable() {
 
         @Override
         public void run() {

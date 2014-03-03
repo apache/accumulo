@@ -227,7 +227,7 @@ public class TraceServer implements Watcher {
   }
   
   public void run() throws Exception {
-    SimpleTimer.getInstance().schedule(new Runnable() {
+    SimpleTimer.getInstance(serverConfiguration.getConfiguration()).schedule(new Runnable() {
       @Override
       public void run() {
         flush();

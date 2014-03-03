@@ -105,7 +105,7 @@ abstract public class BasicServlet extends HttpServlet {
     synchronized (BasicServlet.class) {
       // Learn our instance name asynchronously so we don't hang up if zookeeper is down
       if (cachedInstanceName == null) {
-        SimpleTimer.getInstance().schedule(new TimerTask() {
+        SimpleTimer.getInstance(Monitor.getSystemConfiguration()).schedule(new TimerTask() {
           @Override
           public void run() {
             synchronized (BasicServlet.class) {

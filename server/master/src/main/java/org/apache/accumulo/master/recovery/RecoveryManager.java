@@ -63,7 +63,8 @@ public class RecoveryManager {
     executor = Executors.newScheduledThreadPool(4, new NamingThreadFactory("Walog sort starter "));
     zooCache = new ZooCache();
     try {
-      List<String> workIDs = new DistributedWorkQueue(ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY).getWorkQueued();
+      AccumuloConfiguration aconf = master.getConfiguration().getConfiguration();
+      List<String> workIDs = new DistributedWorkQueue(ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY, aconf).getWorkQueued();
       sortsQueued.addAll(workIDs);
     } catch (Exception e) {
       log.warn(e, e);
@@ -87,14 +88,14 @@ public class RecoveryManager {
     public void run() {
       boolean rescheduled = false;
       try {
-
-        long time = closer.close(master.getConfiguration().getConfiguration(), master.getFileSystem(), new Path(source));
+        AccumuloConfiguration aconf = master.getConfiguration().getConfiguration();
+        long time = closer.close(aconf, master.getFileSystem(), new Path(source));
 
         if (time > 0) {
           executor.schedule(this, time, TimeUnit.MILLISECONDS);
           rescheduled = true;
         } else {
-          initiateSort(sortId, source, destination);
+          initiateSort(sortId, source, destination, aconf);
         }
       } catch (FileNotFoundException e) {
         log.debug("Unable to initate log sort for " + source + ": " + e);
@@ -111,9 +112,10 @@ public class RecoveryManager {
 
   }
 
-  private void initiateSort(String sortId, String source, final String destination) throws KeeperException, InterruptedException, IOException {
+  private void initiateSort(String sortId, String source, final String destination, AccumuloConfiguration aconf)
+    throws KeeperException, InterruptedException, IOException {
     String work = source + "|" + destination;
-    new DistributedWorkQueue(ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY).addWork(sortId, work.getBytes(Constants.UTF8));
+    new DistributedWorkQueue(ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY, aconf).addWork(sortId, work.getBytes(Constants.UTF8));
 
     synchronized (this) {
       sortsQueued.add(sortId);

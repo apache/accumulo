@@ -26,6 +26,7 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.AddressUtil;
@@ -140,14 +141,14 @@ public class Accumulo {
       log.info(key + " = " + (Property.isSensitive(key) ? "<hidden>" : entry.getValue()));
     }
     
-    monitorSwappiness();
+    monitorSwappiness(config.getConfiguration());
   }
   
   /**
    * 
    */
-  public static void monitorSwappiness() {
-    SimpleTimer.getInstance().schedule(new Runnable() {
+  public static void monitorSwappiness(AccumuloConfiguration config) {
+    SimpleTimer.getInstance(config).schedule(new Runnable() {
       @Override
       public void run() {
         try {

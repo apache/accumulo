@@ -177,7 +177,7 @@ public class FileManager {
     this.reservedReaders = new HashMap<FileSKVIterator,String>();
     
     this.maxIdleTime = conf.getConfiguration().getTimeInMillis(Property.TSERV_MAX_IDLE);
-    SimpleTimer.getInstance().schedule(new IdleFileCloser(), maxIdleTime, maxIdleTime / 2);
+    SimpleTimer.getInstance(conf.getConfiguration()).schedule(new IdleFileCloser(), maxIdleTime, maxIdleTime / 2);
     
   }
   
