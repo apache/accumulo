@@ -52,7 +52,7 @@ public class ContinuousScanner {
     
     Connector conn = opts.getConnector();
     Authorizations auths = opts.randomAuths.getAuths(r);
-    Scanner scanner = conn.createScanner(opts.getTableName(), auths);
+    Scanner scanner = ContinuousUtil.createScanner(conn, opts.getTableName(), auths);
     scanner.setBatchSize(scanOpts.scanBatchSize);
     
     double delta = Math.min(.05, .05 / (opts.numToScan / 1000.0));
