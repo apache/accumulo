@@ -18,12 +18,12 @@
 
 # Start: Resolve Script Directory
 SOURCE="${BASH_SOURCE[0]}"
-while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
-   bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-   SOURCE="$(readlink "$SOURCE")"
+while [[ -h $SOURCE ]]; do # resolve $SOURCE until the file is no longer a symlink
+   bin=$( cd -P "$( dirname "$SOURCE" )" && pwd )
+   SOURCE=$(readlink "$SOURCE")
    [[ $SOURCE != /* ]] && SOURCE="$bin/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
-bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+bin=$( cd -P "$( dirname "$SOURCE" )" && pwd )
 # Stop: Resolve Script Directory
 
 . "$bin"/config.sh
@@ -31,7 +31,7 @@ bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 echo "Stopping accumulo services..."
 ${bin}/accumulo admin "$@" stopAll
 
-if [ $? -ne 0 ]; then
+if [[ $? != 0 ]]; then
    echo "Invalid password or unable to connect to the master"
    echo "Initiating forced shutdown in 15 seconds (Ctrl-C to abort)"
    sleep 10
@@ -45,24 +45,24 @@ sleep 5
 
 #look for master and gc processes not killed by 'admin stopAll'
 for signal in TERM KILL ; do
-   for master in `grep -v '^#' "$ACCUMULO_CONF_DIR/masters"`; do
-      ${bin}/stop-server.sh $master "$ACCUMULO_HOME/lib/accumulo-start.*.jar" master $signal
+   for master in $(grep -v '^#' "$ACCUMULO_CONF_DIR/masters"); do
+      "${bin}/stop-server.sh" "$master" "$ACCUMULO_HOME/lib/accumulo-start.*.jar" master $signal
    done
 
-   for gc in `grep -v '^#' "$ACCUMULO_CONF_DIR/gc"`; do
-      ${bin}/stop-server.sh "$gc" "$ACCUMULO_HOME/lib/accumulo-start.*.jar" gc $signal
+   for gc in $(grep -v '^#' "$ACCUMULO_CONF_DIR/gc"); do
+      "${bin}/stop-server.sh" "$gc" "$ACCUMULO_HOME/lib/accumulo-start.*.jar" gc $signal
    done
 
-   ${bin}/stop-server.sh "$MONITOR" "$ACCUMULO_HOME/.*/accumulo-start.*.jar" monitor $signal
+   "${bin}/stop-server.sh" "$MONITOR" "$ACCUMULO_HOME/.*/accumulo-start.*.jar" monitor $signal
 
-   for tracer in `egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/tracers"`; do
-      ${bin}/stop-server.sh $tracer "$ACCUMULO_HOME/.*/accumulo-start.*.jar" tracer $signal
+   for tracer in $(egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/tracers"); do
+      "${bin}/stop-server.sh" "$tracer" "$ACCUMULO_HOME/.*/accumulo-start.*.jar" tracer $signal
    done
 done
 
 # stop tserver still running
-${bin}/tdown.sh
+"${bin}/tdown.sh"
 
 echo "Cleaning all server entries in ZooKeeper"
-$ACCUMULO_HOME/bin/accumulo org.apache.accumulo.server.util.ZooZap -master -tservers -tracers
+"$ACCUMULO_HOME/bin/accumulo" org.apache.accumulo.server.util.ZooZap -master -tservers -tracers
 

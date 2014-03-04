@@ -32,47 +32,46 @@ bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 . "$bin"/config.sh
 
 IFCONFIG=/sbin/ifconfig
-if [ ! -x $IFCONFIG ]; then
-   IFCONFIG='/bin/netstat -ie'
+[[ ! -x $IFCONFIG ]] && IFCONFIG='/bin/netstat -ie'
+
+IP=$($IFCONFIG 2>/dev/null| grep "inet[^6]" | awk '{print $2}' | sed 's/addr://' | grep -v 0.0.0.0 | grep -v 127.0.0.1 | head -n 1)
+if [[ $? != 0 ]]; then
+   IP=$(python -c 'import socket as s; print s.gethostbyname(s.getfqdn())')
 fi
-ip=$($IFCONFIG 2>/dev/null| grep inet[^6] | awk '{print $2}' | sed 's/addr://' | grep -v 0.0.0.0 | grep -v 127.0.0.1 | head -n 1)
-if [ $? != 0 ]; then
-   ip=$(python -c 'import socket as s; print s.gethostbyname(s.getfqdn())')
-fi
 
-HOSTS="$(hostname -a 2> /dev/null) $(hostname) localhost 127.0.0.1 $ip"
+HOSTS="$(hostname -a 2> /dev/null) $(hostname) localhost 127.0.0.1 $IP"
 for host in $HOSTS; do
-   if grep -q "^${host}\$" $ACCUMULO_CONF_DIR/slaves; then
-      ${bin}/start-server.sh $host tserver "tablet server"
+   if grep -q "^${host}\$" "$ACCUMULO_CONF_DIR/slaves"; then
+      "${bin}/start-server.sh" "$host" tserver "tablet server"
       break
    fi
 done
 
 for host in $HOSTS; do
-   if grep -q "^${host}\$" $ACCUMULO_CONF_DIR/masters; then
-      ${bin}/accumulo org.apache.accumulo.master.state.SetGoalState NORMAL
-      ${bin}/start-server.sh $host master
+   if grep -q "^${host}\$" "$ACCUMULO_CONF_DIR/masters"; then
+      "${bin}/accumulo" org.apache.accumulo.master.state.SetGoalState NORMAL
+      "${bin}/start-server.sh" "$host" master
       break
    fi
 done
 
 for host in $HOSTS; do
-   if grep -q "^${host}\$" $ACCUMULO_CONF_DIR/gc; then
-      ${bin}/start-server.sh $host gc "garbage collector"
+   if grep -q "^${host}\$" "$ACCUMULO_CONF_DIR/gc"; then
+      "${bin}/start-server.sh" "$host" gc "garbage collector"
       break
    fi
 done
 
 for host in $HOSTS; do
-   if [ ${host} = "${MONITOR}" ]; then
-      ${bin}/start-server.sh $MONITOR monitor 
+   if [[ $host == "$MONITOR" ]]; then
+      "${bin}/start-server.sh" "$MONITOR" monitor 
       break
    fi
 done
 
 for host in $HOSTS; do
-   if grep -q "^${host}\$" $ACCUMULO_CONF_DIR/tracers; then
-      ${bin}/start-server.sh $host tracer 
+   if grep -q "^${host}\$" "$ACCUMULO_CONF_DIR/tracers"; then
+      "${bin}/start-server.sh" "$host" tracer 
       break
    fi
 done

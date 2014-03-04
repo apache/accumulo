@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /usr/bin/env bash
 
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -15,27 +15,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-loc=`dirname "$0"`
-loc=`cd "$loc/.."; pwd`
+loc=$(dirname "$0")
+loc=$(cd "$loc/.."; pwd)
 
 cd "$loc"
 
 fail() {
-  echo '   ' $@
+  echo '   ' "$@"
   exit 1
 }
 
 run() {
-  echo $@
-  eval $@
-  if [ $? -ne 0 ]
-  then
-    fail $@ fails
+  echo "$@"
+  eval "$@"
+  if [[ $? != 0 ]] ; then
+    fail "$@" fails
   fi
 }
 
 runAt() {
-  ( cd $1 ; echo in `pwd`; shift ; run $@ ) || fail 
+  ( cd "$1" ; echo "in $(pwd)"; shift ; run "$@" ) || fail
 }
 
 cacheGPG() {

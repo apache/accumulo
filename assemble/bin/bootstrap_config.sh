@@ -294,17 +294,17 @@ sed -e "s/\${memMapMax}/${!MEMORY_MAP_MAX}/" \
 
 #Configure for hadoop 1
 if [[ "$HADOOP_VERSION" = "1" ]]; then
-  sed -e 's/^test -z \"$HADOOP_CONF_DIR\"/#test -z \"$HADOOP_CONF_DIR\"/' -e 's/^# test -z "$HADOOP_CONF_DIR"/test -z \"$HADOOP_CONF_DIR\"/' ${CONF_DIR}/$ACCUMULO_ENV > temp
-  mv temp ${CONF_DIR}/$ACCUMULO_ENV
+  sed -e 's/^test -z \"$HADOOP_CONF_DIR\"/#test -z \"$HADOOP_CONF_DIR\"/' -e 's/^# test -z "$HADOOP_CONF_DIR"/test -z \"$HADOOP_CONF_DIR\"/' "${CONF_DIR}/$ACCUMULO_ENV" > temp
+  mv temp "${CONF_DIR}/$ACCUMULO_ENV"
   sed -e 's/<!-- Hadoop 2 requirements -->/<!-- Hadoop 2 requirements -->\n      <!--/' \
       -e 's/<!-- End Hadoop 2 requirements -->/-->\n      <!-- End Hadoop 2 requirements -->/' \
-      ${CONF_DIR}/$ACCUMULO_SITE > temp
-  mv temp  ${CONF_DIR}/$ACCUMULO_SITE
+      "${CONF_DIR}/$ACCUMULO_SITE" > temp
+  mv temp "${CONF_DIR}/$ACCUMULO_SITE"
 fi
 
 #Additional setup steps for native configuration.
-if [[ "${TYPE}" = "native" ]]; then
-  if [[ "$(uname)" = 'Linux' ]]; then
+if [[ ${TYPE} == native ]]; then
+  if [[ $(uname) == Linux ]]; then
     if [[ -z $HADOOP_PREFIX ]]; then
       echo "HADOOP_PREFIX not set cannot automatically configure LD_LIBRARY_PATH"
     else
@@ -313,7 +313,7 @@ if [[ "${TYPE}" = "native" ]]; then
         echo -e "Native libraries could not be found for your sytem in: $HADOOP_PREFIX"
       else
         sed "/# Should the monitor/ i export LD_LIBRARY_PATH=${NATIVE_LIB}:\${LD_LIBRARY_PATH}" ${CONF_DIR}/$ACCUMULO_ENV > temp
-        mv temp ${CONF_DIR}/$ACCUMULO_ENV
+        mv temp "${CONF_DIR}/$ACCUMULO_ENV"
         echo -e "Added ${NATIVE_LIB} to the LD_LIBRARY_PATH"
       fi
     fi

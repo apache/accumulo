@@ -48,22 +48,19 @@ fi
 # Create the system context directy in HDFS if it does not exist
 #
 "$HADOOP_PREFIX/bin/hadoop" fs -ls "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
-if [ $? -ne 0 ]; then
+if [[ $? != 0 ]]; then
    "$HADOOP_PREFIX/bin/hadoop" fs -mkdir "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
 fi
 
 #
 # Replicate to all slaves to avoid network contention on startup
 #
-SLAVES="$ACCUMULO_CONF_DIR/slaves"
+SLAVES=$ACCUMULO_CONF_DIR/slaves
 NUM_SLAVES=$(egrep -v '(^#|^\s*$)' "$SLAVES" | wc -l)
 
 #let each datanode service around 50 clients
-let "REP=$NUM_SLAVES/50"
-
-if [ $REP -lt 3 ]; then
-   REP=3
-fi
+REP=$(( NUM_SLAVES / 50 ))
+(( REP < 3 )) && REP=3
 
 #
 # Copy all jars in lib to the system context directory
@@ -78,7 +75,7 @@ fi
 "$HADOOP_PREFIX/bin/hadoop" fs -rmr "$SYSTEM_CONTEXT_HDFS_DIR/commons-vfs2.jar"  > /dev/null
 "$HADOOP_PREFIX/bin/hadoop" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/accumulo-start.jar" "$ACCUMULO_HOME/lib/."  > /dev/null
 "$HADOOP_PREFIX/bin/hadoop" fs -rmr "$SYSTEM_CONTEXT_HDFS_DIR/accumulo-start.jar"  > /dev/null
-for f in `cat $ACCUMULO_CONF_DIR/slaves`
+for f in $(grep -v '^#' "$ACCUMULO_CONF_DIR/slaves")
 do
-  rsync -ra --delete $ACCUMULO_HOME `dirname $ACCUMULO_HOME`
+  rsync -ra --delete "$ACCUMULO_HOME" $(dirname "$ACCUMULO_HOME")
 done

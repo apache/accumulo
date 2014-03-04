@@ -29,11 +29,6 @@ script=$( basename "${SOURCE}" )
 . "${bin}"/config.sh
 
 START_JAR="${ACCUMULO_HOME}/lib/accumulo-start.jar"
-if [ ! -f "$START_JAR" ]; then
-   if [ -x /bin/rpm ]; then
-       START_JAR=$(echo $(/bin/rpm -E "%{_javadir}/accumulo/"accumulo-start-*.jar))
-   fi
-fi
 
 #
 # Resolve a program to its installation directory
@@ -51,7 +46,7 @@ locationByProgram()
       [[ "${RESULT}" != /* ]] && RESULT="${DIR}/${RESULT}" # if $RESULT was a relative symlink, we need to resolve it relative to the path where the symlink file was located
    done
    # find the relative home directory, accounting for an extra bin directory
-   RESULT=$(dirname $(dirname "${RESULT}") )
+   RESULT=$(dirname "$(dirname "${RESULT}")")
    echo "Auto-set ${2} to '${RESULT}'.  To suppress this message, set ${2} in conf/accumulo-env.sh"
    eval "${2}=${RESULT}"
 }
@@ -82,9 +77,9 @@ if [ "$1" = "jar" -a -f "$2" ] ; then
     fi
     if jar tf "$jarfile" | grep -q META-INF/MANIFEST.MF ; then
       cp="$(unzip -p "$jarfile" META-INF/MANIFEST.MF | grep ^Class-Path: | sed 's/^Class-Path: *//')"
-      if [ -n "$cp" ] ; then
+      if [[ -n "$cp" ]] ; then
          for j in $cp; do
-            if [ "$j" != "Class-Path:" ]; then
+            if [[ "$j" != "Class-Path:" ]] ; then
                ACCUMULO_XTRAJARS="${jardir}/${j},$ACCUMULO_XTRAJARS"
             fi
          done
@@ -96,11 +91,11 @@ fi
 #
 # Set up -D switches for JAAS and Kerberos if env variables set
 #
-if [ ! -z ${ACCUMULO_JAAS_CONF} ]; then
+if [[ ! -z ${ACCUMULO_JAAS_CONF} ]]; then
   ACCUMULO_GENERAL_OPTS="${ACCUMULO_GENERAL_OPTS} -Djava.security.auth.login.config=${ACCUMULO_JAAS_CONF}"
 fi
 
-if [ ! -z ${ACCUMULO_KRB5_CONF} ]; then
+if [[ ! -z ${ACCUMULO_KRB5_CONF} ]]; then
   ACCUMULO_GENERAL_OPTS="${ACCUMULO_GENERAL_OPTS} -Djava.security.krb5.conf=${ACCUMULO_KRB5_CONF}"
 fi
 
@@ -158,7 +153,7 @@ export JAVA_HOME HADOOP_PREFIX ZOOKEEPER_HOME LD_LIBRARY_PATH DYLD_LIBRARY_PATH
 #
 # app isn't used anywhere, but it makes the process easier to spot when ps/top/snmp truncate the command line
 JAVA="${JAVA_HOME}/bin/java"
-exec $JAVA "-Dapp=$1" \
+exec "$JAVA" "-Dapp=$1" \
    $ACCUMULO_OPTS \
    -classpath "${CLASSPATH}" \
    -XX:OnOutOfMemoryError="${ACCUMULO_KILL_CMD:-kill -9 %p}" \

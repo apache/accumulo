@@ -32,11 +32,10 @@ SLAVES=$ACCUMULO_CONF_DIR/slaves
 echo -n "Starting tablet servers ..."
 
 count=1
-for server in `egrep -v '(^#|^\s*$)' "${SLAVES}"`; do
+for server in $(egrep -v '(^#|^\s*$)' "${SLAVES}"); do
    echo -n "."
    ${bin}/start-server.sh $server tserver "tablet server" &
-   let count++
-   if [ $(( ${count} % 72 )) -eq 0 ] ;
+   if (( ++count % 72 == 0 )) ;
    then
       echo
       wait

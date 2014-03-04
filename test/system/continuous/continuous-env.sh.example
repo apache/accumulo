@@ -25,8 +25,8 @@ ZOOKEEPER_HOME=${ZOOKEEPER_HOME:-/opt/zookeeper}
 CONTINUOUS_LOG_DIR=$ACCUMULO_HOME/test/system/continuous/logs
 INSTANCE_NAME=instance
 ZOO_KEEPERS=zhost1,zhost2
-ACCUMULO_USER=`whoami`
-HDFS_USER=`whoami`
+ACCUMULO_USER=$(whoami)
+HDFS_USER=$(whoami)
 USER=user
 PASS=pass
 TABLE=ci
@@ -110,7 +110,7 @@ AGITATE_HDFS=false
 AGITATE_HDFS_SLEEP_TIME=10
 AGITATE_HDFS_SUPERUSER=hdfs
 AGITATE_HDFS_COMMAND="${HADOOP_PREFIX:-/usr/lib/hadoop}/share/hadoop/hdfs/bin/hdfs"
-AGITATE_HDFS_SUDO=`which sudo`
+AGITATE_HDFS_SUDO=$(which sudo)
 
 #settings for the verification map reduce job
 VERIFY_OUT=/tmp/continuous_verify

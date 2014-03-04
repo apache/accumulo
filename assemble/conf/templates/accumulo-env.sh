@@ -27,8 +27,7 @@
 ### you may want to use smaller values, especially when running everything
 ### on a single machine.
 ###
-if [ -z "$HADOOP_HOME" ]
-then
+if [[ -z $HADOOP_HOME ]] ; then
    test -z "$HADOOP_PREFIX"      && export HADOOP_PREFIX=/path/to/hadoop
 else
    HADOOP_PREFIX="$HADOOP_HOME"
@@ -38,12 +37,12 @@ fi
 # hadoop-1.2:
 # test -z "$HADOOP_CONF_DIR"       && export HADOOP_CONF_DIR="$HADOOP_PREFIX/conf"
 # hadoop-2.0:
-test -z "$HADOOP_CONF_DIR"     && export HADOOP_CONF_DIR="$HADOOP_PREFIX/etc/hadoop"
+test -z "$HADOOP_CONF_DIR"       && export HADOOP_CONF_DIR="$HADOOP_PREFIX/etc/hadoop"
 
 test -z "$JAVA_HOME"             && export JAVA_HOME=/path/to/java
 test -z "$ZOOKEEPER_HOME"        && export ZOOKEEPER_HOME=/path/to/zookeeper
 test -z "$ACCUMULO_LOG_DIR"      && export ACCUMULO_LOG_DIR=$ACCUMULO_HOME/logs
-if [ -f ${ACCUMULO_CONF_DIR}/accumulo.policy ]
+if [[ -f ${ACCUMULO_CONF_DIR}/accumulo.policy ]]
 then
    POLICY="-Djava.security.manager -Djava.security.policy=${ACCUMULO_CONF_DIR}/accumulo.policy"
 fi

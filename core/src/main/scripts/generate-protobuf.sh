@@ -22,23 +22,23 @@
 #   In other scripts, set the variables that diverge from the defaults below, then call this script.
 #   Leave the BUILD_DIR and FINAL_DIR alone for Maven builds.
 # ========================================================================================================================
-[ -z $REQUIRED_PROTOC_VERSION ] && REQUIRED_PROTOC_VERSION='libprotoc 2.5.0'
-[ -z $BUILD_DIR ]               && BUILD_DIR='target/proto'
-[ -z $FINAL_DIR ]               && FINAL_DIR='src/main'
+[[ -z $REQUIRED_PROTOC_VERSION ]] && REQUIRED_PROTOC_VERSION='libprotoc 2.5.0'
+[[ -z $BUILD_DIR ]]               && BUILD_DIR='target/proto'
+[[ -z $FINAL_DIR ]]               && FINAL_DIR='src/main'
 # ========================================================================================================================
 
 fail() {
-  echo $@
+  echo "$@"
   exit 1
 }
 
 # Test to see if we have thrift installed
 VERSION=$(protoc --version 2>/dev/null | grep -F "${REQUIRED_PROTOC_VERSION}" |  wc -l)
-if [ "$VERSION" -ne 1 ] ; then 
+if [[ $VERSION != 1 ]] ; then
   # Nope: bail
   echo "****************************************************"
   echo "*** protoc is not available"
-  echo "***   expecting 'protoc -version' to return ${REQUIRED_PROTOC_VERSION}"
+  echo "***   expecting 'protoc --version' to return ${REQUIRED_PROTOC_VERSION}"
   echo "*** generated code will not be updated"
   fail "****************************************************"
 fi
@@ -59,10 +59,10 @@ LINE_NOTATION=" *"
 SUFFIX="
  */"
 FILE_SUFFIX=(.java)
-  
-for file in ${FILE_SUFFIX[@]}; do
+
+for file in "${FILE_SUFFIX[@]}"; do
   for f in $(find $BUILD_DIR/ -name "*$file"); do
-    cat - $f >${f}-with-license <<EOF
+    cat - "$f" > "${f}-with-license" <<EOF
 ${PREFIX}${LINE_NOTATION} Licensed to the Apache Software Foundation (ASF) under one or more
 ${LINE_NOTATION} contributor license agreements.  See the NOTICE file distributed with
 ${LINE_NOTATION} this work for additional information regarding copyright ownership.
@@ -86,11 +86,11 @@ SDIR="${BUILD_DIR}/org/apache/accumulo/core/replication/proto"
 DDIR="${FINAL_DIR}/java/org/apache/accumulo/core/replication/proto"
 FILE_SUFFIX=(.java)
 mkdir -p "$DDIR"
-for file in ${FILE_SUFFIX[@]}; do
-  for f in `find $SDIR -name *$file`; do
-    DEST="$DDIR/`basename $f`"
+for file in "${FILE_SUFFIX[@]}"; do
+  for f in $(find $SDIR -name *$file); do
+    DEST=$DDIR/$(basename "$f")
     if ! cmp -s "${f}-with-license" "${DEST}" ; then
-      echo cp -f "${f}-with-license" "${DEST}" 
+      echo cp -f "${f}-with-license" "${DEST}"
       cp -f "${f}-with-license" "${DEST}" || fail unable to copy files to java workspace
     fi
   done

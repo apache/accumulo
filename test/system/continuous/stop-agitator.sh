@@ -16,35 +16,36 @@
 
 # Start: Resolve Script Directory
 SOURCE="${BASH_SOURCE[0]}"
-while [ -h "${SOURCE}" ]; do # resolve $SOURCE until the file is no longer a symlink
-   bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
-   SOURCE="$(readlink "${SOURCE}")"
+while [[ -h "${SOURCE}" ]]; do # resolve $SOURCE until the file is no longer a symlink
+   bin=$( cd -P "$( dirname "${SOURCE}" )" && pwd )
+   SOURCE=$(readlink "${SOURCE}")
    [[ "${SOURCE}" != /* ]] && SOURCE="${bin}/${SOURCE}" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
-bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
+bin=$( cd -P "$( dirname "${SOURCE}" )" && pwd )
 script=$( basename "${SOURCE}" )
 # Stop: Resolve Script Directory
 
 CONTINUOUS_CONF_DIR=${CONTINUOUS_CONF_DIR:-${bin}}
-. $CONTINUOUS_CONF_DIR/continuous-env.sh
+. "$CONTINUOUS_CONF_DIR/continuous-env.sh"
 
 # Try to use sudo when we wouldn't normally be able to kill the processes
-if [[ "`whoami`" == "root" ]]; then 
+[[ -n $USER ]] || USER=$(whoami)
+if [[ $USER == root ]]; then
   echo "Stopping all processes matching 'agitator.pl' as root"
   pkill -f agitator.pl 2>/dev/null
-elif [[ "`whoami`" == $ACCUMULO_USER ]];  then
+elif [[ $USER == "$ACCUMULO_USER" ]];  then
   echo "Stopping all processes matching 'datanode-agitator.pl' as $HDFS_USER"
-  sudo -u $HDFS_USER pkill -f datanode-agitator.pl 2>/dev/null
+  sudo -u "$HDFS_USER" pkill -f datanode-agitator.pl 2>/dev/null
   echo "Stopping all processes matching 'hdfs-agitator.pl' as $HDFS_USER"
-  sudo -u $HDFS_USER pkill -f hdfs-agitator.pl 2>/dev/null
-  echo "Stopping all processes matching 'agitator.pl' as `whoami`"
+  sudo -u "$HDFS_USER" pkill -f hdfs-agitator.pl 2>/dev/null
+  echo "Stopping all processes matching 'agitator.pl' as $USER"
   pkill -f agitator.pl 2>/dev/null 2>/dev/null
 else
   echo "Stopping all processes matching 'datanode-agitator.pl' as $HDFS_USER"
-  sudo -u $HDFS_USER pkill -f datanode-agitator.pl 2>/dev/null
+  sudo -u "$HDFS_USER" pkill -f datanode-agitator.pl 2>/dev/null
   echo "Stopping all processes matching 'hdfs-agitator.pl' as $HDFS_USER"
-  sudo -u $HDFS_USER pkill -f hdfs-agitator.pl 2>/dev/null
+  sudo -u "$HDFS_USER" pkill -f hdfs-agitator.pl 2>/dev/null
   echo "Stopping all processes matching 'agitator.pl' as $ACCUMULO_USER"
-  sudo -u $ACCUMULO_USER pkill -f agitator.pl 2>/dev/null
+  sudo -u "$ACCUMULO_USER" pkill -f agitator.pl 2>/dev/null
 fi
 

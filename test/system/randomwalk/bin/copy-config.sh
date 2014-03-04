@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#! /usr/bin/env bash
 
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -16,23 +16,23 @@
 # limitations under the License.
 
 
-if [ -z $HADOOP_PREFIX ] ; then
+if [[ -z $HADOOP_PREFIX ]] ; then
     echo "HADOOP_PREFIX is not set.  Please make sure it's set globally."
     exit 1
 fi
 
-if [ -z $ACCUMULO_HOME ] ; then
+if [[ -z $ACCUMULO_HOME ]] ; then
     echo "ACCUMULO_HOME is not set.  Please make sure it's set globally."
     exit 1
 fi
 
 RW_HOME=$ACCUMULO_HOME/test/system/randomwalk
 
-cd $RW_HOME
+cd "$RW_HOME"
 
 tar czf config.tgz conf
-$HADOOP_PREFIX/bin/hadoop fs -rmr /randomwalk 2>/dev/null
-$HADOOP_PREFIX/bin/hadoop fs -mkdir /randomwalk
-$HADOOP_PREFIX/bin/hadoop fs -put config.tgz /randomwalk
-$HADOOP_PREFIX/bin/hadoop fs -setrep 3 /randomwalk/config.tgz
+"$HADOOP_PREFIX/bin/hadoop" fs -rmr /randomwalk 2>/dev/null
+"$HADOOP_PREFIX/bin/hadoop" fs -mkdir /randomwalk
+"$HADOOP_PREFIX/bin/hadoop" fs -put config.tgz /randomwalk
+"$HADOOP_PREFIX/bin/hadoop" fs -setrep 3 /randomwalk/config.tgz
 rm config.tgz

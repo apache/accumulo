@@ -17,7 +17,7 @@
 
 # Start: Resolve Script Directory
 SOURCE="${BASH_SOURCE[0]}"
-while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+while [[ -h "$SOURCE" ]]; do # resolve $SOURCE until the file is no longer a symlink
    bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
    SOURCE="$(readlink "$SOURCE")"
    [[ $SOURCE != /* ]] && SOURCE="$bin/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
@@ -27,17 +27,17 @@ bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 . "$bin"/config.sh
 
-if [ -z "$HADOOP_PREFIX" ] ; then
+if [[ -z "$HADOOP_PREFIX" ]] ; then
    echo "HADOOP_PREFIX is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
    exit 1
 fi
-if [ -z "$ZOOKEEPER_HOME" ] ; then
+if [[ -z "$ZOOKEEPER_HOME" ]] ; then
    echo "ZOOKEEPER_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
    exit 1
 fi
 
 ZOOKEEPER_CMD='ls -1 $ZOOKEEPER_HOME/zookeeper-[0-9]*[^csn].jar '
-if [ `eval $ZOOKEEPER_CMD | wc -l` != "1" ] ; then
+if [[ $(eval $ZOOKEEPER_CMD | wc -l) != "1" ]] ; then
    echo "Not exactly one zookeeper jar in $ZOOKEEPER_HOME"
    exit 1
 fi
@@ -81,7 +81,7 @@ for jar in $USERJARS; do
 done
 export HADOOP_CLASSPATH="$H_JARS:$HADOOP_CLASSPATH"
 
-if [ -z "$CLASSNAME" -o -z "$TOOLJAR" ]; then
+if [[ -z "$CLASSNAME" || -z "$TOOLJAR" ]]; then
    echo "Usage: tool.sh path/to/myTool.jar my.tool.class.Name [-libjars my1.jar,my2.jar]" 1>&2
    exit 1
 fi

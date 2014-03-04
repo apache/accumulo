@@ -64,14 +64,14 @@ if [ "$1" != "--notSlaves" ]; then
 fi
 
 ${bin}/accumulo org.apache.accumulo.master.state.SetGoalState NORMAL
-for master in `egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/masters"`; do
+for master in $(egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/masters"); do
    ${bin}/start-server.sh $master master
 done
 
-for gc in `egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/gc"`; do
+for gc in $(egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/gc"); do
    ${bin}/start-server.sh $gc gc "garbage collector"
 done
 
-for tracer in `egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/tracers"`; do
+for tracer in $(egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/tracers"); do
    ${bin}/start-server.sh $tracer tracer
 done

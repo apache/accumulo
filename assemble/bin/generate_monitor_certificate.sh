@@ -18,11 +18,11 @@
 # Start: Resolve Script Directory
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
-   bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-   SOURCE="$(readlink "$SOURCE")"
+   bin=$( cd -P "$( dirname "$SOURCE" )" && pwd )
+   SOURCE=$(readlink "$SOURCE")
    [[ $SOURCE != /* ]] && SOURCE="$bin/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
-bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+bin=$( cd -P "$( dirname "$SOURCE" )" && pwd )
 # Stop: Resolve Script Directory
 
 . "$bin"/config.sh
@@ -34,33 +34,33 @@ KEYSTOREPATH="$ACCUMULO_HOME/conf/keystore.jks"
 TRUSTSTOREPATH="$ACCUMULO_HOME/conf/cacerts.jks"
 CERTPATH="$ACCUMULO_HOME/conf/server.cer"
 
-if [ -e "$KEYSTOREPATH" ]; then
-   rm -i $KEYSTOREPATH
-   if [ -e "$KEYSTOREPATH" ]; then
+if [[ -e "$KEYSTOREPATH" ]]; then
+   rm -i "$KEYSTOREPATH"
+   if [[ -e "$KEYSTOREPATH" ]]; then
       echo "KeyStore already exists, exiting"
       exit 1
    fi
 fi
 
-if [ -e "$TRUSTSTOREPATH" ]; then
-   rm -i $TRUSTSTOREPATH
-   if [ -e "$TRUSTSTOREPATH" ]; then
+if [[ -e "$TRUSTSTOREPATH" ]]; then
+   rm -i "$TRUSTSTOREPATH"
+   if [[ -e "$TRUSTSTOREPATH" ]]; then
       echo "TrustStore already exists, exiting"
       exit 2
    fi
 fi
 
-if [ -e "$CERTPATH" ]; then
-   rm -i $CERTPATH
-   if [ -e "$CERTPATH" ]; then
+if [[ -e "$CERTPATH" ]]; then
+   rm -i "$CERTPATH"
+   if [[ -e "$CERTPATH" ]]; then
       echo "Certificate already exists, exiting"
       exit 3
   fi
 fi
 
-${JAVA_HOME}/bin/keytool -genkey -alias $ALIAS -keyalg RSA -keypass $KEYPASS -storepass $KEYPASS -keystore $KEYSTOREPATH
-${JAVA_HOME}/bin/keytool -export -alias $ALIAS -storepass $KEYPASS -file $CERTPATH -keystore $KEYSTOREPATH
-echo "yes" | ${JAVA_HOME}/bin/keytool -import -v -trustcacerts -alias $ALIAS -file $CERTPATH -keystore $TRUSTSTOREPATH -storepass $STOREPASS
+"${JAVA_HOME}/bin/keytool" -genkey -alias "$ALIAS" -keyalg RSA -keypass "$KEYPASS" -storepass "$KEYPASS" -keystore "$KEYSTOREPATH"
+"${JAVA_HOME}/bin/keytool" -export -alias "$ALIAS" -storepass "$KEYPASS" -file "$CERTPATH" -keystore "$KEYSTOREPATH"
+"${JAVA_HOME}/bin/keytool" -import -v -trustcacerts -alias "$ALIAS" -file "$CERTPATH" -keystore "$TRUSTSTOREPATH" -storepass "$STOREPASS" <<< "yes"
 
 echo
 echo "keystore and truststore generated.  now add the following to accumulo-site.xml:"

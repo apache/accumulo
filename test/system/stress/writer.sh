@@ -19,24 +19,26 @@
 # Ref: http://stackoverflow.com/questions/59895/
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "${SOURCE}" ]; do # resolve $SOURCE until the file is no longer a symlink
-   DIR="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
-   SOURCE="$(readlink "${SOURCE}")"
+   DIR=$( cd -P "$( dirname "${SOURCE}" )" && pwd )
+   SOURCE=$(readlink "${SOURCE}")
    [[ "${SOURCE}" != /* ]] && SOURCE="${DIR}/${SOURCE}" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
-DIR="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
+DIR=$( cd -P "$( dirname "${SOURCE}" )" && pwd )
 # Stop: Resolve Script Directory
 LOG_DIR=${DIR}/logs
-mkdir -p $LOG_DIR
+mkdir -p "$LOG_DIR"
 
 # Source environment
-. ${DIR}/stress-env.sh
+. "${DIR}/stress-env.sh"
 
 ts=$(date +%Y%m%d%H%M%S)
 host=$(hostname)
 
 # TBD - --clear-table option
 
-${ACCUMULO_HOME}/bin/accumulo org.apache.accumulo.test.stress.random.Write $INSTANCE $USERPASS $ROW_RANGE $CF_RANGE $CQ_RANGE $VALUE_RANGE \
-  $ROW_SEED $CF_SEED $CQ_SEED $VALUE_SEED $ROW_WIDTH $ROW_WIDTH_SEED $MAX_CELLS_PER_MUTATION $WRITE_DELAY \
-    > $LOG_DIR/${ts}_${host}_writer.out \
-    2> $LOG_DIR/${ts}_${host}_writer.err
+# We want $USERPASS to word split
+"${ACCUMULO_HOME}/bin/accumulo org.apache.accumulo.test.stress.random.Write" "$INSTANCE" $USERPASS "$ROW_RANGE" "$CF_RANGE" "$CQ_RANGE" "$VALUE_RANGE" \
+  "$ROW_SEED" "$CF_SEED" "$CQ_SEED" "$VALUE_SEED" \
+  "$ROW_WIDTH" "$ROW_WIDTH_SEED" "$MAX_CELLS_PER_MUTATION" "$WRITE_DELAY" \
+    > "$LOG_DIR/${ts}_${host}_writer.out" \
+    2> "$LOG_DIR/${ts}_${host}_writer.err"

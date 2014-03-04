@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#! /usr/bin/env bash
 
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -17,18 +17,18 @@
 
 # Start: Resolve Script Directory
 SOURCE="${BASH_SOURCE[0]}"
-while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
-   bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+while [[ -h "$SOURCE" ]]; do # resolve $SOURCE until the file is no longer a symlink
+   bin=$( cd -P "$( dirname "$SOURCE" )" && pwd )
    SOURCE="$(readlink "$SOURCE")"
    [[ $SOURCE != /* ]] && SOURCE="$bin/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
-bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+bin=$( cd -P "$( dirname "$SOURCE" )" && pwd )
 script=$( basename "$SOURCE" )
 # Stop: Resolve Script Directory
 
 
-lib="${bin}/../lib"
-native_tarball="${lib}/accumulo-native.tar.gz"
+lib=${bin}/../lib
+native_tarball=${lib}/accumulo-native.tar.gz
 final_native_target="${lib}/native"
 
 if [[ ! -f $native_tarball ]]; then
@@ -40,27 +40,27 @@ fi
 mkdir -p "${final_native_target}"
 
 # Make a directory for us to unpack the native source into
-TMP_DIR=`mktemp -d /tmp/accumulo-native.XXXX` || exit 1
+TMP_DIR=$(mktemp -d /tmp/accumulo-native.XXXX) || exit 1
 
 # Unpack the tarball to our temp directory
 tar xf "${native_tarball}" -C "${TMP_DIR}"
 
-if [[ $? -ne 0 ]]; then
+if [[ $? != 0 ]]; then
     echo "Failed to unpack native tarball to ${TMP_DIR}"
     exit 1
 fi
 
 # Move to the first (only) directory in our unpacked tarball
-native_dir=`find "${TMP_DIR}" -maxdepth 1 -mindepth 1 -type d`
+native_dir=$(find "${TMP_DIR}" -maxdepth 1 -mindepth 1 -type d)
 
 cd "${native_dir}"
 
 # Make the native library
-export USERFLAGS=$@
+export USERFLAGS="$@"
 make
 
 # Make sure it didn't fail
-if [[ $? -ne 0 ]]; then
+if [[ $? != 0 ]]; then
     echo "Make failed!"
     exit 1
 fi

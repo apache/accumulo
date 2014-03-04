@@ -27,7 +27,7 @@ DIR="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
 # Stop: Resolve Script Directory
 
 # Source environment
-. ${DIR}/stress-env.sh
+. "${DIR}/stress-env.sh"
 
 if [[ ! -f ${DIR}/readers ]]; then
     echo readers file is missing
@@ -35,6 +35,6 @@ if [[ ! -f ${DIR}/readers ]]; then
 fi
 
 # Copy environment out
-pscp -h ${DIR}/readers ${DIR}/stress-env.sh ${DIR}
+pscp -h "${DIR}/readers" "${DIR}/stress-env.sh" "${DIR}"
 
-pssh -h ${DIR}/readers "nohup ${DIR}/reader.sh >${DIR}/reader.out 2>${DIR}/reader.err < /dev/null &"
+pssh -h "${DIR}/readers" "nohup ${DIR}/reader.sh >${DIR}/reader.out 2>${DIR}/reader.err < /dev/null &"

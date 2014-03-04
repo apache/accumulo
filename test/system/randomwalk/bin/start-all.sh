@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#! /usr/bin/env bash
 
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -17,38 +17,38 @@
 
 #copied below from hadoop-config.sh
 this="$0"
-while [ -h "$this" ]; do
-    ls=`ls -ld "$this"`
-    link=`expr "$ls" : '.*-> \(.*\)$'`
+while [[ -h "$this" ]]; do
+    ls=$(ls -ld "$this")
+    link=$(expr "$ls" : '.*-> \(.*\)$')
     if expr "$link" : '.*/.*' > /dev/null; then
         this="$link"
     else
-        this=`dirname "$this"`/"$link"
+        this=$(dirname "$this")/"$link"
     fi
 done
-bin=`dirname "$this"`
-script=`basename "$this"`
-bin=`cd "$bin"; pwd`
+bin=$(dirname "$this")
+script=$(basename "$this")
+bin=$(cd "$bin"; pwd)
 this="$bin/$script"
 
-ACCUMULO_HOME=`dirname "$this"`/../../../..
-export ACCUMULO_HOME=`cd $ACCUMULO_HOME; pwd`
+ACCUMULO_HOME=$(dirname "$this")/../../../..
+export ACCUMULO_HOME=$(cd "$ACCUMULO_HOME"; pwd)
 
-if [ -z "${ACCUMULO_CONF_DIR}" ]; then
+if [[ -z "${ACCUMULO_CONF_DIR}" ]]; then
     export ACCUMULO_CONF_DIR=${ACCUMULO_HOME}/conf
 fi
 
-if [ -f $ACCUMULO_CONF_DIR/accumulo-env.sh ] ; then
-. $ACCUMULO_CONF_DIR/accumulo-env.sh
+if [[ -f $ACCUMULO_CONF_DIR/accumulo-env.sh ]] ; then
+    . "$ACCUMULO_CONF_DIR/accumulo-env.sh"
 fi
 
 
-if [ -z "$HADOOP_PREFIX" ] ; then
+if [[ -z $HADOOP_PREFIX ]] ; then
     echo "HADOOP_PREFIX is not set.  Please make sure it's set globally."
     exit 1
 fi
 
-if [ "$1" = "" ] ; then
+if [[ -z $1 ]] ; then
      echo "Usage: start-walkers.sh <startNode>"
      exit 1
 fi

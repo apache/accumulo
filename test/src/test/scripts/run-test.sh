@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#! /usr/bin/env bash
 
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -16,27 +16,27 @@
 # limitations under the License.
 
 
-if [ ! -n "$1" ]; then
-    echo "Usage: `basename $0` TestClass1[,TestClass2,TestClass3] ..."
-    echo "       `basename $0` \"Prefix*IT[,Prefix2*IT]\" ..."
-    echo "       `basename $0` \"MyIT#method1+method2\" ..."
+if [[ -z $1 ]]; then
+    echo "Usage: $(basename $0) TestClass1[,TestClass2,TestClass3] ..."
+    echo "       $(basename $0) \"Prefix*IT[,Prefix2*IT]\" ..."
+    echo "       $(basename $0) \"MyIT#method1+method2\" ..."
     exit 1
 fi
 
 # Start: Resolve Script Directory
 SOURCE="${BASH_SOURCE[0]}"
-while [ -h "${SOURCE}" ]; do # resolve $SOURCE until the file is no longer a symlink
-   bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
-   SOURCE="$(readlink "${SOURCE}")"
+while [[ -h "${SOURCE}" ]]; do # resolve $SOURCE until the file is no longer a symlink
+   bin=$( cd -P "$( dirname "${SOURCE}" )" && pwd )
+   SOURCE=$(readlink "${SOURCE}")
    [[ "${SOURCE}" != /* ]] && SOURCE="${bin}/${SOURCE}" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
-bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
+bin=$( cd -P "$( dirname "${SOURCE}" )" && pwd )
 # Stop: Resolve Script Directory
 
-cd $bin/..
+cd "$bin/.."
 
 tests=$1
 shift
 
 # Let the user provide additional maven options (like -DforkCount=2)
-mvn verify -Dit.test=$tests -Dtest=testnamethatdoesntexist -DfailIfNoTests=false $@
+mvn verify -Dit.test="$tests" -Dtest=testnamethatdoesntexist -DfailIfNoTests=false "$@"
