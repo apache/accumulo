@@ -128,7 +128,7 @@
             <configuration>
               <outputDirectory>${project.parent.basedir}/lib</outputDirectory>
               <!-- just grab the non-provided runtime dependencies -->
-              <includeArtifactIds>commons-collections,commons-configuration,commons-io,commons-lang,jline,log4j,libthrift,commons-jci-core,commons-jci-fam,commons-logging,commons-logging-api,guava</includeArtifactIds>
+              <includeArtifactIds>commons-collections,commons-configuration,commons-io,commons-lang,jline,log4j,libthrift,commons-jci-core,commons-jci-fam,commons-logging,commons-logging-api,guava,jetty</includeArtifactIds>
               <excludeTransitive>true</excludeTransitive>
             </configuration>
           </execution>
@@ -840,7 +840,6 @@
         <groupId>org.mortbay.jetty</groupId>
         <artifactId>jetty</artifactId>
         <version>[6.1,7.0)</version>
-        <scope>provided</scope>
       </dependency>
 
       <!-- accumulo dependency jars that we will provide -->
