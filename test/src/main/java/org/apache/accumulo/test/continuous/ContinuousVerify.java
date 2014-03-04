@@ -187,26 +187,25 @@ public class ContinuousVerify extends Configured implements Tool {
     job.setInputFormatClass(AccumuloInputFormat.class);
     opts.setAccumuloConfigs(job);
 
+    Set<Range> ranges = null;
     String clone = opts.getTableName();
     Connector conn = null;
+
     if (opts.scanOffline) {
       Random random = new Random();
       clone = opts.getTableName() + "_" + String.format("%016x", (random.nextLong() & 0x7fffffffffffffffl));
       conn = opts.getConnector();
       conn.tableOperations().clone(opts.getTableName(), clone, true, new HashMap<String,String>(), new HashSet<String>());
+      ranges = conn.tableOperations().splitRangeByTablets(opts.getTableName(), new Range(), opts.maxMaps);
       conn.tableOperations().offline(clone);
       AccumuloInputFormat.setInputTableName(job, clone);
       AccumuloInputFormat.setOfflineTableScan(job, true);
+    } else {
+      ranges = opts.getConnector().tableOperations().splitRangeByTablets(opts.getTableName(), new Range(), opts.maxMaps);
     }
 
-    // set up ranges
-    try {
-      Set<Range> ranges = opts.getConnector().tableOperations().splitRangeByTablets(opts.getTableName(), new Range(), opts.maxMaps);
-      AccumuloInputFormat.setRanges(job, ranges);
-      AccumuloInputFormat.setAutoAdjustRanges(job, false);
-    } catch (Exception e) {
-      throw new IOException(e);
-    }
+    AccumuloInputFormat.setRanges(job, ranges);
+    AccumuloInputFormat.setAutoAdjustRanges(job, false);
 
     job.setMapperClass(CMapper.class);
     job.setMapOutputKeyClass(LongWritable.class);
