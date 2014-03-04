@@ -26,8 +26,6 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.zip.CRC32;
 
-import org.apache.accumulo.trace.instrument.Span;
-import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
@@ -35,6 +33,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.trace.instrument.Span;
+import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -113,7 +113,7 @@ public class ContinuousWalk {
     ArrayList<Value> values = new ArrayList<Value>();
     
     while (true) {
-      Scanner scanner = conn.createScanner(opts.getTableName(), opts.randomAuths.getAuths(r));
+      Scanner scanner = ContinuousUtil.createScanner(conn, opts.getTableName(), opts.randomAuths.getAuths(r));
       String row = findAStartRow(opts.min, opts.max, scanner, r);
       
       while (row != null) {
