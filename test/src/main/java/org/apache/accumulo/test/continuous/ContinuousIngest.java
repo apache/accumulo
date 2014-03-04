@@ -33,7 +33,7 @@ import org.apache.accumulo.core.cli.ClientOnDefaultTable;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.TableExistsException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -148,10 +148,9 @@ public class ContinuousIngest {
     }
     Connector conn = opts.getConnector();
     
-    if (!conn.tableOperations().exists(opts.getTableName()))
-      try {
-        conn.tableOperations().create(opts.getTableName());
-      } catch (TableExistsException tee) {}
+    if (!conn.tableOperations().exists(opts.getTableName())) {
+      throw new TableNotFoundException(null, opts.getTableName(), "Consult the README and create the table before starting ingest.");
+    }
 
     BatchWriter bw = conn.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());
     bw = Trace.wrapAll(bw, new CountSampler(1024));
