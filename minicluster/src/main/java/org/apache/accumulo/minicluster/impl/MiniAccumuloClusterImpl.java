@@ -130,6 +130,8 @@ public class MiniAccumuloClusterImpl {
     }
   }
 
+  private static final long ZOOKEEPER_STARTUP_WAIT = 20*1000;
+
   private boolean initialized = false;
   private Process zooKeeperProcess = null;
   private Process masterProcess = null;
@@ -452,8 +454,8 @@ public class MiniAccumuloClusterImpl {
           if (n >= 4 && new String(buffer, 0, 4).equals("imok"))
             break;
         } catch (Exception e) {
-          if (System.currentTimeMillis() - startTime >= 10000) {
-            throw new RuntimeException("Zookeeper did not start within 10 seconds. Check the logs in " + config.getLogDir() + " for errors.  Last exception: " + e);
+          if (System.currentTimeMillis() - startTime >= ZOOKEEPER_STARTUP_WAIT) {
+            throw new RuntimeException("Zookeeper did not start within " + (ZOOKEEPER_STARTUP_WAIT/1000) + " seconds. Check the logs in " + config.getLogDir() + " for errors.  Last exception: " + e);
           }
           UtilWaitThread.sleep(250);
         } finally {
