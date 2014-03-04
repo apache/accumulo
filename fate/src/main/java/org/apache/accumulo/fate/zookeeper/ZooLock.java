@@ -144,8 +144,15 @@ public class ZooLock implements Watcher {
     }
     
     Collections.sort(children);
+    if (log.isTraceEnabled()) {
+      log.trace("Candidate lock nodes");
+      for (String child : children) {
+        log.trace("- " + child);
+      }
+    }
     
     if (children.get(0).equals(myLock)) {
+      log.trace("First candidate is my lock, acquiring");
       if (!watchingParent) {
         throw new IllegalStateException("Can not acquire lock, no longer watching parent : " + path);
       }
@@ -166,13 +173,20 @@ public class ZooLock implements Watcher {
     }
     
     final String lockToWatch = path + "/" + prev;
-    
-    Stat stat = zooKeeper.getStatus(path + "/" + prev, new Watcher() {
+    log.trace("Establishing watch on " + lockToWatch);
+    Stat stat = zooKeeper.getStatus(lockToWatch, new Watcher() {
       
       @Override
       public void process(WatchedEvent event) {
-        
+        if (log.isTraceEnabled()) {
+          log.trace("Processing event:");
+          log.trace("- type  " + event.getType());
+          log.trace("- path  " + event.getPath());
+          log.trace("- state " + event.getState());
+        }
+        boolean renew = true;
         if (event.getType() == EventType.NodeDeleted && event.getPath().equals(lockToWatch)) {
+          log.trace("Detected deletion of " + lockToWatch + ", attempting to acquire lock");
           synchronized (ZooLock.this) {
             try {
               if (asyncLock != null) {
@@ -187,19 +201,28 @@ public class ZooLock implements Watcher {
               }
             }
           }
+          renew = false;
         }
 
-        if (event.getState() == KeeperState.Expired) {
+        if (event.getState() == KeeperState.Expired || event.getState() == KeeperState.Disconnected) {
           synchronized (ZooLock.this) {
             if (lock == null) {
-              lw.failedToAcquireLock(new Exception("Zookeeper Session expired"));
+              lw.failedToAcquireLock(new Exception("Zookeeper Session expired / disconnected"));
             }
           }
-        } else {
+          renew = false;
+        }
+        if (renew) {
+          log.trace("Renewing watch on " + lockToWatch);
           try {
-            zooKeeper.getStatus(event.getPath(), this);
-          } catch (Exception ex) {
-            lw.failedToAcquireLock(ex);
+            Stat restat = zooKeeper.getStatus(lockToWatch, this);
+            if (restat == null) {
+              lockAsync(myLock, lw);
+            }
+          } catch (KeeperException e) {
+            lw.failedToAcquireLock(new Exception("Failed to renew watch on other master node"));
+          } catch (InterruptedException e) {
+            lw.failedToAcquireLock(new Exception("Failed to renew watch on other master node"));
           }
         }
       }
@@ -228,7 +251,7 @@ public class ZooLock implements Watcher {
     
     try {
       final String asyncLockPath = zooKeeper.putEphemeralSequential(path + "/" + LOCK_PREFIX, data);
-      
+      log.trace("Ephemeral node " + asyncLockPath + " created");
       Stat stat = zooKeeper.getStatus(asyncLockPath, new Watcher() {
         
         private void failedToAcquireLock(){
