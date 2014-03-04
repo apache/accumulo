@@ -449,11 +449,11 @@ public class MiniAccumuloClusterImpl {
           s.getOutputStream().flush();
           byte buffer[] = new byte[100];
           int n = s.getInputStream().read(buffer);
-          if (n == 4 && new String(buffer, 0, n).equals("imok"))
+          if (n >= 4 && new String(buffer, 0, 4).equals("imok"))
             break;
         } catch (Exception e) {
           if (System.currentTimeMillis() - startTime >= 10000) {
-            throw new RuntimeException("Zookeeper did not start within 10 seconds . Check the logs in " + config.getLogDir() + " for errors.");
+            throw new RuntimeException("Zookeeper did not start within 10 seconds. Check the logs in " + config.getLogDir() + " for errors.  Last exception: " + e);
           }
           UtilWaitThread.sleep(250);
         } finally {
