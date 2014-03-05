@@ -461,10 +461,6 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     return tserverSet.getConnection(server);
   }
 
-  public MergeInfo getMergeInfo(KeyExtent tablet) {
-    return getMergeInfo(tablet.getTableId());
-  }
-
   public MergeInfo getMergeInfo(Text tableId) {
     synchronized (mergeLock) {
       try {
