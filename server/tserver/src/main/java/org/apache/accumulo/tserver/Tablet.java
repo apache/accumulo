@@ -991,29 +991,7 @@ public class Tablet {
           // rename the compacted map file, in case
           // the system goes down
 
-          String compactName = newDatafile.path().getName();
-
-          for (FileRef ref : oldDatafiles) {
-            Path path = ref.path();
-            fs.rename(path, new Path(location + "/delete+" + compactName + "+" + path.getName()));
-          }
-
-          if (fs.exists(newDatafile.path())) {
-            log.error("Target map file already exist " + newDatafile, new Exception());
-            throw new IllegalStateException("Target map file already exist " + newDatafile);
-          }
-
-          if (!fs.rename(tmpDatafile.path(), newDatafile.path()))
-            log.warn("Rename of " + tmpDatafile + " to " + newDatafile + " returned false");
-
-          // start deleting files, if we do not finish they will be cleaned
-          // up later
-          for (FileRef ref : oldDatafiles) {
-            Path path = ref.path();
-            Path deleteFile = new Path(location + "/delete+" + compactName + "+" + path.getName());
-            if (acuTableConf.getBoolean(Property.GC_TRASH_IGNORE) || !fs.moveToTrash(deleteFile))
-              fs.deleteRecursively(deleteFile);
-          }
+          RootFiles.replaceFiles(acuTableConf, fs, location, oldDatafiles, tmpDatafile, newDatafile);
         }
 
         // atomically remove old files and add new file
@@ -1131,7 +1109,7 @@ public class Tablet {
 
       // cleanUpFiles() has special handling for delete. files
       FileStatus[] files = fs.listStatus(location);
-      Collection<String> goodPaths = cleanUpFiles(fs, files, true);
+      Collection<String> goodPaths = RootFiles.cleanupReplacement(fs, files, true);
       for (String good : goodPaths) {
         Path path = new Path(good);
         String filename = path.getName();
@@ -1474,58 +1452,6 @@ public class Tablet {
         this.defaultSecurityLabel = new byte[0];
       }
     }
-  }
-
-  private static Collection<String> cleanUpFiles(VolumeManager fs, FileStatus[] files, boolean deleteTmp) throws IOException {
-    /*
-     * called in constructor and before major compactions
-     */
-    Collection<String> goodFiles = new ArrayList<String>(files.length);
-
-    for (FileStatus file : files) {
-
-      String path = file.getPath().toString();
-      String filename = file.getPath().getName();
-
-      // check for incomplete major compaction, this should only occur
-      // for root tablet
-      if (filename.startsWith("delete+")) {
-        String expectedCompactedFile = path.substring(0, path.lastIndexOf("/delete+")) + "/" + filename.split("\\+")[1];
-        if (fs.exists(new Path(expectedCompactedFile))) {
-          // compaction finished, but did not finish deleting compacted files.. so delete it
-          if (!fs.deleteRecursively(file.getPath()))
-            log.warn("Delete of file: " + file.getPath().toString() + " return false");
-          continue;
-        }
-        // compaction did not finish, so put files back
-
-        // reset path and filename for rest of loop
-        filename = filename.split("\\+", 3)[2];
-        path = path.substring(0, path.lastIndexOf("/delete+")) + "/" + filename;
-
-        if (!fs.rename(file.getPath(), new Path(path)))
-          log.warn("Rename of " + file.getPath().toString() + " to " + path + " returned false");
-      }
-
-      if (filename.endsWith("_tmp")) {
-        if (deleteTmp) {
-          log.warn("cleaning up old tmp file: " + path);
-          if (!fs.deleteRecursively(file.getPath()))
-            log.warn("Delete of tmp file: " + file.getPath().toString() + " return false");
-
-        }
-        continue;
-      }
-
-      if (!filename.startsWith(Constants.MAPFILE_EXTENSION + "_") && !FileOperations.getValidExtensions().contains(filename.split("\\.")[1])) {
-        log.error("unknown file in tablet" + path);
-        continue;
-      }
-
-      goodFiles.add(path);
-    }
-
-    return goodFiles;
   }
 
   public static class KVEntry extends KeyValue {
@@ -3161,7 +3087,7 @@ public class Tablet {
         // otherwise deleted compacted files could possible be brought back
         // at some point if the file they were compacted to was legitimately
         // removed by a major compaction
-        cleanUpFiles(fs, fs.listStatus(this.location), false);
+        RootFiles.cleanupReplacement(fs, fs.listStatus(this.location), false);
       }
       SortedMap<FileRef,DataFileValue> allFiles = datafileManager.getDatafileSizes();
       List<FileRef> inputFiles = new ArrayList<FileRef>();
