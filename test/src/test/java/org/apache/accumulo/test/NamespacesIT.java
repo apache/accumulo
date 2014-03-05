@@ -501,6 +501,7 @@ public class NamespacesIT extends SimpleMacIT {
     String t2 = namespace2 + ".2";
     String t3 = namespace + ".3";
     String t4 = namespace + ".4";
+    String t5 = "5";
 
     c.namespaceOperations().create(namespace);
     c.namespaceOperations().create(namespace2);
@@ -511,6 +512,7 @@ public class NamespacesIT extends SimpleMacIT {
     assertFalse(c.tableOperations().exists(t2));
     assertFalse(c.tableOperations().exists(t3));
     assertFalse(c.tableOperations().exists(t4));
+    assertFalse(c.tableOperations().exists(t5));
 
     c.tableOperations().create(t1);
 
@@ -522,11 +524,23 @@ public class NamespacesIT extends SimpleMacIT {
       assertEquals(ThriftTableOperationException.class.getName(), e.getCause().getClass().getName());
       assertEquals(TableOperation.RENAME, ((ThriftTableOperationException) e.getCause()).getOp());
       assertEquals(TableOperationExceptionType.INVALID_NAME, ((ThriftTableOperationException) e.getCause()).getType());
-      assertTrue(c.tableOperations().exists(t1));
-      assertFalse(c.tableOperations().exists(t2));
-      assertFalse(c.tableOperations().exists(t3));
-      assertFalse(c.tableOperations().exists(t4));
     }
+
+    try {
+      c.tableOperations().rename(t1, t5);
+      fail();
+    } catch (AccumuloException e) {
+      // this is expected, because we don't allow renames across namespaces
+      assertEquals(ThriftTableOperationException.class.getName(), e.getCause().getClass().getName());
+      assertEquals(TableOperation.RENAME, ((ThriftTableOperationException) e.getCause()).getOp());
+      assertEquals(TableOperationExceptionType.INVALID_NAME, ((ThriftTableOperationException) e.getCause()).getType());
+    }
+
+    assertTrue(c.tableOperations().exists(t1));
+    assertFalse(c.tableOperations().exists(t2));
+    assertFalse(c.tableOperations().exists(t3));
+    assertFalse(c.tableOperations().exists(t4));
+    assertFalse(c.tableOperations().exists(t5));
 
     // fully qualified rename
     c.tableOperations().rename(t1, t3);
@@ -534,6 +548,7 @@ public class NamespacesIT extends SimpleMacIT {
     assertFalse(c.tableOperations().exists(t2));
     assertTrue(c.tableOperations().exists(t3));
     assertFalse(c.tableOperations().exists(t4));
+    assertFalse(c.tableOperations().exists(t5));
   }
 
   /**
