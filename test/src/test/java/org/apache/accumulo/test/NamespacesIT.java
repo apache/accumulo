@@ -885,7 +885,8 @@ public class NamespacesIT extends SimpleMacIT {
         }
       } catch (Exception e) {
         numRun++;
-        if (!(e instanceof TableNotFoundException || (e instanceof AccumuloException && e.getCause() instanceof TableNotFoundException)))
+        if (!(e instanceof AccumuloException) || !(e.getCause() instanceof TableNotFoundException)
+            || !(e.getCause().getCause() instanceof NamespaceNotFoundException))
           throw new Exception("Case " + i + " resulted in " + e.getClass().getName(), e);
       }
 
@@ -989,7 +990,7 @@ public class NamespacesIT extends SimpleMacIT {
         }
       } catch (Exception e) {
         numRun++;
-        if (!(e instanceof TableNotFoundException) && !(e.getCause() instanceof NamespaceNotFoundException))
+        if (!(e instanceof TableNotFoundException) || !(e.getCause() instanceof NamespaceNotFoundException))
           throw new Exception("Case " + i + " resulted in " + e.getClass().getName(), e);
       }
   }

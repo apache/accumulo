@@ -53,8 +53,6 @@ public class SecurityOperationsImpl implements SecurityOperations {
       // recast missing table
       if (ttoe.getType() == TableOperationExceptionType.NOTFOUND)
         throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST);
-      else if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND)
-        throw new AccumuloSecurityException(null, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
       else
         throw new AccumuloException(ttoe);
     } catch (ThriftSecurityException e) {
@@ -73,8 +71,6 @@ public class SecurityOperationsImpl implements SecurityOperations {
       // recast missing table
       if (ttoe.getType() == TableOperationExceptionType.NOTFOUND)
         throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST);
-      else if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND)
-        throw new AccumuloSecurityException(null, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
       else
         throw new AccumuloException(ttoe);
     } catch (ThriftSecurityException e) {
