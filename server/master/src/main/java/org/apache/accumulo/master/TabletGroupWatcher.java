@@ -123,6 +123,11 @@ class TabletGroupWatcher extends Daemon {
       ClosableIterator<TabletLocationState> iter = null;
       try {
         Map<Text,MergeStats> mergeStatsCache = new HashMap<Text,MergeStats>();
+        for (MergeInfo merge : master.merges()) {
+          if (merge.getExtent() != null) {
+            mergeStatsCache.put(merge.getExtent().getTableId(), new MergeStats(merge));
+          }
+        }
         
         // Get the current status for the current list of tservers
         SortedMap<TServerInstance,TabletServerStatus> currentTServers = new TreeMap<TServerInstance,TabletServerStatus>();
@@ -174,7 +179,7 @@ class TabletGroupWatcher extends Daemon {
           Text tableId = tls.extent.getTableId();
           MergeStats mergeStats = mergeStatsCache.get(tableId);
           if (mergeStats == null) {
-            mergeStatsCache.put(tableId, mergeStats = new MergeStats(this.master.getMergeInfo(tls.extent)));
+            mergeStatsCache.put(tableId, mergeStats = new MergeStats(new MergeInfo()));
           }
           TabletGoalState goal = this.master.getGoalState(tls, mergeStats.getMergeInfo());
           TServerInstance server = tls.getServer();
