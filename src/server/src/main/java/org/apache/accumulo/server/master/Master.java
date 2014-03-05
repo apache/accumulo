@@ -1293,6 +1293,11 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
         int unloaded = 0;
         try {
           Map<Text,MergeStats> mergeStatsCache = new HashMap<Text,MergeStats>();
+          for (MergeInfo merge : merges()) {
+            if (merge.getRange() != null) {
+              mergeStatsCache.put(merge.getRange().getTableId(), new MergeStats(merge));
+            }
+          }
           
           // Get the current status for the current list of tservers
           SortedMap<TServerInstance,TabletServerStatus> currentTServers = new TreeMap<TServerInstance,TabletServerStatus>();
