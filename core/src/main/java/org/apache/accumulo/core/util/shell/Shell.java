@@ -458,9 +458,13 @@ public class Shell extends ShellOptions {
 
   public static void main(String args[]) throws IOException {
     Shell shell = new Shell();
-    shell.config(args);
+    try {
+      shell.config(args);
 
-    System.exit(shell.start());
+      System.exit(shell.start());
+    } finally {
+      shell.shutdown();
+    }
   }
 
   public int start() throws IOException {
@@ -552,6 +556,12 @@ public class Shell extends ShellOptions {
       } finally {
         reader.flush();
       }
+    }
+  }
+
+  public void shutdown() {
+    if (reader != null) {
+      reader.shutdown();
     }
   }
 

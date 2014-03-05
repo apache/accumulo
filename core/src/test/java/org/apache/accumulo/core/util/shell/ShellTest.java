@@ -30,6 +30,7 @@ import jline.console.ConsoleReader;
 
 import org.apache.accumulo.core.util.format.DateStringFormatter;
 import org.apache.log4j.Level;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -106,6 +107,11 @@ public class ShellTest {
     shell = new Shell(new ConsoleReader(input, output));
     shell.setLogErrorsToConsole();
     shell.config("--fake", "-u", "test", "-p", "secret");
+  }
+
+  @After
+  public void teardown() {
+    shell.shutdown();
   }
 
   void assertGoodExit(String s, boolean stringPresent) {
