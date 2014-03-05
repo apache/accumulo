@@ -59,6 +59,43 @@ import com.google.common.io.Files;
  * @since 1.6.0
  */
 public class MiniAccumuloRunner {
+  private static final String ROOT_PASSWORD_PROP = "rootPassword";
+  private static final String SHUTDOWN_PORT_PROP = "shutdownPort";
+  private static final String DEFAULT_MEMORY_PROP = "defaultMemory";
+  private static final String MASTER_MEMORY_PROP = "masterMemory";
+  private static final String TSERVER_MEMORY_PROP = "tserverMemory";
+  private static final String ZOO_KEEPER_MEMORY_PROP = "zooKeeperMemory";
+  private static final String JDWP_ENABLED_PROP = "jdwpEnabled";
+  private static final String ZOO_KEEPER_PORT_PROP = "zooKeeperPort";
+  private static final String NUM_T_SERVERS_PROP = "numTServers";
+  private static final String DIRECTORY_PROP = "directory";
+  private static final String INSTANCE_NAME_PROP = "instanceName";
+
+  private static void printProperties() {
+    System.out.println("#mini Accumulo cluster runner properties.");
+    System.out.println("#");
+    System.out.println("#uncomment following propeties to use, propeties not set will use default or random value");
+    System.out.println();
+    System.out.println("#" + INSTANCE_NAME_PROP + "=devTest");
+    System.out.println("#" + DIRECTORY_PROP + "=/tmp/mac1");
+    System.out.println("#" + ROOT_PASSWORD_PROP + "=secret");
+    System.out.println("#" + NUM_T_SERVERS_PROP + "=2");
+    System.out.println("#" + ZOO_KEEPER_PORT_PROP + "=40404");
+    System.out.println("#" + SHUTDOWN_PORT_PROP + "=41414");
+    System.out.println("#" + DEFAULT_MEMORY_PROP + "=128M");
+    System.out.println("#" + MASTER_MEMORY_PROP + "=128M");
+    System.out.println("#" + TSERVER_MEMORY_PROP + "=128M");
+    System.out.println("#" + ZOO_KEEPER_MEMORY_PROP + "=128M");
+    System.out.println("#" + JDWP_ENABLED_PROP + "=false");
+
+    System.out.println();
+    System.out.println("# Configuration normally placed in accumulo-site.xml can be added using a site. prefix.");
+    System.out.println("# For example the following line will set tserver.compaction.major.concurrent.max");
+    System.out.println();
+    System.out.println("#site.tserver.compaction.major.concurrent.max=4");
+
+  }
+
   public static class PropertiesConverter implements IStringConverter<Properties> {
     @Override
     public Properties convert(String fileName) {
@@ -83,6 +120,9 @@ public class MiniAccumuloRunner {
   public static class Opts extends Help {
     @Parameter(names = "-p", required = false, description = "properties file name", converter = PropertiesConverter.class)
     Properties prop = new Properties();
+
+    @Parameter(names = {"-c", "--printProperties"}, required = false, description = "prints an example propeties file, redirect to file to use")
+    boolean printProps = false;
   }
 
   /**
@@ -97,31 +137,42 @@ public class MiniAccumuloRunner {
     Opts opts = new Opts();
     opts.parseArgs(MiniAccumuloRunner.class.getName(), args);
 
+    if (opts.printProps) {
+      printProperties();
+      System.exit(0);
+    }
+
     int shutdownPort = 4445;
 
-    final File tempDir = Files.createTempDir();
-    String rootPass = opts.prop.containsKey("rootPassword") ? opts.prop.getProperty("rootPassword") : "secret";
+    final File miniDir;
 
-    MiniAccumuloConfig config = new MiniAccumuloConfig(tempDir, rootPass);
+    if (opts.prop.containsKey(DIRECTORY_PROP))
+      miniDir = new File(opts.prop.getProperty(DIRECTORY_PROP));
+    else
+      miniDir = Files.createTempDir();
 
-    if (opts.prop.containsKey("instanceName"))
-      config.setInstanceName(opts.prop.getProperty("instanceName"));
-    if (opts.prop.containsKey("numTServers"))
-      config.setNumTservers(Integer.parseInt(opts.prop.getProperty("numTServers")));
-    if (opts.prop.containsKey("zooKeeperPort"))
-      config.setZooKeeperPort(Integer.parseInt(opts.prop.getProperty("zooKeeperPort")));
-    if (opts.prop.containsKey("jdwpEnabled"))
-      config.setJDWPEnabled(Boolean.parseBoolean(opts.prop.getProperty("jdwpEnabled")));
-    if (opts.prop.containsKey("zooKeeperMemory"))
-      setMemoryOnConfig(config, opts.prop.getProperty("zooKeeperMemory"), ServerType.ZOOKEEPER);
-    if (opts.prop.containsKey("tserverMemory"))
-      setMemoryOnConfig(config, opts.prop.getProperty("tserverMemory"), ServerType.TABLET_SERVER);
-    if (opts.prop.containsKey("masterMemory"))
-      setMemoryOnConfig(config, opts.prop.getProperty("masterMemory"), ServerType.MASTER);
-    if (opts.prop.containsKey("defaultMemory"))
-      setMemoryOnConfig(config, opts.prop.getProperty("defaultMemory"));
-    if (opts.prop.containsKey("shutdownPort"))
-      shutdownPort = Integer.parseInt(opts.prop.getProperty("shutdownPort"));
+    String rootPass = opts.prop.containsKey(ROOT_PASSWORD_PROP) ? opts.prop.getProperty(ROOT_PASSWORD_PROP) : "secret";
+
+    MiniAccumuloConfig config = new MiniAccumuloConfig(miniDir, rootPass);
+
+    if (opts.prop.containsKey(INSTANCE_NAME_PROP))
+      config.setInstanceName(opts.prop.getProperty(INSTANCE_NAME_PROP));
+    if (opts.prop.containsKey(NUM_T_SERVERS_PROP))
+      config.setNumTservers(Integer.parseInt(opts.prop.getProperty(NUM_T_SERVERS_PROP)));
+    if (opts.prop.containsKey(ZOO_KEEPER_PORT_PROP))
+      config.setZooKeeperPort(Integer.parseInt(opts.prop.getProperty(ZOO_KEEPER_PORT_PROP)));
+    if (opts.prop.containsKey(JDWP_ENABLED_PROP))
+      config.setJDWPEnabled(Boolean.parseBoolean(opts.prop.getProperty(JDWP_ENABLED_PROP)));
+    if (opts.prop.containsKey(ZOO_KEEPER_MEMORY_PROP))
+      setMemoryOnConfig(config, opts.prop.getProperty(ZOO_KEEPER_MEMORY_PROP), ServerType.ZOOKEEPER);
+    if (opts.prop.containsKey(TSERVER_MEMORY_PROP))
+      setMemoryOnConfig(config, opts.prop.getProperty(TSERVER_MEMORY_PROP), ServerType.TABLET_SERVER);
+    if (opts.prop.containsKey(MASTER_MEMORY_PROP))
+      setMemoryOnConfig(config, opts.prop.getProperty(MASTER_MEMORY_PROP), ServerType.MASTER);
+    if (opts.prop.containsKey(DEFAULT_MEMORY_PROP))
+      setMemoryOnConfig(config, opts.prop.getProperty(DEFAULT_MEMORY_PROP));
+    if (opts.prop.containsKey(SHUTDOWN_PORT_PROP))
+      shutdownPort = Integer.parseInt(opts.prop.getProperty(SHUTDOWN_PORT_PROP));
 
     Map<String,String> siteConfig = new HashMap<String,String>();
     for (Map.Entry<Object,Object> entry : opts.prop.entrySet()) {
@@ -139,7 +190,7 @@ public class MiniAccumuloRunner {
       public void run() {
         try {
           accumulo.stop();
-          FileUtils.deleteDirectory(tempDir);
+          FileUtils.deleteDirectory(miniDir);
           System.out.println("\nShut down gracefully on " + new Date());
         } catch (IOException e) {
           e.printStackTrace();
@@ -203,6 +254,10 @@ public class MiniAccumuloRunner {
     }
 
     System.out.println(String.format(FORMAT_STRING, "Shutdown Port:", shutdownPort));
+
+    System.out.println();
+    System.out.println("  To connect with shell, use the following command : ");
+    System.out.println("    accumulo shell -zh " + accumulo.getZooKeepers() + " -zi " + accumulo.getConfig().getInstanceName() + " -u root ");
 
     System.out.println("\n\nSuccessfully started on " + new Date());
   }
