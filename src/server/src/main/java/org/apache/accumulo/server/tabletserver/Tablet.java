@@ -808,9 +808,7 @@ public class Tablet {
               fs.delete(newDatafile, true);
             }
             
-            if (!fs.rename(tmpDatafile, newDatafile)) {
-              throw new IOException("rename fails");
-            }
+            rename(fs, tmpDatafile, newDatafile);
           }
           break;
         } catch (IOException ioe) {
@@ -981,8 +979,7 @@ public class Tablet {
         
         // rename before putting in metadata table, so files in metadata table should
         // always exist
-        if (!fs.rename(tmpDatafile, newDatafile))
-          log.warn("Rename of " + tmpDatafile + " to " + newDatafile + " returned false");
+        rename(fs, tmpDatafile, newDatafile);
         
         if (dfv.getNumEntries() == 0) {
           fs.delete(newDatafile, true);
@@ -1018,7 +1015,7 @@ public class Tablet {
           String compactName = newDatafile.getName();
           
           for (Path path : oldDatafiles) {
-            fs.rename(path, new Path(location + "/delete+" + compactName + "+" + path.getName()));
+            rename(fs, path, new Path(location + "/delete+" + compactName + "+" + path.getName()));
           }
           
           if (fs.exists(newDatafile)) {
@@ -1026,8 +1023,7 @@ public class Tablet {
             throw new IllegalStateException("Target map file already exist " + newDatafile);
           }
           
-          if (!fs.rename(tmpDatafile, newDatafile))
-            log.warn("Rename of " + tmpDatafile + " to " + newDatafile + " returned false");
+          rename(fs, tmpDatafile, newDatafile);
           
           // start deleting files, if we do not finish they will be cleaned
           // up later
@@ -1561,8 +1557,7 @@ public class Tablet {
         filename = filename.split("\\+", 3)[2];
         path = location + "/" + filename;
         
-        if (!fs.rename(file.getPath(), new Path(path)))
-          log.warn("Rename of " + file.getPath().toString() + " to " + path + " returned false");
+        rename(fs, file.getPath(), new Path(path));
       }
       
       if (filename.endsWith("_tmp")) {
@@ -3312,6 +3307,12 @@ public class Tablet {
     return smallestFiles;
   }
   
+  private static void rename(FileSystem fs, Path src, Path dst) throws IOException {
+    if (!fs.rename(src, dst)) {
+      throw new IOException("Rename " + src + " to " + dst + " returned false ");
+    }
+  }
+
   // END PRIVATE METHODS RELATED TO MAJOR COMPACTION
   
   /**
