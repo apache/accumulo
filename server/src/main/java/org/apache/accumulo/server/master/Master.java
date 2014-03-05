@@ -1288,6 +1288,11 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         int unloaded = 0;
         try {
           Map<Text,MergeStats> mergeStatsCache = new HashMap<Text,MergeStats>();
+          for (MergeInfo merge : merges()) {
+            if (merge.getRange() != null) {
+              mergeStatsCache.put(merge.getRange().getTableId(), new MergeStats(merge));
+            }
+          }
           
           // Get the current status for the current list of tservers
           SortedMap<TServerInstance,TabletServerStatus> currentTServers = new TreeMap<TServerInstance,TabletServerStatus>();
@@ -1334,7 +1339,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
             Text tableId = tls.extent.getTableId();
             MergeStats mergeStats = mergeStatsCache.get(tableId);
             if (mergeStats == null) {
-              mergeStatsCache.put(tableId, mergeStats = new MergeStats(getMergeInfo(tls.extent)));
+              mergeStatsCache.put(tableId, mergeStats = new MergeStats(new MergeInfo()));
             }
             TabletGoalState goal = getGoalState(tls, mergeStats.getMergeInfo());
             TServerInstance server = tls.getServer();
