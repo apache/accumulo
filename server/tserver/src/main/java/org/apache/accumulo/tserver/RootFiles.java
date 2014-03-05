@@ -41,7 +41,7 @@ public class RootFiles {
   static void prepareReplacement(VolumeManager fs, Path location, Set<FileRef> oldDatafiles, String compactName) throws IOException {
     for (FileRef ref : oldDatafiles) {
       Path path = ref.path();
-      fs.rename(path, new Path(location + "/delete+" + compactName + "+" + path.getName()));
+      Tablet.rename(fs, path, new Path(location + "/delete+" + compactName + "+" + path.getName()));
     }
   }
 
@@ -51,8 +51,7 @@ public class RootFiles {
       throw new IllegalStateException("Target map file already exist " + newDatafile);
     }
 
-    if (!fs.rename(tmpDatafile.path(), newDatafile.path()))
-      log.warn("Rename of " + tmpDatafile + " to " + newDatafile + " returned false");
+    Tablet.rename(fs, tmpDatafile.path(), newDatafile.path());
   }
 
   static void finishReplacement(AccumuloConfiguration acuTableConf, VolumeManager fs, Path location, Set<FileRef> oldDatafiles, String compactName)
@@ -108,8 +107,7 @@ public class RootFiles {
         filename = filename.split("\\+", 3)[2];
         path = path.substring(0, path.lastIndexOf("/delete+")) + "/" + filename;
 
-        if (!fs.rename(file.getPath(), new Path(path)))
-          log.warn("Rename of " + file.getPath().toString() + " to " + path + " returned false");
+        Tablet.rename(fs, file.getPath(), new Path(path));
       }
 
       if (filename.endsWith("_tmp")) {

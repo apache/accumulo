@@ -823,10 +823,8 @@ public class Tablet {
               log.warn("Target map file already exist " + newDatafile);
               fs.deleteRecursively(newDatafile.path());
             }
-
-            if (!fs.rename(tmpDatafile.path(), newDatafile.path())) {
-              throw new IOException("rename fails");
-            }
+            
+            rename(fs, tmpDatafile.path(), newDatafile.path());
           }
           break;
         } catch (IOException ioe) {
@@ -957,9 +955,8 @@ public class Tablet {
 
         // rename before putting in metadata table, so files in metadata table should
         // always exist
-        if (!fs.rename(tmpDatafile.path(), newDatafile.path()))
-          log.warn("Rename of " + tmpDatafile + " to " + newDatafile + " returned false");
-
+        rename(fs, tmpDatafile.path(), newDatafile.path());
+        
         if (dfv.getNumEntries() == 0) {
           fs.deleteRecursively(newDatafile.path());
         }
@@ -3276,6 +3273,12 @@ public class Tablet {
     }
 
     return smallestFiles;
+  }
+  
+  static void rename(VolumeManager fs, Path src, Path dst) throws IOException {
+    if (!fs.rename(src, dst)) {
+      throw new IOException("Rename " + src + " to " + dst + " returned false ");
+    }
   }
 
   // END PRIVATE METHODS RELATED TO MAJOR COMPACTION
