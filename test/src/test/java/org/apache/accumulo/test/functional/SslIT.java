@@ -31,7 +31,7 @@ public class SslIT extends ConfigurableMacIT {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     super.configure(cfg, hadoopCoreSite);
-    configureForSsl(cfg);
+    configureForSsl(cfg, createSharedTestDir(this.getClass().getName() + "-ssl"));
   }
 
   @Test(timeout = 60 * 1000)
@@ -52,7 +52,7 @@ public class SslIT extends ConfigurableMacIT {
 
   @Test(timeout = 5 * 60 * 1000)
   public void bulk() throws Exception {
-    BulkIT.runTest(getConnector(), getTableNames(1)[0], this.getClass().getName(), cluster.getConfig().getDir());
+    BulkIT.runTest(getConnector(), getTableNames(1)[0], this.getClass().getName());
   }
 
   @Test(timeout = 60 * 1000)

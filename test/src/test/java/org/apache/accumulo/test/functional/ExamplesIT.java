@@ -114,7 +114,7 @@ public class ExamplesIT extends AbstractMacIT {
     cfg.setDefaultMemory(cfg.getDefaultMemory() * 2, MemoryUnit.BYTE);
 
     cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.TRUE.toString());
-    configureForEnvironment(cfg, ExamplesIT.class);
+    configureForEnvironment(cfg, ExamplesIT.class, createSharedTestDir(ExamplesIT.class.getName() + "-ssl"));
     cluster = new MiniAccumuloClusterImpl(cfg);
     cluster.start();
 
@@ -246,7 +246,7 @@ public class ExamplesIT extends AbstractMacIT {
     assertFalse("Iterator had additional results", iter.hasNext());
   }
 
-  @Test(timeout = 90 * 1000)
+  @Test(timeout = 50 * 1000)
   public void testBloomFilters() throws Exception {
     c.tableOperations().create("bloom_test");
     c.tableOperations().setProperty("bloom_test", Property.TABLE_BLOOM_ENABLED.getKey(), "true");
@@ -360,7 +360,7 @@ public class ExamplesIT extends AbstractMacIT {
     goodExec(RowOperations.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd);
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 15 * 1000)
   public void testBatchWriter() throws Exception {
     c.tableOperations().create("test");
     goodExec(SequentialBatchWriter.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", "test", "--start", "0", "--num", "100000", "--size",
@@ -377,7 +377,7 @@ public class ExamplesIT extends AbstractMacIT {
 
   }
 
-  @Test(timeout = 90 * 1000)
+  @Test(timeout = 50 * 1000)
   public void testRandomBatchesAndFlush() throws Exception {
     String test3 = "test3";
     c.tableOperations().create(test3);
