@@ -70,6 +70,7 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.NumericValueConstraint;
 import org.apache.accumulo.test.functional.SimpleMacIT;
@@ -825,6 +826,100 @@ public class NamespacesIT extends SimpleMacIT {
   }
 
   @Test
+  public void testModifyingPermissions() throws Exception {
+    String tableName = namespace + ".modify";
+    c.namespaceOperations().create(namespace);
+    c.tableOperations().create(tableName);
+    assertTrue(c.securityOperations().hasTablePermission(c.whoami(), tableName, TablePermission.READ));
+    c.securityOperations().revokeTablePermission(c.whoami(), tableName, TablePermission.READ);
+    assertFalse(c.securityOperations().hasTablePermission(c.whoami(), tableName, TablePermission.READ));
+    c.securityOperations().grantTablePermission(c.whoami(), tableName, TablePermission.READ);
+    assertTrue(c.securityOperations().hasTablePermission(c.whoami(), tableName, TablePermission.READ));
+    c.tableOperations().delete(tableName);
+
+    try {
+      c.securityOperations().hasTablePermission(c.whoami(), tableName, TablePermission.READ);
+      fail();
+    } catch (Exception e) {
+      if (!(e instanceof AccumuloSecurityException) || !((AccumuloSecurityException) e).getSecurityErrorCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST))
+        throw new Exception("Has permission resulted in " + e.getClass().getName(), e);
+    }
+
+    try {
+      c.securityOperations().grantTablePermission(c.whoami(), tableName, TablePermission.READ);
+      fail();
+    } catch (Exception e) {
+      if (!(e instanceof AccumuloSecurityException) || !((AccumuloSecurityException) e).getSecurityErrorCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST))
+        throw new Exception("Has permission resulted in " + e.getClass().getName(), e);
+    }
+
+    try {
+      c.securityOperations().revokeTablePermission(c.whoami(), tableName, TablePermission.READ);
+      fail();
+    } catch (Exception e) {
+      if (!(e instanceof AccumuloSecurityException) || !((AccumuloSecurityException) e).getSecurityErrorCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST))
+        throw new Exception("Has permission resulted in " + e.getClass().getName(), e);
+    }
+
+    assertTrue(c.securityOperations().hasNamespacePermission(c.whoami(), namespace, NamespacePermission.READ));
+    c.securityOperations().revokeNamespacePermission(c.whoami(), namespace, NamespacePermission.READ);
+    assertFalse(c.securityOperations().hasNamespacePermission(c.whoami(), namespace, NamespacePermission.READ));
+    c.securityOperations().grantNamespacePermission(c.whoami(), namespace, NamespacePermission.READ);
+    assertTrue(c.securityOperations().hasNamespacePermission(c.whoami(), namespace, NamespacePermission.READ));
+    
+    c.namespaceOperations().delete(namespace);
+
+    try {
+      c.securityOperations().hasTablePermission(c.whoami(), tableName, TablePermission.READ);
+      fail();
+    } catch (Exception e) {
+      if (!(e instanceof AccumuloSecurityException) || !((AccumuloSecurityException) e).getSecurityErrorCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST))
+        throw new Exception("Has permission resulted in " + e.getClass().getName(), e);
+    }
+
+    try {
+      c.securityOperations().grantTablePermission(c.whoami(), tableName, TablePermission.READ);
+      fail();
+    } catch (Exception e) {
+      if (!(e instanceof AccumuloSecurityException) || !((AccumuloSecurityException) e).getSecurityErrorCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST))
+        throw new Exception("Has permission resulted in " + e.getClass().getName(), e);
+    }
+
+    try {
+      c.securityOperations().revokeTablePermission(c.whoami(), tableName, TablePermission.READ);
+      fail();
+    } catch (Exception e) {
+      if (!(e instanceof AccumuloSecurityException) || !((AccumuloSecurityException) e).getSecurityErrorCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST))
+        throw new Exception("Has permission resulted in " + e.getClass().getName(), e);
+    }
+
+    try {
+      c.securityOperations().hasNamespacePermission(c.whoami(), namespace, NamespacePermission.READ);
+      fail();
+    } catch (Exception e) {
+      if (!(e instanceof AccumuloSecurityException) || !((AccumuloSecurityException) e).getSecurityErrorCode().equals(SecurityErrorCode.NAMESPACE_DOESNT_EXIST))
+        throw new Exception("Has permission resulted in " + e.getClass().getName(), e);
+    }
+
+    try {
+      c.securityOperations().grantNamespacePermission(c.whoami(), namespace, NamespacePermission.READ);
+      fail();
+    } catch (Exception e) {
+      if (!(e instanceof AccumuloSecurityException) || !((AccumuloSecurityException) e).getSecurityErrorCode().equals(SecurityErrorCode.NAMESPACE_DOESNT_EXIST))
+        throw new Exception("Has permission resulted in " + e.getClass().getName(), e);
+    }
+
+    try {
+      c.securityOperations().revokeNamespacePermission(c.whoami(), namespace, NamespacePermission.READ);
+      fail();
+    } catch (Exception e) {
+      if (!(e instanceof AccumuloSecurityException) || !((AccumuloSecurityException) e).getSecurityErrorCode().equals(SecurityErrorCode.NAMESPACE_DOESNT_EXIST))
+        throw new Exception("Has permission resulted in " + e.getClass().getName(), e);
+    }
+
+  }
+
+  @Test
   public void verifyTableOperationsExceptions() throws Exception {
     String tableName = namespace + ".1";
     IteratorSetting setting = new IteratorSetting(200, VersioningIterator.class);
@@ -885,7 +980,8 @@ public class NamespacesIT extends SimpleMacIT {
         }
       } catch (Exception e) {
         numRun++;
-        if (!(e instanceof TableNotFoundException || (e instanceof AccumuloException && e.getCause() instanceof TableNotFoundException)))
+        if (!(e instanceof AccumuloException) || !(e.getCause() instanceof TableNotFoundException)
+            || !(e.getCause().getCause() instanceof NamespaceNotFoundException))
           throw new Exception("Case " + i + " resulted in " + e.getClass().getName(), e);
       }
 
@@ -989,7 +1085,7 @@ public class NamespacesIT extends SimpleMacIT {
         }
       } catch (Exception e) {
         numRun++;
-        if (!(e instanceof TableNotFoundException) && !(e.getCause() instanceof NamespaceNotFoundException))
+        if (!(e instanceof TableNotFoundException) || !(e.getCause() instanceof NamespaceNotFoundException))
           throw new Exception("Case " + i + " resulted in " + e.getClass().getName(), e);
       }
   }

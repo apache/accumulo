@@ -211,12 +211,19 @@ public class SecurityOperationsImpl implements SecurityOperations {
     checkArgument(principal != null, "principal is null");
     checkArgument(table != null, "table is null");
     checkArgument(perm != null, "perm is null");
-    return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
-      @Override
-      public Boolean execute(ClientService.Client client) throws Exception {
-        return client.hasTablePermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, table, perm.getId());
-      }
-    });
+    try {
+      return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
+        @Override
+        public Boolean execute(ClientService.Client client) throws Exception {
+          return client.hasTablePermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, table, perm.getId());
+        }
+      });
+    } catch (AccumuloSecurityException e) {
+      if (e.getSecurityErrorCode() == org.apache.accumulo.core.client.security.SecurityErrorCode.NAMESPACE_DOESNT_EXIST)
+        throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST, e);
+      else
+        throw e;
+    }
   }
 
   @Override
@@ -251,12 +258,19 @@ public class SecurityOperationsImpl implements SecurityOperations {
     checkArgument(principal != null, "principal is null");
     checkArgument(table != null, "table is null");
     checkArgument(permission != null, "permission is null");
-    execute(new ClientExec<ClientService.Client>() {
-      @Override
-      public void execute(ClientService.Client client) throws Exception {
-        client.grantTablePermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, table, permission.getId());
-      }
-    });
+    try {
+      execute(new ClientExec<ClientService.Client>() {
+        @Override
+        public void execute(ClientService.Client client) throws Exception {
+          client.grantTablePermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, table, permission.getId());
+        }
+      });
+    } catch (AccumuloSecurityException e) {
+      if (e.getSecurityErrorCode() == org.apache.accumulo.core.client.security.SecurityErrorCode.NAMESPACE_DOESNT_EXIST)
+        throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST, e);
+      else
+        throw e;
+    }
   }
 
   @Override
@@ -291,12 +305,19 @@ public class SecurityOperationsImpl implements SecurityOperations {
     checkArgument(principal != null, "principal is null");
     checkArgument(table != null, "table is null");
     checkArgument(permission != null, "permission is null");
-    execute(new ClientExec<ClientService.Client>() {
-      @Override
-      public void execute(ClientService.Client client) throws Exception {
-        client.revokeTablePermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, table, permission.getId());
-      }
-    });
+    try {
+      execute(new ClientExec<ClientService.Client>() {
+        @Override
+        public void execute(ClientService.Client client) throws Exception {
+          client.revokeTablePermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, table, permission.getId());
+        }
+      });
+    } catch (AccumuloSecurityException e) {
+      if (e.getSecurityErrorCode() == org.apache.accumulo.core.client.security.SecurityErrorCode.NAMESPACE_DOESNT_EXIST)
+        throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST, e);
+      else
+        throw e;
+    }
   }
 
   @Override
