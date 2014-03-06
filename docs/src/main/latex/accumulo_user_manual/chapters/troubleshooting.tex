@@ -140,8 +140,8 @@ Zookeeper processes talk to each other to elect a leader.  All updates
 go through the leader and propagate to a majority of all the other
 nodes.  If a majority of the nodes cannot be reached, zookeeper will
 not allow updates.  Zookeeper also limits the number connections to a
-server from any other single host.  By default, this limit is 10, and
-can be reached in some everything-on-one-machine test configurations.
+server from any other single host.  By default, this limit can be as small as 10 
+and can be reached in some everything-on-one-machine test configurations.
 
 You can check the election status and connection status of clients by
 asking the zookeeper nodes for their status.  You connect to zookeeper
@@ -200,7 +200,7 @@ access this memory, the OS will begin flushing disk buffers to return that
 memory to the VM.  This can cause the entire process to block long
 enough for the zookeeper lock to be lost.
 
-A. Configure your system to reduce the kernel parameter ``swappiness'' from the default (30) to zero.
+A. Configure your system to reduce the kernel parameter ``swappiness'' from the default (60) to zero.
 
 Q. My tablet server lost its lock, and I have already set swappiness to
 zero.  Why?
@@ -447,6 +447,7 @@ INFO : Using ZooKeepers localhost:2181
 \normalsize
 
 \section{System Metadata Tables}
+\label{sec:metadata}
 
 Accumulo tracks information about tables in metadata tables. The metadata for
 most tables is contained within the metadata table in the accumulo namespace,
@@ -517,6 +518,84 @@ Besides these columns, you may see:
 
 \end{enumerate}
 
+\section{Advanced System Recovery}
 
-\section{}
+Q. I had disasterous HDFS failure.  After bringing everything back up, several tablets refuse to go online.
 
+Data written to tablets is written into memory before being written into indexed files.  In case the server
+is lost before the data is saved into a an indexed file, all data stored in memory is first written into a
+write-ahead log (WAL).  When a tablet is re-assigned to a new tablet server, the write-ahead logs are read to
+recover any mutations that were in memory when the tablet was last hosted.
+
+If a write-ahead log cannot be read, then the tablet is not re-assigned.  All it takes is for one of
+the blocks in the write-ahead log to be missing.  This is unlikely unless multiple data nodes in HDFS have been
+lost.
+
+A. Get the WAL files online and healthy.  Restore any data nodes that may be down.
+
+Q. How do find out which tablets are offline?
+
+A. Use ``accumulo admin checkTablets''
+
+\small
+\begin{verbatim}
+  $ bin/accumulo admin checkTablets
+\end{verbatim}
+\normalsize
+
+Q. I lost three data nodes, and I'm missing blocks in a WAL.  I don't care about data loss, how
+can I get those tablets online?
+
+See the discussion in section~\ref{sec:metadata}, which shows a typical metadata table listing.  
+The entries with a column family of ``log'' are references to the WAL for that tablet. 
+If you know what WAL is bad, you can find all the references with a grep in the shell:
+
+\small
+\begin{verbatim}
+shell> grep 0cb7ce52-ac46-4bf7-ae1d-acdcfaa97995
+3< log:127.0.0.1+9997/0cb7ce52-ac46-4bf7-ae1d-acdcfaa97995 []    127.0.0.1+9997/0cb7ce52-ac46-4bf7-ae1d-acdcfaa97995|6
+\end{verbatim}
+\normalsize
+
+A. You can remove the WAL references in the metadata table.
+
+\small
+\begin{verbatim}
+shell> grant -u root Table.WRITE -t accumulo.metadata
+shell> delete 3< log 127.0.0.1+9997/0cb7ce52-ac46-4bf7-ae1d-acdcfaa97995
+\end{verbatim}
+\normalsize
+
+Note: the colon (``:'') is omitted when specifying the ``row cf cq'' for the delete command.
+
+The master will automatically discover the tablet no longer has a bad WAL reference and will
+assign the tablet.  You will need to remove the reference from all the tablets to get them 
+online.
+
+
+Q. The metadata (or root) table has references to a corrupt WAL.
+
+This is a much more serious state, since losing updates to the metadata table will result
+in references to old files which may not exist, or lost references to new files, resulting
+in tablets that cannot be read, or large amounts of data loss.
+
+The best hope is to restore the WAL by fixing HDFS data nodes and bringing the data back online.
+If this is not possible, the best approach is to re-create the instance and bulk import all files from
+the old instance into a new tables.
+
+A complete set of instructions for doing this is outside the scope of this guide,
+but the basic approach is:
+
+\begin{itemize}
+ \item Use ``tables -l'' in the shell to discover the table name to table id mapping
+ \item Stop all accumulo processes on all nodes
+ \item Move the accumulo directory in HDFS out of the way:
+\small
+\begin{verbatim}
+ $ hadoop fs -mv /accumulo /corrupt
+\end{verbatim}
+\normalsize
+ \item Re-initalize accumulo
+ \item Recreate tables, users and permissions
+ \item Import the directories under \texttt{/corrupt/tables/<id>} into the new instance
+\end{itemize}
