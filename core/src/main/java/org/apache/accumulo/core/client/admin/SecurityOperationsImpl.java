@@ -53,6 +53,8 @@ public class SecurityOperationsImpl implements SecurityOperations {
       // recast missing table
       if (ttoe.getType() == TableOperationExceptionType.NOTFOUND)
         throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST);
+      else if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND)
+        throw new AccumuloSecurityException(null, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
       else
         throw new AccumuloException(ttoe);
     } catch (ThriftSecurityException e) {
@@ -71,6 +73,8 @@ public class SecurityOperationsImpl implements SecurityOperations {
       // recast missing table
       if (ttoe.getType() == TableOperationExceptionType.NOTFOUND)
         throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST);
+      else if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND)
+        throw new AccumuloSecurityException(null, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
       else
         throw new AccumuloException(ttoe);
     } catch (ThriftSecurityException e) {
@@ -199,12 +203,19 @@ public class SecurityOperationsImpl implements SecurityOperations {
   @Override
   public boolean hasTablePermission(final String principal, final String table, final TablePermission perm) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(principal, table, perm);
-    return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
-      @Override
-      public Boolean execute(ClientService.Client client) throws Exception {
-        return client.hasTablePermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, table, perm.getId());
-      }
-    });
+    try {
+      return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
+        @Override
+        public Boolean execute(ClientService.Client client) throws Exception {
+          return client.hasTablePermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, table, perm.getId());
+        }
+      });
+    } catch (AccumuloSecurityException e) {
+      if (e.getSecurityErrorCode() == org.apache.accumulo.core.client.security.SecurityErrorCode.NAMESPACE_DOESNT_EXIST)
+        throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST, e);
+      else
+        throw e;
+    }
   }
 
   @Override
@@ -234,12 +245,19 @@ public class SecurityOperationsImpl implements SecurityOperations {
   public void grantTablePermission(final String principal, final String table, final TablePermission permission) throws AccumuloException,
       AccumuloSecurityException {
     ArgumentChecker.notNull(principal, table, permission);
-    execute(new ClientExec<ClientService.Client>() {
-      @Override
-      public void execute(ClientService.Client client) throws Exception {
-        client.grantTablePermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, table, permission.getId());
-      }
-    });
+    try {
+      execute(new ClientExec<ClientService.Client>() {
+        @Override
+        public void execute(ClientService.Client client) throws Exception {
+          client.grantTablePermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, table, permission.getId());
+        }
+      });
+    } catch (AccumuloSecurityException e) {
+      if (e.getSecurityErrorCode() == org.apache.accumulo.core.client.security.SecurityErrorCode.NAMESPACE_DOESNT_EXIST)
+        throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST, e);
+      else
+        throw e;
+    }
   }
 
   @Override
@@ -269,12 +287,19 @@ public class SecurityOperationsImpl implements SecurityOperations {
   public void revokeTablePermission(final String principal, final String table, final TablePermission permission) throws AccumuloException,
       AccumuloSecurityException {
     ArgumentChecker.notNull(principal, table, permission);
-    execute(new ClientExec<ClientService.Client>() {
-      @Override
-      public void execute(ClientService.Client client) throws Exception {
-        client.revokeTablePermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, table, permission.getId());
-      }
-    });
+    try {
+      execute(new ClientExec<ClientService.Client>() {
+        @Override
+        public void execute(ClientService.Client client) throws Exception {
+          client.revokeTablePermission(Tracer.traceInfo(), credentials.toThrift(instance), principal, table, permission.getId());
+        }
+      });
+    } catch (AccumuloSecurityException e) {
+      if (e.getSecurityErrorCode() == org.apache.accumulo.core.client.security.SecurityErrorCode.NAMESPACE_DOESNT_EXIST)
+        throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST, e);
+      else
+        throw e;
+    }
   }
 
   @Override
