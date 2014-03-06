@@ -16,18 +16,16 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
-import java.io.File;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
+import org.apache.accumulo.core.util.shell.ShellUtil;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.MissingArgumentException;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.io.Text;
 
 public class AddSplitsCommand extends Command {
@@ -40,16 +38,7 @@ public class AddSplitsCommand extends Command {
     final TreeSet<Text> splits = new TreeSet<Text>();
     
     if (cl.hasOption(optSplitsFile.getOpt())) {
-      final String f = cl.getOptionValue(optSplitsFile.getOpt());
-      
-      String line;
-      java.util.Scanner file = new java.util.Scanner(new File(f), Constants.UTF8.name());
-      while (file.hasNextLine()) {
-        line = file.nextLine();
-        if (!line.isEmpty()) {
-          splits.add(decode ? new Text(Base64.decodeBase64(line.getBytes(Constants.UTF8))) : new Text(line));
-        }
-      }
+      splits.addAll(ShellUtil.scanFile(cl.getOptionValue(optSplitsFile.getOpt()), decode));
     } else {
       if (cl.getArgList().isEmpty()) {
         throw new MissingArgumentException("No split points specified");

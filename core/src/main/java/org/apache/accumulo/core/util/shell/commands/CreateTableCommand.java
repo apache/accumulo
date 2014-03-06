@@ -16,16 +16,13 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Scanner;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -37,12 +34,12 @@ import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.security.VisibilityConstraint;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
+import org.apache.accumulo.core.util.shell.ShellUtil;
 import org.apache.accumulo.core.util.shell.Token;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.io.Text;
 
 public class CreateTableCommand extends Command {
@@ -75,19 +72,7 @@ public class CreateTableCommand extends Command {
     final boolean decode = cl.hasOption(base64Opt.getOpt());
 
     if (cl.hasOption(createTableOptSplit.getOpt())) {
-      final String f = cl.getOptionValue(createTableOptSplit.getOpt());
-
-      String line;
-      Scanner file = new Scanner(new File(f), Constants.UTF8.name());
-      try {
-        while (file.hasNextLine()) {
-          line = file.nextLine();
-          if (!line.isEmpty())
-            partitions.add(decode ? new Text(Base64.decodeBase64(line.getBytes(Constants.UTF8 ))) : new Text(line));
-        }
-      } finally {
-        file.close();
-      }
+      partitions.addAll(ShellUtil.scanFile(cl.getOptionValue(createTableOptSplit.getOpt()), decode));
     } else if (cl.hasOption(createTableOptCopySplits.getOpt())) {
       final String oldTable = cl.getOptionValue(createTableOptCopySplits.getOpt());
       if (!shellState.getConnector().tableOperations().exists(oldTable)) {
