@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -32,8 +33,8 @@ import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.interpret.DefaultScanInterpreter;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
+import org.apache.commons.configuration.MapConfiguration;
 import org.apache.commons.configuration.PropertiesConfiguration;
-import org.apache.commons.configuration.SystemConfiguration;
 import org.apache.log4j.Logger;
 
 public enum Property {
@@ -465,7 +466,10 @@ public enum Property {
   public String getDefaultValue() {
     if (isInterpolated()) {
       PropertiesConfiguration pconf = new PropertiesConfiguration();
-      pconf.append(new SystemConfiguration());
+      Properties systemProperties = System.getProperties();
+      synchronized (systemProperties) {
+        pconf.append(new MapConfiguration(systemProperties));
+      }
       pconf.addProperty("hack_default_value", this.defaultValue);
       String v = pconf.getString("hack_default_value");
       if (this.type == PropertyType.ABSOLUTEPATH)
