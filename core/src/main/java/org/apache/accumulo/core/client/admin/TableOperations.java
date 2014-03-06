@@ -723,6 +723,7 @@ public interface TableOperations {
    * @return a list of disk usage objects containing linked table names and sizes
    * @throws AccumuloException
    * @throws AccumuloSecurityException
+   * @since 1.6.0
    */
   List<DiskUsage> getDiskUsage(Set<String> tables) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
