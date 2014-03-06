@@ -26,7 +26,7 @@
      <param name="Threshold"      value="DEBUG"/>
      <layout class="org.apache.log4j.PatternLayout">
        <param name="ConversionPattern" value="%d{ISO8601} [%-8c{2}] %-5p: %X{application} %m%n"/>
-     </layout>	    
+     </layout>
   </appender>
 
   <!--  Write out INFO and higher to the regular log -->
@@ -37,7 +37,7 @@
      <param name="Threshold"      value="INFO"/>
      <layout class="org.apache.log4j.PatternLayout">
        <param name="ConversionPattern" value="%d{ISO8601} [%-8c{2}] %-5p: %X{application} %m%n"/>
-     </layout>	    
+     </layout>
   </appender>
 
   <!-- Keep the last few log messages for display to the user -->
