@@ -20,6 +20,7 @@ import java.io.File;
 import java.lang.annotation.Annotation;
 import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.Properties;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -28,8 +29,8 @@ import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.interpret.DefaultScanInterpreter;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
+import org.apache.commons.configuration.MapConfiguration;
 import org.apache.commons.configuration.PropertiesConfiguration;
-import org.apache.commons.configuration.SystemConfiguration;
 import org.apache.log4j.Logger;
 
 public enum Property {
@@ -364,6 +365,9 @@ public enum Property {
     this.description = description;
     this.type = type;
     this.experimental = experimental;
+    // Interpolated items need to be careful, as JVM properties could be updates and we may want that propogated when those changes occur.
+    // Currently only VFS_CLASSLOADER_CACHE_DIR, which isn't ZK mutable, is interpolated, so this shouldn't be an issue as java.io.tmpdir
+    // also shouldn't be changing.
     this.interpolated = interpolated;
   }
   
@@ -387,7 +391,10 @@ public enum Property {
   public String getDefaultValue() {
     if (this.interpolated) {
       PropertiesConfiguration pconf = new PropertiesConfiguration();
-      pconf.append(new SystemConfiguration());
+      Properties systemProperties = System.getProperties();
+      synchronized (systemProperties) {
+        pconf.append(new MapConfiguration(systemProperties));
+      }
       pconf.addProperty("hack_default_value", this.defaultValue);
       String v = pconf.getString("hack_default_value");
       if (this.type == PropertyType.ABSOLUTEPATH)
