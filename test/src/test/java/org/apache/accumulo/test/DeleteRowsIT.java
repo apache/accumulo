@@ -25,7 +25,7 @@ import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.junit.Test;
 
-public class TestDeleteRowsIT extends SimpleMacIT {
+public class DeleteRowsIT extends SimpleMacIT {
   
   @Test(timeout = 60 * 1000)
   public void test() throws Exception {
