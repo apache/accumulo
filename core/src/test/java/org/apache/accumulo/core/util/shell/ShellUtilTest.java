@@ -37,7 +37,7 @@ public class ShellUtilTest {
 
   @Rule
   public TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
-  
+
   // String with 3 lines, with one empty line
   private static final String FILEDATA = "line1\n\nline2";
 
@@ -54,12 +54,12 @@ public class ShellUtilTest {
     File testFile = new File(folder.getRoot(), "testFileWithDecode.txt");
     FileUtils.writeStringToFile(testFile, FILEDATA);
     List<Text> output = ShellUtil.scanFile(testFile.getAbsolutePath(), true);
-    assertEquals(ImmutableList.of(
-        new Text(Base64.decodeBase64("line1".getBytes(Constants.UTF8))), 
-        new Text(Base64.decodeBase64("line2".getBytes(Constants.UTF8)))), output);
+    assertEquals(
+        ImmutableList.of(new Text(Base64.decodeBase64("line1".getBytes(Constants.UTF8))), new Text(Base64.decodeBase64("line2".getBytes(Constants.UTF8)))),
+        output);
   }
 
-  @Test(expected=FileNotFoundException.class)
+  @Test(expected = FileNotFoundException.class)
   public void testWithMissingFile() throws FileNotFoundException {
     ShellUtil.scanFile("missingFile.txt", false);
   }
