@@ -123,9 +123,10 @@ class TabletGroupWatcher extends Daemon {
       ClosableIterator<TabletLocationState> iter = null;
       try {
         Map<Text,MergeStats> mergeStatsCache = new HashMap<Text,MergeStats>();
+        Map<Text,MergeStats> currentMerges = new HashMap<Text,MergeStats>();
         for (MergeInfo merge : master.merges()) {
           if (merge.getExtent() != null) {
-            mergeStatsCache.put(merge.getExtent().getTableId(), new MergeStats(merge));
+            currentMerges.put(merge.getExtent().getTableId(), new MergeStats(merge));
           }
         }
         
@@ -179,7 +180,11 @@ class TabletGroupWatcher extends Daemon {
           Text tableId = tls.extent.getTableId();
           MergeStats mergeStats = mergeStatsCache.get(tableId);
           if (mergeStats == null) {
-            mergeStatsCache.put(tableId, mergeStats = new MergeStats(new MergeInfo()));
+            mergeStats = currentMerges.get(tableId);
+            if (mergeStats == null) {
+              mergeStats = new MergeStats(new MergeInfo());
+            }
+            mergeStatsCache.put(tableId, mergeStats);
           }
           TabletGoalState goal = this.master.getGoalState(tls, mergeStats.getMergeInfo());
           TServerInstance server = tls.getServer();
