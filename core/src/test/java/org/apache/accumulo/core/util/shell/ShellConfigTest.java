@@ -53,6 +53,7 @@ public class ShellConfigTest {
   
   @After
   public void teardown() throws Exception {
+    shell.shutdown();
     output.clear();
     System.setOut(out);
   }

@@ -99,6 +99,7 @@ public class ShellSetInstanceTest {
   }
   @After
   public void tearDown() {
+    shell.shutdown();
     SiteConfiguration.clearInstance();
   }
 

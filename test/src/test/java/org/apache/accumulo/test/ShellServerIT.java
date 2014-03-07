@@ -185,11 +185,6 @@ public class ShellServerIT extends SimpleMacIT {
     exec("quit", true);
     shell.start();
     shell.setExit(false);
-
-    traceProcess = getStaticCluster().exec(TraceServer.class);
-
-    // give the tracer some time to start
-    UtilWaitThread.sleep(1000);
   }
 
   @AfterClass
@@ -208,6 +203,11 @@ public class ShellServerIT extends SimpleMacIT {
           // don't care
         }
     }
+  }
+
+  @After
+  public void tearDownShell() {
+    shell.shutdown();
   }
 
   @Test(timeout = 60000)
