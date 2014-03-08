@@ -599,3 +599,32 @@ but the basic approach is:
  \item Recreate tables, users and permissions
  \item Import the directories under \texttt{/corrupt/tables/<id>} into the new instance
 \end{itemize}
+
+\section{File Naming Conventions}
+
+Q. Why are files named like they are? Why do some start with ``C'' and others with ``F''?
+
+A. The file names give you a basic idea for the source of the file.
+
+The base of the filename is a base-36 unique number. All filenames in accumulo are coordinated 
+with a counter in zookeeper, so they are always unique, which is useful for debugging.
+
+The leading letter gives you an idea of how the file was created:
+
+\begin{itemize}
+ \item F - Flush: entries in memory were written to a file (Minor Compaction)
+ \item M - Merging compaction: entries in memory were combined with the smallest file to create one new file
+ \item C - Several files, but not all files, were combined to produce this file (Major Compaction)
+ \item A - All files were compacted, delete entries were dropped
+ \item I - Bulk import, complete, sorted index files. Always in a directory starting with "b-"
+\end{itemize}
+
+This simple file naming convention allows you to see the basic structure of the files from just 
+their filenames, and reason about what should be happening to them next, just
+by scanning their entries in the metadata tables.
+
+For example, if you see multiple files with ``M'' prefixes, the tablet is, or was, up against it's
+maximum file limit, so it began merging memory updates with files to keep the file count reasonable.  This
+slows down ingest performance, so knowing there are many files like this tells you that the system
+is struggling to keep up with ingest vs the compaction strategy which reduces the number of files.
+
