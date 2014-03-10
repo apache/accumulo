@@ -22,6 +22,8 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -104,7 +106,8 @@ public class ShellTest {
     Shell.log.setLevel(Level.OFF);
     output = new TestOutputStream();
     input = new StringInputStream();
-    shell = new Shell(new ConsoleReader(input, output));
+    PrintWriter pw = new PrintWriter(new OutputStreamWriter(output));
+    shell = new Shell(new ConsoleReader(input, output), pw);
     shell.setLogErrorsToConsole();
     shell.config("--fake", "-u", "test", "-p", "secret");
   }
