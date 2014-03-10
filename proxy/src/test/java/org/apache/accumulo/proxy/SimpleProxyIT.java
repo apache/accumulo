@@ -731,7 +731,7 @@ public class SimpleProxyIT {
     assertScan(new String[][] {}, TABLE_TEST);
   }
 
-  @Test(timeout = 10000)
+  @Test(timeout = 60000)
   public void testInstanceOperations() throws Exception {
     int tservers = 0;
     for (String tserver : client.getTabletServers(creds)) {
@@ -772,12 +772,14 @@ public class SimpleProxyIT {
 
     // create a table that's very slow, so we can look for scans/compactions
     client.createTable(creds, "slow", true, TimeType.MILLIS);
-    IteratorSetting setting = new IteratorSetting(100, "slow", SlowIterator.class.getName(), Collections.singletonMap("sleepTime", "200"));
+
+    // Should take 5 seconds to read every record
+    for (int i = 0; i < 20; i++) {
+      client.updateAndFlush(creds, "slow", mutation("row" + i, "cf", "cq", "value"));
+    }
+
+    IteratorSetting setting = new IteratorSetting(100, "slow", SlowIterator.class.getName(), Collections.singletonMap("sleepTime", "250"));
     client.attachIterator(creds, "slow", setting, EnumSet.allOf(IteratorScope.class));
-    client.updateAndFlush(creds, "slow", mutation("row", "cf", "cq", "value"));
-    client.updateAndFlush(creds, "slow", mutation("row2", "cf", "cq", "value"));
-    client.updateAndFlush(creds, "slow", mutation("row3", "cf", "cq", "value"));
-    client.updateAndFlush(creds, "slow", mutation("row4", "cf", "cq", "value"));
 
     // scan
     Thread t = new Thread() {
@@ -795,27 +797,44 @@ public class SimpleProxyIT {
       }
     };
     t.start();
+
     // look for the scan
-    List<ActiveScan> scans = Collections.emptyList();
-    loop: for (int i = 0; i < 100; i++) {
+    List<ActiveScan> scans = new ArrayList<ActiveScan>();
+    for (int i = 0; i < 100 && scans.isEmpty(); i++) {
       for (String tserver : client.getTabletServers(creds)) {
-        scans = client.getActiveScans(creds, tserver);
+        List<ActiveScan> scansForServer = client.getActiveScans(creds, tserver);
+        for (ActiveScan scan : scansForServer) {
+          if ("root".equals(scan.getUser())) {
+            scans.add(scan);
+          }
+        }
+
         if (!scans.isEmpty())
-          break loop;
+          break;
         UtilWaitThread.sleep(10);
       }
     }
     t.join();
+
     assertFalse(scans.isEmpty());
-    ActiveScan scan = scans.get(0);
-    assertEquals("root", scan.getUser());
-    assertTrue(ScanState.RUNNING.equals(scan.getState()) || ScanState.QUEUED.equals(scan.getState()));
-    assertEquals(ScanType.SINGLE, scan.getType());
-    assertEquals("slow", scan.getTable());
-    Map<String,String> map = client.tableIdMap(creds);
-    assertEquals(map.get("slow"), scan.getExtent().tableId);
-    assertTrue(scan.getExtent().endRow == null);
-    assertTrue(scan.getExtent().prevEndRow == null);
+    boolean found = false;
+    Map<String,String> map = null;
+    for (int i = 0; i < scans.size() && !found; i++) {
+      ActiveScan scan = scans.get(i);
+      if ("root".equals(scan.getUser())) {
+        assertTrue(ScanState.RUNNING.equals(scan.getState()) || ScanState.QUEUED.equals(scan.getState()));
+        assertEquals(ScanType.SINGLE, scan.getType());
+        assertEquals("slow", scan.getTable());
+
+        map = client.tableIdMap(creds);
+        assertEquals(map.get("slow"), scan.getExtent().tableId);
+        assertTrue(scan.getExtent().endRow == null);
+        assertTrue(scan.getExtent().prevEndRow == null);
+        found = true;
+      }
+    }
+
+    assertTrue("Could not find a scan against the 'slow' table", found);
 
     // start a compaction
     t = new Thread() {
@@ -831,26 +850,45 @@ public class SimpleProxyIT {
     };
     t.start();
 
+    final String desiredTableId = map.get("slow");
+
     // try to catch it in the act
-    List<ActiveCompaction> compactions = Collections.emptyList();
-    loop2: for (int i = 0; i < 100; i++) {
+    List<ActiveCompaction> compactions = new ArrayList<ActiveCompaction>();
+    for (int i = 0; i < 100 && compactions.isEmpty(); i++) {
+      // Iterate over the tservers
       for (String tserver : client.getTabletServers(creds)) {
-        compactions = client.getActiveCompactions(creds, tserver);
+        // And get the compactions on each
+        List<ActiveCompaction> compactionsOnServer = client.getActiveCompactions(creds, tserver);
+        for (ActiveCompaction compact : compactionsOnServer) {
+          // There might be other compactions occurring (e.g. on METADATA) in which
+          // case we want to prune out those that aren't for our slow table
+          if (desiredTableId.equals(compact.getExtent().tableId)) {
+            compactions.add(compact);
+          }
+        }
+
+        // If we found a compaction for the table we wanted, so we can stop looking
         if (!compactions.isEmpty())
-          break loop2;
+          break;
       }
       UtilWaitThread.sleep(10);
     }
     t.join();
+
     // verify the compaction information
     assertFalse(compactions.isEmpty());
-    ActiveCompaction c = compactions.get(0);
-    assertEquals(map.get("slow"), c.getExtent().tableId);
-    assertTrue(c.inputFiles.isEmpty());
-    assertEquals(CompactionType.MINOR, c.getType());
-    assertEquals(CompactionReason.USER, c.getReason());
-    assertEquals("", c.localityGroup);
-    assertTrue(c.outputFile.contains("default_tablet"));
+    for (ActiveCompaction c : compactions) {
+      if (desiredTableId.equals(c.getExtent().tableId)) {
+        assertTrue(c.inputFiles.isEmpty());
+        assertEquals(CompactionType.MINOR, c.getType());
+        assertEquals(CompactionReason.USER, c.getReason());
+        assertEquals("", c.localityGroup);
+        assertTrue(c.outputFile.contains("default_tablet"));
+
+        return;
+      }
+    }
+    fail("Expection to find running compaction for table 'slow' but did not find one");
   }
 
   @Test

@@ -29,6 +29,7 @@ import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -94,7 +95,7 @@ public class ShellSetInstanceTest {
   public void setup() throws IOException {
     Shell.log.setLevel(Level.OFF);
     output = new TestOutputStream();
-    shell = new Shell(new ConsoleReader(new FileInputStream(FileDescriptor.in), output));
+    shell = new Shell(new ConsoleReader(new FileInputStream(FileDescriptor.in), output), new PrintWriter(output));
     shell.setLogErrorsToConsole();
   }
   @After

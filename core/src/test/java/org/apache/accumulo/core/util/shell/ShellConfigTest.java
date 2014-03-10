@@ -22,6 +22,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 
 import jline.console.ConsoleReader;
 
@@ -46,8 +47,8 @@ public class ShellConfigTest {
     out = System.out;
     output = new TestOutputStream();
     System.setOut(new PrintStream(output));
-    
-    shell = new Shell(new ConsoleReader(new FileInputStream(FileDescriptor.in), output));
+
+    shell = new Shell(new ConsoleReader(new FileInputStream(FileDescriptor.in), output), new PrintWriter(output));
     shell.setLogErrorsToConsole();
   }
   
