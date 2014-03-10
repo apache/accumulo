@@ -1293,9 +1293,10 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
         int unloaded = 0;
         try {
           Map<Text,MergeStats> mergeStatsCache = new HashMap<Text,MergeStats>();
+          Map<Text,MergeStats> currentMerges = new HashMap<Text,MergeStats>();
           for (MergeInfo merge : merges()) {
             if (merge.getRange() != null) {
-              mergeStatsCache.put(merge.getRange().getTableId(), new MergeStats(merge));
+              currentMerges.put(merge.getRange().getTableId(), new MergeStats(merge));
             }
           }
           
@@ -1341,7 +1342,11 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
             Text tableId = tls.extent.getTableId();
             MergeStats mergeStats = mergeStatsCache.get(tableId);
             if (mergeStats == null) {
-              mergeStatsCache.put(tableId, mergeStats = new MergeStats(getMergeInfo(tableId)));
+              mergeStats = currentMerges.get(tableId);
+              if (mergeStats == null) {
+                mergeStats = new MergeStats(getMergeInfo(tableId));
+              }
+              mergeStatsCache.put(tableId, mergeStats);
             }
             TabletGoalState goal = getGoalState(tls, mergeStats.getMergeInfo());
             TServerInstance server = tls.getServer();
