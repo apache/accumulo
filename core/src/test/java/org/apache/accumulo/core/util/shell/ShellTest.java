@@ -24,6 +24,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 
 import jline.ConsoleReader;
 
@@ -81,7 +82,8 @@ public class ShellTest {
   public void setup() throws IOException {
     Shell.log.setLevel(Level.OFF);
     output = new TestOutputStream();
-    shell = new Shell(new ConsoleReader(new FileInputStream(FileDescriptor.in), new OutputStreamWriter(output)));
+    PrintWriter pw = new PrintWriter( new OutputStreamWriter(output));
+    shell = new Shell(new ConsoleReader(new FileInputStream(FileDescriptor.in), new OutputStreamWriter(output)), pw);
     shell.setLogErrorsToConsole();
     shell.config("--fake", "-u", "test", "-p", "secret");
   }

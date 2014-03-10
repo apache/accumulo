@@ -163,7 +163,8 @@ public class ShellServerTest {
   public void setupShell() throws Exception {
     // start the shell
     output = new TestOutputStream();
-    shell = new Shell(new ConsoleReader(new FileInputStream(FileDescriptor.in), new OutputStreamWriter(output)));
+    PrintWriter pw = new PrintWriter(new OutputStreamWriter(output));
+    shell = new Shell(new ConsoleReader(new FileInputStream(FileDescriptor.in), new OutputStreamWriter(output)), pw);
     shell.setLogErrorsToConsole();
     shell.config("-u", "root", "-p", secret, "-z", cluster.getInstanceName(), cluster.getZooKeepers());
     exec("quit", true);

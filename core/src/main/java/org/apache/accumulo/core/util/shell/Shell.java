@@ -202,16 +202,14 @@ public class Shell extends ShellOptions {
   private boolean masking = false;
   
   public Shell() throws IOException {
-    this(new ConsoleReader());
-  }
-  
-  public Shell(ConsoleReader reader) {
-    super();
-    this.reader = reader;
+    this(new ConsoleReader(), new PrintWriter(
+        new OutputStreamWriter(System.out,
+        System.getProperty("jline.WindowsTerminal.output.encoding", System.getProperty("file.encoding")))));
   }
   
   public Shell(ConsoleReader reader, PrintWriter writer) {
-    this(reader);
+    super();
+    this.reader = reader;
     this.writer = writer;
   }
   
@@ -943,13 +941,9 @@ public class Shell extends ShellOptions {
   }
   
   private final void printHelp(String usage, String description, Options opts, int width) {
-    PrintWriter pw = new PrintWriter(new OutputStreamWriter(System.err, Constants.UTF8));
-    new HelpFormatter().printHelp(pw, width, usage, description, opts, 2, 5, null, true);
-    pw.flush();
-    if (logErrorsToConsole && writer != null) {
-      new HelpFormatter().printHelp(writer, width, usage, description, opts, 2, 5, null, true);
-      writer.flush();
-    }
+    // TODO Use the OutputStream from the JLine ConsoleReader if we can ever get access to it
+    new HelpFormatter().printHelp(writer, width, usage, description, opts, 2, 5, null, true);
+    writer.flush();
   }
   
   public int getExitCode() {
