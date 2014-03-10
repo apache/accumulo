@@ -31,6 +31,10 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -53,6 +57,7 @@ import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.server.trace.TraceServer;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -85,7 +90,19 @@ public class ShellServerTest {
     }
   }
   
+  private static abstract class ErrorMessageCallback {
+    public abstract String getErrorMessage();
+  }
+  
+  private static class NoOpErrorMessageCallback extends ErrorMessageCallback {
+    private static final String empty = "";
+    public String getErrorMessage() { 
+      return empty;
+    }
+  }
+  
   private static final Logger log = Logger.getLogger(ShellServerTest.class);
+  private static final NoOpErrorMessageCallback noop = new NoOpErrorMessageCallback();
 
   private static String secret = "superSecret";
   public static TemporaryFolder folder = new TemporaryFolder();
@@ -104,36 +121,51 @@ public class ShellServerTest {
   }
 
   String exec(String cmd, boolean expectGoodExit) throws IOException {
+    return exec(cmd, expectGoodExit, noop);
+  }
+
+  String exec(String cmd, boolean expectGoodExit, ErrorMessageCallback callback) throws IOException {
     String result = exec(cmd);
     if (expectGoodExit)
-      assertGoodExit("", true);
+      assertGoodExit("", true, callback);
     else
-      assertBadExit("", true);
+      assertBadExit("", true, callback);
     return result;
   }
 
   String exec(String cmd, boolean expectGoodExit, String expectString) throws IOException {
-    return exec(cmd, expectGoodExit, expectString, true);
+    return exec(cmd, expectGoodExit, expectString, noop);
+  }
+
+  String exec(String cmd, boolean expectGoodExit, String expectString, ErrorMessageCallback callback) throws IOException {
+    return exec(cmd, expectGoodExit, expectString, true, callback);
   }
 
   String exec(String cmd, boolean expectGoodExit, String expectString, boolean stringPresent) throws IOException {
+    return exec(cmd, expectGoodExit, expectString, stringPresent, noop);
+  }
+
+  String exec(String cmd, boolean expectGoodExit, String expectString, boolean stringPresent, ErrorMessageCallback callback) throws IOException {
     String result = exec(cmd);
     if (expectGoodExit)
-      assertGoodExit(expectString, stringPresent);
+      assertGoodExit(expectString, stringPresent, callback);
     else
-      assertBadExit(expectString, stringPresent);
+      assertBadExit(expectString, stringPresent, callback);
     return result;
   }
 
-  void assertGoodExit(String s, boolean stringPresent) {
+  void assertGoodExit(String s, boolean stringPresent, ErrorMessageCallback callback) {
     Shell.log.debug(output.get());
-    assertEquals(0, shell.getExitCode());
+    if (0 != shell.getExitCode()) {
+      String errorMsg = callback.getErrorMessage();
+      assertEquals(0, shell.getExitCode());
+    }
 
     if (s.length() > 0)
       assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent, output.get().contains(s));
   }
 
-  void assertBadExit(String s, boolean stringPresent) {
+  void assertBadExit(String s, boolean stringPresent, ErrorMessageCallback callback) {
     Shell.log.debug(output.get());
     assertTrue(shell.getExitCode() > 0);
     if (s.length() > 0)
@@ -409,7 +441,16 @@ public class ShellServerTest {
     final String table = name.getMethodName();
     // addauths
     exec("createtable " + table + " -evc");
-    exec("insert a b c d -l foo", false, "does not have authorization", true);
+    exec("insert a b c d -l foo", false, "does not have authorization", true, new ErrorMessageCallback() {
+      public String getErrorMessage() {
+        try {
+          Connector c = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers()).getConnector("root", new PasswordToken(secret));
+          return "Current auths for root are: " + c.securityOperations().getUserAuthorizations("root").toString();
+        } catch (Exception e) {
+          return "Could not check authorizations";
+        }
+      }
+    });
     exec("addauths -s foo,bar", true);
     exec("getauths", true, "foo", true);
     exec("getauths", true, "bar", true);
@@ -486,10 +527,10 @@ public class ShellServerTest {
     exec("flush -w");
     exec("insert n 1 2 3");
     exec("flush -w");
-    oldCount = countFiles(tableId);
+    List<String> oldFiles = getFiles(tableId);
 
     // at this point there are 4 files in the default tablet
-    assertEquals(4, oldCount);
+    assertEquals("Files that were found: " + oldFiles, 4, oldFiles.size());
     
     // compact some data:
     exec("compact -b g -e z -w");
@@ -564,7 +605,8 @@ public class ShellServerTest {
     exec("addsplits row5 row7");
     make10();
     exec("flush -w -t " + table);
-    assertEquals(3, countFiles(tableId));
+    List<String> files = getFiles(tableId);
+    assertEquals("Found the following files: " + files, 3, files.size());
     exec("deleterows -t " + table + " -b row5 -e row7", true);
     assertEquals(2, countFiles(tableId));
     exec("deletetable -f " + table);
@@ -767,12 +809,13 @@ public class ShellServerTest {
     final String table = name.getMethodName();
     
     exec("createtable " + table, true);
+
+    // Should be about a 3 second scan
+    for (int i = 0; i < 6; i++) {
+      exec("insert " + i + " cf cq value", true);
+    }
     exec("config -t " + table + " -s table.iterator.scan.slow=30,org.apache.accumulo.test.functional.SlowIterator", true);
-    exec("config -t " + table + " -s table.iterator.scan.slow.opt.sleepTime=1000", true);
-    exec("insert a cf cq value", true);
-    exec("insert b cf cq value", true);
-    exec("insert c cf cq value", true);
-    exec("insert d cf cq value", true);
+    exec("config -t " + table + " -s table.iterator.scan.slow.opt.sleepTime=500", true);
     Thread thread = new Thread() {
       public void run() {
         try {
@@ -788,14 +831,30 @@ public class ShellServerTest {
       }
     };
     thread.start();
-    exec("sleep 0.1", true);
-    String scans = exec("listscans", true);
-    String lines[] = scans.split("\n");
-    String last = lines[lines.length - 1];
-    assertTrue(last.contains("RUNNING"));
-    String parts[] = last.split("\\|");
-    assertEquals(13, parts.length);
+
+    List<String> scans = new ArrayList<String>();
+    // Try to find the active scan for about 5seconds
+    for (int i = 0; i < 50 && scans.isEmpty(); i++) {
+      String currentScans = exec("listscans", true);
+      String[] lines = currentScans.split("\n");
+      for (int scanOffset = 2; i < lines.length; i++) {
+        String currentScan = lines[scanOffset];
+        if (currentScan.contains(table)) {
+          scans.add(currentScan);
+        }
+      }
+      UtilWaitThread.sleep(100);
+    }
     thread.join();
+
+    assertFalse("Could not find any active scans over table " + table, scans.isEmpty());
+
+    for (String scan : scans) {
+      assertTrue("Scan does not appear to be a 'RUNNING' scan: '" + scan + "'", scan.contains("RUNNING"));
+      String parts[] = scan.split("\\|");
+      assertEquals("Expected 13 colums, but found " + parts.length + " instead for '" + Arrays.toString(parts) + "'", 13, parts.length);
+    }
+    
     exec("deletetable -f " + table, true);
   }
 
@@ -873,13 +932,24 @@ public class ShellServerTest {
       exec(String.format("insert row%d cf col%d value", i, i));
     }
   }
+  
+  private List<String> getFiles(String tableId) throws IOException {
+    output.clear();
+
+    exec("scan -t !METADATA -np -c file -b " + tableId + " -e " + tableId + "~");
+
+    String[] lines = StringUtils.split(output.get(), "\n");
+    output.clear();
+
+    if (0 == lines.length) {
+      return Collections.emptyList();
+    }
+
+    return Arrays.asList(Arrays.copyOfRange(lines, 1, lines.length));
+  }
 
   private int countFiles(String tableId) throws IOException {
-    exec("scan -t !METADATA -np -c file -b " + tableId + " -e " + tableId + "~");
-    
-    log.debug("countFiles(): " + output.get());
-    
-    return output.get().split("\n").length - 1;
+    return getFiles(tableId).size();
   }
   
   private String getTableId(String tableName) throws Exception {
