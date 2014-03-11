@@ -190,7 +190,11 @@ public class ShellServerIT extends SimpleMacIT {
 
   void assertBadExit(String s, boolean stringPresent, ErrorMessageCallback callback) {
     Shell.log.debug(output.get());
-    assertTrue(shell.getExitCode() > 0);
+    if (0 == shell.getExitCode()) {
+      String errorMsg = callback.getErrorMessage();
+      assertTrue(errorMsg, shell.getExitCode() > 0);
+    }
+
     if (s.length() > 0)
       assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent, output.get().contains(s));
     shell.resetExitCode();
