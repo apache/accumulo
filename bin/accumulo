@@ -29,6 +29,11 @@ script=$( basename "${SOURCE}" )
 . "${bin}"/config.sh
 
 START_JAR="${ACCUMULO_HOME}/lib/accumulo-start.jar"
+if [ ! -f "$START_JAR" ]; then
+   if [ -x /bin/rpm ]; then
+       START_JAR=$(echo $(/bin/rpm -E "%{_javadir}/accumulo/"accumulo-start-*.jar))
+   fi
+fi
 
 #
 # Resolve a program to its installation directory

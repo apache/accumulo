@@ -496,6 +496,12 @@
         </dependency>
         <dependency>
           <groupId>org.apache.accumulo</groupId>
+          <artifactId>accumulo-init</artifactId>
+          <classifier>el6</classifier>
+          <type>rpm</type>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.accumulo</groupId>
           <artifactId>accumulo-master</artifactId>
           <classifier>el6</classifier>
           <type>rpm</type>
@@ -573,6 +579,7 @@
                     <require>accumulo-native = %{version}-%{release}</require>
                     <require>accumulo-tracer = %{version}-%{release}</require>
                     <require>accumulo-tserver = %{version}-%{release}</require>
+                    <require>accumulo-init = %{version}-%{release}</require>
                   </requires>
                   <mappings>
                     <mapping>
