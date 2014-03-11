@@ -772,14 +772,13 @@ public class SimpleProxyIT {
 
     // create a table that's very slow, so we can look for scans/compactions
     client.createTable(creds, "slow", true, TimeType.MILLIS);
-
-    // Should take 5 seconds to read every record
-    for (int i = 0; i < 20; i++) {
-      client.updateAndFlush(creds, "slow", mutation("row" + i, "cf", "cq", "value"));
-    }
-
     IteratorSetting setting = new IteratorSetting(100, "slow", SlowIterator.class.getName(), Collections.singletonMap("sleepTime", "250"));
     client.attachIterator(creds, "slow", setting, EnumSet.allOf(IteratorScope.class));
+
+    // Should take 10 seconds to read every record
+    for (int i = 0; i < 40; i++) {
+      client.updateAndFlush(creds, "slow", mutation("row" + i, "cf", "cq", "value"));
+    }
 
     // scan
     Thread t = new Thread() {
@@ -798,7 +797,7 @@ public class SimpleProxyIT {
     };
     t.start();
 
-    // look for the scan
+    // look for the scan many times 
     List<ActiveScan> scans = new ArrayList<ActiveScan>();
     for (int i = 0; i < 100 && scans.isEmpty(); i++) {
       for (String tserver : client.getTabletServers(creds)) {
@@ -811,7 +810,7 @@ public class SimpleProxyIT {
 
         if (!scans.isEmpty())
           break;
-        UtilWaitThread.sleep(10);
+        UtilWaitThread.sleep(100);
       }
     }
     t.join();

@@ -39,6 +39,7 @@ import org.apache.accumulo.core.file.keyfunctor.ColumnFamilyFunctor;
 import org.apache.accumulo.core.file.keyfunctor.ColumnQualifierFunctor;
 import org.apache.accumulo.core.file.keyfunctor.RowFunctor;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
@@ -56,6 +57,7 @@ public class BloomFilterIT extends ConfigurableMacIT {
     siteConfig.put(Property.TABLE_BLOOM_SIZE.getKey(), "2000000");
     siteConfig.put(Property.TABLE_BLOOM_ERRORRATE.getKey(), "1%");
     siteConfig.put(Property.TABLE_BLOOM_LOAD_THRESHOLD.getKey(), "0");
+    siteConfig.put(Property.TSERV_MUTATION_QUEUE_MAX.getKey(), "10M");
     siteConfig.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "1G");
     cfg.setSiteConfig(siteConfig );
   }
@@ -69,9 +71,9 @@ public class BloomFilterIT extends ConfigurableMacIT {
       c.tableOperations().setProperty(table, Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "false");
     }
     log.info("Writing");
-    write(c, "bt1", 1, 0, 2000000000, 1000);
-    write(c, "bt2", 2, 0, 2000000000, 1000);
-    write(c, "bt3", 3, 0, 2000000000, 1000);
+    write(c, "bt1", 1, 0, 2000000000, 500);
+    write(c, "bt2", 2, 0, 2000000000, 500);
+    write(c, "bt3", 3, 0, 2000000000, 500);
     log.info("Writing complete");
     
     // test inserting an empty key
@@ -94,35 +96,39 @@ public class BloomFilterIT extends ConfigurableMacIT {
     
     // these queries should only run quickly if bloom filters are working, so lets get a base
     log.info("Base query");
-    long t1 = query(c, "bt1", 1, 0, 2000000000, 100000, 1000);
-    long t2 = query(c, "bt2", 2, 0, 2000000000, 100000, 1000);
-    long t3 = query(c, "bt3", 3, 0, 2000000000, 100000, 1000);
+    long t1 = query(c, "bt1", 1, 0, 2000000000, 100000, 500);
+    long t2 = query(c, "bt2", 2, 0, 2000000000, 100000, 500);
+    long t3 = query(c, "bt3", 3, 0, 2000000000, 100000, 500);
     log.info("Base query complete");
     
     log.info("Rewriting with bloom filters");
     c.tableOperations().setProperty("bt1", Property.TABLE_BLOOM_ENABLED.getKey(), "true");
     c.tableOperations().setProperty("bt1", Property.TABLE_BLOOM_KEY_FUNCTOR.getKey(), RowFunctor.class.getName());
-    c.tableOperations().compact("bt1", null, null, false, true);
     
     c.tableOperations().setProperty("bt2", Property.TABLE_BLOOM_ENABLED.getKey(), "true");
     c.tableOperations().setProperty("bt2", Property.TABLE_BLOOM_KEY_FUNCTOR.getKey(), ColumnFamilyFunctor.class.getName());
-    c.tableOperations().compact("bt2", null, null, false, true);
     
     c.tableOperations().setProperty("bt3", Property.TABLE_BLOOM_ENABLED.getKey(), "true");
     c.tableOperations().setProperty("bt3", Property.TABLE_BLOOM_KEY_FUNCTOR.getKey(), ColumnQualifierFunctor.class.getName());
-    c.tableOperations().compact("bt3", null, null, false, true);
     
     c.tableOperations().setProperty("bt4", Property.TABLE_BLOOM_ENABLED.getKey(), "true");
     c.tableOperations().setProperty("bt4", Property.TABLE_BLOOM_KEY_FUNCTOR.getKey(), RowFunctor.class.getName());
+    
+    // ensure the updates to zookeeper propogate
+    UtilWaitThread.sleep(500);
+    
     c.tableOperations().compact("bt4", null, null, false, true);
+    c.tableOperations().compact("bt1", null, null, false, true);
+    c.tableOperations().compact("bt2", null, null, false, true);
+    c.tableOperations().compact("bt3", null, null, false, true);
     log.info("Rewriting with bloom filters complete");
     
     // these queries should only run quickly if bloom
     // filters are working
     log.info("Bloom query");
-    long tb1 = query(c, "bt1", 1, 0, 2000000000, 100000, 1000);
-    long tb2 = query(c, "bt2", 2, 0, 2000000000, 100000, 1000);
-    long tb3 = query(c, "bt3", 3, 0, 2000000000, 100000, 1000);
+    long tb1 = query(c, "bt1", 1, 0, 2000000000, 100000, 500);
+    long tb2 = query(c, "bt2", 2, 0, 2000000000, 100000, 500);
+    long tb3 = query(c, "bt3", 3, 0, 2000000000, 100000, 500);
     log.info("Bloom query complete");
     timeCheck(t1 + t2 + t3, tb1 + tb2 + tb3);
     
