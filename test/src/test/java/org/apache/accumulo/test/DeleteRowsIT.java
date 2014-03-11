@@ -27,7 +27,7 @@ import org.junit.Test;
 
 public class DeleteRowsIT extends SimpleMacIT {
   
-  @Test(timeout = 60 * 1000)
+  @Test(timeout = 5 * 60 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
     String[] tableNames = this.getTableNames(20);
