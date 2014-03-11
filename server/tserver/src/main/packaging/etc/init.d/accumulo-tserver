@@ -60,8 +60,7 @@ fi
 #
 do_start()
 {
-    TARGET_USER_NAME="ACCUMULO_USER"
-    TARGET_USER=$(eval "echo \$$TARGET_USER_NAME")
+    TARGET_USER="${ACCUMULO_USER-accumulo}"
 	# Return
 	#  0 if daemon has been started
 	#  1 if daemon was already running
@@ -83,8 +82,7 @@ do_start()
 #
 do_stop()
 {
-    TARGET_USER_NAME="ACCUMULO_USER"
-    TARGET_USER=$(eval "echo \$$TARGET_USER_NAME")
+    TARGET_USER="${ACCUMULO_USER-accumulo}"
 	# Return
 	#  0 if daemon has been stopped
 	#  1 if daemon was already stopped
@@ -119,7 +117,8 @@ case "$1" in
 	esac
 	;;
   status)
-      status_of_proc "$DAEMON" "$NAME" && exit 0 || exit $?
+      echo -n "$NAME is "
+      jps -m | grep -q "$ACCUMULO_PROC" && (echo running.; exit 0) || (echo not running.; exit 1)
       ;;
   #reload|force-reload)
 	#

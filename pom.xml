@@ -90,6 +90,7 @@
     <module>server/native</module>
     <module>server/tracer</module>
     <module>server/tserver</module>
+    <module>init</module>
   </modules>
   <scm>
     <connection>scm:git:git://git.apache.org/accumulo.git</connection>
@@ -274,6 +275,18 @@
         <version>${project.version}</version>
         <classifier>el6</classifier>
         <type>rpm</type>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-init</artifactId>
+        <version>${project.version}</version>
+        <classifier>el6</classifier>
+        <type>rpm</type>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-init</artifactId>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
