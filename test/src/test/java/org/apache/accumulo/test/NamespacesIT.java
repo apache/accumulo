@@ -321,17 +321,17 @@ public class NamespacesIT extends SimpleMacIT {
     }
     IteratorSetting setting2 = c.namespaceOperations().getIteratorSetting(namespace, setting.getName(), IteratorScope.scan);
     assertEquals(setting, setting2);
-    s = c.createScanner(t1, Authorizations.EMPTY);
-    assertFalse(s.iterator().hasNext());
     assertTrue(c.namespaceOperations().listIterators(namespace).containsKey(iterName));
     assertTrue(c.tableOperations().listIterators(t1).containsKey(iterName));
+    s = c.createScanner(t1, Authorizations.EMPTY);
+    assertFalse(s.iterator().hasNext());
 
     // verify can see inserted entry again
     c.namespaceOperations().removeIterator(namespace, setting.getName(), EnumSet.allOf(IteratorScope.class));
-    s = c.createScanner(t1, Authorizations.EMPTY);
-    assertTrue(s.iterator().hasNext());
     assertFalse(c.namespaceOperations().listIterators(namespace).containsKey(iterName));
     assertFalse(c.tableOperations().listIterators(t1).containsKey(iterName));
+    s = c.createScanner(t1, Authorizations.EMPTY);
+    assertTrue(s.iterator().hasNext());
   }
 
   @Test
