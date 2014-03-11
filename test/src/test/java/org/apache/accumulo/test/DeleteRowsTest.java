@@ -60,7 +60,7 @@ public class DeleteRowsTest {
     folder.delete();
   }
 
-  @Test(timeout = 120 * 1000)
+  @Test(timeout = 5 * 60 * 1000)
   public void test() throws Exception {
     ZooKeeperInstance zk = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers());
     Connector c = zk.getConnector("root", new PasswordToken(secret));
