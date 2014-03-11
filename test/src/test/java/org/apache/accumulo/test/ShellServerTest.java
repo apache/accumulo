@@ -158,7 +158,7 @@ public class ShellServerTest {
     Shell.log.debug(output.get());
     if (0 != shell.getExitCode()) {
       String errorMsg = callback.getErrorMessage();
-      assertEquals(0, shell.getExitCode());
+      assertEquals(errorMsg, 0, shell.getExitCode());
     }
 
     if (s.length() > 0)
@@ -167,7 +167,11 @@ public class ShellServerTest {
 
   void assertBadExit(String s, boolean stringPresent, ErrorMessageCallback callback) {
     Shell.log.debug(output.get());
-    assertTrue(shell.getExitCode() > 0);
+    if (0 == shell.getExitCode()) {
+      String errorMsg = callback.getErrorMessage();
+      assertTrue(errorMsg, shell.getExitCode() > 0);
+    }
+
     if (s.length() > 0)
       assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent, output.get().contains(s));
     shell.resetExitCode();
