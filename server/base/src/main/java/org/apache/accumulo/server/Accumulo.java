@@ -51,15 +51,21 @@ public class Accumulo {
   private static final Logger log = Logger.getLogger(Accumulo.class);
   
   public static synchronized void updateAccumuloVersion(VolumeManager fs) {
-    // TODO ACCUMULO-2451 Should update all volumes, not one 
-    Volume volume = fs.getVolumes().iterator().next();
-    try {
-      if (getAccumuloPersistentVersion(fs) == ServerConstants.PREV_DATA_VERSION) {
-        fs.create(new Path(ServerConstants.getDataVersionLocation(volume), Integer.toString(ServerConstants.DATA_VERSION)));
-        fs.delete(new Path(ServerConstants.getDataVersionLocation(volume), Integer.toString(ServerConstants.PREV_DATA_VERSION)));
+    for (Volume volume : fs.getVolumes()) {
+      try {
+        if (getAccumuloPersistentVersion(fs) == ServerConstants.PREV_DATA_VERSION) {
+          log.debug("Attempting to upgrade " + volume);
+          Path dataVersionLocation = ServerConstants.getDataVersionLocation(volume);
+          fs.create(new Path(dataVersionLocation, Integer.toString(ServerConstants.DATA_VERSION))).close();
+
+          Path prevDataVersionLoc = new Path(dataVersionLocation, Integer.toString(ServerConstants.PREV_DATA_VERSION));
+          if (!fs.delete(prevDataVersionLoc)) {
+            throw new RuntimeException("Could not delete previous data version location (" + prevDataVersionLoc + ") for " + volume);
+          }
+        }
+      } catch (IOException e) {
+        throw new RuntimeException("Unable to set accumulo version: an error occurred.", e);
       }
-    } catch (IOException e) {
-      throw new RuntimeException("Unable to set accumulo version: an error occurred.", e);
     }
   }
   
