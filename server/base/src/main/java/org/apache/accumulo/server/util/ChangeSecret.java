@@ -147,8 +147,14 @@ public class ChangeSecret {
     // Need to recreate the instanceId on all of them to keep consistency
     for (Volume v : fs.getVolumes()) {
       final Path instanceId = ServerConstants.getInstanceIdLocation(v);
-      v.getFileSystem().delete(instanceId, true);
-      v.getFileSystem().mkdirs(instanceId);
+      if (!v.getFileSystem().delete(instanceId, true)) {
+        throw new IOException("Could not recursively delete " + instanceId);
+      }
+
+      if (!v.getFileSystem().mkdirs(instanceId)) {
+        throw new IOException("Could not create directory " + instanceId);
+      }
+
       v.getFileSystem().create(new Path(instanceId, newInstanceId)).close();
     }
   }
