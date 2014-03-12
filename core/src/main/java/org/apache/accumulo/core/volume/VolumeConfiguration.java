@@ -123,7 +123,11 @@ public class VolumeConfiguration {
       suffix = suffix.substring(1);
     String result[] = new String[bases.length];
     for (int i = 0; i < bases.length; i++) {
-      result[i] = bases[i] + "/" + suffix;
+      if (bases[i].endsWith("/")) {
+        result[i] = bases[i] + suffix;
+      } else {
+        result[i] = bases[i] + "/" + suffix;
+      }
     }
     return result;
   }

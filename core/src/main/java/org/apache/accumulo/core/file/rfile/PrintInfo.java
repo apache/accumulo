@@ -52,7 +52,7 @@ public class PrintInfo {
 
     @SuppressWarnings("deprecation")
     AccumuloConfiguration aconf = AccumuloConfiguration.getSiteConfiguration();
-    // TODO This will only work for RFiles in HDFS when the filesystem is defined in the core-site.xml
+    // TODO ACCUMULO-2462 This will only work for RFiles in HDFS when the filesystem is defined in the core-site.xml
     // on the classpath if a path, and not a URI, is given
     FileSystem hadoopFs = VolumeConfiguration.getDefaultVolume(conf, aconf).getFileSystem();
     FileSystem localFs  = FileSystem.getLocal(conf);
