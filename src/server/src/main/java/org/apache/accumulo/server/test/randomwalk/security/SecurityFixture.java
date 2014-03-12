@@ -94,5 +94,7 @@ public class SecurityFixture extends Fixture {
     log.debug("Dropping user: " + systemUserName);
     conn.securityOperations().dropUser(systemUserName);
     
+    // Allow user drops to propagate, in case a new security test starts
+    Thread.sleep(2000);
   }
 }
