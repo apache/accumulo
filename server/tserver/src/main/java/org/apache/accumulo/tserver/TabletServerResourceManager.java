@@ -205,6 +205,7 @@ public class TabletServerResourceManager {
     memoryManager = Property.createInstanceFromPropertyName(acuConf, Property.TSERV_MEM_MGMT, MemoryManager.class, new LargestFirstMemoryManager());
     memoryManager.init(conf);
     memMgmt = new MemoryManagementFramework();
+    memMgmt.startThreads();
   }
 
   private static class TabletStateImpl implements TabletState, Cloneable {
@@ -251,6 +252,8 @@ public class TabletServerResourceManager {
     private LinkedBlockingQueue<TabletStateImpl> memUsageReports;
     private long lastMemCheckTime = System.currentTimeMillis();
     private long maxMem;
+    private Thread memoryGuardThread;
+    private Thread minorCompactionInitiatorThread;
 
     MemoryManagementFramework() {
       tabletReports = Collections.synchronizedMap(new HashMap<KeyExtent,TabletStateImpl>());
@@ -264,10 +267,9 @@ public class TabletServerResourceManager {
         }
       };
 
-      Thread t1 = new Daemon(new LoggingRunnable(log, r1));
-      t1.setPriority(Thread.NORM_PRIORITY + 1);
-      t1.setName("Accumulo Memory Guard");
-      t1.start();
+      memoryGuardThread = new Daemon(new LoggingRunnable(log, r1));
+      memoryGuardThread.setPriority(Thread.NORM_PRIORITY + 1);
+      memoryGuardThread.setName("Accumulo Memory Guard");
 
       Runnable r2 = new Runnable() {
         @Override
@@ -276,10 +278,13 @@ public class TabletServerResourceManager {
         }
       };
 
-      Thread t2 = new Daemon(new LoggingRunnable(log, r2));
-      t2.setName("Accumulo Minor Compaction Initiator");
-      t2.start();
+      minorCompactionInitiatorThread = new Daemon(new LoggingRunnable(log, r2));
+      minorCompactionInitiatorThread.setName("Accumulo Minor Compaction Initiator");
+    }
 
+    void startThreads() {
+      memoryGuardThread.start();
+      minorCompactionInitiatorThread.start();
     }
 
     private long lastMemTotal = 0;
