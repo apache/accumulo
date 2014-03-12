@@ -30,10 +30,10 @@ import org.apache.hadoop.fs.Path;
 import com.google.common.base.Preconditions;
 
 public class VolumeConfiguration {
-  
+
   public static Volume getVolume(String path, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
     Preconditions.checkNotNull(path);
-    
+
     if (path.contains(":")) {
       // An absolute path
       return create(new Path(path), conf);
@@ -59,12 +59,15 @@ public class VolumeConfiguration {
       }
   }
 
+  /**
+   * @see org.apache.accumulo.core.volume.VolumeConfiguration#getVolumeUris(AccumuloConfiguration)
+   */
   @Deprecated
   public static String getConfiguredBaseDir(AccumuloConfiguration conf) {
     String singleNamespace = conf.get(Property.INSTANCE_DFS_DIR);
     String dfsUri = conf.get(Property.INSTANCE_DFS_URI);
     String baseDir;
-  
+
     if (dfsUri == null || dfsUri.isEmpty()) {
       Configuration hadoopConfig = CachedConfiguration.getInstance();
       try {
@@ -82,14 +85,15 @@ public class VolumeConfiguration {
 
   /**
    * Compute the URIs to be used by Accumulo
+   * 
    * @param conf
    * @return
    */
   public static String[] getVolumeUris(AccumuloConfiguration conf) {
     String ns = conf.get(Property.INSTANCE_VOLUMES);
-  
+
     String configuredBaseDirs[];
-  
+
     if (ns == null || ns.isEmpty()) {
       // Fall back to using the old config values
       configuredBaseDirs = new String[] {getConfiguredBaseDir(conf)};
@@ -101,7 +105,7 @@ public class VolumeConfiguration {
         if (!namespace.contains(":")) {
           throw new IllegalArgumentException("Expected fully qualified URI for " + Property.INSTANCE_VOLUMES.getKey() + " got " + namespace);
         }
-  
+
         try {
           // pass through URI to unescape hex encoded chars (e.g. convert %2C to "," char)
           configuredBaseDirs[i++] = new Path(new URI(namespace)).toString();
@@ -110,7 +114,7 @@ public class VolumeConfiguration {
         }
       }
     }
-  
+
     return configuredBaseDirs;
   }
 
@@ -126,24 +130,26 @@ public class VolumeConfiguration {
 
   /**
    * Create a Volume with the given FileSystem that writes to the default path
-   * @param fs A FileSystem to write to
-   * @return A Volume instance writing to the given FileSystem in the default path 
+   * 
+   * @param fs
+   *          A FileSystem to write to
+   * @return A Volume instance writing to the given FileSystem in the default path
    */
   @SuppressWarnings("deprecation")
   public static <T extends FileSystem> Volume create(T fs, AccumuloConfiguration acuconf) {
     String dfsDir = acuconf.get(Property.INSTANCE_DFS_DIR);
     return new VolumeImpl(fs, null == dfsDir ? Property.INSTANCE_DFS_DIR.getDefaultValue() : dfsDir);
   }
-  
+
   public static <T extends FileSystem> Volume create(T fs, String basePath) {
     return new VolumeImpl(fs, basePath);
   }
-  
+
   public static Volume create(String path, Configuration conf) throws IOException {
     Preconditions.checkNotNull(path);
     return create(new Path(path), conf);
   }
-  
+
   public static Volume create(Path path, Configuration conf) throws IOException {
     return new VolumeImpl(path, conf);
   }

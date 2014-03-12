@@ -86,11 +86,12 @@ public class VolumeManagerImpl implements VolumeManager {
       inverted.put(volume.getFileSystem(), volume);
     }
   }
-  
+
   public static org.apache.accumulo.server.fs.VolumeManager getLocal(String localBasePath) throws IOException {
     AccumuloConfiguration accConf = DefaultConfiguration.getDefaultConfiguration();
     Volume defaultLocalVolume = VolumeConfiguration.create(FileSystem.getLocal(CachedConfiguration.getInstance()), localBasePath);
-    
+
+    // The default volume gets placed in the map, but local filesystem is only used for testing purposes
     return new VolumeManagerImpl(Collections.singletonMap(DEFAULT, defaultLocalVolume), defaultLocalVolume, accConf);
   }
 
@@ -112,16 +113,16 @@ public class VolumeManagerImpl implements VolumeManager {
   @Override
   public FSDataOutputStream create(Path path) throws IOException {
     checkNotNull(path);
-    
+
     Volume v = getVolumeByPath(path);
-    
+
     return v.getFileSystem().create(path);
   }
 
   @Override
   public FSDataOutputStream create(Path path, boolean overwrite) throws IOException {
     checkNotNull(path);
-    
+
     Volume v = getVolumeByPath(path);
 
     return v.getFileSystem().create(path, overwrite);
@@ -149,7 +150,7 @@ public class VolumeManagerImpl implements VolumeManager {
 
     Volume v = getVolumeByPath(path);
     FileSystem fs = v.getFileSystem();
-    
+
     if (bufferSize == 0) {
       fs.getConf().getInt("io.file.buffer.size", 4096);
     }
@@ -314,7 +315,7 @@ public class VolumeManagerImpl implements VolumeManager {
 
           return defaultVolume;
         }
-        
+
         log.debug("Could not determine volume for Path '" + path + "' from defined volumes");
       } catch (IOException ex) {
         throw new RuntimeException(ex);
@@ -404,7 +405,7 @@ public class VolumeManagerImpl implements VolumeManager {
     // The "default" Volume for Accumulo (in case no volumes are specified)
     for (String volumeUriOrDir : VolumeConfiguration.getVolumeUris(conf)) {
       if (volumeUriOrDir.equals(DEFAULT))
-      // Cannot re-define the default volume
+        // Cannot re-define the default volume
         throw new IllegalArgumentException();
 
       // We require a URI here, fail if it doesn't look like one
@@ -554,7 +555,7 @@ public class VolumeManagerImpl implements VolumeManager {
   public Volume getDefaultVolume() {
     return defaultVolume;
   }
-  
+
   @Override
   public Collection<Volume> getVolumes() {
     return volumesByName.values();

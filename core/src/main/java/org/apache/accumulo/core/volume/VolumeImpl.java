@@ -24,30 +24,30 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
-
 /**
- * 
+ * Basic Volume implementation that contains a FileSystem and a base path 
+ * that should be used within that filesystem.
  */
 public class VolumeImpl implements Volume {
   protected final FileSystem fs;
   protected final String basePath;
-  
+
   public VolumeImpl(Path path, Configuration conf) throws IOException {
     checkNotNull(path);
     checkNotNull(conf);
-    
+
     this.fs = path.getFileSystem(conf);
     this.basePath = path.toUri().getPath();
   }
-  
+
   public VolumeImpl(FileSystem fs, String basePath) {
     checkNotNull(fs);
     checkNotNull(basePath);
-    
+
     this.fs = fs;
     this.basePath = basePath;
   }
-  
+
   @Override
   public FileSystem getFileSystem() {
     return fs;
@@ -66,20 +66,20 @@ public class VolumeImpl implements Volume {
   @Override
   public boolean isValidPath(Path p) {
     checkNotNull(p);
-    
+
     return p.toUri().getPath().startsWith(basePath);
   }
-  
+
   @Override
   public boolean equals(Object o) {
     if (o instanceof VolumeImpl) {
       VolumeImpl other = (VolumeImpl) o;
       return getFileSystem().equals(other.getFileSystem()) && getBasePath().equals(other.getBasePath());
     }
-    
+
     return false;
   }
-  
+
   @Override
   public String toString() {
     return getFileSystem() + " " + basePath;

@@ -160,13 +160,11 @@ public interface VolumeManager {
 
   /**
    * Fetch the default Volume
-   * @return
    */
   public Volume getDefaultVolume();
 
   /**
    * Fetch the configured Volumes, excluding the default Volume
-   * @return
    */
   public Collection<Volume> getVolumes();
 

@@ -31,10 +31,12 @@ import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.log4j.Logger;
 
 import com.beust.jcommander.Parameter;
 
 public class PrintInfo {
+  private static final Logger log = Logger.getLogger(PrintInfo.class);
   
   static class Opts extends Help {
     @Parameter(names = {"-d", "--dump"}, description = "dump the key/value pairs")
@@ -50,6 +52,8 @@ public class PrintInfo {
 
     @SuppressWarnings("deprecation")
     AccumuloConfiguration aconf = AccumuloConfiguration.getSiteConfiguration();
+    // TODO This will only work for RFiles in HDFS when the filesystem is defined in the core-site.xml
+    // on the classpath if a path, and not a URI, is given
     FileSystem hadoopFs = VolumeConfiguration.getDefaultVolume(conf, aconf).getFileSystem();
     FileSystem localFs  = FileSystem.getLocal(conf);
     Opts opts = new Opts();
@@ -68,8 +72,11 @@ public class PrintInfo {
       FileSystem fs;
       if (arg.contains(":"))
         fs = path.getFileSystem(conf);
-      else
+      else {
+        // Recommend a URI is given for the above todo reason
+        log.warn("Attempting to find file across filesystems. Consider providing URI instead of path");
         fs = hadoopFs.exists(path) ? hadoopFs : localFs; // fall back to local
+      }
       
       CachableBlockFile.Reader _rdr = new CachableBlockFile.Reader(fs, path, conf, null, null, aconf);
       Reader iter = new RFile.Reader(_rdr);

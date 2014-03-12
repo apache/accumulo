@@ -202,7 +202,7 @@ public class VolumeUtilTest {
     List<Pair<Path,Path>> replacements = new ArrayList<Pair<Path,Path>>();
     replacements.add(new Pair<Path,Path>(new Path("file:/foo/v1"), new Path("file:/foo/v8")));
     replacements.add(new Pair<Path,Path>(new Path("file:/foo/v2"), new Path("file:/foo/v9")));
-    
+
     FileType ft = FileType.TABLE;
 
     Assert.assertEquals("file:/foo/v8/tables/+r/root_tablet",

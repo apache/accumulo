@@ -21,39 +21,36 @@ import org.apache.hadoop.fs.Path;
 
 /**
  * Encapsulates a {@link FileSystem} and a base {@link Path} within that filesystem. This
- * also avoid the necessity to pass around a Configuration. 
+ * also avoid the necessity to pass around a Configuration.
  */
 public interface Volume {
 
   /**
    * A {@link FileSystem} that Accumulo will use
-   * @return
    */
   public FileSystem getFileSystem();
 
   /**
    * The base path which Accumulo will use within the given {@link FileSystem}
-   * @return
    */
   public String getBasePath();
-  
+
   /**
    * Convert the given Path into a Path that is relative to the base path for this Volume
-   * @param p
-   * @return
+   * @param p The suffix to use
+   * @return A Path for this Volume with the provided suffix
    */
   public Path prefixChild(Path p);
 
   /**
    * Convert the given child path into a Path that is relative to the base path for this Volume
-   * @param p
-   * @return
+   * @param p The suffix to use
+   * @return A Path for this Volume with the provided suffix
    */
   public Path prefixChild(String p);
 
   /**
    * Determine if the Path is valid on this Volume (contained by the basePath)
-   * @param p
    * @return True if path is contained within the basePath, false otherwise
    */
   public boolean isValidPath(Path p);

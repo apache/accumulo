@@ -52,7 +52,7 @@ import org.apache.log4j.Logger;
 public class VolumeUtil {
 
   private static final Logger log = Logger.getLogger(VolumeUtil.class);
-  
+
   private static boolean isActiveVolume(Path dir) {
 
     // consider relative path as active and take no action

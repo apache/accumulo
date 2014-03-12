@@ -146,9 +146,10 @@ public class ChangeSecret {
   private static void updateHdfs(VolumeManager fs, Instance inst, String newInstanceId) throws IOException {
     // Need to recreate the instanceId on all of them to keep consistency
     for (Volume v : fs.getVolumes()) {
-      v.getFileSystem().delete(ServerConstants.getInstanceIdLocation(v), true);
-      v.getFileSystem().mkdirs(ServerConstants.getInstanceIdLocation(v));
-      v.getFileSystem().create(new Path(ServerConstants.getInstanceIdLocation(v), newInstanceId)).close();
+      final Path instanceId = ServerConstants.getInstanceIdLocation(v);
+      v.getFileSystem().delete(instanceId, true);
+      v.getFileSystem().mkdirs(instanceId);
+      v.getFileSystem().create(new Path(instanceId, newInstanceId)).close();
     }
   }
   
