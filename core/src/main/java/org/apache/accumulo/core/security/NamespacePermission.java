@@ -80,6 +80,7 @@ public enum NamespacePermission {
    * @throws IndexOutOfBoundsException
    *           if the byte ID is invalid
    */
+  // This method isn't used anywhere, why is it public API?
   public static NamespacePermission getPermissionById(byte id) {
     NamespacePermission result = mapping[id];
     if (result != null)
