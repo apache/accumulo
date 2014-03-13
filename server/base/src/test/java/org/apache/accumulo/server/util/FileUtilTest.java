@@ -19,13 +19,16 @@ package org.apache.accumulo.server.util;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.commons.io.FileUtils;
@@ -35,10 +38,33 @@ import org.junit.Test;
 
 import com.google.common.io.Files;
 
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+
 /**
  * 
  */
 public class FileUtilTest {
+
+  @Test
+  public void testToPathStrings() {
+    Collection<FileRef> c = new java.util.ArrayList<FileRef>();
+    FileRef r1 = createMock(FileRef.class);
+    expect(r1.path()).andReturn(new Path("/foo"));
+    replay(r1);
+    c.add(r1);
+    FileRef r2 = createMock(FileRef.class);
+    expect(r2.path()).andReturn(new Path("/bar"));
+    replay(r2);
+    c.add(r2);
+
+    Collection<String> cs = FileUtil.toPathStrings(c);
+    Assert.assertEquals(2, cs.size());
+    Iterator<String> iter = cs.iterator();
+    Assert.assertEquals("/foo", iter.next());
+    Assert.assertEquals("/bar", iter.next());
+  }
 
   @SuppressWarnings("deprecation")
   @Test
@@ -230,6 +256,5 @@ public class FileUtilTest {
     public void getProperties(Map<String,String> props, PropertyFilter filter) {
       throw new UnsupportedOperationException();
     }
-
   }
 }
