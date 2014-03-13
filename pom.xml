@@ -512,6 +512,7 @@
           <artifactId>cobertura-maven-plugin</artifactId>
           <version>2.5.2</version>
           <configuration>
+            <aggregate>true</aggregate>
             <formats>
               <format>xml</format>
               <format>html</format>
@@ -941,10 +942,16 @@
             <artifactId>cobertura-maven-plugin</artifactId>
             <version>2.5.2</version>
             <configuration>
+              <aggregate>true</aggregate>
               <formats>
                 <format>xml</format>
                 <format>html</format>
               </formats>
+              <instrumentation>
+                <excludes>
+                  <exclude>**/thrift/*.class</exclude>
+                </excludes>
+              </instrumentation>
             </configuration>
           </plugin>
         </plugins>
