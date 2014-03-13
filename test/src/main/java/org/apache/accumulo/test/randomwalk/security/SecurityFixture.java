@@ -106,5 +106,7 @@ public class SecurityFixture extends Fixture {
     conn.securityOperations().dropLocalUser(systemUserName);
     WalkingSecurity.clearInstance();
     
+    // Allow user drops to propagate, in case a new security test starts
+    Thread.sleep(2000);
   }
 }
