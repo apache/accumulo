@@ -211,7 +211,7 @@ public class ConfigCommand extends Command {
           siteVal = sysVal = dfault = curVal = curVal.replaceAll(".", "*");
         }
         if (sysVal != null) {
-          if (defaults.containsKey(key)) {
+          if (defaults.containsKey(key) && !Property.getPropertyByKey(key).isExperimental()) {
             printConfLine(output, "default", key, dfault);
             printed = true;
           }
