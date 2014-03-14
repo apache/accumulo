@@ -38,6 +38,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.core.volume.NonConfiguredVolume;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.client.HdfsZooInstance;
@@ -65,7 +66,7 @@ public class VolumeManagerImpl implements VolumeManager {
   private static final Logger log = Logger.getLogger(VolumeManagerImpl.class);
 
   Map<String,Volume> volumesByName;
-  Multimap<FileSystem,Volume> volumesByFileSystem;
+  Multimap<URI,Volume> volumesByFileSystemUri;
   Volume defaultVolume;
   AccumuloConfiguration conf;
   VolumeChooser chooser;
@@ -74,16 +75,16 @@ public class VolumeManagerImpl implements VolumeManager {
     this.volumesByName = volumes;
     this.defaultVolume = defaultVolume;
     // We may have multiple directories used in a single FileSystem (e.g. testing)
-    this.volumesByFileSystem = HashMultimap.create();
-    invertVolumesByFileSystem(volumesByName, volumesByFileSystem);
+    this.volumesByFileSystemUri = HashMultimap.create();
+    invertVolumesByFileSystem(volumesByName, volumesByFileSystemUri);
     this.conf = conf;
     ensureSyncIsEnabled();
     chooser = Property.createInstanceFromPropertyName(conf, Property.GENERAL_VOLUME_CHOOSER, VolumeChooser.class, new RandomVolumeChooser());
   }
 
-  private void invertVolumesByFileSystem(Map<String,Volume> forward, Multimap<FileSystem,Volume> inverted) {
+  private void invertVolumesByFileSystem(Map<String,Volume> forward, Multimap<URI,Volume> inverted) {
     for (Volume volume : forward.values()) {
-      inverted.put(volume.getFileSystem(), volume);
+      inverted.put(volume.getFileSystem().getUri(), volume);
     }
   }
 
@@ -299,8 +300,9 @@ public class VolumeManagerImpl implements VolumeManager {
   public Volume getVolumeByPath(Path path) {
     if (path.toString().contains(":")) {
       try {
-        FileSystem pathFs = path.getFileSystem(CachedConfiguration.getInstance());
-        Collection<Volume> candidateVolumes = volumesByFileSystem.get(pathFs);
+        FileSystem desiredFs = path.getFileSystem(CachedConfiguration.getInstance());
+        URI desiredFsUri = desiredFs.getUri();
+        Collection<Volume> candidateVolumes = volumesByFileSystemUri.get(desiredFsUri);
         if (null != candidateVolumes) {
           for (Volume candidateVolume : candidateVolumes) {
             if (candidateVolume.isValidPath(path)) {
@@ -309,11 +311,12 @@ public class VolumeManagerImpl implements VolumeManager {
           }
 
           // For the same reason as we can have multiple Volumes within a single filesystem
-          // we could also not find a matching one. We should defer back to the defaultVolume
-          // e.g. volume rename with old path references
-          log.debug("Defaulting to " + defaultVolume + " as a valid volume could not be determined for " + path);
+          // we could also not find a matching one. We should still provide a Volume with the
+          // correct FileSystem even though we don't know what the proper base dir is
+          // e.g. Files on volumes that are now removed
+          log.debug("Found no configured Volume for the given path: " + path);
 
-          return defaultVolume;
+          return new NonConfiguredVolume(desiredFs);
         }
 
         log.debug("Could not determine volume for Path '" + path + "' from defined volumes");

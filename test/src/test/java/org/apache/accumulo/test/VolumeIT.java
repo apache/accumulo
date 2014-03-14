@@ -307,6 +307,59 @@ public class VolumeIT extends ConfigurableMacIT {
 
   }
 
+  @Test
+  public void testNonConfiguredVolumes() throws Exception {
+
+    String[] tableNames = getTableNames(2);
+
+    // grab this before shutting down cluster
+    String uuid = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers()).getInstanceID();
+
+    verifyVolumesUsed(tableNames[0], false, v1, v2);
+
+    Assert.assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+    cluster.stop();
+
+    Configuration conf = new Configuration(false);
+    conf.addResource(new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
+
+    File v3f = new File(volDirBase, "v3");
+    v3f.mkdir();
+    Path v3 = new Path("file://" + v3f.getAbsolutePath());
+
+    conf.set(Property.INSTANCE_VOLUMES.getKey(), v2.toString() + "," + v3.toString());
+    BufferedOutputStream fos = new BufferedOutputStream(new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
+    conf.writeXml(fos);
+    fos.close();
+
+    // initialize volume
+    Assert.assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").waitFor());
+
+    // check that all volumes are initialized
+    for (Path volumePath : Arrays.asList(v1, v2, v3)) {
+      FileSystem fs = volumePath.getFileSystem(CachedConfiguration.getInstance());
+      Path vp = new Path(volumePath, ServerConstants.INSTANCE_ID_DIR);
+      FileStatus[] iids = fs.listStatus(vp);
+      Assert.assertEquals(1, iids.length);
+      Assert.assertEquals(uuid, iids[0].getPath().getName());
+    }
+
+    // start cluster and verify that new volume is used
+    cluster.start();
+
+    // Make sure we can still read the tables (tableNames[0] is very likely to have a file still on v1)
+    List<String> expected = new ArrayList<String>();
+    for (int i = 0; i < 100; i++) {
+      String row = String.format("%06d", i * 100 + 3);
+      expected.add(row + ":cf1:cq1:1");
+    }
+
+    verifyData(expected, getConnector().createScanner(tableNames[0], Authorizations.EMPTY));
+
+    // v1 should not have any data for tableNames[1]
+    verifyVolumesUsed(tableNames[1], false, v2, v3);
+  }
+
   private void writeData(String tableName, Connector conn) throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException,
       MutationsRejectedException {
     TreeSet<Text> splits = new TreeSet<Text>();
@@ -331,7 +384,7 @@ public class VolumeIT extends ConfigurableMacIT {
   private void verifyVolumesUsed(String tableName, boolean shouldExist, Path... paths) throws AccumuloException, AccumuloSecurityException,
       TableExistsException, TableNotFoundException, MutationsRejectedException {
 
-    Connector conn = cluster.getConnector("root", ROOT_PASSWORD);
+    Connector conn = getConnector();
 
     List<String> expected = new ArrayList<String>();
     for (int i = 0; i < 100; i++) {
