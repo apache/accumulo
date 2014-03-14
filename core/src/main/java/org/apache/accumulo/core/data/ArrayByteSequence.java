@@ -88,12 +88,13 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
    * @param buffer byte buffer
    */
   public ArrayByteSequence(ByteBuffer buffer) {
+    this.length = buffer.remaining();
+
     if (buffer.hasArray()) {
       this.data = buffer.array();
-      this.offset = buffer.arrayOffset();
-      this.length = buffer.limit();
+      this.offset = buffer.position();
     } else {
-      this.data = new byte[buffer.remaining()];
+      this.data = new byte[length];
       this.offset = 0;
       buffer.get(data);
     }
