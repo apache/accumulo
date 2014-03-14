@@ -19,10 +19,16 @@ package org.apache.accumulo.core.security;
 import static org.apache.accumulo.core.security.ColumnVisibility.quote;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Comparator;
+
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.security.ColumnVisibility.Node;
+import org.apache.accumulo.core.security.ColumnVisibility.NodeComparator;
 import org.apache.accumulo.core.security.ColumnVisibility.NodeType;
+import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class ColumnVisibilityTest {
@@ -46,8 +52,14 @@ public class ColumnVisibilityTest {
   @Test
   public void testEmpty() {
     // empty visibility is valid
-    new ColumnVisibility();
-    new ColumnVisibility(new byte[0]);
+    ColumnVisibility a = new ColumnVisibility();
+    ColumnVisibility b = new ColumnVisibility(new byte[0]);
+    ColumnVisibility c = new ColumnVisibility("");
+    ColumnVisibility d = new ColumnVisibility(new Text());
+
+    assertEquals(a, b);
+    assertEquals(a, c);
+    assertEquals(a, d);
   }
 
   @Test
@@ -203,6 +215,24 @@ public class ColumnVisibilityTest {
     assertNode(node.getChildren().get(1), NodeType.AND, 5, 8);
     assertNode(node.getChildren().get(1).children.get(0), NodeType.TERM, 5, 6);
     assertNode(node.getChildren().get(1).children.get(1), NodeType.TERM, 7, 8);
+  }
+
+  @Test
+  public void testEmptyParseTreesAreEqual() {
+    Comparator<Node> comparator = new NodeComparator(new byte[] {});
+    Node empty = new ColumnVisibility().getParseTree();
+    assertEquals(0, comparator.compare(empty, parse("")));
+  }
+
+  @Test
+  public void testParseTreesOrdering() {
+    byte[] expression = "(b&c&d)|((a|m)&y&z)|(e&f)".getBytes(Constants.UTF8);
+    byte[] flattened = new ColumnVisibility(expression).flatten();
+
+    // Convert to String for indexOf convenience
+    String flat = new String(flattened, Constants.UTF8);
+    assertTrue("shortest expressions sort first", flat.indexOf('e') < flat.indexOf('|'));
+    assertTrue("shortest children sort first", flat.indexOf('b') < flat.indexOf('a'));
   }
 
   private Node parse(String s) {

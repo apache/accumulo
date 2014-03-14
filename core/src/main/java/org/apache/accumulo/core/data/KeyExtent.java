@@ -301,9 +301,10 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   /**
    * Empty start or end rows tell the method there are no start or end rows, and to use all the keyextents that are before the end row if no start row etc.
    * 
+   * @deprecated this method not intended for public use and is likely to be removed in a future version.
    * @return all the key extents that the rows cover
    */
-
+  @Deprecated
   public static Collection<KeyExtent> getKeyExtentsForRange(Text startRow, Text endRow, Set<KeyExtent> kes) {
     if (kes == null)
       return Collections.emptyList();
