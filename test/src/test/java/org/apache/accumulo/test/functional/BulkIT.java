@@ -39,16 +39,17 @@ public class BulkIT extends SimpleMacIT {
 
   @Test(timeout = 4 * 60 * 1000)
   public void test() throws Exception {
-    runTest(getConnector(), getTableNames(1)[0], this.getClass().getName());
+    runTest(getConnector(), getTableNames(1)[0], this.getClass().getName(), testName.getMethodName());
   }
 
-  static void runTest(Connector c, String tableName, String filePrefix) throws AccumuloException, AccumuloSecurityException, TableExistsException, IOException, TableNotFoundException,
+  static void runTest(Connector c, String tableName, String filePrefix, String dirSuffix) throws AccumuloException, AccumuloSecurityException, TableExistsException, IOException, TableNotFoundException,
       MutationsRejectedException {
     c.tableOperations().create(tableName);
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     String base = "target/accumulo-maven-plugin";
+    String bulkFailures = base + "/testBulkFail_" + dirSuffix;
     fs.delete(new Path(base + "/testrf"), true);
-    fs.mkdirs(new Path(base + "/testBulkFail"));
+    fs.mkdirs(new Path(bulkFailures));
 
     Opts opts = new Opts();
     opts.timestamp = 1;
@@ -68,7 +69,7 @@ public class BulkIT extends SimpleMacIT {
     opts.rows = 1;
     // create an rfile with one entry, there was a bug with this:
     TestIngest.ingest(c, opts, BWOPTS);
-    c.tableOperations().importDirectory(tableName, base + "/testrf", base + "/testBulkFail", false);
+    c.tableOperations().importDirectory(tableName, base + "/testrf", bulkFailures, false);
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     vopts.tableName = tableName;
     vopts.random = 56;
