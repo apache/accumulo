@@ -17,6 +17,7 @@
 package org.apache.accumulo.examples.simple.mapreduce;
 
 import java.io.IOException;
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.HashSet;
 import java.util.Map;
 
@@ -59,24 +60,7 @@ public class TableToFile extends Configured implements Tool {
   public static class TTFMapper extends Mapper<Key,Value,NullWritable,Text> {
     @Override
     public void map(Key row, Value data, Context context) throws IOException, InterruptedException {
-      final Key r = row;
-      final Value v = data;
-      Map.Entry<Key,Value> entry = new Map.Entry<Key,Value>() {
-        @Override
-        public Key getKey() {
-          return r;
-        }
-
-        @Override
-        public Value getValue() {
-          return v;
-        }
-
-        @Override
-        public Value setValue(Value value) {
-          return null;
-        }
-      };
+      Map.Entry<Key,Value> entry = new SimpleImmutableEntry<Key,Value>(row, data);
       context.write(NullWritable.get(), new Text(DefaultFormatter.formatEntry(entry, false)));
       context.setStatus("Outputed Value");
     }

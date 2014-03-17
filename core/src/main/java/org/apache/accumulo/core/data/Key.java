@@ -877,12 +877,12 @@ public class Key implements WritableComparable<Key>, Cloneable {
     List<TKeyValue> tkvl = Arrays.asList(new TKeyValue[param.size()]);
     
     if (param.size() > 0)
-      tkvl.set(0, new TKeyValue(param.get(0).key.toThrift(), ByteBuffer.wrap(param.get(0).value)));
+      tkvl.set(0, new TKeyValue(param.get(0).getKey().toThrift(), ByteBuffer.wrap(param.get(0).getValue().get())));
     
     for (int i = param.size() - 1; i > 0; i--) {
-      Key prevKey = param.get(i - 1).key;
+      Key prevKey = param.get(i - 1).getKey();
       KeyValue kv = param.get(i);
-      Key key = kv.key;
+      Key key = kv.getKey();
       
       TKey newKey = null;
       
@@ -912,7 +912,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
       if (newKey == null)
         newKey = key.toThrift();
       
-      tkvl.set(i, new TKeyValue(newKey, ByteBuffer.wrap(kv.value)));
+      tkvl.set(i, new TKeyValue(newKey, ByteBuffer.wrap(kv.getValue().get())));
     }
     
     return tkvl;

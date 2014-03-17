@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.util;
 
-import java.util.Map;
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Map.Entry;
 
 public class Pair<A,B> {
@@ -73,23 +73,7 @@ public class Pair<A,B> {
   }
 
   public Entry<A,B> toMapEntry() {
-    return new Map.Entry<A,B>() {
-
-      @Override
-      public A getKey() {
-        return getFirst();
-      }
-
-      @Override
-      public B getValue() {
-        return getSecond();
-      }
-
-      @Override
-      public B setValue(B value) {
-        throw new UnsupportedOperationException();
-      }
-    };
+    return new SimpleImmutableEntry<A,B>(getFirst(), getSecond());
   }
 
   public Pair<B,A> swap() {

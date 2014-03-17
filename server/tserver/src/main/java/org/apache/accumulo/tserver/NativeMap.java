@@ -18,6 +18,7 @@ package org.apache.accumulo.tserver;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -451,7 +452,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
       hasNext = nmiNext(nmiPointer, fieldsLens);
 
-      return new NMEntry(k, v);
+      return new SimpleImmutableEntry<Key,Value>(k, v);
     }
 
     @Override
@@ -468,37 +469,6 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
       }
     }
 
-  }
-
-  private static class NMEntry implements Map.Entry<Key,Value> {
-
-    private Key key;
-    private Value val;
-
-    NMEntry(Key k, Value v) {
-      this.key = k;
-      this.val = v;
-    }
-
-    @Override
-    public Key getKey() {
-      return key;
-    }
-
-    @Override
-    public Value getValue() {
-      return val;
-    }
-
-    @Override
-    public Value setValue(Value value) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public String toString() {
-      return key + "=" + val;
-    }
   }
 
   public NativeMap() {

@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.client.impl;
 
 import java.io.IOException;
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -102,33 +103,6 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   
   public interface ResultReceiver {
     void receive(List<Entry<Key,Value>> entries);
-  }
-  
-  private static class MyEntry implements Entry<Key,Value> {
-    
-    private Key key;
-    private Value value;
-    
-    MyEntry(Key key, Value value) {
-      this.key = key;
-      this.value = value;
-    }
-    
-    @Override
-    public Key getKey() {
-      return key;
-    }
-    
-    @Override
-    public Value getValue() {
-      return value;
-    }
-    
-    @Override
-    public Value setValue(Value value) {
-      throw new UnsupportedOperationException();
-    }
-    
   }
   
   public TabletServerBatchReaderIterator(Instance instance, Credentials credentials, String table, Authorizations authorizations, ArrayList<Range> ranges,
@@ -668,7 +642,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         
         ArrayList<Entry<Key,Value>> entries = new ArrayList<Map.Entry<Key,Value>>(scanResult.results.size());
         for (TKeyValue kv : scanResult.results) {
-          entries.add(new MyEntry(new Key(kv.key), new Value(kv.value)));
+          entries.add(new SimpleImmutableEntry<Key,Value>(new Key(kv.key), new Value(kv.value)));
         }
         
         if (entries.size() > 0)
@@ -690,7 +664,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           
           entries = new ArrayList<Map.Entry<Key,Value>>(scanResult.results.size());
           for (TKeyValue kv : scanResult.results) {
-            entries.add(new MyEntry(new Key(kv.key), new Value(kv.value)));
+            entries.add(new SimpleImmutableEntry<Key,Value>(new Key(kv.key), new Value(kv.value)));
           }
           
           if (entries.size() > 0)

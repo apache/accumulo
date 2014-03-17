@@ -1455,17 +1455,12 @@ public class Tablet {
       super(new Key(k), Arrays.copyOf(v.get(), v.get().length));
     }
 
-    @Override
-    public String toString() {
-      return key.toString() + "=" + getValue();
-    }
-
     int numBytes() {
-      return key.getSize() + getValue().get().length;
+      return getKey().getSize() + getValue().get().length;
     }
 
     int estimateMemoryUsed() {
-      return key.getSize() + getValue().get().length + (9 * 32); // overhead is 32 per object
+      return getKey().getSize() + getValue().get().length + (9 * 32); // overhead is 32 per object
     }
   }
 
@@ -1551,7 +1546,7 @@ public class Tablet {
       throw new IllegalStateException("tablet should not exceed memory usage or close, not both");
 
     if (entriesAdded > 0)
-      addUnfinishedRange(lookupResult, range, results.get(results.size() - 1).key, false);
+      addUnfinishedRange(lookupResult, range, results.get(results.size() - 1).getKey(), false);
     else
       lookupResult.unfinishedRanges.add(range);
 
