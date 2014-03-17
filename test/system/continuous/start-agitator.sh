@@ -38,34 +38,34 @@ if [[ "`whoami`" == "root" ]];  then
   echo "Running master-agitator and tserver-agitator as $ACCUMULO_USER using su. Running datanode-agitator as $HDFS_USER using su."
 
   # Change to the correct user if started as root
-  su -c "nohup $CONTINUOUS_CONF_DIR/master-agitator.pl $MASTER_KILL_SLEEP_TIME $MASTER_RESTART_SLEEP_TIME >${LOG_BASE}_master-agitator.out 2>${LOG_BASE}_master-agitator.err &" -m - $ACCUMULO_USER
+  su -c "nohup ${bin}/master-agitator.pl $MASTER_KILL_SLEEP_TIME $MASTER_RESTART_SLEEP_TIME >${LOG_BASE}_master-agitator.out 2>${LOG_BASE}_master-agitator.err &" -m - $ACCUMULO_USER
 
-  su -c "nohup $CONTINUOUS_CONF_DIR/tserver-agitator.pl $KILL_SLEEP_TIME $TUP_SLEEP_TIME $MIN_KILL $MAX_KILL >${LOG_BASE}_tserver-agitator.out 2>${LOG_BASE}_tserver-agitator.err &" -m - $ACCUMULO_USER
+  su -c "nohup ${bin}/tserver-agitator.pl $KILL_SLEEP_TIME $TUP_SLEEP_TIME $MIN_KILL $MAX_KILL >${LOG_BASE}_tserver-agitator.out 2>${LOG_BASE}_tserver-agitator.err &" -m - $ACCUMULO_USER
 
-  su -c "nohup $CONTINUOUS_CONF_DIR/datanode-agitator.pl $KILL_SLEEP_TIME $TUP_SLEEP_TIME $HADOOP_PREFIX $MIN_KILL $MAX_KILL >${LOG_BASE}_datanode-agitator.out 2>${LOG_BASE}_datanode-agitator.err &" -m - $HDFS_USER
+  su -c "nohup ${bin}/datanode-agitator.pl $KILL_SLEEP_TIME $TUP_SLEEP_TIME $HADOOP_PREFIX $MIN_KILL $MAX_KILL >${LOG_BASE}_datanode-agitator.out 2>${LOG_BASE}_datanode-agitator.err &" -m - $HDFS_USER
 
 elif [[ "`whoami`" == $ACCUMULO_USER ]]; then
   echo "Running master-agitator and tserver-agitator as `whoami`. Running datanode-agitator as $HDFS_USER using sudo."
   # Just run the master-agitator if we're the accumulo user
-  nohup $CONTINUOUS_CONF_DIR/master-agitator.pl $MASTER_KILL_SLEEP_TIME $MASTER_RESTART_SLEEP_TIME >${LOG_BASE}_master-agitator.out 2>${LOG_BASE}_master-agitator.err &
+  nohup ${bin}/master-agitator.pl $MASTER_KILL_SLEEP_TIME $MASTER_RESTART_SLEEP_TIME >${LOG_BASE}_master-agitator.out 2>${LOG_BASE}_master-agitator.err &
 
-  nohup $CONTINUOUS_CONF_DIR/tserver-agitator.pl $KILL_SLEEP_TIME $TUP_SLEEP_TIME $MIN_KILL $MAX_KILL >${LOG_BASE}_tserver-agitator.out 2>${LOG_BASE}_tserver-agitator.err &
+  nohup ${bin}/tserver-agitator.pl $KILL_SLEEP_TIME $TUP_SLEEP_TIME $MIN_KILL $MAX_KILL >${LOG_BASE}_tserver-agitator.out 2>${LOG_BASE}_tserver-agitator.err &
 
-  sudo -u $HDFS_USER nohup $CONTINUOUS_CONF_DIR/datanode-agitator.pl $KILL_SLEEP_TIME $TUP_SLEEP_TIME $HADOOP_PREFIX $MIN_KILL $MAX_KILL >${LOG_BASE}_datanode-agitator.out 2>${LOG_BASE}_datanode-agitator.err &
+  sudo -u $HDFS_USER nohup ${bin}/datanode-agitator.pl $KILL_SLEEP_TIME $TUP_SLEEP_TIME $HADOOP_PREFIX $MIN_KILL $MAX_KILL >${LOG_BASE}_datanode-agitator.out 2>${LOG_BASE}_datanode-agitator.err &
 
 else
   echo "Running master-agitator and tserver-agitator as $ACCUMULO_USER using sudo. Running datanode-agitator as $HDFS_USER using sudo."
 
   # Not root, and not the accumulo user, hope you can sudo to it
-  sudo -u $ACCUMULO_USER "nohup $CONTINUOUS_CONF_DIR/master-agitator.pl $MASTER_KILL_SLEEP_TIME $MASTER_RESTART_SLEEP_TIME >${LOG_BASE}_master-agitator.out 2>${LOG_BASE}_master-agitator.err &"
+  sudo -u $ACCUMULO_USER "nohup ${bin}/master-agitator.pl $MASTER_KILL_SLEEP_TIME $MASTER_RESTART_SLEEP_TIME >${LOG_BASE}_master-agitator.out 2>${LOG_BASE}_master-agitator.err &"
 
-  sudo -u $ACCUMULO_USER "nohup $CONTINUOUS_CONF_DIR/tserver-agitator.pl $KILL_SLEEP_TIME $TUP_SLEEP_TIME $MIN_KILL $MAX_KILL >${LOG_BASE}_tserver-agitator.out 2>${LOG_BASE}_tserver-agitator.err &"
+  sudo -u $ACCUMULO_USER "nohup ${bin}/tserver-agitator.pl $KILL_SLEEP_TIME $TUP_SLEEP_TIME $MIN_KILL $MAX_KILL >${LOG_BASE}_tserver-agitator.out 2>${LOG_BASE}_tserver-agitator.err &"
 
-  sudo -u $HDFS_USER "nohup $CONTINUOUS_CONF_DIR/datanode-agitator.pl $KILL_SLEEP_TIME $TUP_SLEEP_TIME $HADOOP_PREFIX $MIN_KILL $MAX_KILL >${LOG_BASE}_datanode-agitator.out 2>${LOG_BASE}_datanode-agitator.err &" -m - $HDFS_USER
+  sudo -u $HDFS_USER "nohup ${bin}/datanode-agitator.pl $KILL_SLEEP_TIME $TUP_SLEEP_TIME $HADOOP_PREFIX $MIN_KILL $MAX_KILL >${LOG_BASE}_datanode-agitator.out 2>${LOG_BASE}_datanode-agitator.err &" -m - $HDFS_USER
 
 fi
 
 if ${AGITATE_HDFS:-false} ; then
   AGITATOR_LOG="${LOG_BASE}_hdfs-agitator"
-  sudo -u $AGITATE_HDFS_SUPERUSER nohup $CONTINUOUS_CONF_DIR/hdfs-agitator.pl --sleep ${AGITATE_HDFS_SLEEP_TIME} --hdfs-cmd ${AGITATE_HDFS_COMMAND} --superuser ${AGITATE_HDFS_SUPERUSER} >${AGITATOR_LOG}.out 2>${AGITATOR_LOG}.err &
+  sudo -u $AGITATE_HDFS_SUPERUSER nohup ${bin}/hdfs-agitator.pl --sleep ${AGITATE_HDFS_SLEEP_TIME} --hdfs-cmd ${AGITATE_HDFS_COMMAND} --superuser ${AGITATE_HDFS_SUPERUSER} >${AGITATOR_LOG}.out 2>${AGITATOR_LOG}.err &
 fi

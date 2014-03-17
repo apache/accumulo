@@ -24,8 +24,13 @@ if(scalar(@ARGV) != 5 && scalar(@ARGV) != 3){
   exit(1);
 }
 
-$cwd=Cwd::cwd();
-$ACCUMULO_HOME=$cwd . '/../../..';
+my $ACCUMULO_HOME;
+if( defined $ENV{'ACCUMULO_HOME'} ){
+  $ACCUMULO_HOME = $ENV{'ACCUMULO_HOME'};
+} else {
+  $cwd=Cwd::cwd();
+  $ACCUMULO_HOME=$cwd . '/../../..';
+}
 $HADOOP_PREFIX=$ARGV[2];
 
 print "ACCUMULO_HOME=$ACCUMULO_HOME\n";

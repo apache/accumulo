@@ -24,8 +24,13 @@ if(scalar(@ARGV) != 4 && scalar(@ARGV) != 2){
   exit(1);
 }
 
-$cwd=Cwd::cwd();
-$ACCUMULO_HOME=$cwd . '/../../..';
+my $ACCUMULO_HOME;
+if( defined $ENV{'ACCUMULO_HOME'} ){
+  $ACCUMULO_HOME = $ENV{'ACCUMULO_HOME'};
+} else {
+  $cwd=Cwd::cwd();
+  $ACCUMULO_HOME=$cwd . '/../../..';
+}
 
 print "ACCUMULO_HOME=$ACCUMULO_HOME\n";
 

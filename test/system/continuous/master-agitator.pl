@@ -23,7 +23,13 @@ if(scalar(@ARGV) != 2){
 	exit(1);
 }
 
-$ACCUMULO_HOME="../../..";
+my $ACCUMULO_HOME;
+if( defined $ENV{'ACCUMULO_HOME'} ){
+  $ACCUMULO_HOME = $ENV{'ACCUMULO_HOME'};
+} else {
+  $cwd=Cwd::cwd();
+  $ACCUMULO_HOME=$cwd . '/../../..';
+}
 
 if(defined $ENV{'ACCUMULO_CONF_DIR'}){
         $ACCUMULO_CONF_DIR = $ENV{'ACCUMULO_CONF_DIR'};
