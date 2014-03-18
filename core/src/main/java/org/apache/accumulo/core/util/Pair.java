@@ -72,16 +72,16 @@ public class Pair<A,B> {
     return prefix + first + separator + second + suffix;
   }
 
-  public Entry<? super A,? super B> toMapEntry() {
+  public Entry<A,B> toMapEntry() {
     return new SimpleImmutableEntry<A,B>(getFirst(), getSecond());
   }
 
-  public Pair<? super B,? super A> swap() {
+  public Pair<B,A> swap() {
     return new Pair<B,A>(getSecond(), getFirst());
   }
 
-  public static <K2,V2,K1 extends K2,V1 extends V2> Pair<K2,V2> fromEntry(Entry<K1,V1> entry) {
-    return new Pair<K2,V2>(entry.getKey(), entry.getValue());
+  public static <K,V> Pair<K,V> fromEntry(Entry<K,V> entry) {
+    return new Pair<K,V>(entry.getKey(), entry.getValue());
   }
 
 }
