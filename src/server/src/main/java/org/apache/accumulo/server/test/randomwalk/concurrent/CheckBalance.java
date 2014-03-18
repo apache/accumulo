@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.test.randomwalk.concurrent;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -57,9 +58,11 @@ public class CheckBalance extends Test {
       total += count.longValue();
     }
     final double average = total / counts.size();
-    
-    // Check for even # of tablets on each node
-    double maxDifference = Math.max(1, average / 5);
+    final double sd = stddev(counts.values(), average);
+    log.debug("average " + average + ", standard deviation " + sd);
+
+    // Check for balanced # of tablets on each node
+    double maxDifference = 2.0 * sd;
     String unbalancedLocation = null;
     long lastCount = 0L;
     boolean balanced = true;
@@ -94,4 +97,13 @@ public class CheckBalance extends Test {
     }
   }
   
+  private static double stddev(Collection<Long> samples, double avg) {
+    int num = samples.size();
+    double sqrtotal = 0.0;
+    for (Long s : samples) {
+      double diff = s.doubleValue() - avg;
+      sqrtotal += diff * diff;
+    }
+    return Math.sqrt(sqrtotal / (double) num);
+  }
 }
