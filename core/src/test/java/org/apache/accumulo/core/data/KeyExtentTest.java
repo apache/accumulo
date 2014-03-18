@@ -291,6 +291,7 @@ public class KeyExtentTest {
     return out;
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testKeyExtentsForSimpleRange() {
     Collection<KeyExtent> results;
@@ -307,6 +308,7 @@ public class KeyExtentTest {
     assertEquals(t, results.iterator().next());
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testKeyExtentsForRange() {
     KeyExtent b = nke("t", "b", null);
