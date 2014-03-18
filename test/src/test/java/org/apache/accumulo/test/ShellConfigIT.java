@@ -26,9 +26,6 @@ import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
-/**
- * 
- */
 public class ShellConfigIT extends ConfigurableMacIT {
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.CRYPTO_BLOCK_STREAM_SIZE, "7K");
