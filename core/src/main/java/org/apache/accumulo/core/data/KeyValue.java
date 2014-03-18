@@ -23,27 +23,33 @@ import java.util.AbstractMap.SimpleImmutableEntry;
  * A key/value pair. The key and value may not be set after construction.
  */
 public class KeyValue extends SimpleImmutableEntry<Key,Value> {
-  
+
+  private static final long serialVersionUID = 1L;
+
   /**
    * Creates a new key/value pair.
-   *
-   * @param key key
-   * @param value bytes of value
+   * 
+   * @param key
+   *          key
+   * @param value
+   *          bytes of value
    */
   public KeyValue(Key key, byte[] value) {
     super(key, new Value(value, false));
   }
-  
+
   /**
    * Creates a new key/value pair.
-   *
-   * @param key key
-   * @param value buffer containing bytes of value
+   * 
+   * @param key
+   *          key
+   * @param value
+   *          buffer containing bytes of value
    */
   public KeyValue(Key key, ByteBuffer value) {
     super(key, new Value(value));
   }
-  
+
   /**
    * Creates a new key/value pair.
    * 

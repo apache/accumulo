@@ -30,14 +30,16 @@ import com.google.common.collect.Lists;
 public class ShellUtil {
 
   /**
-   * Scans the given file line-by-line (ignoring empty lines) and returns a list
-   * containing those lines. If decode is set to true, every line is decoded using
-   * {@link Base64.decodeBase64} before inserting in the list.
+   * Scans the given file line-by-line (ignoring empty lines) and returns a list containing those lines. If decode is set to true, every line is decoded using
+   * {@link Base64#decodeBase64(byte[])} from the UTF-8 bytes of that line before inserting in the list.
    * 
-   * @param filename Path to the file that needs to be scanned
-   * @param decode Whether to decode lines in the file
+   * @param filename
+   *          Path to the file that needs to be scanned
+   * @param decode
+   *          Whether to decode lines in the file
    * @return List of {@link Text} objects containing data in the given file
-   * @throws FileNotFoundException if the given file doesn't exist
+   * @throws FileNotFoundException
+   *           if the given file doesn't exist
    */
   public static List<Text> scanFile(String filename, boolean decode) throws FileNotFoundException {
     String line;

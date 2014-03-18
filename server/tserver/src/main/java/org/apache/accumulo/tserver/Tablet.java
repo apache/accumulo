@@ -823,7 +823,7 @@ public class Tablet {
               log.warn("Target map file already exist " + newDatafile);
               fs.deleteRecursively(newDatafile.path());
             }
-            
+
             rename(fs, tmpDatafile.path(), newDatafile.path());
           }
           break;
@@ -956,7 +956,7 @@ public class Tablet {
         // rename before putting in metadata table, so files in metadata table should
         // always exist
         rename(fs, tmpDatafile.path(), newDatafile.path());
-        
+
         if (dfv.getNumEntries() == 0) {
           fs.deleteRecursively(newDatafile.path());
         }
@@ -1056,9 +1056,10 @@ public class Tablet {
     this(tabletServer, location, extent, trm, CachedConfiguration.getInstance(), tabletsKeyValues);
     splitCreationTime = 0;
   }
-  
+
   public Tablet(KeyExtent extent, TabletServer tabletServer, TabletResourceManager trm, SplitInfo info) throws IOException {
-    this(tabletServer, new Text(info.dir), extent, trm, CachedConfiguration.getInstance(), info.datafiles, info.time, info.initFlushID, info.initCompactID, info.lastLocation); 
+    this(tabletServer, new Text(info.dir), extent, trm, CachedConfiguration.getInstance(), info.datafiles, info.time, info.initFlushID, info.initCompactID,
+        info.lastLocation);
     splitCreationTime = System.currentTimeMillis();
   }
 
@@ -1071,7 +1072,8 @@ public class Tablet {
 
   private Tablet(TabletServer tabletServer, Text location, KeyExtent extent, TabletResourceManager trm, Configuration conf,
       SortedMap<FileRef,DataFileValue> datafiles, String time, long initFlushID, long initCompactID, TServerInstance lastLocation) throws IOException {
-    this(tabletServer, location, extent, trm, conf, VolumeManagerImpl.get(), EMPTY, datafiles, time, lastLocation, new HashSet<FileRef>(), initFlushID, initCompactID);
+    this(tabletServer, location, extent, trm, conf, VolumeManagerImpl.get(), EMPTY, datafiles, time, lastLocation, new HashSet<FileRef>(), initFlushID,
+        initCompactID);
   }
 
   private static String lookupTime(AccumuloConfiguration conf, KeyExtent extent, SortedMap<Key,Value> tabletsKeyValues) {
@@ -1334,9 +1336,9 @@ public class Tablet {
       }
 
     });
-    
+
     acuTableConf.getNamespaceConfiguration().addObserver(configObserver);
-    
+
     // Force a load of any per-table properties
     configObserver.propertiesChanged();
 
@@ -1451,6 +1453,8 @@ public class Tablet {
   }
 
   public static class KVEntry extends KeyValue {
+    private static final long serialVersionUID = 1L;
+
     public KVEntry(Key k, Value v) {
       super(new Key(k), Arrays.copyOf(v.get(), v.get().length));
     }
@@ -3268,7 +3272,7 @@ public class Tablet {
 
     return smallestFiles;
   }
-  
+
   static void rename(VolumeManager fs, Path src, Path dst) throws IOException {
     if (!fs.rename(src, dst)) {
       throw new IOException("Rename " + src + " to " + dst + " returned false ");
