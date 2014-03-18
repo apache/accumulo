@@ -135,6 +135,23 @@ public interface TableOperations {
   public void exportTable(String tableName, String exportDir) throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
 
   /**
+   * Ensures that tablets are split along a set of keys.
+   * <p>
+   * Note that while the documentation for Text specifies that its bytestream should be UTF-8, the encoding is not enforced by operations that work with byte arrays.
+   * <p>
+   * For example, you can create 256 evenly-sliced splits via the following code sample even though the given byte sequences are not valid UTF-8.
+   * <pre>
+   * {@code
+   *  TableOperations tableOps = connector.tableOperations();
+   *  TreeSet<Text> splits = new TreeSet<Text>();
+   *  for (int i = 0; i < 256; i++) {
+   *    byte[] bytes = { (byte) i };
+   *    splits.add(new Text(bytes));
+   *  }
+   *  tableOps.addSplits(TABLE_NAME, splits);
+   * }
+   * </pre>
+   *
    * @param tableName
    *          the name of the table
    * @param partitionKeys
