@@ -80,8 +80,8 @@ public class Pair<A,B> {
     return new Pair<B,A>(getSecond(), getFirst());
   }
 
-  public static <K,V> Pair<K,V> fromEntry(Entry<K,V> entry) {
-    return new Pair<K,V>(entry.getKey(), entry.getValue());
+  public static <K2,V2,K1 extends K2,V1 extends V2> Pair<K2,V2> fromEntry(Entry<K1,V1> entry) {
+    return new Pair<K2,V2>(entry.getKey(), entry.getValue());
   }
 
 }
