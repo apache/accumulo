@@ -73,6 +73,7 @@ public class SecurityHelper {
   
   public static void setTabUserName(State state, String tabUserName) {
     state.set(tUserName, tabUserName);
+    setTabUserExists(state, false);
   }
   
   public static byte[] getSysUserPass(State state) {
