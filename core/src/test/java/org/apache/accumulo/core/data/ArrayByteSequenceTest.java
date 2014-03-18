@@ -20,7 +20,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.nio.ByteBuffer;
 
-import org.apache.accumulo.core.Constants;
 import org.junit.Before;
 import org.junit.Test;
 
