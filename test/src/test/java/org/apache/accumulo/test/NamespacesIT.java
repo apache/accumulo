@@ -313,6 +313,7 @@ public class NamespacesIT extends SimpleMacIT {
     // verify entry is filtered out (also, verify conflict checking API)
     c.namespaceOperations().checkIteratorConflicts(namespace, setting, EnumSet.allOf(IteratorScope.class));
     c.namespaceOperations().attachIterator(namespace, setting);
+    UtilWaitThread.sleep(2*1000);
     try {
       c.namespaceOperations().checkIteratorConflicts(namespace, setting, EnumSet.allOf(IteratorScope.class));
       fail();
@@ -328,6 +329,7 @@ public class NamespacesIT extends SimpleMacIT {
 
     // verify can see inserted entry again
     c.namespaceOperations().removeIterator(namespace, setting.getName(), EnumSet.allOf(IteratorScope.class));
+    UtilWaitThread.sleep(2*1000);
     assertFalse(c.namespaceOperations().listIterators(namespace).containsKey(iterName));
     assertFalse(c.tableOperations().listIterators(t1).containsKey(iterName));
     s = c.createScanner(t1, Authorizations.EMPTY);
