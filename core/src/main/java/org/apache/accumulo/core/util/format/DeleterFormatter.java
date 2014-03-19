@@ -63,6 +63,9 @@ public class DeleterFormatter extends DefaultFormatter {
     return true;
   }
   
+  /**
+   * @return null, because the iteration will provide prompts and handle deletes internally.
+   */
   @Override
   public String next() {
     Entry<Key,Value> next = getScannerIterator().next();

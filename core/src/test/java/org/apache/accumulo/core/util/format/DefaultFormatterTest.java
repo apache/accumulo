@@ -16,32 +16,47 @@
  */
 package org.apache.accumulo.core.util.format;
 
+import static org.junit.Assert.assertEquals;
+
+import java.util.Collections;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.log4j.Logger;
+import org.apache.hadoop.io.Text;
+import org.junit.Before;
+import org.junit.Test;
 
-public class FormatterFactory {
-  private static final Logger log = Logger.getLogger(FormatterFactory.class);
-  
-  public static Formatter getFormatter(Class<? extends Formatter> formatterClass, Iterable<Entry<Key,Value>> scanner, boolean printTimestamps) {
-    Formatter formatter = null;
-    try {
-      formatter = formatterClass.newInstance();
-    } catch (Exception e) {
-      log.warn("Unable to instantiate formatter. Using default formatter.", e);
-      formatter = new DefaultFormatter();
-    }
-    formatter.initialize(scanner, printTimestamps);
-    return formatter;
-  }
-  
-  public static Formatter getDefaultFormatter(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps) {
-    return getFormatter(DefaultFormatter.class, scanner, printTimestamps);
+public class DefaultFormatterTest {
+
+  DefaultFormatter df;
+  Iterable<Entry<Key,Value>> empty = Collections.<Key,Value> emptyMap().entrySet();
+
+  @Before
+  public void setUp() {
+    df = new DefaultFormatter();
   }
 
-  private FormatterFactory() {
-    // prevent instantiation
+  @Test(expected = IllegalStateException.class)
+  public void testDoubleInitialize() {
+    df.initialize(empty, true);
+    df.initialize(empty, true);
+  }
+
+  @Test(expected = IllegalStateException.class)
+  public void testNextBeforeInitialize() {
+    df.hasNext();
+  }
+
+  @Test
+  public void testAppendBytes() {
+    StringBuilder sb = new StringBuilder();
+    byte[] data = new byte[] { 0, '\\', 'x', -0x01 };
+
+    DefaultFormatter.appendValue(sb, new Value());
+    assertEquals("", sb.toString());
+
+    DefaultFormatter.appendText(sb, new Text(data));
+    assertEquals("\\x00\\\\x\\xFF", sb.toString());
   }
 }
