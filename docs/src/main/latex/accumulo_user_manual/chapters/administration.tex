@@ -43,12 +43,10 @@ network bandwidth must be available between any two machines.
 Choose a directory for the Accumulo installation. This directory will be referenced
 by the environment variable \texttt{\$ACCUMULO\_HOME}. Run the following:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 $ tar xzf accumulo-1.5.0-bin.tar.gz    # unpack to subdirectory
 $ mv accumulo-1.5.0 $ACCUMULO_HOME # move to desired location
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Repeat this step at each machine within the cluster. Usually all machines have the
 same \texttt{\$ACCUMULO\_HOME}.
@@ -139,35 +137,31 @@ of errors.
 Specify appropriate values for the following settings in\\
 \texttt{\$ACCUMULO\_HOME/conf/accumulo-site.xml} :
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 <property>
     <name>instance.zookeeper.host</name>
     <value>zooserver-one:2181,zooserver-two:2181</value>
     <description>list of zookeeper servers</description>
 </property>
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 This enables Accumulo to find ZooKeeper. Accumulo uses ZooKeeper to coordinate
 settings between processes and helps finalize TabletServer failure.
 
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 <property>
     <name>instance.secret</name>
     <value>DEFAULT</value>
 </property>
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 The instance needs a secret to enable secure communication between servers. Configure your
 secret and make sure that the \texttt{accumulo-site.xml} file is not readable to other users.
 
 Some settings can be modified via the Accumulo shell and take effect immediately, but
 some settings require a process restart to take effect. See the configuration documentation
-(available on the monitor web pages) for details.
+(available on the monitor web pages and in Appendix~\ref{app:config}) for details.
 
 \subsection{Deploy Configuration}
 
@@ -214,12 +208,15 @@ take some time for particular configurations.
 
 Update your \texttt{\$ACCUMULO\_HOME/conf/slaves} (or \texttt{\$ACCUMULO\_CONF\_DIR/slaves}) file to account for the addition.
 
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 $ACCUMULO_HOME/bin/accumulo admin start <host(s)> {<host> ...}
-\end{verbatim}
+\end{verbatim}\endgroup
 
-Alternatively, you can ssh to each of the hosts you want to add and run 
-\texttt{\$ACCUMULO\_HOME/bin/start-here.sh}.
+Alternatively, you can ssh to each of the hosts you want to add and run:
+
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+$ACCUMULO\_HOME/bin/start-here.sh
+\end{verbatim}\endgroup
 
 Make sure the host in question has the new configuration, or else the tablet 
 server won't start; at a minimum this needs to be on the host(s) being added, 
@@ -230,12 +227,15 @@ but in practice it's good to ensure consistent configuration across all nodes.
 If you need to take a node out of operation, you can trigger a graceful shutdown of a tablet 
 server. Accumulo will automatically rebalance the tablets across the available tablet servers.
 
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 $ACCUMULO_HOME/bin/accumulo admin stop <host(s)> {<host> ...}
-\end{verbatim}
+\end{verbatim}\endgroup
 
-Alternatively, you can ssh to each of the hosts you want to remove and run 
-\texttt{\$ACCUMULO\_HOME/bin/stop-here.sh}.
+Alternatively, you can ssh to each of the hosts you want to remove and run:
+
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+$ACCUMULO\_HOME/bin/stop-here.sh
+\end{verbatim}\endgroup
 
 Be sure to update your \texttt{\$ACCUMUL\_HOME/conf/slaves} (or \texttt{\$ACCUMULO\_CONF\_DIR/slaves}) file to 
 account for the removal of these hosts. Bear in mind that the monitor will not re-read the 
@@ -276,33 +276,33 @@ from clients and writes them to the \texttt{trace} table. The Accumulo
 user that the tracer connects to Accumulo with can be configured with
 the following properties
 
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 trace.user
 trace.token.property.password
-\end{verbatim}
+\end{verbatim}\endgroup
 
 \subsection{Instrumenting a Client}
 Tracing can be used to measure a client operation, such as a scan, as
 the operation traverses the distributed system. To enable tracing for
 your application call
 
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 DistributedTrace.enable(instance, new ZooReader(instance), hostname, "myApplication");
-\end{verbatim}
+\end{verbatim}\endgroup
 
 Once tracing has been enabled, a client can wrap an operation in a trace.
 
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 Trace.on("Client Scan");
 BatchScanner scanner = conn.createBatchScanner(...);
 // Configure your scanner
 for (Entry entry : scanner) {
 }
 Trace.off();
-\end{verbatim}
+\end{verbatim}\endgroup
 
 Additionally, the user can create additional Spans within a Trace.
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 Trace.on("Client Update");
 ...
 Span readSpan = Trace.start("Read");
@@ -313,23 +313,23 @@ Span writeSpan = Trace.start("Write");
 ...
 writeSpan.stop();
 Trace.off();
-\end{verbatim}
+\end{verbatim}\endgroup
 
 Like Dapper, Accumulo tracing supports user defined annotations to associate additional data with a Trace.
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 ...
 int numberOfEntriesRead = 0;
 Span readSpan = Trace.start("Read");
 // Do the read, update the counter
 ...
 readSpan.data("Number of Entries Read", String.valueOf(numberOfEntriesRead));
-\end{verbatim}
+\end{verbatim}\endgroup
 
 Some client operations may have a high volume within your
 application. As such, you may wish to only sample a percentage of
 operations for tracing. As seen below, the CountSampler can be used to
 help enable tracing for 1-in-1000 operations
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 Sampler sampler = new CountSampler(1000);
 ...
 if (sampler.next()) {
@@ -337,7 +337,7 @@ if (sampler.next()) {
 }
 ...
 Trace.offNoFlush();
-\end{verbatim}
+\end{verbatim}\endgroup
 
 It should be noted that it is safe to turn off tracing even if it
 isn't currently active. The Trace.offNoFlush() should be used if the
@@ -353,7 +353,7 @@ UI. You can also programmatically access and print traces using the
 You can enable tracing for operations run from the shell by using the
 \texttt{trace on} and \texttt{trace off} commands.
 
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 root@test test> trace on
 root@test test> scan
 a b:c []    d
@@ -367,7 +367,7 @@ Time  Start  Service@Location       Name
     7+1691       shell@localhost scan:location
     6+1692         tserver@localhost startScan
     5+1692           tserver@localhost tablet read ahead 6
-\end{verbatim}
+\end{verbatim}\endgroup
 
 \section{Logging}
 Accumulo processes each write to a set of log files. By default these are found under\\

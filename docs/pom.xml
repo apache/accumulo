@@ -29,8 +29,49 @@
   <profiles>
     <profile>
       <id>docs</id>
+      <dependencies>
+        <dependency>
+          <groupId>org.apache.accumulo</groupId>
+          <artifactId>accumulo-core</artifactId>
+        </dependency>
+      </dependencies>
       <build>
         <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>prep-output-dir</id>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+                <phase>compile</phase>
+                <configuration>
+                  <executable>mkdir</executable>
+                  <arguments>
+                    <argument>-p</argument>
+                    <argument>${project.build.directory}/latex/accumulo_user_manual/appendices</argument>
+                  </arguments>
+                </configuration>
+              </execution>
+              <execution>
+                <id>config-appendix</id>
+                <goals>
+                  <goal>java</goal>
+                </goals>
+                <phase>compile</phase>
+                <configuration>
+                  <mainClass>org.apache.accumulo.core.conf.DefaultConfiguration</mainClass>
+                  <classpathScope>compile</classpathScope>
+                  <arguments>
+                    <argument>--generate-latex</argument>
+                    <argument>${project.build.directory}/latex/accumulo_user_manual/appendices/config.tex</argument>
+                  </arguments>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
           <plugin>
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>latex-maven-plugin</artifactId>
