@@ -366,20 +366,27 @@ public class MiniAccumuloCluster {
    */
   
   public void stop() throws IOException, InterruptedException {
-    if (zooKeeperProcess != null)
+    if (zooKeeperProcess != null) {
       zooKeeperProcess.destroy();
-    if (masterProcess != null)
+      zooKeeperProcess.waitFor();
+    }
+    if (masterProcess != null) {
       masterProcess.destroy();
+      masterProcess.waitFor();
+    }
     if (tabletServerProcesses != null) {
       for (Process tserver : tabletServerProcesses) {
         tserver.destroy();
+        tserver.waitFor();
       }
     }
     
     for (LogWriter lw : logWriters)
       lw.flush();
 
-    if (gcProcess != null)
+    if (gcProcess != null) {
       gcProcess.destroy();
+      gcProcess.waitFor();
+    }
   }
 }
