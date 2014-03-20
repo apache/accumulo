@@ -531,6 +531,7 @@ public class MiniAccumuloClusterImpl {
       case MASTER:
         if (proc.equals(masterProcess)) {
           masterProcess.destroy();
+          masterProcess.waitFor();
           masterProcess = null;
           found = true;
         }
@@ -541,6 +542,7 @@ public class MiniAccumuloClusterImpl {
             if (proc.equals(tserver)) {
               tabletServerProcesses.remove(tserver);
               tserver.destroy();
+              tserver.waitFor();
               found = true;
               break;
             }
@@ -550,6 +552,7 @@ public class MiniAccumuloClusterImpl {
       case ZOOKEEPER:
         if (proc.equals(zooKeeperProcess)) {
           zooKeeperProcess.destroy();
+          zooKeeperProcess.waitFor();
           zooKeeperProcess = null;
           found = true;
         }
@@ -557,6 +560,7 @@ public class MiniAccumuloClusterImpl {
       case GARBAGE_COLLECTOR:
         if (proc.equals(gcProcess)) {
           gcProcess.destroy();
+          gcProcess.waitFor();
           gcProcess = null;
           found = true;
         }
@@ -591,19 +595,23 @@ public class MiniAccumuloClusterImpl {
 
     if (zooKeeperProcess != null) {
       zooKeeperProcess.destroy();
+      zooKeeperProcess.waitFor();
     }
     if (masterProcess != null) {
       masterProcess.destroy();
+      masterProcess.waitFor();
     }
     if (tabletServerProcesses != null) {
       synchronized (tabletServerProcesses) {
         for (Process tserver : tabletServerProcesses) {
           tserver.destroy();
+          tserver.waitFor();
         }
       }
     }
     if (gcProcess != null) {
       gcProcess.destroy();
+      gcProcess.waitFor();
     }
 
     zooKeeperProcess = null;
@@ -612,8 +620,10 @@ public class MiniAccumuloClusterImpl {
     tabletServerProcesses.clear();
     if (config.useMiniDFS() && miniDFS != null)
       miniDFS.shutdown();
-    for (Process p : cleanup)
+    for (Process p : cleanup) {
       p.destroy();
+      p.waitFor();
+    }
     miniDFS = null;
   }
 
