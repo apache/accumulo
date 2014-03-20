@@ -27,8 +27,7 @@ bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
 script=$( basename "${SOURCE}" )
 # Stop: Resolve Script Directory
 
-CONTINUOUS_CONF_DIR=${CONTINUOUS_CONF_DIR:-${bin}}
-. ${CONTINUOUS_CONF_DIR}/mapred-setup.sh
+. ${bin}/mapred-setup.sh
 
 AUTH_OPT="";
 
