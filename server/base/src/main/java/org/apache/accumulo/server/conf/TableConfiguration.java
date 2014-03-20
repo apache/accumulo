@@ -35,28 +35,43 @@ import org.apache.log4j.Logger;
 
 public class TableConfiguration extends AccumuloConfiguration {
   private static final Logger log = Logger.getLogger(TableConfiguration.class);
-  
+
   // Need volatile keyword to ensure double-checked locking works as intended
   private static volatile ZooCache tablePropCache = null;
+  private static final Object initLock = new Object();
 
   private final String instanceId;
+  private final Instance instance;
   private final NamespaceConfiguration parent;
 
   private String table = null;
   private Set<ConfigurationObserver> observers;
 
   public TableConfiguration(String instanceId, String table, NamespaceConfiguration parent) {
+    this(instanceId, HdfsZooInstance.getInstance(), table, parent);
+  }
+
+  public TableConfiguration(String instanceId, Instance instance, String table, NamespaceConfiguration parent) {
     this.instanceId = instanceId;
+    this.instance = instance;
     this.table = table;
     this.parent = parent;
 
     this.observers = Collections.synchronizedSet(new HashSet<ConfigurationObserver>());
   }
 
-  private synchronized static ZooCache getTablePropCache() {
-    Instance inst = HdfsZooInstance.getInstance();
-    if (tablePropCache == null)
-	tablePropCache = new ZooCache(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), new TableConfWatcher(inst));
+  private void initializeZooCache() {
+    synchronized (initLock) {
+      if (null == tablePropCache) {
+        tablePropCache = new ZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), new TableConfWatcher(instance));
+      }
+    }
+  }
+
+  private ZooCache getTablePropCache() {
+    if (null == tablePropCache) {
+      initializeZooCache();
+    }
     return tablePropCache;
   }
 
@@ -158,11 +173,15 @@ public class TableConfiguration extends AccumuloConfiguration {
   @Override
   public void invalidateCache() {
     if (null != tablePropCache) {
-      synchronized (TableConfiguration.class) {
-        if (null != tablePropCache) {
-          tablePropCache = null;
-        }
-      }
+      tablePropCache.clear();
     }
+    // Else, if the cache is null, we could lock and double-check
+    // to see if it happened to be created so we could invalidate it
+    // but I don't see much benefit coming from that extra check.
+  }
+
+  @Override
+  public String toString() {
+    return this.getClass().getSimpleName();
   }
 }
