@@ -50,8 +50,8 @@ public interface Volume {
   public Path prefixChild(String p);
 
   /**
-   * Determine if the Path is valid on this Volume (contained by the basePath)
-   * @return True if path is contained within the basePath, false otherwise
+   * Determine if the Path is valid on this Volume. A Path is valid if it is contained
+   * in the Volume's FileSystem and is rooted beneath the basePath
    */
   public boolean isValidPath(Path p);
 }

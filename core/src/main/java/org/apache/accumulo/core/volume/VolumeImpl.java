@@ -20,15 +20,21 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
 
+import jline.internal.Log;
+
+import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.log4j.Logger;
 
 /**
  * Basic Volume implementation that contains a FileSystem and a base path 
  * that should be used within that filesystem.
  */
 public class VolumeImpl implements Volume {
+  private static final Logger log = Logger.getLogger(VolumeImpl.class);
+
   protected final FileSystem fs;
   protected final String basePath;
 
@@ -67,7 +73,15 @@ public class VolumeImpl implements Volume {
   public boolean isValidPath(Path p) {
     checkNotNull(p);
 
-    return p.toUri().getPath().startsWith(basePath);
+    try {
+      if (fs.equals(p.getFileSystem(CachedConfiguration.getInstance()))) {
+        return p.toUri().getPath().startsWith(basePath);
+      }
+    } catch (IOException e) {
+      log.warn("Could not determine filesystem from path: " + p);
+    }
+
+    return false;
   }
 
   @Override

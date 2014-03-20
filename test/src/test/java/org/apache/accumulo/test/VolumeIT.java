@@ -102,6 +102,7 @@ public class VolumeIT extends ConfigurableMacIT {
     FileUtils.deleteQuietly(new File(v1.getParent().toUri()));
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     // Run MAC on two locations in the local file system
