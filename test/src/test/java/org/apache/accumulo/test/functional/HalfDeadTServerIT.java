@@ -16,8 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -94,8 +93,13 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
   @Test(timeout = 4 * 60 * 1000)
   public void testTimeout() throws Exception {
     String results = test(40);
-    if (results != null)
-      assertTrue(results.contains("Session expired"));
+    if (results != null) {
+    	if (!results.contains("Session expired")) {
+    		System.out.println("Failed to find Session expired in");
+    		System.out.println(results);
+    		fail("zookeeper session failed to expire");
+    	}
+    }
   }
   
   public String test(int seconds) throws Exception {
@@ -169,6 +173,7 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
       tserver.destroy();
       tserver.waitFor();
       t.join();
+      UtilWaitThread.sleep(1000);
     }
   }
   
