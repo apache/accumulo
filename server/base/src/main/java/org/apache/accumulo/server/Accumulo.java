@@ -32,6 +32,7 @@ import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.Version;
 import org.apache.accumulo.core.volume.Volume;
+import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -89,6 +90,12 @@ public class Accumulo {
     Volume v = fs.getVolumes().iterator().next();
     Path path = ServerConstants.getDataVersionLocation(v);
     return getAccumuloPersistentVersion(v.getFileSystem(), path);
+  }
+
+  public static synchronized Path getAccumuloInstanceIdPath(VolumeManager fs) {
+    // It doesn't matter which Volume is used as they should all have the instance ID stored
+    Volume v = fs.getVolumes().iterator().next();
+    return ServerConstants.getInstanceIdLocation(v);
   }
 
   public static void enableTracing(String address, String application) {

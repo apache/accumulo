@@ -26,15 +26,13 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.core.volume.Volume;
-import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.client.HdfsZooInstance.AccumuloNotInitializedException;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 
 public class ZooConfiguration extends AccumuloConfiguration {
@@ -70,8 +68,8 @@ public class ZooConfiguration extends AccumuloConfiguration {
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
-      Volume randVolume = fs.getVolumes().iterator().next();
-      String deprecatedInstanceIdFromHdfs = ZooUtil.getInstanceIDFromHdfs(ServerConstants.getInstanceIdLocation(randVolume), parent);
+      Path instanceIdPath = Accumulo.getAccumuloInstanceIdPath(fs);
+      String deprecatedInstanceIdFromHdfs = ZooUtil.getInstanceIDFromHdfs(instanceIdPath, parent);
       instanceId = deprecatedInstanceIdFromHdfs;
     }
     return instance;

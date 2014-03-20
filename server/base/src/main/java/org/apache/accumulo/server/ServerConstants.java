@@ -76,7 +76,7 @@ public class ServerConstants {
       String currentIid;
       Integer currentVersion;
       try {
-        currentIid = ZooUtil.getInstanceIDFromHdfs(new Path(baseDir, INSTANCE_ID_DIR), ServerConfiguration.getSiteConfiguration());
+        currentIid = ZooUtil.getInstanceIDFromHdfs(path, ServerConfiguration.getSiteConfiguration());
         Path vpath = new Path(baseDir, VERSION_DIR);
         currentVersion = Accumulo.getAccumuloPersistentVersion(vpath.getFileSystem(CachedConfiguration.getInstance()), vpath);
       } catch (Exception e) {

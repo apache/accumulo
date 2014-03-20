@@ -39,14 +39,14 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.zookeeper.ZooLock;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -134,9 +134,9 @@ public class HdfsZooInstance implements Instance {
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
-      Volume randVolume = fs.getVolumes().iterator().next();
-      log.trace("Looking for instanceId from " + randVolume);
-      String instanceIdFromFile = ZooUtil.getInstanceIDFromHdfs(ServerConstants.getInstanceIdLocation(randVolume), acuConf);
+      Path instanceIdPath = Accumulo.getAccumuloInstanceIdPath(fs);
+      log.trace("Looking for instanceId from " + instanceIdPath);
+      String instanceIdFromFile = ZooUtil.getInstanceIDFromHdfs(instanceIdPath, acuConf);
       instanceId = instanceIdFromFile;
     }
   }
