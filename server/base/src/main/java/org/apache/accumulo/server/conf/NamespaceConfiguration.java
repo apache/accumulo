@@ -169,4 +169,14 @@ public class NamespaceConfiguration extends AccumuloConfiguration {
   protected boolean isIteratorOrConstraint(String key) {
     return key.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey()) || key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey());
   }
+
+  @Override
+  public void invalidateCache() {
+    if (null != propCache) {
+      propCache.clear();
+    }
+    // Else, if the cache is null, we could lock and double-check
+    // to see if it happened to be created so we could invalidate it
+    // but I don't see much benefit coming from that extra check.
+  }
 }
