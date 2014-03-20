@@ -71,6 +71,7 @@ public class DropUser extends Test {
       SecurityHelper.setTabPerm(state, tableUserName, tp, false);
     for (SystemPermission sp : SystemPermission.values())
       SecurityHelper.setSysPerm(state, tableUserName, sp, false);
+    Thread.sleep(1000);
     if (!hasPermission)
       throw new AccumuloException("Didn't get Security Exception when we should have");
   }
