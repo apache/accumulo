@@ -61,6 +61,7 @@ public class DropUser extends Test {
       }
     }
     WalkingSecurity.get(state,env).dropUser(tableUserName);
+    Thread.sleep(1000);
     if (!hasPermission)
       throw new AccumuloException("Didn't get Security Exception when we should have");
   }
