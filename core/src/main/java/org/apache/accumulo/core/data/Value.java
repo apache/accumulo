@@ -25,6 +25,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+import com.google.common.base.Preconditions;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.WritableComparable;
@@ -36,39 +38,52 @@ import org.apache.hadoop.io.WritableComparator;
  * 'immutable'.
  */
 public class Value implements WritableComparable<Object> {
+  private static final byte[] EMPTY = new byte[0];
   protected byte[] value;
-  
+
   /**
    * Create a zero-size sequence.
    */
   public Value() {
-    super();
+    this(EMPTY, false);
   }
   
   /**
    * Create a Value using the byte array as the initial value.
    * 
-   * @param bytes
-   *          This array becomes the backing storage for the object.
+   * @param bytes May not be null
    */
-  
   public Value(byte[] bytes) {
     this(bytes, false);
   }
   
+  /**
+   * Create a Value using a copy of the ByteBuffer's content.
+   * 
+   * @param bytes May not be null
+   */
   public Value(ByteBuffer bytes) {
+    /* TODO ACCUMULO-2509 right now this uses the entire backing array, which must be accessible. */
     this(toBytes(bytes), false);
   }
   
   /**
+   * @param bytes may not be null
    * @deprecated A copy of the bytes in the buffer is always made. Use {@link #Value(ByteBuffer)} instead.
    */
   @Deprecated
   public Value(ByteBuffer bytes, boolean copy) {
+    /* TODO ACCUMULO-2509 right now this uses the entire backing array, which must be accessible. */
     this(toBytes(bytes), false);
   }
   
+  /**
+   * Create a Value based on the given bytes.
+   * @param bytes may not be null
+   * @param copy signal if Value must make its own copy of bytes, or if it can use the array directly.
+   */
   public Value(byte[] bytes, boolean copy) {
+    Preconditions.checkNotNull(bytes);
     if (!copy) {
       this.value = bytes;
     } else {
@@ -81,8 +96,7 @@ public class Value implements WritableComparable<Object> {
   /**
    * Set the new Value to a copy of the contents of the passed <code>ibw</code>.
    * 
-   * @param ibw
-   *          the value to set this Value to.
+   * @param ibw may not be null.
    */
   public Value(final Value ibw) {
     this(ibw.get(), 0, ibw.getSize());
@@ -91,55 +105,49 @@ public class Value implements WritableComparable<Object> {
   /**
    * Set the value to a copy of the given byte range
    * 
-   * @param newData
-   *          the new values to copy in
+   * @param newData source of copy, may not be null
    * @param offset
    *          the offset in newData to start at
    * @param length
    *          the number of bytes to copy
    */
   public Value(final byte[] newData, final int offset, final int length) {
+    Preconditions.checkNotNull(newData);
     this.value = new byte[length];
     System.arraycopy(newData, offset, this.value, 0, length);
   }
   
   /**
-   * Get the data from the BytesWritable.
-   * 
-   * @return The data is only valid between 0 and getSize() - 1.
+   * @return the underlying byte array directly.
    */
   public byte[] get() {
-    if (this.value == null) {
-      throw new IllegalStateException("Uninitialized. Null constructor " + "called w/o accompanying readFields invocation");
-    }
+    assert(null != value);
     return this.value;
   }
   
   /**
-   * @param b
-   *          Use passed bytes as backing array for this instance.
+   * @param b Use passed bytes as backing array for this instance, may not be null.
    */
   public void set(final byte[] b) {
+    Preconditions.checkNotNull(b);
     this.value = b;
   }
   
   /**
    * 
-   * @param b
-   *          copy bytes
+   * @param b copy the given byte array, may not be null.
    */
   public void copy(byte[] b) {
+    Preconditions.checkNotNull(b);
     this.value = new byte[b.length];
     System.arraycopy(b, 0, this.value, 0, b.length);
   }
   
   /**
-   * @return the current size of the buffer.
+   * @return the current size of the underlying buffer.
    */
   public int getSize() {
-    if (this.value == null) {
-      throw new IllegalStateException("Uninitialized. Null constructor " + "called w/o accompanying readFields invocation");
-    }
+    assert(null != value);
     return this.value.length;
   }
   

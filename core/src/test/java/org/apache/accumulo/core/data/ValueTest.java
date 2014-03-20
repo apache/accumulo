@@ -47,10 +47,31 @@ public class ValueTest {
     DATABUFF.rewind();
   }
 
-  @Test(expected = IllegalStateException.class)
-  public void testNull() {
+  @Test
+  public void testDefault() {
     Value v = new Value();
-    v.get();
+    assertEquals(0, v.get().length);
+  }
+
+  @Test(expected=NullPointerException.class)
+  public void testNullBytesConstructor() {
+    Value v = new Value((byte[]) null);
+  }
+
+  @Test(expected=NullPointerException.class)
+  public void testNullCopyConstructor() {
+    Value v = new Value((Value) null);
+  }
+
+  @Test(expected=NullPointerException.class)
+  public void testNullByteBufferConstructor() {
+    Value v = new Value((ByteBuffer)null);
+  }
+
+  @Test(expected=NullPointerException.class)
+  public void testNullSet() {
+    Value v = new Value();
+    v.set(null);
   }
 
   @Test
@@ -118,10 +139,10 @@ public class ValueTest {
     assertEquals(DATA.length, v.getSize());
   }
 
-  @Test(expected = IllegalStateException.class)
-  public void testGetSize_Null() {
+  @Test
+  public void testGetSizeDefault() {
     Value v = new Value();
-    v.getSize();
+    assertEquals(0, v.getSize());
   }
 
   @Test
