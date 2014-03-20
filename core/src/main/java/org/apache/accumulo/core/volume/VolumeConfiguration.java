@@ -85,7 +85,7 @@ public class VolumeConfiguration {
 
   /**
    * Compute the URIs to be used by Accumulo
-   * 
+   *
    * @param conf
    * @return
    */
@@ -134,7 +134,7 @@ public class VolumeConfiguration {
 
   /**
    * Create a Volume with the given FileSystem that writes to the default path
-   * 
+   *
    * @param fs
    *          A FileSystem to write to
    * @return A Volume instance writing to the given FileSystem in the default path

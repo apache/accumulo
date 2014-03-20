@@ -23,7 +23,7 @@ import org.apache.hadoop.fs.Path;
 /**
  * Volume implementation which represents a Volume for which we have a FileSystem but no base path because it is not configured via
  * {@link Property#INSTANCE_VOLUMES}
- * 
+ *
  * This is useful to handle volumes that have been removed from accumulo-site.xml but references to these volumes have not been updated. This Volume should
  * never be used to create new files, only to read existing files.
  */
