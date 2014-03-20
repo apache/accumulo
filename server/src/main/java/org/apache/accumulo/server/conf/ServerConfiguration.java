@@ -27,6 +27,7 @@ import org.apache.accumulo.core.conf.ConfigSanityCheck;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.server.client.HdfsZooInstance;
 
 public class ServerConfiguration {
   

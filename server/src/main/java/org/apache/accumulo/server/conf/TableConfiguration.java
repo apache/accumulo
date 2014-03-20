@@ -37,37 +37,46 @@ import org.apache.log4j.Logger;
 
 public class TableConfiguration extends AccumuloConfiguration {
   private static final Logger log = Logger.getLogger(TableConfiguration.class);
-  
+
   // Need volatile keyword to ensure double-checked locking works as intended
   private static volatile ZooCache tablePropCache = null;
+  private static final Object initLock = new Object();
+
   private final String instanceId;
+  private final Instance instance;
   private final AccumuloConfiguration parent;
-  
+
   private String table = null;
   private Set<ConfigurationObserver> observers;
-  
+
   public TableConfiguration(String instanceId, String table, AccumuloConfiguration parent) {
+    this(instanceId, HdfsZooInstance.getInstance(), table, parent);
+  }
+
+  public TableConfiguration(String instanceId, Instance instance, String table, AccumuloConfiguration parent) {
     this.instanceId = instanceId;
+    this.instance = instance;
     this.table = table;
     this.parent = parent;
-    
+
     this.observers = Collections.synchronizedSet(new HashSet<ConfigurationObserver>());
   }
-  
-  /**
-   * @deprecated not for client use
-   */
-  @Deprecated
-  private static ZooCache getTablePropCache() {
-    Instance inst = HdfsZooInstance.getInstance();
-    if (tablePropCache == null)
-      synchronized (TableConfiguration.class) {
-        if (tablePropCache == null)
-          tablePropCache = new ZooCache(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), new TableConfWatcher(inst));
+
+  private void initializeZooCache() {
+    synchronized (initLock) {
+      if (null == tablePropCache) {
+        tablePropCache = new ZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), new TableConfWatcher(instance));
       }
+    }
+  }
+
+  private ZooCache getTablePropCache() {
+    if (null == tablePropCache) {
+      initializeZooCache();
+    }
     return tablePropCache;
   }
-  
+
   public void addObserver(ConfigurationObserver co) {
     if (table == null) {
       String err = "Attempt to add observer for non-table configuration";
@@ -77,7 +86,7 @@ public class TableConfiguration extends AccumuloConfiguration {
     iterator();
     observers.add(co);
   }
-  
+
   public void removeObserver(ConfigurationObserver configObserver) {
     if (table == null) {
       String err = "Attempt to remove observer for non-table configuration";
@@ -86,29 +95,29 @@ public class TableConfiguration extends AccumuloConfiguration {
     }
     observers.remove(configObserver);
   }
-  
+
   public void expireAllObservers() {
     Collection<ConfigurationObserver> copy = Collections.unmodifiableCollection(observers);
     for (ConfigurationObserver co : copy)
       co.sessionExpired();
   }
-  
+
   public void propertyChanged(String key) {
     Collection<ConfigurationObserver> copy = Collections.unmodifiableCollection(observers);
     for (ConfigurationObserver co : copy)
       co.propertyChanged(key);
   }
-  
+
   public void propertiesChanged(String key) {
     Collection<ConfigurationObserver> copy = Collections.unmodifiableCollection(observers);
     for (ConfigurationObserver co : copy)
       co.propertiesChanged();
   }
-  
+
   public String get(Property property) {
     String key = property.getKey();
     String value = get(key);
-    
+
     if (value == null || !property.getType().isValidFormat(value)) {
       if (value != null)
         log.error("Using default value for " + key + " due to improperly formatted " + property.getType() + ": " + value);
@@ -116,23 +125,24 @@ public class TableConfiguration extends AccumuloConfiguration {
     }
     return value;
   }
-  
+
   private String get(String key) {
     String zPath = ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + table + Constants.ZTABLE_CONF + "/" + key;
+
     byte[] v = getTablePropCache().get(zPath);
     String value = null;
     if (v != null)
       value = new String(v, Constants.UTF8);
     return value;
   }
-  
+
   @Override
   public Iterator<Entry<String,String>> iterator() {
     TreeMap<String,String> entries = new TreeMap<String,String>();
-    
+
     for (Entry<String,String> parentEntry : parent)
       entries.put(parentEntry.getKey(), parentEntry.getValue());
-    
+
     List<String> children = getTablePropCache().getChildren(ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + table + Constants.ZTABLE_CONF);
     if (children != null) {
       for (String child : children) {
@@ -141,10 +151,10 @@ public class TableConfiguration extends AccumuloConfiguration {
           entries.put(child, value);
       }
     }
-    
+
     return entries.entrySet().iterator();
   }
-  
+
   public String getTableId() {
     return table;
   }
@@ -152,11 +162,15 @@ public class TableConfiguration extends AccumuloConfiguration {
   @Override
   public void invalidateCache() {
     if (null != tablePropCache) {
-      synchronized (TableConfiguration.class) {
-        if (null != tablePropCache) {
-          tablePropCache = null;
-        }
-      }
+      tablePropCache.clear();
     }
+    // Else, if the cache is null, we could lock and double-check
+    // to see if it happened to be created so we could invalidate it
+    // but I don't see much benefit coming from that extra check.
+  }
+  
+  @Override
+  public String toString() {
+    return this.getClass().getSimpleName();
   }
 }
