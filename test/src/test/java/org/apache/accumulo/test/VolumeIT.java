@@ -22,7 +22,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -65,7 +64,6 @@ import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
-import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -73,38 +71,28 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.ZooKeeper;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class VolumeIT extends ConfigurableMacIT {
 
   private static final Text EMPTY = new Text();
   private static final Value EMPTY_VALUE = new Value(new byte[] {});
-  public static File volDirBase;
-  public static Path v1;
-  public static Path v2;
+  private File volDirBase;
+  private Path v1, v2;
 
-  @BeforeClass
-  public static void createVolumeDirs() throws IOException {
-    volDirBase = createSharedTestDir(VolumeIT.class.getName() + "-volumes");
+  @SuppressWarnings("deprecation")
+  @Override
+  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    File baseDir = cfg.getDir();
+    volDirBase = new File(baseDir, "volumes");
     File v1f = new File(volDirBase, "v1");
     File v2f = new File(volDirBase, "v2");
     v1f.mkdir();
     v2f.mkdir();
     v1 = new Path("file://" + v1f.getAbsolutePath());
     v2 = new Path("file://" + v2f.getAbsolutePath());
-  }
 
-  @After
-  public void clearDirs() throws IOException {
-    FileUtils.deleteQuietly(new File(v1.getParent().toUri()));
-  }
-
-  @SuppressWarnings("deprecation")
-  @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     // Run MAC on two locations in the local file system
     URI v1Uri = v1.toUri();
     cfg.setProperty(Property.INSTANCE_DFS_DIR, v1Uri.getPath());
