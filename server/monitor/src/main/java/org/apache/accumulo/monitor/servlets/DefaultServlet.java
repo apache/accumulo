@@ -33,11 +33,11 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.file.VolumeConfiguration;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.util.Duration;
 import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.ZooKeeperStatus;
 import org.apache.accumulo.monitor.ZooKeeperStatus.ZooKeeperState;
@@ -268,9 +268,9 @@ public class DefaultServlet extends BasicServlet {
       long totalHdfsBytesUsed = 0l;
       
       try {
-        for (String baseDir : VolumeConfiguration.getConfiguredBaseDirs(ServerConfiguration.getSiteConfiguration())) {
+        for (String baseDir : VolumeConfiguration.getVolumeUris(ServerConfiguration.getSiteConfiguration())) {
           final Path basePath = new Path(baseDir);
-          final FileSystem fs = vm.getFileSystemByPath(basePath);
+          final FileSystem fs = vm.getVolumeByPath(basePath).getFileSystem();
           
           try {
             // Calculate the amount of space used by Accumulo on the FileSystem

@@ -63,7 +63,6 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.thrift.TConstraintViolationSummary;
-import org.apache.accumulo.core.file.VolumeConfiguration;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.BadArgumentException;
@@ -156,6 +155,7 @@ import org.apache.accumulo.core.util.shell.commands.UserCommand;
 import org.apache.accumulo.core.util.shell.commands.UserPermissionsCommand;
 import org.apache.accumulo.core.util.shell.commands.UsersCommand;
 import org.apache.accumulo.core.util.shell.commands.WhoAmICommand;
+import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.commons.cli.BasicParser;
@@ -432,7 +432,7 @@ public class Shell extends ShellOptions {
     if (instanceName == null || keepers == null) {
       AccumuloConfiguration conf = SiteConfiguration.getInstance(ServerConfigurationUtil.convertClientConfig(DefaultConfiguration.getInstance(), clientConfig));
       if (instanceName == null) {
-        Path instanceDir = new Path(VolumeConfiguration.getConfiguredBaseDirs(conf)[0], "instance_id");
+        Path instanceDir = new Path(VolumeConfiguration.getVolumeUris(conf)[0], "instance_id");
         instanceId = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(instanceDir, conf));
       }
       if (keepers == null) {

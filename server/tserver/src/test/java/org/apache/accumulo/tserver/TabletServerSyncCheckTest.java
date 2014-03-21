@@ -22,6 +22,8 @@ import java.util.Map;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.volume.Volume;
+import org.apache.accumulo.core.volume.VolumeImpl;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
@@ -44,7 +46,7 @@ public class TabletServerSyncCheckTest {
     conf.set(DFS_DURABLE_SYNC, "false");
 
     FileSystem fs = new TestFileSystem(conf);
-    TestVolumeManagerImpl vm = new TestVolumeManagerImpl(ImmutableMap.of("foo", fs));
+    TestVolumeManagerImpl vm = new TestVolumeManagerImpl(ImmutableMap.<String,Volume> of("foo", new VolumeImpl(fs, "/")));
 
     vm.ensureSyncIsEnabled();
   }
@@ -56,7 +58,7 @@ public class TabletServerSyncCheckTest {
 
     FileSystem fs1 = new TestFileSystem(conf1);
     FileSystem fs2 = new TestFileSystem(conf2);
-    TestVolumeManagerImpl vm = new TestVolumeManagerImpl(ImmutableMap.of("bar", fs2, "foo", fs1));
+    TestVolumeManagerImpl vm = new TestVolumeManagerImpl(ImmutableMap.<String,Volume> of("bar", new VolumeImpl(fs2, "/"), "foo", new VolumeImpl(fs1, "/")));
 
     vm.ensureSyncIsEnabled();
   }
@@ -67,7 +69,7 @@ public class TabletServerSyncCheckTest {
     conf.set(DFS_SUPPORT_APPEND, "false");
 
     FileSystem fs = new TestFileSystem(conf);
-    TestVolumeManagerImpl vm = new TestVolumeManagerImpl(ImmutableMap.of("foo", fs));
+    TestVolumeManagerImpl vm = new TestVolumeManagerImpl(ImmutableMap.<String,Volume> of("foo", new VolumeImpl(fs, "/")));
 
     vm.ensureSyncIsEnabled();
   }
@@ -89,8 +91,8 @@ public class TabletServerSyncCheckTest {
   private class TestVolumeManagerImpl extends VolumeManagerImpl {
 
    
-    public TestVolumeManagerImpl(Map<String,? extends FileSystem> volumes) {
-      super(volumes, volumes.keySet().iterator().next(), new ConfigurationCopy(Collections.<String,String> emptyMap()));
+    public TestVolumeManagerImpl(Map<String,Volume> volumes) {
+      super(volumes, volumes.values().iterator().next(), new ConfigurationCopy(Collections.<String,String> emptyMap()));
     }
 
     @Override
@@ -149,7 +151,7 @@ public class TabletServerSyncCheckTest {
     }
 
     @Override
-    public FileSystem getFileSystemByPath(Path path) {
+    public Volume getVolumeByPath(Path path) {
       return null;
     }
 

@@ -61,10 +61,10 @@ public class TestUpgradePathForWALogs {
   public void setUp() throws Exception {
     // quiet log messages about compress.CodecPool
     Logger.getRootLogger().setLevel(Level.ERROR);
-    fs = VolumeManagerImpl.getLocal();
     root.create();
-    String path = root.getRoot().getAbsolutePath();
-    Path manyMapsPath = new Path("file://" + path + "/manyMaps");
+    String path = root.getRoot().getAbsolutePath() + "/manyMaps";
+    fs = VolumeManagerImpl.getLocal(path);
+    Path manyMapsPath = new Path("file://" + path);
     fs.mkdirs(manyMapsPath);
     fs.create(new Path(manyMapsPath, "finished")).close();
   }

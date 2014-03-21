@@ -25,16 +25,18 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.file.VolumeConfiguration;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
+import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.log4j.Logger;
 
 import com.beust.jcommander.Parameter;
 
 public class PrintInfo {
+  private static final Logger log = Logger.getLogger(PrintInfo.class);
   
   static class Opts extends Help {
     @Parameter(names = {"-d", "--dump"}, description = "dump the key/value pairs")
@@ -50,7 +52,12 @@ public class PrintInfo {
 
     @SuppressWarnings("deprecation")
     AccumuloConfiguration aconf = AccumuloConfiguration.getSiteConfiguration();
-    FileSystem hadoopFs = VolumeConfiguration.getDefaultFilesystem(conf, aconf);
+    // TODO ACCUMULO-2462 This will only work for RFiles (path only, not URI) in HDFS when the correct filesystem for the given file
+    // is on Property.INSTANCE_DFS_DIR or, when INSTANCE_DFS_DIR is not defined, is on the default filesystem 
+    // defined in the Hadoop's core-site.xml
+    //
+    // A workaround is to always provide a URI to this class
+    FileSystem hadoopFs = VolumeConfiguration.getDefaultVolume(conf, aconf).getFileSystem();
     FileSystem localFs  = FileSystem.getLocal(conf);
     Opts opts = new Opts();
     opts.parseArgs(PrintInfo.class.getName(), args);
@@ -68,8 +75,11 @@ public class PrintInfo {
       FileSystem fs;
       if (arg.contains(":"))
         fs = path.getFileSystem(conf);
-      else
+      else {
+        // Recommend a URI is given for the above todo reason
+        log.warn("Attempting to find file across filesystems. Consider providing URI instead of path");
         fs = hadoopFs.exists(path) ? hadoopFs : localFs; // fall back to local
+      }
       
       CachableBlockFile.Reader _rdr = new CachableBlockFile.Reader(fs, path, conf, null, null, aconf);
       Reader iter = new RFile.Reader(_rdr);

@@ -125,7 +125,7 @@ public class FileUtil {
       String newMapFile = String.format("%s/%04d.%s", newDir, count++, RFile.EXTENSION);
       
       outFiles.add(newMapFile);
-      FileSystem ns = fs.getFileSystemByPath(new Path(newMapFile));
+      FileSystem ns = fs.getVolumeByPath(new Path(newMapFile)).getFileSystem();
       FileSKVWriter writer = new RFileOperations().openWriter(newMapFile.toString(), ns, ns.getConf(), acuConf);
       writer.startDefaultLocalityGroup();
       List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<SortedKeyValueIterator<Key,Value>>(inFiles.size());
@@ -133,7 +133,7 @@ public class FileUtil {
       FileSKVIterator reader = null;
       try {
         for (String s : inFiles) {
-          ns = fs.getFileSystemByPath(new Path(s));
+          ns = fs.getVolumeByPath(new Path(s)).getFileSystem();
           reader = FileOperations.getInstance().openIndex(s, ns, ns.getConf(), acuConf);
           iters.add(reader);
         }
@@ -390,7 +390,7 @@ public class FileUtil {
     for (String ref : mapFiles) {
       FileSKVIterator reader = null;
       Path path = new Path(ref);
-      FileSystem ns = fs.getFileSystemByPath(path);
+      FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
       try {
         if (useIndex)
           reader = FileOperations.getInstance().openIndex(path.toString(), ns, ns.getConf(), acuConf);
@@ -435,7 +435,7 @@ public class FileUtil {
     for (FileRef mapfile : mapfiles) {
       
       FileSKVIterator reader = null;
-      FileSystem ns = fs.getFileSystemByPath(mapfile.path());
+      FileSystem ns = fs.getVolumeByPath(mapfile.path()).getFileSystem();
       try {
         reader = FileOperations.getInstance().openReader(mapfile.toString(), false, ns, ns.getConf(), acuConf);
         
@@ -470,7 +470,7 @@ public class FileUtil {
     
     for (FileRef ref : mapFiles) {
       Path path = ref.path();
-      FileSystem ns = fs.getFileSystemByPath(path);
+      FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
       FileSKVIterator reader = FileOperations.getInstance().openReader(path.toString(), true, ns, ns.getConf(), acuConf);
       
       try {
@@ -513,7 +513,7 @@ public class FileUtil {
       counts.put(keyExtent, new MLong(0));
     
     Text row = new Text();
-    FileSystem ns = fs.getFileSystemByPath(mapFile);
+    FileSystem ns = fs.getVolumeByPath(mapFile).getFileSystem();
     FileSKVIterator index = FileOperations.getInstance().openIndex(mapFile.toString(), ns, ns.getConf(), acuConf);
     
     try {

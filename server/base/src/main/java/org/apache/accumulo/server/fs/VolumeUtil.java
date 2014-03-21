@@ -81,8 +81,10 @@ public class VolumeUtil {
   }
 
   public static String switchVolume(String path, FileType ft, List<Pair<Path,Path>> replacements) {
-    if (replacements.size() == 0)
+    if (replacements.size() == 0) {
+      log.trace("Not switching volume because there are no replacements");
       return null;
+    }
 
     Path p = new Path(path);
 
@@ -92,9 +94,14 @@ public class VolumeUtil {
     for (Pair<Path,Path> pair : replacements) {
       Path key = removeTrailingSlash(pair.getFirst());
 
-      if (key.equals(volume))
-        return new Path(pair.getSecond(), ft.removeVolume(p)).toString();
+      if (key.equals(volume)) {
+        String replacement = new Path(pair.getSecond(), ft.removeVolume(p)).toString();
+        log.trace("Replacing " + path + " with " + replacement);
+        return replacement;
+      }
     }
+
+    log.trace("Could not find replacement for " + ft + " at " + path);
 
     return null;
   }
@@ -119,12 +126,16 @@ public class VolumeUtil {
 
     }
 
-    if (numSwitched == 0)
+    if (numSwitched == 0) {
+      log.trace("Did not switch " + le);
       return null;
+    }
 
     LogEntry newLogEntry = new LogEntry(le);
     newLogEntry.filename = switchedPath;
     newLogEntry.logSet = switchedLogs;
+
+    log.trace("Switched " + le + " to " + newLogEntry);
 
     return newLogEntry;
   }
@@ -165,6 +176,7 @@ public class VolumeUtil {
    */
   public static TabletFiles updateTabletVolumes(ZooLock zooLock, VolumeManager vm, KeyExtent extent, TabletFiles tabletFiles) throws IOException {
     List<Pair<Path,Path>> replacements = ServerConstants.getVolumeReplacements();
+    log.trace("Using volume replacements: " + replacements);
 
     List<LogEntry> logsToRemove = new ArrayList<LogEntry>();
     List<LogEntry> logsToAdd = new ArrayList<LogEntry>();
@@ -239,8 +251,8 @@ public class VolumeUtil {
 
       // this code needs to be idempotent
 
-      FileSystem fs1 = vm.getFileSystemByPath(dir);
-      FileSystem fs2 = vm.getFileSystemByPath(newDir);
+      FileSystem fs1 = vm.getVolumeByPath(dir).getFileSystem();
+      FileSystem fs2 = vm.getVolumeByPath(newDir).getFileSystem();
 
       if (!same(fs1, dir, fs2, newDir)) {
         if (fs2.exists(newDir)) {
@@ -335,4 +347,5 @@ public class VolumeUtil {
     SecureRandom rand = new SecureRandom();
     return new Path(path.getParent(), path.getName() + "_" + System.currentTimeMillis() + "_" + Math.abs(rand.nextInt()) + ".bak");
   }
+
 }

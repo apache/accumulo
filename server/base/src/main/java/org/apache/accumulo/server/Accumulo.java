@@ -32,6 +32,8 @@ import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.Version;
+import org.apache.accumulo.core.volume.Volume;
+import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -51,13 +53,21 @@ public class Accumulo {
   private static final Logger log = Logger.getLogger(Accumulo.class);
   
   public static synchronized void updateAccumuloVersion(VolumeManager fs) {
-    try {
-      if (getAccumuloPersistentVersion(fs) == ServerConstants.PREV_DATA_VERSION) {
-        fs.create(new Path(ServerConstants.getDataVersionLocation() + "/" + ServerConstants.DATA_VERSION));
-        fs.delete(new Path(ServerConstants.getDataVersionLocation() + "/" + ServerConstants.PREV_DATA_VERSION));
+    for (Volume volume : fs.getVolumes()) {
+      try {
+        if (getAccumuloPersistentVersion(fs) == ServerConstants.PREV_DATA_VERSION) {
+          log.debug("Attempting to upgrade " + volume);
+          Path dataVersionLocation = ServerConstants.getDataVersionLocation(volume);
+          fs.create(new Path(dataVersionLocation, Integer.toString(ServerConstants.DATA_VERSION))).close();
+
+          Path prevDataVersionLoc = new Path(dataVersionLocation, Integer.toString(ServerConstants.PREV_DATA_VERSION));
+          if (!fs.delete(prevDataVersionLoc)) {
+            throw new RuntimeException("Could not delete previous data version location (" + prevDataVersionLoc + ") for " + volume);
+          }
+        }
+      } catch (IOException e) {
+        throw new RuntimeException("Unable to set accumulo version: an error occurred.", e);
       }
-    } catch (IOException e) {
-      throw new RuntimeException("Unable to set accumulo version: an error occurred.", e);
     }
   }
   
@@ -77,8 +87,16 @@ public class Accumulo {
   }
   
   public static synchronized int getAccumuloPersistentVersion(VolumeManager fs) {
-    Path path = ServerConstants.getDataVersionLocation();
-    return getAccumuloPersistentVersion(fs.getFileSystemByPath(path), path);
+    // It doesn't matter which Volume is used as they should all have the data version stored
+    Volume v = fs.getVolumes().iterator().next();
+    Path path = ServerConstants.getDataVersionLocation(v);
+    return getAccumuloPersistentVersion(v.getFileSystem(), path);
+  }
+
+  public static synchronized Path getAccumuloInstanceIdPath(VolumeManager fs) {
+    // It doesn't matter which Volume is used as they should all have the instance ID stored
+    Volume v = fs.getVolumes().iterator().next();
+    return ServerConstants.getInstanceIdLocation(v);
   }
 
   public static void enableTracing(String address, String application) {

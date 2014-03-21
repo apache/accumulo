@@ -116,6 +116,7 @@ public class RootFilesTest {
 
     ConfigurationCopy conf = new ConfigurationCopy();
     conf.set(Property.INSTANCE_DFS_URI, "file:///");
+    conf.set(Property.INSTANCE_DFS_DIR, "/");
 
     VolumeManager vm = VolumeManagerImpl.get(conf);
 

@@ -27,50 +27,28 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.conf.TableParentConfiguration;
+import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.apache.log4j.Logger;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
-public class TableConfigurationUpdateIT {
+public class TableConfigurationUpdateIT extends SimpleMacIT {
   private static final Logger log = Logger.getLogger(TableConfigurationUpdateIT.class);
-
-  public static TemporaryFolder folder = new TemporaryFolder();
-  private MiniAccumuloCluster accumulo;
-  private String secret = "secret";
-
-  @Before
-  public void setUp() throws Exception {
-    folder.create();
-    accumulo = new MiniAccumuloCluster(folder.getRoot(), secret);
-    accumulo.start();
-  }
-
-  @After
-  public void tearDown() throws Exception {
-    accumulo.stop();
-    folder.delete();
-  }
 
   @Test
   public void test() throws Exception {
-    Instance inst = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers());
-    Connector conn = inst.getConnector("root", new PasswordToken(secret));
+    Connector conn = getConnector();
+    Instance inst = conn.getInstance();
 
     String table = "foo";
     conn.tableOperations().create(table);
 
-    final NamespaceConfiguration defaultConf = new TableParentConfiguration(conn.tableOperations().tableIdMap().get(table), AccumuloConfiguration.getDefaultConfiguration());
+    final NamespaceConfiguration defaultConf = new NamespaceConfiguration(Namespaces.DEFAULT_NAMESPACE_ID, inst, AccumuloConfiguration.getDefaultConfiguration());
 
     // Cache invalidates 25% of the time
     int randomMax = 4;

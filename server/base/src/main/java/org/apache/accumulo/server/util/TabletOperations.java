@@ -46,7 +46,7 @@ public class TabletOperations {
           lowDirectory = Constants.DEFAULT_TABLET_LOCATION;
           Path lowDirectoryPath = new Path(volume + "/" + tableId + "/" + lowDirectory);
           if (fs.exists(lowDirectoryPath) || fs.mkdirs(lowDirectoryPath)) {
-            FileSystem pathFs = fs.getFileSystemByPath(lowDirectoryPath);
+            FileSystem pathFs = fs.getVolumeByPath(lowDirectoryPath).getFileSystem();
             return lowDirectoryPath.makeQualified(pathFs.getUri(), pathFs.getWorkingDirectory()).toString();
           }
           log.warn("Failed to create " + lowDirectoryPath + " for unknown reason");
@@ -56,7 +56,7 @@ public class TabletOperations {
           if (fs.exists(lowDirectoryPath))
             throw new IllegalStateException("Dir exist when it should not " + lowDirectoryPath);
           if (fs.mkdirs(lowDirectoryPath)) {
-            FileSystem lowDirectoryFs = fs.getFileSystemByPath(lowDirectoryPath);
+            FileSystem lowDirectoryFs = fs.getVolumeByPath(lowDirectoryPath).getFileSystem();
             return lowDirectoryPath.makeQualified(lowDirectoryFs.getUri(), lowDirectoryFs.getWorkingDirectory()).toString();
           }
         }

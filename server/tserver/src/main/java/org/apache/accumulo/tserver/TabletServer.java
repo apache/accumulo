@@ -972,7 +972,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         Map<FileRef,MapFileInfo> fileRefMap = new HashMap<FileRef,MapFileInfo>();
         for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
           Path path = new Path(mapping.getKey());
-          FileSystem ns = fs.getFileSystemByPath(path);
+          FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
           path = ns.makeQualified(path);
           fileRefMap.put(new FileRef(path.toString(), path), mapping.getValue());
         }

@@ -117,14 +117,15 @@ public class SortedLogRecoveryTest {
   private static List<Mutation> recover(Map<String,KeyValue[]> logs, Set<String> files, KeyExtent extent) throws IOException {
     TemporaryFolder root = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
     root.create();
-    final String workdir = "file://" + root.getRoot().getAbsolutePath() + "/workdir";
-    VolumeManager fs = VolumeManagerImpl.getLocal();
-    fs.deleteRecursively(new Path(workdir));
+    final String workdir = root.getRoot().getAbsolutePath() + "/workdir";
+    VolumeManager fs = VolumeManagerImpl.getLocal(workdir);
+    final Path workdirPath = new Path("file://" + workdir);
+    fs.deleteRecursively(workdirPath);
     ArrayList<Path> dirs = new ArrayList<Path>();
     try {
       for (Entry<String,KeyValue[]> entry : logs.entrySet()) {
         String path = workdir + "/" + entry.getKey();
-        FileSystem ns = fs.getFileSystemByPath(new Path(path));
+        FileSystem ns = fs.getVolumeByPath(new Path(path)).getFileSystem();
         @SuppressWarnings("deprecation")
         Writer map = new MapFile.Writer(ns.getConf(), ns, path + "/log1", LogFileKey.class, LogFileValue.class);
         for (KeyValue lfe : entry.getValue()) {

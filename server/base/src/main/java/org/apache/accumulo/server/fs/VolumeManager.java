@@ -17,14 +17,15 @@
 package org.apache.accumulo.server.fs;
 
 import java.io.IOException;
+import java.util.Collection;
 
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 /**
@@ -47,9 +48,10 @@ public interface VolumeManager {
     }
 
     private static int endOfVolumeIndex(String path, String dir) {
+      // Strip off the suffix that starts with the FileType (e.g. tables, wal, etc)
       int dirIndex = path.indexOf('/' + dir);
       if (dirIndex != -1) {
-        return path.lastIndexOf('/', dirIndex - 1);
+        return dirIndex;
       }
 
       if (path.contains(":"))
@@ -110,7 +112,7 @@ public interface VolumeManager {
   FileStatus getFileStatus(Path path) throws IOException;
 
   // find the appropriate FileSystem object given a path
-  FileSystem getFileSystemByPath(Path path);
+  Volume getVolumeByPath(Path path);
 
   // return the item in options that is in the same volume as source
   Path matchingFileSystem(Path source, String[] options);
@@ -155,4 +157,15 @@ public interface VolumeManager {
 
   // decide on which of the given locations to create a new file
   String choose(String[] options);
+
+  /**
+   * Fetch the default Volume
+   */
+  public Volume getDefaultVolume();
+
+  /**
+   * Fetch the configured Volumes, excluding the default Volume
+   */
+  public Collection<Volume> getVolumes();
+
 }

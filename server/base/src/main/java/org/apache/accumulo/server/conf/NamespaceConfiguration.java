@@ -38,13 +38,18 @@ public class NamespaceConfiguration extends AccumuloConfiguration {
   private static final Logger log = Logger.getLogger(NamespaceConfiguration.class);
 
   private final AccumuloConfiguration parent;
-  private static ZooCache propCache = null;
+  private static volatile ZooCache propCache = null;
+  private static final Object lock = new Object();
   protected String namespaceId = null;
   protected Instance inst = null;
   private Set<ConfigurationObserver> observers;
 
   public NamespaceConfiguration(String namespaceId, AccumuloConfiguration parent) {
-    inst = HdfsZooInstance.getInstance();
+    this(namespaceId, HdfsZooInstance.getInstance(), parent);
+  }
+
+  public NamespaceConfiguration(String namespaceId, Instance inst, AccumuloConfiguration parent) {
+    this.inst = inst;
     this.parent = parent;
     this.namespaceId = namespaceId;
     this.observers = Collections.synchronizedSet(new HashSet<ConfigurationObserver>());
@@ -75,10 +80,17 @@ public class NamespaceConfiguration extends AccumuloConfiguration {
     return value;
   }
 
-  private synchronized static ZooCache getPropCache() {
-    Instance inst = HdfsZooInstance.getInstance();
-    if (propCache == null)
-	propCache = new ZooCache(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), new NamespaceConfWatcher(inst));
+  private void initializePropCache() {
+    synchronized (lock) {
+      if (propCache == null)
+        propCache = new ZooCache(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), new NamespaceConfWatcher(inst));
+    }
+  }
+
+  private ZooCache getPropCache() {
+    if (null == propCache) {
+      initializePropCache();
+    }
     return propCache;
   }
 

@@ -24,10 +24,11 @@ import java.util.HashSet;
 import java.util.List;
 
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.file.VolumeConfiguration;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.volume.Volume;
+import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeUtil;
@@ -51,29 +52,20 @@ public class ServerConstants {
   public static final int DATA_VERSION = 6;
   public static final int PREV_DATA_VERSION = 5;
 
-  private static String[] baseDirs = null;
-  private static String defaultBaseDir = null;
+  private static String[] baseUris = null;
 
   private static List<Pair<Path,Path>> replacementsList = null;
 
-  public static synchronized String getDefaultBaseDir() {
-    if (defaultBaseDir == null) {
-      defaultBaseDir = new Path(VolumeConfiguration.getConfiguredBaseDir(ServerConfiguration.getSiteConfiguration())).toString();
-    }
-
-    return defaultBaseDir;
-  }
-
   // these are functions to delay loading the Accumulo configuration unless we must
-  public static synchronized String[] getBaseDirs() {
-    if (baseDirs == null) {
-      baseDirs = checkBaseDirs(VolumeConfiguration.getConfiguredBaseDirs(ServerConfiguration.getSiteConfiguration()), false);
+  public static synchronized String[] getBaseUris() {
+    if (baseUris == null) {
+      baseUris = checkBaseUris(VolumeConfiguration.getVolumeUris(ServerConfiguration.getSiteConfiguration()), false);
     }
 
-    return baseDirs;
+    return baseUris;
   }
 
-  public static String[] checkBaseDirs(String[] configuredBaseDirs, boolean ignore) {
+  public static String[] checkBaseUris(String[] configuredBaseDirs, boolean ignore) {
     // all base dirs must have same instance id and data version, any dirs that have neither should be ignored
     String firstDir = null;
     String firstIid = null;
@@ -84,7 +76,7 @@ public class ServerConstants {
       String currentIid;
       Integer currentVersion;
       try {
-        currentIid = ZooUtil.getInstanceIDFromHdfs(new Path(baseDir, INSTANCE_ID_DIR), ServerConfiguration.getSiteConfiguration());
+        currentIid = ZooUtil.getInstanceIDFromHdfs(path, ServerConfiguration.getSiteConfiguration());
         Path vpath = new Path(baseDir, VERSION_DIR);
         currentVersion = Accumulo.getAccumuloPersistentVersion(vpath.getFileSystem(CachedConfiguration.getInstance()), vpath);
       } catch (Exception e) {
@@ -121,29 +113,29 @@ public class ServerConstants {
   public static final String WAL_DIR = "wal";
 
   public static String[] getTablesDirs() {
-    return VolumeConfiguration.prefix(getBaseDirs(), TABLE_DIR);
+    return VolumeConfiguration.prefix(getBaseUris(), TABLE_DIR);
   }
 
   public static String[] getRecoveryDirs() {
-    return VolumeConfiguration.prefix(getBaseDirs(), RECOVERY_DIR);
+    return VolumeConfiguration.prefix(getBaseUris(), RECOVERY_DIR);
   }
 
   public static String[] getWalDirs() {
-    return VolumeConfiguration.prefix(getBaseDirs(), WAL_DIR);
+    return VolumeConfiguration.prefix(getBaseUris(), WAL_DIR);
   }
 
   public static String[] getWalogArchives() {
-    return VolumeConfiguration.prefix(getBaseDirs(), "walogArchive");
+    return VolumeConfiguration.prefix(getBaseUris(), "walogArchive");
   }
 
-  public static Path getInstanceIdLocation() {
+  public static Path getInstanceIdLocation(Volume v) {
     // all base dirs should have the same instance id, so can choose any one
-    return new Path(getBaseDirs()[0], INSTANCE_ID_DIR);
+    return v.prefixChild(INSTANCE_ID_DIR);
   }
 
-  public static Path getDataVersionLocation() {
+  public static Path getDataVersionLocation(Volume v) {
     // all base dirs should have the same version, so can choose any one
-    return new Path(getBaseDirs()[0], VERSION_DIR);
+    return v.prefixChild(VERSION_DIR);
   }
 
   public static String[] getMetadataTableDirs() {
@@ -151,7 +143,7 @@ public class ServerConstants {
   }
 
   public static String[] getTemporaryDirs() {
-    return VolumeConfiguration.prefix(getBaseDirs(), "tmp");
+    return VolumeConfiguration.prefix(getBaseUris(), "tmp");
   }
 
   public static synchronized List<Pair<Path,Path>> getVolumeReplacements() {
@@ -194,9 +186,9 @@ public class ServerConstants {
       }
 
       HashSet<Path> baseDirs = new HashSet<Path>();
-      for (String baseDir : getBaseDirs()) {
-        // normalize using path and remove accumulo dir
-        baseDirs.add(new Path(baseDir).getParent());
+      for (String baseDir : getBaseUris()) {
+        // normalize using path
+        baseDirs.add(new Path(baseDir));
       }
 
       for (Pair<Path,Path> pair : ret)

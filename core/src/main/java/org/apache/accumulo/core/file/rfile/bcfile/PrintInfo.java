@@ -22,8 +22,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.file.VolumeConfiguration;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.MetaIndexEntry;
+import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -57,7 +57,7 @@ public class PrintInfo {
     Configuration conf = new Configuration();
     @SuppressWarnings("deprecation")
     AccumuloConfiguration siteConf = AccumuloConfiguration.getSiteConfiguration();
-    FileSystem hadoopFs = VolumeConfiguration.getDefaultFilesystem(conf, siteConf);
+    FileSystem hadoopFs = VolumeConfiguration.getDefaultVolume(conf, siteConf).getFileSystem();
     FileSystem localFs = FileSystem.getLocal(conf);
     Path path = new Path(args[0]);
     FileSystem fs;

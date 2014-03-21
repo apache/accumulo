@@ -22,7 +22,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -64,7 +64,6 @@ import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
-import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -72,40 +71,32 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.ZooKeeper;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class VolumeIT extends ConfigurableMacIT {
 
   private static final Text EMPTY = new Text();
   private static final Value EMPTY_VALUE = new Value(new byte[] {});
-  public static File volDirBase;
-  public static Path v1;
-  public static Path v2;
+  private File volDirBase;
+  private Path v1, v2;
 
-  @BeforeClass
-  public static void createVolumeDirs() throws IOException {
-    volDirBase = createSharedTestDir(VolumeIT.class.getName() + "-volumes");
+  @SuppressWarnings("deprecation")
+  @Override
+  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    File baseDir = cfg.getDir();
+    volDirBase = new File(baseDir, "volumes");
     File v1f = new File(volDirBase, "v1");
     File v2f = new File(volDirBase, "v2");
     v1f.mkdir();
     v2f.mkdir();
     v1 = new Path("file://" + v1f.getAbsolutePath());
     v2 = new Path("file://" + v2f.getAbsolutePath());
-  }
 
-  @After
-  public void clearDirs() throws IOException {
-    FileUtils.deleteQuietly(new File(v1.getParent().toUri()));
-  }
-
-  @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     // Run MAC on two locations in the local file system
-    cfg.setProperty(Property.INSTANCE_DFS_URI, v1.toString());
-    cfg.setProperty(Property.INSTANCE_DFS_DIR, "/accumulo");
+    URI v1Uri = v1.toUri();
+    cfg.setProperty(Property.INSTANCE_DFS_DIR, v1Uri.getPath());
+    cfg.setProperty(Property.INSTANCE_DFS_URI, v1Uri.getScheme() + v1Uri.getHost());
     cfg.setProperty(Property.INSTANCE_VOLUMES, v1.toString() + "," + v2.toString());
 
     // use raw local file system so walogs sync and flush will work
@@ -114,7 +105,7 @@ public class VolumeIT extends ConfigurableMacIT {
     super.configure(cfg, hadoopCoreSite);
   }
 
-  @Test
+  @Test(timeout = 2 * 60 * 1000)
   public void test() throws Exception {
     // create a table
     Connector connector = getConnector();
@@ -176,7 +167,7 @@ public class VolumeIT extends ConfigurableMacIT {
     Assert.assertEquals(expected, actual);
   }
 
-  @Test
+  @Test(timeout = 2 * 60 * 1000)
   public void testRelativePaths() throws Exception {
 
     List<String> expected = new ArrayList<String>();
@@ -292,9 +283,8 @@ public class VolumeIT extends ConfigurableMacIT {
     // check that all volumes are initialized
     for (Path volumePath : Arrays.asList(v1, v2, v3)) {
       FileSystem fs = volumePath.getFileSystem(CachedConfiguration.getInstance());
-      Path vp = new Path(volumePath, "accumulo");
-      Path vpi = new Path(vp, ServerConstants.INSTANCE_ID_DIR);
-      FileStatus[] iids = fs.listStatus(vpi);
+      Path vp = new Path(volumePath, ServerConstants.INSTANCE_ID_DIR);
+      FileStatus[] iids = fs.listStatus(vp);
       Assert.assertEquals(1, iids.length);
       Assert.assertEquals(uuid, iids[0].getPath().getName());
     }
@@ -304,6 +294,59 @@ public class VolumeIT extends ConfigurableMacIT {
 
     verifyVolumesUsed(tableNames[1], false, v1, v2, v3);
 
+  }
+
+  @Test
+  public void testNonConfiguredVolumes() throws Exception {
+
+    String[] tableNames = getTableNames(2);
+
+    // grab this before shutting down cluster
+    String uuid = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers()).getInstanceID();
+
+    verifyVolumesUsed(tableNames[0], false, v1, v2);
+
+    Assert.assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+    cluster.stop();
+
+    Configuration conf = new Configuration(false);
+    conf.addResource(new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
+
+    File v3f = new File(volDirBase, "v3");
+    v3f.mkdir();
+    Path v3 = new Path("file://" + v3f.getAbsolutePath());
+
+    conf.set(Property.INSTANCE_VOLUMES.getKey(), v2.toString() + "," + v3.toString());
+    BufferedOutputStream fos = new BufferedOutputStream(new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
+    conf.writeXml(fos);
+    fos.close();
+
+    // initialize volume
+    Assert.assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").waitFor());
+
+    // check that all volumes are initialized
+    for (Path volumePath : Arrays.asList(v1, v2, v3)) {
+      FileSystem fs = volumePath.getFileSystem(CachedConfiguration.getInstance());
+      Path vp = new Path(volumePath, ServerConstants.INSTANCE_ID_DIR);
+      FileStatus[] iids = fs.listStatus(vp);
+      Assert.assertEquals(1, iids.length);
+      Assert.assertEquals(uuid, iids[0].getPath().getName());
+    }
+
+    // start cluster and verify that new volume is used
+    cluster.start();
+
+    // Make sure we can still read the tables (tableNames[0] is very likely to have a file still on v1)
+    List<String> expected = new ArrayList<String>();
+    for (int i = 0; i < 100; i++) {
+      String row = String.format("%06d", i * 100 + 3);
+      expected.add(row + ":cf1:cq1:1");
+    }
+
+    verifyData(expected, getConnector().createScanner(tableNames[0], Authorizations.EMPTY));
+
+    // v1 should not have any data for tableNames[1]
+    verifyVolumesUsed(tableNames[1], false, v2, v3);
   }
 
   private void writeData(String tableName, Connector conn) throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException,
@@ -330,7 +373,7 @@ public class VolumeIT extends ConfigurableMacIT {
   private void verifyVolumesUsed(String tableName, boolean shouldExist, Path... paths) throws AccumuloException, AccumuloSecurityException,
       TableExistsException, TableNotFoundException, MutationsRejectedException {
 
-    Connector conn = cluster.getConnector("root", ROOT_PASSWORD);
+    Connector conn = getConnector();
 
     List<String> expected = new ArrayList<String>();
     for (int i = 0; i < 100; i++) {
@@ -390,7 +433,7 @@ public class VolumeIT extends ConfigurableMacIT {
     Assert.assertEquals(200, sum);
   }
 
-  @Test
+  @Test(timeout = 5 * 60 * 1000)
   public void testRemoveVolumes() throws Exception {
     String[] tableNames = getTableNames(2);
 
@@ -447,12 +490,12 @@ public class VolumeIT extends ConfigurableMacIT {
 
     File v1f = new File(v1.toUri());
     File v8f = new File(new File(v1.getParent().toUri()), "v8");
-    v1f.renameTo(v8f);
+    Assert.assertTrue("Failed to rename " + v1f + " to " + v8f, v1f.renameTo(v8f));
     Path v8 = new Path(v8f.toURI());
 
     File v2f = new File(v2.toUri());
     File v9f = new File(new File(v2.getParent().toUri()), "v9");
-    v2f.renameTo(v9f);
+    Assert.assertTrue("Failed to rename " + v2f + " to " + v9f, v2f.renameTo(v9f));
     Path v9 = new Path(v9f.toURI());
 
     Configuration conf = new Configuration(false);
@@ -494,12 +537,12 @@ public class VolumeIT extends ConfigurableMacIT {
     verifyVolumesUsed(tableNames[2], true, v8, v9);
   }
 
-  @Test
+  @Test(timeout = 5 * 60 * 1000)
   public void testCleanReplaceVolumes() throws Exception {
     testReplaceVolume(true);
   }
 
-  @Test
+  @Test(timeout = 5 * 60 * 1000)
   public void testDirtyReplaceVolumes() throws Exception {
     testReplaceVolume(false);
   }
