@@ -41,6 +41,7 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.commons.configuration.PropertiesConfiguration;
@@ -257,10 +258,9 @@ public class ClientOpts extends Help {
         }
       };
       this.zookeepers = config.get(Property.INSTANCE_ZK_HOST);
-      //TODO ACCUMULO-2531 Need something that is capable of using instance.volumes or
-      // instance.dfs.{uri,dir} to find the instanceID
-      @SuppressWarnings("deprecation")
-      Path instanceDir = new Path(config.get(Property.INSTANCE_DFS_DIR), "instance_id");
+
+      String volDir = VolumeConfiguration.getVolumeUris(config)[0];
+      Path instanceDir = new Path(volDir, "instance_id");
       String instanceIDFromFile = ZooUtil.getInstanceIDFromHdfs(instanceDir, config);
       if (config.getBoolean(Property.INSTANCE_RPC_SSL_ENABLED))
         clientConfig.setProperty(ClientProperty.INSTANCE_RPC_SSL_ENABLED, "true");

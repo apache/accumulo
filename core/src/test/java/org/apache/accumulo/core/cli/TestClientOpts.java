@@ -21,21 +21,29 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.commons.io.FileUtils;
 import org.junit.Test;
 
 import com.beust.jcommander.JCommander;
+import com.google.common.io.Files;
 
 public class TestClientOpts {
-  
+
   @Test
   public void test() {
     BatchWriterConfig cfg = new BatchWriterConfig();
-    
+
     // document the defaults
     ClientOpts args = new ClientOpts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
@@ -53,7 +61,7 @@ public class TestClientOpts {
     assertEquals(Authorizations.EMPTY, args.auths);
     assertEquals("localhost:2181", args.zookeepers);
     assertFalse(args.help);
-    
+
     JCommander jc = new JCommander();
     jc.addObject(args);
     jc.addObject(bwOpts);
@@ -73,7 +81,71 @@ public class TestClientOpts {
     assertEquals(new Authorizations("G1", "G2", "G3"), args.auths);
     assertEquals("zoohost1,zoohost2", args.zookeepers);
     assertTrue(args.help);
-    
+
   }
-  
+
+  @Test
+  public void testVolumes() throws IOException {
+    File tmpDir = Files.createTempDir();
+    try {
+      File instanceId = new File(tmpDir, "instance_id");
+      instanceId.mkdir();
+      File uuid = new File(instanceId, UUID.randomUUID().toString());
+      uuid.createNewFile();
+      // document the defaults
+      ClientOpts args = new ClientOpts();
+      File siteXml = File.createTempFile("TestClientOpts", "testVolumes-site.xml");
+      FileWriter fileWriter = new FileWriter(siteXml);
+      fileWriter.append("<configuration>\n");
+
+      fileWriter.append("<property><name>" + Property.INSTANCE_VOLUMES.getKey() + "</name><value>" + tmpDir.toURI().toString() + "</value></property>\n");
+      fileWriter.append("<property><name>" + ClientProperty.INSTANCE_NAME + "</name><value>foo</value></property>\n");
+
+      fileWriter.append("</configuration>\n");
+      fileWriter.close();
+
+      JCommander jc = new JCommander();
+      jc.addObject(args);
+
+      jc.parse("--site-file", siteXml.getAbsolutePath());
+
+      args.getInstance();
+    } finally {
+      FileUtils.deleteQuietly(tmpDir);
+    }
+  }
+
+  @SuppressWarnings("deprecation")
+  @Test
+  public void testInstanceDir() throws IOException {
+    File tmpDir = Files.createTempDir();
+    try {
+      File instanceId = new File(tmpDir, "instance_id");
+      instanceId.mkdir();
+      File uuid = new File(instanceId, UUID.randomUUID().toString());
+      uuid.createNewFile();
+      // document the defaults
+      ClientOpts args = new ClientOpts();
+      File siteXml = File.createTempFile("TestClientOpts", "testVolumes-site.xml");
+      FileWriter fileWriter = new FileWriter(siteXml);
+      fileWriter.append("<configuration>\n");
+
+      fileWriter.append("<property><name>" + Property.INSTANCE_DFS_DIR.getKey() + "</name><value>" + tmpDir.getAbsolutePath() + "</value></property>\n");
+      fileWriter.append("<property><name>" + Property.INSTANCE_DFS_URI.getKey() + "</name><value>file://</value></property>\n");
+      fileWriter.append("<property><name>" + ClientProperty.INSTANCE_NAME + "</name><value>foo</value></property>\n");
+
+      fileWriter.append("</configuration>\n");
+      fileWriter.close();
+
+      JCommander jc = new JCommander();
+      jc.addObject(args);
+
+      jc.parse("--site-file", siteXml.getAbsolutePath());
+
+      args.getInstance();
+    } finally {
+      FileUtils.deleteQuietly(tmpDir);
+    }
+  }
+
 }
