@@ -1,38 +1,40 @@
 Apache Accumulo Scalability Tests
+=================================
 
 The scalability test framework needs to be configured for your Accumulo
 instance by performing the following steps.
 
-WARNING: Each scalability test rewrites your conf/slaves file and reinitializes
+WARNING: Each scalability test rewrites your `conf/slaves` file and reinitializes
 your Accumulo instance. Do not run these tests on a cluster holding essential
 data.
 
-1.  Make sure you have both ACCUMULO_HOME and HADOOP_HOME set in your
-    $ACCUMULO_CONF_DIR/accumulo-env.sh.
+1.  Make sure you have both `ACCUMULO_HOME` and `HADOOP_HOME` set in your
+    `$ACCUMULO_CONF_DIR/accumulo-env.sh.`
 
-2.  Create a 'site.conf' file in the conf directory containing settings
+2.  Create a 'site.conf' file in the `conf` directory containing settings
     needed by test nodes to connect to Accumulo, and to guide the tests.
 
-    cp conf/site.conf.example conf/site.conf
+    `$ cp conf/site.conf.example conf/site.conf`
 
-3.  Create an 'Ingest.conf' file in the conf directory containing performance
+3.  Create an 'Ingest.conf' file in the `conf` directory containing performance
     settings for the Ingest test. (This test is currently the only scalability
     test available.)
 
-    cp conf/Ingest.conf.example conf/Ingest.conf
+    `$ cp conf/Ingest.conf.example conf/Ingest.conf`
 
     Each test has a unique ID (e.g., "Ingest") which correlates with its test
     code in:
 
-    org.apache.accumulo.test.scalability.tests.<ID>
+    `org.apache.accumulo.test.scalability.tests.<ID>`
 
     This ID correlates with a config file:
 
-    conf/<ID>.conf
+    `conf/<ID>.conf`
 
 To run the test, specify its ID to the run.py script.
 
-    nohup ./run.py Ingest > test1.log 2>&1 &
+> `$ nohup ./run.py Ingest > test1.log 2>&1 &`
 
 A timestamped directory will be created, and results are placed in it as each
 test completes.
+
