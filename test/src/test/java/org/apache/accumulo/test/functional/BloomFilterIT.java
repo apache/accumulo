@@ -58,7 +58,7 @@ public class BloomFilterIT extends ConfigurableMacIT {
     siteConfig.put(Property.TABLE_BLOOM_ERRORRATE.getKey(), "1%");
     siteConfig.put(Property.TABLE_BLOOM_LOAD_THRESHOLD.getKey(), "0");
     siteConfig.put(Property.TSERV_MUTATION_QUEUE_MAX.getKey(), "10M");
-    siteConfig.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "1G");
+    siteConfig.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "64K");
     cfg.setSiteConfig(siteConfig );
   }
   
@@ -96,9 +96,9 @@ public class BloomFilterIT extends ConfigurableMacIT {
     
     // these queries should only run quickly if bloom filters are working, so lets get a base
     log.info("Base query");
-    long t1 = query(c, "bt1", 1, 0, 2000000000, 100000, 500);
-    long t2 = query(c, "bt2", 2, 0, 2000000000, 100000, 500);
-    long t3 = query(c, "bt3", 3, 0, 2000000000, 100000, 500);
+    long t1 = query(c, "bt1", 1, 0, 2000000000, 5000, 500);
+    long t2 = query(c, "bt2", 2, 0, 2000000000, 5000, 500);
+    long t3 = query(c, "bt3", 3, 0, 2000000000, 5000, 500);
     log.info("Base query complete");
     
     log.info("Rewriting with bloom filters");
@@ -114,7 +114,7 @@ public class BloomFilterIT extends ConfigurableMacIT {
     c.tableOperations().setProperty("bt4", Property.TABLE_BLOOM_ENABLED.getKey(), "true");
     c.tableOperations().setProperty("bt4", Property.TABLE_BLOOM_KEY_FUNCTOR.getKey(), RowFunctor.class.getName());
     
-    // ensure the updates to zookeeper propogate
+    // ensure the updates to zookeeper propagate
     UtilWaitThread.sleep(500);
     
     c.tableOperations().compact("bt4", null, null, false, true);
@@ -126,9 +126,9 @@ public class BloomFilterIT extends ConfigurableMacIT {
     // these queries should only run quickly if bloom
     // filters are working
     log.info("Bloom query");
-    long tb1 = query(c, "bt1", 1, 0, 2000000000, 100000, 500);
-    long tb2 = query(c, "bt2", 2, 0, 2000000000, 100000, 500);
-    long tb3 = query(c, "bt3", 3, 0, 2000000000, 100000, 500);
+    long tb1 = query(c, "bt1", 1, 0, 2000000000, 5000, 500);
+    long tb2 = query(c, "bt2", 2, 0, 2000000000, 5000, 500);
+    long tb3 = query(c, "bt3", 3, 0, 2000000000, 5000, 500);
     log.info("Bloom query complete");
     timeCheck(t1 + t2 + t3, tb1 + tb2 + tb3);
     
@@ -147,7 +147,7 @@ public class BloomFilterIT extends ConfigurableMacIT {
     if (improvement < .1) {
       throw new Exception("Queries had less than 10% improvement (old: " + t1 + " new: " + t2 + " improvement: " + (improvement*100) + "%)");
     }
-    log.info("Improvement: " + (improvement * 100) + "%");
+    log.info(String.format("Improvement: %.2f%% (%d vs %d)", (improvement * 100), t1, t2));
   }
   
   private long query(Connector c, String table, int depth, long start, long end, int num, int step) throws Exception {
