@@ -242,19 +242,15 @@
       <outputDirectory>scripts/init.d</outputDirectory>
       <fileMode>0755</fileMode>
     </fileSet>
+    <fileSet>
+      <directory>../</directory>
+      <fileMode>0644</fileMode>
+      <includes>
+        <include>CHANGES</include>
+        <include>LICENSE</include>
+        <include>NOTICE</include>
+        <include>README</include>
+      </includes>
+    </fileSet>
   </fileSets>
-  <files>
-    <file>
-      <source>../CHANGES</source>
-    </file>
-    <file>
-      <source>../LICENSE</source>
-    </file>
-    <file>
-      <source>../NOTICE</source>
-    </file>
-    <file>
-      <source>../README</source>
-    </file>
-  </files>
 </component>
