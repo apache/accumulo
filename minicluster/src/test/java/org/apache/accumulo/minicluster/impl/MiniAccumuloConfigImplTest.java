@@ -53,6 +53,7 @@ public class MiniAccumuloConfigImplTest {
     assertTrue(config.getZooKeeperPort() > 0);
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testSiteConfig() {
 

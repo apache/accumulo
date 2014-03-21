@@ -145,10 +145,9 @@ public class Initialize {
   }
 
   static boolean checkInit(Configuration conf, VolumeManager fs, SiteConfiguration sconf) throws IOException {
-    String fsUri;
-    if (!sconf.get(Property.INSTANCE_DFS_URI).equals(""))
-      fsUri = sconf.get(Property.INSTANCE_DFS_URI);
-    else
+    @SuppressWarnings("deprecation")
+    String fsUri = sconf.get(Property.INSTANCE_DFS_URI);
+    if (fsUri.equals(""))
       fsUri = FileSystem.getDefaultUri(conf).toString();
     log.info("Hadoop Filesystem is " + fsUri);
     log.info("Accumulo data dirs are " + Arrays.asList(VolumeConfiguration.getVolumeUris(ServerConfiguration.getSiteConfiguration())));
@@ -172,23 +171,7 @@ public class Initialize {
     }
     try {
       if (isInitialized(fs)) {
-        String instanceDfsDir = sconf.get(Property.INSTANCE_DFS_DIR);
-        log.fatal("It appears the directories " + Arrays.asList(VolumeConfiguration.getVolumeUris(ServerConfiguration.getSiteConfiguration()))
-            + " were previously initialized.");
-        String instanceVolumes = sconf.get(Property.INSTANCE_VOLUMES);
-        String instanceDfsUri = sconf.get(Property.INSTANCE_DFS_URI);
-
-        if (!instanceVolumes.isEmpty()) {
-          log.fatal("Change the property " + Property.INSTANCE_VOLUMES + " to use different filesystems,");
-        } else if (!instanceDfsDir.isEmpty()) {
-          log.fatal("Change the property " + Property.INSTANCE_DFS_URI + " to use a different filesystem,");
-        } else {
-          log.fatal("You are using the default URI for the filesystem. Set the property " + Property.INSTANCE_VOLUMES + " to use a different filesystem,");
-        }
-        log.fatal("or change the property " + Property.INSTANCE_DFS_DIR + " to use a different directory.");
-        log.fatal("The current value of " + Property.INSTANCE_DFS_URI + " is |" + instanceDfsUri + "|");
-        log.fatal("The current value of " + Property.INSTANCE_DFS_DIR + " is |" + instanceDfsDir + "|");
-        log.fatal("The current value of " + Property.INSTANCE_VOLUMES + " is |" + instanceVolumes + "|");
+        printInitializeFailureMessages(sconf);
         return false;
       }
     } catch (IOException e) {
@@ -196,6 +179,27 @@ public class Initialize {
     }
 
     return true;
+  }
+
+  @SuppressWarnings("deprecation")
+  static void printInitializeFailureMessages(SiteConfiguration sconf) {
+    String instanceDfsDir = sconf.get(Property.INSTANCE_DFS_DIR);
+    log.fatal("It appears the directories " + Arrays.asList(VolumeConfiguration.getVolumeUris(ServerConfiguration.getSiteConfiguration()))
+        + " were previously initialized.");
+    String instanceVolumes = sconf.get(Property.INSTANCE_VOLUMES);
+    String instanceDfsUri = sconf.get(Property.INSTANCE_DFS_URI);
+
+    if (!instanceVolumes.isEmpty()) {
+      log.fatal("Change the property " + Property.INSTANCE_VOLUMES + " to use different filesystems,");
+    } else if (!instanceDfsDir.isEmpty()) {
+      log.fatal("Change the property " + Property.INSTANCE_DFS_URI + " to use a different filesystem,");
+    } else {
+      log.fatal("You are using the default URI for the filesystem. Set the property " + Property.INSTANCE_VOLUMES + " to use a different filesystem,");
+    }
+    log.fatal("or change the property " + Property.INSTANCE_DFS_DIR + " to use a different directory.");
+    log.fatal("The current value of " + Property.INSTANCE_DFS_URI + " is |" + instanceDfsUri + "|");
+    log.fatal("The current value of " + Property.INSTANCE_DFS_DIR + " is |" + instanceDfsDir + "|");
+    log.fatal("The current value of " + Property.INSTANCE_VOLUMES + " is |" + instanceVolumes + "|");
   }
 
   public static boolean doInit(Opts opts, Configuration conf, VolumeManager fs) throws IOException {

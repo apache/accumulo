@@ -133,6 +133,7 @@ public class ShellSetInstanceTest {
     testSetInstance_HdfsZooInstance(false, false, false);
   }
   
+  @SuppressWarnings("deprecation")
   private void testSetInstance_HdfsZooInstance(boolean explicitHdfs, boolean onlyInstance, boolean onlyHosts)
     throws Exception {
     ClientConfiguration clientConf = createMock(ClientConfiguration.class);

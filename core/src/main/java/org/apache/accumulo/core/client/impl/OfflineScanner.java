@@ -229,6 +229,9 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     if (currentExtent != null && !extent.isPreviousExtent(currentExtent))
       throw new AccumuloException(" " + currentExtent + " is not previous extent " + extent);
 
+    // Old property is only used to resolve relative paths into absolute paths. For systems upgraded
+    // with relative paths, it's assumed that correct instance.dfs.{uri,dir} is still correct in the configuration
+    @SuppressWarnings("deprecation")
     String tablesDir = config.get(Property.INSTANCE_DFS_DIR) + Constants.HDFS_TABLES_DIR;
 
     List<String> absFiles = new ArrayList<String>();

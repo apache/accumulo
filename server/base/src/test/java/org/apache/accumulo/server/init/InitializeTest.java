@@ -77,6 +77,7 @@ public class InitializeTest {
     assertTrue(Initialize.isInitialized(fs));
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testCheckInit_NoZK() throws Exception {
     expect(sconf.get(Property.INSTANCE_DFS_URI)).andReturn("hdfs://foo");
@@ -89,6 +90,7 @@ public class InitializeTest {
     assertFalse(Initialize.checkInit(conf, fs, sconf));
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testCheckInit_AlreadyInit() throws Exception {
     expect(sconf.get(Property.INSTANCE_DFS_URI)).andReturn("hdfs://foo");
@@ -107,6 +109,7 @@ public class InitializeTest {
   }
 
   // Cannot test, need to mock static FileSystem.getDefaultUri()
+  @SuppressWarnings("deprecation")
   @Ignore
   @Test
   public void testCheckInit_AlreadyInit_DefaultUri() throws Exception {
@@ -125,6 +128,7 @@ public class InitializeTest {
     assertFalse(Initialize.checkInit(conf, fs, sconf));
   }
 
+  @SuppressWarnings("deprecation")
   @Test(expected = IOException.class)
   public void testCheckInit_FSException() throws Exception {
     expect(sconf.get(Property.INSTANCE_DFS_URI)).andReturn("hdfs://foo");
@@ -140,6 +144,7 @@ public class InitializeTest {
     Initialize.checkInit(conf, fs, sconf);
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testCheckInit_OK() throws Exception {
     expect(sconf.get(Property.INSTANCE_DFS_URI)).andReturn("hdfs://foo");

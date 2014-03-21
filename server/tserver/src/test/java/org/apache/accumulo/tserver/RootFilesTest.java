@@ -111,6 +111,7 @@ public class RootFilesTest {
     }
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testFileReplacement() throws IOException {
 
