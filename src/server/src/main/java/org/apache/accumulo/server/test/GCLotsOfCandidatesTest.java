@@ -45,7 +45,7 @@ public class GCLotsOfCandidatesTest {
     
     for (int i = 0; i < 10000; ++i) {
       final Text emptyText = new Text("");
-      Text row = new Text(String.format("%s%s%020d%s", Constants.METADATA_DELETE_FLAG_PREFIX, "/", i,
+      Text row = new Text(String.format("%s/%020d/%s", Constants.METADATA_DELETE_FLAG_PREFIX, i,
           "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj"));
       Mutation delFlag = new Mutation(row);
       delFlag.put(emptyText, emptyText, new Value(new byte[] {}));
