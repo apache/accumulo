@@ -595,7 +595,7 @@ public class SimpleTest {
     } catch (TableNotFoundException ex) {}
   }
   
-  @Test(timeout = 10 * 000)
+  @Test(timeout = 10 * 1000)
   public void testExists() throws Exception {
     client.createTable(creds, "ett1", false, TimeType.MILLIS);
     client.createTable(creds, "ett2", false, TimeType.MILLIS);
