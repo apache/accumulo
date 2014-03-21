@@ -20,8 +20,9 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue.Processor;
 import org.apache.hadoop.fs.FileSystem;
@@ -51,18 +52,18 @@ public class BulkFailedCopyProcessor implements Processor {
     Path tmp = new Path(dest.getParent(), dest.getName() + ".tmp");
 
     try {
-      FileSystem fs = TraceFileSystem.wrap(VolumeConfiguration.getDefaultVolume(CachedConfiguration.getInstance(),
-          ServerConfiguration.getSiteConfiguration()).getFileSystem());
-
-      FileUtil.copy(fs, orig, fs, tmp, false, true, CachedConfiguration.getInstance());
-      fs.rename(tmp, dest);
+      VolumeManager vm = VolumeManagerImpl.get(ServerConfiguration.getSiteConfiguration());
+      FileSystem origFs = TraceFileSystem.wrap(vm.getVolumeByPath(orig).getFileSystem());
+      FileSystem destFs = TraceFileSystem.wrap(vm.getVolumeByPath(dest).getFileSystem());
+      
+      FileUtil.copy(origFs, orig, destFs, tmp, false, true, CachedConfiguration.getInstance());
+      destFs.rename(tmp, dest);
       log.debug("copied " + orig + " to " + dest);
     } catch (IOException ex) {
       try {
-        FileSystem fs = TraceFileSystem.wrap(VolumeConfiguration.getDefaultVolume(CachedConfiguration.getInstance(),
-            ServerConfiguration.getSiteConfiguration()).getFileSystem());
-
-        fs.create(dest).close();
+        VolumeManager vm = VolumeManagerImpl.get(ServerConfiguration.getSiteConfiguration());
+        FileSystem destFs = TraceFileSystem.wrap(vm.getVolumeByPath(dest).getFileSystem());
+        destFs.create(dest).close();
         log.warn(" marked " + dest + " failed", ex);
       } catch (IOException e) {
         log.error("Unable to create failure flag file " + dest, e);
