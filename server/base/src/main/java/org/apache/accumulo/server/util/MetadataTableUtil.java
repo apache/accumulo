@@ -120,7 +120,7 @@ public class MetadataTableUtil {
 
   private static void putLockID(ZooLock zooLock, Mutation m) {
     TabletsSection.ServerColumnFamily.LOCK_COLUMN.put(m, new Value(zooLock.getLockID().serialize(ZooUtil.getRoot(HdfsZooInstance.getInstance()) + "/")
-        .getBytes()));
+        .getBytes(Constants.UTF8)));
   }
 
   private static void update(Credentials credentials, Mutation m, KeyExtent extent) {
@@ -152,7 +152,7 @@ public class MetadataTableUtil {
   public static void updateTabletFlushID(KeyExtent extent, long flushID, Credentials credentials, ZooLock zooLock) {
     if (!extent.isRootTablet()) {
       Mutation m = new Mutation(extent.getMetadataEntry());
-      TabletsSection.ServerColumnFamily.FLUSH_COLUMN.put(m, new Value((flushID + "").getBytes()));
+      TabletsSection.ServerColumnFamily.FLUSH_COLUMN.put(m, new Value((flushID + "").getBytes(Constants.UTF8)));
       update(credentials, zooLock, m, extent);
     }
   }
@@ -160,21 +160,21 @@ public class MetadataTableUtil {
   public static void updateTabletCompactID(KeyExtent extent, long compactID, Credentials credentials, ZooLock zooLock) {
     if (!extent.isRootTablet()) {
       Mutation m = new Mutation(extent.getMetadataEntry());
-      TabletsSection.ServerColumnFamily.COMPACT_COLUMN.put(m, new Value((compactID + "").getBytes()));
+      TabletsSection.ServerColumnFamily.COMPACT_COLUMN.put(m, new Value((compactID + "").getBytes(Constants.UTF8)));
       update(credentials, zooLock, m, extent);
     }
   }
 
   public static void updateTabletDataFile(long tid, KeyExtent extent, Map<FileRef,DataFileValue> estSizes, String time, Credentials credentials, ZooLock zooLock) {
     Mutation m = new Mutation(extent.getMetadataEntry());
-    byte[] tidBytes = Long.toString(tid).getBytes();
+    byte[] tidBytes = Long.toString(tid).getBytes(Constants.UTF8);
 
     for (Entry<FileRef,DataFileValue> entry : estSizes.entrySet()) {
       Text file = entry.getKey().meta();
       m.put(DataFileColumnFamily.NAME, file, new Value(entry.getValue().encode()));
       m.put(TabletsSection.BulkFileColumnFamily.NAME, file, new Value(tidBytes));
     }
-    TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value(time.getBytes()));
+    TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value(time.getBytes(Constants.UTF8)));
     update(credentials, zooLock, m, extent);
   }
 
@@ -187,8 +187,8 @@ public class MetadataTableUtil {
   public static void addTablet(KeyExtent extent, String path, Credentials credentials, char timeType, ZooLock lock) {
     Mutation m = extent.getPrevRowUpdateMutation();
 
-    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(path.getBytes()));
-    TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value((timeType + "0").getBytes()));
+    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(path.getBytes(Constants.UTF8)));
+    TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value((timeType + "0").getBytes(Constants.UTF8)));
 
     update(credentials, lock, m, extent);
   }
@@ -269,7 +269,7 @@ public class MetadataTableUtil {
   public static void splitTablet(KeyExtent extent, Text oldPrevEndRow, double splitRatio, Credentials credentials, ZooLock zooLock) {
     Mutation m = extent.getPrevRowUpdateMutation(); //
 
-    TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value(Double.toString(splitRatio).getBytes()));
+    TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value(Double.toString(splitRatio).getBytes(Constants.UTF8)));
 
     TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m, KeyExtent.encodePrevEndRow(oldPrevEndRow));
     ChoppedColumnFamily.CHOPPED_COLUMN.putDelete(m);
@@ -819,7 +819,7 @@ public class MetadataTableUtil {
       } else {
         // write out marker that this tablet was successfully cloned
         Mutation m = new Mutation(cloneTablet.keySet().iterator().next().getRow());
-        m.put(ClonedColumnFamily.NAME, new Text(""), new Value("OK".getBytes()));
+        m.put(ClonedColumnFamily.NAME, new Text(""), new Value("OK".getBytes(Constants.UTF8)));
         bw.addMutation(m);
       }
     }
@@ -875,8 +875,8 @@ public class MetadataTableUtil {
       Mutation m = new Mutation(k.getRow());
       m.putDelete(k.getColumnFamily(), k.getColumnQualifier());
       String dir = volumeManager.choose(ServerConstants.getTablesDirs()) + "/" + tableId
-          + new String(FastFormat.toZeroPaddedString(dirCount++, 8, 16, "/c-".getBytes()));
-      TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(dir.getBytes()));
+          + new String(FastFormat.toZeroPaddedString(dirCount++, 8, 16, "/c-".getBytes(Constants.UTF8)));
+      TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(dir.getBytes(Constants.UTF8)));
       bw.addMutation(m);
     }
 
@@ -886,7 +886,7 @@ public class MetadataTableUtil {
 
   public static void chopped(KeyExtent extent, ZooLock zooLock) {
     Mutation m = new Mutation(extent.getMetadataEntry());
-    ChoppedColumnFamily.CHOPPED_COLUMN.put(m, new Value("chopped".getBytes()));
+    ChoppedColumnFamily.CHOPPED_COLUMN.put(m, new Value("chopped".getBytes(Constants.UTF8)));
     update(SystemCredentials.get(), zooLock, m, extent);
   }
 
