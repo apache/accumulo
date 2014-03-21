@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
@@ -41,6 +42,8 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -90,7 +93,6 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TProtocolFactory;
 import org.apache.thrift.server.TServer;
@@ -103,7 +105,6 @@ import org.junit.rules.TemporaryFolder;
  * Call every method on the proxy and try to verify that it works.
  */
 public class SimpleTest {
-  private static final Logger log = Logger.getLogger(SimpleTest.class);
 
   public static TemporaryFolder folder = new TemporaryFolder();
   
@@ -144,6 +145,11 @@ public class SimpleTest {
             .setNumTservers (1);
     accumulo = new MiniAccumuloCluster(config);
     accumulo.start();
+    // wait for accumulo to be up and functional
+    ZooKeeperInstance zoo = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers());
+    Connector c = zoo.getConnector("root", new PasswordToken(secret.getBytes()));
+    for (@SuppressWarnings("unused") Entry<org.apache.accumulo.core.data.Key,Value> entry : c.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS))
+        ;
     
     Properties props = new Properties();
     props.put("instance", accumulo.getInstanceName());
@@ -589,7 +595,7 @@ public class SimpleTest {
     } catch (TableNotFoundException ex) {}
   }
   
-  @Test(timeout = 10000)
+  @Test(timeout = 10 * 000)
   public void testExists() throws Exception {
     client.createTable(creds, "ett1", false, TimeType.MILLIS);
     client.createTable(creds, "ett2", false, TimeType.MILLIS);
