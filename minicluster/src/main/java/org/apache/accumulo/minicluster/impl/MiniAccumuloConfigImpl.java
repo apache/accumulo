@@ -99,8 +99,9 @@ public class MiniAccumuloConfigImpl {
       logDir = new File(dir, "logs");
       walogDir = new File(dir, "walogs");
 
-      mergeProp(Property.INSTANCE_DFS_URI.getKey(), "file:///");
-      mergeProp(Property.INSTANCE_DFS_DIR.getKey(), accumuloDir.getAbsolutePath());
+      // TODO ACCUMULO-XXXX replace usage of instance.dfs.{dir,uri} with instance.volumes 
+      setInstanceLocation();
+
       mergeProp(Property.INSTANCE_SECRET.getKey(), DEFAULT_INSTANCE_SECRET);
       mergeProp(Property.TSERV_PORTSEARCH.getKey(), "true");
       mergeProp(Property.LOGGER_DIR.getKey(), walogDir.getAbsolutePath());
@@ -129,6 +130,12 @@ public class MiniAccumuloConfigImpl {
       initialized = true;
     }
     return this;
+  }
+
+  @SuppressWarnings("deprecation")
+  private void setInstanceLocation() {
+    mergeProp(Property.INSTANCE_DFS_URI.getKey(), "file:///");
+    mergeProp(Property.INSTANCE_DFS_DIR.getKey(), accumuloDir.getAbsolutePath());
   }
 
   /**

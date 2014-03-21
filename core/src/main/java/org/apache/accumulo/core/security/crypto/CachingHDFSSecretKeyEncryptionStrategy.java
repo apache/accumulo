@@ -174,6 +174,7 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
       
     }
 
+    @SuppressWarnings("deprecation")
     private String getFullPathToKey(CryptoModuleParameters params) {
       String pathToKeyName = params.getAllOptions().get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION.getKey());
       String instanceDirectory = params.getAllOptions().get(Property.INSTANCE_DFS_DIR.getKey());

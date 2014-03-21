@@ -373,6 +373,10 @@ public class FileUtil {
     }
     
     if (tmpDir != null) {
+      // TODO ACCUMULO-2532 instance.dfs.dir is not required to be a part of 
+      // the path for tmpDir. Could result in tmpDir not being removed when it should
+      // Needs unit tests
+      @SuppressWarnings("deprecation")
       String tmpPrefix = acuConf.get(Property.INSTANCE_DFS_DIR) + "/tmp";
       if (tmpDir.toUri().getPath().startsWith(tmpPrefix))
         fs.deleteRecursively(tmpDir);

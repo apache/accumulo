@@ -257,6 +257,9 @@ public class ClientOpts extends Help {
         }
       };
       this.zookeepers = config.get(Property.INSTANCE_ZK_HOST);
+      //TODO ACCUMULO-2531 Need something that is capable of using instance.volumes or
+      // instance.dfs.{uri,dir} to find the instanceID
+      @SuppressWarnings("deprecation")
       Path instanceDir = new Path(config.get(Property.INSTANCE_DFS_DIR), "instance_id");
       String instanceIDFromFile = ZooUtil.getInstanceIDFromHdfs(instanceDir, config);
       if (config.getBoolean(Property.INSTANCE_RPC_SSL_ENABLED))

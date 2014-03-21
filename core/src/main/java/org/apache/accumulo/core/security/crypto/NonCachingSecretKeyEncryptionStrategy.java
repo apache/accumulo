@@ -35,6 +35,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 
+//TODO ACCUMULO-2530 Update properties to use a URI instead of a relative path to secret key
 public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptionStrategy {
   
   private static final Logger log = Logger.getLogger(NonCachingSecretKeyEncryptionStrategy.class);
@@ -118,7 +119,7 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
     }
   }
 
-
+  @SuppressWarnings("deprecation")
   private String getFullPathToKey(CryptoModuleParameters params) {
     String pathToKeyName = params.getAllOptions().get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION.getKey());
     String instanceDirectory = params.getAllOptions().get(Property.INSTANCE_DFS_DIR.getKey());
@@ -139,7 +140,8 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
     String fullPath = instanceDirectory + pathToKeyName;
     return fullPath;
   }
-  
+
+  @SuppressWarnings("deprecation")
   @Override
   public CryptoModuleParameters encryptSecretKey(CryptoModuleParameters params) {
     String hdfsURI = params.getAllOptions().get(Property.INSTANCE_DFS_URI.getKey());
@@ -161,7 +163,8 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
     
     return params;
   }
-  
+
+  @SuppressWarnings("deprecation")
   @Override
   public CryptoModuleParameters decryptSecretKey(CryptoModuleParameters params) {
     String hdfsURI = params.getAllOptions().get(Property.INSTANCE_DFS_URI.getKey());
