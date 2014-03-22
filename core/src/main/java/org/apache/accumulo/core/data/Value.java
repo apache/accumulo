@@ -25,6 +25,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+import com.google.common.base.Preconditions;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.WritableComparable;
@@ -36,13 +38,14 @@ import org.apache.hadoop.io.WritableComparator;
  * 'immutable'.
  */
 public class Value implements WritableComparable<Object> {
+  private static final byte[] EMPTY = new byte[0];
   protected byte[] value;
-  
+
   /**
    * Creates a zero-size sequence.
    */
   public Value() {
-    super();
+    this(EMPTY, false);
   }
   
   /**
@@ -50,7 +53,7 @@ public class Value implements WritableComparable<Object> {
    * array is used directly as the backing array, so later changes made to the
    * array reflect into the new Value.
    * 
-   * @param bytes bytes of value
+   * @param bytes May not be null
    */
   public Value(byte[] bytes) {
     this(bytes, false);
@@ -60,13 +63,15 @@ public class Value implements WritableComparable<Object> {
    * Creates a Value using the bytes in a buffer as the initial value. Makes
    * a defensive copy.
    * 
-   * @param bytes bytes of value
+   * @param bytes May not be null
    */
   public Value(ByteBuffer bytes) {
+    /* TODO ACCUMULO-2509 right now this uses the entire backing array, which must be accessible. */
     this(toBytes(bytes), false);
   }
   
   /**
+   * @param bytes may not be null
    * @deprecated A copy of the bytes in the buffer is always made. Use {@link #Value(ByteBuffer)} instead.
    * 
    * @param bytes bytes of value
@@ -75,17 +80,19 @@ public class Value implements WritableComparable<Object> {
    */
   @Deprecated
   public Value(ByteBuffer bytes, boolean copy) {
+    /* TODO ACCUMULO-2509 right now this uses the entire backing array, which must be accessible. */
     this(toBytes(bytes), false);
   }
   
   /**
    * Creates a Value using a byte array as the initial value.
    * 
-   * @param bytes bytes of value
+   * @param bytes may not be null
    * @param copy false to use the given byte array directly as the backing
    * array, true to force a copy
    */
   public Value(byte[] bytes, boolean copy) {
+    Preconditions.checkNotNull(bytes);
     if (!copy) {
       this.value = bytes;
     } else {
@@ -98,7 +105,7 @@ public class Value implements WritableComparable<Object> {
   /**
    * Creates a new Value based on another.
    * 
-   * @param ibw original Value
+   * @param ibw may not be null.
    */
   public Value(final Value ibw) {
     this(ibw.get(), 0, ibw.getSize());
@@ -108,12 +115,13 @@ public class Value implements WritableComparable<Object> {
    * Creates a Value based on a range in a byte array. A copy of the bytes is
    * always made.
    * 
-   * @param newData byte array containing value bytes
+   * @param newData source of copy, may not be null
    * @param offset the offset in newData to start with for valye bytes
    * @param length the number of bytes in the value
    * @throws IndexOutOfBoundsException if offset or length are invalid
    */
   public Value(final byte[] newData, final int offset, final int length) {
+    Preconditions.checkNotNull(newData);
     this.value = new byte[length];
     System.arraycopy(newData, offset, this.value, 0, length);
   }
@@ -121,14 +129,10 @@ public class Value implements WritableComparable<Object> {
   /**
    * Gets the byte data of this value.
    * 
-   * @return value bytes
-   * @throws IllegalStateException if this object is uninitialized because it
-   * was not read correctly from a data stream
+   * @return the underlying byte array directly.
    */
   public byte[] get() {
-    if (this.value == null) {
-      throw new IllegalStateException("Uninitialized. Null constructor " + "called w/o accompanying readFields invocation");
-    }
+    assert(null != value);
     return this.value;
   }
   
@@ -137,18 +141,20 @@ public class Value implements WritableComparable<Object> {
    * the backing array, so later changes made to the array reflect into this
    * Value.
    *
-   * @param b bytes of value
+   * @param b may not be null
    */
   public void set(final byte[] b) {
+    Preconditions.checkNotNull(b);
     this.value = b;
   }
   
   /**
    * Sets the byte data of this value. The given byte array is copied.
    *
-   * @param b bytes of value
+   * @param b may not be null
    */
   public void copy(byte[] b) {
+    Preconditions.checkNotNull(b);
     this.value = new byte[b.length];
     System.arraycopy(b, 0, this.value, 0, b.length);
   }
@@ -157,13 +163,9 @@ public class Value implements WritableComparable<Object> {
    * Gets the size of this value.
    *
    * @return size in bytes
-   * @throws IllegalStateException if this object is uninitialized because it
-   * was not read correctly from a data stream
    */
   public int getSize() {
-    if (this.value == null) {
-      throw new IllegalStateException("Uninitialized. Null constructor " + "called w/o accompanying readFields invocation");
-    }
+    assert(null != value);
     return this.value.length;
   }
   
