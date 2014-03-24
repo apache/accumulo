@@ -49,7 +49,38 @@ public class TestConfirmDeletes {
     SortedSet<String> result = new TreeSet<String>(Arrays.asList(s));
     return result;
   }
-  
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testInvalidBlip() throws Exception {
+    String metadata[] = new String[] {"1636< file:/b-0001/someFile 10,100", "1636< last:3353986642a66eb 192.168.117.9:9997",
+        "1636< srv:dir /default_tablet", "1636< srv:flush 2", "1636< srv:lock tservers/192.168.117.9:9997/zlock-0000000000$3353986642a66eb",
+        "1636< srv:time M1328505870023", "1636< ~tab:~pr \0"};
+    String deletes[] = {"~blip/", "~del/1636/b-0001/someFile"};
+
+    test1(metadata, deletes, 1, 0);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testInvalidFile() throws Exception {
+    String metadata[] = new String[] {"1636< file:/b-0001/someFile/ooopppsss/garbage 10,100", "1636< last:3353986642a66eb 192.168.117.9:9997",
+        "1636< srv:dir /default_tablet", "1636< srv:flush 2", "1636< srv:lock tservers/192.168.117.9:9997/zlock-0000000000$3353986642a66eb",
+        "1636< srv:time M1328505870023", "1636< ~tab:~pr \0"};
+    String deletes[] = {"~del/1636/b-0001/someFile"};
+
+    test1(metadata, deletes, 1, 0);
+  }
+
+  @Test
+  public void testInvalidDeletes() throws Exception {
+    // a few invalid deletes, should be ignored
+    String metadata[] = new String[] {"1636< file:/default_tablet/someFile 10,100", "1636< last:3353986642a66eb 192.168.117.9:9997",
+        "1636< srv:dir /default_tablet", "1636< srv:flush 2", "1636< srv:lock tservers/192.168.117.9:9997/zlock-0000000000$3353986642a66eb",
+        "1636< srv:time M1328505870023", "1636< ~tab:~pr \0"};
+    String deletes[] = {"~del", "~del/"};
+
+    test1(metadata, deletes, 0, 0);
+  }
+
   @Test
   public void test() throws Exception {
     
@@ -85,6 +116,10 @@ public class TestConfirmDeletes {
     deletes = new String[] {"~del/9/default_tablet", "~del/9/default_tablet/someFile"};
     test1(metadata, deletes, 2, 0);
     
+    metadata = new String[] {"1636< file:/b-0001/I0000 10,100", "1636< last:3353986642a66eb 192.168.117.9:9997", "1636< srv:dir /default_tablet",
+        "1636< srv:flush 2", "1636< srv:lock tservers/192.168.117.9:9997/zlock-0000000000$3353986642a66eb", "1636< srv:time M1328505870023",
+        "1636< ~tab:~pr \0"};
+
     deletes = new String[] {"~blip/1636/b-0001", "~del/1636/b-0001/I0000"};
     test1(metadata, deletes, 1, 0);
   }

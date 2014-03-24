@@ -36,6 +36,7 @@ import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
@@ -124,6 +125,9 @@ public class SimpleGarbageCollector implements Iface {
   
   private static final Logger log = Logger.getLogger(SimpleGarbageCollector.class);
     
+  private static final Pattern dirPattern = Pattern.compile("/[\\p{Punct}\\p{Alnum}&&[^/]]+/[\\p{Punct}\\p{Alnum}&&[^/]]+");
+  private static final Pattern filePattern = Pattern.compile("/[\\p{Punct}\\p{Alnum}&&[^/]]+/[\\p{Punct}\\p{Alnum}&&[^/]]+/[\\p{Punct}\\p{Alnum}&&[^/]]+");
+
   private TCredentials credentials;
   private long gcStartDelay;
   private boolean checkForBulkProcessingFiles;
@@ -431,6 +435,43 @@ public class SimpleGarbageCollector implements Iface {
     return new InetSocketAddress(hostname, port);
   }
   
+  // visible for testing
+  static boolean isValidFileDelete(String path) {
+    return filePattern.matcher(path).matches();
+  }
+
+  // visible for testing
+  static boolean isValidDirDelete(String path) {
+    return dirPattern.matcher(path).matches();
+  }
+
+  // visible for testing
+  static boolean isValidCandidate(String candidate) {
+    return isValidDirDelete(candidate) || isValidFileDelete(candidate);
+  }
+
+  private void validateDir(String path) {
+    if (!isValidDirDelete(path)) {
+      throw new IllegalArgumentException("Invalid dir " + path);
+    }
+  }
+
+  private void validateFile(String delete) {
+    if (!isValidFileDelete(delete)) {
+      throw new IllegalArgumentException("Invalid file " + delete);
+    }
+  }
+
+  private void removeInvalidCandidates(Collection<String> candidates) {
+    for (Iterator<String> iterator = candidates.iterator(); iterator.hasNext();) {
+      String candidate = (String) iterator.next();
+      if (!isValidCandidate(candidate)) {
+        log.error("Ingoring invalid deletion candidate " + candidate);
+        iterator.remove();
+      }
+    }
+  }
+
   /**
    * This method gets a set of candidates for deletion by scanning the METADATA table deleted flag keyspace
    */
@@ -453,6 +494,8 @@ public class SimpleGarbageCollector implements Iface {
         log.error("Unable to check the filesystem for offline candidates. Removing all candidates for deletion to be safe.", e);
         candidates.clear();
       }
+
+      removeInvalidCandidates(candidates);
       return candidates;
     }
 
@@ -495,6 +538,7 @@ public class SimpleGarbageCollector implements Iface {
       }
     }
     
+    removeInvalidCandidates(result);
     return result;
   }
   
@@ -539,6 +583,7 @@ public class SimpleGarbageCollector implements Iface {
       
       for (Entry<Key,Value> entry : scanner) {
         String blipPath = entry.getKey().getRow().toString().substring(Constants.METADATA_BLIP_FLAG_PREFIX.length());
+        validateDir(blipPath);
         Iterator<String> tailIter = candidates.tailSet(blipPath).iterator();
         int count = 0;
         while (tailIter.hasNext()) {
@@ -582,15 +627,18 @@ public class SimpleGarbageCollector implements Iface {
           }
           // WARNING: This line is EXTREMELY IMPORTANT.
           // You MUST REMOVE candidates that are still in use
+          validateFile(delete);
           if (candidates.remove(delete))
             log.debug("Candidate was still in use in the METADATA table: " + delete);
           
           String path = delete.substring(0, delete.lastIndexOf('/'));
+          validateDir(path);
           if (candidates.remove(path))
             log.debug("Candidate was still in use in the METADATA table: " + path);
         } else if (Constants.METADATA_DIRECTORY_COLUMN.hasColumns(entry.getKey())) {
           String table = new String(KeyExtent.tableOfMetadataRow(entry.getKey().getRow()), Constants.UTF8);
           String delete = "/" + table + entry.getValue().toString();
+          validateDir(delete);
           if (candidates.remove(delete))
             log.debug("Candidate was still in use in the METADATA table: " + delete);
         } else

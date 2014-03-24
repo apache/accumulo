@@ -61,6 +61,8 @@ class GCTest(SunnyDayTest):
         self.stop_gc(self.masterHost())
         self.waitForStop(self.ingester, 60)
         self.shell(self.masterHost(), 'flush -t test_ingest -w')
+        #following statemets caused GC to delete everything ACCUMULO-2520
+        self.shell(self.masterHost(), 'grant Table.WRITE -u root -t !METADATA\ntable !METADATA\ninsert ~del testDel test valueTest\n')
 
         count = self.waitForFileCountToStabilize()
         gc = self.runOn(self.masterHost(), [self.accumulo_sh(), 'gc'])
@@ -73,6 +75,13 @@ class GCTest(SunnyDayTest):
                             glob.glob(os.path.join(ACCUMULO_HOME,'logs',ID,'gc_*')))
         out, err = handle.communicate()
         self.assert_(handle.returncode != 0)
+
+        handle = self.runOn(self.masterHost(),
+                            ['grep', '-q', 'Ingoring invalid deletion candidate'] +
+                            glob.glob(os.path.join(ACCUMULO_HOME,'logs',ID,'gc_*')))
+        out, err = handle.communicate()
+        self.assert_(handle.returncode == 0)
+
         self.pkill(self.masterHost(), 'app=gc', signal.SIGHUP)
         self.wait(gc)
         log.info("Verifying Ingestion")
