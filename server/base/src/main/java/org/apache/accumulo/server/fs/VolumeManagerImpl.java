@@ -151,11 +151,9 @@ public class VolumeManagerImpl implements VolumeManager {
 
     Volume v = getVolumeByPath(path);
     FileSystem fs = v.getFileSystem();
-
-    if (bufferSize == 0) {
-      fs.getConf().getInt("io.file.buffer.size", 4096);
-    }
-    return fs.create(path, overwrite, bufferSize, replication, correctBlockSize(fs.getConf(), blockSize));
+    blockSize = correctBlockSize(fs.getConf(), blockSize);
+    bufferSize = correctBufferSize(fs.getConf(), bufferSize);
+    return fs.create(path, overwrite, bufferSize, replication, blockSize);
   }
 
   @Override
