@@ -85,9 +85,6 @@ public class VolumeConfiguration {
 
   /**
    * Compute the URIs to be used by Accumulo
-   *
-   * @param conf
-   * @return
    */
   public static String[] getVolumeUris(AccumuloConfiguration conf) {
     String ns = conf.get(Property.INSTANCE_VOLUMES);
