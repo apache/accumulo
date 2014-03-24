@@ -55,17 +55,17 @@ public class ValueTest {
 
   @Test(expected=NullPointerException.class)
   public void testNullBytesConstructor() {
-    Value v = new Value((byte[]) null);
+    new Value((byte[]) null);
   }
 
   @Test(expected=NullPointerException.class)
   public void testNullCopyConstructor() {
-    Value v = new Value((Value) null);
+    new Value((Value) null);
   }
 
   @Test(expected=NullPointerException.class)
   public void testNullByteBufferConstructor() {
-    Value v = new Value((ByteBuffer)null);
+    new Value((ByteBuffer)null);
   }
 
   @Test(expected=NullPointerException.class)
