@@ -360,7 +360,7 @@ The public accumulo API is composed of :
  * everything under org.apache.accumulo.core.client, excluding impl packages  
  * Key, Mutation, Value, Range, Condition, and ConditionalMutation in 
    org.apache.accumulo.core.data.
- * org.apache.accumulo.server.minicluster, excluding impl package  
+ * org.apache.accumulo.minicluster, excluding impl package  
  
 To get started using accumulo review the example and the javadoc for the
 packages and classes mentioned above. 
