@@ -44,21 +44,21 @@ public class FileUtilTest {
   @Test
   public void testCleanupIndexOpWithDfsDir() throws IOException {
     File dfsDir = Files.createTempDir();
-    
+
     try {
       // And a "unique" tmp directory for each volume
       File tmp1 = new File(dfsDir, "tmp");
       tmp1.mkdirs();
       Path tmpPath1 = new Path(tmp1.toURI());
-      
+
       HashMap<Property,String> testProps = new HashMap<Property,String>();
       testProps.put(Property.INSTANCE_DFS_DIR, dfsDir.getAbsolutePath());
-      
+
       AccumuloConfiguration testConf = new FileUtilTestConfiguration(testProps);
       VolumeManager fs = VolumeManagerImpl.getLocal(dfsDir.getAbsolutePath());
-      
+
       FileUtil.cleanupIndexOp(testConf, tmpPath1, fs, new ArrayList<FileSKVIterator>());
-      
+
       Assert.assertFalse("Expected " + tmp1 + " to be cleaned up but it wasn't", tmp1.exists());
     } finally {
       FileUtils.deleteQuietly(dfsDir);
@@ -68,7 +68,7 @@ public class FileUtilTest {
   @Test
   public void testCleanupIndexOpWithCommonParentVolume() throws IOException {
     File accumuloDir = Files.createTempDir();
-    
+
     try {
       File volumeDir = new File(accumuloDir, "volumes");
       volumeDir.mkdirs();
@@ -83,19 +83,57 @@ public class FileUtilTest {
       tmp1.mkdirs();
       tmp2.mkdirs();
       Path tmpPath1 = new Path(tmp1.toURI()), tmpPath2 = new Path(tmp2.toURI());
-      
+
       HashMap<Property,String> testProps = new HashMap<Property,String>();
       testProps.put(Property.INSTANCE_VOLUMES, v1.toURI().toString() + "," + v2.toURI().toString());
-      
+
       AccumuloConfiguration testConf = new FileUtilTestConfiguration(testProps);
       VolumeManager fs = VolumeManagerImpl.getLocal(accumuloDir.getAbsolutePath());
-      
+
       FileUtil.cleanupIndexOp(testConf, tmpPath1, fs, new ArrayList<FileSKVIterator>());
-      
+
       Assert.assertFalse("Expected " + tmp1 + " to be cleaned up but it wasn't", tmp1.exists());
-      
+
       FileUtil.cleanupIndexOp(testConf, tmpPath2, fs, new ArrayList<FileSKVIterator>());
-      
+
+      Assert.assertFalse("Expected " + tmp2 + " to be cleaned up but it wasn't", tmp2.exists());
+    } finally {
+      FileUtils.deleteQuietly(accumuloDir);
+    }
+  }
+
+  @Test
+  public void testCleanupIndexOpWithCommonParentVolumeWithDepth() throws IOException {
+    File accumuloDir = Files.createTempDir();
+
+    try {
+      File volumeDir = new File(accumuloDir, "volumes");
+      volumeDir.mkdirs();
+
+      // Make some directories to simulate multiple volumes
+      File v1 = new File(volumeDir, "v1"), v2 = new File(volumeDir, "v2");
+      v1.mkdirs();
+      v2.mkdirs();
+
+      // And a "unique" tmp directory for each volume
+      // Make sure we can handle nested directories (a single tmpdir with potentially multiple unique dirs)
+      File tmp1 = new File(new File(v1, "tmp"), "tmp_1"), tmp2 = new File(new File(v2, "tmp"), "tmp_1");
+      tmp1.mkdirs();
+      tmp2.mkdirs();
+      Path tmpPath1 = new Path(tmp1.toURI()), tmpPath2 = new Path(tmp2.toURI());
+
+      HashMap<Property,String> testProps = new HashMap<Property,String>();
+      testProps.put(Property.INSTANCE_VOLUMES, v1.toURI().toString() + "," + v2.toURI().toString());
+
+      AccumuloConfiguration testConf = new FileUtilTestConfiguration(testProps);
+      VolumeManager fs = VolumeManagerImpl.getLocal(accumuloDir.getAbsolutePath());
+
+      FileUtil.cleanupIndexOp(testConf, tmpPath1, fs, new ArrayList<FileSKVIterator>());
+
+      Assert.assertFalse("Expected " + tmp1 + " to be cleaned up but it wasn't", tmp1.exists());
+
+      FileUtil.cleanupIndexOp(testConf, tmpPath2, fs, new ArrayList<FileSKVIterator>());
+
       Assert.assertFalse("Expected " + tmp2 + " to be cleaned up but it wasn't", tmp2.exists());
     } finally {
       FileUtils.deleteQuietly(accumuloDir);
@@ -105,7 +143,7 @@ public class FileUtilTest {
   @Test
   public void testCleanupIndexOpWithoutCommonParentVolume() throws IOException {
     File accumuloDir = Files.createTempDir();
-    
+
     try {
       // Make some directories to simulate multiple volumes
       File v1 = new File(accumuloDir, "v1"), v2 = new File(accumuloDir, "v2");
@@ -117,19 +155,54 @@ public class FileUtilTest {
       tmp1.mkdirs();
       tmp2.mkdirs();
       Path tmpPath1 = new Path(tmp1.toURI()), tmpPath2 = new Path(tmp2.toURI());
-      
+
       HashMap<Property,String> testProps = new HashMap<Property,String>();
       testProps.put(Property.INSTANCE_VOLUMES, v1.toURI().toString() + "," + v2.toURI().toString());
-      
+
       AccumuloConfiguration testConf = new FileUtilTestConfiguration(testProps);
       VolumeManager fs = VolumeManagerImpl.getLocal(accumuloDir.getAbsolutePath());
-      
+
       FileUtil.cleanupIndexOp(testConf, tmpPath1, fs, new ArrayList<FileSKVIterator>());
-      
+
       Assert.assertFalse("Expected " + tmp1 + " to be cleaned up but it wasn't", tmp1.exists());
-      
+
       FileUtil.cleanupIndexOp(testConf, tmpPath2, fs, new ArrayList<FileSKVIterator>());
-      
+
+      Assert.assertFalse("Expected " + tmp2 + " to be cleaned up but it wasn't", tmp2.exists());
+    } finally {
+      FileUtils.deleteQuietly(accumuloDir);
+    }
+  }
+
+  @Test
+  public void testCleanupIndexOpWithoutCommonParentVolumeWithDepth() throws IOException {
+    File accumuloDir = Files.createTempDir();
+
+    try {
+      // Make some directories to simulate multiple volumes
+      File v1 = new File(accumuloDir, "v1"), v2 = new File(accumuloDir, "v2");
+      v1.mkdirs();
+      v2.mkdirs();
+
+      // And a "unique" tmp directory for each volume
+      // Make sure we can handle nested directories (a single tmpdir with potentially multiple unique dirs)
+      File tmp1 = new File(new File(v1, "tmp"), "tmp_1"), tmp2 = new File(new File(v2, "tmp"), "tmp_1");
+      tmp1.mkdirs();
+      tmp2.mkdirs();
+      Path tmpPath1 = new Path(tmp1.toURI()), tmpPath2 = new Path(tmp2.toURI());
+
+      HashMap<Property,String> testProps = new HashMap<Property,String>();
+      testProps.put(Property.INSTANCE_VOLUMES, v1.toURI().toString() + "," + v2.toURI().toString());
+
+      AccumuloConfiguration testConf = new FileUtilTestConfiguration(testProps);
+      VolumeManager fs = VolumeManagerImpl.getLocal(accumuloDir.getAbsolutePath());
+
+      FileUtil.cleanupIndexOp(testConf, tmpPath1, fs, new ArrayList<FileSKVIterator>());
+
+      Assert.assertFalse("Expected " + tmp1 + " to be cleaned up but it wasn't", tmp1.exists());
+
+      FileUtil.cleanupIndexOp(testConf, tmpPath2, fs, new ArrayList<FileSKVIterator>());
+
       Assert.assertFalse("Expected " + tmp2 + " to be cleaned up but it wasn't", tmp2.exists());
     } finally {
       FileUtils.deleteQuietly(accumuloDir);
@@ -139,11 +212,11 @@ public class FileUtilTest {
   private static class FileUtilTestConfiguration extends AccumuloConfiguration {
     private DefaultConfiguration defaultConf = new DefaultConfiguration();
     private Map<Property,String> properties;
-    
+
     public FileUtilTestConfiguration(Map<Property,String> properties) {
       this.properties = properties;
     }
-    
+
     @Override
     public String get(Property property) {
       String value = properties.get(property);
@@ -157,6 +230,6 @@ public class FileUtilTest {
     public void getProperties(Map<String,String> props, PropertyFilter filter) {
       throw new UnsupportedOperationException();
     }
-    
+
   }
 }
