@@ -27,6 +27,7 @@ import java.io.PrintWriter;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.TimeZone;
 
 import jline.console.ConsoleReader;
 
@@ -103,6 +104,7 @@ public class ShellTest {
 
   @Before
   public void setup() throws IOException {
+    TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
     Shell.log.setLevel(Level.OFF);
     output = new TestOutputStream();
     input = new StringInputStream();
