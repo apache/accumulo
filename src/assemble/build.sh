@@ -15,6 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -e
+
 loc=`dirname "$0"`
 loc=`cd "$loc/../.."; pwd`
 
@@ -38,16 +40,29 @@ runAt() {
   ( cd $1 ; echo in `pwd`; shift ; run $@ ) || fail 
 }
 
+verifyMissingLicenses() {
+  COUNT=$(grep -c '!????' $1)
+  EXPECTED=$2
+  if [[ "$COUNT" != "$EXPECTED" ]]; then
+    fail expected "$EXPECTED" files missing licenses, but saw "$COUNT"
+  fi
+}
+
+mvn -version | grep -q "Java version: 1.6" || fail "Need to use Java 6"
+
 run mvn -U -P distclean clean 
-mvn org.apache.rat:apache-rat-plugin:0.10:check
-COUNT=`grep '!????' target/rat.txt | wc -l`
-EXPECTED=51
-if [ "$COUNT" -ne $EXPECTED ]
-then
-   fail expected $EXPECTED files missing licenses, but saw "$COUNT"
-fi
+
+mvn org.apache.rat:apache-rat-plugin:0.10:check || :
+verifyMissingLicenses target/rat.txt 51
+
+find src -name pom.xml -not -path 'src/server/*' \
+	-exec mvn org.apache.rat:apache-rat-plugin:0.10:check -f {} \;
+
+mvn org.apache.rat:apache-rat-plugin:0.10:check -f src/server/pom.xml || :
+verifyMissingLicenses src/server/target/rat.txt 27
+
 #need to run mvn package twice to properly build docs/config.html
 run mvn package
-run mvn package javadoc:aggregate javadoc:jar source:jar
+run mvn package javadoc:aggregate javadoc:jar source:jar -DskipTests
 runAt ./src/server/src/main/c++ make 
 run mvn assembly:single -N
