@@ -41,7 +41,7 @@ runAt() {
 run mvn -U -P distclean clean 
 mvn org.apache.rat:apache-rat-plugin:0.10:check
 COUNT=`grep '!????' target/rat.txt | wc -l`
-EXPECTED=53
+EXPECTED=51
 if [ "$COUNT" -ne $EXPECTED ]
 then
    fail expected $EXPECTED files missing licenses, but saw "$COUNT"
