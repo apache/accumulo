@@ -561,6 +561,7 @@ processes should be stable on the order of months and not require frequent resta
 
 \section{Advanced System Recovery}
 
+\subsection{HDFS Failure}
 Q. I had disasterous HDFS failure.  After bringing everything back up, several tablets refuse to go online.
 
 Data written to tablets is written into memory before being written into indexed files.  In case the server
@@ -640,6 +641,69 @@ but the basic approach is:
  \item Recreate tables, users and permissions
  \item Import the directories under \texttt{/corrupt/tables/<id>} into the new instance
 \end{itemize}
+
+
+\subsection{ZooKeeper Failure}
+Q. I lost my ZooKeeper quorum (hardware failure), but HDFS is still intact. How can I recover my Accumulo instance?
+
+ZooKeeper, in addition to its lock-service capabilities, also serves to bootstrap an Accumulo
+instance from some location in HDFS. It contains the pointers to the root tablet in HDFS which
+is then used to load the Accumulo metadata tablets, which then loads all user tables. ZooKeeper
+also stores all namespace and table configuration, the user database, the mapping of table IDs to 
+table names, and more across Accumulo restarts.
+
+Presently, the only way to recover such an instance is to initialize a new instance and import all
+of the old data into the new instance. The easiest way to tackle this problem is to first recreate
+the mapping of table ID to table name and then recreate each of those tables in the new instance. 
+Set any necessary configuration on the new tables and add some split points to the tables to close 
+the gap between how many splits the old table had and no splits.
+
+The directory structure in HDFS for tables will follow the general structure:
+
+\small
+\begin{verbatim}
+  /accumulo
+  /accumulo/tables/
+  /accumulo/tables/1
+  /accumulo/tables/1/default_tablet/A000001.rf
+  /accumulo/tables/1/t-00001/A000002.rf
+  /accumulo/tables/1/t-00001/A000003.rf
+  /accumulo/tables/2/default_tablet/A000004.rf
+  /accumulo/tables/2/t-00001/A000005.rf
+\end{verbatim}
+\normalsize
+
+For each table, make a new directory that you can move (or copy if you have the HDFS space to do so)
+all of the rfiles for a given table into. For example, to process the table with an ID of ``1``, make a new directory, 
+say ``/new-table-1`` and then copy all files from ``/accumulo/tables/1/*/*.rf`` into that directory. Additionally,
+make a directory, ``/new-table-1-failures``, for any failures during the import process. Then, issue the import
+command using the Accumulo shell into the new table, telling Accumulo to not re-set the timestamp:
+
+\small
+\begin{verbatim}
+user@instance new_table> importdirectory /new-table-1 /new-table-1-failures false
+\end{verbatim}
+\normalsize
+
+Any RFiles which were failed to be loaded will be placed in ``/new-table-1-failures``. Rfiles that were successfully
+imported will no longer exist in ``/new-table-1``. For failures, move them back to the import directory and retry
+the ``importdirectory`` command.
+
+It is \textbf{extremely} important to note that this approach may introduce stale data back into
+the tables. For a few reasons, RFiles may exist in the table directory which are candidates for deletion but have
+not yet been deleted. Additionally, deleted data which was not compacted away, but still exists in write-ahead logs if
+the original instance was somehow recoverable, will be re-introduced in the new instance. Table splits and merges
+(which also include the deleteRows API call on TableOperations, are also vulnerable to this problem. This process should
+\textbf{not} be used if these are unacceptable risks. It is possible to try to re-create a view of the ``accumulo.metadata``
+table to prune out files that are candidates for deletion, but this is a difficult task that also may not be entirely accurate.
+
+Likewise, it is also possible that data loss may occur from write-ahead log (WAL) files which existed on the old table but
+were not minor-compacted into an RFile. Again, it may be possible to reconstruct the state of these WAL files to
+replay data not yet in an RFile; however, this is a difficult task and is not implemented in any automated fashion.
+
+A. The ``importdirectory`` shell command can be used to import RFiles from the old instance into a newly created instance,
+but extreme care should go into the decision to do this as it may result in reintroduction of stale data or the
+omission of new data.
 
 \section{File Naming Conventions}
 
