@@ -96,6 +96,8 @@ public class FileUtil {
       fs.mkdirs(result);
       
       // try to reserve the tmp dir
+      // In some versions of hadoop, two clients concurrently trying to create the same directory might both return true
+      // Creating a file is not subject to this, so create a special file to make sure we solely will use this directory
       if (!fs.createNewFile(new Path(result, "__reserve")))
         result = null;
     }
