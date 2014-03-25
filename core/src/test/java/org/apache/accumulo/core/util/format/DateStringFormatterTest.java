@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.data.Key;
@@ -42,9 +43,10 @@ public class DateStringFormatterTest {
   @Test
   public void testTimestamps() {
     formatter.initialize(data.entrySet(), true);
+    formatter.setTimeZone(TimeZone.getTimeZone("UTC"));
 
     assertTrue(formatter.hasNext());
-    assertTrue(formatter.next().endsWith("1969/12/31 19:00:00.000"));
+    assertTrue(formatter.next().endsWith("1970/01/01 00:00:00.000"));
   }
 
   @Test
