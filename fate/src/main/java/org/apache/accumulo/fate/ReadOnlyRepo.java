@@ -16,18 +16,17 @@
  */
 package org.apache.accumulo.fate;
 
-import java.io.Serializable;
-
 /**
- * Repeatable persisted operation
- * 
+ * Read only access to a repeatable persisted operation.
+ *
+ * By definition, these methods are safe to call without impacting the state of FATE. They should also be
+ * safe to call without impacting the state of system components.
+ *
  */
-public interface Repo<T> extends ReadOnlyRepo<T>, Serializable {
-  
-  Repo<T> call(long tid, T environment) throws Exception;
-  
-  void undo(long tid, T environment) throws Exception;
-  
-  // this allows the last fate op to return something to the user
-  String getReturn();
+public interface ReadOnlyRepo<T> {
+
+  long isReady(long tid, T environment) throws Exception;
+
+  String getDescription();
+
 }
