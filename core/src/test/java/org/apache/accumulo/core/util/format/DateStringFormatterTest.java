@@ -16,32 +16,46 @@
  */
 package org.apache.accumulo.core.util.format;
 
-import java.util.Map.Entry;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Map;
+import java.util.TreeMap;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.log4j.Logger;
+import org.junit.Before;
+import org.junit.Test;
 
-public class FormatterFactory {
-  private static final Logger log = Logger.getLogger(FormatterFactory.class);
-  
-  public static Formatter getFormatter(Class<? extends Formatter> formatterClass, Iterable<Entry<Key,Value>> scanner, boolean printTimestamps) {
-    Formatter formatter = null;
-    try {
-      formatter = formatterClass.newInstance();
-    } catch (Exception e) {
-      log.warn("Unable to instantiate formatter. Using default formatter.", e);
-      formatter = new DefaultFormatter();
-    }
-    formatter.initialize(scanner, printTimestamps);
-    return formatter;
-  }
-  
-  public static Formatter getDefaultFormatter(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps) {
-    return getFormatter(DefaultFormatter.class, scanner, printTimestamps);
+public class DateStringFormatterTest {
+  DateStringFormatter formatter;
+
+  Map<Key,Value> data;
+
+  @Before
+  public void setUp() {
+    formatter = new DateStringFormatter();
+    data = new TreeMap<Key,Value>();
+    data.put(new Key("", "", "", 0), new Value());
   }
 
-  private FormatterFactory() {
-    // prevent instantiation
+  @Test
+  public void testTimestamps() {
+    formatter.initialize(data.entrySet(), true);
+
+    assertTrue(formatter.hasNext());
+    assertTrue(formatter.next().endsWith("1969/12/31 19:00:00.000"));
   }
+
+  @Test
+  public void testNoTimestamps() {
+    data.put(new Key("", "", "", 1), new Value());
+
+    assertEquals(2, data.size());
+
+    formatter.initialize(data.entrySet(), false);
+
+    assertEquals(formatter.next(), formatter.next());
+  }
+
 }

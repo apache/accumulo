@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.util.format;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -28,22 +27,14 @@ import org.apache.accumulo.core.data.Value;
  * Does not show contents from scan, only displays statistics. Beware that this work is being done client side and this was developed as a utility for
  * debugging. If used on large result sets it will likely fail.
  */
-public class StatisticsDisplayFormatter extends DefaultFormatter {
+public class StatisticsDisplayFormatter extends AggregatingFormatter {
   private Map<String,Long> classifications = new HashMap<String,Long>();
   private Map<String,Long> columnFamilies = new HashMap<String,Long>();
   private Map<String,Long> columnQualifiers = new HashMap<String,Long>();
   private long total = 0;
   
   @Override
-  public String next() {
-    Iterator<Entry<Key,Value>> si = super.getScannerIterator();
-    checkState(si, true);
-    while (si.hasNext())
-      aggregateStats(si.next());
-    return getStats();
-  }
-  
-  private void aggregateStats(Entry<Key,Value> entry) {
+  protected void aggregateStats(Entry<Key,Value> entry) {
     String key;
     Long count;
     
@@ -62,7 +53,8 @@ public class StatisticsDisplayFormatter extends DefaultFormatter {
     ++total;
   }
   
-  private String getStats() {
+  @Override
+  protected String getStats() {
     StringBuilder buf = new StringBuilder();
     buf.append("CLASSIFICATIONS:\n");
     buf.append("----------------\n");
