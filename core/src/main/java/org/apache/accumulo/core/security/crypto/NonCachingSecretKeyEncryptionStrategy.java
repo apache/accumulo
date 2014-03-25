@@ -153,6 +153,7 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
     Path pathToKey = new Path(fullPath);
     
     try {
+      // TODO ACCUMULO-2530 Ensure volumes a properly supported
       FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());   
       doKeyEncryptionOperation(Cipher.WRAP_MODE, params, fullPath, pathToKey, fs);
       
@@ -176,6 +177,7 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
     Path pathToKey = new Path(pathToKeyName);
     
     try {
+      // TODO ACCUMULO-2530 Ensure volumes a properly supported
       FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());   
       doKeyEncryptionOperation(Cipher.UNWRAP_MODE, params, pathToKeyName, pathToKey, fs);
       
