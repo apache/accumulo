@@ -518,6 +518,47 @@ Besides these columns, you may see:
 
 \end{enumerate}
 
+\section{Simple System Recovery}
+
+Q. One of my Accumulo processes died. How do I bring it back?
+
+The easiest way to bring all services online for an Accumulo instance is to run the ``start-all.sh`` script.
+
+\small
+\begin{verbatim}
+  $ bin/start-all.sh
+\end{verbatim}
+\normalsize
+
+This process will check the process listing, using ``jps`` on each host before attempting to restart a service on the given host.
+Typically, this check is sufficient except in the face of a hung/zombie process. For large clusters, it may be
+undesirable to ssh to every node in the cluster to ensure that all hosts are running the appropriate processes and ``start-here.sh`` may be of use.
+
+\small
+\begin{verbatim}
+  $ ssh host_with_dead_process
+  $ bin/start-here.sh
+\end{verbatim}
+\normalsize
+
+``start-here.sh`` should be invoked on the host which is missing a given process. Like start-all.sh, it will start all
+necessary processes that are not currently running, but only on the current host and not cluster-wide. Tools such as ``pssh`` or 
+``pdsh`` can be used to automate this process.
+
+``start-server.sh`` can also be used to start a process on a given host; however, it is not generally recommended for
+users to issue this directly as the ``start-all.sh`` and ``start-here.sh`` scripts provide the same functionality with
+more automation and are less prone to user error.
+
+A. Use ``start-all.sh`` or ``start-here.sh``.
+
+Q. My process died again. Should I restart it via ``cron`` or tools like ``supervisord``?
+
+A. A repeatedly dying Accumulo process is a sign of a larger problem. Typically these problems are due to a
+misconfiguration of Accumulo or over-saturation of resources. Blind automation of any service restart inside of Accumulo
+is generally an undesirable situation as it is indicative of a problem that is being masked and ignored. Accumulo
+processes should be stable on the order of months and not require frequent restart.
+
+
 \section{Advanced System Recovery}
 
 Q. I had disasterous HDFS failure.  After bringing everything back up, several tablets refuse to go online.
