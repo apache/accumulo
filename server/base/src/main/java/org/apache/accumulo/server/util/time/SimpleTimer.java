@@ -65,9 +65,9 @@ public class SimpleTimer {
   public static synchronized SimpleTimer getInstance(int threadPoolSize) {
     if (instance == null) {
       instance = new SimpleTimer(threadPoolSize);
-      instance.instanceThreadPoolSize = threadPoolSize;
+      SimpleTimer.instanceThreadPoolSize = threadPoolSize;
     } else {
-      if (instance.instanceThreadPoolSize != threadPoolSize) {
+      if (SimpleTimer.instanceThreadPoolSize != threadPoolSize) {
         log.warn("Asked to create SimpleTimer with thread pool size " +
                  threadPoolSize + ", existing instance has " +
                  instanceThreadPoolSize);
