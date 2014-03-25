@@ -21,7 +21,7 @@
   <parent>
     <groupId>org.apache.accumulo</groupId>
     <artifactId>accumulo-examples</artifactId>
-    <version>1.4.5</version>
+    <version>1.4.6-SNAPSHOT</version>
     <relativePath>../</relativePath>
   </parent>
 

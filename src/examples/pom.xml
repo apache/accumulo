@@ -20,7 +20,7 @@
   <parent>
         <artifactId>accumulo</artifactId>
         <groupId>org.apache.accumulo</groupId>
-        <version>1.4.5</version>
+        <version>1.4.6-SNAPSHOT</version>
         <relativePath>../../</relativePath>
   </parent>
   <artifactId>accumulo-examples</artifactId>

@@ -49,7 +49,7 @@ easier to install.
 
 Copy the accumulo tar file produced by "mvn package && mvn assembly:single -N" 
 from the target/ directory to the desired destination, then untar it (e.g. 
-tar xvzf accumulo-1.4.5-dist.tar.gz).
+tar xvzf accumulo-1.4.6-SNAPSHOT-dist.tar.gz).
 
 If you are using the RPM/deb, install the RPM/deb on every machine that will run
 accumulo.
@@ -178,7 +178,7 @@ scanned.
 
     Shell - Apache Accumulo Interactive Shell
     - 
-    - version: 1.4.5
+    - version: 1.4.6-SNAPSHOT
     - instance name: accumulo
     - instance id: f5947fe6-081e-41a8-9877-43730c4dfc6f
     - 
@@ -199,7 +199,7 @@ certain column.
 
     Shell - Apache Accumulo Interactive Shell
     - 
-    - version: 1.4.5
+    - version: 1.4.6-SNAPSHOT
     - instance name: accumulo
     - instance id: f5947fe6-081e-41a8-9877-43730c4dfc6f
     - 

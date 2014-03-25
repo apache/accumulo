@@ -87,7 +87,7 @@ fi
 export ACCUMULO_LOG_DIR
 
 if [ -z ${ACCUMULO_VERSION} ]; then
-        ACCUMULO_VERSION=1.4.5
+        ACCUMULO_VERSION=1.4.6-SNAPSHOT
 fi
 
 if [ -z "$HADOOP_PREFIX" ]
