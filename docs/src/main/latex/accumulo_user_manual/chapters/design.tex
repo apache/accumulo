@@ -66,7 +66,8 @@ found in the write-ahead log to the tablet.
 
 Accumulo processes will share files stored in HDFS. Periodically, the Garbage
 Collector will identify files that are no longer needed by any process, and
-delete them.
+delete them. Multiple garbage collectors can be run to provide hot-standby support.
+They will perform leader election among themselves to choose a single active instance.
 
 \subsection{Master}
 
@@ -79,6 +80,27 @@ shutdown and recovery of changes in write-ahead logs when Tablet servers fail.
 
 Multiple masters may be run. The masters will choose among themselves a single master,
 and the others will become backups if the master should fail.
+
+\subsection{Tracer}
+
+The Accumulo Tracer process supports the distributed timing API provided by Accumulo.
+One to many of these processes can be run on a cluster which will write the timing
+information to a given Accumulo table for future reference. Seeing the section on
+Tracing for more information on this support.
+
+\subsection{Monitor}
+
+The Accumulo Monitor is a web application that provides a wealth of information about
+the state of an instance. The Monitor shows graphs and tables which contain information
+about read/write rates, cache hit/miss rates, and Accumulo table information such as scan
+rate and active/queued compactions. Additionally, the Monitor should always be the first
+point of entry when attempting to debug an Accumulo problem as it will show high-level problems
+in addition to aggregated errors from all nodes in the cluster. See the section on Monitoring
+for more information.
+
+Multiple Monitors can be run to provide hot-standby support in the face of failure. Due to the
+forwarding of logs from remote hosts to the Monitor, only one Monitor process should be active
+at one time. Leader election will be performed internally to choose the active Monitor.
 
 \subsection{Client}
 
