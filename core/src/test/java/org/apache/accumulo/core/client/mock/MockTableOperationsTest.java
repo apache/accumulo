@@ -267,9 +267,13 @@ public class MockTableOperationsTest {
     bw.flush();
     to.deleteRows("test", new Text("1"), new Text("2"));
     Scanner s = connector.createScanner("test", Constants.NO_AUTHS);
+    int oneCnt = 0;
     for (Entry<Key,Value> entry : s) {
-      Assert.assertTrue(entry.getKey().getRow().toString().charAt(0) != '1');
+      char rowStart = entry.getKey().getRow().toString().charAt(0);
+      Assert.assertTrue(rowStart != '2');
+      oneCnt += rowStart == '1' ? 1 : 0;
     }
+    Assert.assertEquals(5, oneCnt);
   }
   
 }
