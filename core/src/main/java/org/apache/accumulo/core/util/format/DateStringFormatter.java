@@ -19,6 +19,7 @@ package org.apache.accumulo.core.util.format;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Map.Entry;
+import java.util.TimeZone;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -26,6 +27,7 @@ import org.apache.accumulo.core.data.Value;
 public class DateStringFormatter implements Formatter {
   private boolean printTimestamps = false;
   private DefaultFormatter defaultFormatter = new DefaultFormatter();
+
   public static final String DATE_FORMAT = "yyyy/MM/dd HH:mm:ss.SSS";
   // SimpleDataFormat is not thread safe
   private static final ThreadLocal<DateFormat> formatter = new ThreadLocal<DateFormat>() {
@@ -57,5 +59,9 @@ public class DateStringFormatter implements Formatter {
   @Override
   public void remove() {
     defaultFormatter.remove();
+  }
+
+  public void setTimeZone(TimeZone zone) {
+    formatter.get().setTimeZone(zone);
   }
 }
