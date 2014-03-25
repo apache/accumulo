@@ -175,7 +175,7 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
               return method.invoke(inst, args);
             } catch (InvocationTargetException e) {
               if (e.getCause() instanceof KeeperException.ConnectionLossException) {
-                Logger.getLogger(ZooReaderWriter.class).warn("Error connecting to zookeeper, will retry in " + retryTime, e.getCause());
+                Logger.getLogger(ZooReaderWriter.class).warn("Error connecting to zookeeper, will retry in " + String.format("%.2f secs", retryTime / 1000.0), e.getCause());
                 UtilWaitThread.sleep(retryTime);
                 retryTime = Math.min(5000, retryTime + 250);
               } else {
