@@ -112,6 +112,7 @@ public class BlockIndexTest {
       Assert.assertEquals(rk.getKey(), new Key(RFileTest.nf("", row + 1), "cf1", "cq1"));
 
     }
+    cacheBlock.close();
   }
 
   @Test
@@ -170,6 +171,6 @@ public class BlockIndexTest {
       
       Assert.assertTrue(rk.getKey().compareTo(seekKey) <= 0);
     }
-
+    cacheBlock.close();
   }
 }
