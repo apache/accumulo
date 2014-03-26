@@ -63,7 +63,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.tools.DistCp;
-import org.apache.log4j.Logger;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -101,7 +100,6 @@ public class ShellServerTest {
     }
   }
   
-  private static final Logger log = Logger.getLogger(ShellServerTest.class);
   private static final NoOpErrorMessageCallback noop = new NoOpErrorMessageCallback();
 
   private static String secret = "superSecret";

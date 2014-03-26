@@ -38,8 +38,8 @@ import org.apache.log4j.Logger;
 
 /**
  * A SortedKeyValueIterator that combines the Values for different versions (timestamp) of a Key within a row into a single Value. Combiner will replace one or
- * more versions of a Key and their Values with the most recent Key and a Value which is the result of the reduce method. An {@link IteratorSetting.Column}
- * which only specifies a column family will combine all Keys in that column family individually. Similarly, a {@link IteratorSetting.Column} which specifies a
+ * more versions of a Key and their Values with the most recent Key and a Value which is the result of the reduce method. An {@link Column}
+ * which only specifies a column family will combine all Keys in that column family individually. Similarly, a {@link Column} which specifies a
  * column family and column qualifier will combine all Keys in column family and qualifier individually. Combination is only ever performed on multiple versions
  * and not across column qualifiers or column visibilities.
  * 
