@@ -448,6 +448,29 @@ public class GarbageCollectionTest {
   }
 
   @Test
+  public void testBadDeletes() throws Exception {
+    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
+
+    TestGCE gce = new TestGCE();
+    gce.candidates.add("");
+    gce.candidates.add("A");
+    gce.candidates.add("/");
+    gce.candidates.add("//");
+    gce.candidates.add("///");
+    gce.candidates.add("////");
+    gce.candidates.add("/1/2/3/4");
+    gce.candidates.add("/a");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tbls/5/F00.rf");
+    gce.candidates.add("hdfs://foo.com:6000/");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/");
+    gce.candidates.add("hdfs://foo.com:6000/user/foo/tables/a/t-0/t-1/F00.rf");
+
+    gca.collect(gce);
+    System.out.println(gce.deletes);
+    assertRemoved(gce);
+  }
+
+  @Test
   public void test() throws Exception {
 
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
