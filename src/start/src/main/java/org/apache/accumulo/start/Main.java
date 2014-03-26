@@ -39,7 +39,10 @@ public class Main {
       
       Thread.currentThread().setContextClassLoader(AccumuloClassLoader.getClassLoader());
       
-      if (args[0].equals("master")) {
+      if (args[0].equals("help")){
+        printUsage();
+        System.exit(0);
+      } else if (args[0].equals("master")) {
         runTMP = AccumuloClassLoader.loadClass("org.apache.accumulo.server.master.Master");
       } else if (args[0].equals("tserver")) {
         runTMP = AccumuloClassLoader.loadClass("org.apache.accumulo.server.tabletserver.TabletServer");
@@ -125,6 +128,6 @@ public class Main {
   }
 
   private static void printUsage() {
-    System.out.println("accumulo init | master | tserver | logger | monitor | shell | admin | gc | classpath | <accumulo class> args");
+    System.out.println("accumulo init | master | tserver | logger | monitor | shell | admin | gc | classpath | help | <accumulo class> args");
   }
 }
