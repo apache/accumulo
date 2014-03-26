@@ -38,8 +38,8 @@ import org.apache.log4j.Logger;
 
 /**
  * A SortedKeyValueIterator that combines the Values for different versions (timestamp) of a Key within a row into a single Value. Combiner will replace one or
- * more versions of a Key and their Values with the most recent Key and a Value which is the result of the reduce method. An {@link IteratorSetting.Column}
- * which only specifies a column family will combine all Keys in that column family individually. Similarly, a {@link IteratorSetting.Column} which specifies a
+ * more versions of a Key and their Values with the most recent Key and a Value which is the result of the reduce method. An {@link Column}
+ * which only specifies a column family will combine all Keys in that column family individually. Similarly, a {@link Column} which specifies a
  * column family and column qualifier will combine all Keys in column family and qualifier individually. Combination is only ever performed on multiple versions
  * and not across column qualifiers or column visibilities.
  * 
@@ -80,21 +80,11 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
       return source.hasTop() && !source.getTopKey().isDeleted() && topKey.equals(source.getTopKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS);
     }
 
-    /**
-     * @return <tt>true</tt> if there is another Value
-     * 
-     * @see java.util.Iterator#hasNext()
-     */
     @Override
     public boolean hasNext() {
       return hasNext;
     }
 
-    /**
-     * @return the next Value
-     * 
-     * @see java.util.Iterator#next()
-     */
     @Override
     public Value next() {
       if (!hasNext)
@@ -110,9 +100,10 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     }
 
     /**
-     * unsupported
+     * This method is unsupported in this iterator.
      * 
-     * @see java.util.Iterator#remove()
+     * @throws UnsupportedOperationException
+     *           when called
      */
     @Override
     public void remove() {
@@ -272,7 +263,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     }
     if (!options.containsKey(COLUMNS_OPTION))
       throw new IllegalArgumentException("options must include " + ALL_OPTION + " or " + COLUMNS_OPTION);
-    
+
     String encodedColumns = options.get(COLUMNS_OPTION);
     if (encodedColumns.length() == 0)
       throw new IllegalArgumentException("empty columns specified in option " + COLUMNS_OPTION);
