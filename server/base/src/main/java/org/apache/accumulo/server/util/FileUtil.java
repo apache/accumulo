@@ -45,6 +45,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
+import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -95,6 +96,8 @@ public class FileUtil {
       fs.mkdirs(result);
       
       // try to reserve the tmp dir
+      // In some versions of hadoop, two clients concurrently trying to create the same directory might both return true
+      // Creating a file is not subject to this, so create a special file to make sure we solely will use this directory
       if (!fs.createNewFile(new Path(result, "__reserve")))
         result = null;
     }
@@ -359,8 +362,8 @@ public class FileUtil {
       cleanupIndexOp(acuConf, tmpDir, fs, readers);
     }
   }
-  
-  private static void cleanupIndexOp(AccumuloConfiguration acuConf, Path tmpDir, VolumeManager fs, ArrayList<FileSKVIterator> readers) throws IOException {
+
+  protected static void cleanupIndexOp(AccumuloConfiguration acuConf, Path tmpDir, VolumeManager fs, ArrayList<FileSKVIterator> readers) throws IOException {
     // close all of the index sequence files
     for (FileSKVIterator r : readers) {
       try {
@@ -371,20 +374,18 @@ public class FileUtil {
         log.error(e, e);
       }
     }
-    
+
     if (tmpDir != null) {
-      // TODO ACCUMULO-2532 instance.dfs.dir is not required to be a part of 
-      // the path for tmpDir. Could result in tmpDir not being removed when it should
-      // Needs unit tests
-      @SuppressWarnings("deprecation")
-      String tmpPrefix = acuConf.get(Property.INSTANCE_DFS_DIR) + "/tmp";
-      if (tmpDir.toUri().getPath().startsWith(tmpPrefix))
+      Volume v = fs.getVolumeByPath(tmpDir);
+      if (v.getFileSystem().exists(tmpDir)) {
         fs.deleteRecursively(tmpDir);
-      else
-        log.error("Did not delete tmp dir because it wasn't a tmp dir " + tmpDir);
+        return;
+      }
+
+      log.error("Did not delete tmp dir because it wasn't a tmp dir " + tmpDir);
     }
   }
-  
+
   private static long countIndexEntries(AccumuloConfiguration acuConf, Text prevEndRow, Text endRow, Collection<String> mapFiles, boolean useIndex,
       Configuration conf, VolumeManager fs, ArrayList<FileSKVIterator> readers) throws IOException {
     

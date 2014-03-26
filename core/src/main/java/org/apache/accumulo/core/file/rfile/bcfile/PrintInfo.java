@@ -57,6 +57,7 @@ public class PrintInfo {
     Configuration conf = new Configuration();
     @SuppressWarnings("deprecation")
     AccumuloConfiguration siteConf = AccumuloConfiguration.getSiteConfiguration();
+    // TODO ACCUMULO-2462 not going to operate as expected with volumes when a path, not URI, is given
     FileSystem hadoopFs = VolumeConfiguration.getDefaultVolume(conf, siteConf).getFileSystem();
     FileSystem localFs = FileSystem.getLocal(conf);
     Path path = new Path(args[0]);

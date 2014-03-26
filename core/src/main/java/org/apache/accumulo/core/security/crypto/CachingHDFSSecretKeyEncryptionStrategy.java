@@ -128,7 +128,8 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
       if (pathToKeyName == null || pathToKeyName.equals("")) {
         pathToKeyName = Property.CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION.getDefaultValue();
       }
-      
+
+      // TODO ACCUMULO-2530 Ensure volumes a properly supported
       Path pathToKey = new Path(pathToKeyName);  
       FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());   
 
