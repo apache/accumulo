@@ -17,9 +17,11 @@
 package org.apache.accumulo.minicluster.impl;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.accumulo.cluster.AccumuloConfig;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
@@ -30,7 +32,7 @@ import org.apache.accumulo.server.util.PortUtils;
  * 
  * @since 1.5.0
  */
-public class MiniAccumuloConfigImpl {
+public class MiniAccumuloConfigImpl implements AccumuloConfig {
 
   private static final String DEFAULT_INSTANCE_SECRET = "DONTTELL";
 
@@ -162,6 +164,7 @@ public class MiniAccumuloConfigImpl {
    * @param numTservers
    *          the number of tablet servers that mini accumulo cluster should start
    */
+  @Override
   public MiniAccumuloConfigImpl setNumTservers(int numTservers) {
     if (numTservers < 1)
       throw new IllegalArgumentException("Must have at least one tablet server");
@@ -174,6 +177,7 @@ public class MiniAccumuloConfigImpl {
    * 
    * @since 1.6.0
    */
+  @Override
   public MiniAccumuloConfigImpl setInstanceName(String instanceName) {
     this.instanceName = instanceName;
     return this;
@@ -185,6 +189,7 @@ public class MiniAccumuloConfigImpl {
    * @param siteConfig
    *          key/values that you normally put in accumulo-site.xml can be put here.
    */
+  @Override
   public MiniAccumuloConfigImpl setSiteConfig(Map<String,String> siteConfig) {
     this.siteConfig = new HashMap<String,String>(siteConfig);
     this.configuredSiteConig = new HashMap<String,String>(siteConfig);
@@ -218,6 +223,7 @@ public class MiniAccumuloConfigImpl {
    * 
    * @since 1.6.0
    */
+  @Override
   public MiniAccumuloConfigImpl setMemory(ServerType serverType, long memory, MemoryUnit memoryUnit) {
     this.memoryConfig.put(serverType, memoryUnit.toBytes(memory));
     return this;
@@ -235,6 +241,7 @@ public class MiniAccumuloConfigImpl {
    * 
    * @since 1.6.0
    */
+  @Override
   public MiniAccumuloConfigImpl setDefaultMemory(long memory, MemoryUnit memoryUnit) {
     this.defaultMemorySize = memoryUnit.toBytes(memory);
     return this;
@@ -243,6 +250,7 @@ public class MiniAccumuloConfigImpl {
   /**
    * @return a copy of the site config
    */
+  @Override
   public Map<String,String> getSiteConfig() {
     return new HashMap<String,String>(siteConfig);
   }
@@ -256,6 +264,7 @@ public class MiniAccumuloConfigImpl {
    * 
    * @since 1.6.0
    */
+  @Override
   public String getInstanceName() {
     return instanceName;
   }
@@ -309,6 +318,7 @@ public class MiniAccumuloConfigImpl {
    * 
    * @since 1.6.0
    */
+  @Override
   public long getMemory(ServerType serverType) {
     return memoryConfig.containsKey(serverType) ? memoryConfig.get(serverType) : defaultMemorySize;
   }
@@ -318,6 +328,7 @@ public class MiniAccumuloConfigImpl {
    * 
    * @since 1.6.0
    */
+  @Override
   public long getDefaultMemory() {
     return defaultMemorySize;
   }
@@ -341,6 +352,7 @@ public class MiniAccumuloConfigImpl {
   /**
    * @return the root password of this cluster configuration
    */
+  @Override
   public String getRootPassword() {
     return rootPassword;
   }
@@ -348,6 +360,7 @@ public class MiniAccumuloConfigImpl {
   /**
    * @return the number of tservers configured for this cluster
    */
+  @Override
   public int getNumTservers() {
     return numTservers;
   }
@@ -435,6 +448,7 @@ public class MiniAccumuloConfigImpl {
    * 
    * @since 1.6.0
    */
+  @Override
   public String[] getNativeLibPaths() {
     return this.nativePathItems == null ? new String[0] : this.nativePathItems;
   }
@@ -446,8 +460,10 @@ public class MiniAccumuloConfigImpl {
    *          the nativePathItems to set
    * @since 1.6.0
    */
-  public void setNativeLibPaths(String... nativePathItems) {
+  @Override
+  public MiniAccumuloConfigImpl setNativeLibPaths(String... nativePathItems) {
     this.nativePathItems = nativePathItems;
+    return this;
   }
 
   /**
@@ -457,5 +473,10 @@ public class MiniAccumuloConfigImpl {
    */
   public void setProperty(Property p, String value) {
     this.siteConfig.put(p.getKey(), value);
+  }
+
+  @Override
+  public MiniAccumuloClusterImpl build() throws IOException {
+    return new MiniAccumuloClusterImpl(this);
   }
 }

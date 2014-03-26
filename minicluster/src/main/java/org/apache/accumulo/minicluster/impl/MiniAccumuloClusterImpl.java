@@ -42,6 +42,7 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 
+import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;
@@ -83,7 +84,7 @@ import com.google.common.collect.Maps;
  * 
  * @since 1.5.0
  */
-public class MiniAccumuloClusterImpl {
+public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   public static class LogWriter extends Daemon {
     private BufferedReader in;
@@ -418,6 +419,7 @@ public class MiniAccumuloClusterImpl {
    * @throws IllegalStateException
    *           if already started
    */
+  @Override
   public void start() throws IOException, InterruptedException {
 
     if (!initialized) {
@@ -573,6 +575,7 @@ public class MiniAccumuloClusterImpl {
   /**
    * @return Accumulo instance name
    */
+  @Override
   public String getInstanceName() {
     return config.getInstanceName();
   }
@@ -580,6 +583,7 @@ public class MiniAccumuloClusterImpl {
   /**
    * @return zookeeper connection string
    */
+  @Override
   public String getZooKeepers() {
     return config.getZooKeepers();
   }
@@ -588,6 +592,7 @@ public class MiniAccumuloClusterImpl {
    * Stops Accumulo and Zookeeper processes. If stop is not called, there is a shutdown hook that is setup to kill the processes. However its probably best to
    * call stop in a finally block as soon as possible.
    */
+  @Override
   public void stop() throws IOException, InterruptedException {
     for (LogWriter lw : logWriters) {
       lw.flush();
@@ -630,6 +635,7 @@ public class MiniAccumuloClusterImpl {
   /**
    * @since 1.6.0
    */
+  @Override
   public MiniAccumuloConfigImpl getConfig() {
     return config;
   }
@@ -639,11 +645,13 @@ public class MiniAccumuloClusterImpl {
    * 
    * @since 1.6.0
    */
+  @Override
   public Connector getConnector(String user, String passwd) throws AccumuloException, AccumuloSecurityException {
     Instance instance = new ZooKeeperInstance(getClientConfig());
     return instance.getConnector(user, new PasswordToken(passwd));
   }
 
+  @Override
   public ClientConfiguration getClientConfig() {
     return new ClientConfiguration(Arrays.asList(new MapConfiguration(config.getSiteConfig()))).withInstance(this.getInstanceName()).withZkHosts(
         this.getZooKeepers());
