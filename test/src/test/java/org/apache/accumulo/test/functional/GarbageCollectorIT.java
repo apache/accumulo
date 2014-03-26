@@ -19,20 +19,25 @@ package org.apache.accumulo.test.functional;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -164,6 +169,63 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     FunctionalTestUtils.count(scanner);
   }
 
+  private Mutation createDelMutation(String path, String cf, String cq, String val) {
+    Text row = new Text(MetadataSchema.DeletesSection.getRowPrefix() + path);
+    Mutation delFlag = new Mutation(row);
+    delFlag.put(cf, cq, val);
+    return delFlag;
+  }
+
+  @Test(timeout = 60 * 1000)
+  public void testInvalidDelete() throws Exception {
+    killMacGc();
+
+    String table = getTableNames(1)[0];
+    getConnector().tableOperations().create(table);
+
+    BatchWriter bw2 = getConnector().createBatchWriter(table, new BatchWriterConfig());
+    Mutation m1 = new Mutation("r1");
+    m1.put("cf1", "cq1", "v1");
+    bw2.addMutation(m1);
+    bw2.close();
+
+    getConnector().tableOperations().flush(table, null, null, true);
+
+    // ensure an invalid delete entry does not cause GC to go berserk ACCUMULO-2520
+    getConnector().securityOperations().grantTablePermission(getConnector().whoami(), MetadataTable.NAME, TablePermission.WRITE);
+    BatchWriter bw3 = getConnector().createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+
+    bw3.addMutation(createDelMutation("", "", "", ""));
+    bw3.addMutation(createDelMutation("", "testDel", "test", "valueTest"));
+    bw3.addMutation(createDelMutation("/", "", "", ""));
+    bw3.close();
+
+    Process gc = cluster.exec(SimpleGarbageCollector.class);
+    try {
+      String output = "";
+      while (!output.contains("Ingoring invalid deletion candidate")) {
+        UtilWaitThread.sleep(250);
+        try {
+          output = FunctionalTestUtils.readAll(cluster, SimpleGarbageCollector.class, gc);
+        } catch (IOException ioe) {
+          ioe.printStackTrace();
+        }
+      }
+    } finally {
+      gc.destroy();
+    }
+
+    Scanner scanner = getConnector().createScanner(table, Authorizations.EMPTY);
+    Iterator<Entry<Key,Value>> iter = scanner.iterator();
+    assertTrue(iter.hasNext());
+    Entry<Key,Value> entry = iter.next();
+    Assert.assertEquals("r1", entry.getKey().getRow().toString());
+    Assert.assertEquals("cf1", entry.getKey().getColumnFamily().toString());
+    Assert.assertEquals("cq1", entry.getKey().getColumnQualifier().toString());
+    Assert.assertEquals("v1", entry.getValue().toString());
+    Assert.assertFalse(iter.hasNext());
+  }
+
   @Test(timeout = 60 * 1000)
   public void testProperPortAdvertisement() throws Exception {
 
@@ -227,7 +289,7 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
 
     for (int i = 0; i < 100000; ++i) {
       final Text emptyText = new Text("");
-      Text row = new Text(String.format("%s%s%020d%s", MetadataSchema.DeletesSection.getRowPrefix(), "/", i,
+      Text row = new Text(String.format("%s/%020d/%s", MetadataSchema.DeletesSection.getRowPrefix(), i,
           "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj"));
       Mutation delFlag = new Mutation(row);
       delFlag.put(emptyText, emptyText, new Value(new byte[] {}));

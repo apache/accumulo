@@ -85,10 +85,7 @@ public class GarbageCollectionAlgorithm {
       tokens = tmp.toArray(new String[tmp.size()]);
     }
 
-    if (tokens.length > 3) {
-      if (!path.contains(":"))
-        throw new IllegalArgumentException(path);
-
+    if (tokens.length > 3 && path.contains(":")) {
       if (tokens[tokens.length - 4].equals(ServerConstants.TABLE_DIR) && (expectedLen == 0 || expectedLen == 3)) {
         relPath = tokens[tokens.length - 3] + "/" + tokens[tokens.length - 2] + "/" + tokens[tokens.length - 1];
       } else if (tokens[tokens.length - 3].equals(ServerConstants.TABLE_DIR) && (expectedLen == 0 || expectedLen == 2)) {
@@ -96,9 +93,9 @@ public class GarbageCollectionAlgorithm {
       } else {
         throw new IllegalArgumentException(path);
       }
-    } else if (tokens.length == 3 && (expectedLen == 0 || expectedLen == 3)) {
+    } else if (tokens.length == 3 && (expectedLen == 0 || expectedLen == 3) && !path.contains(":")) {
       relPath = tokens[0] + "/" + tokens[1] + "/" + tokens[2];
-    } else if (tokens.length == 2 && (expectedLen == 0 || expectedLen == 2)) {
+    } else if (tokens.length == 2 && (expectedLen == 0 || expectedLen == 2) && !path.contains(":")) {
       relPath = tokens[0] + "/" + tokens[1];
     } else {
       throw new IllegalArgumentException(path);
@@ -112,7 +109,13 @@ public class GarbageCollectionAlgorithm {
     SortedMap<String,String> ret = new TreeMap<String,String>();
 
     for (String candidate : candidates) {
-      String relPath = makeRelative(candidate, 0);
+      String relPath;
+      try {
+        relPath = makeRelative(candidate, 0);
+      } catch (IllegalArgumentException iae) {
+        log.warn("Ingoring invalid deletion candidate " + candidate);
+        continue;
+      }
       ret.put(relPath, candidate);
     }
 
