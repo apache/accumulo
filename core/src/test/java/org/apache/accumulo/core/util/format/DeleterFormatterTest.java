@@ -35,6 +35,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
 
+import jline.UnsupportedTerminal;
 import jline.console.ConsoleReader;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -69,10 +70,6 @@ public class DeleterFormatterTest {
     public void set(String in) {
       bais = new ByteArrayInputStream(in.getBytes(UTF8));
     }
-
-    public void set(byte... in) {
-      bais = new ByteArrayInputStream(in);
-    }
   };
 
   @Before
@@ -91,7 +88,7 @@ public class DeleterFormatterTest {
 
     shellState = createNiceMock(Shell.class);
 
-    reader = new ConsoleReader(input, baos);
+    reader = new ConsoleReader(input, baos, new UnsupportedTerminal());
     expect(shellState.getReader()).andReturn(reader).anyTimes();
 
     replay(writer, exceptionWriter, shellState);
@@ -132,7 +129,7 @@ public class DeleterFormatterTest {
 
   @Test
   public void testNoConfirmation() throws IOException {
-    input.set((byte) -1);
+    input.set("");
     data.put(new Key("z"), new Value("v2".getBytes(UTF8)));
     formatter = new DeleterFormatter(writer, data.entrySet(), true, shellState, false);
 
