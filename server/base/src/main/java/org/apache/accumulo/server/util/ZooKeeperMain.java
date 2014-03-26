@@ -18,9 +18,9 @@ package org.apache.accumulo.server.util;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
@@ -40,7 +40,7 @@ public class ZooKeeperMain {
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(ZooKeeperMain.class.getName(), args);
-    FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
+    FileSystem fs = VolumeManagerImpl.get().getDefaultVolume().getFileSystem();
     String baseDir = ServerConstants.getBaseUris()[0];
     System.out.println("Using " + fs.makeQualified(new Path(baseDir + "/instance_id")) + " to lookup accumulo instance");
     Instance instance = HdfsZooInstance.getInstance();
