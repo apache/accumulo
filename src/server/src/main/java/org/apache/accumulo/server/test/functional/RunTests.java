@@ -134,7 +134,7 @@ public class RunTests extends Configured implements Tool {
     }
 
     @Override
-    protected void setup(Mapper.Context context) throws IOException, InterruptedException {
+    protected void setup(Mapper<LongWritable,Text,Text,Text>.Context context) throws IOException, InterruptedException {
         mapperTimeoutFactor = Integer.toString(context.getConfiguration().getInt(TIMEOUT_FACTOR, timeoutFactor));
     }
   }

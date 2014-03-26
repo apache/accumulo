@@ -16,14 +16,13 @@
  */
 package org.apache.accumulo.core.util;
 
-import java.net.InetAddress; // workaround to enable @see/@link hyperlink
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.security.Security;
 
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.transport.TSocket;
-
 import org.apache.log4j.Logger;
 
 public class AddressUtil {
@@ -60,7 +59,7 @@ public class AddressUtil {
    *
    * @param originalException the host lookup that is the source of needing this lookup. maybe be null.
    * @return positive integer number of seconds
-   * @see java.net.InetAddress
+   * @see InetAddress
    * @throws IllegalArgumentException if dns failures are cached forever
    */
   static public int getAddressCacheNegativeTtl(UnknownHostException originalException) {
