@@ -975,12 +975,13 @@ public class ShellServerIT extends SimpleMacIT {
     }
     ts.exec("config -t " + table + " -s table.iterator.scan.slow=30,org.apache.accumulo.test.functional.SlowIterator", true);
     ts.exec("config -t " + table + " -s table.iterator.scan.slow.opt.sleepTime=500", true);
+    Connector connector = getConnector();
+    final Scanner s = connector.createScanner(table, Authorizations.EMPTY);
+
     Thread thread = new Thread() {
       @Override
       public void run() {
         try {
-          Connector connector = getConnector();
-          Scanner s = connector.createScanner(table, Authorizations.EMPTY);
           FunctionalTestUtils.count(s);
         } catch (Exception ex) {
           throw new RuntimeException(ex);
@@ -990,7 +991,7 @@ public class ShellServerIT extends SimpleMacIT {
     thread.start();
 
     List<String> scans = new ArrayList<String>();
-    // Try to find the active scan for about 5seconds
+    // Try to find the active scan for about 15seconds
     for (int i = 0; i < 50 && scans.isEmpty(); i++) {
       String currentScans = ts.exec("listscans", true);
       String[] lines = currentScans.split("\n");
@@ -1000,7 +1001,7 @@ public class ShellServerIT extends SimpleMacIT {
           scans.add(currentScan);
         }
       }
-      UtilWaitThread.sleep(100);
+      UtilWaitThread.sleep(300);
     }
     thread.join();
 
