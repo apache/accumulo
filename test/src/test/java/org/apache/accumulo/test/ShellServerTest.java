@@ -64,6 +64,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.tools.DistCp;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -454,8 +455,17 @@ public class ShellServerTest {
       }
     });
     exec("addauths -s foo,bar", true);
-    exec("getauths", true, "foo", true);
-    exec("getauths", true, "bar", true);
+    boolean passed = false;
+    for (int i = 0; i < 50 && !passed; i++) {
+      try {
+        exec("getauths", true, "foo", true);
+        exec("getauths", true, "bar", true);
+        passed = true;
+      } catch (Exception e) {
+        UtilWaitThread.sleep(300);
+      }
+    }
+    Assert.assertTrue("Could not successfully see updated authoriations", passed);
     exec("insert a b c d -l foo");
     exec("scan", true, "[foo]");
     exec("scan -s bar", true, "[foo]", false);
