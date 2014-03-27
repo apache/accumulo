@@ -454,7 +454,7 @@ public class SimpleGarbageCollector implements Iface {
     for (Iterator<String> iterator = candidates.iterator(); iterator.hasNext();) {
       String candidate = (String) iterator.next();
       if (!isValidCandidate(candidate)) {
-        log.error("Ingoring invalid deletion candidate " + candidate);
+        log.warn("Ingoring invalid deletion candidate " + candidate);
         iterator.remove();
       }
     }
