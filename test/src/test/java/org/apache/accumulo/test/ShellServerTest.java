@@ -18,6 +18,7 @@ package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -617,7 +618,18 @@ public class ShellServerTest {
     exec("addsplits row5 row7");
     make10();
     exec("flush -w -t " + table);
-    List<String> files = getFiles(tableId);
+    // Might have some cruft here. Check a couple of times.
+    List<String> files = null;
+    boolean found = false;
+    for (int i = 0; i < 50 && !found; i++) {
+      files = getFiles(tableId);
+      if (3 == files.size()) {
+        found = true;
+      } else {
+        UtilWaitThread.sleep(300);
+      }
+    }
+    assertNotNull(files);
     assertEquals("Found the following files: " + files, 3, files.size());
     exec("deleterows -t " + table + " -b row5 -e row7", true);
     assertEquals(2, countFiles(tableId));
