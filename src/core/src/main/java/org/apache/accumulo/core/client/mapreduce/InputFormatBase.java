@@ -72,6 +72,7 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.accumulo.core.util.ContextFactory;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -148,7 +149,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   public static void setIsolated(JobContext job, boolean enable) {
-    setIsolated(job.getConfiguration(), enable);
+    setIsolated(InputFormatBase.getConfiguration(job), enable);
   }
 
   /**
@@ -168,7 +169,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   public static void setLocalIterators(JobContext job, boolean enable) {
-    setLocalIterators(job.getConfiguration(), enable);
+    setLocalIterators(InputFormatBase.getConfiguration(job), enable);
   }
 
   /**
@@ -188,7 +189,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   public static void setInputInfo(JobContext job, String user, byte[] passwd, String table, Authorizations auths) {
-    setInputInfo(job.getConfiguration(), user, passwd, table, auths);
+    setInputInfo(InputFormatBase.getConfiguration(job), user, passwd, table, auths);
   }
 
   /**
@@ -223,7 +224,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   public static void setZooKeeperInstance(JobContext job, String instanceName, String zooKeepers) {
-    setZooKeeperInstance(job.getConfiguration(), instanceName, zooKeepers);
+    setZooKeeperInstance(InputFormatBase.getConfiguration(job), instanceName, zooKeepers);
   }
 
   /**
@@ -251,7 +252,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   public static void setMockInstance(JobContext job, String instanceName) {
-    setMockInstance(job.getConfiguration(), instanceName);
+    setMockInstance(InputFormatBase.getConfiguration(job), instanceName);
   }
 
   /**
@@ -273,7 +274,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   public static void setRanges(JobContext job, Collection<Range> ranges) {
-    setRanges(job.getConfiguration(), ranges);
+    setRanges(InputFormatBase.getConfiguration(job), ranges);
   }
 
   /**
@@ -304,7 +305,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   public static void disableAutoAdjustRanges(JobContext job) {
-    disableAutoAdjustRanges(job.getConfiguration());
+    disableAutoAdjustRanges(InputFormatBase.getConfiguration(job));
   }
 
   /**
@@ -354,7 +355,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
         throw new NoSuchElementException();
     }
     try {
-      job.getConfiguration().set(key, URLEncoder.encode(regex, "UTF-8"));
+      InputFormatBase.getConfiguration(job).set(key, URLEncoder.encode(regex, "UTF-8"));
     } catch (UnsupportedEncodingException e) {
       log.error("Failedd to encode regular expression", e);
       throw new RuntimeException(e);
@@ -366,7 +367,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   public static void setMaxVersions(JobContext job, int maxVersions) throws IOException {
-    setMaxVersions(job.getConfiguration(), maxVersions);
+    setMaxVersions(InputFormatBase.getConfiguration(job), maxVersions);
   }
 
   /**
@@ -422,7 +423,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   public static void fetchColumns(JobContext job, Collection<Pair<Text,Text>> columnFamilyColumnQualifierPairs) {
-    fetchColumns(job.getConfiguration(), columnFamilyColumnQualifierPairs);
+    fetchColumns(InputFormatBase.getConfiguration(job), columnFamilyColumnQualifierPairs);
   }
 
   /**
@@ -460,7 +461,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   public static void setLogLevel(JobContext job, Level level) {
-    setLogLevel(job.getConfiguration(), level);
+    setLogLevel(InputFormatBase.getConfiguration(job), level);
   }
 
   /**
@@ -482,7 +483,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   public static void addIterator(JobContext job, IteratorSetting cfg) {
-    addIterator(job.getConfiguration(), cfg);
+    addIterator(InputFormatBase.getConfiguration(job), cfg);
   }
 
   /**
@@ -543,7 +544,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   @Deprecated
   public static void setIterator(JobContext job, int priority, String iteratorClass, String iteratorName) {
     // First check to see if anything has been set already
-    String iterators = job.getConfiguration().get(ITERATORS);
+    String iterators = InputFormatBase.getConfiguration(job).get(ITERATORS);
 
     // No iterators specified yet, create a new string
     if (iterators == null || iterators.isEmpty()) {
@@ -553,7 +554,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       iterators = iterators.concat(ITERATORS_DELIM + new AccumuloIterator(priority, iteratorClass, iteratorName).toString());
     }
     // Store the iterators w/ the job
-    job.getConfiguration().set(ITERATORS, iterators);
+    InputFormatBase.getConfiguration(job).set(ITERATORS, iterators);
 
   }
 
@@ -576,7 +577,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     if (iteratorName == null || key == null || value == null)
       return;
 
-    String iteratorOptions = job.getConfiguration().get(ITERATORS_OPTIONS);
+    String iteratorOptions = InputFormatBase.getConfiguration(job).get(ITERATORS_OPTIONS);
 
     // No options specified yet, create a new string
     if (iteratorOptions == null || iteratorOptions.isEmpty()) {
@@ -587,7 +588,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     }
 
     // Store the options w/ the job
-    job.getConfiguration().set(ITERATORS_OPTIONS, iteratorOptions);
+    InputFormatBase.getConfiguration(job).set(ITERATORS_OPTIONS, iteratorOptions);
   }
 
   /**
@@ -595,7 +596,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   protected static boolean isIsolated(JobContext job) {
-    return isIsolated(job.getConfiguration());
+    return isIsolated(InputFormatBase.getConfiguration(job));
   }
 
   /**
@@ -615,7 +616,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   protected static boolean usesLocalIterators(JobContext job) {
-    return usesLocalIterators(job.getConfiguration());
+    return usesLocalIterators(InputFormatBase.getConfiguration(job));
   }
 
   /**
@@ -635,7 +636,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   protected static String getUsername(JobContext job) {
-    return getUsername(job.getConfiguration());
+    return getUsername(InputFormatBase.getConfiguration(job));
   }
 
   /**
@@ -658,7 +659,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   protected static byte[] getPassword(JobContext job) {
-    return getPassword(job.getConfiguration());
+    return getPassword(InputFormatBase.getConfiguration(job));
   }
 
   /**
@@ -679,7 +680,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   protected static String getTablename(JobContext job) {
-    return getTablename(job.getConfiguration());
+    return getTablename(InputFormatBase.getConfiguration(job));
   }
 
   /**
@@ -699,7 +700,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   protected static Authorizations getAuthorizations(JobContext job) {
-    return getAuthorizations(job.getConfiguration());
+    return getAuthorizations(InputFormatBase.getConfiguration(job));
   }
 
   /**
@@ -720,7 +721,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   protected static Instance getInstance(JobContext job) {
-    return getInstance(job.getConfiguration());
+    return getInstance(InputFormatBase.getConfiguration(job));
   }
 
   /**
@@ -743,7 +744,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   protected static TabletLocator getTabletLocator(JobContext job) throws TableNotFoundException {
-    return getTabletLocator(job.getConfiguration());
+    return getTabletLocator(InputFormatBase.getConfiguration(job));
   }
 
   /**
@@ -771,7 +772,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   protected static List<Range> getRanges(JobContext job) throws IOException {
-    return getRanges(job.getConfiguration());
+    return getRanges(InputFormatBase.getConfiguration(job));
   }
 
   /**
@@ -819,7 +820,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
         throw new NoSuchElementException();
     }
     try {
-      String s = job.getConfiguration().get(key);
+      String s = InputFormatBase.getConfiguration(job).get(key);
       if (s == null)
         return null;
       return URLDecoder.decode(s, "UTF-8");
@@ -834,7 +835,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   protected static Set<Pair<Text,Text>> getFetchedColumns(JobContext job) {
-    return getFetchedColumns(job.getConfiguration());
+    return getFetchedColumns(InputFormatBase.getConfiguration(job));
   }
 
   /**
@@ -872,7 +873,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   protected static boolean getAutoAdjustRanges(JobContext job) {
-    return getAutoAdjustRanges(job.getConfiguration());
+    return getAutoAdjustRanges(InputFormatBase.getConfiguration(job));
   }
 
   /**
@@ -892,7 +893,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   protected static Level getLogLevel(JobContext job) {
-    return getLogLevel(job.getConfiguration());
+    return getLogLevel(InputFormatBase.getConfiguration(job));
   }
 
   /**
@@ -914,7 +915,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   protected static void validateOptions(JobContext job) throws IOException {
-    validateOptions(job.getConfiguration());
+    validateOptions(InputFormatBase.getConfiguration(job));
   }
 
   // InputFormat doesn't have the equivalent of OutputFormat's
@@ -960,7 +961,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   protected static int getMaxVersions(JobContext job) {
-    return getMaxVersions(job.getConfiguration());
+    return getMaxVersions(InputFormatBase.getConfiguration(job));
   }
 
   /**
@@ -986,7 +987,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   protected static List<AccumuloIterator> getIterators(JobContext job) {
-    return getIterators(job.getConfiguration());
+    return getIterators(InputFormatBase.getConfiguration(job));
   }
 
   /**
@@ -1020,7 +1021,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   protected static List<AccumuloIteratorOption> getIteratorOptions(JobContext job) {
-    return getIteratorOptions(job.getConfiguration());
+    return getIteratorOptions(InputFormatBase.getConfiguration(job));
   }
 
   /**
@@ -1136,7 +1137,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       Scanner scanner;
       split = (RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + split.getRange());
-      Configuration conf = attempt.getConfiguration();
+      Configuration conf = InputFormatBase.getConfiguration(attempt);
 
       Instance instance = split.getInstance();
       if (null == instance) {
@@ -1296,8 +1297,8 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
 
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
 
-    Instance instance = getInstance(job.getConfiguration());
-    Connector conn = instance.getConnector(getUsername(job.getConfiguration()), getPassword(job.getConfiguration()));
+    Instance instance = getInstance(InputFormatBase.getConfiguration(job));
+    Connector conn = instance.getConnector(getUsername(InputFormatBase.getConfiguration(job)), getPassword(InputFormatBase.getConfiguration(job)));
     String tableId = Tables.getTableId(instance, tableName);
 
     if (Tables.getTableState(instance, tableId) != TableState.OFFLINE) {
@@ -1395,7 +1396,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    * Read the metadata table to get tablets and match up ranges to them.
    */
   public List<InputSplit> getSplits(JobContext job) throws IOException {
-    Configuration conf = job.getConfiguration();
+    Configuration conf = InputFormatBase.getConfiguration(job);
 
     log.setLevel(getLogLevel(conf));
     validateOptions(conf);
@@ -1428,7 +1429,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
     TabletLocator tl;
     try {
-      if (isOfflineScan(job.getConfiguration())) {
+      if (isOfflineScan(InputFormatBase.getConfiguration(job))) {
         binnedRanges = binOfflineTable(job, tableName, ranges);
         while (binnedRanges == null) {
           // Some tablets were still online, try again
@@ -1437,7 +1438,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
         }
       } else {
         String tableId = null;
-        tl = getTabletLocator(job.getConfiguration());
+        tl = getTabletLocator(InputFormatBase.getConfiguration(job));
         // its possible that the cache could contain complete, but old information about a tables tablets... so clear it
         tl.invalidateCache();
         while (!tl.binRanges(ranges, binnedRanges).isEmpty()) {
@@ -1622,4 +1623,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
 
   }
 
+  public static Configuration getConfiguration(JobContext context) {
+    return ContextFactory.getConfiguration(context);
+  }
 }

@@ -56,7 +56,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   @Override
   public RecordWriter<Key,Value> getRecordWriter(TaskAttemptContext job) throws IOException, InterruptedException {
     // get the path of the temporary output file
-    final Configuration conf = job.getConfiguration();
+    final Configuration conf = InputFormatBase.getConfiguration(job);
     
     String extension = conf.get(FILE_TYPE);
     if (extension == null || extension.isEmpty())
@@ -92,7 +92,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    */
   @Deprecated
   protected static void handleBlockSize(JobContext job) {
-    handleBlockSize(job.getConfiguration());
+    handleBlockSize(InputFormatBase.getConfiguration(job));
   }
   
   protected static void handleBlockSize(Configuration conf) {
@@ -111,7 +111,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    */
   @Deprecated
   public static void setFileType(JobContext job, String type) {
-    setFileType(job.getConfiguration(), type);
+    setFileType(InputFormatBase.getConfiguration(job), type);
   }
   
   public static void setFileType(Configuration conf, String type) {
@@ -123,7 +123,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    */
   @Deprecated
   public static void setBlockSize(JobContext job, int blockSize) {
-    setBlockSize(job.getConfiguration(), blockSize);
+    setBlockSize(InputFormatBase.getConfiguration(job), blockSize);
   }
   
   public static void setBlockSize(Configuration conf, int blockSize) {
@@ -139,7 +139,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    */
   @Deprecated
   public static void setZooKeeperInstance(JobContext job, String instanceName, String zooKeepers) {
-    setZooKeeperInstance(job.getConfiguration(), instanceName, zooKeepers);
+    setZooKeeperInstance(InputFormatBase.getConfiguration(job), instanceName, zooKeepers);
   }
   
   public static void setZooKeeperInstance(Configuration conf, String instanceName, String zooKeepers) {
@@ -159,7 +159,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    */
   @Deprecated
   protected static Instance getInstance(JobContext job) {
-    return getInstance(job.getConfiguration());
+    return getInstance(InputFormatBase.getConfiguration(job));
   }
   
   /**

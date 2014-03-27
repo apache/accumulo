@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.Scanner;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.mapreduce.InputFormatBase;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
@@ -119,14 +120,14 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
    */
   public static void setSplitFile(JobContext job, String file) {
     URI uri = new Path(file).toUri();
-    DistributedCache.addCacheFile(uri, job.getConfiguration());
-    job.getConfiguration().set(CUTFILE_KEY, uri.getPath());
+    DistributedCache.addCacheFile(uri, InputFormatBase.getConfiguration(job));
+    InputFormatBase.getConfiguration(job).set(CUTFILE_KEY, uri.getPath());
   }
   
   /**
    * Sets the number of random sub-bins per range
    */
   public static void setNumSubBins(JobContext job, int num) {
-    job.getConfiguration().setInt(NUM_SUBBINS, num);
+    InputFormatBase.getConfiguration(job).setInt(NUM_SUBBINS, num);
   }
 }

@@ -20,6 +20,7 @@ package org.apache.accumulo.core.util;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -46,6 +47,7 @@ public class ContextFactory {
   private static final Constructor<?> MAP_CONSTRUCTOR;
   private static final Constructor<?> MAP_CONTEXT_CONSTRUCTOR;
   private static final Constructor<?> MAP_CONTEXT_IMPL_CONSTRUCTOR;
+  private static final Method GET_CONFIGURATION_METHOD;
   private static final Class<?> TASK_TYPE_CLASS;
   private static final boolean useV21;
   
@@ -63,6 +65,8 @@ public class ContextFactory {
     Class<?> mapCls;
     Class<?> mapContextCls;
     Class<?> innerMapContextCls;
+    Class<?> jobContextRoot;
+
     try {
       if (v21) {
         jobContextCls = Class.forName(PACKAGE + ".task.JobContextImpl");
@@ -79,6 +83,7 @@ public class ContextFactory {
         mapCls = Class.forName(PACKAGE + ".Mapper");
         innerMapContextCls = Class.forName(PACKAGE + ".Mapper$Context");
       }
+      jobContextRoot = Class.forName(PACKAGE + ".JobContext");
     } catch (ClassNotFoundException e) {
       throw new IllegalArgumentException("Can't find class", e);
     }
@@ -104,6 +109,7 @@ public class ContextFactory {
         MAP_CONTEXT_IMPL_CONSTRUCTOR = null;
       }
       MAP_CONTEXT_CONSTRUCTOR.setAccessible(true);
+      GET_CONFIGURATION_METHOD = jobContextRoot.getMethod("getConfiguration");
     } catch (SecurityException e) {
       throw new IllegalArgumentException("Can't run constructor ", e);
     } catch (NoSuchMethodException e) {
@@ -127,8 +133,20 @@ public class ContextFactory {
     }
   }
   
+  public static Configuration getConfiguration(JobContext context) {
+    try {
+      return (Configuration) GET_CONFIGURATION_METHOD.invoke(context, new Object[0]);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException("Can't invoke method", e);
+    } catch (IllegalAccessException e) {
+      throw new IllegalArgumentException("Can't invoke method", e);
+    } catch (InvocationTargetException e) {
+      throw new IllegalArgumentException("Can't invoke method", e);
+    }
+  }
+
   public static TaskAttemptContext createTaskAttemptContext(JobContext job) {
-    return createTaskAttemptContext(job.getConfiguration());
+    return createTaskAttemptContext(getConfiguration(job));
   }
   
   public static TaskAttemptContext createTaskAttemptContext(Configuration conf) {
@@ -157,10 +175,10 @@ public class ContextFactory {
       RecordWriter<K2,V2> writer, OutputCommitter committer, StatusReporter reporter, InputSplit split) {
     try {
       if (useV21) {
-        Object basis = MAP_CONTEXT_IMPL_CONSTRUCTOR.newInstance(tac.getConfiguration(), tac.getTaskAttemptID(), reader, writer, committer, reporter, split);
+        Object basis = MAP_CONTEXT_IMPL_CONSTRUCTOR.newInstance(getConfiguration(tac), tac.getTaskAttemptID(), reader, writer, committer, reporter, split);
         return (Mapper.Context) MAP_CONTEXT_CONSTRUCTOR.newInstance((Mapper<K1,V1,K2,V2>) MAP_CONSTRUCTOR.newInstance(), basis);
       } else {
-        return (Mapper.Context) MAP_CONTEXT_CONSTRUCTOR.newInstance(m, tac.getConfiguration(), tac.getTaskAttemptID(), reader, writer, committer, reporter,
+        return (Mapper.Context) MAP_CONTEXT_CONSTRUCTOR.newInstance(m, getConfiguration(tac), tac.getTaskAttemptID(), reader, writer, committer, reporter,
             split);
       }
     } catch (InstantiationException e) {

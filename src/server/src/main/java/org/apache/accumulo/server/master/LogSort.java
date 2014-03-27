@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.accumulo.core.client.mapreduce.AccumuloFileOutputFormat;
+import org.apache.accumulo.core.client.mapreduce.InputFormatBase;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.logger.IdentityReducer;
@@ -76,7 +77,7 @@ public class LogSort extends Configured implements Tool {
     public SortCommit(Path outputPath, TaskAttemptContext context) throws IOException {
       super(outputPath, context);
       this.outputPath = outputPath;
-      outputFileSystem = outputPath.getFileSystem(context.getConfiguration());
+      outputFileSystem = outputPath.getFileSystem(InputFormatBase.getConfiguration(context));
     }
 
     @Override
@@ -207,7 +208,7 @@ public class LogSort extends Configured implements Tool {
       // get the path of the temporary output file
       Path file = getDefaultWorkFile(job, "");
 
-      FileSystem fs = file.getFileSystem(job.getConfiguration());
+      FileSystem fs = file.getFileSystem(InputFormatBase.getConfiguration(job));
       CompressionCodec codec = null;
       CompressionType compressionType = CompressionType.NONE;
       if (getCompressOutput(job)) {
@@ -216,7 +217,7 @@ public class LogSort extends Configured implements Tool {
 
         // find the right codec
         Class<? extends CompressionCodec> codecClass = getOutputCompressorClass(job, DefaultCodec.class);
-        codec = ReflectionUtils.newInstance(codecClass, job.getConfiguration());
+        codec = ReflectionUtils.newInstance(codecClass, InputFormatBase.getConfiguration(job));
       }
 
       Progressable progress = new Progressable() {

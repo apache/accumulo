@@ -102,7 +102,7 @@ public class ContinuousMoru extends Configured implements Tool {
         }
         
       } else {
-        context.getCounter(Counts.SELF_READ).increment(1);
+        ContinuousVerify.increment(context.getCounter(Counts.SELF_READ));
       }
     }
   }

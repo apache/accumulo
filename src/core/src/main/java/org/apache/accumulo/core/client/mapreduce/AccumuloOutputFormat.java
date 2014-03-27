@@ -105,7 +105,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    */
   @Deprecated
   public static void setOutputInfo(JobContext job, String user, byte[] passwd, boolean createTables, String defaultTable) {
-    setOutputInfo(job.getConfiguration(), user, passwd, createTables, defaultTable);
+    setOutputInfo(InputFormatBase.getConfiguration(job), user, passwd, createTables, defaultTable);
   }
   
   /**
@@ -140,7 +140,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    */
   @Deprecated
   public static void setZooKeeperInstance(JobContext job, String instanceName, String zooKeepers) {
-    setZooKeeperInstance(job.getConfiguration(), instanceName, zooKeepers);
+    setZooKeeperInstance(InputFormatBase.getConfiguration(job), instanceName, zooKeepers);
   }
   
   public static void setZooKeeperInstance(Configuration conf, String instanceName, String zooKeepers) {
@@ -158,7 +158,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    */
   @Deprecated
   public static void setMockInstance(JobContext job, String instanceName) {
-    setMockInstance(job.getConfiguration(), instanceName);
+    setMockInstance(InputFormatBase.getConfiguration(job), instanceName);
   }
   
   public static void setMockInstance(Configuration conf, String instanceName) {
@@ -172,7 +172,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    */
   @Deprecated
   public static void setMaxMutationBufferSize(JobContext job, long numberOfBytes) {
-    setMaxMutationBufferSize(job.getConfiguration(), numberOfBytes);
+    setMaxMutationBufferSize(InputFormatBase.getConfiguration(job), numberOfBytes);
   }
   
   public static void setMaxMutationBufferSize(Configuration conf, long numberOfBytes) {
@@ -184,7 +184,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    */
   @Deprecated
   public static void setMaxLatency(JobContext job, int numberOfMilliseconds) {
-    setMaxLatency(job.getConfiguration(), numberOfMilliseconds);
+    setMaxLatency(InputFormatBase.getConfiguration(job), numberOfMilliseconds);
   }
   
   public static void setMaxLatency(Configuration conf, int numberOfMilliseconds) {
@@ -196,7 +196,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    */
   @Deprecated
   public static void setMaxWriteThreads(JobContext job, int numberOfThreads) {
-    setMaxWriteThreads(job.getConfiguration(), numberOfThreads);
+    setMaxWriteThreads(InputFormatBase.getConfiguration(job), numberOfThreads);
   }
   
   public static void setMaxWriteThreads(Configuration conf, int numberOfThreads) {
@@ -208,7 +208,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    */
   @Deprecated
   public static void setLogLevel(JobContext job, Level level) {
-    setLogLevel(job.getConfiguration(), level);
+    setLogLevel(InputFormatBase.getConfiguration(job), level);
   }
   
   public static void setLogLevel(Configuration conf, Level level) {
@@ -221,7 +221,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    */
   @Deprecated
   public static void setSimulationMode(JobContext job) {
-    setSimulationMode(job.getConfiguration());
+    setSimulationMode(InputFormatBase.getConfiguration(job));
   }
   
   public static void setSimulationMode(Configuration conf) {
@@ -233,7 +233,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    */
   @Deprecated
   protected static String getUsername(JobContext job) {
-    return getUsername(job.getConfiguration());
+    return getUsername(InputFormatBase.getConfiguration(job));
   }
   
   protected static String getUsername(Configuration conf) {
@@ -248,7 +248,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    */
   @Deprecated
   protected static byte[] getPassword(JobContext job) {
-    return getPassword(job.getConfiguration());
+    return getPassword(InputFormatBase.getConfiguration(job));
   }
   
   /**
@@ -264,7 +264,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    */
   @Deprecated
   protected static boolean canCreateTables(JobContext job) {
-    return canCreateTables(job.getConfiguration());
+    return canCreateTables(InputFormatBase.getConfiguration(job));
   }
   
   protected static boolean canCreateTables(Configuration conf) {
@@ -276,7 +276,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    */
   @Deprecated
   protected static String getDefaultTableName(JobContext job) {
-    return getDefaultTableName(job.getConfiguration());
+    return getDefaultTableName(InputFormatBase.getConfiguration(job));
   }
   
   protected static String getDefaultTableName(Configuration conf) {
@@ -288,7 +288,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    */
   @Deprecated
   protected static Instance getInstance(JobContext job) {
-    return getInstance(job.getConfiguration());
+    return getInstance(InputFormatBase.getConfiguration(job));
   }
   
   protected static Instance getInstance(Configuration conf) {
@@ -302,7 +302,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    */
   @Deprecated
   protected static long getMaxMutationBufferSize(JobContext job) {
-    return getMaxMutationBufferSize(job.getConfiguration());
+    return getMaxMutationBufferSize(InputFormatBase.getConfiguration(job));
   }
   
   protected static long getMaxMutationBufferSize(Configuration conf) {
@@ -314,7 +314,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    */
   @Deprecated
   protected static int getMaxLatency(JobContext job) {
-    return getMaxLatency(job.getConfiguration());
+    return getMaxLatency(InputFormatBase.getConfiguration(job));
   }
   
   protected static int getMaxLatency(Configuration conf) {
@@ -326,7 +326,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    */
   @Deprecated
   protected static int getMaxWriteThreads(JobContext job) {
-    return getMaxWriteThreads(job.getConfiguration());
+    return getMaxWriteThreads(InputFormatBase.getConfiguration(job));
   }
   
   protected static int getMaxWriteThreads(Configuration conf) {
@@ -338,7 +338,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    */
   @Deprecated
   protected static Level getLogLevel(JobContext job) {
-    return getLogLevel(job.getConfiguration());
+    return getLogLevel(InputFormatBase.getConfiguration(job));
   }
   
   protected static Level getLogLevel(Configuration conf) {
@@ -352,7 +352,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    */
   @Deprecated
   protected static boolean getSimulationMode(JobContext job) {
-    return getSimulationMode(job.getConfiguration());
+    return getSimulationMode(InputFormatBase.getConfiguration(job));
   }
   
   protected static boolean getSimulationMode(Configuration conf) {
@@ -513,7 +513,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   
   @Override
   public void checkOutputSpecs(JobContext job) throws IOException {
-    Configuration conf = job.getConfiguration();
+    Configuration conf = InputFormatBase.getConfiguration(job);
     if (!conf.getBoolean(OUTPUT_INFO_HAS_BEEN_SET, false))
       throw new IOException("Output info has not been set.");
     if (!conf.getBoolean(INSTANCE_HAS_BEEN_SET, false))
