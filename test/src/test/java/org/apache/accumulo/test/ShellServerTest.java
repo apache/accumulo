@@ -818,12 +818,15 @@ public class ShellServerTest {
     }
     exec("config -t " + table + " -s table.iterator.scan.slow=30,org.apache.accumulo.test.functional.SlowIterator", true);
     exec("config -t " + table + " -s table.iterator.scan.slow.opt.sleepTime=500", true);
+    
+
+    ZooKeeperInstance instance = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers());
+    Connector connector = instance.getConnector("root", new PasswordToken(secret));
+    final Scanner s = connector.createScanner(table, Constants.NO_AUTHS);
+
     Thread thread = new Thread() {
       public void run() {
         try {
-          ZooKeeperInstance instance = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers());
-          Connector connector = instance.getConnector("root", new PasswordToken(secret));
-          Scanner s = connector.createScanner(table, Constants.NO_AUTHS);
           for (@SuppressWarnings("unused")
           Entry<Key,Value> kv : s)
             ;
@@ -835,7 +838,7 @@ public class ShellServerTest {
     thread.start();
 
     List<String> scans = new ArrayList<String>();
-    // Try to find the active scan for about 5seconds
+    // Try to find the active scan for about 15seconds
     for (int i = 0; i < 50 && scans.isEmpty(); i++) {
       String currentScans = exec("listscans", true);
       String[] lines = currentScans.split("\n");
@@ -845,7 +848,7 @@ public class ShellServerTest {
           scans.add(currentScan);
         }
       }
-      UtilWaitThread.sleep(100);
+      UtilWaitThread.sleep(300);
     }
     thread.join();
 
