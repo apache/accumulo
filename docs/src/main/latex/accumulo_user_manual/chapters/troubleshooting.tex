@@ -1,3 +1,4 @@
+
 % Licensed to the Apache Software Foundation (ASF) under one or more
 % contributor license agreements. See the NOTICE file distributed with
 % this work for additional information regarding copyright ownership.
@@ -65,11 +66,9 @@ from your browser.
 It is sometimes helpful to use a text-only browser to sanity-check the
 monitor while on the machine running the monitor:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
   $ links http://localhost:50095
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 A. Verify that you are not firewalled from the monitor if it is running on a remote host.
 
@@ -92,22 +91,18 @@ This troubleshooting guide does not cover HDFS, but in general, you
 want to make sure that all the datanodes are running and an fsck check
 finds the file system clean:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
   $ hadoop fsck /accumulo
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 On a larger cluster, you may need to increase the number of Xceivers
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
   <property>
     <name>dfs.datanode.max.xcievers</name>
     <value>4096</value>
   </property>
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 A. Verify HDFS is healthy, check the datanode logs.
 
@@ -119,13 +114,11 @@ Zookeeper is also a distributed service.  You will need to ensure that
 it is up.  You can run the zookeeper command line tool to connect to
 any one of the zookeeper servers:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
   $ zkCli.sh -server zoohost
 ...
 [zk: zoohost:2181(CONNECTED) 0] 
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 It is important to see the word \texttt{CONNECTED}!  If you only see
 \texttt{CONNECTING} you will need to diagnose zookeeper errors.
@@ -147,8 +140,7 @@ You can check the election status and connection status of clients by
 asking the zookeeper nodes for their status.  You connect to zookeeper
 and ask it with the four-letter ``stat'' command:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 $ nc zoohost 2181
 stat
 Zookeeper version: 3.4.5-1392090, built on 09/30/2012 17:52 GMT
@@ -165,8 +157,7 @@ Zxid: 0x621a3b
 Mode: standalone
 Node count: 22524
 $
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 
 A. Check zookeeper status, verify that it has a quorum, and has not exceeded maxClientCnxns.
@@ -231,11 +222,10 @@ machine, this collection can take a long time.  This happens more
 frequently when the JVM is getting low on free memory.  Check the logs
 of the tablet server.  You will see lines like this:
 
-\small
-\begin{verbatim}
-2013-06-20 13:43:20,607 [tabletserver.TabletServer] DEBUG: gc ParNew=0.00(+0.00) secs ConcurrentMarkSweep=0.00(+0.00) secs freemem=1,868,325,952(+1,868,325,952) totalmem=2,040,135,680
-\end{verbatim}
-\normalsize
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+2013-06-20 13:43:20,607 [tabletserver.TabletServer] DEBUG: gc ParNew=0.00(+0.00) secs
+    ConcurrentMarkSweep=0.00(+0.00) secs freemem=1,868,325,952(+1,868,325,952) totalmem=2,040,135,680
+\end{verbatim}\endgroup
 
 When ``freemem'' becomes small relative to the amount of memory
 needed, the JVM will spend more time finding free memory than
@@ -253,8 +243,7 @@ more.
 There's a class that will examine an accumulo storage file and print
 out basic metadata.  
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 $ ./bin/accumulo org.apache.accumulo.core.file.rfile.PrintInfo /accumulo/tables/1/default_tablet/A000000n.rf
 2013-07-16 08:17:14,778 [util.NativeCodeLoader] INFO : Loaded the native-hadoop library
 Locality group         : <DEFAULT>
@@ -264,7 +253,11 @@ Locality group         : <DEFAULT>
         First key            : 288be9ab4052fe9e span:34078a86a723e5d3:3da450f02108ced5 [] 1373373521623 false
         Last key             : start:13fc375709e id:615f5ee2dd822d7a [] 1373373821660 false
         Num entries          : 466
-        Column families      : [waitForCommits, start, md major compactor 1, md major compactor 2, md major compactor 3, bringOnline, prep, md major compactor 4, md major compactor 5, md root major compactor 3, minorCompaction, wal, compactFiles, md root major compactor 4, md root major compactor 1, md root major compactor 2, compact, id, client:update, span, update, commit, write, majorCompaction]
+        Column families      : [waitForCommits, start, md major compactor 1, md major compactor 2, md major compactor 3,
+                                 bringOnline, prep, md major compactor 4, md major compactor 5, md root major compactor 3,
+                                 minorCompaction, wal, compactFiles, md root major compactor 4, md root major compactor 1,
+                                 md root major compactor 2, compact, id, client:update, span, update, commit, write,
+                                 majorCompaction]
 
 Meta block     : BCFile.index
       Raw size             : 4 bytes
@@ -275,13 +268,11 @@ Meta block     : RFile.index
       Raw size             : 780 bytes
       Compressed size      : 344 bytes
       Compression type     : gz
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 When trying to diagnose problems related to key size, the PrintInfo tool can provide a histogram of the individual key sizes:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 $ ./bin/accumulo org.apache.accumulo.core.file.rfile.PrintInfo --histogram /accumulo/tables/1/default_tablet/A000000n.rf
 ...
 Up to size      count      %-age
@@ -295,18 +286,15 @@ Up to size      count      %-age
   100000000 :          0   0.00%
  1000000000 :          0   0.00%
 10000000000 :          0   0.00%
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Likewise, PrintInfo will dump the key-value pairs and show you the contents of the RFile:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 $ ./bin/accumulo org.apache.accumulo.core.file.rfile.PrintInfo --dump /accumulo/tables/1/default_tablet/A000000n.rf
 row columnFamily:columnQualifier [visibility] timestamp deleteFlag -> Value
 ...
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Q. Accumulo is not showing me any data!
 
@@ -322,34 +310,28 @@ does not provide the normal access controls in Accumulo.
 
 If you would like to backup, or otherwise examine the contents of Zookeeper, there are commands to dump and load to/from XML.
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 $ ./bin/accumulo org.apache.accumulo.server.util.DumpZookeeper --root /accumulo >dump.xml
 $ ./bin/accumulo org.apache.accumulo.server.util.RestoreZookeeper --overwrite < dump.xml
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Q. How can I get the information in the monitor page for my cluster monitoring system?
 
 A. Use GetMasterStats:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 $ ./bin/accumulo org.apache.accumulo.test.GetMasterStats | grep Load
  OS Load Average: 0.27
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Q. The monitor page is showing an offline tablet.  How can I find out which tablet it is?
 
 A. Use FindOfflineTablets:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 $ ./bin/accumulo org.apache.accumulo.server.util.FindOfflineTablets
 2<<@(null,null,localhost:9997) is UNASSIGNED  #walogs:2
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Here's what the output means:
 
@@ -372,14 +354,12 @@ Q. How can I be sure that the metadata tables are up and consistent?
 A. \texttt{CheckForMetadataProblems} will verify the start/end of
 every tablet matches, and the start and stop for the table is empty:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 $ ./bin/accumulo org.apache.accumulo.server.util.CheckForMetadataProblems -u root --password
 Enter the connection password: 
 All is well for table !0
 All is well for table 1
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Q. My hadoop cluster has lost a file due to a NameNode failure.  How can I remove the file?
 
@@ -387,24 +367,21 @@ A. There's a utility that will check every file reference and ensure
 that the file exists in HDFS.  Optionally, it will remove the
 reference:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 $ ./bin/accumulo org.apache.accumulo.server.util.RemoveEntriesForMissingFiles -u root --password
 Enter the connection password: 
-2013-07-16 13:10:57,293 [util.RemoveEntriesForMissingFiles] INFO : File /accumulo/tables/2/default_tablet/F0000005.rf is missing
+2013-07-16 13:10:57,293 [util.RemoveEntriesForMissingFiles] INFO : File /accumulo/tables/2/default_tablet/F0000005.rf
+ is missing
 2013-07-16 13:10:57,296 [util.RemoveEntriesForMissingFiles] INFO : 1 files of 3 missing
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Q. I have many entries in zookeeper for old instances I no longer need.  How can I remove them?
 
 A. Use CleanZookeeper:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 $ ./bin/accumulo org.apache.accumulo.server.util.CleanZookeeper
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 This command will not delete the instance pointed to by the local \texttt{conf/accumulo-site.xml} file.
 
@@ -412,39 +389,33 @@ Q. I need to decommission a node.  How do I stop the tablet server on it?
 
 A. Use the admin command:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 $ ./bin/accumulo admin stop hostname:9997
 2013-07-16 13:15:38,403 [util.Admin] INFO : Stopping server 12.34.56.78:9997
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Q. I cannot login to a tablet server host, and the tablet server will not shut down.  How can I kill the server?
 
 A. Sometimes you can kill a ``stuck'' tablet server by deleting it's lock in zookeeper:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 $ ./bin/accumulo org.apache.accumulo.server.util.TabletServerLocks --list
                   127.0.0.1:9997 TSERV_CLIENT=127.0.0.1:9997
 $ ./bin/accumulo org.apache.accumulo.server.util.TabletServerLocks -delete 127.0.0.1:9997
 $ ./bin/accumulo org.apache.accumulo.server.util.TabletServerLocks -list
                   127.0.0.1:9997             null
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 You can find the master and instance id for any accumulo instances using the same zookeeper instance:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 $ ./bin/accumulo org.apache.accumulo.server.util.ListInstances
 INFO : Using ZooKeepers localhost:2181
 
  Instance Name       | Instance ID                          | Master                        
 ---------------------+--------------------------------------+-------------------------------
               "test" | 6140b72e-edd8-4126-b2f5-e74a8bbe323b |                127.0.0.1:9999
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 \section{System Metadata Tables}
 \label{sec:metadata}
@@ -458,8 +429,7 @@ table, such as its location and write-ahead logs, are stored in ZooKeeper.
 
 Let's create a table and put some data into it:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 shell> createtable test
 shell> tables -l
 accumulo.metadata    =>        !0
@@ -468,13 +438,11 @@ test                 =>         2
 trace                =>         1
 shell> insert a b c d
 shell> flush -w
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Now let's take a look at the metadata for this table:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 shell> table accumulo.metadata
 shell> scan -b 3; -e 3<
 3< file:/default_tablet/F000009y.rf []    186,1
@@ -486,30 +454,53 @@ shell> scan -b 3; -e 3<
 3< srv:lock []    tservers/127.0.0.1:9997/zlock-0000000001$13fe86cd27101e5
 3< srv:time []    M1373998392323
 3< ~tab:~pr []    \x00
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Let's decode this little session:
 
 \begin{enumerate}
-\item{\texttt{scan -b 3; -e 3<} Every tablet gets its own row. Every row starts with the table id followed by ``;'' or ``<'', and followed by the end row split point for that tablet.}
-\item{\texttt{file:/default\_tablet/F000009y.rf [] 186,1} File entry for this tablet.  This tablet contains a single file reference. The file is ``/accumulo/tables/3/default\_tablet/F000009y.rf''.  It contains 1 key/value pair, and is 186 bytes long. }
-\item{\texttt{last:13fe86cd27101e5 []    127.0.0.1:9997} Last location for this tablet.  It was last held on 127.0.0.1:9997, and the unique tablet server lock data was ``13fe86cd27101e5''. The default balancer will tend to put tablets back on their last location. }
-\item{\texttt{loc:13fe86cd27101e5 []    127.0.0.1:9997} The current location of this tablet.}
-\item{\texttt{log:127.0.0.1+9997/0cb7ce52-ac46-4bf7-ae1d-acdcfaa97995 []    127.0.0.1+9997/0cb7ce52-ac46-4bf7-ae1d-acdcfaa97995|6} This tablet has a reference to a single write-ahead log.  This file can be found in /accumulo/wal/127.0.0.1+9997/0cb7ce52-ac46-4bf7-ae1d-acdcfaa97995.  The value of this entry could refer to multiple files.  This tablet's data is encoded as ``6'' within the log.}
-\item{\texttt{srv:dir []    /default\_tablet} Files written for this tablet will be placed into /accumulo/tables/3/default\_tablet.}
-\item{\texttt{srv:flush []    1} Flush id.  This table has successfully completed the flush with the id of ``1''. }
-\item{\texttt{srv:lock []    tservers/127.0.0.1:9997/zlock-0000000001\$13fe86cd27101e5}  This is the lock information for the tablet holding the present lock.  This information is checked against zookeeper whenever this is updated, which prevents a metadata update from a tablet server that no longer holds its lock.}
+\item{\texttt{scan -b 3; -e 3<}\\
+  Every tablet gets its own row. Every row starts with the table id followed by
+  ``;'' or ``<'', and followed by the end row split point for that tablet.}
+\item{\texttt{file:/default\_tablet/F000009y.rf [] 186,1}\\
+  File entry for this tablet.  This tablet contains a single file reference. The
+  file is ``/accumulo/tables/3/default\_tablet/F000009y.rf''.  It contains 1
+  key/value pair, and is 186 bytes long.}
+\item{\texttt{last:13fe86cd27101e5 []    127.0.0.1:9997}\\
+  Last location for this tablet.  It was last held on 127.0.0.1:9997, and the
+  unique tablet server lock data was ``13fe86cd27101e5''. The default balancer
+  will tend to put tablets back on their last location.}
+\item{\texttt{loc:13fe86cd27101e5 []    127.0.0.1:9997}\\
+  The current location of this tablet.}
+\item{\texttt{log:127.0.0.1+9997/0cb7ce52-ac46-4bf7-ae1d-acdcfaa97995 []    127.0. ...}\\
+  This tablet has a reference to a single write-ahead log. This file can be found in\\
+  /accumulo/wal/127.0.0.1+9997/0cb7ce52-ac46-4bf7-ae1d-acdcfaa97995. The value
+  of this entry could refer to multiple files. This tablet's data is encoded as
+  ``6'' within the log.}
+\item{\texttt{srv:dir []    /default\_tablet}\\
+  Files written for this tablet will be placed into
+  /accumulo/tables/3/default\_tablet.}
+\item{\texttt{srv:flush []    1}\\
+  Flush id.  This table has successfully completed the flush with the id of
+  ``1''.}
+\item{\texttt{srv:lock []    tservers/127.0.0.1:9997/zlock-0000000001\$13fe86cd27101e5}\\
+  This is the lock information for the tablet holding the present lock.  This
+  information is checked against zookeeper whenever this is updated, which
+  prevents a metadata update from a tablet server that no longer holds its
+  lock.}
 \item{\texttt{srv:time []    M1373998392323} }
-\item{\texttt{~tab:~pr []    \\x00} The end-row marker for the previous tablet (prev-row).  The first byte indicates the presence of a prev-row.  This tablet has the range (-inf, +inf), so it has no prev-row (or end row). }
+\item{\texttt{\textasciitilde{}tab:\textasciitilde{}pr []    \textbackslash{}x00}\\
+  The end-row marker for the previous tablet (prev-row).  The first byte
+  indicates the presence of a prev-row.  This tablet has the range (-inf, +inf),
+  so it has no prev-row (or end row).}
 \end{enumerate}
 
 Besides these columns, you may see:
 
 \begin{enumerate}
 \item{\texttt{rowId future:zooKeeperID location} Tablet has been assigned to a tablet, but not yet loaded.}
-\item{\texttt{~del:filename} When a tablet server is done use a file, it will create a delete marker in the appropriate metadata table, unassociated with any tablet.  The garbage collector will remove the marker, and the file, when no other reference to the file exists.}
-\item{\texttt{~blip:txid} Bulk-Load In Progress marker}
+\item{\texttt{\textasciitilde{}del:filename} When a tablet server is done use a file, it will create a delete marker in the appropriate metadata table, unassociated with any tablet.  The garbage collector will remove the marker, and the file, when no other reference to the file exists.}
+\item{\texttt{\textasciitilde{}blip:txid} Bulk-Load In Progress marker}
 \item{\texttt{rowId loaded:filename} A file has been bulk-loaded into this tablet, however the bulk load has not yet completed on other tablets, so this is marker prevents the file from being loaded multiple times.}
 \item{\texttt{rowId !cloned} A marker that indicates that this tablet has been successfully cloned.}
 \item{\texttt{rowId splitRatio:ratio} A marker that indicates a split is in progress, and the files are being split at the given ratio.}
@@ -524,22 +515,18 @@ Q. One of my Accumulo processes died. How do I bring it back?
 
 The easiest way to bring all services online for an Accumulo instance is to run the ``start-all.sh`` script.
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
   $ bin/start-all.sh
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 This process will check the process listing, using ``jps`` on each host before attempting to restart a service on the given host.
 Typically, this check is sufficient except in the face of a hung/zombie process. For large clusters, it may be
 undesirable to ssh to every node in the cluster to ensure that all hosts are running the appropriate processes and ``start-here.sh`` may be of use.
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
   $ ssh host_with_dead_process
   $ bin/start-here.sh
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 ``start-here.sh`` should be invoked on the host which is missing a given process. Like start-all.sh, it will start all
 necessary processes that are not currently running, but only on the current host and not cluster-wide. Tools such as ``pssh`` or 
@@ -579,11 +566,9 @@ Q. How do find out which tablets are offline?
 
 A. Use ``accumulo admin checkTablets''
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
   $ bin/accumulo admin checkTablets
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Q. I lost three data nodes, and I'm missing blocks in a WAL.  I don't care about data loss, how
 can I get those tablets online?
@@ -592,21 +577,17 @@ See the discussion in section~\ref{sec:metadata}, which shows a typical metadata
 The entries with a column family of ``log'' are references to the WAL for that tablet. 
 If you know what WAL is bad, you can find all the references with a grep in the shell:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 shell> grep 0cb7ce52-ac46-4bf7-ae1d-acdcfaa97995
 3< log:127.0.0.1+9997/0cb7ce52-ac46-4bf7-ae1d-acdcfaa97995 []    127.0.0.1+9997/0cb7ce52-ac46-4bf7-ae1d-acdcfaa97995|6
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 A. You can remove the WAL references in the metadata table.
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
 shell> grant -u root Table.WRITE -t accumulo.metadata
 shell> delete 3< log 127.0.0.1+9997/0cb7ce52-ac46-4bf7-ae1d-acdcfaa97995
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Note: the colon (``:'') is omitted when specifying the ``row cf cq'' for the delete command.
 
@@ -632,11 +613,9 @@ but the basic approach is:
  \item Use ``tables -l'' in the shell to discover the table name to table id mapping
  \item Stop all accumulo processes on all nodes
  \item Move the accumulo directory in HDFS out of the way:
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
  $ hadoop fs -mv /accumulo /corrupt
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
  \item Re-initalize accumulo
  \item Recreate tables, users and permissions
  \item Import the directories under \texttt{/corrupt/tables/<id>} into the new instance

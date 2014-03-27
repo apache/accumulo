@@ -40,14 +40,12 @@ servers.  The configuration ``instance.volumes'' should be set to a
 comma-separated list, using full URI references to different NameNode
 servers:
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
   <property>
     <name>instance.volumes</name>
     <value>hdfs://ns1:9001,hdfs://ns2:9001</value>
   </property>
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 The introduction of multiple volume support in 1.6 changed the way Accumulo
 stores pointers to files.  It now stores fully qualified URI references to
@@ -65,14 +63,12 @@ example configuration below will replace ns1 with nsA and ns2 with nsB in
 Accumulo metadata.  For this property to take affect, Accumulo will need to be
 restarted.
 
-\small
-\begin{verbatim}
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
   <property>
     <name>instance.volumes.replacements</name>
     <value>hdfs://ns1:9001 hdfs://nsA:9001, hdfs://ns2:9001 hdfs://nsB:9001</value>
   </property>
-\end{verbatim}
-\normalsize
+\end{verbatim}\endgroup
 
 Using viewfs or HA namenode, introduced in Hadoop 2, offers another option for
 managing the fully qualified URIs stored in Accumulo.  Viewfs and HA namenode

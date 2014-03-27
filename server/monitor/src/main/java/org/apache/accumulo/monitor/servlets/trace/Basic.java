@@ -77,7 +77,7 @@ abstract class Basic extends BasicServlet {
       at = new PasswordToken(conf.get(p).getBytes(Constants.UTF8));
     } else {
       Properties props = new Properties();
-      int prefixLength = Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey().length() + 1;
+      int prefixLength = Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey().length();
       for (Entry<String,String> entry : loginMap.entrySet()) {
         props.put(entry.getKey().substring(prefixLength), entry.getValue());
       }

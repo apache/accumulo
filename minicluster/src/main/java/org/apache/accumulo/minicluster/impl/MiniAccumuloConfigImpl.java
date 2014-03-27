@@ -99,7 +99,7 @@ public class MiniAccumuloConfigImpl {
       logDir = new File(dir, "logs");
       walogDir = new File(dir, "walogs");
 
-      // TODO ACCUMULO-XXXX replace usage of instance.dfs.{dir,uri} with instance.volumes 
+      // TODO ACCUMULO-XXXX replace usage of instance.dfs.{dir,uri} with instance.volumes
       setInstanceLocation();
 
       mergeProp(Property.INSTANCE_SECRET.getKey(), DEFAULT_INSTANCE_SECRET);
@@ -110,7 +110,7 @@ public class MiniAccumuloConfigImpl {
       mergeProp(Property.TSERV_MAXMEM.getKey(), "50M");
       mergeProp(Property.TSERV_WALOG_MAX_SIZE.getKey(), "100M");
       mergeProp(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "false");
-      mergeProp(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + ".password", getRootPassword());
+      mergeProp(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + "password", getRootPassword());
       // since there is a small amount of memory, check more frequently for majc... setting may not be needed in 1.5
       mergeProp(Property.TSERV_MAJC_DELAY.getKey(), "3");
       mergeProp(Property.GENERAL_CLASSPATHS.getKey(), libDir.getAbsolutePath() + "/[^.].*[.]jar");
@@ -389,7 +389,7 @@ public class MiniAccumuloConfigImpl {
   public File getClientConfFile() {
     return new File(getConfDir(), "client.conf");
   }
-  
+
   /**
    * sets system properties set for service processes
    * 
