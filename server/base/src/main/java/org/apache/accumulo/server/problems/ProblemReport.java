@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.problems;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -29,7 +30,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.Encoding;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -49,7 +49,9 @@ public class ProblemReport {
   private long creationTime;
   
   public ProblemReport(String table, ProblemType problemType, String resource, String server, Throwable e) {
-    ArgumentChecker.notNull(table, problemType, resource);
+    checkNotNull(table, "table is null");
+    checkNotNull(problemType, "problemType is null");
+    checkNotNull(resource, "resource is null");
     this.tableName = table;
     
     this.problemType = problemType;
@@ -76,7 +78,9 @@ public class ProblemReport {
   }
   
   private ProblemReport(String table, ProblemType problemType, String resource, byte enc[]) throws IOException {
-    ArgumentChecker.notNull(table, problemType, resource);
+    checkNotNull(table, "table is null");
+    checkNotNull(problemType, "problemType is null");
+    checkNotNull(resource, "resource is null");
     this.tableName = table;
     this.problemType = problemType;
     this.resource = resource;
