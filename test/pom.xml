@@ -142,6 +142,11 @@
       </properties>
       <dependencies>
         <dependency>
+          <groupId>commons-httpclient</groupId>
+          <artifactId>commons-httpclient</artifactId>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
           <groupId>org.apache.hadoop</groupId>
           <artifactId>hadoop-tools</artifactId>
           <scope>test</scope>
@@ -160,6 +165,11 @@
         </property>
       </activation>
       <dependencies>
+        <dependency>
+          <groupId>commons-httpclient</groupId>
+          <artifactId>commons-httpclient</artifactId>
+          <scope>test</scope>
+        </dependency>
         <dependency>
           <groupId>org.apache.hadoop</groupId>
           <artifactId>hadoop-tools</artifactId>
