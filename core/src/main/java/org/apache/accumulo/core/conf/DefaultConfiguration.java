@@ -61,22 +61,15 @@ public class DefaultConfiguration extends AccumuloConfiguration {
   }
 
   /*
-   * Used by the monitor to show configuration properties
-   */
-  protected static void generateDocumentation(PrintStream doc) {
-    new ConfigurationDocGen(doc).generateHtml();
-  }
-
-  /*
    * Generate documentation for conf/accumulo-site.xml file usage
    */
   public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException {
-    if (args.length == 2 && args[0].equals("--generate-doc")) {
+    if (args.length == 2 && args[0].equals("--generate-html")) {
       new ConfigurationDocGen(new PrintStream(args[1], Constants.UTF8.name())).generateHtml();
     } else if (args.length == 2 && args[0].equals("--generate-latex")) {
       new ConfigurationDocGen(new PrintStream(args[1], Constants.UTF8.name())).generateLaTeX();
     } else {
-      throw new IllegalArgumentException("Usage: " + DefaultConfiguration.class.getName() + " --generate-doc <filename> | --generate-latex <filename>");
+      throw new IllegalArgumentException("Usage: " + DefaultConfiguration.class.getName() + " --generate-html <filename> | --generate-latex <filename>");
     }
   }
 

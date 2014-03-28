@@ -18,7 +18,6 @@ package org.apache.accumulo.monitor.servlets;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -32,7 +31,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.util.Duration;
 import org.apache.accumulo.core.util.NumUtil;
@@ -55,7 +53,7 @@ public class DefaultServlet extends BasicServlet {
 
   @Override
   protected String getTitle(HttpServletRequest req) {
-    return req.getRequestURI().startsWith("/docs") ? "Documentation" : "Accumulo Overview";
+    return "Accumulo Overview";
   }
 
   private void getResource(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -93,18 +91,6 @@ public class DefaultServlet extends BasicServlet {
   @Override
   public void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
     if (req.getRequestURI().startsWith("/web"))
-      getResource(req, resp);
-    else if (req.getRequestURI().equals("/docs") || req.getRequestURI().equals("/docs/apidocs"))
-      super.doGet(req, resp);
-    else if (req.getRequestURI().equals("/docs/config.html"))
-      new DefaultConfiguration() {
-
-        public void generate(HttpServletResponse resp) throws IOException {
-          generateDocumentation(new PrintStream(resp.getOutputStream()));
-
-        }
-      }.generate(resp);
-    else if (req.getRequestURI().startsWith("/docs"))
       getResource(req, resp);
     else if (req.getRequestURI().startsWith("/monitor"))
       resp.sendRedirect("/master");
@@ -201,10 +187,6 @@ public class DefaultServlet extends BasicServlet {
 
   @Override
   protected void pageBody(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) throws IOException {
-    if (req.getRequestURI().equals("/docs") || req.getRequestURI().equals("/docs/apidocs")) {
-      sb.append("<object data='").append(req.getRequestURI()).append("/index.html' type='text/html' width='100%' height='100%'></object>");
-      return;
-    }
 
     sb.append("<table class='noborder'>\n");
     sb.append("<tr>\n");
@@ -266,12 +248,12 @@ public class DefaultServlet extends BasicServlet {
     } else {
       long totalAcuBytesUsed = 0l;
       long totalHdfsBytesUsed = 0l;
-      
+
       try {
         for (String baseDir : VolumeConfiguration.getVolumeUris(ServerConfiguration.getSiteConfiguration())) {
           final Path basePath = new Path(baseDir);
           final FileSystem fs = vm.getVolumeByPath(basePath).getFileSystem();
-          
+
           try {
             // Calculate the amount of space used by Accumulo on the FileSystem
             ContentSummary accumuloSummary = fs.getContentSummary(basePath);
@@ -306,7 +288,7 @@ public class DefaultServlet extends BasicServlet {
         if (totalAcuBytesUsed > 0) {
           // Convert Accumulo usage to a readable String
           diskUsed = bytes(totalAcuBytesUsed);
-          
+
           if (totalHdfsBytesUsed > 0) {
             // Compute amount of space used by Accumulo as a percentage of total space usage.
             consumed = String.format("%.2f%%", totalAcuBytesUsed * 100. / totalHdfsBytesUsed);

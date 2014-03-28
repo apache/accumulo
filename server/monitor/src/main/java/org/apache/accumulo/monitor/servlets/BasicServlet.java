@@ -140,8 +140,7 @@ abstract public class BasicServlet extends HttpServlet {
     // BEGIN HEADER
     sb.append("<head>\n");
     sb.append("<title>").append(getTitle(req)).append(" - Accumulo ").append(Constants.VERSION).append("</title>\n");
-    if ((refresh > 0) && (req.getRequestURI().startsWith("/docs") == false) && (req.getRequestURI().startsWith("/vis") == false)
-        && (req.getRequestURI().startsWith("/shell") == false))
+    if ((refresh > 0) && (req.getRequestURI().startsWith("/vis") == false) && (req.getRequestURI().startsWith("/shell") == false))
       sb.append("<meta http-equiv='refresh' content='" + refresh + "' />\n");
     sb.append("<meta http-equiv='Content-Type' content='").append(DEFAULT_CONTENT_TYPE).append("' />\n");
     sb.append("<meta http-equiv='Content-Script-Type' content='text/javascript' />\n");
@@ -184,7 +183,6 @@ abstract public class BasicServlet extends HttpServlet {
     sb.append("<a href='/gc'>Garbage&nbsp;Collector</a><br />\n");
     sb.append("<a href='/tables'>Tables</a><br />\n");
     sb.append("<a href='/trace/summary?minutes=10'>Recent&nbsp;Traces</a><br />\n");
-    sb.append("<a href='/docs'>Documentation</a><br />\n");
     List<DedupedLogEvent> dedupedLogEvents = LogService.getInstance().getEvents();
     int numLogs = dedupedLogEvents.size();
     boolean logsHaveError = false;

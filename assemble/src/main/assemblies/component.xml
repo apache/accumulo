@@ -36,6 +36,8 @@
       </includes>
       <excludes>
         <exclude>${groupId}:${artifactId}-docs</exclude>
+        <exclude>${groupId}:${artifactId}-*:rpm</exclude>
+        <exclude>${groupId}:${artifactId}-*:deb</exclude>
       </excludes>
     </dependencySet>
     <dependencySet>
@@ -46,7 +48,7 @@
       <outputFileNameMapping>${artifactId}_user_manual.${artifact.extension}</outputFileNameMapping>
       <useTransitiveDependencies>false</useTransitiveDependencies>
       <includes>
-        <include>${groupId}:${artifactId}-docs</include>
+        <include>${groupId}:${artifactId}-docs:pdf:user-manual</include>
       </includes>
     </dependencySet>
   </dependencySets>
@@ -100,12 +102,23 @@
       </excludes>
     </fileSet>
     <fileSet>
-      <directory>../docs</directory>
+      <directory>../docs/src/main/resources</directory>
+      <outputDirectory>/docs</outputDirectory>
       <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
       <includes>
         <include>*.html</include>
+        <include>*.css</include>
         <include>examples/*</include>
+      </includes>
+    </fileSet>
+    <fileSet>
+      <directory>../docs/target</directory>
+      <outputDirectory>/docs</outputDirectory>
+      <directoryMode>0755</directoryMode>
+      <fileMode>0644</fileMode>
+      <includes>
+        <include>config.html</include>
       </includes>
     </fileSet>
     <fileSet>
