@@ -22,6 +22,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.util.reflection.CounterUtils;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
@@ -49,7 +50,7 @@ public class CountRowKeys extends Configured implements Tool {
     }
     
     public void reduce(Text key, Iterable<NullWritable> values, Context context) throws IOException {
-      context.getCounter(Count.uniqueRows).increment(1);
+      CounterUtils.increment(context.getCounter(Count.uniqueRows));
     }
   }
   

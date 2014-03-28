@@ -27,6 +27,7 @@ import java.util.Map;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
+import org.apache.accumulo.server.util.reflection.CounterUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
@@ -131,7 +132,7 @@ public class RunTests extends Configured implements Tool {
             if (resultLine.length() > 0) {
               Outcome outcome = OUTCOME_COUNTERS.get(resultLine.charAt(0));
               if (outcome != null) {
-                context.getCounter(outcome).increment(1);
+                CounterUtils.increment(context.getCounter(outcome));
               }
             }
             String taskAttemptId = context.getTaskAttemptID().toString();
