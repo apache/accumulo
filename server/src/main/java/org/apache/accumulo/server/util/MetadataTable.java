@@ -1233,6 +1233,9 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
     update(SecurityConstants.getSystemCredentials(), m);
   }
 
+  /**
+   * During an upgrade from Accumulo 1.4 -> 1.5, we need to move deletion requests for files under the !METADATA table to the root tablet.
+   */
   public static void moveMetaDeleteMarkers(Instance instance, TCredentials creds) {
     // move delete markers from the normal delete keyspace to the root tablet delete keyspace if the files are for the !METADATA table
     Scanner scanner = new ScannerImpl(instance, creds, Constants.METADATA_TABLE_ID, Constants.NO_AUTHS);

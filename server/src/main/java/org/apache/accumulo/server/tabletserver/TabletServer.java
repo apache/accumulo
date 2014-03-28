@@ -3322,6 +3322,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
    * 
    */
   public static void recoverLocalWriteAheadLogs(FileSystem fs, ServerConfiguration serverConf) throws IOException {
+    if (Accumulo.getAccumuloPersistentVersion(fs) == Constants.PREV_DATA_VERSION) {
+      // If the Master has not yet signaled a finish to upgrading, we need to make sure we can rollback in the
+      // event of outstanding transactions in Fate from the previous version.
+      Accumulo.abortIfFateTransactions();
+    }
     FileSystem localfs = FileSystem.getLocal(fs.getConf()).getRawFileSystem();
     AccumuloConfiguration conf = serverConf.getConfiguration();
     String localWalDirectories = conf.get(Property.LOGGER_DIR);

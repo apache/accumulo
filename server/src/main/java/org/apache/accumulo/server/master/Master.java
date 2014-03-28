@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -271,7 +272,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       upgradeMetadata();
     }
   }
-  
+
+  private boolean haveUpgradedZooKeeper = false;
+
   private void upgradeZookeeper() {
     // 1.5.1 and 1.6.0 both do some state checking after obtaining the zoolock for the
     // monitor and before starting up. It's not tied to the data version at all (and would
@@ -279,59 +282,79 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     // that the master is not the only thing that may alter zookeeper before starting.
 
     if (Accumulo.getAccumuloPersistentVersion(fs) == Constants.PREV_DATA_VERSION) {
+      // This Master hasn't started Fate yet, so any outstanding transactions must be from before the upgrade.
+      // Change to Guava's Verify once we use Guava 17.
+      if (null != fate) {
+        throw new IllegalStateException("Access to Fate should not have been initialized prior to the Master transitioning to active. Please save all logs and file a bug.");
+      }
+      Accumulo.abortIfFateTransactions();
       try {
         log.info("Upgrading zookeeper");
-        
+
         IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-        
+
         zoo.recursiveDelete(ZooUtil.getRoot(instance) + "/loggers", NodeMissingPolicy.SKIP);
         zoo.recursiveDelete(ZooUtil.getRoot(instance) + "/dead/loggers", NodeMissingPolicy.SKIP);
 
         zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZRECOVERY, new byte[] {'0'}, NodeExistsPolicy.SKIP);
-        
+
         for (String id : Tables.getIdToNameMap(instance).keySet()) {
-          
+
           zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_COMPACT_CANCEL_ID, "0".getBytes(Constants.UTF8),
               NodeExistsPolicy.SKIP);
         }
+        haveUpgradedZooKeeper = true;
       } catch (Exception ex) {
         log.fatal("Error performing upgrade", ex);
         System.exit(1);
       }
     }
   }
-  
+
   private final AtomicBoolean upgradeMetadataRunning = new AtomicBoolean(false);
-  
+  private final CountDownLatch waitForMetadataUpgrade = new CountDownLatch(1);
+
   private final ServerConfiguration serverConfig;
   
   private void upgradeMetadata() {
-    if (Accumulo.getAccumuloPersistentVersion(fs) == Constants.PREV_DATA_VERSION) {
-      if (upgradeMetadataRunning.compareAndSet(false, true)) {
+    // we make sure we're only doing the rest of this method once so that we can signal to other threads that an upgrade wasn't needed.
+    if (upgradeMetadataRunning.compareAndSet(false, true)) {
+      if (Accumulo.getAccumuloPersistentVersion(fs) == Constants.PREV_DATA_VERSION) {
+        // sanity check that we passed the Fate verification prior to ZooKeeper upgrade, and that Fate still hasn't been started.
+        // Change both to use Guava's Verify once we use Guava 17.
+        if (!haveUpgradedZooKeeper) {
+          throw new IllegalStateException("We should only attempt to upgrade Accumulo's !METADATA table if we've already upgraded ZooKeeper. Please save all logs and file a bug.");
+        }
+        if (null != fate) {
+          throw new IllegalStateException("Access to Fate should not have been initialized prior to the Master finishing upgrades. Please save all logs and file a bug.");
+        }
         Runnable upgradeTask = new Runnable() {
           @Override
           public void run() {
             try {
+              log.info("Starting to upgrade !METADATA table.");
               MetadataTable.moveMetaDeleteMarkers(instance, SecurityConstants.getSystemCredentials());
+              log.info("Updating persistent data version.");
               Accumulo.updateAccumuloVersion(fs);
-              
               log.info("Upgrade complete");
-              
+              waitForMetadataUpgrade.countDown();
             } catch (Exception ex) {
               log.fatal("Error performing upgrade", ex);
               System.exit(1);
             }
-            
+
           }
         };
-        
+
         // need to run this in a separate thread because a lock is held that prevents !METADATA tablets from being assigned and this task writes to the
         // !METADATA table
         new Thread(upgradeTask).start();
+      } else {
+        waitForMetadataUpgrade.countDown();
       }
     }
   }
-  
+
   private int assignedOrHosted(Text tableId) {
     int result = 0;
     for (TabletGroupWatcher watcher : watchers) {
@@ -2136,28 +2159,6 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     
     tserverSet.startListeningForTabletServerChanges();
     
-    // TODO: add shutdown for fate object - ACCUMULO-1307
-    try {
-      final AgeOffStore<Master> store = new AgeOffStore<Master>(new org.apache.accumulo.fate.ZooStore<Master>(ZooUtil.getRoot(instance) + Constants.ZFATE,
-          ZooReaderWriter.getRetryingInstance()), 1000 * 60 * 60 * 8);
-      
-      int threads = this.getConfiguration().getConfiguration().getCount(Property.MASTER_FATE_THREADPOOL_SIZE);
-      
-      fate = new Fate<Master>(this, store, threads);
-      
-      SimpleTimer.getInstance().schedule(new Runnable() {
-        
-        @Override
-        public void run() {
-          store.ageOff();
-        }
-      }, 63000, 63000);
-    } catch (KeeperException e) {
-      throw new IOException(e);
-    } catch (InterruptedException e) {
-      throw new IOException(e);
-    }
-    
     ZooReaderWriter.getInstance().getChildren(zroot + Constants.ZRECOVERY, new Watcher() {
       @Override
       public void process(WatchedEvent event) {
@@ -2183,7 +2184,32 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     for (TabletGroupWatcher watcher : watchers) {
       watcher.start();
     }
-    
+
+    // Once we are sure tablet servers are no longer checking for an empty Fate transaction queue before doing WAL upgrades, we can safely start using Fate ourselves.
+    waitForMetadataUpgrade.await();
+
+    // TODO: add shutdown for fate object - ACCUMULO-1307
+    try {
+      final AgeOffStore<Master> store = new AgeOffStore<Master>(new org.apache.accumulo.fate.ZooStore<Master>(ZooUtil.getRoot(instance) + Constants.ZFATE,
+          ZooReaderWriter.getRetryingInstance()), 1000 * 60 * 60 * 8);
+
+      int threads = this.getConfiguration().getConfiguration().getCount(Property.MASTER_FATE_THREADPOOL_SIZE);
+
+      fate = new Fate<Master>(this, store, threads);
+
+      SimpleTimer.getInstance().schedule(new Runnable() {
+
+        @Override
+        public void run() {
+          store.ageOff();
+        }
+      }, 63000, 63000);
+    } catch (KeeperException e) {
+      throw new IOException(e);
+    } catch (InterruptedException e) {
+      throw new IOException(e);
+    }
+
     Processor<Iface> processor = new Processor<Iface>(TraceWrap.service(new MasterClientServiceHandler()));
     ServerPort serverPort = TServerUtils.startServer(getSystemConfiguration(), Property.MASTER_CLIENTPORT, processor, "Master",
         "Master Client Service Handler", null, Property.MASTER_MINTHREADS, Property.MASTER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);

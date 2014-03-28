@@ -27,11 +27,16 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.Version;
+import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.ReadOnlyTStore;
+import org.apache.accumulo.fate.ReadOnlyStore;
+import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.util.time.SimpleTimer;
@@ -53,6 +58,7 @@ public class Accumulo {
     try {
       if (getAccumuloPersistentVersion(fs) == Constants.PREV_DATA_VERSION) {
         fs.create(new Path(ServerConstants.getDataVersionLocation() + "/" + Constants.DATA_VERSION));
+        // TODO document failure mode & recovery if FS permissions cause above to work and below to fail ACCUMULO-2596
         fs.delete(new Path(ServerConstants.getDataVersionLocation() + "/" + Constants.PREV_DATA_VERSION), false);
       }
     } catch (IOException e) {
@@ -261,6 +267,31 @@ public class Accumulo {
       throw exception;
     } catch (Exception ex) {
       throw new RuntimeException("cannot find method setSafeMode", ex);
+    }
+  }
+
+  /**
+   * Exit loudly if there are outstanding Fate operations.
+   * Since Fate serializes class names, we need to make sure there are no queued
+   * transactions from a previous version before continuing an upgrade. The status of the operations is
+   * irrelevant; those in SUCCESSFUL status cause the same problem as those just queued.
+   *
+   * Note that the Master should not allow write access to Fate until after all upgrade steps are complete.
+   *
+   * Should be called as a guard before performing any upgrade steps, after determining that an upgrade is needed.
+   *
+   * see ACCUMULO-2519
+   */
+  public static void abortIfFateTransactions() {
+    try {
+      final ReadOnlyTStore<Accumulo> fate = new ReadOnlyStore<Accumulo>(new ZooStore<Accumulo>(ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZFATE,
+          ZooReaderWriter.getRetryingInstance()));
+      if (!(fate.list().isEmpty())) {
+        throw new AccumuloException("Aborting upgrade because there are outstanding FATE transactions from a previous Accumulo version. Please see the README document for instructions on what to do under your previous version.");
+      }
+    } catch (Exception exception) {
+      log.fatal("Problem verifying Fate readiness", exception);
+      System.exit(1);
     }
   }
 }
