@@ -346,15 +346,25 @@ redirected to the log dir.
 ******************************************************************************
 9. API
 
-The public accumulo API is composed of :
-  
- * everything under org.apache.accumulo.core.client, excluding impl packages  
- * Key, Mutation, Value, Range, Condition, and ConditionalMutation in 
+The public Accumulo API is composed of :
+
+ * All public classes and interfaces in the org.apache.accumulo.core.client
+   package, as as well as all of its subpackages excluding those named "impl".
+ * Key, Mutation, Value, Range, Condition, and ConditionalMutation in
    org.apache.accumulo.core.data.
- * org.apache.accumulo.minicluster, excluding impl package  
- 
+ * All public classes and interfaces in the org.apache.accumulo.minicluster
+   package, as well as all of its subpackages excluding those named "impl".
+ * Anything with public or protected acccess within any Class or Interface that
+   is in the public API. This includes, but is not limited to: methods, members
+   classes, interfaces, and enums.
+
+The Accumulo project maintains binary compatibility across this API within a major
+release, as defined in the Java Language Specification 3rd ed. API changes should
+only be made on major releases, with continued support of deprecated API elements
+for at least one major revision.
+
 To get started using accumulo review the example and the javadoc for the
-packages and classes mentioned above. 
+packages and classes mentioned above.
 
 ******************************************************************************
 10. Performance Tuning
