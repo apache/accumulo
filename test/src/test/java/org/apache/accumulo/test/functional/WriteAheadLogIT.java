@@ -45,7 +45,7 @@ public class WriteAheadLogIT extends ConfigurableMacIT {
     siteConfig.put(Property.GC_CYCLE_START.getKey(), "1");
     siteConfig.put(Property.MASTER_RECOVERY_DELAY.getKey(), "1s");
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "1");
-    siteConfig.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "1s");
+    siteConfig.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "4s");
     cfg.setSiteConfig(siteConfig);
     cfg.useMiniDFS(true);
   }
