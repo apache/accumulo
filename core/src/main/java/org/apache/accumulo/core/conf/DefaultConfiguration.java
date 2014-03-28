@@ -70,15 +70,6 @@ public class DefaultConfiguration extends AccumuloConfiguration {
         props.put(entry.getKey(), entry.getValue());
   }
 
-  /**
-   * Generates HTML documentation on the default configuration. Used by the monitor to show configuration properties.
-   *
-   * @param doc stream to write HTML to
-   */
-  protected static void generateDocumentation(PrintStream doc) {
-    new ConfigurationDocGen(doc).generateHtml();
-  }
-
   /*
    * Generates documentation for conf/accumulo-site.xml file usage. Arguments
    * are: "--generate-doc", file to write to.
@@ -87,12 +78,12 @@ public class DefaultConfiguration extends AccumuloConfiguration {
    * @throws IllegalArgumentException if args is invalid
    */
   public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException {
-    if (args.length == 2 && args[0].equals("--generate-doc")) {
+    if (args.length == 2 && args[0].equals("--generate-html")) {
       new ConfigurationDocGen(new PrintStream(args[1], Constants.UTF8.name())).generateHtml();
     } else if (args.length == 2 && args[0].equals("--generate-latex")) {
       new ConfigurationDocGen(new PrintStream(args[1], Constants.UTF8.name())).generateLaTeX();
     } else {
-      throw new IllegalArgumentException("Usage: " + DefaultConfiguration.class.getName() + " --generate-doc <filename> | --generate-latex <filename>");
+      throw new IllegalArgumentException("Usage: " + DefaultConfiguration.class.getName() + " --generate-html <filename> | --generate-latex <filename>");
     }
   }
 

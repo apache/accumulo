@@ -654,8 +654,8 @@
           <configuration>
             <arguments>-P apache-release,thrift,assemble,docs,rpm,deb</arguments>
             <autoVersionSubmodules>true</autoVersionSubmodules>
-            <goals>clean compile javadoc:aggregate deploy</goals>
-            <preparationGoals>clean compile javadoc:aggregate verify</preparationGoals>
+            <goals>clean deploy</goals>
+            <preparationGoals>clean verify</preparationGoals>
             <tagNameFormat>@{project.version}</tagNameFormat>
             <releaseProfiles>seal-jars</releaseProfiles>
             <useReleaseProfile>false</useReleaseProfile>

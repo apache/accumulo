@@ -56,6 +56,21 @@
                 </configuration>
               </execution>
               <execution>
+                <id>config-html</id>
+                <goals>
+                  <goal>java</goal>
+                </goals>
+                <phase>compile</phase>
+                <configuration>
+                  <mainClass>org.apache.accumulo.core.conf.DefaultConfiguration</mainClass>
+                  <classpathScope>compile</classpathScope>
+                  <arguments>
+                    <argument>--generate-html</argument>
+                    <argument>${project.build.directory}/config.html</argument>
+                  </arguments>
+                </configuration>
+              </execution>
+              <execution>
                 <id>config-appendix</id>
                 <goals>
                   <goal>java</goal>
@@ -135,6 +150,12 @@
                       <sources>
                         <source>
                           <location>${project.build.directory}/accumulo_user_manual.pdf</location>
+                        </source>
+                        <source>
+                          <location>src/main/resources/</location>
+                        </source>
+                        <source>
+                          <location>${project.build.directory}/config.html</location>
                         </source>
                       </sources>
                     </mapping>

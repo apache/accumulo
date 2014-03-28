@@ -1,0 +1,112 @@
+/*
+* Licensed to the Apache Software Foundation (ASF) under one or more
+* contributor license agreements.  See the NOTICE file distributed with
+* this work for additional information regarding copyright ownership.
+* The ASF licenses this file to You under the Apache License, Version 2.0
+* (the "License"); you may not use this file except in compliance with
+* the License.  You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
+html, body {
+    font-size: 10pt;
+    font-family: verdana, arial;
+}
+
+h1 {
+    font-size: 1.7em;
+    font-variant: small-caps;
+    text-align: left;
+}
+
+h2 {
+    font-size: 1.3em;
+    text-align: left;
+}
+
+.highlight {
+    background-color: rgb(206,244,181);
+}
+
+.deprecated {
+    text-decoration: line-through;
+}
+
+table {
+    min-width: 60%;
+    border: 1px #333333 solid;
+    border-spacing-top: 0;
+    border-spacing-bottom: 0;
+    border: 1px #333333 solid;
+    border: 1px #333333 solid;
+}
+
+th {
+    border-top: 0;
+    border-bottom: 3px #333333 solid;
+    border-left: 1px #333333 dotted;
+    border-right: 0;
+    border-spacing-top: 0;
+    border-spacing-bottom: 0;
+    text-align: center;
+    font-variant: small-caps;
+    padding-left: 0.1em;
+    padding-right: 0.1em;
+    padding-top: 0.2em;
+    padding-bottom: 0.2em;
+    vertical-align: bottom;
+}
+
+td {
+    border-top: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-right: 0;
+    border-spacing-top: 0;
+    border-spacing-bottom: 0;
+    padding-left: 0.05em;
+    padding-right: 0.05em;
+    padding-top: 0.15em;
+    padding-bottom: 0.15em;
+}
+
+thead {
+    color: rgb(66,114,185);
+    text-align: center;
+    text-weight: bold;
+}
+
+td {
+    font-size: 10pt;
+    text-align:left;
+    padding-left:7pt;
+    padding-right:7pt;
+}
+
+pre {
+    font-size: 9pt;
+}
+
+a {
+    text-decoration: none;
+    color: #0000ff;
+    line-height: 1.5em;
+}
+
+a:hover {
+    color: #004400;
+    text-decoration: underline;
+}
+
+.large {
+    font-size: 1.5em;
+    font-variant: small-caps;
+    text-align: left;
+}
+
