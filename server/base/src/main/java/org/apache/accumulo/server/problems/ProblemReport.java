@@ -27,6 +27,7 @@ import java.net.UnknownHostException;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -39,6 +40,7 @@ import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.io.Text;
+import org.apache.zookeeper.KeeperException;
 
 public class ProblemReport {
   private String tableName;
@@ -48,7 +50,7 @@ public class ProblemReport {
   private String server;
   private long creationTime;
   
-  public ProblemReport(String table, ProblemType problemType, String resource, String server, Throwable e) {
+  public ProblemReport(String table, ProblemType problemType, String resource, String server, Throwable e, long creationTime) {
     checkNotNull(table, "table is null");
     checkNotNull(problemType, "problemType is null");
     checkNotNull(resource, "resource is null");
@@ -70,9 +72,13 @@ public class ProblemReport {
     }
     
     this.server = server;
-    this.creationTime = System.currentTimeMillis();
+    this.creationTime = creationTime;
   }
   
+  public ProblemReport(String table, ProblemType problemType, String resource, String server, Throwable e) {
+    this(table, problemType, resource, server, e, System.currentTimeMillis());
+  }
+
   public ProblemReport(String table, ProblemType problemType, String resource, Throwable e) {
     this(table, problemType, resource, null, e);
   }
@@ -142,15 +148,21 @@ public class ProblemReport {
   }
   
   void removeFromZooKeeper() throws Exception {
-    String zpath = getZPath();
-    ZooReaderWriter.getInstance().recursiveDelete(zpath, NodeMissingPolicy.SKIP);
+    removeFromZooKeeper(ZooReaderWriter.getInstance(), HdfsZooInstance.getInstance());
+  }
+  void removeFromZooKeeper(ZooReaderWriter zoorw, Instance instance) throws IOException, KeeperException, InterruptedException {
+    String zpath = getZPath(instance);
+    zoorw.recursiveDelete(zpath, NodeMissingPolicy.SKIP);
   }
   
   void saveToZooKeeper() throws Exception {
-    ZooReaderWriter.getInstance().putPersistentData(getZPath(), encode(), NodeExistsPolicy.OVERWRITE);
+    saveToZooKeeper(ZooReaderWriter.getInstance(), HdfsZooInstance.getInstance());
+  }
+  void saveToZooKeeper(ZooReaderWriter zoorw, Instance instance) throws IOException, KeeperException, InterruptedException {
+    zoorw.putPersistentData(getZPath(instance), encode(), NodeExistsPolicy.OVERWRITE);
   }
   
-  private String getZPath() throws IOException {
+  private String getZPath(Instance instance) throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
     dos.writeUTF(getTableName());
@@ -159,11 +171,14 @@ public class ProblemReport {
     dos.close();
     baos.close();
     
-    String zpath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZPROBLEMS + "/" + Encoding.encodeAsBase64FileName(new Text(baos.toByteArray()));
+    String zpath = ZooUtil.getRoot(instance) + Constants.ZPROBLEMS + "/" + Encoding.encodeAsBase64FileName(new Text(baos.toByteArray()));
     return zpath;
   }
   
   static ProblemReport decodeZooKeeperEntry(String node) throws Exception {
+    return decodeZooKeeperEntry(node, ZooReaderWriter.getInstance(), HdfsZooInstance.getInstance());
+  }
+  static ProblemReport decodeZooKeeperEntry(String node, ZooReaderWriter zoorw, Instance instance) throws IOException, KeeperException, InterruptedException {
     byte bytes[] = Encoding.decodeBase64FileName(node);
     
     ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
@@ -173,8 +188,8 @@ public class ProblemReport {
     String problemType = dis.readUTF();
     String resource = dis.readUTF();
     
-    String zpath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZPROBLEMS + "/" + node;
-    byte[] enc = ZooReaderWriter.getInstance().getData(zpath, null);
+    String zpath = ZooUtil.getRoot(instance) + Constants.ZPROBLEMS + "/" + node;
+    byte[] enc = zoorw.getData(zpath, null);
     
     return new ProblemReport(tableName, ProblemType.valueOf(problemType), resource, enc);
     
