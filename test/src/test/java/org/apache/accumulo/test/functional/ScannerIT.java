@@ -60,9 +60,12 @@ public class ScannerIT extends SimpleMacIT {
     Scanner s = c.createScanner(table, new Authorizations());
 
     IteratorSetting cfg = new IteratorSetting(100, SlowIterator.class);
-    SlowIterator.setSleepTime(cfg, 100l);
+    // A batch size of one will end up calling seek() for each element with no calls to next()
+    SlowIterator.setSeekSleepTime(cfg, 100l);
+
     s.addScanIterator(cfg);
-    s.setReadaheadThreshold(5);
+    // Never start readahead
+    s.setReadaheadThreshold(Long.MAX_VALUE);
     s.setBatchSize(1);
     s.setRange(new Range());
 
