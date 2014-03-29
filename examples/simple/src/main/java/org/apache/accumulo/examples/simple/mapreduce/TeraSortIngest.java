@@ -21,6 +21,7 @@ package org.apache.accumulo.examples.simple.mapreduce;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -166,8 +167,8 @@ public class TeraSortIngest extends Configured implements Tool {
      */
     @Override
     public List<InputSplit> getSplits(JobContext job) {
-      long totalRows = InputFormatBase.getConfiguration(job).getLong(NUMROWS, 0);
-      int numSplits = InputFormatBase.getConfiguration(job).getInt(NUMSPLITS, 1);
+      long totalRows = getConfiguration(job).getLong(NUMROWS, 0);
+      int numSplits = getConfiguration(job).getInt(NUMSPLITS, 1);
       long rowsPerSplit = totalRows / numSplits;
       System.out.println("Generating " + totalRows + " using " + numSplits + " maps with step of " + rowsPerSplit);
       ArrayList<InputSplit> splits = new ArrayList<InputSplit>(numSplits);
@@ -181,6 +182,28 @@ public class TeraSortIngest extends Configured implements Tool {
       return splits;
     }
     
+    // TODO kill this when we drop Hadoop 1 support.
+    private static final Method GET_CONFIGURATION;
+    static {
+      try {
+        GET_CONFIGURATION = Class.forName("org.apache.hadoop.mapreduce.JobContext").getMethod("getConfiguration");
+      } catch (SecurityException e) {
+        throw new RuntimeException("Could not get method.", e);
+      } catch (NoSuchMethodException e) {
+        throw new RuntimeException("Could not get method.", e);
+      } catch (ClassNotFoundException e) {
+        throw new RuntimeException("Could not get JobContext declaration.", e);
+      }
+    }
+
+    // This is copied from InputFormatBase because the implementation there is not public and we don not really want cruft like this in the public API.
+    private static Configuration getConfiguration(JobContext job) {
+      try {
+        return (Configuration) GET_CONFIGURATION.invoke(job, new Object[0]);
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    }
   }
   
   private static String NUMSPLITS = "terasort.overridesplits";
