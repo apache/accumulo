@@ -536,7 +536,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
   protected abstract static class RecordReaderBase<K,V> implements RecordReader<K,V> {
     protected long numKeysRead;
     protected Iterator<Entry<Key,Value>> scannerIterator;
-    protected RangeInputSplit split;
+    protected org.apache.accumulo.core.client.mapred.RangeInputSplit split;
 
     /**
      * Apply the configured iterators from the configuration to the scanner.
@@ -555,7 +555,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
      */
     public void initialize(InputSplit inSplit, JobConf job) throws IOException {
       Scanner scanner;
-      split = (RangeInputSplit) inSplit;
+      split = (org.apache.accumulo.core.client.mapred.RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + split.getRange());
 
       Instance instance = split.getInstance();
@@ -849,7 +849,8 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
       throw new IOException(e);
     }
 
-    ArrayList<RangeInputSplit> splits = new ArrayList<RangeInputSplit>(ranges.size());
+    ArrayList<org.apache.accumulo.core.client.mapred.RangeInputSplit> splits = new ArrayList<org.apache.accumulo.core.client.mapred.RangeInputSplit>(
+        ranges.size());
     HashMap<Range,ArrayList<String>> splitsToAdd = null;
 
     if (!autoAdjust)
@@ -871,7 +872,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
         for (Range r : extentRanges.getValue()) {
           if (autoAdjust) {
             // divide ranges into smaller ranges, based on the tablets
-            splits.add(new RangeInputSplit(ke.clip(r), new String[] {location}));
+            splits.add(new org.apache.accumulo.core.client.mapred.RangeInputSplit(ke.clip(r), new String[] {location}));
           } else {
             // don't divide ranges
             ArrayList<String> locations = splitsToAdd.get(r);
@@ -886,9 +887,9 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
 
     if (!autoAdjust)
       for (Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet())
-        splits.add(new RangeInputSplit(entry.getKey(), entry.getValue().toArray(new String[0])));
+        splits.add(new org.apache.accumulo.core.client.mapred.RangeInputSplit(entry.getKey(), entry.getValue().toArray(new String[0])));
 
-    for (RangeInputSplit split : splits) {
+    for (org.apache.accumulo.core.client.mapred.RangeInputSplit split : splits) {
       split.setTable(tableName);
       split.setOffline(offline);
       split.setIsolatedScan(isolated);
@@ -907,4 +908,17 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
     return splits.toArray(new InputSplit[splits.size()]);
   }
 
+  /**
+   * @see org.apache.accumulo.core.client.mapred.RangeInputSplit
+   */
+  @Deprecated
+  public static class RangeInputSplit extends org.apache.accumulo.core.client.mapred.RangeInputSplit {
+    public RangeInputSplit() {
+      super();
+    }
+
+    public RangeInputSplit(Range range, String[] locations) {
+      super(range, locations);
+    }
+  }
 }

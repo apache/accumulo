@@ -547,7 +547,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected abstract static class RecordReaderBase<K,V> extends RecordReader<K,V> {
     protected long numKeysRead;
     protected Iterator<Entry<Key,Value>> scannerIterator;
-    protected RangeInputSplit split;
+    protected org.apache.accumulo.core.client.mapreduce.RangeInputSplit split;
 
     /**
      * Apply the configured iterators from the configuration to the scanner.
@@ -567,7 +567,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     @Override
     public void initialize(InputSplit inSplit, TaskAttemptContext attempt) throws IOException {
       Scanner scanner;
-      split = (RangeInputSplit) inSplit;
+      split = (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + split.getRange());
 
       Instance instance = split.getInstance();
@@ -890,7 +890,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
         for (Range r : extentRanges.getValue()) {
           if (autoAdjust) {
             // divide ranges into smaller ranges, based on the tablets
-            splits.add(new RangeInputSplit(ke.clip(r), new String[] {location}));
+            splits.add(new org.apache.accumulo.core.client.mapreduce.RangeInputSplit(ke.clip(r), new String[] {location}));
           } else {
             // don't divide ranges
             ArrayList<String> locations = splitsToAdd.get(r);
@@ -905,10 +905,10 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
 
     if (!autoAdjust)
       for (Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet())
-        splits.add(new RangeInputSplit(entry.getKey(), entry.getValue().toArray(new String[0])));
+        splits.add(new org.apache.accumulo.core.client.mapreduce.RangeInputSplit(entry.getKey(), entry.getValue().toArray(new String[0])));
 
     for (InputSplit inputSplit : splits) {
-      RangeInputSplit split = (RangeInputSplit) inputSplit;
+      org.apache.accumulo.core.client.mapreduce.RangeInputSplit split = (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) inputSplit;
 
       split.setTable(tableName);
       split.setOffline(offline);
@@ -1319,4 +1319,18 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     }
   }
 
+  /**
+   * @see org.apache.accumulo.core.client.mapreduce.RangeInputSplit
+   */
+  @Deprecated
+  public static class RangeInputSplit extends org.apache.accumulo.core.client.mapreduce.RangeInputSplit {
+
+    public RangeInputSplit() {
+      super();
+    }
+
+    public RangeInputSplit(Range range, String[] locations) {
+      super(range, locations);
+    }
+  }
 }
