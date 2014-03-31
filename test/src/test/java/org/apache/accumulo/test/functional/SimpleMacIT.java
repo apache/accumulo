@@ -23,6 +23,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloInstance;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
@@ -31,12 +32,20 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
+/**
+ * An implementation of {@link AbstractMacIT} for test cases that do not need to know any special details of {@link MiniAccumuloCluster}. Tests which extend
+ * this class should be runnable on any instance of Accumulo, given a root connector.
+ */
 public class SimpleMacIT extends AbstractMacIT {
   public static final Logger log = Logger.getLogger(SimpleMacIT.class);
 
   private static File folder;
   private static MiniAccumuloClusterImpl cluster = null;
 
+  /**
+   * Try to get a common instance to run against. Fall back on creating a MiniAccumuloCluster. Subclasses should not care what kind of instance they get, as
+   * they should only use the API, given a root connector.
+   */
   @BeforeClass
   public static synchronized void setUp() throws Exception {
     if (getInstanceOneConnector() == null && cluster == null) {
@@ -81,6 +90,9 @@ public class SimpleMacIT extends AbstractMacIT {
   @AfterClass
   public static void tearDown() throws Exception {}
 
+  /**
+   * Try to get a common instance to connect to. (For example, one started in the pre-integration-test phase.) This may not be a MiniAccumuloCluster instance.
+   */
   private static Connector getInstanceOneConnector() {
     try {
       return new MiniAccumuloInstance("instance1", getInstanceOnePath()).getConnector("root", new PasswordToken(ROOT_PASSWORD));
