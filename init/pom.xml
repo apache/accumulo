@@ -24,6 +24,7 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>accumulo-init</artifactId>
+  <packaging>pom</packaging>
   <name>Init</name>
   <description>Initialize and start a single-node accumulo instance.</description>
   <dependencies>

@@ -285,11 +285,6 @@
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-init</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-master</artifactId>
         <version>${project.version}</version>
         <classifier>el6</classifier>
