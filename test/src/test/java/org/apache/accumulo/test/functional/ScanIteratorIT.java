@@ -41,7 +41,7 @@ public class ScanIteratorIT extends SimpleMacIT {
 
   @Test(timeout = 30 * 1000)
   public void run() throws Exception {
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
     Connector c = getConnector();
     c.tableOperations().create(tableName);
 

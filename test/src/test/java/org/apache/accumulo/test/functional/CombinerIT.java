@@ -51,7 +51,7 @@ public class CombinerIT extends SimpleMacIT {
   @Test(timeout = 60 * 1000)
   public void aggregationTest() throws Exception {
     Connector c = getConnector();
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     IteratorSetting setting = new IteratorSetting(10, SummingCombiner.class);
     SummingCombiner.setEncodingType(setting, Type.STRING);

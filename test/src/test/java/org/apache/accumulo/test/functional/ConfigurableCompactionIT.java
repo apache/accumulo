@@ -77,7 +77,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacIT {
   @Test
   public void test() throws Exception {
     final Connector c = getConnector();
-    final String tableName = getTableNames(1)[0];
+    final String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY.getKey(), SimpleCompactionStrategy.class.getName());
     runTest(c, tableName, 3);

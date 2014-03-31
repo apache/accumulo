@@ -56,7 +56,7 @@ public class BulkImportVolumeIT extends ConfigurableMacIT {
 
   @Test(timeout= 60 * 1000) 
   public void testBulkImportFailure() throws Exception {
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
     TableOperations to = getConnector().tableOperations();
     to.create(tableName);
     File bulk = new File(rootPath() + "/bulk");

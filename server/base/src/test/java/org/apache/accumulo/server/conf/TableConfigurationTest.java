@@ -16,24 +16,21 @@
  */
 package org.apache.accumulo.server.conf;
 
-import org.apache.accumulo.core.client.Instance;
+import static org.easymock.EasyMock.createMock;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.*;
-import org.easymock.Capture;
-import static org.easymock.EasyMock.*;
 
 public class TableConfigurationTest {
   private static final String INSTANCE_ID = "instanceId";
   private static final String TABLE = "table";
-  private Instance instance;
   private NamespaceConfiguration nsconf;
   private TableConfiguration tconf;
 
   @Before
   public void setUp() throws Exception {
-    instance = createMock(Instance.class);
     nsconf = createMock(NamespaceConfiguration.class);
     tconf = new TableConfiguration(INSTANCE_ID, TABLE, nsconf);
   }

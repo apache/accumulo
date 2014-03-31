@@ -62,7 +62,7 @@ public class DeleteRowsIT extends SimpleMacIT {
     // Delete ranges of rows, and verify the tablets are removed.
     int i = 0;
     // Eliminate whole tablets
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
     testSplit(tableName + i++, "f", "h", "abcdefijklmnopqrstuvwxyz", 260);
     // Eliminate whole tablets, partial first tablet
     testSplit(tableName + i++, "f1", "h", "abcdeff1ijklmnopqrstuvwxyz", 262);

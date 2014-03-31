@@ -57,7 +57,7 @@ public class AccumuloInputFormatIT extends SimpleMacIT {
    */
   @Test
   public void testGetSplits() throws IOException, AccumuloSecurityException, AccumuloException, TableNotFoundException, TableExistsException {
-    String table = getTableNames(1)[0];
+    String table = getUniqueNames(1)[0];
     getConnector().tableOperations().create(table);
     insertData(table, currentTimeMillis());
 

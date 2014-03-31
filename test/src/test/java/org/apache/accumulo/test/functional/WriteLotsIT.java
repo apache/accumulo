@@ -32,7 +32,7 @@ public class WriteLotsIT extends SimpleMacIT {
   @Test(timeout = 90 * 1000)
   public void writeLots() throws Exception {
     final Connector c = getConnector();
-    final String tableName = getTableNames(1)[0];
+    final String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     final AtomicReference<Exception> ref = new AtomicReference<Exception>();
     List<Thread> threads = new ArrayList<Thread>();

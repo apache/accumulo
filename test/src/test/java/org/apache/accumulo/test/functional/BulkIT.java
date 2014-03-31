@@ -39,7 +39,7 @@ public class BulkIT extends SimpleMacIT {
 
   @Test(timeout = 4 * 60 * 1000)
   public void test() throws Exception {
-    runTest(getConnector(), getTableNames(1)[0], this.getClass().getName(), testName.getMethodName());
+    runTest(getConnector(), getUniqueNames(1)[0], this.getClass().getName(), testName.getMethodName());
   }
 
   static void runTest(Connector c, String tableName, String filePrefix, String dirSuffix) throws AccumuloException, AccumuloSecurityException, TableExistsException, IOException, TableNotFoundException,

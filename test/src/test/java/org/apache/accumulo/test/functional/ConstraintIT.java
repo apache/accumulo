@@ -44,7 +44,7 @@ public class ConstraintIT extends SimpleMacIT {
 
   @Test(timeout = 30 * 1000)
   public void run() throws Exception {
-    String[] tableNames = getTableNames(3);
+    String[] tableNames = getUniqueNames(3);
     Connector c = getConnector();
     for (String table : tableNames) {
       c.tableOperations().create(table);

@@ -60,7 +60,7 @@ public class SplitRecoveryIT extends SimpleMacIT {
   @Test(timeout = 60000)
   public void test() throws Exception {
 
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
 
     for (int tn = 0; tn < 2; tn++) {
 

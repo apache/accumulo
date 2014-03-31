@@ -76,7 +76,7 @@ public abstract class AbstractMacIT {
     return testDir;
   }
 
-  public String[] getTableNames(int num) {
+  public String[] getUniqueNames(int num) {
     if (num == 1)
       return new String[] {testName.getMethodName()};
     String[] names = new String[num];

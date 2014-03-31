@@ -29,7 +29,7 @@ public class BatchWriterIT extends SimpleMacIT {
   @Test(timeout = 30 * 1000)
   public void test() throws Exception {
     // call the batchwriter with buffer of size zero
-    String table = getTableNames(1)[0];
+    String table = getUniqueNames(1)[0];
     Connector c = getConnector();
     c.tableOperations().create(table);
     BatchWriterConfig config = new BatchWriterConfig();

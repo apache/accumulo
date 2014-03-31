@@ -45,7 +45,7 @@ public class TimeoutIT extends SimpleMacIT {
   @Test(timeout = 75 * 1000)
   public void run() throws Exception {
     Connector conn = getConnector();
-    String[] tableNames = getTableNames(2);
+    String[] tableNames = getUniqueNames(2);
     testBatchWriterTimeout(conn, tableNames[0]);
     testBatchScannerTimeout(conn, tableNames[1]);
   }

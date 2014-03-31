@@ -88,7 +88,7 @@ public class NamespacesIT extends SimpleMacIT {
   public void setUpConnectorAndNamespace() throws Exception {
     // prepare a unique namespace and get a new root connector for each test
     c = getConnector();
-    namespace = "ns_" + getTableNames(1)[0];
+    namespace = "ns_" + getUniqueNames(1)[0];
   }
 
   @After

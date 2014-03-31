@@ -53,7 +53,7 @@ public class CloneTestIT extends SimpleMacIT {
 
   @Test(timeout = 120 * 1000)
   public void testProps() throws Exception {
-    String[] tableNames = getTableNames(2);
+    String[] tableNames = getUniqueNames(2);
     String table1 = tableNames[0];
     String table2 = tableNames[1];
 
@@ -134,7 +134,7 @@ public class CloneTestIT extends SimpleMacIT {
 
   @Test(timeout = 120 * 1000)
   public void testDeleteClone() throws Exception {
-    String[] tableNames = getTableNames(3);
+    String[] tableNames = getUniqueNames(3);
     String table1 = tableNames[0];
     String table2 = tableNames[1];
     String table3 = tableNames[2];

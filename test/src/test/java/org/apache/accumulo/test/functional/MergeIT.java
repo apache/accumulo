@@ -50,7 +50,7 @@ public class MergeIT extends SimpleMacIT {
   @Test(timeout = 60 * 1000)
   public void merge() throws Exception {
     Connector c = getConnector();
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     c.tableOperations().addSplits(tableName, splits("a b c d e f g h i j k".split(" ")));
     BatchWriter bw = c.createBatchWriter(tableName, null);
@@ -68,7 +68,7 @@ public class MergeIT extends SimpleMacIT {
   @Test(timeout = 60 * 1000)
   public void mergeSize() throws Exception {
     Connector c = getConnector();
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     c.tableOperations().addSplits(tableName, splits("a b c d e f g h i j k l m n o p q r s t u v w x y z".split(" ")));
     BatchWriter bw = c.createBatchWriter(tableName, null);
@@ -103,7 +103,7 @@ public class MergeIT extends SimpleMacIT {
   public void mergeTest() throws Exception {
     int tc = 0;
     Connector c = getConnector();
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
     runMergeTest(c, tableName + tc++, ns(), ns(), ns("l", "m", "n"), ns(null, "l"), ns(null, "n"));
 
     runMergeTest(c, tableName + tc++, ns("m"), ns(), ns("l", "m", "n"), ns(null, "l"), ns(null, "n"));

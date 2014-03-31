@@ -38,7 +38,7 @@ public class SparseColumnFamilyIT extends SimpleMacIT {
 
   @Test(timeout = 60 * 1000)
   public void sparceColumnFamily() throws Exception {
-    String scftt = getTableNames(1)[0];
+    String scftt = getUniqueNames(1)[0];
     Connector c = getConnector();
     c.tableOperations().create(scftt);
 

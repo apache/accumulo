@@ -57,7 +57,7 @@ public class DeleteRowsSplitIT extends SimpleMacIT {
   public void run() throws Exception {
     // Delete ranges of rows, and verify the are removed
     // Do this while adding many splits
-    final String tableName = getTableNames(1)[0];
+    final String tableName = getUniqueNames(1)[0];
 
     // Eliminate whole tablets
     for (int test = 0; test < 10; test++) {

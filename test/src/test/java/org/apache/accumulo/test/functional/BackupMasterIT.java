@@ -54,7 +54,7 @@ public class BackupMasterIT extends ConfigurableMacIT {
       // kill the master by removing its lock
       writer.recursiveDelete(lockPath, NodeMissingPolicy.FAIL);
       // ensure the backup becomes the master
-      getConnector().tableOperations().create(getTableNames(1)[0]);
+      getConnector().tableOperations().create(getUniqueNames(1)[0]);
     } finally {
       backup.destroy();
     }

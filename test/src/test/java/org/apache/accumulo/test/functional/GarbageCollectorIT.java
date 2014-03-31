@@ -152,7 +152,7 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     killMacGc();
     // dirty metadata
     Connector c = getConnector();
-    String table = getTableNames(1)[0];
+    String table = getUniqueNames(1)[0];
     c.tableOperations().create(table);
     // let gc run for a bit
     cluster.start();
@@ -180,7 +180,7 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
   public void testInvalidDelete() throws Exception {
     killMacGc();
 
-    String table = getTableNames(1)[0];
+    String table = getUniqueNames(1)[0];
     getConnector().tableOperations().create(table);
 
     BatchWriter bw2 = getConnector().createBatchWriter(table, new BatchWriterConfig());

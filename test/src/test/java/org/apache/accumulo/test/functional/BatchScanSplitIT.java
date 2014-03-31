@@ -50,7 +50,7 @@ public class BatchScanSplitIT extends ConfigurableMacIT {
   @Test(timeout = 2 * 60 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
 
     int numRows = 1 << 18;
