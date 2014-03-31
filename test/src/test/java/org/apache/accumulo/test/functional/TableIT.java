@@ -45,7 +45,7 @@ public class TableIT extends SimpleMacIT {
   public void test() throws Exception {
     Connector c = getConnector();
     TableOperations to = c.tableOperations();
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
     to.create(tableName);
     TestIngest.Opts opts = new TestIngest.Opts();
     opts.tableName = tableName;

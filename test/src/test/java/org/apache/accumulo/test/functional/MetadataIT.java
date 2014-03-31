@@ -46,7 +46,7 @@ public class MetadataIT extends SimpleMacIT {
   @Test(timeout = 60 * 1000)
   public void testFlushAndCompact() throws Exception {
     Connector c = getConnector();
-    String tableNames[] = getTableNames(2);
+    String tableNames[] = getUniqueNames(2);
     
     // create a table to write some data to metadata table
     c.tableOperations().create(tableNames[0]);
@@ -103,7 +103,7 @@ public class MetadataIT extends SimpleMacIT {
   @Test(timeout = 2 * 60 * 1000)
   public void batchScanTest() throws Exception {
     Connector c = getConnector();
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
 
     // batch scan regular metadata table

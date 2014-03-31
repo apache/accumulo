@@ -46,7 +46,7 @@ public class BatchWriterFlushIT extends SimpleMacIT {
   @Test(timeout = 90 * 1000)
   public void run() throws Exception {
     Connector c = getConnector();
-    String[] tableNames = getTableNames(2);
+    String[] tableNames = getUniqueNames(2);
     String bwft = tableNames[0];
     c.tableOperations().create(bwft);
     String bwlt = tableNames[1];

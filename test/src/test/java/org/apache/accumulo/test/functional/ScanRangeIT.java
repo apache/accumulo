@@ -42,7 +42,7 @@ public class ScanRangeIT extends SimpleMacIT {
   @Test(timeout = 2 * 60 * 1000)
   public void run() throws Exception {
     Connector c = getConnector();
-    String[] tableNames = getTableNames(2);
+    String[] tableNames = getUniqueNames(2);
     String table1 = tableNames[0];
     c.tableOperations().create(table1);
     String table2 = tableNames[1];

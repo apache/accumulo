@@ -54,7 +54,7 @@ public class TabletIT extends ConfigurableMacIT {
 
   @Test(timeout = 2 * 60 * 1000)
   public void createTableTest() throws Exception {
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
     createTableTest(tableName, false);
     createTableTest(tableName, true);
   }

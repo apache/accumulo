@@ -27,7 +27,7 @@ public class RenameIT extends SimpleMacIT {
 
   @Test(timeout = 2 * 60 * 1000)
   public void renameTest() throws Exception {
-    String[] tableNames = getTableNames(2);
+    String[] tableNames = getUniqueNames(2);
     String name1 = tableNames[0];
     String name2 = tableNames[1];
     BatchWriterOpts bwOpts = new BatchWriterOpts();

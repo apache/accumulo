@@ -66,7 +66,7 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacIT {
     // make some tablets, spread 'em around
     Connector c = getConnector();
     Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
-    String table = this.getTableNames(1)[0];
+    String table = this.getUniqueNames(1)[0];
     c.securityOperations().grantTablePermission("root", MetadataTable.NAME, TablePermission.WRITE);
     c.securityOperations().grantTablePermission("root", RootTable.NAME, TablePermission.WRITE);
     c.tableOperations().create(table);

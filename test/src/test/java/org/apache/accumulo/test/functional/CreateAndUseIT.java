@@ -49,7 +49,7 @@ public class CreateAndUseIT extends SimpleMacIT {
     Text cf = new Text("cf1");
     Text cq = new Text("cq1");
 
-    String[] tableNames = getTableNames(3);
+    String[] tableNames = getUniqueNames(3);
     String tableName = tableNames[0];
     getConnector().tableOperations().create(tableName);
     getConnector().tableOperations().addSplits(tableName, splits);

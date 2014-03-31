@@ -25,7 +25,7 @@ public class CreateManyScannersIT extends SimpleMacIT {
   @Test(timeout = 60 * 1000)
   public void run() throws Exception {
     Connector c = getConnector();
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     for (int i = 0; i < 100000; i++) {
       c.createScanner(tableName, Authorizations.EMPTY);

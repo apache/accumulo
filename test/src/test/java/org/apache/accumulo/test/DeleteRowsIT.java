@@ -30,7 +30,7 @@ public class DeleteRowsIT extends SimpleMacIT {
   @Test(timeout = 5 * 60 * 1000)
   public void test() throws Exception {
     Connector c = getConnector();
-    String[] tableNames = this.getTableNames(20);
+    String[] tableNames = this.getUniqueNames(20);
     for (String tableName : tableNames) {
       c.tableOperations().create(tableName);
       c.tableOperations().deleteRows(tableName, null, null);

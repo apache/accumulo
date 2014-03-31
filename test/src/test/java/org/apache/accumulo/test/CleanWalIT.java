@@ -51,7 +51,7 @@ public class CleanWalIT extends ConfigurableMacIT {
   @Test(timeout= 4 * 60 * 1000)
   public void test() throws Exception {
     Connector conn = getConnector();
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
     BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m = new Mutation("row");

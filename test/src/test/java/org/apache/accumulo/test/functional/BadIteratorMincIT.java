@@ -42,7 +42,7 @@ public class BadIteratorMincIT extends SimpleMacIT {
   public void test() throws Exception {
     Connector c = getConnector();
 
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     IteratorSetting is = new IteratorSetting(30, BadIterator.class);
     c.tableOperations().attachIterator(tableName, is, EnumSet.of(IteratorScope.minc));

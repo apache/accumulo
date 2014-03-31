@@ -39,7 +39,7 @@ public class MasterAssignmentIT extends SimpleMacIT {
   @Test(timeout=2*60*1000)
   public void test() throws Exception {
     Connector c = getConnector();
-    String tableName = super.getTableNames(1)[0];
+    String tableName = super.getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     String tableId = c.tableOperations().tableIdMap().get(tableName);
     // wait for the table to be online

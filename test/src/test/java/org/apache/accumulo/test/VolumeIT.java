@@ -109,7 +109,7 @@ public class VolumeIT extends ConfigurableMacIT {
   public void test() throws Exception {
     // create a table
     Connector connector = getConnector();
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
     connector.tableOperations().create(tableName);
     SortedSet<Text> partitions = new TreeSet<Text>();
     // with some splits
@@ -173,7 +173,7 @@ public class VolumeIT extends ConfigurableMacIT {
     List<String> expected = new ArrayList<String>();
 
     Connector connector = getConnector();
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
     connector.tableOperations().create(tableName, false);
 
     String tableId = connector.tableOperations().tableIdMap().get(tableName);
@@ -255,7 +255,7 @@ public class VolumeIT extends ConfigurableMacIT {
   @Test
   public void testAddVolumes() throws Exception {
 
-    String[] tableNames = getTableNames(2);
+    String[] tableNames = getUniqueNames(2);
 
     // grab this before shutting down cluster
     String uuid = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers()).getInstanceID();
@@ -299,7 +299,7 @@ public class VolumeIT extends ConfigurableMacIT {
   @Test
   public void testNonConfiguredVolumes() throws Exception {
 
-    String[] tableNames = getTableNames(2);
+    String[] tableNames = getUniqueNames(2);
 
     // grab this before shutting down cluster
     String uuid = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers()).getInstanceID();
@@ -435,7 +435,7 @@ public class VolumeIT extends ConfigurableMacIT {
 
   @Test(timeout = 5 * 60 * 1000)
   public void testRemoveVolumes() throws Exception {
-    String[] tableNames = getTableNames(2);
+    String[] tableNames = getUniqueNames(2);
 
     verifyVolumesUsed(tableNames[0], false, v1, v2);
 
@@ -476,7 +476,7 @@ public class VolumeIT extends ConfigurableMacIT {
   }
 
   private void testReplaceVolume(boolean cleanShutdown) throws Exception {
-    String[] tableNames = getTableNames(3);
+    String[] tableNames = getUniqueNames(3);
 
     verifyVolumesUsed(tableNames[0], false, v1, v2);
 

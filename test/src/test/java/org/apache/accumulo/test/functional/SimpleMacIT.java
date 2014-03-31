@@ -30,6 +30,7 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 
 /**
@@ -63,6 +64,12 @@ public class SimpleMacIT extends AbstractMacIT {
         }
       });
     }
+  }
+
+  @Before
+  public void logTestInfo() {
+    if (cluster != null)
+      log.debug("Running " + this.getClass().getSimpleName() + "." + testName.getMethodName() + "() in " + getFolder().getAbsolutePath());
   }
 
   @Override

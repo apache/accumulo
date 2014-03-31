@@ -42,7 +42,7 @@ public class AddSplitIT extends SimpleMacIT {
   @Test(timeout = 60 * 1000)
   public void addSplitTest() throws Exception {
 
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
     Connector c = getConnector();
     c.tableOperations().create(tableName);
 

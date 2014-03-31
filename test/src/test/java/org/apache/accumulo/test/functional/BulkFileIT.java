@@ -45,7 +45,7 @@ public class BulkFileIT extends SimpleMacIT {
   @Test(timeout = 2 * 60 * 1000)
   public void testBulkFile() throws Exception {
     Connector c = getConnector();
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     SortedSet<Text> splits = new TreeSet<Text>();
     for (String split : "0333 0666 0999 1333 1666".split(" "))
@@ -55,7 +55,7 @@ public class BulkFileIT extends SimpleMacIT {
     AccumuloConfiguration aconf = ServerConfiguration.getDefaultConfiguration();
     FileSystem fs = TraceFileSystem.wrap(VolumeConfiguration.getDefaultVolume(conf, aconf).getFileSystem());
 
-    String dir = rootPath() + "/bulk_test_diff_files_89723987592_" + getTableNames(1)[0];
+    String dir = rootPath() + "/bulk_test_diff_files_89723987592_" + getUniqueNames(1)[0];
 
     fs.delete(new Path(dir), true);
 

@@ -35,7 +35,7 @@ public class DeleteTableDuringSplitIT extends SimpleMacIT {
   
   @Test(timeout= 10 * 60 * 1000)
   public void test() throws Exception {
-    String[] tableNames = getTableNames(100);
+    String[] tableNames = getUniqueNames(100);
     // make a bunch of tables
     for (String tableName : tableNames) {
       getConnector().tableOperations().create(tableName);

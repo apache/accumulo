@@ -50,7 +50,7 @@ public class VisibilityIT extends SimpleMacIT {
   @Test(timeout = 2 * 60 * 1000)
   public void run() throws Exception {
     Connector c = getConnector();
-    String[] tableNames = getTableNames(2);
+    String[] tableNames = getUniqueNames(2);
     String table = tableNames[0];
     c.tableOperations().create(table);
     String table2 = tableNames[1];

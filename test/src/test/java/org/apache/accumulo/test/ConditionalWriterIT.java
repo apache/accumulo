@@ -101,7 +101,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
   public void testBasic() throws Exception {
 
     Connector conn = getConnector();
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
 
     conn.tableOperations().create(tableName);
 
@@ -179,7 +179,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
   public void testFields() throws Exception {
 
     Connector conn = getConnector();
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
 
     conn.tableOperations().create(tableName);
 
@@ -262,7 +262,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     // test when a user sets a col vis in a condition that can never be seen
 
     Connector conn = getConnector();
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
 
     conn.tableOperations().create(tableName);
 
@@ -359,7 +359,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     // ensure constraint violations are properly reported
 
     Connector conn = getConnector();
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
 
     conn.tableOperations().create(tableName);
     conn.tableOperations().addConstraint(tableName, AlphaNumKeyConstraint.class.getName());
@@ -388,7 +388,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
   public void testIterators() throws Exception {
 
     Connector conn = getConnector();
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
 
     conn.tableOperations().create(tableName, false);
 
@@ -484,7 +484,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
   public void testBatch() throws Exception {
 
     Connector conn = getConnector();
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
 
     conn.tableOperations().create(tableName);
 
@@ -589,7 +589,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
   public void testBigBatch() throws Exception {
 
     Connector conn = getConnector();
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
 
     conn.tableOperations().create(tableName);
     conn.tableOperations().addSplits(tableName, nss("2", "4", "6"));
@@ -662,7 +662,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
   public void testBatchErrors() throws Exception {
 
     Connector conn = getConnector();
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
 
     conn.tableOperations().create(tableName);
     conn.tableOperations().addConstraint(tableName, AlphaNumKeyConstraint.class.getName());
@@ -743,7 +743,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     // test multiple mutations for same row in same batch
 
     Connector conn = getConnector();
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
 
     conn.tableOperations().create(tableName);
 
@@ -927,7 +927,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
   public void testThreads() throws Exception {
     // test multiple threads using a single conditional writer
 
-    String table = getTableNames(1)[0];
+    String table = getUniqueNames(1)[0];
     Connector conn = getConnector();
 
     conn.tableOperations().create(table);
@@ -1049,7 +1049,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
   public void testTimeout() throws Exception {
     Connector conn = getConnector();
 
-    String table = getTableNames(1)[0];
+    String table = getUniqueNames(1)[0];
 
     conn.tableOperations().create(table);
 
@@ -1096,7 +1096,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
 
   @Test(timeout = 60 * 1000)
   public void testDeleteTable() throws Exception {
-    String table = getTableNames(1)[0];
+    String table = getUniqueNames(1)[0];
     Connector conn = getConnector();
 
     try {
@@ -1126,7 +1126,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
 
   @Test(timeout = 60 * 1000)
   public void testOffline() throws Exception {
-    String table = getTableNames(1)[0];
+    String table = getUniqueNames(1)[0];
     Connector conn = getConnector();
 
     conn.tableOperations().create(table);
@@ -1158,7 +1158,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
 
   @Test(timeout = 60 * 1000)
   public void testError() throws Exception {
-    String table = getTableNames(1)[0];
+    String table = getUniqueNames(1)[0];
     Connector conn = getConnector();
 
     conn.tableOperations().create(table);
@@ -1185,7 +1185,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
 
   @Test(timeout = 60 * 1000, expected = IllegalArgumentException.class)
   public void testNoConditions() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException {
-    String table = getTableNames(1)[0];
+    String table = getUniqueNames(1)[0];
     Connector conn = getConnector();
 
     conn.tableOperations().create(table);
@@ -1208,7 +1208,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
       UtilWaitThread.sleep(1000);
     }
     
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
     conn.tableOperations().deleteRows("trace", null, null);
 

@@ -89,7 +89,7 @@ public class PermissionsIT extends SimpleMacIT {
       }
 
       // test permission before and after granting it
-      String tableNamePrefix = getTableNames(1)[0];
+      String tableNamePrefix = getUniqueNames(1)[0];
       testMissingSystemPermission(tableNamePrefix, c, test_user_conn, perm);
       c.securityOperations().grantSystemPermission(testUser, perm);
       verifyHasOnlyTheseSystemPermissions(c, testUser, perm);
@@ -389,7 +389,7 @@ public class PermissionsIT extends SimpleMacIT {
     // check for read-only access to metadata table
     verifyHasOnlyTheseTablePermissions(c, c.whoami(), MetadataTable.NAME, TablePermission.READ, TablePermission.ALTER_TABLE);
     verifyHasOnlyTheseTablePermissions(c, testUser, MetadataTable.NAME, TablePermission.READ);
-    String tableName = getTableNames(1)[0] + "__TABLE_PERMISSION_TEST__";
+    String tableName = getUniqueNames(1)[0] + "__TABLE_PERMISSION_TEST__";
 
     // test each permission
     for (TablePermission perm : TablePermission.values()) {

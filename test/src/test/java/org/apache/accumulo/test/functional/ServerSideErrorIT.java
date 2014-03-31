@@ -41,7 +41,7 @@ public class ServerSideErrorIT extends SimpleMacIT {
   @Test(timeout = 2 * 60 * 1000)
   public void run() throws Exception {
     Connector c = getConnector();
-    String tableName = getTableNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     IteratorSetting is = new IteratorSetting(5, "Bad Aggregator", BadCombiner.class);
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("acf")));
