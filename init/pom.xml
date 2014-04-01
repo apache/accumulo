@@ -86,7 +86,7 @@
                     </mapping>
                   </mappings>
                   <postinstallScriptlet>
-                    <script>su hdfs sh -c 'hadoop fs -mkdir /accumulo ; hadoop fs -chown accumulo /accumulo' ; su accumulo sh -c '%{_datadir}/accumulo/bin/accumulo init --instance-name instance --password secret'</script>
+                    <script>su hdfs -c 'hadoop fs -mkdir /accumulo &amp;&amp; hadoop fs -chown accumulo /accumulo'</script>
                   </postinstallScriptlet>
                 </configuration>
               </execution>
