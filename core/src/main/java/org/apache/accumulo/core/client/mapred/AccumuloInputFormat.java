@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.mapreduce.RangeInputSplit;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -56,8 +55,8 @@ public class AccumuloInputFormat extends InputFormatBase<Key,Value> {
     log.setLevel(getLogLevel(job));
     
     // Override the log level from the configuration as if the RangeInputSplit has one it's the more correct one to use.
-    if (split instanceof RangeInputSplit) {
-      RangeInputSplit risplit = (RangeInputSplit) split;
+    if (split instanceof org.apache.accumulo.core.client.mapreduce.RangeInputSplit) {
+      org.apache.accumulo.core.client.mapreduce.RangeInputSplit risplit = (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) split;
       Level level = risplit.getLogLevel();
       if (null != level) {
         log.setLevel(level);

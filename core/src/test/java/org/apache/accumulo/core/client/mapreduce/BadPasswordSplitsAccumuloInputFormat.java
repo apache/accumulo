@@ -33,7 +33,7 @@ public class BadPasswordSplitsAccumuloInputFormat extends AccumuloInputFormat {
     List<InputSplit> splits = super.getSplits(context);
     
     for (InputSplit split : splits) {
-      RangeInputSplit rangeSplit = (RangeInputSplit) split;
+      org.apache.accumulo.core.client.mapreduce.RangeInputSplit rangeSplit = (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) split;
       rangeSplit.setToken(new PasswordToken("anythingelse"));
     }
     
