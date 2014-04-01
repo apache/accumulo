@@ -86,7 +86,7 @@
                     </mapping>
                   </mappings>
                   <postinstallScriptlet>
-                    <script>su hdfs -c 'hadoop fs -mkdir /accumulo &amp;&amp; hadoop fs -chown accumulo /accumulo'</script>
+                    <script>su hdfs -c 'hadoop fs -test -e /accumulo || hadoop fs -mkdir /accumulo &amp;&amp; hadoop fs -chown accumulo /accumulo'</script>
                   </postinstallScriptlet>
                 </configuration>
               </execution>
