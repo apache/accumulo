@@ -35,7 +35,7 @@ public class EmptySplitsAccumuloInputFormat extends AccumuloInputFormat {
     
     // Copy only the necessary information
     for (InputSplit oldSplit : oldSplits) {
-      RangeInputSplit newSplit = new RangeInputSplit((RangeInputSplit) oldSplit);
+      org.apache.accumulo.core.client.mapreduce.RangeInputSplit newSplit = new org.apache.accumulo.core.client.mapreduce.RangeInputSplit((org.apache.accumulo.core.client.mapreduce.RangeInputSplit) oldSplit);
       newSplits.add(newSplit);
     }
     

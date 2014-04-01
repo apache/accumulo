@@ -323,7 +323,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
      * @since 1.6.0
      */
     @Override
-    protected void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName, RangeInputSplit split) {
+    protected void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName, org.apache.accumulo.core.client.mapreduce.RangeInputSplit split) {
       setupIterators(context, scanner, split);
     }
 
@@ -335,13 +335,32 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
      * @param scanner
      *          the scanner to configure
      */
-    protected void setupIterators(TaskAttemptContext context, Scanner scanner, RangeInputSplit split) {
+    protected void setupIterators(TaskAttemptContext context, Scanner scanner, org.apache.accumulo.core.client.mapreduce.RangeInputSplit split) {
       List<IteratorSetting> iterators = split.getIterators();
       if (null == iterators) {
         iterators = getIterators(context);
       }
       for (IteratorSetting iterator : iterators)
         scanner.addScanIterator(iterator);
+    }
+  }
+
+  /**
+   * @see org.apache.accumulo.core.client.mapreduce.RangeInputSplit
+   */
+  @Deprecated
+  public static class RangeInputSplit extends org.apache.accumulo.core.client.mapreduce.RangeInputSplit {
+
+    public RangeInputSplit() {
+      super();
+    }
+
+    public RangeInputSplit(RangeInputSplit other) throws IOException {
+      super(other);
+    }
+
+    protected RangeInputSplit(String table, String tableId, Range range, String[] locations) {
+      super(table, tableId, range, locations);
     }
   }
 }

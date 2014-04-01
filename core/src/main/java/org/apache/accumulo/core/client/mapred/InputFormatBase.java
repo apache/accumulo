@@ -315,7 +315,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   protected abstract static class RecordReaderBase<K,V> extends AbstractRecordReader<K,V> {
 
     @Override
-    protected void setupIterators(JobConf job, Scanner scanner, String tableName, RangeInputSplit split) {
+    protected void setupIterators(JobConf job, Scanner scanner, String tableName, org.apache.accumulo.core.client.mapred.RangeInputSplit split) {
       setupIterators(job, scanner, split);
     }
 
@@ -327,7 +327,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
      * @param scanner
      *          the scanner to configure
      */
-    protected void setupIterators(JobConf job, Scanner scanner, RangeInputSplit split) {
+    protected void setupIterators(JobConf job, Scanner scanner, org.apache.accumulo.core.client.mapreduce.RangeInputSplit split) {
       List<IteratorSetting> iterators = split.getIterators();
 
       if (null == iterators) {
@@ -339,4 +339,21 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
     }
   }
 
+  /**
+   * @see org.apache.accumulo.core.client.mapred.RangeInputSplit
+   */
+  @Deprecated
+  public static class RangeInputSplit extends org.apache.accumulo.core.client.mapred.RangeInputSplit {
+    public RangeInputSplit() {
+      super();
+    }
+
+    public RangeInputSplit(RangeInputSplit other) throws IOException {
+      super(other);
+    }
+
+    public RangeInputSplit(String table, String tableId, Range range, String[] locations) {
+      super(table, tableId, range, locations);
+    }
+  }
 }
