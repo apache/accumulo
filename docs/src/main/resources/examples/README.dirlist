@@ -105,7 +105,7 @@ Here is an illustration of what data looks like in the data table:
     row colf:colq [vis]	value
     274af6419a3c4c4a259260ac7017cbf1 refs:e77276a2b56e5c15b540eaae32b12c69\x00filext [exampleVis]    README
     274af6419a3c4c4a259260ac7017cbf1 refs:e77276a2b56e5c15b540eaae32b12c69\x00name [exampleVis]    /local/Accumulo.README
-    274af6419a3c4c4a259260ac7017cbf1 ~chunk:\x00\x0FB@\x00\x00\x00\x00 [exampleVis]    *******************************************************************************\x0A1. Building\x0A\x0AIn the normal tarball or RPM release of accumulo, [truncated]
+    274af6419a3c4c4a259260ac7017cbf1 ~chunk:\x00\x0FB@\x00\x00\x00\x00 [exampleVis]    *******************************************************************************\x0A1. Building\x0A\x0AIn the normal tarball release of accumulo, [truncated]
     274af6419a3c4c4a259260ac7017cbf1 ~chunk:\x00\x0FB@\x00\x00\x00\x01 [exampleVis]
 
 The rows are the md5 hash of the file. Some column family : column qualifier pairs are "refs" : hash of file name + null byte + property name, in which case the value is property value. There can be multiple references to the same file which are distinguished by the hash of the file name.
