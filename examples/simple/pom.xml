@@ -102,38 +102,4 @@
       </plugins>
     </pluginManagement>
   </build>
-  <profiles>
-    <profile>
-      <id>rpm</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>rpm-maven-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>build-rpm</id>
-                <goals>
-                  <goal>attached-rpm</goal>
-                </goals>
-                <phase>package</phase>
-                <configuration>
-                  <requires>
-                    <require>jre &gt;= 1.6.0</require>
-                    <require>accumulo-core = %{version}-%{release}</require>
-                  </requires>
-                  <mappings>
-                    <mapping>
-                      <directory>%{_javadir}/accumulo</directory>
-                      <artifact />
-                    </mapping>
-                  </mappings>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
 </project>

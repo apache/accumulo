@@ -36,8 +36,6 @@
       </includes>
       <excludes>
         <exclude>${groupId}:${artifactId}-docs</exclude>
-        <exclude>${groupId}:${artifactId}-*:rpm</exclude>
-        <exclude>${groupId}:${artifactId}-*:deb</exclude>
       </excludes>
     </dependencySet>
     <dependencySet>
@@ -224,36 +222,6 @@
       <includes>
         <include>*.thrift</include>
       </includes>
-    </fileSet>
-    <fileSet>
-      <directory>scripts</directory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0755</fileMode>
-    </fileSet>
-    <fileSet>
-      <directory>../server/gc/src/main/packaging/etc/init.d</directory>
-      <outputDirectory>scripts/init.d</outputDirectory>
-      <fileMode>0755</fileMode>
-    </fileSet>
-    <fileSet>
-      <directory>../server/master/src/main/packaging/etc/init.d</directory>
-      <outputDirectory>scripts/init.d</outputDirectory>
-      <fileMode>0755</fileMode>
-    </fileSet>
-    <fileSet>
-      <directory>../server/monitor/src/main/packaging/etc/init.d</directory>
-      <outputDirectory>scripts/init.d</outputDirectory>
-      <fileMode>0755</fileMode>
-    </fileSet>
-    <fileSet>
-      <directory>../server/tracer/src/main/packaging/etc/init.d</directory>
-      <outputDirectory>scripts/init.d</outputDirectory>
-      <fileMode>0755</fileMode>
-    </fileSet>
-    <fileSet>
-      <directory>../server/tserver/src/main/packaging/etc/init.d</directory>
-      <outputDirectory>scripts/init.d</outputDirectory>
-      <fileMode>0755</fileMode>
     </fileSet>
     <fileSet>
       <directory>../</directory>

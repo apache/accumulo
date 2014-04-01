@@ -123,49 +123,5 @@
         </plugins>
       </build>
     </profile>
-    <profile>
-      <id>rpm</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>rpm-maven-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>build-rpm</id>
-                <goals>
-                  <goal>attached-rpm</goal>
-                </goals>
-                <phase>package</phase>
-                <configuration>
-                  <provides>
-                    <provide>${project.artifactId} = %{version}-%{release}</provide>
-                  </provides>
-                  <requires>
-                    <require>accumulo-core = %{version}-%{release}</require>
-                  </requires>
-                  <mappings>
-                    <mapping>
-                      <directory>%{_datadir}/accumulo/docs</directory>
-                      <sources>
-                        <source>
-                          <location>${project.build.directory}/accumulo_user_manual.pdf</location>
-                        </source>
-                        <source>
-                          <location>src/main/resources/</location>
-                        </source>
-                        <source>
-                          <location>${project.build.directory}/config.html</location>
-                        </source>
-                      </sources>
-                    </mapping>
-                  </mappings>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
   </profiles>
 </project>
