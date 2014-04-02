@@ -45,8 +45,8 @@ locationByProgram()
       RESULT="$(readlink "${RESULT}")"
       [[ "${RESULT}" != /* ]] && RESULT="${DIR}/${RESULT}" # if $RESULT was a relative symlink, we need to resolve it relative to the path where the symlink file was located
    done
-   # find the relative home directory
-   RESULT=$(dirname "${RESULT}")
+   # find the relative home directory, accounting for an extra bin directory
+   RESULT=$(dirname $(dirname "${RESULT}") )
    echo "Auto-set ${2} to '${RESULT}'.  To suppress this message, set ${2} in conf/accumulo-env.sh"
    eval "${2}=${RESULT}"
 }
