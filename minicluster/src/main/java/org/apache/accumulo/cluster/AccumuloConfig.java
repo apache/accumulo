@@ -132,9 +132,9 @@ public interface AccumuloConfig {
   public AccumuloConfig setNativeLibPaths(String... nativePathItems);
 
   /**
-   * Build the appropriate {@link NewMiniAccumuloCluster} from this configuration
+   * Build the appropriate {@link AccumuloCluster} from this configuration
    *
-   * @return A {@link NewMiniAccumuloCluster}
+   * @return An {@link AccumuloCluster}
    */
   public AccumuloCluster build() throws IOException;
 }
