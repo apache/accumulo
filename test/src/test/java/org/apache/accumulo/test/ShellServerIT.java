@@ -41,6 +41,7 @@ import jline.console.ConsoleReader;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -58,6 +59,7 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.accumulo.test.functional.SimpleMacIT;
+import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.tracer.TraceServer;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
@@ -994,10 +996,11 @@ public class ShellServerIT extends SimpleMacIT {
     for (int i = 0; i < 6; i++) {
       ts.exec("insert " + i + " cf cq value", true);
     }
-    ts.exec("config -t " + table + " -s table.iterator.scan.slow=30,org.apache.accumulo.test.functional.SlowIterator", true);
-    ts.exec("config -t " + table + " -s table.iterator.scan.slow.opt.sleepTime=500", true);
     Connector connector = getConnector();
     final Scanner s = connector.createScanner(table, Authorizations.EMPTY);
+    IteratorSetting cfg = new IteratorSetting(30, SlowIterator.class);
+    SlowIterator.setSleepTime(cfg, 500);
+    s.addScanIterator(cfg);
 
     Thread thread = new Thread() {
       @Override
