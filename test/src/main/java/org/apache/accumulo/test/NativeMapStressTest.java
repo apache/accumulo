@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -24,7 +25,6 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -50,7 +50,7 @@ public class NativeMapStressTest {
   
   private static void put(NativeMap nm, String row, String val, int mc) {
     Mutation m = new Mutation(new Text(row));
-    m.put(new Text(), new Text(), Long.MAX_VALUE, new Value(val.getBytes(Constants.UTF8)));
+    m.put(new Text(), new Text(), Long.MAX_VALUE, new Value(val.getBytes(StandardCharsets.UTF_8)));
     nm.mutate(m, mc);
   }
   

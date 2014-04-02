@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import java.nio.charset.StandardCharsets;
 import java.security.SecurityPermission;
 import java.util.LinkedList;
 import java.util.List;
@@ -96,9 +97,9 @@ public class Namespaces {
       byte[] path = zc.get(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + id + Constants.ZNAMESPACE_NAME);
       if (path != null) {
         if (nameAsKey)
-          namespaceMap.put(new String(path, Constants.UTF8), id);
+          namespaceMap.put(new String(path, StandardCharsets.UTF_8), id);
         else
-          namespaceMap.put(id, new String(path, Constants.UTF8));
+          namespaceMap.put(id, new String(path, StandardCharsets.UTF_8));
       }
     }
     return namespaceMap;

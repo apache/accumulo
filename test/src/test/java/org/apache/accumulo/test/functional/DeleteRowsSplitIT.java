@@ -18,6 +18,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertTrue;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -25,7 +26,6 @@ import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
@@ -47,9 +47,9 @@ public class DeleteRowsSplitIT extends SimpleMacIT {
   static final SortedSet<Text> SPLITS = new TreeSet<Text>();
   static final List<String> ROWS = new ArrayList<String>();
   static {
-    for (byte b : LETTERS.getBytes(Constants.UTF8)) {
+    for (byte b : LETTERS.getBytes(StandardCharsets.UTF_8)) {
       SPLITS.add(new Text(new byte[] {b}));
-      ROWS.add(new String(new byte[] {b}, Constants.UTF8));
+      ROWS.add(new String(new byte[] {b}, StandardCharsets.UTF_8));
     }
   }
 

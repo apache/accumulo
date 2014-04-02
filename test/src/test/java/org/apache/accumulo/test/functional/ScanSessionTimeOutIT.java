@@ -16,11 +16,11 @@
  */
 package org.apache.accumulo.test.functional;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -53,7 +53,7 @@ public class ScanSessionTimeOutIT extends ConfigurableMacIT {
     for (int i = 0; i < 100000; i++) {
       Mutation m = new Mutation(new Text(String.format("%08d", i)));
       for (int j = 0; j < 3; j++)
-        m.put(new Text("cf1"), new Text("cq" + j), new Value((i + "_" + j).getBytes(Constants.UTF8)));
+        m.put(new Text("cf1"), new Text("cq" + j), new Value((i + "_" + j).getBytes(StandardCharsets.UTF_8)));
       
       bw.addMutation(m);
     }

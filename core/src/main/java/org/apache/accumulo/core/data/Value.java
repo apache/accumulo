@@ -23,9 +23,9 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
@@ -228,7 +228,7 @@ public class Value implements WritableComparable<Object> {
 
   @Override
   public String toString() {
-    return new String(get(), Constants.UTF8);
+    return new String(get(), StandardCharsets.UTF_8);
   }
 
   /**

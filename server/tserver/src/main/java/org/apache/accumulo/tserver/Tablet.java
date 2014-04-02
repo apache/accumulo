@@ -20,6 +20,7 @@ import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -2294,7 +2295,7 @@ public class Tablet {
     try {
       String zTablePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + extent.getTableId()
           + Constants.ZTABLE_FLUSH_ID;
-      return Long.parseLong(new String(ZooReaderWriter.getRetryingInstance().getData(zTablePath, null), Constants.UTF8));
+      return Long.parseLong(new String(ZooReaderWriter.getRetryingInstance().getData(zTablePath, null), StandardCharsets.UTF_8));
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     } catch (NumberFormatException nfe) {
@@ -2313,7 +2314,7 @@ public class Tablet {
         + Constants.ZTABLE_COMPACT_CANCEL_ID;
 
     try {
-      return Long.parseLong(new String(ZooReaderWriter.getRetryingInstance().getData(zTablePath, null), Constants.UTF8));
+      return Long.parseLong(new String(ZooReaderWriter.getRetryingInstance().getData(zTablePath, null), StandardCharsets.UTF_8));
     } catch (KeeperException e) {
       throw new RuntimeException(e);
     } catch (InterruptedException e) {
@@ -2326,14 +2327,14 @@ public class Tablet {
       String zTablePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + extent.getTableId()
           + Constants.ZTABLE_COMPACT_ID;
 
-      String[] tokens = new String(ZooReaderWriter.getRetryingInstance().getData(zTablePath, null), Constants.UTF8).split(",");
+      String[] tokens = new String(ZooReaderWriter.getRetryingInstance().getData(zTablePath, null), StandardCharsets.UTF_8).split(",");
       long compactID = Long.parseLong(tokens[0]);
 
       CompactionIterators iters = new CompactionIterators();
 
       if (tokens.length > 1) {
         Hex hex = new Hex();
-        ByteArrayInputStream bais = new ByteArrayInputStream(hex.decode(tokens[1].split("=")[1].getBytes(Constants.UTF8)));
+        ByteArrayInputStream bais = new ByteArrayInputStream(hex.decode(tokens[1].split("=")[1].getBytes(StandardCharsets.UTF_8)));
         DataInputStream dis = new DataInputStream(bais);
 
         try {

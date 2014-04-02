@@ -17,6 +17,7 @@
 package org.apache.accumulo.server.util;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
@@ -53,7 +54,7 @@ public class CleanZookeeper {
     String root = Constants.ZROOT;
     IZooReaderWriter zk = ZooReaderWriter.getInstance();
     if (opts.auth != null) {
-      zk.getZooKeeper().addAuthInfo("digest", ("accumulo:"+opts.auth).getBytes(Constants.UTF8));
+      zk.getZooKeeper().addAuthInfo("digest", ("accumulo:"+opts.auth).getBytes(StandardCharsets.UTF_8));
     }
     
     try {
@@ -62,7 +63,7 @@ public class CleanZookeeper {
           for (String instanceName : zk.getChildren(root + Constants.ZINSTANCES)) {
             String instanceNamePath = root + Constants.ZINSTANCES + "/" + instanceName;
             byte[] id = zk.getData(instanceNamePath, null);
-            if (id != null && !new String(id, Constants.UTF8).equals(HdfsZooInstance.getInstance().getInstanceID())) {
+            if (id != null && !new String(id, StandardCharsets.UTF_8).equals(HdfsZooInstance.getInstance().getInstanceID())) {
               try {
                 zk.recursiveDelete(instanceNamePath, NodeMissingPolicy.SKIP);
               } catch (KeeperException.NoAuthException ex) {

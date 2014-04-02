@@ -18,12 +18,12 @@ package org.apache.accumulo.server.util;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Stack;
 
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -69,7 +69,7 @@ public class RestoreZookeeper {
           cwd.push("");
         else
           cwd.push(root);
-        create(root, "", Constants.UTF8.name());
+        create(root, "", StandardCharsets.UTF_8.name());
       }
     }
     
@@ -80,7 +80,7 @@ public class RestoreZookeeper {
     
     // assume UTF-8 if not "base64"
     private void create(String path, String value, String encoding) {
-      byte[] data = value.getBytes(Constants.UTF8);
+      byte[] data = value.getBytes(StandardCharsets.UTF_8);
       if ("base64".equals(encoding))
         data = Base64.decodeBase64(data);
       try {

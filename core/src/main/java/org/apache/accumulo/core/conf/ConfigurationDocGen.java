@@ -19,10 +19,10 @@ package org.apache.accumulo.core.conf;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.log4j.Logger;
 
 /**
@@ -308,7 +308,7 @@ class ConfigurationDocGen {
       int n;
       try {
         while ((n = data.read(buffer)) > 0)
-          doc.print(new String(buffer, 0, n, Constants.UTF8));
+          doc.print(new String(buffer, 0, n, StandardCharsets.UTF_8));
       } catch (IOException e) {
         e.printStackTrace();
         return;

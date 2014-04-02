@@ -16,10 +16,10 @@
  */
 package org.apache.accumulo.server.master.state;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.master.thrift.DeadServer;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -60,7 +60,7 @@ public class DeadServerList {
             // in the dead server list.
             continue;
           }
-          DeadServer server = new DeadServer(child, stat.getMtime(), new String(data, Constants.UTF8));
+          DeadServer server = new DeadServer(child, stat.getMtime(), new String(data, StandardCharsets.UTF_8));
           result.add(server);
         }
       }
@@ -82,7 +82,7 @@ public class DeadServerList {
   public void post(String server, String cause) {
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     try {
-      zoo.putPersistentData(path + "/" + server, cause.getBytes(Constants.UTF8), NodeExistsPolicy.SKIP);
+      zoo.putPersistentData(path + "/" + server, cause.getBytes(StandardCharsets.UTF_8), NodeExistsPolicy.SKIP);
     } catch (Exception ex) {
       log.error(ex, ex);
     }

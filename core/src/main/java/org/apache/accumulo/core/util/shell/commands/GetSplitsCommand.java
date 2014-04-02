@@ -17,12 +17,12 @@
 package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Scanner;
@@ -104,7 +104,7 @@ public class GetSplitsCommand extends Command {
       return null;
     }
     BinaryFormatter.getlength(text.getLength());
-    return encode ? new String(Base64.encodeBase64(TextUtil.getBytes(text)), Constants.UTF8) : BinaryFormatter.appendText(new StringBuilder(), text).toString();
+    return encode ? new String(Base64.encodeBase64(TextUtil.getBytes(text)), StandardCharsets.UTF_8) : BinaryFormatter.appendText(new StringBuilder(), text).toString();
   }
   
   private static String obscuredTabletName(final KeyExtent extent) {
@@ -117,7 +117,7 @@ public class GetSplitsCommand extends Command {
     if (extent.getEndRow() != null && extent.getEndRow().getLength() > 0) {
       digester.update(extent.getEndRow().getBytes(), 0, extent.getEndRow().getLength());
     }
-    return new String(Base64.encodeBase64(digester.digest()), Constants.UTF8);
+    return new String(Base64.encodeBase64(digester.digest()), StandardCharsets.UTF_8);
   }
   
   @Override

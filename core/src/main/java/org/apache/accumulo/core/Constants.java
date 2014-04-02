@@ -16,12 +16,10 @@
  */
 package org.apache.accumulo.core;
 
-import java.nio.charset.Charset;
-
 import org.apache.accumulo.core.security.Authorizations;
 
 public class Constants {
-  public static final Charset UTF8 = Charset.forName("UTF-8");
+
   public static final String VERSION = FilteredConstants.VERSION;
 
   // Zookeeper locations
@@ -53,7 +51,7 @@ public class Constants {
   public static final String ZMONITOR_LOCK = ZMONITOR + "/lock";
   public static final String ZMONITOR_HTTP_ADDR = ZMONITOR + "/http_addr";
   public static final String ZMONITOR_LOG4J_ADDR = ZMONITOR + "/log4j_addr";
-  
+
   public static final String ZCONFIG = "/config";
 
   public static final String ZTSERVERS = "/tservers";

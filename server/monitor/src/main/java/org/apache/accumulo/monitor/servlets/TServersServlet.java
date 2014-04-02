@@ -17,6 +17,7 @@
 package org.apache.accumulo.monitor.servlets;
 
 import java.lang.management.ManagementFactory;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.text.DateFormat;
 import java.util.ArrayList;
@@ -26,7 +27,6 @@ import java.util.Map.Entry;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.master.thrift.DeadServer;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
@@ -169,7 +169,7 @@ public class TServersServlet extends BasicServlet {
       if (extent.getEndRow() != null && extent.getEndRow().getLength() > 0) {
         digester.update(extent.getEndRow().getBytes(), 0, extent.getEndRow().getLength());
       }
-      String obscuredExtent = new String(Base64.encodeBase64(digester.digest()), Constants.UTF8);
+      String obscuredExtent = new String(Base64.encodeBase64(digester.digest()), StandardCharsets.UTF_8);
       String displayExtent = String.format("<code>[%s]</code>", obscuredExtent);
       
       TableRow row = perTabletResults.prepareRow();

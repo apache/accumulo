@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.InetAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -505,7 +506,7 @@ public class Shell extends ShellOptions {
     ShellCompletor userCompletor = null;
 
     if (execFile != null) {
-      java.util.Scanner scanner = new java.util.Scanner(execFile, Constants.UTF8.name());
+      java.util.Scanner scanner = new java.util.Scanner(execFile, StandardCharsets.UTF_8.name());
       try {
         while (scanner.hasNextLine() && !hasExited()) {
           execCommand(scanner.nextLine(), true, isVerbose());
@@ -919,7 +920,7 @@ public class Shell extends ShellOptions {
     PrintWriter writer;
 
     public PrintFile(String filename) throws FileNotFoundException {
-      writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename), Constants.UTF8)));
+      writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename), StandardCharsets.UTF_8)));
     }
 
     @Override

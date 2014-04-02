@@ -20,10 +20,10 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 
 import jline.console.ConsoleReader;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ClientOpts.Password;
 import org.apache.accumulo.core.cli.ClientOpts.PasswordConverter;
 import org.apache.accumulo.core.cli.Help;
@@ -105,7 +105,7 @@ public class CreateToken {
       if (!tf.exists()) {
         tf.createNewFile();
       }
-      PrintStream out = new PrintStream(new FileOutputStream(tf, true), true, Constants.UTF8.name());
+      PrintStream out = new PrintStream(new FileOutputStream(tf, true), true, StandardCharsets.UTF_8.name());
       String outString = principal + ":" + opts.tokenClassName + ":" + tokenBase64;
       out.println(outString);
       out.close();

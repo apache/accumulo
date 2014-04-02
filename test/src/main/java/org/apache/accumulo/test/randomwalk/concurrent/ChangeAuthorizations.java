@@ -16,12 +16,12 @@
  */
 package org.apache.accumulo.test.randomwalk.concurrent;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.security.Authorizations;
@@ -47,10 +47,10 @@ public class ChangeAuthorizations extends Test {
       if (rand.nextBoolean()) {
         String authorization = String.format("a%d", rand.nextInt(5000));
         log.debug("adding authorization " + authorization);
-        auths.add(authorization.getBytes(Constants.UTF8));
+        auths.add(authorization.getBytes(StandardCharsets.UTF_8));
       } else {
         if (auths.size() > 0) {
-          log.debug("removing authorization " + new String(auths.remove(0), Constants.UTF8));
+          log.debug("removing authorization " + new String(auths.remove(0), StandardCharsets.UTF_8));
         }
       }
       conn.securityOperations().changeUserAuthorizations(userName, new Authorizations(auths));

@@ -18,6 +18,7 @@ package org.apache.accumulo.test.continuous;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -25,7 +26,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ClientOpts.TimeConverter;
 import org.apache.accumulo.core.cli.Help;
 
@@ -72,7 +72,7 @@ public class TimeBinner {
     Operation operation = Operation.valueOf(opts.operation);
     SimpleDateFormat sdf = new SimpleDateFormat(opts.dateFormat);
     
-    BufferedReader in = new BufferedReader(new InputStreamReader(System.in, Constants.UTF8));
+    BufferedReader in = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
     
     String line = null;
     

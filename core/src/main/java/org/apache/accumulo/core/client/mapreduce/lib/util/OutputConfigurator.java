@@ -21,8 +21,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.hadoop.conf.Configuration;
@@ -99,7 +99,7 @@ public class OutputConfigurator extends ConfiguratorBase {
     String serialized;
     try {
       bwConfig.write(new DataOutputStream(baos));
-      serialized = new String(baos.toByteArray(), Constants.UTF8);
+      serialized = new String(baos.toByteArray(), StandardCharsets.UTF_8);
       baos.close();
     } catch (IOException e) {
       throw new IllegalArgumentException("unable to serialize " + BatchWriterConfig.class.getName());
@@ -125,7 +125,7 @@ public class OutputConfigurator extends ConfiguratorBase {
       return bwConfig;
     } else {
       try {
-        ByteArrayInputStream bais = new ByteArrayInputStream(serialized.getBytes(Constants.UTF8));
+        ByteArrayInputStream bais = new ByteArrayInputStream(serialized.getBytes(StandardCharsets.UTF_8));
         bwConfig.readFields(new DataInputStream(bais));
         bais.close();
         return bwConfig;

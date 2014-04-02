@@ -23,6 +23,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -33,7 +34,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
@@ -152,7 +152,7 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   public static Authorizations getScanAuthorizations(Class<?> implementingClass, Configuration conf) {
     String authString = conf.get(enumToConfKey(implementingClass, ScanOpts.AUTHORIZATIONS));
-    return authString == null ? Authorizations.EMPTY : new Authorizations(authString.getBytes(Constants.UTF8));
+    return authString == null ? Authorizations.EMPTY : new Authorizations(authString.getBytes(StandardCharsets.UTF_8));
   }
 
   /**
@@ -272,9 +272,9 @@ public class InputConfigurator extends ConfiguratorBase {
       if (column.getFirst() == null)
         throw new IllegalArgumentException("Column family can not be null");
 
-      String col = new String(Base64.encodeBase64(TextUtil.getBytes(column.getFirst())), Constants.UTF8);
+      String col = new String(Base64.encodeBase64(TextUtil.getBytes(column.getFirst())), StandardCharsets.UTF_8);
       if (column.getSecond() != null)
-        col += ":" + new String(Base64.encodeBase64(TextUtil.getBytes(column.getSecond())), Constants.UTF8);
+        col += ":" + new String(Base64.encodeBase64(TextUtil.getBytes(column.getSecond())), StandardCharsets.UTF_8);
       columnStrings.add(col);
     }
 
@@ -314,8 +314,8 @@ public class InputConfigurator extends ConfiguratorBase {
 
     for (String col : serialized) {
       int idx = col.indexOf(":");
-      Text cf = new Text(idx < 0 ? Base64.decodeBase64(col.getBytes(Constants.UTF8)) : Base64.decodeBase64(col.substring(0, idx).getBytes(Constants.UTF8)));
-      Text cq = idx < 0 ? null : new Text(Base64.decodeBase64(col.substring(idx + 1).getBytes(Constants.UTF8)));
+      Text cf = new Text(idx < 0 ? Base64.decodeBase64(col.getBytes(StandardCharsets.UTF_8)) : Base64.decodeBase64(col.substring(0, idx).getBytes(StandardCharsets.UTF_8)));
+      Text cq = idx < 0 ? null : new Text(Base64.decodeBase64(col.substring(idx + 1).getBytes(StandardCharsets.UTF_8)));
       columns.add(new Pair<Text,Text>(cf, cq));
     }
     return columns;
@@ -339,7 +339,7 @@ public class InputConfigurator extends ConfiguratorBase {
     String newIter;
     try {
       cfg.write(new DataOutputStream(baos));
-      newIter = new String(Base64.encodeBase64(baos.toByteArray()), Constants.UTF8);
+      newIter = new String(Base64.encodeBase64(baos.toByteArray()), StandardCharsets.UTF_8);
       baos.close();
     } catch (IOException e) {
       throw new IllegalArgumentException("unable to serialize IteratorSetting");

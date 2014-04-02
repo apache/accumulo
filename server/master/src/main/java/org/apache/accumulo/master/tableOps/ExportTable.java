@@ -22,6 +22,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -162,7 +163,7 @@ class WriteExportFiles extends MasterRepo {
     try {
       
       zipOut.putNextEntry(new ZipEntry(Constants.EXPORT_INFO_FILE));
-      OutputStreamWriter osw = new OutputStreamWriter(dataOut, Constants.UTF8);
+      OutputStreamWriter osw = new OutputStreamWriter(dataOut, StandardCharsets.UTF_8);
       osw.append(ExportTable.EXPORT_VERSION_PROP + ":" + ExportTable.VERSION + "\n");
       osw.append("srcInstanceName:" + conn.getInstance().getInstanceName() + "\n");
       osw.append("srcInstanceID:" + conn.getInstance().getInstanceID() + "\n");
@@ -192,7 +193,7 @@ class WriteExportFiles extends MasterRepo {
   }
   
   private static void createDistcpFile(VolumeManager fs, String exportDir, Path exportMetaFilePath, Map<String,String> uniqueFiles) throws IOException {
-    BufferedWriter distcpOut = new BufferedWriter(new OutputStreamWriter(fs.create(new Path(exportDir, "distcp.txt"), false), Constants.UTF8));
+    BufferedWriter distcpOut = new BufferedWriter(new OutputStreamWriter(fs.create(new Path(exportDir, "distcp.txt"), false), StandardCharsets.UTF_8));
     
     try {
       for (String file : uniqueFiles.values()) {
@@ -259,7 +260,7 @@ class WriteExportFiles extends MasterRepo {
     
     TableConfiguration tableConfig = ServerConfiguration.getTableConfiguration(conn.getInstance(), tableID);
     
-    OutputStreamWriter osw = new OutputStreamWriter(dataOut, Constants.UTF8);
+    OutputStreamWriter osw = new OutputStreamWriter(dataOut, StandardCharsets.UTF_8);
     
     // only put props that are different than defaults and higher level configurations
     zipOut.putNextEntry(new ZipEntry(Constants.EXPORT_TABLE_CONFIG_FILE));

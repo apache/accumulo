@@ -16,12 +16,12 @@
  */
 package org.apache.accumulo.test.functional;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -49,8 +49,8 @@ public class ScanIteratorIT extends SimpleMacIT {
 
     for (int i = 0; i < 1000; i++) {
       Mutation m = new Mutation(new Text(String.format("%06d", i)));
-      m.put(new Text("cf1"), new Text("cq1"), new Value(Integer.toString(1000 - i).getBytes(Constants.UTF8)));
-      m.put(new Text("cf1"), new Text("cq2"), new Value(Integer.toString(i - 1000).getBytes(Constants.UTF8)));
+      m.put(new Text("cf1"), new Text("cq1"), new Value(Integer.toString(1000 - i).getBytes(StandardCharsets.UTF_8)));
+      m.put(new Text("cf1"), new Text("cq2"), new Value(Integer.toString(i - 1000).getBytes(StandardCharsets.UTF_8)));
 
       bw.addMutation(m);
     }

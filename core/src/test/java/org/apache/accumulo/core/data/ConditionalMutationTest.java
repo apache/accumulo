@@ -21,15 +21,15 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
 
 public class ConditionalMutationTest {
-  private static final byte[] ROW = "row".getBytes(Constants.UTF8);
+  private static final byte[] ROW = "row".getBytes(StandardCharsets.UTF_8);
   private static final String FAMILY = "family";
   private static final String QUALIFIER = "qualifier";
   private static final String QUALIFIER2 = "qualifier2";
@@ -58,7 +58,7 @@ public class ConditionalMutationTest {
   @Test
   public void testConstruction_ByteArray_StartAndLength() {
     cm = new ConditionalMutation(ROW, 1, 1, c1, c2);
-    assertArrayEquals("o".getBytes(Constants.UTF8), cm.getRow());
+    assertArrayEquals("o".getBytes(StandardCharsets.UTF_8), cm.getRow());
     List<Condition> cs = cm.getConditions();
     assertEquals(2, cs.size());
     assertEquals(c1, cs.get(0));
@@ -77,7 +77,7 @@ public class ConditionalMutationTest {
 
   @Test
   public void testConstruction_CharSequence() {
-    cm = new ConditionalMutation(new String(ROW, Constants.UTF8), c1, c2);
+    cm = new ConditionalMutation(new String(ROW, StandardCharsets.UTF_8), c1, c2);
     assertArrayEquals(ROW, cm.getRow());
     List<Condition> cs = cm.getConditions();
     assertEquals(2, cs.size());
@@ -126,7 +126,7 @@ public class ConditionalMutationTest {
     assertTrue(cm.equals(cm2));
     assertTrue(cm2.equals(cm));
 
-    ConditionalMutation cm3 = new ConditionalMutation("row2".getBytes(Constants.UTF8), c1, c2);
+    ConditionalMutation cm3 = new ConditionalMutation("row2".getBytes(StandardCharsets.UTF_8), c1, c2);
     assertFalse(cm.equals(cm3));
     cm3 = new ConditionalMutation(ROW, c2, c1);
     assertFalse(cm.getConditions().equals(cm3.getConditions()));

@@ -21,7 +21,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import org.apache.accumulo.core.Constants;
+import java.nio.charset.StandardCharsets;
+
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
@@ -41,7 +42,7 @@ public class ConditionTest {
     if (bs == null) {
       return null;
     }
-    return new String(bs.toArray(), Constants.UTF8);
+    return new String(bs.toArray(), StandardCharsets.UTF_8);
   }
 
   private Condition c;
@@ -60,7 +61,7 @@ public class ConditionTest {
 
   @Test
   public void testConstruction_ByteArray() {
-    c = new Condition(FAMILY.getBytes(Constants.UTF8), QUALIFIER.getBytes(Constants.UTF8));
+    c = new Condition(FAMILY.getBytes(StandardCharsets.UTF_8), QUALIFIER.getBytes(StandardCharsets.UTF_8));
     assertEquals(FAMILY, toString(c.getFamily()));
     assertEquals(QUALIFIER, toString(c.getQualifier()));
     assertEquals(EMPTY, c.getVisibility());
@@ -76,7 +77,7 @@ public class ConditionTest {
 
   @Test
   public void testConstruction_ByteSequence() {
-    c = new Condition(new ArrayByteSequence(FAMILY.getBytes(Constants.UTF8)), new ArrayByteSequence(QUALIFIER.getBytes(Constants.UTF8)));
+    c = new Condition(new ArrayByteSequence(FAMILY.getBytes(StandardCharsets.UTF_8)), new ArrayByteSequence(QUALIFIER.getBytes(StandardCharsets.UTF_8)));
     assertEquals(FAMILY, toString(c.getFamily()));
     assertEquals(QUALIFIER, toString(c.getQualifier()));
     assertEquals(EMPTY, c.getVisibility());
@@ -96,7 +97,7 @@ public class ConditionTest {
 
   @Test
   public void testSetValue_ByteArray() {
-    c.setValue(VALUE.getBytes(Constants.UTF8));
+    c.setValue(VALUE.getBytes(StandardCharsets.UTF_8));
     assertEquals(VALUE, toString(c.getValue()));
   }
 
@@ -108,7 +109,7 @@ public class ConditionTest {
 
   @Test
   public void testSetValue_ByteSequence() {
-    c.setValue(new ArrayByteSequence(VALUE.getBytes(Constants.UTF8)));
+    c.setValue(new ArrayByteSequence(VALUE.getBytes(StandardCharsets.UTF_8)));
     assertEquals(VALUE, toString(c.getValue()));
   }
 

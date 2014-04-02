@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.lang.management.ManagementFactory;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,7 +31,6 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.StandardMBean;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.time.DateUtils;
 
@@ -201,7 +201,7 @@ public abstract class AbstractMetricsImpl {
         return;
       }
     }
-    logWriter = new OutputStreamWriter(new FileOutputStream(logFile, true), Constants.UTF8);
+    logWriter = new OutputStreamWriter(new FileOutputStream(logFile, true), StandardCharsets.UTF_8);
   }
   
   private void writeToLog(String name) throws IOException {

@@ -16,12 +16,12 @@
  */
 package org.apache.accumulo.core.util;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
@@ -238,7 +238,7 @@ public class Merge {
           Entry<Key,Value> entry = iterator.next();
           Key key = entry.getKey();
           if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-            String[] sizeEntries = new String(entry.getValue().get(), Constants.UTF8).split(",");
+            String[] sizeEntries = new String(entry.getValue().get(), StandardCharsets.UTF_8).split(",");
             if (sizeEntries.length == 2) {
               tabletSize += Long.parseLong(sizeEntries[0]);
             }

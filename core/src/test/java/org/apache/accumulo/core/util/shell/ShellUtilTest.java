@@ -21,9 +21,9 @@ import static org.junit.Assert.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.io.Text;
@@ -55,7 +55,7 @@ public class ShellUtilTest {
     FileUtils.writeStringToFile(testFile, FILEDATA);
     List<Text> output = ShellUtil.scanFile(testFile.getAbsolutePath(), true);
     assertEquals(
-        ImmutableList.of(new Text(Base64.decodeBase64("line1".getBytes(Constants.UTF8))), new Text(Base64.decodeBase64("line2".getBytes(Constants.UTF8)))),
+        ImmutableList.of(new Text(Base64.decodeBase64("line1".getBytes(StandardCharsets.UTF_8))), new Text(Base64.decodeBase64("line2".getBytes(StandardCharsets.UTF_8)))),
         output);
   }
 

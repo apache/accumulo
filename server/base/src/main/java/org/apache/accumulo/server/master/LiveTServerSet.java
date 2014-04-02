@@ -19,6 +19,7 @@ package org.apache.accumulo.server.master;
 import static org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy.SKIP;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -293,7 +294,7 @@ public class LiveTServerSet implements Watcher {
       }
     } else {
       locklessServers.remove(zPath);
-      ServerServices services = new ServerServices(new String(lockData, Constants.UTF8));
+      ServerServices services = new ServerServices(new String(lockData, StandardCharsets.UTF_8));
       HostAndPort client = services.getAddress(ServerServices.Service.TSERV_CLIENT);
       TServerInstance instance = new TServerInstance(client, stat.getEphemeralOwner());
 

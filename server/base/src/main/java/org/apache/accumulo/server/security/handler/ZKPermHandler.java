@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.security.handler;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -23,7 +24,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -393,7 +393,7 @@ public class ZKPermHandler implements PermissionHandler {
     try {
       // prep parent node of users with root username
       if (!zoo.exists(ZKUserPath))
-        zoo.putPersistentData(ZKUserPath, rootuser.getBytes(Constants.UTF8), NodeExistsPolicy.FAIL);
+        zoo.putPersistentData(ZKUserPath, rootuser.getBytes(StandardCharsets.UTF_8), NodeExistsPolicy.FAIL);
 
       initUser(rootuser);
       zoo.putPersistentData(ZKUserPath + "/" + rootuser + ZKUserSysPerms, ZKSecurityTool.convertSystemPermissions(rootPerms), NodeExistsPolicy.FAIL);

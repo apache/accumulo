@@ -17,12 +17,12 @@
 package org.apache.accumulo.test;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -153,8 +153,8 @@ public class TestIngest {
     return bytevals;
   }
   
-  private static byte ROW_PREFIX[] = "row_".getBytes(Constants.UTF8);
-  private static byte COL_PREFIX[] = "col_".getBytes(Constants.UTF8);
+  private static byte ROW_PREFIX[] = "row_".getBytes(StandardCharsets.UTF_8);
+  private static byte COL_PREFIX[] = "col_".getBytes(StandardCharsets.UTF_8);
   
   public static Text generateRow(int rowid, int startRow) {
     return new Text(FastFormat.toZeroPaddedString(rowid + startRow, 10, 10, ROW_PREFIX));

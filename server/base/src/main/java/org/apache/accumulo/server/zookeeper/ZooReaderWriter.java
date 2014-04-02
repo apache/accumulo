@@ -20,8 +20,8 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.nio.charset.StandardCharsets;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.util.UtilWaitThread;
@@ -37,7 +37,7 @@ public class ZooReaderWriter extends org.apache.accumulo.fate.zookeeper.ZooReade
   private static IZooReaderWriter retryingInstance = null;
   
   public ZooReaderWriter(String string, int timeInMillis, String secret) {
-    super(string, timeInMillis, SCHEME, (USER + ":" + secret).getBytes(Constants.UTF8));
+    super(string, timeInMillis, SCHEME, (USER + ":" + secret).getBytes(StandardCharsets.UTF_8));
   }
   
   public static synchronized ZooReaderWriter getInstance() {

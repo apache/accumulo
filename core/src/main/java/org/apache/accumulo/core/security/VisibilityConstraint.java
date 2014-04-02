@@ -16,11 +16,11 @@
  */
 package org.apache.accumulo.core.security;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.constraints.Constraint;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
@@ -64,7 +64,7 @@ public class VisibilityConstraint implements Constraint {
       byte[] cv = update.getColumnVisibility();
       if (cv.length > 0) {
         String key = null;
-        if (ok != null && ok.contains(key = new String(cv, Constants.UTF8)))
+        if (ok != null && ok.contains(key = new String(cv, StandardCharsets.UTF_8)))
           continue;
         
         try {

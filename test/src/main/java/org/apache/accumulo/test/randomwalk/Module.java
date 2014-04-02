@@ -17,6 +17,7 @@
 package org.apache.accumulo.test.randomwalk;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -35,7 +36,6 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.log4j.Level;
 import org.w3c.dom.Document;
@@ -274,9 +274,9 @@ public class Module extends Node {
           else if (value instanceof String || value instanceof Map || value instanceof Collection || value instanceof Number)
             logMsg += value;
           else if (value instanceof byte[])
-            logMsg += new String((byte[])value, Constants.UTF8);
+            logMsg += new String((byte[])value, StandardCharsets.UTF_8);
           else if (value instanceof PasswordToken)
-            logMsg += new String(((PasswordToken) value).getPassword(), Constants.UTF8);
+            logMsg += new String(((PasswordToken) value).getPassword(), StandardCharsets.UTF_8);
           else
             logMsg += value.getClass()+ " - " + value;
           

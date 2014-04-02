@@ -17,9 +17,9 @@
 package org.apache.accumulo.test.randomwalk.security;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -77,7 +77,7 @@ public class SecurityHelper {
   }
   
   public static void setSysUserPass(State state, byte[] sysUserPass) {
-    log.debug("Setting system user pass to " + new String(sysUserPass, Constants.UTF8));
+    log.debug("Setting system user pass to " + new String(sysUserPass, StandardCharsets.UTF_8));
     state.set(masterPass, sysUserPass);
     state.set(masterPass + "time", System.currentTimeMillis());
     
@@ -92,7 +92,7 @@ public class SecurityHelper {
   }
   
   public static void setTabUserPass(State state, byte[] tabUserPass) {
-    log.debug("Setting table user pass to " + new String(tabUserPass, Constants.UTF8));
+    log.debug("Setting table user pass to " + new String(tabUserPass, StandardCharsets.UTF_8));
     state.set(tUserPass, tabUserPass);
     state.set(tUserPass + "time", System.currentTimeMillis());
   }

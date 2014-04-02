@@ -19,6 +19,7 @@ package org.apache.accumulo.test.continuous;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -120,7 +121,7 @@ public class ContinuousIngest {
     visibilities = new ArrayList<ColumnVisibility>();
     
     FileSystem fs = FileSystem.get(new Configuration());
-    BufferedReader in = new BufferedReader(new InputStreamReader(fs.open(new Path(opts.visFile)), Constants.UTF8));
+    BufferedReader in = new BufferedReader(new InputStreamReader(fs.open(new Path(opts.visFile)), StandardCharsets.UTF_8));
     
     String line;
     
@@ -157,9 +158,9 @@ public class ContinuousIngest {
     
     Random r = new Random();
     
-    byte[] ingestInstanceId = UUID.randomUUID().toString().getBytes(Constants.UTF8);
+    byte[] ingestInstanceId = UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8);
     
-    System.out.printf("UUID %d %s%n", System.currentTimeMillis(), new String(ingestInstanceId, Constants.UTF8));
+    System.out.printf("UUID %d %s%n", System.currentTimeMillis(), new String(ingestInstanceId, StandardCharsets.UTF_8));
     
     long count = 0;
     final int flushInterval = 1000000;

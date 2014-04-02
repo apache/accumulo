@@ -21,6 +21,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
 import java.util.TimerTask;
@@ -243,9 +244,9 @@ abstract public class BasicServlet extends HttpServlet {
 
   public static String encode(String s) {
     try {
-      return URLEncoder.encode(s, Constants.UTF8.name());
+      return URLEncoder.encode(s, StandardCharsets.UTF_8.name());
     } catch (UnsupportedEncodingException e) {
-      Logger.getLogger(BasicServlet.class).fatal(Constants.UTF8.name() + " is not a recognized encoding", e);
+      Logger.getLogger(BasicServlet.class).fatal(StandardCharsets.UTF_8.name() + " is not a recognized encoding", e);
       throw new RuntimeException(e);
     }
   }

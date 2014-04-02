@@ -16,10 +16,10 @@
  */
 package org.apache.accumulo.test.functional;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.EnumSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -90,7 +90,7 @@ public class ConcurrencyIT extends ConfigurableMacIT {
     BatchWriter bw = c.createBatchWriter("cct", new BatchWriterConfig());
     for (int i = 0; i < 50; i++) {
       Mutation m = new Mutation(new Text(String.format("%06d", i)));
-      m.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes(Constants.UTF8)));
+      m.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes(StandardCharsets.UTF_8)));
       bw.addMutation(m);
     }
     bw.flush();
@@ -106,7 +106,7 @@ public class ConcurrencyIT extends ConfigurableMacIT {
     
     for (int i = 0; i < 50; i++) {
       Mutation m = new Mutation(new Text(String.format("%06d", i)));
-      m.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes(Constants.UTF8)));
+      m.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes(StandardCharsets.UTF_8)));
       bw.addMutation(m);
     }
     

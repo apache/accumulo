@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Random;
 
@@ -130,7 +131,7 @@ public class ZombieTServer {
       }
     };
     
-    byte[] lockContent = new ServerServices(addressString, Service.TSERV_CLIENT).toString().getBytes(Constants.UTF8);
+    byte[] lockContent = new ServerServices(addressString, Service.TSERV_CLIENT).toString().getBytes(StandardCharsets.UTF_8);
     if (zlock.tryLock(lw, lockContent)) {
       log.debug("Obtained tablet server lock " + zlock.getLockPath());
     }

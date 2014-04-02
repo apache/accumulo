@@ -17,11 +17,12 @@
 package org.apache.accumulo.core.client.mapreduce.lib.util;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Instance;
@@ -215,7 +216,7 @@ public class ConfiguratorBase {
     if (token.startsWith(TokenSource.INLINE.prefix())) {
       String[] args = token.substring(TokenSource.INLINE.prefix().length()).split(":", 2);
       if (args.length == 2)
-        return AuthenticationTokenSerializer.deserialize(args[0], Base64.decodeBase64(args[1].getBytes(Constants.UTF8)));
+        return AuthenticationTokenSerializer.deserialize(args[0], Base64.decodeBase64(args[1].getBytes(StandardCharsets.UTF_8)));
     } else if (token.startsWith(TokenSource.FILE.prefix())) {
       String tokenFileName = token.substring(TokenSource.FILE.prefix().length());
       return getTokenFromFile(conf, getPrincipal(implementingClass, conf), tokenFileName);

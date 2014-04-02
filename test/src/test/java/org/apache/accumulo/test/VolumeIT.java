@@ -23,6 +23,7 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -33,7 +34,6 @@ import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -461,7 +461,7 @@ public class VolumeIT extends ConfigurableMacIT {
     // check that root tablet is not on volume 1
     String zpath = ZooUtil.getRoot(new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers())) + RootTable.ZROOT_TABLET_PATH;
     ZooKeeper zookeeper = new ZooKeeper(cluster.getZooKeepers(), 30000, null);
-    String rootTabletDir = new String(zookeeper.getData(zpath, false, null), Constants.UTF8);
+    String rootTabletDir = new String(zookeeper.getData(zpath, false, null), StandardCharsets.UTF_8);
     Assert.assertTrue(rootTabletDir.startsWith(v2.toString()));
     zookeeper.close();
 
@@ -523,7 +523,7 @@ public class VolumeIT extends ConfigurableMacIT {
     // check that root tablet is not on volume 1 or 2
     String zpath = ZooUtil.getRoot(new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers())) + RootTable.ZROOT_TABLET_PATH;
     ZooKeeper zookeeper = new ZooKeeper(cluster.getZooKeepers(), 30000, null);
-    String rootTabletDir = new String(zookeeper.getData(zpath, false, null), Constants.UTF8);
+    String rootTabletDir = new String(zookeeper.getData(zpath, false, null), StandardCharsets.UTF_8);
     Assert.assertTrue(rootTabletDir.startsWith(v8.toString()) || rootTabletDir.startsWith(v9.toString()));
     zookeeper.close();
 

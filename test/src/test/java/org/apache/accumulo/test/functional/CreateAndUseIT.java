@@ -16,12 +16,12 @@
  */
 package org.apache.accumulo.test.functional;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -57,7 +57,7 @@ public class CreateAndUseIT extends SimpleMacIT {
 
     for (int i = 1; i < 257; i++) {
       Mutation m = new Mutation(new Text(String.format("%08x", (i << 8) - 16)));
-      m.put(cf, cq, new Value(Integer.toString(i).getBytes(Constants.UTF8)));
+      m.put(cf, cq, new Value(Integer.toString(i).getBytes(StandardCharsets.UTF_8)));
 
       bw.addMutation(m);
     }

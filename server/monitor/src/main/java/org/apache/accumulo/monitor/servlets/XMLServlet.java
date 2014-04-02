@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.monitor.servlets;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -23,7 +24,6 @@ import java.util.TreeMap;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.master.thrift.Compacting;
@@ -46,8 +46,8 @@ public class XMLServlet extends BasicServlet {
   
   @Override
   protected void pageStart(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) {
-    resp.setContentType("text/xml;charset=" + Constants.UTF8.name());
-    sb.append("<?xml version=\"1.0\" encoding=\"" + Constants.UTF8.name() + "\"?>\n");
+    resp.setContentType("text/xml;charset=" + StandardCharsets.UTF_8.name());
+    sb.append("<?xml version=\"1.0\" encoding=\"" + StandardCharsets.UTF_8.name() + "\"?>\n");
     sb.append("<stats>\n");
   }
   

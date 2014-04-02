@@ -17,10 +17,10 @@
 package org.apache.accumulo.core.iterators.user;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Map;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -89,7 +89,7 @@ public class GrepIterator extends Filter {
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
-    term = options.get("term").getBytes(Constants.UTF8);
+    term = options.get("term").getBytes(StandardCharsets.UTF_8);
   }
   
   /**

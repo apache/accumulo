@@ -21,13 +21,13 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -104,7 +104,7 @@ public class AuditMessageIT extends ConfigurableMacIT {
     for (File file : getCluster().getConfig().getLogDir().listFiles()) {
       // We want to grab the files called .out
       if (file.getName().contains(".out") && file.isFile() && file.canRead()) {
-        LineIterator it = FileUtils.lineIterator(file, Constants.UTF8.name());
+        LineIterator it = FileUtils.lineIterator(file, StandardCharsets.UTF_8.name());
         try {
           while (it.hasNext()) {
             String line = it.nextLine();
@@ -275,7 +275,7 @@ public class AuditMessageIT extends ConfigurableMacIT {
     // We've exported the table metadata to the MiniAccumuloCluster root dir. Grab the .rf file path to re-import it
     File distCpTxt = new File(exportDir.toString() + "/distcp.txt");
     File importFile = null;
-    LineIterator it = FileUtils.lineIterator(distCpTxt, Constants.UTF8.name());
+    LineIterator it = FileUtils.lineIterator(distCpTxt, StandardCharsets.UTF_8.name());
 
     // Just grab the first rf file, it will do for now.
     String filePrefix = "file:";

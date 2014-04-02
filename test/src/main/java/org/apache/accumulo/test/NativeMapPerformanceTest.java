@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -24,7 +25,6 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -77,7 +77,7 @@ public class NativeMapPerformanceTest {
         Mutation m = nm(row);
         for (int j = 0; j < numCols; j++) {
           int col = rand.nextInt(1000000);
-          Value val = new Value("test".getBytes(Constants.UTF8));
+          Value val = new Value("test".getBytes(StandardCharsets.UTF_8));
           pc(m, col, val);
         }
         nm.mutate(m, i);
@@ -88,7 +88,7 @@ public class NativeMapPerformanceTest {
         for (int j = 0; j < numCols; j++) {
           int col = rand.nextInt(1000000);
           Key key = nk(row, col);
-          Value val = new Value("test".getBytes(Constants.UTF8));
+          Value val = new Value("test".getBytes(StandardCharsets.UTF_8));
           tm.put(key, val);
         }
       }

@@ -17,8 +17,8 @@
 package org.apache.accumulo.tserver;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -45,7 +45,7 @@ public class BulkFailedCopyProcessor implements Processor {
   @Override
   public void process(String workID, byte[] data) {
 
-    String paths[] = new String(data, Constants.UTF8).split(",");
+    String paths[] = new String(data, StandardCharsets.UTF_8).split(",");
 
     Path orig = new Path(paths[0]);
     Path dest = new Path(paths[1]);

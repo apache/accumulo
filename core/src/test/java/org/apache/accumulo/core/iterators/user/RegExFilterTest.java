@@ -17,13 +17,13 @@
 package org.apache.accumulo.core.iterators.user;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.TreeMap;
 
 import junit.framework.TestCase;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -235,7 +235,7 @@ public class RegExFilterTest extends TestCase {
     String multiByteRegex = new String(".*" + "\u6F68" + ".*");
 
     Key k4 = new Key("boo4".getBytes(), "hoo".getBytes(), "20080203".getBytes(), "".getBytes(), 1l);
-    Value inVal = new Value(multiByteText.getBytes(Constants.UTF8));
+    Value inVal = new Value(multiByteText.getBytes(StandardCharsets.UTF_8));
     tm.put(k4, inVal);
 
     is.clearOptions();
@@ -246,7 +246,7 @@ public class RegExFilterTest extends TestCase {
 
     assertTrue(rei.hasTop());
     Value outValue = rei.getTopValue();
-    String outVal = new String(outValue.get(), Constants.UTF8);
+    String outVal = new String(outValue.get(), StandardCharsets.UTF_8);
     assertTrue(outVal.equals(multiByteText));
 
   }

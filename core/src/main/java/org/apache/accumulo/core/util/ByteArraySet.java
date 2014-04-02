@@ -16,13 +16,12 @@
  */
 package org.apache.accumulo.core.util;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.TreeSet;
-
-import org.apache.accumulo.core.Constants;
 
 public class ByteArraySet extends TreeSet<byte[]> {
   
@@ -40,7 +39,7 @@ public class ByteArraySet extends TreeSet<byte[]> {
   public static ByteArraySet fromStrings(Collection<String> c) {
     List<byte[]> lst = new ArrayList<byte[]>();
     for (String s : c)
-      lst.add(s.getBytes(Constants.UTF8));
+      lst.add(s.getBytes(StandardCharsets.UTF_8));
     return new ByteArraySet(lst);
   }
   

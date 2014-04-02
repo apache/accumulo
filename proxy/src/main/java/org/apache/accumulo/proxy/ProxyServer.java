@@ -17,6 +17,7 @@
 package org.apache.accumulo.proxy;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,7 +35,6 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -194,7 +194,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   protected Connector getConnector(ByteBuffer login) throws Exception {
-    String[] pair = new String(login.array(), login.position(), login.remaining(), Constants.UTF8).split(",", 2);
+    String[] pair = new String(login.array(), login.position(), login.remaining(), StandardCharsets.UTF_8).split(",", 2);
     if (instance.getInstanceID().equals(pair[0])) {
       Credentials creds = Credentials.deserialize(pair[1]);
       return instance.getConnector(creds.getPrincipal(), creds.getToken());
@@ -1489,7 +1489,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   public ByteBuffer login(String principal, Map<String,String> loginProperties) throws org.apache.accumulo.proxy.thrift.AccumuloSecurityException, TException {
     try {
       AuthenticationToken token = getToken(principal, loginProperties);
-      ByteBuffer login = ByteBuffer.wrap((instance.getInstanceID() + "," + new Credentials(principal, token).serialize()).getBytes(Constants.UTF8));
+      ByteBuffer login = ByteBuffer.wrap((instance.getInstanceID() + "," + new Credentials(principal, token).serialize()).getBytes(StandardCharsets.UTF_8));
       getConnector(login); // check to make sure user exists
       return login;
     } catch (AccumuloSecurityException e) {

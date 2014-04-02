@@ -19,10 +19,10 @@ package org.apache.accumulo.core.util.format;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.junit.Before;
@@ -52,9 +52,9 @@ public class ShardedTableDistributionFormatterTest {
 
   @Test
   public void testAggregate() {
-    data.put(new Key("t", "~tab", "loc"), new Value("srv1".getBytes(Constants.UTF8)));
-    data.put(new Key("t;19700101", "~tab", "loc", 0), new Value("srv1".getBytes(Constants.UTF8)));
-    data.put(new Key("t;19700101", "~tab", "loc", 1), new Value("srv2".getBytes(Constants.UTF8)));
+    data.put(new Key("t", "~tab", "loc"), new Value("srv1".getBytes(StandardCharsets.UTF_8)));
+    data.put(new Key("t;19700101", "~tab", "loc", 0), new Value("srv1".getBytes(StandardCharsets.UTF_8)));
+    data.put(new Key("t;19700101", "~tab", "loc", 1), new Value("srv2".getBytes(StandardCharsets.UTF_8)));
 
     formatter.initialize(data.entrySet(), false);
 

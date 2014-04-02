@@ -16,9 +16,8 @@
  */
 package org.apache.accumulo.core.security;
 
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
-
-import org.apache.accumulo.core.Constants;
 
 /**
  * An exception thrown when a visibility string cannot be parsed.
@@ -36,7 +35,7 @@ public class VisibilityParseException extends ParseException {
    */
   public VisibilityParseException(String reason, byte[] visibility, int errorOffset) {
     super(reason, errorOffset);
-    this.visibility = new String(visibility, Constants.UTF8);
+    this.visibility = new String(visibility, StandardCharsets.UTF_8);
   }
   
   @Override

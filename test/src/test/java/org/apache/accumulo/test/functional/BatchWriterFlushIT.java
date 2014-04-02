@@ -16,12 +16,12 @@
  */
 package org.apache.accumulo.test.functional;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -62,7 +62,7 @@ public class BatchWriterFlushIT extends SimpleMacIT {
     Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY);
 
     Mutation m = new Mutation(new Text(String.format("r_%10d", 1)));
-    m.put(new Text("cf"), new Text("cq"), new Value("1".getBytes(Constants.UTF8)));
+    m.put(new Text("cf"), new Text("cq"), new Value("1".getBytes(StandardCharsets.UTF_8)));
     bw.addMutation(m);
 
     UtilWaitThread.sleep(500);

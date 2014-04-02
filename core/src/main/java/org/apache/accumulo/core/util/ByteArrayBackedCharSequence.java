@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.core.util;
 
-import org.apache.accumulo.core.Constants;
+import java.nio.charset.StandardCharsets;
+
 import org.apache.accumulo.core.data.ByteSequence;
 
 public class ByteArrayBackedCharSequence implements CharSequence {
@@ -61,7 +62,7 @@ public class ByteArrayBackedCharSequence implements CharSequence {
   }
   
   public String toString() {
-    return new String(data, offset, len, Constants.UTF8);
+    return new String(data, offset, len, StandardCharsets.UTF_8);
   }
   
   public void set(ByteSequence bs) {

@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FilenameFilter;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -34,7 +35,6 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchScannerOpts;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
@@ -84,7 +84,7 @@ public class UndefinedAnalyzer {
     }
 
     private void parseLog(File log) throws Exception {
-      BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(log), Constants.UTF8));
+      BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(log), StandardCharsets.UTF_8));
       String line;
       TreeMap<Long,Long> tm = null;
       try {
@@ -176,7 +176,7 @@ public class UndefinedAnalyzer {
 
       for (File masterLog : masterLogs) {
 
-        BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(masterLog), Constants.UTF8));
+        BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(masterLog), StandardCharsets.UTF_8));
         String line;
         try {
           while ((line = reader.readLine()) != null) {
@@ -260,7 +260,7 @@ public class UndefinedAnalyzer {
 
     List<UndefinedNode> undefs = new ArrayList<UndefinedNode>();
 
-    BufferedReader reader = new BufferedReader(new InputStreamReader(System.in, Constants.UTF8));
+    BufferedReader reader = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
     String line;
     while ((line = reader.readLine()) != null) {
       String[] tokens = line.split("\\s");

@@ -17,6 +17,7 @@
 package org.apache.accumulo.server.master.state;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -26,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -95,7 +95,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
     try {
       Map<Text,MergeInfo> result = new HashMap<Text,MergeInfo>();
       DataInputBuffer buffer = new DataInputBuffer();
-      byte[] data = Base64.decodeBase64(merges.getBytes(Constants.UTF8));
+      byte[] data = Base64.decodeBase64(merges.getBytes(StandardCharsets.UTF_8));
       buffer.reset(data, data.length);
       while (buffer.available() > 0) {
         MergeInfo mergeInfo = new MergeInfo();
@@ -183,7 +183,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
-    String encoded = new String(Base64.encodeBase64(Arrays.copyOf(buffer.getData(), buffer.getLength())), Constants.UTF8);
+    String encoded = new String(Base64.encodeBase64(Arrays.copyOf(buffer.getData(), buffer.getLength())), StandardCharsets.UTF_8);
     cfg.addOption(MERGES_OPTION, encoded);
   }
   

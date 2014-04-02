@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -33,7 +34,6 @@ import javax.servlet.http.HttpSession;
 
 import jline.console.ConsoleReader;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.shell.Shell;
 
 public class ShellServlet extends BasicServlet {
@@ -228,7 +228,7 @@ public class ShellServlet extends BasicServlet {
       this.readWait = false;
       this.output = new StringBuilderOutputStream();
       ConsoleReader reader = new ConsoleReader(this, output);
-      this.shell = new Shell(reader, new PrintWriter(new OutputStreamWriter(output, Constants.UTF8)));
+      this.shell = new Shell(reader, new PrintWriter(new OutputStreamWriter(output, StandardCharsets.UTF_8)));
       shell.setLogErrorsToConsole();
       if (mock != null) {
         if (shell.config("--fake", "-u", username, "-p", password))

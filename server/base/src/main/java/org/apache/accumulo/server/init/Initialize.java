@@ -18,6 +18,7 @@ package org.apache.accumulo.server.init;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -354,12 +355,12 @@ public class Initialize {
     // table tablet's directory
     Key tableDirKey = new Key(tableExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
         TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
-    mfw.append(tableDirKey, new Value(tableMetadataTabletDir.getBytes(Constants.UTF8)));
+    mfw.append(tableDirKey, new Value(tableMetadataTabletDir.getBytes(StandardCharsets.UTF_8)));
 
     // table tablet time
     Key tableTimeKey = new Key(tableExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
         TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
-    mfw.append(tableTimeKey, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes(Constants.UTF8)));
+    mfw.append(tableTimeKey, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes(StandardCharsets.UTF_8)));
 
     // table tablet's prevrow
     Key tablePrevRowKey = new Key(tableExtent, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
@@ -372,12 +373,12 @@ public class Initialize {
     // default's directory
     Key defaultDirKey = new Key(defaultExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
         TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
-    mfw.append(defaultDirKey, new Value(defaultMetadataTabletDir.getBytes(Constants.UTF8)));
+    mfw.append(defaultDirKey, new Value(defaultMetadataTabletDir.getBytes(StandardCharsets.UTF_8)));
 
     // default's time
     Key defaultTimeKey = new Key(defaultExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
         TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
-    mfw.append(defaultTimeKey, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes(Constants.UTF8)));
+    mfw.append(defaultTimeKey, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes(StandardCharsets.UTF_8)));
 
     // default's prevrow
     Key defaultPrevRowKey = new Key(defaultExtent, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
@@ -427,7 +428,7 @@ public class Initialize {
     // setup instance name
     if (opts.clearInstanceName)
       zoo.recursiveDelete(instanceNamePath, NodeMissingPolicy.SKIP);
-    zoo.putPersistentData(instanceNamePath, uuid.getBytes(Constants.UTF8), NodeExistsPolicy.FAIL);
+    zoo.putPersistentData(instanceNamePath, uuid.getBytes(StandardCharsets.UTF_8), NodeExistsPolicy.FAIL);
 
     final byte[] EMPTY_BYTE_ARRAY = new byte[0], ZERO_CHAR_ARRAY = new byte[] {'0'};
 
@@ -448,7 +449,7 @@ public class Initialize {
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTRACERS, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZMASTERS, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZMASTER_LOCK, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZMASTER_GOAL_STATE, MasterGoalState.NORMAL.toString().getBytes(Constants.UTF8), NodeExistsPolicy.FAIL);
+    zoo.putPersistentData(zkInstanceRoot + Constants.ZMASTER_GOAL_STATE, MasterGoalState.NORMAL.toString().getBytes(StandardCharsets.UTF_8), NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZGC, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZGC_LOCK, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZCONFIG, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
@@ -494,7 +495,7 @@ public class Initialize {
 
   private static byte[] getRootPassword(Opts opts) throws IOException {
     if (opts.cliPassword != null) {
-      return opts.cliPassword.getBytes(Constants.UTF8);
+      return opts.cliPassword.getBytes(StandardCharsets.UTF_8);
     }
     String rootpass;
     String confirmpass;
@@ -509,7 +510,7 @@ public class Initialize {
       if (!rootpass.equals(confirmpass))
         log.error("Passwords do not match");
     } while (!rootpass.equals(confirmpass));
-    return rootpass.getBytes(Constants.UTF8);
+    return rootpass.getBytes(StandardCharsets.UTF_8);
   }
 
   private static void initSecurity(Opts opts, String iid) throws AccumuloSecurityException, ThriftSecurityException {

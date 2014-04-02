@@ -19,11 +19,10 @@ package org.apache.accumulo.core.conf;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import org.apache.accumulo.core.Constants;
 
 /**
  * An {@link AccumuloConfiguration} that contains only default values for
@@ -79,9 +78,9 @@ public class DefaultConfiguration extends AccumuloConfiguration {
    */
   public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException {
     if (args.length == 2 && args[0].equals("--generate-html")) {
-      new ConfigurationDocGen(new PrintStream(args[1], Constants.UTF8.name())).generateHtml();
+      new ConfigurationDocGen(new PrintStream(args[1], StandardCharsets.UTF_8.name())).generateHtml();
     } else if (args.length == 2 && args[0].equals("--generate-latex")) {
-      new ConfigurationDocGen(new PrintStream(args[1], Constants.UTF8.name())).generateLaTeX();
+      new ConfigurationDocGen(new PrintStream(args[1], StandardCharsets.UTF_8.name())).generateLaTeX();
     } else {
       throw new IllegalArgumentException("Usage: " + DefaultConfiguration.class.getName() + " --generate-html <filename> | --generate-latex <filename>");
     }

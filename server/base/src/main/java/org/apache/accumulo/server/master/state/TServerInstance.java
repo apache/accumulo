@@ -20,8 +20,8 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -59,7 +59,7 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
   }
   
   public TServerInstance(Value address, Text session) {
-    this(AddressUtil.parseAddress(new String(address.get(), Constants.UTF8), false), session.toString());
+    this(AddressUtil.parseAddress(new String(address.get(), StandardCharsets.UTF_8), false), session.toString());
   }
   
   public void putLocation(Mutation m) {
@@ -120,7 +120,7 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
   }
   
   public Value asMutationValue() {
-    return new Value(getLocation().toString().getBytes(Constants.UTF8));
+    return new Value(getLocation().toString().getBytes(StandardCharsets.UTF_8));
   }
   
   public HostAndPort getLocation() {

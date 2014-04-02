@@ -19,6 +19,7 @@ package org.apache.accumulo.test.continuous;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -26,7 +27,6 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.zip.CRC32;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -86,7 +86,7 @@ public class ContinuousWalk {
       auths = new ArrayList<Authorizations>();
       
       FileSystem fs = FileSystem.get(new Configuration());
-      BufferedReader in = new BufferedReader(new InputStreamReader(fs.open(new Path(file)), Constants.UTF8));
+      BufferedReader in = new BufferedReader(new InputStreamReader(fs.open(new Path(file)), StandardCharsets.UTF_8));
       try {
         String line;
         while ((line = in.readLine()) != null) {
@@ -173,7 +173,7 @@ public class ContinuousWalk {
     
     long t2 = System.currentTimeMillis();
     
-    System.out.printf("FSR %d %s %d %d%n", t1, new String(scanStart, Constants.UTF8), (t2 - t1), count);
+    System.out.printf("FSR %d %s %d %d%n", t1, new String(scanStart, StandardCharsets.UTF_8), (t2 - t1), count);
     
     return pr;
   }
@@ -182,12 +182,12 @@ public class ContinuousWalk {
     if (val.length == 0)
       throw new IllegalArgumentException();
     if (val[53] != ':')
-      throw new IllegalArgumentException(new String(val, Constants.UTF8));
+      throw new IllegalArgumentException(new String(val, StandardCharsets.UTF_8));
     
     // prev row starts at 54
     if (val[54] != ':') {
       if (val[54 + 16] != ':')
-        throw new IllegalArgumentException(new String(val, Constants.UTF8));
+        throw new IllegalArgumentException(new String(val, StandardCharsets.UTF_8));
       return 54;
     }
     
@@ -199,7 +199,7 @@ public class ContinuousWalk {
     byte[] val = value.get();
     int offset = getPrevRowOffset(val);
     if (offset > 0) {
-      return new String(val, offset, 16, Constants.UTF8);
+      return new String(val, offset, 16, StandardCharsets.UTF_8);
     }
     
     return null;
@@ -208,7 +208,7 @@ public class ContinuousWalk {
   static int getChecksumOffset(byte val[]) {
     if (val[val.length - 1] != ':') {
       if (val[val.length - 9] != ':')
-        throw new IllegalArgumentException(new String(val, Constants.UTF8));
+        throw new IllegalArgumentException(new String(val, StandardCharsets.UTF_8));
       return val.length - 8;
     }
     
@@ -220,7 +220,7 @@ public class ContinuousWalk {
     if (ckOff < 0)
       return;
     
-    long storedCksum = Long.parseLong(new String(value.get(), ckOff, 8, Constants.UTF8), 16);
+    long storedCksum = Long.parseLong(new String(value.get(), ckOff, 8, StandardCharsets.UTF_8), 16);
     
     CRC32 cksum = new CRC32();
     

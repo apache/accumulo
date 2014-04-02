@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.conf;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -130,7 +131,7 @@ public class TableConfiguration extends AccumuloConfiguration {
     byte[] v = zc.get(zPath);
     String value = null;
     if (v != null)
-      value = new String(v, Constants.UTF8);
+      value = new String(v, StandardCharsets.UTF_8);
     return value;
   }
 

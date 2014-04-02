@@ -16,10 +16,10 @@
  */
 package org.apache.accumulo.test.continuous;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map.Entry;
 import java.util.Random;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
@@ -62,7 +62,7 @@ public class ContinuousQuery {
       }
       long t2 = System.currentTimeMillis();
       
-      System.out.printf("SRQ %d %s %d %d%n", t1, new String(row, Constants.UTF8), (t2 - t1), count);
+      System.out.printf("SRQ %d %s %d %d%n", t1, new String(row, StandardCharsets.UTF_8), (t2 - t1), count);
       
       if (opts.sleepTime > 0)
         Thread.sleep(opts.sleepTime);

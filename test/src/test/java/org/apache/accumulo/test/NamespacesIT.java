@@ -23,6 +23,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -33,7 +34,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -474,9 +474,9 @@ public class NamespacesIT extends SimpleMacIT {
     Mutation m1 = new Mutation("r1");
     Mutation m2 = new Mutation("r2");
     Mutation m3 = new Mutation("r3");
-    m1.put("a", "b", new Value("abcde".getBytes(Constants.UTF8)));
-    m2.put("e", "f", new Value("123".getBytes(Constants.UTF8)));
-    m3.put("c", "d", new Value("zyxwv".getBytes(Constants.UTF8)));
+    m1.put("a", "b", new Value("abcde".getBytes(StandardCharsets.UTF_8)));
+    m2.put("e", "f", new Value("123".getBytes(StandardCharsets.UTF_8)));
+    m3.put("c", "d", new Value("zyxwv".getBytes(StandardCharsets.UTF_8)));
     BatchWriter bw = c.createBatchWriter(t1, new BatchWriterConfig());
     bw.addMutations(Arrays.asList(m1, m2, m3));
     try {

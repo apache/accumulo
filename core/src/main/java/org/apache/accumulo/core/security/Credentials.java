@@ -17,8 +17,8 @@
 package org.apache.accumulo.core.security;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
@@ -97,8 +97,8 @@ public class Credentials {
    * @return serialized form of these credentials
    */
   public final String serialize() {
-    return (getPrincipal() == null ? "-" : Base64.encodeBase64String(getPrincipal().getBytes(Constants.UTF8))) + ":"
-        + (getToken() == null ? "-" : Base64.encodeBase64String(getToken().getClass().getName().getBytes(Constants.UTF8))) + ":"
+    return (getPrincipal() == null ? "-" : Base64.encodeBase64String(getPrincipal().getBytes(StandardCharsets.UTF_8))) + ":"
+        + (getToken() == null ? "-" : Base64.encodeBase64String(getToken().getClass().getName().getBytes(StandardCharsets.UTF_8))) + ":"
         + (getToken() == null ? "-" : Base64.encodeBase64String(AuthenticationTokenSerializer.serialize(getToken())));
   }
 
@@ -111,8 +111,8 @@ public class Credentials {
    */
   public static final Credentials deserialize(String serializedForm) {
     String[] split = serializedForm.split(":", 3);
-    String principal = split[0].equals("-") ? null : new String(Base64.decodeBase64(split[0]), Constants.UTF8);
-    String tokenType = split[1].equals("-") ? null : new String(Base64.decodeBase64(split[1]), Constants.UTF8);
+    String principal = split[0].equals("-") ? null : new String(Base64.decodeBase64(split[0]), StandardCharsets.UTF_8);
+    String tokenType = split[1].equals("-") ? null : new String(Base64.decodeBase64(split[1]), StandardCharsets.UTF_8);
     AuthenticationToken token = null;
     if (!split[2].equals("-")) {
       byte[] tokenBytes = Base64.decodeBase64(split[2]);

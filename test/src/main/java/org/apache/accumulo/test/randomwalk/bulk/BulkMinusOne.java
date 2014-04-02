@@ -16,14 +16,15 @@
  */
 package org.apache.accumulo.test.randomwalk.bulk;
 
-import org.apache.accumulo.core.Constants;
+import java.nio.charset.StandardCharsets;
+
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 
 public class BulkMinusOne extends BulkTest {
   
-  private static final Value negOne = new Value("-1".getBytes(Constants.UTF8));
+  private static final Value negOne = new Value("-1".getBytes(StandardCharsets.UTF_8));
   
   @Override
   protected void runLater(State state, Environment env) throws Exception {

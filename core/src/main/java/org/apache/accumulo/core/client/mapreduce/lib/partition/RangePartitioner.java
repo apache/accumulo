@@ -22,11 +22,11 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Scanner;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.mapreduce.lib.util.DistributedCacheHelper;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configurable;
@@ -89,10 +89,10 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
         for (Path path : cf) {
           if (path.toUri().getPath().endsWith(cutFileName.substring(cutFileName.lastIndexOf('/')))) {
             TreeSet<Text> cutPoints = new TreeSet<Text>();
-            Scanner in = new Scanner(new BufferedReader(new InputStreamReader(new FileInputStream(path.toString()), Constants.UTF8)));
+            Scanner in = new Scanner(new BufferedReader(new InputStreamReader(new FileInputStream(path.toString()), StandardCharsets.UTF_8)));
             try {
               while (in.hasNextLine())
-                cutPoints.add(new Text(Base64.decodeBase64(in.nextLine().getBytes(Constants.UTF8))));
+                cutPoints.add(new Text(Base64.decodeBase64(in.nextLine().getBytes(StandardCharsets.UTF_8))));
             } finally {
               in.close();
             }

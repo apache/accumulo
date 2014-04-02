@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.util;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -65,13 +66,13 @@ public class DeleteZooInstance {
       String path = Constants.ZROOT + Constants.ZINSTANCES + "/" + opts.instance;
       byte[] data = zk.getData(path, null);
       deleteRetry(zk, path);
-      deleteRetry(zk, Constants.ZROOT + "/" + new String(data, Constants.UTF8));
+      deleteRetry(zk, Constants.ZROOT + "/" + new String(data, StandardCharsets.UTF_8));
     } else if (uuids.contains(opts.instance)) {
       // look for the real instance name
       for (String instance : instances) {
         String path = Constants.ZROOT + Constants.ZINSTANCES + "/" + instance;
         byte[] data = zk.getData(path, null);
-        if (opts.instance.equals(new String(data, Constants.UTF8)))
+        if (opts.instance.equals(new String(data, StandardCharsets.UTF_8)))
           deleteRetry(zk, path);
       }
       deleteRetry(zk, Constants.ZROOT + "/" + opts.instance);

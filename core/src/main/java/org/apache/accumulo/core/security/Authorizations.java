@@ -17,8 +17,10 @@
 package org.apache.accumulo.core.security;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.Serializable;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -28,7 +30,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.util.ByteBufferUtil;
@@ -146,13 +147,13 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
 
     checkArgument(authorizations != null, "authorizations is null");
 
-    String authsString = new String(authorizations, Constants.UTF8);
+    String authsString = new String(authorizations, StandardCharsets.UTF_8);
     if (authsString.startsWith(HEADER)) {
       // it's the new format
       authsString = authsString.substring(HEADER.length());
       if (authsString.length() > 0) {
         for (String encAuth : authsString.split(",")) {
-          byte[] auth = Base64.decodeBase64(encAuth.getBytes(Constants.UTF8));
+          byte[] auth = Base64.decodeBase64(encAuth.getBytes(StandardCharsets.UTF_8));
           auths.add(new ArrayByteSequence(auth));
         }
         checkAuths();
@@ -189,7 +190,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
     auths.clear();
     for (String str : authorizations) {
       str = str.trim();
-      auths.add(new ArrayByteSequence(str.getBytes(Constants.UTF8)));
+      auths.add(new ArrayByteSequence(str.getBytes(StandardCharsets.UTF_8)));
     }
 
     checkAuths();
@@ -202,7 +203,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
    * @see #serialize()
    */
   public byte[] getAuthorizationsArray() {
-    return serialize().getBytes(Constants.UTF8);
+    return serialize().getBytes(StandardCharsets.UTF_8);
   }
 
   /**
@@ -243,7 +244,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
     for (ByteSequence auth : auths) {
       sb.append(sep);
       sep = ",";
-      sb.append(new String(auth.toArray(), Constants.UTF8));
+      sb.append(new String(auth.toArray(), StandardCharsets.UTF_8));
     }
 
     return sb.toString();
@@ -340,7 +341,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
     for (byte[] auth : authsList) {
       sb.append(sep);
       sep = ",";
-      sb.append(new String(Base64.encodeBase64(auth), Constants.UTF8));
+      sb.append(new String(Base64.encodeBase64(auth), StandardCharsets.UTF_8));
     }
 
     return sb.toString();

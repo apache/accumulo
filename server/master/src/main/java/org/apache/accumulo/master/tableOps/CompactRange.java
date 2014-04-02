@@ -19,6 +19,7 @@ package org.apache.accumulo.master.tableOps;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -323,7 +324,7 @@ public class CompactRange extends MasterRepo {
       cid = zoo.mutate(zTablePath, null, null, new Mutator() {
         @Override
         public byte[] mutate(byte[] currentValue) throws Exception {
-          String cvs = new String(currentValue, Constants.UTF8);
+          String cvs = new String(currentValue, StandardCharsets.UTF_8);
           String[] tokens = cvs.split(",");
           long flushID = Long.parseLong(tokens[0]);
           flushID++;
@@ -345,14 +346,14 @@ public class CompactRange extends MasterRepo {
             encodedIterators.append(",");
             encodedIterators.append(txidString);
             encodedIterators.append("=");
-            encodedIterators.append(new String(hex.encode(iterators), Constants.UTF8));
+            encodedIterators.append(new String(hex.encode(iterators), StandardCharsets.UTF_8));
           }
 
-          return (Long.toString(flushID) + encodedIterators).getBytes(Constants.UTF8);
+          return (Long.toString(flushID) + encodedIterators).getBytes(StandardCharsets.UTF_8);
         }
       });
 
-      return new CompactionDriver(Long.parseLong(new String(cid, Constants.UTF8).split(",")[0]), tableId, startRow, endRow);
+      return new CompactionDriver(Long.parseLong(new String(cid, StandardCharsets.UTF_8).split(",")[0]), tableId, startRow, endRow);
     } catch (NoNodeException nne) {
       throw new ThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.NOTFOUND, null);
     }
@@ -367,7 +368,7 @@ public class CompactRange extends MasterRepo {
     zoo.mutate(zTablePath, null, null, new Mutator() {
       @Override
       public byte[] mutate(byte[] currentValue) throws Exception {
-        String cvs = new String(currentValue, Constants.UTF8);
+        String cvs = new String(currentValue, StandardCharsets.UTF_8);
         String[] tokens = cvs.split(",");
         long flushID = Long.parseLong(tokens[0]);
 
@@ -381,7 +382,7 @@ public class CompactRange extends MasterRepo {
           encodedIterators.append(tokens[i]);
         }
 
-        return (Long.toString(flushID) + encodedIterators).getBytes(Constants.UTF8);
+        return (Long.toString(flushID) + encodedIterators).getBytes(StandardCharsets.UTF_8);
       }
     });
 

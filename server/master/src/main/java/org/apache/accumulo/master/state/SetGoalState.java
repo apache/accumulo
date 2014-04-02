@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.master.state;
 
+import java.nio.charset.StandardCharsets;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.security.SecurityUtil;
@@ -42,7 +44,7 @@ public class SetGoalState {
 
     VolumeManager fs = VolumeManagerImpl.get();
     Accumulo.waitForZookeeperAndHdfs(fs);
-    ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZMASTER_GOAL_STATE, args[0].getBytes(Constants.UTF8),
+    ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZMASTER_GOAL_STATE, args[0].getBytes(StandardCharsets.UTF_8),
         NodeExistsPolicy.OVERWRITE);
   }
   

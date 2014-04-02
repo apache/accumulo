@@ -16,10 +16,10 @@
  */
 package org.apache.accumulo.test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -61,7 +61,7 @@ public class NativeMapConcurrencyTest {
     for (int i = 0; i < numRows; i++) {
       Mutation m = nm(i + start);
       for (int j = 0; j < numCols; j++) {
-        Value val = new Value("test".getBytes(Constants.UTF8));
+        Value val = new Value("test".getBytes(StandardCharsets.UTF_8));
         pc(m, j, val);
       }
       nm.mutate(m, mc++);

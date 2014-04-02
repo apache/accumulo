@@ -16,11 +16,11 @@
  */
 package org.apache.accumulo.test.randomwalk.concurrent;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -55,7 +55,7 @@ public class BatchWrite extends Test {
           Mutation m = new Mutation(String.format("%016x", rand.nextLong() & 0x7fffffffffffffffl));
           long val = rand.nextLong() & 0x7fffffffffffffffl;
           for (int j = 0; j < 10; j++) {
-            m.put("cf", "cq" + j, new Value(String.format("%016x", val).getBytes(Constants.UTF8)));
+            m.put("cf", "cq" + j, new Value(String.format("%016x", val).getBytes(StandardCharsets.UTF_8)));
           }
           
           bw.addMutation(m);

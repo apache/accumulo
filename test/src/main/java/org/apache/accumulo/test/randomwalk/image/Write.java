@@ -16,12 +16,12 @@
  */
 package org.apache.accumulo.test.randomwalk.image;
 
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Properties;
 import java.util.Random;
 import java.util.UUID;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.data.Mutation;
@@ -62,7 +62,7 @@ public class Write extends Test {
     m.put(CONTENT_COLUMN_FAMILY, IMAGE_COLUMN_QUALIFIER, new Value(imageBytes));
     
     // store size
-    m.put(META_COLUMN_FAMILY, new Text("size"), new Value(String.format("%d", numBytes).getBytes(Constants.UTF8)));
+    m.put(META_COLUMN_FAMILY, new Text("size"), new Value(String.format("%d", numBytes).getBytes(StandardCharsets.UTF_8)));
     
     // store hash
     MessageDigest alg = MessageDigest.getInstance("SHA-1");
@@ -76,7 +76,7 @@ public class Write extends Test {
     state.set("totalWrites", totalWrites);
     
     // set count
-    m.put(META_COLUMN_FAMILY, COUNT_COLUMN_QUALIFIER, new Value(String.format("%d", totalWrites).getBytes(Constants.UTF8)));
+    m.put(META_COLUMN_FAMILY, COUNT_COLUMN_QUALIFIER, new Value(String.format("%d", totalWrites).getBytes(StandardCharsets.UTF_8)));
     
     // add mutation
     imagesBW.addMutation(m);
@@ -84,7 +84,7 @@ public class Write extends Test {
     // now add mutation to index
     Text row = new Text(hash);
     m = new Mutation(row);
-    m.put(META_COLUMN_FAMILY, UUID_COLUMN_QUALIFIER, new Value(uuid.getBytes(Constants.UTF8)));
+    m.put(META_COLUMN_FAMILY, UUID_COLUMN_QUALIFIER, new Value(uuid.getBytes(StandardCharsets.UTF_8)));
     
     indexBW.addMutation(m);
     

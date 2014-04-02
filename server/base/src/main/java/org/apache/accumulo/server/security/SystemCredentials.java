@@ -19,6 +19,7 @@ package org.apache.accumulo.server.security;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecurityPermission;
@@ -101,20 +102,20 @@ public final class SystemCredentials extends Credentials {
       }
       
       // seed the config with the version and instance id, so at least it's not empty
-      md.update(ServerConstants.WIRE_VERSION.toString().getBytes(Constants.UTF8));
-      md.update(HdfsZooInstance.getInstance().getInstanceID().getBytes(Constants.UTF8));
+      md.update(ServerConstants.WIRE_VERSION.toString().getBytes(StandardCharsets.UTF_8));
+      md.update(HdfsZooInstance.getInstance().getInstanceID().getBytes(StandardCharsets.UTF_8));
       
       for (Entry<String,String> entry : ServerConfiguration.getSiteConfiguration()) {
         // only include instance properties
         if (entry.getKey().startsWith(Property.INSTANCE_PREFIX.toString())) {
-          md.update(entry.getKey().getBytes(Constants.UTF8));
-          md.update(entry.getValue().getBytes(Constants.UTF8));
+          md.update(entry.getKey().getBytes(StandardCharsets.UTF_8));
+          md.update(entry.getValue().getBytes(StandardCharsets.UTF_8));
         }
       }
       confChecksum = md.digest();
       
       int wireVersion = ServerConstants.WIRE_VERSION;
-      byte[] inst = HdfsZooInstance.getInstance().getInstanceID().getBytes(Constants.UTF8);
+      byte[] inst = HdfsZooInstance.getInstance().getInstanceID().getBytes(StandardCharsets.UTF_8);
       
       ByteArrayOutputStream bytes = new ByteArrayOutputStream(3 * (Integer.SIZE / Byte.SIZE) + inst.length + confChecksum.length);
       DataOutputStream out = new DataOutputStream(bytes);

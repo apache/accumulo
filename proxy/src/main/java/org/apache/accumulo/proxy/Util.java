@@ -18,9 +18,9 @@ package org.apache.accumulo.proxy;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Random;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.proxy.thrift.IteratorSetting;
 import org.apache.accumulo.proxy.thrift.Key;
 
@@ -33,7 +33,7 @@ public class Util {
   }
   
   public static ByteBuffer randStringBuffer(int numbytes) {
-    return ByteBuffer.wrap(new BigInteger(numbytes * 5, random).toString(32).getBytes(Constants.UTF8));
+    return ByteBuffer.wrap(new BigInteger(numbytes * 5, random).toString(32).getBytes(StandardCharsets.UTF_8));
   }
   
   public static IteratorSetting iteratorSetting2ProxyIteratorSetting(org.apache.accumulo.core.client.IteratorSetting is) {

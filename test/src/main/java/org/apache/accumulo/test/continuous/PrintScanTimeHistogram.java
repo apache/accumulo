@@ -21,8 +21,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-
-import org.apache.accumulo.core.Constants;
+import java.nio.charset.StandardCharsets;
 
 public class PrintScanTimeHistogram {
   
@@ -45,7 +44,7 @@ public class PrintScanTimeHistogram {
   
   private static void processFile(InputStream ins, Histogram<String> srqHist, Histogram<String> fsrHist) throws FileNotFoundException, IOException {
     String line;
-    BufferedReader in = new BufferedReader(new InputStreamReader(ins, Constants.UTF8));
+    BufferedReader in = new BufferedReader(new InputStreamReader(ins, StandardCharsets.UTF_8));
     
     while ((line = in.readLine()) != null) {
       
