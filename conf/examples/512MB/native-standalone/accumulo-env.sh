@@ -20,7 +20,7 @@
 ###
 ### The functional tests require conditional values, so keep this style:
 ###
-### test -z "$JAVA_HOME" && export JAVA_HOME=/usr/local/lib/jdk-1.6.0
+### test -z "$JAVA_HOME" && export JAVA_HOME=/usr/lib/jvm/java
 ###
 ###
 ### Note that the -Xmx -Xms settings below require substantial free memory: 

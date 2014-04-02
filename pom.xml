@@ -517,8 +517,8 @@
         <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
           <configuration>
-            <source>1.6</source>
-            <target>1.6</target>
+            <source>1.7</source>
+            <target>1.7</target>
             <optimize>true</optimize>
           </configuration>
         </plugin>
@@ -541,7 +541,7 @@
             <encoding>${project.reporting.outputEncoding}</encoding>
             <quiet>true</quiet>
             <reportOutputDirectory>docs</reportOutputDirectory>
-            <javadocVersion>1.6</javadocVersion>
+            <javadocVersion>1.7</javadocVersion>
             <additionalJOption>-J-Xmx512m</additionalJOption>
           </configuration>
         </plugin>
@@ -889,7 +889,7 @@
         <configuration>
           <format>html</format>
           <includeTests>true</includeTests>
-          <targetJdk>1.6</targetJdk>
+          <targetJdk>1.7</targetJdk>
         </configuration>
       </plugin>
       <plugin>
