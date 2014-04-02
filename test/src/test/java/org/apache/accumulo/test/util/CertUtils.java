@@ -55,8 +55,8 @@ import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.style.IETFUtils;
 import org.bouncycastle.asn1.x500.style.RFC4519Style;
 import org.bouncycastle.asn1.x509.BasicConstraints;
+import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.KeyUsage;
-import org.bouncycastle.asn1.x509.X509Extension;
 import org.bouncycastle.cert.CertIOException;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
@@ -274,11 +274,11 @@ public class CertUtils {
     X500Name issuer = new X500Name(IETFUtils.rDNsFromString(issuerDirString, RFC4519Style.INSTANCE));
     JcaX509v3CertificateBuilder certGen = new JcaX509v3CertificateBuilder(issuer, serialNumber, startDate.getTime(), endDate.getTime(), issuer, kp.getPublic());
     JcaX509ExtensionUtils extensionUtils = new JcaX509ExtensionUtils();
-    certGen.addExtension(X509Extension.subjectKeyIdentifier, false, extensionUtils.createSubjectKeyIdentifier(kp.getPublic()));
-    certGen.addExtension(X509Extension.basicConstraints, false, new BasicConstraints(isCertAuthority));
-    certGen.addExtension(X509Extension.authorityKeyIdentifier, false, extensionUtils.createAuthorityKeyIdentifier(signerPublicKey));
+    certGen.addExtension(Extension.subjectKeyIdentifier, false, extensionUtils.createSubjectKeyIdentifier(kp.getPublic()));
+    certGen.addExtension(Extension.basicConstraints, false, new BasicConstraints(isCertAuthority));
+    certGen.addExtension(Extension.authorityKeyIdentifier, false, extensionUtils.createAuthorityKeyIdentifier(signerPublicKey));
     if (isCertAuthority) {
-      certGen.addExtension(X509Extension.keyUsage, true, new KeyUsage(KeyUsage.keyCertSign));
+      certGen.addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.keyCertSign));
     }
     X509CertificateHolder cert = certGen.build(new JcaContentSignerBuilder(signingAlgorithm).build(signerPrivateKey));
     return new X509CertificateObject(cert.toASN1Structure());
