@@ -20,7 +20,7 @@
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>13</version>
+    <version>14</version>
   </parent>
   <groupId>org.apache.accumulo</groupId>
   <artifactId>accumulo-project</artifactId>
@@ -114,17 +114,22 @@
     </site>
   </distributionManagement>
   <properties>
-    <accumulo.it.forkCount>1</accumulo.it.forkCount>
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
+    <!-- bouncycastle version for test dependencies -->
+    <bouncycastle.version>1.50</bouncycastle.version>
+    <!-- surefire/failsafe plugin option -->
+    <forkCount>0.25C</forkCount>
     <!-- overwritten in profiles hadoop-1 or hadoop-2 -->
     <hadoop.version>2.2.0</hadoop.version>
     <httpclient.version>3.1</httpclient.version>
     <!-- the maven-release-plugin makes this recommendation, due to plugin bugs -->
     <maven.min-version>3.0.4</maven.min-version>
+    <!-- surefire/failsafe plugin option -->
+    <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <powermock.version>1.5</powermock.version>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <!-- surefire/failsafe plugin option -->
+    <reuseForks>true</reuseForks>
     <sealJars>false</sealJars>
     <!-- overwritten in profiles hadoop-1 or hadoop-2 -->
     <slf4j.version>1.7.5</slf4j.version>
@@ -382,6 +387,16 @@
         <version>${zookeeper.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcpkix-jdk15on</artifactId>
+        <version>${bouncycastle.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcprov-jdk15on</artifactId>
+        <version>${bouncycastle.version}</version>
+      </dependency>
+      <dependency>
         <groupId>org.codehaus.plexus</groupId>
         <artifactId>plexus-utils</artifactId>
         <version>3.0.10</version>
@@ -439,7 +454,7 @@
         <plugin>
           <groupId>com.google.code.sortpom</groupId>
           <artifactId>maven-sortpom-plugin</artifactId>
-          <version>2.1.0</version>
+          <version>2.3.0</version>
           <configuration>
             <predefinedSortOrder>recommended_2008_06</predefinedSortOrder>
             <lineSeparator>\n</lineSeparator>
@@ -453,7 +468,7 @@
         <plugin>
           <groupId>com.github.koraktor</groupId>
           <artifactId>mavanagaiata</artifactId>
-          <version>0.6.1</version>
+          <version>0.7.0</version>
           <configuration>
             <skipNoGit>true</skipNoGit>
           </configuration>
@@ -461,7 +476,7 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>native-maven-plugin</artifactId>
-          <version>1.0-alpha-7</version>
+          <version>1.0-alpha-8</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -505,14 +520,7 @@
             <source>1.6</source>
             <target>1.6</target>
             <optimize>true</optimize>
-            <encoding>${project.build.sourceEncoding}</encoding>
           </configuration>
-        </plugin>
-        <plugin>
-          <!-- should be in the Apache parent, but isn't -->
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-dependency-plugin</artifactId>
-          <version>2.8</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -554,21 +562,9 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-site-plugin</artifactId>
-          <version>3.3</version>
           <configuration>
             <skipDeploy>true</skipDeploy>
           </configuration>
-        </plugin>
-        <plugin>
-          <artifactId>maven-surefire-plugin</artifactId>
-          <configuration>
-            <redirectTestOutputToFile>true</redirectTestOutputToFile>
-          </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.rat</groupId>
-          <artifactId>apache-rat-plugin</artifactId>
-          <version>0.10</version>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
@@ -578,7 +574,7 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>cobertura-maven-plugin</artifactId>
-          <version>2.5.2</version>
+          <version>2.6</version>
           <configuration>
             <aggregate>true</aggregate>
             <formats>
@@ -799,14 +795,6 @@
               <goal>integration-test</goal>
               <goal>verify</goal>
             </goals>
-            <configuration>
-              <!--parallel>classes</parallel-->
-              <reuseForks>false</reuseForks>
-              <forkMode>perthread</forkMode>
-              <perCoreThreadCount>false</perCoreThreadCount>
-              <threadCount>${accumulo.it.forkCount}</threadCount>
-              <redirectTestOutputToFile>true</redirectTestOutputToFile>
-            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -860,7 +848,7 @@
         <!-- enable ssh deployment of site with maven 3 -->
         <groupId>org.apache.maven.wagon</groupId>
         <artifactId>wagon-ssh</artifactId>
-        <version>2.4</version>
+        <version>2.6</version>
       </extension>
     </extensions>
   </build>
@@ -881,7 +869,6 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <version>2.9</version>
         <reportSets>
           <reportSet>
             <reports>
@@ -893,12 +880,12 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jxr-plugin</artifactId>
-        <version>2.3</version>
+        <version>2.4</version>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-pmd-plugin</artifactId>
-        <version>3.0.1</version>
+        <version>3.1</version>
         <configuration>
           <format>html</format>
           <includeTests>true</includeTests>
@@ -927,7 +914,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>findbugs-maven-plugin</artifactId>
-        <version>2.5.2</version>
+        <version>2.5.3</version>
         <configuration>
           <excludeFilterFile>contrib/findbugs-exclude.xml</excludeFilterFile>
           <findbugsXmlOutput>true</findbugsXmlOutput>
@@ -968,7 +955,6 @@
                   <descriptorRefs>
                     <descriptorRef>source-release-zip-tar</descriptorRef>
                   </descriptorRefs>
-                  <tarLongFileFormat>gnu</tarLongFileFormat>
                 </configuration>
               </execution>
             </executions>
@@ -1038,7 +1024,7 @@
           <plugin>
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>cobertura-maven-plugin</artifactId>
-            <version>2.5.2</version>
+            <version>2.6</version>
             <configuration>
               <aggregate>true</aggregate>
               <formats>

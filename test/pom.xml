@@ -25,9 +25,6 @@
   <artifactId>accumulo-test</artifactId>
   <name>Testing</name>
   <description>Tests for Apache Accumulo.</description>
-  <properties>
-    <bouncycastle.version>1.49</bouncycastle.version>
-  </properties>
   <dependencies>
     <dependency>
       <groupId>com.beust</groupId>
@@ -159,13 +156,11 @@
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcpkix-jdk15on</artifactId>
-      <version>${bouncycastle.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcprov-jdk15on</artifactId>
-      <version>${bouncycastle.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -198,11 +193,13 @@
   <profiles>
     <profile>
       <id>shared-mini-for-it</id>
+      <!--
       <activation>
         <property>
           <name>!skipITs</name>
         </property>
       </activation>
+      -->
       <build>
         <plugins>
           <plugin>

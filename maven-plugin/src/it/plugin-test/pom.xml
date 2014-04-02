@@ -30,10 +30,6 @@
 
   <description>A simple IT verifying the basic use case.</description>
 
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  </properties>
-
   <dependencies>
     <dependency>
       <groupId>commons-cli</groupId>
