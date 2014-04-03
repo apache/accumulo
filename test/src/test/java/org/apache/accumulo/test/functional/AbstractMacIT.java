@@ -19,7 +19,6 @@ package org.apache.accumulo.test.functional;
 import java.io.File;
 import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
@@ -52,8 +51,6 @@ public abstract class AbstractMacIT {
       } catch (Exception e) {}
   }
 
-  static AtomicInteger tableCount = new AtomicInteger();
-
   protected static File createSharedTestDir(String name) {
     File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
     baseDir.mkdirs();
@@ -77,8 +74,6 @@ public abstract class AbstractMacIT {
   }
 
   public String[] getUniqueNames(int num) {
-    if (num == 1)
-      return new String[] {testName.getMethodName()};
     String[] names = new String[num];
     for (int i = 0; i < num; i++)
       names[i] = this.getClass().getSimpleName() + "_" + testName.getMethodName() + i;
