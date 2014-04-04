@@ -43,6 +43,7 @@ import jline.ConsoleReader;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -57,6 +58,7 @@ import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.server.trace.TraceServer;
+import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -838,13 +840,13 @@ public class ShellServerTest {
     for (int i = 0; i < 6; i++) {
       exec("insert " + i + " cf cq value", true);
     }
-    exec("config -t " + table + " -s table.iterator.scan.slow=30,org.apache.accumulo.test.functional.SlowIterator", true);
-    exec("config -t " + table + " -s table.iterator.scan.slow.opt.sleepTime=500", true);
-    
 
     ZooKeeperInstance instance = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers());
     Connector connector = instance.getConnector("root", new PasswordToken(secret));
     final Scanner s = connector.createScanner(table, Constants.NO_AUTHS);
+    IteratorSetting cfg = new IteratorSetting(30, SlowIterator.class);
+    cfg.addOption("sleepTime", "500");
+    s.addScanIterator(cfg);
 
     Thread thread = new Thread() {
       public void run() {
@@ -864,7 +866,7 @@ public class ShellServerTest {
     for (int i = 0; i < 50 && scans.isEmpty(); i++) {
       String currentScans = exec("listscans", true);
       String[] lines = currentScans.split("\n");
-      for (int scanOffset = 2; i < lines.length; i++) {
+      for (int scanOffset = 2; scanOffset < lines.length; scanOffset++) {
         String currentScan = lines[scanOffset];
         if (currentScan.contains(table)) {
           scans.add(currentScan);
