@@ -129,7 +129,7 @@
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <powermock.version>1.5</powermock.version>
     <!-- surefire/failsafe plugin option -->
-    <reuseForks>true</reuseForks>
+    <reuseForks>false</reuseForks>
     <sealJars>false</sealJars>
     <!-- overwritten in profiles hadoop-1 or hadoop-2 -->
     <slf4j.version>1.7.5</slf4j.version>
