@@ -124,7 +124,7 @@
       <directoryMode>0755</directoryMode>
       <fileMode>0755</fileMode>
       <includes>
-        <include>templates/*.sh</include>
+        <include>examples/**/*.sh</include>
       </includes>
     </fileSet>
     <fileSet>
@@ -132,10 +132,11 @@
       <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
       <includes>
-        <include>templates/**</include>
+        <include>accumulo.policy.example</include>
+        <include>examples/**</include>
       </includes>
       <excludes>
-        <exclude>templates/*.sh</exclude>
+        <exclude>examples/**/*.sh</exclude>
       </excludes>
     </fileSet>
     <fileSet>
