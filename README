@@ -100,29 +100,37 @@ a profile to maven's settings.xml file. Below is an example of $HOME/.m2/setting
  </settings>
 
 ******************************************************************************
-3. Upgrading from 1.4 to 1.5
+3. Upgrading from 1.5 to 1.6
 
- This happens automatically the first time Accumulo 1.5 is started.  
+ This happens automatically the first time Accumulo 1.6 is started.
+
+ If your instance previously upgraded from 1.4 to 1.5, you must verify that your
+ 1.5 instance has no outstanding local write ahead logs. You can do this by ensuring
+ either:
+
+  - All of your tables are online and the Monitor shows all tablets hosted
+  - The directory for write ahead logs (logger.dir.walog) from 1.4 has no files remaining
+    on any tablet server / logger hosts
+
+ To upgrade from 1.5 to 1.6 you must:
 
   * Verify that there are no outstanding FATE operations
-    - Under 1.4 you can list what's in FATE by running
+    - Under 1.5 you can list what's in FATE by running
       $ACCUMULO_HOME/bin/accumulo org.apache.accumulo.server.fate.Admin print
     - Note that operations in any state will prevent an upgrade. It is safe
       to delete operations with status SUCCESSFUL. For others, you should restart
-      your 1.4 cluster and allow them to finish.
-  * Stop the 1.4 instance.  
-  * Configure 1.5 to use the hdfs directory, walog directories, and zookeepers
-    that 1.4 was using.
-  * Copy other 1.4 configuration options as needed.
-  * Start Accumulo 1.5. 
+      your 1.5 cluster and allow them to finish.
+  * Stop the 1.5 instance.
+  * Configure 1.6 to use the hdfs directory and zookeepers that 1.5 was using.
+  * Copy other 1.5 configuration options as needed.
+  * Start Accumulo 1.6.
 
   The upgrade process must make changes to Accumulo's internal state in both ZooKeeper and
-  the table metadata. This process may take some time as Tablet Servers move write-ahead
-  logs to HDFS and then do recovery. During this time, the Monitor will claim that the
-  Master is down and some services may send the Monitor log messages about failure to
-  communicate with each other. These messages are safe to ignore. If you need detail on
-  the upgrade's progress you should view the local logs on the Tablet Servers and active
-  Master.
+  the table metadata. This process may take some time if Tablet Servers have to go through
+  recovery. During this time, the Monitor will claim that the Master is down and some
+  services may send the Monitor log messages about failure to communicate with each other.
+  These messages are safe to ignore. If you need detail on the upgrade's progress you should
+  view the local logs on the Tablet Servers and active Master.
 
 ******************************************************************************
 4. Configuring
