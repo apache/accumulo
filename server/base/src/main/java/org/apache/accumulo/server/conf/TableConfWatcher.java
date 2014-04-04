@@ -72,7 +72,7 @@ class TableConfWatcher implements Watcher {
           ServerConfiguration.getTableConfiguration(instance, tableId).propertyChanged(key);
         break;
       case NodeChildrenChanged:
-        ServerConfiguration.getTableConfiguration(instance, tableId).propertiesChanged(key);
+        ServerConfiguration.getTableConfiguration(instance, tableId).propertiesChanged();
         break;
       case NodeDeleted:
         if (key == null) {
