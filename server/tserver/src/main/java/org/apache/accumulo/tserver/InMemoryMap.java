@@ -129,19 +129,9 @@ class MemKeyConversionIterator extends WrappingIterator implements Interruptible
     setSource(source);
   }
 
-  public MemKeyConversionIterator(SortedKeyValueIterator<Key,Value> source, MemKey startKey) {
-    this(source);
-    try {
-      if (currKey != null)
-        currKey = (MemKey) startKey.clone();
-    } catch (CloneNotSupportedException e) {
-      // MemKey is supported
-    }
-  }
-
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    return new MemKeyConversionIterator(getSource().deepCopy(env), currKey);
+    return new MemKeyConversionIterator(getSource().deepCopy(env));
   }
   
   @Override
