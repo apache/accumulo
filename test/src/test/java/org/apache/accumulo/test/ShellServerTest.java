@@ -447,16 +447,38 @@ public class ShellServerTest {
     final String table = name.getMethodName();
     // addauths
     exec("createtable " + table + " -evc");
-    exec("insert a b c d -l foo", false, "does not have authorization", true, new ErrorMessageCallback() {
-      public String getErrorMessage() {
-        try {
-          Connector c = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers()).getConnector("root", new PasswordToken(secret));
-          return "Current auths for root are: " + c.securityOperations().getUserAuthorizations("root").toString();
-        } catch (Exception e) {
-          return "Could not check authorizations";
-        }
+    boolean success = false;
+    // TabletServer hosting this table must see the constraint update before insert will fail properly
+    for (int i = 0; i < 9 && !success; i++) {
+      try {
+        exec("insert a b c d -l foo", false, "does not have authorization", true, new ErrorMessageCallback() {
+          public String getErrorMessage() {
+            try {
+              Connector c = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers()).getConnector("root", new PasswordToken(secret));
+              return "Current auths for root are: " + c.securityOperations().getUserAuthorizations("root").toString();
+            } catch (Exception e) {
+              return "Could not check authorizations";
+            }
+          }
+        });
+        success = true;
+      } catch (AssertionError e) {
+        Thread.sleep(200);
       }
-    });
+    }
+    // If we still couldn't do it, try again and let it fail
+    if (!success) {
+      exec("insert a b c d -l foo", false, "does not have authorization", true, new ErrorMessageCallback() {
+        public String getErrorMessage() {
+          try {
+            Connector c = new ZooKeeperInstance(cluster.getInstanceName(), cluster.getZooKeepers()).getConnector("root", new PasswordToken(secret));
+            return "Current auths for root are: " + c.securityOperations().getUserAuthorizations("root").toString();
+          } catch (Exception e) {
+            return "Could not check authorizations";
+          }
+        }
+      });
+    }
     exec("addauths -s foo,bar", true);
     boolean passed = false;
     for (int i = 0; i < 50 && !passed; i++) {
