@@ -583,16 +583,35 @@ public class ShellServerIT extends SimpleMacIT {
     final String table = name.getMethodName();
     // addauths
     ts.exec("createtable " + table + " -evc");
-    ts.exec("insert a b c d -l foo", false, "does not have authorization", true, new ErrorMessageCallback() {
-      public String getErrorMessage() {
-        try {
-          Connector c = getConnector();
-          return "Current auths for root are: " + c.securityOperations().getUserAuthorizations("root").toString();
-        } catch (Exception e) {
-          return "Could not check authorizations";
-        }
+    boolean success = false;
+    for (int i = 0; i < 9 && !success; i++) {
+      try {
+        ts.exec("insert a b c d -l foo", false, "does not have authorization", true, new ErrorMessageCallback() {
+          public String getErrorMessage() {
+            try {
+              Connector c = getConnector();
+              return "Current auths for root are: " + c.securityOperations().getUserAuthorizations("root").toString();
+            } catch (Exception e) {
+              return "Could not check authorizations";
+            }
+          }
+        });
+      } catch (AssertionError e) {
+        Thread.sleep(200);
       }
-    });
+    }
+    if (!success) {
+      ts.exec("insert a b c d -l foo", false, "does not have authorization", true, new ErrorMessageCallback() {
+        public String getErrorMessage() {
+          try {
+            Connector c = getConnector();
+            return "Current auths for root are: " + c.securityOperations().getUserAuthorizations("root").toString();
+          } catch (Exception e) {
+            return "Could not check authorizations";
+          }
+        }
+      });
+    }
     ts.exec("addauths -s foo,bar", true);
     boolean passed = false;
     for (int i = 0; i < 50 && !passed; i++) {
