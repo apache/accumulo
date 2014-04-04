@@ -18,43 +18,41 @@ package org.apache.accumulo.core.client.impl;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.impl.TabletLocatorImpl.TabletServerLockChecker;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
-import org.apache.zookeeper.KeeperException;
+import org.junit.Before;
+import org.junit.Test;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 
-/**
- * 
- */
-public class ZookeeperLockChecker implements TabletServerLockChecker {
-  
-  private final ZooCache zc;
-  private final String root;
+public class ZookeeperLockCheckerTest {
+  private Instance instance;
+  private ZooCacheFactory zcf;
+  private ZooCache zc;
+  private ZookeeperLockChecker zklc;
 
-  ZookeeperLockChecker(Instance instance) {
-    this(instance, new ZooCacheFactory());
+  @Before
+  public void setUp() {
+    instance = createMock(Instance.class);
+    expect(instance.getInstanceID()).andReturn("iid").anyTimes();
+    expect(instance.getZooKeepers()).andReturn("zk1").anyTimes();
+    expect(instance.getZooKeepersSessionTimeOut()).andReturn(30000).anyTimes();
+    replay(instance);
+    zcf = createMock(ZooCacheFactory.class);
+    zc = createMock(ZooCache.class);
+    expect(zcf.getZooCache("zk1", 30000)).andReturn(zc);
+    replay(zcf);
+    zklc = new ZookeeperLockChecker(instance, zcf);
   }
-  ZookeeperLockChecker(Instance instance, ZooCacheFactory zcf) {
-    zc = zcf.getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
-    this.root = ZooUtil.getRoot(instance) + Constants.ZTSERVERS;
+
+  @Test
+  public void testInvalidateCache() {
+    zc.clear(ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/server");
+    replay(zc);
+    zklc.invalidateCache("server");
+    verify(zc);
   }
-  
-  @Override
-  public boolean isLockHeld(String tserver, String session) {
-    try {
-      return ZooLock.getSessionId(zc, root + "/" + tserver) == Long.parseLong(session, 16);
-    } catch (KeeperException e) {
-      throw new RuntimeException(e);
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    }
-  }
-  
-  @Override
-  public void invalidateCache(String tserver) {
-    zc.clear(root + "/" + tserver);
-  }
-  
 }

@@ -297,16 +297,13 @@ public class ZooCache {
     }
   }
 
-  private static Map<String,ZooCache> instances = new HashMap<String,ZooCache>();
+  private static ZooCacheFactory zcf = new ZooCacheFactory();
 
+  /**
+   * @deprecated Use {@link ZooCacheFactory} instead.
+   */
+  @Deprecated
   public static synchronized ZooCache getInstance(String zooKeepers, int sessionTimeout) {
-    String key = zooKeepers + ":" + sessionTimeout;
-    ZooCache zc = instances.get(key);
-    if (zc == null) {
-      zc = new ZooCache(zooKeepers, sessionTimeout);
-      instances.put(key, zc);
-    }
-
-    return zc;
+    return zcf.getZooCache(zooKeepers, sessionTimeout);
   }
 }

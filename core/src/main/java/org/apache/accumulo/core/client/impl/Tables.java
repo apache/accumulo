@@ -36,6 +36,7 @@ import org.apache.accumulo.core.util.ArgumentChecker.Validator;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.log4j.Logger;
 
 public class Tables {
@@ -117,7 +118,7 @@ public class Tables {
     if (sm != null) {
       sm.checkPermission(TABLES_PERMISSION);
     }
-    return ZooCache.getInstance(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
+    return new ZooCacheFactory().getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
   }
 
   private static SortedMap<String,String> getMap(Instance instance, boolean nameAsKey) {

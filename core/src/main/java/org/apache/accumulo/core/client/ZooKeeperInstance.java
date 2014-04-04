@@ -37,6 +37,7 @@ import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.commons.configuration.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
@@ -132,8 +133,10 @@ public class ZooKeeperInstance implements Instance {
    *          See {@link ClientConfiguration} which extends Configuration with convenience methods specific to Accumulo.
    * @since 1.6.0
    */
-
   public ZooKeeperInstance(Configuration config) {
+    this(config, new ZooCacheFactory());
+  }
+  ZooKeeperInstance(Configuration config, ZooCacheFactory zcf) {
     ArgumentChecker.notNull(config);
     if (config instanceof ClientConfiguration) {
       this.clientConf = (ClientConfiguration)config;
@@ -146,7 +149,7 @@ public class ZooKeeperInstance implements Instance {
       throw new IllegalArgumentException("Expected exactly one of instanceName and instanceId to be set");
     this.zooKeepers = clientConf.get(ClientProperty.INSTANCE_ZK_HOST);
     this.zooKeepersSessionTimeOut = (int) AccumuloConfiguration.getTimeInMillis(clientConf.get(ClientProperty.INSTANCE_ZK_TIMEOUT));
-    zooCache = ZooCache.getInstance(zooKeepers, zooKeepersSessionTimeOut);
+    zooCache = zcf.getZooCache(zooKeepers, zooKeepersSessionTimeOut);
   }
 
   @Override
