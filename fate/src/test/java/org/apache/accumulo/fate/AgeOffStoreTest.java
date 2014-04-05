@@ -20,7 +20,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 
 import org.apache.accumulo.fate.AgeOffStore.TimeSource;
-import org.apache.accumulo.fate.TStore.TStatus;
+import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.junit.Assert;
 import org.junit.Test;
 

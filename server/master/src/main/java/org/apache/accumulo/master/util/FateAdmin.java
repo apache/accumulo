@@ -25,6 +25,7 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.ZooStore;
+import org.apache.accumulo.fate.ReadOnlyStore;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.client.HdfsZooInstance;
@@ -86,7 +87,7 @@ public class FateAdmin {
       }
       admin.deleteLocks(zs, zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS, args[1]);
     } else if (jc.getParsedCommand().equals("print")) {
-      admin.print(zs, zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS);
+      admin.print(new ReadOnlyStore(zs), zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS);
     }
   }
 }
