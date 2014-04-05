@@ -121,18 +121,33 @@ public class Summary extends Basic {
       return 0;
     }
   }
+
+  protected Range getRangeForTrace(long minutesSince) {
+    long endTime = System.currentTimeMillis();
+    long millisSince = minutesSince * 60 * 1000;
+    // Catch the overflow
+    if (millisSince < minutesSince) {
+      millisSince = endTime;
+    }
+    long startTime = endTime - millisSince;
+
+    String startHexTime = Long.toHexString(startTime), endHexTime = Long.toHexString(endTime);
+    while (startHexTime.length() < endHexTime.length()) {
+      startHexTime = "0" + startHexTime;
+    }
+
+    return new Range(new Text("start:" + startHexTime), new Text("start:" + endHexTime));
+  }
   
   @Override
   public void pageBody(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) throws Exception {
     int minutes = getMinutes(req);
-    long endTime = System.currentTimeMillis();
-    long startTime = endTime - minutes * 60 * 1000;
     
     Scanner scanner = getScanner(sb);
     if (scanner == null) {
       return;
     }
-    Range range = new Range(new Text("start:" + Long.toHexString(startTime)), new Text("start:" + Long.toHexString(endTime)));
+    Range range = getRangeForTrace(minutes);
     scanner.setRange(range);
     Map<String,Stats> summary = new TreeMap<String,Stats>();
     for (Entry<Key,Value> entry : scanner) {
