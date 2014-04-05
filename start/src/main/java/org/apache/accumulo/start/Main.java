@@ -54,7 +54,7 @@ public class Main {
       } else if (args[0].equals("tserver")) {
         runTMP = cl.loadClass("org.apache.accumulo.tserver.TabletServer");
       } else if (args[0].equals("shell")) {
-        runTMP = cl.loadClass("org.apache.accumulo.core.util.shell.Shell");
+        runTMP = cl.loadClass("org.apache.accumulo.shell.Shell");
       } else if (args[0].equals("init")) {
         runTMP = cl.loadClass("org.apache.accumulo.server.init.Initialize");
       } else if (args[0].equals("admin")) {

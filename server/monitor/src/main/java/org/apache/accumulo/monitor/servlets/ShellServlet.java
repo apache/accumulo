@@ -34,7 +34,7 @@ import javax.servlet.http.HttpSession;
 
 import jline.console.ConsoleReader;
 
-import org.apache.accumulo.core.util.shell.Shell;
+import org.apache.accumulo.shell.Shell;
 
 public class ShellServlet extends BasicServlet {
   private static final long serialVersionUID = 1L;
