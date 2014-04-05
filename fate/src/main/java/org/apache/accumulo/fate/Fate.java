@@ -19,7 +19,7 @@ package org.apache.accumulo.fate;
 import java.util.EnumSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.fate.TStore.TStatus;
+import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.util.Daemon;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.log4j.Logger;

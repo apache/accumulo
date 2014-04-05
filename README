@@ -104,11 +104,25 @@ a profile to maven's settings.xml file. Below is an example of $HOME/.m2/setting
 
  This happens automatically the first time Accumulo 1.5 is started.  
 
+  * Verify that there are no outstanding FATE operations
+    - Under 1.4 you can list what's in FATE by running
+      $ACCUMULO_HOME/bin/accumulo org.apache.accumulo.server.fate.Admin print
+    - Note that operations in any state will prevent an upgrade. It is safe
+      to delete operations with status SUCCESSFUL. For others, you should restart
+      your 1.4 cluster and allow them to finish.
   * Stop the 1.4 instance.  
   * Configure 1.5 to use the hdfs directory, walog directories, and zookeepers
     that 1.4 was using.
   * Copy other 1.4 configuration options as needed.
   * Start Accumulo 1.5. 
+
+  The upgrade process must make changes to Accumulo's internal state in both ZooKeeper and
+  the table metadata. This process may take some time as Tablet Servers move write-ahead
+  logs to HDFS and then do recovery. During this time, the Monitor will claim that the
+  Master is down and some services may send the Monitor log messages about failure to
+  communicate with each other. These messages are safe to ignore. If you need detail on
+  the upgrade's progress you should view the local logs on the Tablet Servers and active
+  Master.
 
 ******************************************************************************
 4. Configuring
