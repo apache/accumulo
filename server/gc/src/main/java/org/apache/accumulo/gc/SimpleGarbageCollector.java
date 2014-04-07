@@ -108,6 +108,9 @@ import com.google.common.net.HostAndPort;
 public class SimpleGarbageCollector implements Iface {
   private static final Text EMPTY_TEXT = new Text();
 
+  /**
+   * Options for the garbage collector.
+   */
   static class Opts extends ServerOpts {
     @Parameter(names = {"-v", "--verbose"}, description = "extra information will get printed to stdout also")
     boolean verbose = false;
@@ -115,8 +118,11 @@ public class SimpleGarbageCollector implements Iface {
     boolean safeMode = false;
   }
 
-  // how much of the JVM's available memory should it use gathering candidates
-  private static final float CANDIDATE_MEMORY_PERCENTAGE = 0.75f;
+  /**
+   * A fraction representing how much of the JVM's available memory should be
+   * used for gathering candidates.
+   */
+  static final float CANDIDATE_MEMORY_PERCENTAGE = 0.75f;
 
   private static final Logger log = Logger.getLogger(SimpleGarbageCollector.class);
 
@@ -148,18 +154,100 @@ public class SimpleGarbageCollector implements Iface {
     gc.run();
   }
 
+  /**
+   * Creates a new garbage collector.
+   *
+   * @param opts options
+   */
   public SimpleGarbageCollector(Opts opts) {
     this.opts = opts;
   }
 
-  public void init(VolumeManager fs, Instance instance, Credentials credentials, boolean noTrash) throws IOException {
+  /**
+   * Gets the credentials used by this GC.
+   *
+   * @return credentials
+   */
+  Credentials getCredentials() {
+    return credentials;
+  }
+  /**
+   * Gets the delay before the first collection.
+   *
+   * @return start delay, in milliseconds
+   */
+  long getStartDelay() {
+    return gcStartDelay;
+  }
+  /**
+   * Gets the volume manager used by this GC.
+   *
+   * @return volume manager
+   */
+  VolumeManager getVolumeManager() {
+    return fs;
+  }
+  /**
+   * Checks if the volume manager should move files to the trash rather than
+   * delete them.
+   *
+   * @return true if trash is used
+   */
+  boolean isUsingTrash() {
+    return useTrash;
+  }
+  /**
+   * Gets the options for this garbage collector.
+   */
+  Opts getOpts() {
+    return opts;
+  }
+  /**
+   * Gets the number of threads used for deleting files.
+   *
+   * @return number of delete threads
+   */
+  int getNumDeleteThreads() {
+    return numDeleteThreads;
+  }
+  /**
+   * Gets the instance used by this GC.
+   *
+   * @return instance
+   */
+  Instance getInstance() {
+    return instance;
+  }
+
+  /**
+   * Initializes this garbage collector with the current system configuration.
+   *
+   * @param fs volume manager
+   * @param instance instance
+   * @param credentials credentials
+   * @param noTrash true to not move files to trash instead of deleting
+   */
+  public void init(VolumeManager fs, Instance instance, Credentials credentials, boolean noTrash) {
+    init(fs, instance, credentials, noTrash, ServerConfiguration.getSystemConfiguration(instance));
+  }
+
+  /**
+   * Initializes this garbage collector.
+   *
+   * @param fs volume manager
+   * @param instance instance
+   * @param credentials credentials
+   * @param noTrash true to not move files to trash instead of deleting
+   * @param systemConfig system configuration
+   */
+  public void init(VolumeManager fs, Instance instance, Credentials credentials, boolean noTrash, AccumuloConfiguration systemConfig) {
     this.fs = fs;
     this.credentials = credentials;
     this.instance = instance;
 
-    gcStartDelay = ServerConfiguration.getSystemConfiguration(instance).getTimeInMillis(Property.GC_CYCLE_START);
-    long gcDelay = ServerConfiguration.getSystemConfiguration(instance).getTimeInMillis(Property.GC_CYCLE_DELAY);
-    numDeleteThreads = ServerConfiguration.getSystemConfiguration(instance).getCount(Property.GC_DELETE_THREADS);
+    gcStartDelay = systemConfig.getTimeInMillis(Property.GC_CYCLE_START);
+    long gcDelay = systemConfig.getTimeInMillis(Property.GC_CYCLE_DELAY);
+    numDeleteThreads = systemConfig.getCount(Property.GC_DELETE_THREADS);
     log.info("start delay: " + gcStartDelay + " milliseconds");
     log.info("time delay: " + gcDelay + " milliseconds");
     log.info("safemode: " + opts.safeMode);
@@ -194,7 +282,7 @@ public class SimpleGarbageCollector implements Iface {
       for (Entry<Key,Value> entry : scanner) {
         String cand = entry.getKey().getRow().toString().substring(MetadataSchema.DeletesSection.getRowPrefix().length());
         result.add(cand);
-        if (almostOutOfMemory()) {
+        if (almostOutOfMemory(Runtime.getRuntime())) {
           log.info("List of delete candidates has exceeded the memory threshold. Attempting to delete what has been gathered so far.");
           break;
         }
@@ -506,7 +594,16 @@ public class SimpleGarbageCollector implements Iface {
     }
   }
 
-  private boolean moveToTrash(Path path) throws IOException {
+  /**
+   * Moves a file to trash. If this garbage collector is not using trash, this
+   * method returns false and leaves the file alone. If the file is missing,
+   * this method returns false as opposed to throwing an exception.
+   *
+   * @param path
+   * @return true if the file was moved to trash
+   * @throws IOException if the volume manager encountered a problem
+   */
+  boolean moveToTrash(Path path) throws IOException {
     if (!useTrash)
       return false;
     try {
@@ -517,7 +614,7 @@ public class SimpleGarbageCollector implements Iface {
   }
 
   private void getZooLock(HostAndPort addr) throws KeeperException, InterruptedException {
-    String path = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZGC_LOCK;
+    String path = ZooUtil.getRoot(instance) + Constants.ZGC_LOCK;
 
     LockWatcher lockWatcher = new LockWatcher() {
       @Override
@@ -563,8 +660,14 @@ public class SimpleGarbageCollector implements Iface {
     }
   }
 
-  static public boolean almostOutOfMemory() {
-    Runtime runtime = Runtime.getRuntime();
+  /**
+   * Checks if the system is almost out of memory.
+   *
+   * @param runtime Java runtime
+   * @return true if system is almost out of memory
+   * @see #CANDIDATE_MEMORY_PERCENTAGE
+   */
+  static boolean almostOutOfMemory(Runtime runtime) {
     return runtime.totalMemory() - runtime.freeMemory() > CANDIDATE_MEMORY_PERCENTAGE * runtime.maxMemory();
   }
 
@@ -576,7 +679,14 @@ public class SimpleGarbageCollector implements Iface {
     writer.addMutation(m);
   }
 
-  private boolean isDir(String delete) {
+  /**
+   * Checks if the given string is a directory.
+   *
+   * @param delete possible directory
+   * @return true if string is a directory
+   */
+  static boolean isDir(String delete) {
+    if (delete == null) { return false; }
     int slashCount = 0;
     for (int i = 0; i < delete.length(); i++)
       if (delete.charAt(i) == '/')
