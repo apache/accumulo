@@ -16,26 +16,25 @@
  */
 package org.apache.accumulo.fate;
 
-import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
-import com.google.common.base.Preconditions;
-
 import java.io.Serializable;
 import java.util.EnumSet;
 import java.util.List;
 
+import com.google.common.base.Preconditions;
+
 /**
  * This store decorates a TStore to make sure it can not be modified.
- *
- * Unlike relying directly on the ReadOnlyTStore interface, this class will not allow subsequent users to cast back to a
- * mutable TStore successfully.
- *
+ * 
+ * Unlike relying directly on the ReadOnlyTStore interface, this class will not allow subsequent users to cast back to a mutable TStore successfully.
+ * 
  */
 public class ReadOnlyStore<T> implements ReadOnlyTStore<T> {
 
   private final TStore<T> store;
 
   /**
-   * @param store may not be null
+   * @param store
+   *          may not be null
    */
   public ReadOnlyStore(TStore<T> store) {
     Preconditions.checkNotNull(store);
@@ -59,14 +58,15 @@ public class ReadOnlyStore<T> implements ReadOnlyTStore<T> {
 
   /**
    * Decorates a Repo to make sure it is treated as a ReadOnlyRepo.
-   *
+   * 
    * Similar to ReadOnlyStore, won't allow subsequent user to cast a ReadOnlyRepo back to a mutable Repo.
    */
   protected static class ReadOnlyRepoWrapper<X> implements ReadOnlyRepo<X> {
     private final Repo<X> repo;
 
     /**
-     * @param repo may not be null
+     * @param repo
+     *          may not be null
      */
     public ReadOnlyRepoWrapper(Repo<X> repo) {
       Preconditions.checkNotNull(repo);
@@ -86,7 +86,7 @@ public class ReadOnlyStore<T> implements ReadOnlyTStore<T> {
 
   @Override
   public ReadOnlyRepo<T> top(long tid) {
-    return new ReadOnlyRepoWrapper(store.top(tid));
+    return new ReadOnlyRepoWrapper<T>(store.top(tid));
   }
 
   @Override
