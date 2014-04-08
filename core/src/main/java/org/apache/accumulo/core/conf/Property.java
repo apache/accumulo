@@ -437,6 +437,21 @@ public enum Property {
   GENERAL_MAVEN_PROJECT_BASEDIR(AccumuloClassLoader.MAVEN_PROJECT_BASEDIR_PROPERTY_NAME, AccumuloClassLoader.DEFAULT_MAVEN_PROJECT_BASEDIR_VALUE,
       PropertyType.ABSOLUTEPATH, "Set this to automatically add maven target/classes directories to your dynamic classpath"),
 
+  @Experimental
+  REPLICATION_PREFIX("replication.", null, PropertyType.PREFIX, "Properties in this category affect the replication of data to other Accumulo instances."),
+  @Experimental
+  REPLICATION_ENABLED("replication.enabled", "false", PropertyType.BOOLEAN, "Global switch to enable replication for the given instance"),
+  @Experimental
+  REPLICATION_SLAVES("replication.slave.", null, PropertyType.PREFIX, "Properties in this category control what systems data can be replicated to"),
+  @Experimental
+  REPLICATION_TABLES("replication.table.", null, PropertyType.PREFIX, "Properties in this category control table-specific replication configuration"),
+  @Experimental
+  REPLICATION_TABLET_SCAN_INTERVAL("replication.tablet.interval", "30s", PropertyType.TIMEDURATION, "Amount of time to sleep before scanning tablets for new replication data"),
+  @Experimental
+  REPLICATION_BATCH_SIZE("replication.batch.size", "1000", PropertyType.COUNT, "Maximum number of updates (WAL) or key-value pairs (RFile) to send in one replication task"),
+  @Experimental
+  REPLICATION_SEND_THREAD_POOL_SIZE("replication.send.threads", "1", PropertyType.COUNT, "Size of threadpool used to start replication to slaves"),
+  
   ;
 
   private String key, defaultValue, description;
