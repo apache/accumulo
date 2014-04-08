@@ -17,8 +17,6 @@
 package org.apache.accumulo.fate;
 
 import java.io.Serializable;
-import java.util.EnumSet;
-import java.util.List;
 
 /**
  * Transaction Store: a place to save transactions
@@ -27,46 +25,15 @@ import java.util.List;
  * service can then execute the transaction's operation, possibly pushing more operations onto the transaction as each step successfully completes. If a step
  * fails, the stack can be unwound, undoing each operation.
  */
-public interface TStore<T> {
-  
-  public enum TStatus {
-    /** Unseeded transaction */
-    NEW,
-    /** Transaction is eligible to be executing */
-    IN_PROGRESS,
-    /** Transaction has failed, and is in the process of being rolled back */
-    FAILED_IN_PROGRESS,
-    /** Transaction has failed and has been fully rolled back */
-    FAILED,
-    /** Transaction has succeeded */
-    SUCCESSFUL,
-    /** Unrecognized or unknown transaction state */
-    UNKNOWN
-  }
-  
+public interface TStore<T> extends ReadOnlyTStore<T> {
+
   /**
    * Create a new transaction id
    * 
    * @return a transaction id
    */
   long create();
-  
-  /**
-   * Reserve a transaction that is IN_PROGRESS or FAILED_IN_PROGRESS.
-   * 
-   */
-  long reserve();
-  
-  void reserve(long tid);
-  
-  /**
-   * Return the given transaction to the store
-   * 
-   * @param tid
-   * @param deferTime
-   */
-  void unreserve(long tid, long deferTime);
-  
+
   /**
    * Get the current operation for the given transaction id.
    * 
@@ -74,8 +41,9 @@ public interface TStore<T> {
    *          transaction id
    * @return the operation
    */
+  @Override
   Repo<T> top(long tid);
-  
+
   /**
    * Update the given transaction with the next operation
    * 
@@ -85,23 +53,14 @@ public interface TStore<T> {
    *          the operation
    */
   void push(long tid, Repo<T> repo) throws StackOverflowException;
-  
+
   /**
    * Remove the last pushed operation from the given transaction.
    * 
    * @param tid
    */
   void pop(long tid);
-  
-  /**
-   * Get the state of a given transaction.
-   * 
-   * @param tid
-   *          transaction id
-   * @return execution status
-   */
-  TStatus getStatus(long tid);
-  
+
   /**
    * Update the state of a given transaction
    * 
@@ -111,19 +70,9 @@ public interface TStore<T> {
    *          execution status
    */
   void setStatus(long tid, TStatus status);
-  
-  /**
-   * Wait for the satus of a transaction to change
-   * 
-   * @param tid
-   *          transaction id
-   */
-  TStatus waitForStatusChange(long tid, EnumSet<TStatus> expected);
-  
+
   void setProperty(long tid, String prop, Serializable val);
-  
-  Serializable getProperty(long tid, String prop);
-  
+
   /**
    * Remove the transaction from the store.
    * 
@@ -131,12 +80,5 @@ public interface TStore<T> {
    *          the transaction id
    */
   void delete(long tid);
-  
-  /**
-   * list all transaction ids in store
-   * 
-   */
-  
-  List<Long> list();
-  
+
 }

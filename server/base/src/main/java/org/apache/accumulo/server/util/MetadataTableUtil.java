@@ -961,6 +961,9 @@ public class MetadataTableUtil {
     update(SystemCredentials.get(), m, new KeyExtent(new Text("anythingNotMetadata"), null, null));
   }
 
+  /**
+   * During an upgrade we need to move deletion requests for files under the !METADATA table to the root tablet.
+   */
   public static void moveMetaDeleteMarkers(Instance instance, Credentials creds) {
     // move old delete markers to new location, to standardize table schema between all metadata tables
     byte[] EMPTY_BYTES = new byte[0];

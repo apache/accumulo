@@ -29,6 +29,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -264,6 +265,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
   }
 
+  private boolean haveUpgradedZooKeeper = false;
+
   private void upgradeZookeeper() {
     // 1.5.1 and 1.6.0 both do some state checking after obtaining the zoolock for the
     // monitor and before starting up. It's not tied to the data version at all (and would
@@ -271,6 +274,12 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     // that the master is not the only thing that may alter zookeeper before starting.
 
     if (Accumulo.getAccumuloPersistentVersion(fs) == ServerConstants.PREV_DATA_VERSION) {
+      // This Master hasn't started Fate yet, so any outstanding transactions must be from before the upgrade.
+      // Change to Guava's Verify once we use Guava 17.
+      if (null != fate) {
+        throw new IllegalStateException("Access to Fate should not have been initialized prior to the Master transitioning to active. Please save all logs and file a bug.");
+      }
+      Accumulo.abortIfFateTransactions();
       try {
         log.info("Upgrading zookeeper");
 
@@ -323,7 +332,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           perm.grantNamespacePermission(user, Namespaces.ACCUMULO_NAMESPACE_ID, NamespacePermission.READ);
         }
         perm.grantNamespacePermission("root", Namespaces.ACCUMULO_NAMESPACE_ID, NamespacePermission.ALTER_TABLE);
-
+        haveUpgradedZooKeeper = true;
       } catch (Exception ex) {
         log.fatal("Error performing upgrade", ex);
         System.exit(1);
@@ -332,21 +341,32 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   }
 
   private final AtomicBoolean upgradeMetadataRunning = new AtomicBoolean(false);
+  private final CountDownLatch waitForMetadataUpgrade = new CountDownLatch(1);
 
   private final ServerConfiguration serverConfig;
 
   private void upgradeMetadata() {
-    if (Accumulo.getAccumuloPersistentVersion(fs) == ServerConstants.PREV_DATA_VERSION) {
-      if (upgradeMetadataRunning.compareAndSet(false, true)) {
+    // we make sure we're only doing the rest of this method once so that we can signal to other threads that an upgrade wasn't needed.
+    if (upgradeMetadataRunning.compareAndSet(false, true)) {
+      if (Accumulo.getAccumuloPersistentVersion(fs) == ServerConstants.PREV_DATA_VERSION) {
+        // sanity check that we passed the Fate verification prior to ZooKeeper upgrade, and that Fate still hasn't been started.
+        // Change both to use Guava's Verify once we use Guava 17.
+        if (!haveUpgradedZooKeeper) {
+          throw new IllegalStateException("We should only attempt to upgrade Accumulo's !METADATA table if we've already upgraded ZooKeeper. Please save all logs and file a bug.");
+        }
+        if (null != fate) {
+          throw new IllegalStateException("Access to Fate should not have been initialized prior to the Master finishing upgrades. Please save all logs and file a bug.");
+        }
         Runnable upgradeTask = new Runnable() {
           @Override
           public void run() {
             try {
+              log.info("Starting to upgrade !METADATA table.");
               MetadataTableUtil.moveMetaDeleteMarkers(instance, SystemCredentials.get());
+              log.info("Updating persistent data version.");
               Accumulo.updateAccumuloVersion(fs);
-
               log.info("Upgrade complete");
-
+              waitForMetadataUpgrade.countDown();
             } catch (Exception ex) {
               log.fatal("Error performing upgrade", ex);
               System.exit(1);
@@ -358,6 +378,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         // need to run this in a separate thread because a lock is held that prevents metadata tablets from being assigned and this task writes to the
         // metadata table
         new Thread(upgradeTask).start();
+      } else {
+        waitForMetadataUpgrade.countDown();
       }
     }
   }
@@ -893,6 +915,30 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
     tserverSet.startListeningForTabletServerChanges();
 
+    ZooReaderWriter.getInstance().getChildren(zroot + Constants.ZRECOVERY, new Watcher() {
+      @Override
+      public void process(WatchedEvent event) {
+        nextEvent.event("Noticed recovery changes", event.getType());
+        try {
+          // watcher only fires once, add it back
+          ZooReaderWriter.getInstance().getChildren(zroot + Constants.ZRECOVERY, this);
+        } catch (Exception e) {
+          log.error("Failed to add log recovery watcher back", e);
+        }
+      }
+    });
+
+    Credentials systemCreds = SystemCredentials.get();
+    watchers.add(new TabletGroupWatcher(this, new MetaDataStateStore(instance, systemCreds, this), null));
+    watchers.add(new TabletGroupWatcher(this, new RootTabletStateStore(instance, systemCreds, this), watchers.get(0)));
+    watchers.add(new TabletGroupWatcher(this, new ZooTabletStateStore(new ZooStore(zroot)), watchers.get(1)));
+    for (TabletGroupWatcher watcher : watchers) {
+      watcher.start();
+    }
+
+    // Once we are sure the upgrade is complete, we can safely allow fate use.
+    waitForMetadataUpgrade.await();
+
     try {
       final AgeOffStore<Master> store = new AgeOffStore<Master>(new org.apache.accumulo.fate.ZooStore<Master>(ZooUtil.getRoot(instance) + Constants.ZFATE,
           ZooReaderWriter.getRetryingInstance()), 1000 * 60 * 60 * 8);
@@ -913,27 +959,6 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       throw new IOException(e);
     } catch (InterruptedException e) {
       throw new IOException(e);
-    }
-
-    ZooReaderWriter.getInstance().getChildren(zroot + Constants.ZRECOVERY, new Watcher() {
-      @Override
-      public void process(WatchedEvent event) {
-        nextEvent.event("Noticed recovery changes", event.getType());
-        try {
-          // watcher only fires once, add it back
-          ZooReaderWriter.getInstance().getChildren(zroot + Constants.ZRECOVERY, this);
-        } catch (Exception e) {
-          log.error("Failed to add log recovery watcher back", e);
-        }
-      }
-    });
-
-    Credentials systemCreds = SystemCredentials.get();
-    watchers.add(new TabletGroupWatcher(this, new MetaDataStateStore(instance, systemCreds, this), null));
-    watchers.add(new TabletGroupWatcher(this, new RootTabletStateStore(instance, systemCreds, this), watchers.get(0)));
-    watchers.add(new TabletGroupWatcher(this, new ZooTabletStateStore(new ZooStore(zroot)), watchers.get(1)));
-    for (TabletGroupWatcher watcher : watchers) {
-      watcher.start();
     }
 
     Processor<Iface> processor = new Processor<Iface>(TraceWrap.service(new MasterClientServiceHandler(this)));

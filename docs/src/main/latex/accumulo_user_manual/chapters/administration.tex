@@ -39,6 +39,43 @@ data and control messages. In addition, Accumulo uses HDFS clients to
 communicate with HDFS. To achieve good ingest and query performance, sufficient
 network bandwidth must be available between any two machines.
 
+In addition to needing access to ports associated with HDFS and ZooKeeper, Accumulo will
+use the following default ports. Please make sure that they are open, or change
+their value in conf/accumulo-site.xml.
+
+\begin{table}[t]
+\centering
+\begin{tabular}{|l|c|c|}
+\hline
+Port & Description & Property Name\\
+\hline
+4445 & Shutdown Port (Accumulo MiniCluster) & n/a\\
+\hline
+4560 & Accumulo monitor (for centralized log display) & monitor.port.log4j\\
+\hline
+9997 & Tablet Server & tserver.port.client\\
+\hline
+9999 & Master Server & master.port.client\\
+\hline
+12234 & Accumulo Tracer & trace.port.client\\
+\hline
+42424 & Accumulo Proxy Server & n/a\\
+\hline
+50091 & Accumulo GC & gc.port.client\\
+\hline
+50095 & Accumulo HTTP monitor & monitor.port.client\\
+\hline
+\end{tabular}
+\caption{Accumulo default ports}
+\label{tab:template}
+\end{table}
+
+In addition, the user can provide '0' and an ephemeral port will be chosen instead. This
+ephemeral port is likely to be unique and not already bound. Thus, configuring ports to
+use '0' instead of an explicit value, should, in most cases, work around any issues of
+running multiple distinct Accumulo instances (or any other process which tries to use the
+same default ports) on the same hardware.
+
 \section{Installation}
 Choose a directory for the Accumulo installation. This directory will be referenced
 by the environment variable \texttt{\$ACCUMULO\_HOME}. Run the following:

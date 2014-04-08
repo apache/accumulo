@@ -64,12 +64,44 @@ public class GarbageCollectWriteAheadLogs {
   
   private boolean useTrash;
   
+  /**
+   * Creates a new GC WAL object.
+   *
+   * @param instance instance to use
+   * @param fs volume manager to use
+   * @param useTrash true to move files to trash rather than delete them
+   */
   GarbageCollectWriteAheadLogs(Instance instance, VolumeManager fs, boolean useTrash) throws IOException {
     this.instance = instance;
     this.fs = fs;
     this.useTrash = useTrash;
   }
   
+  /**
+   * Gets the instance used by this object.
+   *
+   * @return instance
+   */
+  Instance getInstance() {
+    return instance;
+  }
+  /**
+   * Gets the volume manager used by this object.
+   *
+   * @return volume manager
+   */
+  VolumeManager getVolumeManager() {
+    return fs;
+  }
+  /**
+   * Checks if the volume manager should move files to the trash rather than
+   * delete them.
+   *
+   * @return true if trash is used
+   */
+  boolean isUsingTrash() {
+    return useTrash;
+  }
   public void collect(GCStatus status) {
     
     Span span = Trace.start("scanServers");
@@ -205,14 +237,29 @@ public class GarbageCollectWriteAheadLogs {
     return 0;
   }
   
-  private List<String> paths2strings(ArrayList<Path> paths) {
+  /**
+   * Converts a list of paths to their corresponding strings.
+   *
+   * @param paths list of paths
+   * @return string forms of paths
+   */
+  static List<String> paths2strings(List<Path> paths) {
     List<String> result = new ArrayList<String>(paths.size());
     for (Path path : paths)
       result.add(path.toString());
     return result;
   }
   
-  private static Map<String,ArrayList<Path>> mapServersToFiles(Map<Path,String> fileToServerMap, Map<String,Path> nameToFileMap) {
+  /**
+   * Reverses the given mapping of file paths to servers. The returned map
+   * provides a list of file paths for each server. Any path whose name is not
+   * in the mapping of file names to paths is skipped.
+   *
+   * @param fileToServerMap map of file paths to servers
+   * @param nameToFileMap map of file names to paths
+   * @return map of servers to lists of file paths
+   */
+  static Map<String,ArrayList<Path>> mapServersToFiles(Map<Path,String> fileToServerMap, Map<String,Path> nameToFileMap) {
     Map<String,ArrayList<Path>> result = new HashMap<String,ArrayList<Path>>();
     for (Entry<Path,String> fileServer : fileToServerMap.entrySet()) {
       if (!nameToFileMap.containsKey(fileServer.getKey().getName()))
@@ -251,11 +298,23 @@ public class GarbageCollectWriteAheadLogs {
     return count;
   }
 
+  private int scanServers(Map<Path,String> fileToServerMap, Map<String,Path> nameToFileMap) throws Exception {
+    return scanServers(ServerConstants.getWalDirs(), fileToServerMap, nameToFileMap);
+  }
   //TODO Remove deprecation warning suppression when Hadoop1 support is dropped
   @SuppressWarnings("deprecation")
-  private int scanServers(Map<Path,String> fileToServerMap, Map<String,Path> nameToFileMap) throws Exception {
+  /**
+   * Scans write-ahead log directories for logs. The maps passed in are
+   * populated with scan information.
+   *
+   * @param walDirs write-ahead log directories
+   * @param fileToServerMap map of file paths to servers
+   * @param nameToFileMap map of file names to paths
+   * @return number of servers located (including those with no logs present)
+   */
+  int scanServers(String[] walDirs, Map<Path,String> fileToServerMap, Map<String,Path> nameToFileMap) throws Exception {
     Set<String> servers = new HashSet<String>();
-    for (String walDir : ServerConstants.getWalDirs()) {
+    for (String walDir : walDirs) {
       Path walRoot = new Path(walDir);
       FileStatus[] listing = null;
       try {
@@ -290,9 +349,18 @@ public class GarbageCollectWriteAheadLogs {
   }
   
   private Map<String, Path> getSortedWALogs() throws IOException {
+    return getSortedWALogs(ServerConstants.getRecoveryDirs());
+  }
+  /**
+   * Looks for write-ahead logs in recovery directories.
+   *
+   * @param recoveryDirs recovery directories
+   * @return map of log file names to paths
+   */
+  Map<String, Path> getSortedWALogs(String[] recoveryDirs) throws IOException {
     Map<String, Path> result = new HashMap<String, Path>();
     
-    for (String dir : ServerConstants.getRecoveryDirs()) {
+    for (String dir : recoveryDirs) {
       Path recoveryDir = new Path(dir);
       
       if (fs.exists(recoveryDir)) {
@@ -309,7 +377,16 @@ public class GarbageCollectWriteAheadLogs {
     return result;
   }
   
-  static private boolean isUUID(String name) {
+  /**
+   * Checks if a string is a valid UUID.
+   *
+   * @param name string to check
+   * @return true if string is a UUID
+   */
+  static boolean isUUID(String name) {
+    if (name == null || name.length() != 36) {
+      return false;
+    }
     try {
       UUID.fromString(name);
       return true;

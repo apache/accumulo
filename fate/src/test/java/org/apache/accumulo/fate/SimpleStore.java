@@ -28,7 +28,7 @@ import java.util.Set;
 import org.apache.commons.lang.NotImplementedException;
 
 /**
- * 
+ * Transient in memory store for transactions.
  */
 public class SimpleStore<T> implements TStore<T> {
   
