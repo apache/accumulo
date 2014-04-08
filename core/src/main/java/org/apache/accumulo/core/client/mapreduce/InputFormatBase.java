@@ -346,6 +346,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   }
 
   /**
+   * @deprecated since 1.5.2; Use {@link org.apache.accumulo.core.client.mapreduce.RangeInputSplit} instead.
    * @see org.apache.accumulo.core.client.mapreduce.RangeInputSplit
    */
   @Deprecated

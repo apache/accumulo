@@ -17,8 +17,6 @@
 package org.apache.accumulo.fate;
 
 import java.io.Serializable;
-import java.util.EnumSet;
-import java.util.List;
 
 /**
  * Transaction Store: a place to save transactions
@@ -28,14 +26,14 @@ import java.util.List;
  * fails, the stack can be unwound, undoing each operation.
  */
 public interface TStore<T> extends ReadOnlyTStore<T> {
-  
+
   /**
    * Create a new transaction id
    * 
    * @return a transaction id
    */
   long create();
-  
+
   /**
    * Get the current operation for the given transaction id.
    * 
@@ -45,7 +43,7 @@ public interface TStore<T> extends ReadOnlyTStore<T> {
    */
   @Override
   Repo<T> top(long tid);
-  
+
   /**
    * Update the given transaction with the next operation
    * 
@@ -55,14 +53,14 @@ public interface TStore<T> extends ReadOnlyTStore<T> {
    *          the operation
    */
   void push(long tid, Repo<T> repo) throws StackOverflowException;
-  
+
   /**
    * Remove the last pushed operation from the given transaction.
    * 
    * @param tid
    */
   void pop(long tid);
-  
+
   /**
    * Update the state of a given transaction
    * 
@@ -72,9 +70,9 @@ public interface TStore<T> extends ReadOnlyTStore<T> {
    *          execution status
    */
   void setStatus(long tid, TStatus status);
-  
+
   void setProperty(long tid, String prop, Serializable val);
-  
+
   /**
    * Remove the transaction from the store.
    * 
