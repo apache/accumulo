@@ -38,6 +38,10 @@ exception ConstraintViolationException {
   1:list<data.TConstraintViolationSummary> violationSummaries
 }
 
+exception ReplicationFailedException {
+  1:string reason
+}
+
 struct ActionStats {
     1:i32 status
     2:double elapsed
@@ -197,6 +201,8 @@ service TabletClientService extends client.ClientService {
   list<ActiveScan> getActiveScans(2:trace.TInfo tinfo, 1:security.TCredentials credentials) throws (1:client.ThriftSecurityException sec)
   list<ActiveCompaction> getActiveCompactions(2:trace.TInfo tinfo, 1:security.TCredentials credentials) throws (1:client.ThriftSecurityException sec)
   oneway void removeLogs(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:list<string> filenames)
+
+  bool replicateData(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:string file, 4:i64 offset, 5:i64 count) throws (1:client.ThriftSecurityException sec, 2:ReplicationFailedException rfe) 
 }
 
 typedef i32 TabletID

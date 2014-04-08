@@ -125,6 +125,7 @@ import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
+import org.apache.accumulo.core.tabletserver.thrift.ReplicationFailedException;
 import org.apache.accumulo.core.tabletserver.thrift.ScanState;
 import org.apache.accumulo.core.tabletserver.thrift.ScanType;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -222,6 +223,7 @@ import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerUpdateMetrics;
 import org.apache.commons.collections.map.LRUMap;
+import org.apache.commons.lang.NotImplementedException;
 import org.apache.hadoop.fs.FSError;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -2541,6 +2543,13 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       }
 
       return ret;
+    }
+
+    @Override
+    public boolean replicateData(TInfo tinfo, TCredentials credentials, String file, long offset, long count) throws ThriftSecurityException,
+        ReplicationFailedException, TException {
+      // TODO ACCUMULO-2581
+      throw new UnsupportedOperationException("Not yet implemented");
     }
   }
 
