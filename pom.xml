@@ -74,7 +74,6 @@
   <modules>
     <module>trace</module>
     <module>core</module>
-    <module>shell</module>
     <module>fate</module>
     <module>start</module>
     <module>examples/simple</module>
@@ -280,11 +279,6 @@
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-server-base</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-shell</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

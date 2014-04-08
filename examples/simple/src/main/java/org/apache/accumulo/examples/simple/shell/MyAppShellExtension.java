@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.examples.simple.shell;
 
-import org.apache.accumulo.shell.ShellExtension;
-import org.apache.accumulo.shell.Shell.Command;
+import org.apache.accumulo.core.util.shell.Shell.Command;
+import org.apache.accumulo.core.util.shell.ShellExtension;
 
 public class MyAppShellExtension extends ShellExtension {
   

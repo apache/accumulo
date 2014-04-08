@@ -19,8 +19,8 @@ package org.apache.accumulo.examples.simple.shell;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.accumulo.shell.Shell;
-import org.apache.accumulo.shell.Shell.Command;
+import org.apache.accumulo.core.util.shell.Shell;
+import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
 
 public class DebugCommand extends Command {

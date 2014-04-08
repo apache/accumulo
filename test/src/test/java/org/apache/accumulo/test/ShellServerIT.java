@@ -56,7 +56,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.shell.Shell;
+import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.apache.accumulo.test.functional.SlowIterator;
