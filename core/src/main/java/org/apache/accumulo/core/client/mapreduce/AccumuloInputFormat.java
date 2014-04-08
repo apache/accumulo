@@ -51,7 +51,7 @@ public class AccumuloInputFormat extends InputFormatBase<Key,Value> {
   @Override
   public RecordReader<Key,Value> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
     log.setLevel(getLogLevel(context));
-    
+
     // Override the log level from the configuration as if the RangeInputSplit has one it's the more correct one to use.
     if (split instanceof org.apache.accumulo.core.client.mapreduce.RangeInputSplit) {
       org.apache.accumulo.core.client.mapreduce.RangeInputSplit risplit = (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) split;
