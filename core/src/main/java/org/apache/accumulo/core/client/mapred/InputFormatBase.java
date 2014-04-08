@@ -909,6 +909,7 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
   }
 
   /**
+   * @deprecated since 1.5.2; Use {@link org.apache.accumulo.core.client.mapred.RangeInputSplit} instead.
    * @see org.apache.accumulo.core.client.mapred.RangeInputSplit
    */
   @Deprecated

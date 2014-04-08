@@ -1198,8 +1198,8 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       for (Entry<String,String> opt : setting.getOptions().entrySet()) {
         String deprecatedOption;
         try {
-          deprecatedOption = setting.getName() + AccumuloIteratorOption.FIELD_SEP + URLEncoder.encode(opt.getKey(), "UTF-8")
-              + AccumuloIteratorOption.FIELD_SEP + URLEncoder.encode(opt.getValue(), "UTF-8");
+          deprecatedOption = setting.getName() + AccumuloIteratorOption.FIELD_SEP + URLEncoder.encode(opt.getKey(), "UTF-8") + AccumuloIteratorOption.FIELD_SEP
+              + URLEncoder.encode(opt.getValue(), "UTF-8");
         } catch (UnsupportedEncodingException e) {
           throw new RuntimeException(e);
         }
@@ -1320,6 +1320,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   }
 
   /**
+   * @deprecated since 1.5.2; Use {@link org.apache.accumulo.core.client.mapreduce.RangeInputSplit} instead.
    * @see org.apache.accumulo.core.client.mapreduce.RangeInputSplit
    */
   @Deprecated

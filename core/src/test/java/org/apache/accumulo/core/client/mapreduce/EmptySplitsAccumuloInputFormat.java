@@ -27,11 +27,11 @@ import org.apache.hadoop.mapreduce.JobContext;
  * AccumuloInputFormat which returns an "empty" RangeInputSplit
  */
 public class EmptySplitsAccumuloInputFormat extends AccumuloInputFormat {
-  
+
   @Override
   public List<InputSplit> getSplits(JobContext context) throws IOException {
     super.getSplits(context);
-    
-    return Arrays.<InputSplit> asList(new RangeInputSplit());
+
+    return Arrays.<InputSplit> asList(new org.apache.accumulo.core.client.mapreduce.RangeInputSplit());
   }
 }
