@@ -121,7 +121,6 @@ public class TableToFile extends Configured implements Tool {
    * 
    * @param args
    *          instanceName zookeepers username password table columns outputpath
-   * @throws Exception
    */
   public static void main(String[] args) throws Exception {
     ToolRunner.run(new Configuration(), new TableToFile(), args);

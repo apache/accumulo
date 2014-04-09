@@ -62,7 +62,6 @@ public class SecurityUtil {
    * @param principalConfig
    *          This is the principals name in the format NAME/HOST@REALM. {@link org.apache.hadoop.security.SecurityUtil#HOSTNAME_PATTERN} will automatically be
    *          replaced by the systems host name.
-   * @param keyTabPath
    * @return true if login succeeded, otherwise false
    */
   public static boolean login(String principalConfig, String keyTabPath) {

@@ -53,18 +53,13 @@ public class TraceDumpExample {
 		Scanner scanner = opts.getConnector().createScanner(opts.getTableName(), opts.auths);
 		scanner.setRange(new Range(new Text(opts.traceId)));
 		TraceDump.printTrace(scanner, new Printer() {
-			public void print(String line) {
+			@Override
+      public void print(String line) {
 				System.out.println(line);
 			}
 		});
 	}
 	
-	/**
-	 * @param args
-	 * @throws AccumuloSecurityException 
-	 * @throws AccumuloException 
-	 * @throws TableNotFoundException 
-	 */
 	public static void main(String[] args) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
 		TraceDumpExample traceDumpExample = new TraceDumpExample();
 		Opts opts = new Opts();

@@ -114,7 +114,6 @@ public class ConfiguratorBase {
    *          a valid Accumulo user name
    * @param token
    *          the user's password
-   * @throws AccumuloSecurityException
    * @since 1.5.0
    */
   public static void setConnectorInfo(Class<?> implementingClass, Configuration conf, String principal, AuthenticationToken token)
@@ -144,7 +143,6 @@ public class ConfiguratorBase {
    *          a valid Accumulo user name
    * @param tokenFile
    *          the path to the token file in DFS
-   * @throws AccumuloSecurityException
    * @since 1.6.0
    */
   public static void setConnectorInfo(Class<?> implementingClass, Configuration conf, String principal, String tokenFile) throws AccumuloSecurityException {

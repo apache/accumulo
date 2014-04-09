@@ -87,7 +87,6 @@ public class ActiveCompaction {
   /**
    * 
    * @return name of the table the compaction is running against
-   * @throws TableNotFoundException
    */
   
   public String getTable() throws TableNotFoundException {

@@ -42,8 +42,6 @@ public class ConditionalWriterConfig {
    * 
    * <p>
    * Any condition that is not visible with this set of authorizations will fail.
-   * 
-   * @param auths
    */
   public ConditionalWriterConfig setAuthorizations(Authorizations auths) {
     ArgumentChecker.notNull(auths);

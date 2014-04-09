@@ -108,10 +108,6 @@ public class ZKAuthorizor implements Authorizor {
     }
   }
 
-  /**
-   * @param user
-   * @throws AccumuloSecurityException
-   */
   @Override
   public void initUser(String user) throws AccumuloSecurityException {
     IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();

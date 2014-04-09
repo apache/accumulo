@@ -80,7 +80,6 @@ public class Condition {
   /**
    * Sets the version for the column to check. If this is not set then the latest column will be checked, unless iterators do something different.
    * 
-   * @param ts
    * @return returns this
    */
 
@@ -96,7 +95,6 @@ public class Condition {
   /**
    * see {@link #setValue(byte[])}
    * 
-   * @param value
    * @return returns this
    */
 
@@ -110,7 +108,6 @@ public class Condition {
    * This method sets the expected value of a column. Inorder for the condition to pass the column must exist and have this value. If a value is not set, then
    * the column must be absent for the condition to pass.
    * 
-   * @param value
    * @return returns this
    */
 
@@ -123,7 +120,6 @@ public class Condition {
   /**
    * see {@link #setValue(byte[])}
    * 
-   * @param value
    * @return returns this
    */
 
@@ -136,7 +132,6 @@ public class Condition {
   /**
    * see {@link #setValue(byte[])}
    * 
-   * @param value
    * @return returns this
    */
 
@@ -153,7 +148,6 @@ public class Condition {
   /**
    * Sets the visibility for the column to check. If not set it defaults to empty visibility.
    * 
-   * @param cv
    * @return returns this
    */
 
@@ -173,7 +167,6 @@ public class Condition {
    * covers only the family, qualifier, and visibility (if the timestamp is set then it will be used to narrow the range). Value equality will be tested using
    * the first entry returned by the iterator stack.
    * 
-   * @param iterators
    * @return returns this
    */
 

@@ -37,8 +37,6 @@ public class ReverseLexicoderTest extends LexicoderTest {
   
   /**
    * Just a simple test verifying reverse indexed dates
-   * 
-   * @throws UnsupportedEncodingException
    */
   @Test
   public void testReverseSortDates() throws UnsupportedEncodingException {

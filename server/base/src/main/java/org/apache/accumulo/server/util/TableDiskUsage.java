@@ -276,9 +276,6 @@ public class TableDiskUsage {
     List<String> tables = new ArrayList<String>();
   }
 
-  /**
-   * @param args
-   */
   public static void main(String[] args) throws Exception {
     VolumeManager fs = VolumeManagerImpl.get();
     Opts opts = new Opts();

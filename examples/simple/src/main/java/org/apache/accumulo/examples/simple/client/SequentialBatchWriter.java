@@ -48,11 +48,6 @@ public class SequentialBatchWriter {
   /**
    * Writes a specified number of entries to Accumulo using a {@link BatchWriter}. The rows of the entries will be sequential starting at a specified number.
    * The column families will be "foo" and column qualifiers will be "1". The values will be random byte arrays of a specified size.
-   * 
-   * @throws AccumuloException
-   * @throws AccumuloSecurityException
-   * @throws TableNotFoundException
-   * @throws MutationsRejectedException
    */
   public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, MutationsRejectedException {
     Opts opts = new Opts();

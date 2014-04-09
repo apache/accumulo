@@ -146,9 +146,6 @@ public class AccumuloClassLoader {
   
   /**
    * Replace environment variables in the classpath string with their actual value
-   * 
-   * @param classpath
-   * @param env
    */
   public static String replaceEnvVars(String classpath, Map<String,String> env) {
     Pattern envPat = Pattern.compile("\\$[A-Za-z][a-zA-Z0-9_]*");

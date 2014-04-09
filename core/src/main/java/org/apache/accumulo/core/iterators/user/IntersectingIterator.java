@@ -386,7 +386,6 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
   private static final String notFlagOptionName = "notFlag";
   
   /**
-   * @param columns
    * @return encoded columns
    */
   protected static String encodeColumns(Text[] columns) {
@@ -399,7 +398,6 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
   }
   
   /**
-   * @param flags
    * @return encoded flags
    */
   protected static String encodeBooleans(boolean[] flags) {
@@ -423,7 +421,6 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
   }
   
   /**
-   * @param flags
    * @return decoded flags
    */
   protected static boolean[] decodeBooleans(String flags) {
@@ -534,9 +531,6 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
   
   /**
    * Encode the columns to be used when iterating.
-   * 
-   * @param cfg
-   * @param columns
    */
   public static void setColumnFamilies(IteratorSetting cfg, Text[] columns) {
     if (columns.length < 2)
@@ -546,10 +540,6 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
   
   /**
    * Encode columns and NOT flags indicating which columns should be negated (docIDs will be excluded if matching negated columns, instead of included).
-   * 
-   * @param cfg
-   * @param columns
-   * @param notFlags
    */
   public static void setColumnFamilies(IteratorSetting cfg, Text[] columns, boolean[] notFlags) {
     if (columns.length < 2)

@@ -26,16 +26,11 @@ import org.apache.commons.vfs2.impl.VFSClassLoader;
  */
 public class PostDelegatingVFSClassLoader extends VFSClassLoader {
   
-  /**
-   * @param files
-   * @param manager
-   * @param parent
-   * @throws FileSystemException
-   */
   public PostDelegatingVFSClassLoader(FileObject[] files, FileSystemManager manager, ClassLoader parent) throws FileSystemException {
     super(files, manager, parent);
   }
   
+  @Override
   protected synchronized Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
     Class<?> c = findLoadedClass(name);
     if (c != null)

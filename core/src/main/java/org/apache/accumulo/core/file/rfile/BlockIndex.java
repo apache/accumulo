@@ -67,14 +67,9 @@ public class BlockIndex {
       this.prevKey = prevKey;
     }
 
-    /**
-     * @param key
-     */
     public BlockIndexEntry(Key key) {
       this.prevKey = key;
     }
-
-
     
     public int getEntriesLeft() {
       return entriesLeft;

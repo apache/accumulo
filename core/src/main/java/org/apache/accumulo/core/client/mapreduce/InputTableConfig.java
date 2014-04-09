@@ -51,7 +51,6 @@ public class InputTableConfig implements Writable {
    * 
    * @param input
    *          the data input of the serialized batch scan config
-   * @throws IOException
    */
   public InputTableConfig(DataInput input) throws IOException {
     readFields(input);
@@ -247,7 +246,6 @@ public class InputTableConfig implements Writable {
    * 
    * @param dataOutput
    *          the output for which to write the object's state
-   * @throws IOException
    */
   @Override
   public void write(DataOutput dataOutput) throws IOException {
@@ -290,7 +288,6 @@ public class InputTableConfig implements Writable {
    * 
    * @param dataInput
    *          the input fields to read into the current object
-   * @throws IOException
    */
   @Override
   public void readFields(DataInput dataInput) throws IOException {

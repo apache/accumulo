@@ -47,9 +47,6 @@ public class VisibilityConstraintTest {
 
   static final List<Short> ENOAUTH = Arrays.asList((short) 2);
 
-  /**
-   * @throws java.lang.Exception
-   */
   @Before
   public void setUp() throws Exception {
     vc = new VisibilityConstraint();

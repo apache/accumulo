@@ -35,8 +35,6 @@ public abstract class CompactionStrategy {
 
   /**
    * The settings for the compaction strategy pulled from zookeeper. The <tt>table.compacations.major.strategy.opts</tt> part of the setting will be removed.
-   * 
-   * @param options
    */
   public void init(Map<String,String> options) {}
 
@@ -54,7 +52,6 @@ public abstract class CompactionStrategy {
    * 
    * @param request
    *          basic details about the tablet
-   * @throws IOException
    */
   public void gatherInformation(MajorCompactionRequest request) throws IOException {}
 
@@ -64,7 +61,6 @@ public abstract class CompactionStrategy {
    * @param request
    *          basic details about the tablet
    * @return the plan for a major compaction, or null to cancel the compaction.
-   * @throws IOException
    */
   abstract public CompactionPlan getCompactionPlan(MajorCompactionRequest request) throws IOException;
 
