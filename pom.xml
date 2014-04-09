@@ -119,7 +119,7 @@
     <!-- bouncycastle version for test dependencies -->
     <bouncycastle.version>1.50</bouncycastle.version>
     <!-- surefire/failsafe plugin option -->
-    <forkCount>0.25C</forkCount>
+    <forkCount>1</forkCount>
     <!-- overwritten in profiles hadoop-1 or hadoop-2 -->
     <hadoop.version>2.2.0</hadoop.version>
     <httpclient.version>3.1</httpclient.version>
@@ -638,6 +638,19 @@
                     <versionRange>[1.0,)</versionRange>
                     <goals>
                       <goal>process</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <ignore />
+                  </action>
+                </pluginExecution>
+                <pluginExecution>
+                  <pluginExecutionFilter>
+                    <groupId>org.apache.rat</groupId>
+                    <artifactId>apache-rat-plugin</artifactId>
+                    <versionRange>[0.8,)</versionRange>
+                    <goals>
+                      <goal>check</goal>
                     </goals>
                   </pluginExecutionFilter>
                   <action>
