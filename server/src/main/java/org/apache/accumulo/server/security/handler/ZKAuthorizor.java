@@ -56,10 +56,12 @@ public class ZKAuthorizor implements Authorizor {
     zooCache = new ZooCache();
   }
   
+  @Override
   public void initialize(String instanceId, boolean initialize) {
     ZKUserPath = ZKSecurityTool.getInstancePath(instanceId) + "/users";
   }
   
+  @Override
   public Authorizations getCachedUserAuthorizations(String user) {
     byte[] authsBytes = zooCache.get(ZKUserPath + "/" + user + ZKUserAuths);
     if (authsBytes != null)
@@ -100,10 +102,7 @@ public class ZKAuthorizor implements Authorizor {
     }
   }
   
-  /**
-   * @param user
-   * @throws AccumuloSecurityException
-   */
+  @Override
   public void initUser(String user) throws AccumuloSecurityException {
     IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
     try {

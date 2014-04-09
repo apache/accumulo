@@ -87,7 +87,6 @@ public abstract class Connector {
    * @param config
    *          configuration used to create batch writer
    * @return BatchDeleter object for configuring and deleting
-   * @throws TableNotFoundException
    * @since 1.5.0
    */
   
@@ -122,7 +121,6 @@ public abstract class Connector {
    * @param config
    *          configuration used to create batch writer
    * @return BatchWriter object for configuring and writing data to
-   * @throws TableNotFoundException
    * @since 1.5.0
    */
   

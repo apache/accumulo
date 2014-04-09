@@ -56,7 +56,6 @@ public class AddFilesWithMissingEntries {
    * This is a recovery tool for someone who knows what they are doing.  It might be better to 
    * save off files, and recover your instance by re-initializing and importing the existing files.
    *  
-   * @param args
    */
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();

@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
@@ -66,6 +65,7 @@ import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
+import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 
@@ -194,12 +194,6 @@ public class NullTserver {
       
     }
     
-    /*
-     * (non-Javadoc)
-     * 
-     * @see org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface#removeLogs(org.apache.accumulo.trace.thrift.TInfo,
-     * org.apache.accumulo.core.security.thrift.Credentials, java.util.List)
-     */
     @Override
     public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames) throws TException {
     }

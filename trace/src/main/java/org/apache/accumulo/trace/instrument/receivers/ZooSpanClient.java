@@ -73,22 +73,12 @@ public class ZooSpanClient extends SendSpansViaThrift {
     zoo.getChildren(path, true);
   }
   
-  /*
-   * (non-Javadoc)
-   * 
-   * @see trace.instrument.receivers.AsyncSpanReceiver#flush()
-   */
   @Override
   public void flush() {
     if (!hosts.isEmpty())
       super.flush();
   }
   
-  /*
-   * (non-Javadoc)
-   * 
-   * @see trace.instrument.receivers.AsyncSpanReceiver#sendSpans()
-   */
   @Override
   void sendSpans() {
     if (hosts.isEmpty()) {

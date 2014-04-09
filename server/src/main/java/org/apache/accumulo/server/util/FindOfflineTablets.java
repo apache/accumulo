@@ -39,9 +39,6 @@ import org.apache.log4j.Logger;
 public class FindOfflineTablets {
   private static final Logger log = Logger.getLogger(FindOfflineTablets.class);
   
-  /**
-   * @param args
-   */
   public static void main(String[] args) throws Exception {
     ClientOpts opts = new ClientOpts();
     opts.parseArgs(FindOfflineTablets.class.getName(), args);

@@ -34,9 +34,6 @@ import org.apache.accumulo.start.classloader.AccumuloClassLoader;
  */
 public class LoginProperties {
   
-  /**
-   * @param args
-   */
   public static void main(String[] args) throws Exception {
     AccumuloConfiguration config = ServerConfiguration.getSystemConfiguration(HdfsZooInstance.getInstance());
     Authenticator authenticator = AccumuloClassLoader.getClassLoader().loadClass(config.get(Property.INSTANCE_SECURITY_AUTHENTICATOR))

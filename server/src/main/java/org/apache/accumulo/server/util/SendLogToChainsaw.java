@@ -266,7 +266,6 @@ public class SendLogToChainsaw extends XMLLayout {
    *   5: end date filter parameter 
    *   6: optional regex filter to match on each log4j message parameter 
    *   7: optional level filter
-   * @throws Exception
    */
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();

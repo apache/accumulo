@@ -37,10 +37,6 @@ public class LogFileOutputFormat extends FileOutputFormat<LogFileKey,LogFileValu
     
     private FSDataOutputStream out;
     
-    /**
-     * @param outputPath
-     * @throws IOException
-     */
     public LogFileRecordWriter(Path outputPath) throws IOException {
       Configuration conf = new Configuration();
       FileSystem fs = FileSystem.get(conf);

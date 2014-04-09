@@ -51,9 +51,6 @@ import org.apache.hadoop.io.Text;
 
 public class MetadataBatchScanTest {
   
-  /**
-   * @param args
-   */
   public static void main(String[] args) throws Exception {
     
     final Connector connector = new ZooKeeperInstance("acu14", "localhost")

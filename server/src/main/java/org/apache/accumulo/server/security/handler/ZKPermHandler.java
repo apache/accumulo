@@ -58,6 +58,7 @@ public class ZKPermHandler implements PermissionHandler {
     return zkPermHandlerInstance;
   }
   
+  @Override
   public void initialize(String instanceId, boolean initialize) {
     ZKUserPath = ZKSecurityTool.getInstancePath(instanceId) + "/users";
     ZKTablePath = ZKSecurityTool.getInstancePath(instanceId) + "/tables";
@@ -272,10 +273,7 @@ public class ZKPermHandler implements PermissionHandler {
     }
   }
   
-  /**
-   * @param user
-   * @throws AccumuloSecurityException
-   */
+  @Override
   public void initUser(String user) throws AccumuloSecurityException {
     IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
     try {

@@ -48,9 +48,6 @@ public class Query {
     List<String> terms = new ArrayList<String>();
   }
   
-  /**
-   * @param args
-   */
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     BatchScannerOpts bsOpts = new BatchScannerOpts();

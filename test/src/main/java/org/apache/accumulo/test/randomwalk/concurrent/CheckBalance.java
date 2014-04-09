@@ -37,9 +37,6 @@ public class CheckBalance extends Test {
   static final String LAST_UNBALANCED_TIME = "lastUnbalancedTime";
   static final String UNBALANCED_COUNT = "unbalancedCount";
 
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.test.randomwalk.Node#visit(org.apache.accumulo.test.randomwalk.State, java.util.Properties)
-   */
   @Override
   public void visit(State state, Properties props) throws Exception {
     log.debug("checking balance");
@@ -105,6 +102,6 @@ public class CheckBalance extends Test {
       double diff = s.doubleValue() - avg;
       sqrtotal += diff * diff;
     }
-    return Math.sqrt(sqrtotal / (double) num);
+    return Math.sqrt(sqrtotal / num);
   }
 }

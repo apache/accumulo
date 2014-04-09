@@ -204,7 +204,6 @@ public class Constants {
   }
   
   /**
-   * @param conf
    * @return The write-ahead log directory.
    */
   public static String getWalDirectory(final AccumuloConfiguration conf) {

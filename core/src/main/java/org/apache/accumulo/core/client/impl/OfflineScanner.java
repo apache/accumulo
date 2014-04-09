@@ -118,12 +118,6 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   private ArrayList<SortedKeyValueIterator<Key,Value>> readers;
   private AccumuloConfiguration config;
 
-  /**
-   * @param instance
-   * @param credentials
-   * @param authorizations
-   * @param table
-   */
   public OfflineIterator(ScannerOptions options, Instance instance, TCredentials credentials, Authorizations authorizations, Text table, Range range) {
     this.options = new ScannerOptions(options);
     this.instance = instance;

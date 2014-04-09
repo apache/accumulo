@@ -58,7 +58,6 @@ public interface CryptoModule {
    * @param cryptoOpts
    *          the cryptographic parameters to use; specific string names to look for will depend on the various implementations
    * @return an OutputStream that wraps the given parameter
-   * @throws IOException
    */
   public OutputStream getEncryptingOutputStream(OutputStream out, Map<String,String> cryptoOpts) throws IOException;
   
@@ -76,7 +75,6 @@ public interface CryptoModule {
    * @param cryptoOpts
    *          the cryptographic parameters to use; specific string names to look for will depend on the various implementations
    * @return an InputStream that wraps the given parameter
-   * @throws IOException
    */
   public InputStream getDecryptingInputStream(InputStream in, Map<String,String> cryptoOpts) throws IOException;
   

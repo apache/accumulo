@@ -202,10 +202,6 @@ public class RunTests extends Configured implements Tool {
     return 0;
   }
   
-  /**
-   * @param args
-   * @throws Exception
-   */
   public static void main(String[] args) throws Exception {
     RunTests tests = new RunTests();
     ToolRunner.run(new Configuration(), tests, args);

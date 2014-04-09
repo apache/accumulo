@@ -31,8 +31,6 @@ public class ScannerOptionsTest {
   
   /**
    * Test that you properly add and remove iterators from a scanner
-   * 
-   * @throws Throwable
    */
   @Test
   public void testAddRemoveIterator() throws Throwable {

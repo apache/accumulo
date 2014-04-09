@@ -589,7 +589,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * @param maxSplits
    *          specifies the maximum number of splits to return
    * @return the split points (end-row names) for the table's current split profile, grouped into fewer splits so as not to exceed maxSplits
-   * @throws TableNotFoundException
    */
   @Override
   public Collection<Text> listSplits(String tableName, int maxSplits) throws TableNotFoundException, AccumuloSecurityException {
@@ -736,7 +735,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
    *           if a general error occurs
    * @throws AccumuloSecurityException
    *           if the user does not have permission
-   * @throws TableNotFoundException
    */
   @Override
   public void flush(String tableName, Text start, Text end, boolean wait) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
@@ -1131,7 +1129,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
    *           when there is a general accumulo error
    * @throws AccumuloSecurityException
    *           when the user does not have the proper permissions
-   * @throws TableNotFoundException
    */
   @Override
   public void offline(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
@@ -1156,7 +1153,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
    *           when there is a general accumulo error
    * @throws AccumuloSecurityException
    *           when the user does not have the proper permissions
-   * @throws TableNotFoundException
    */
   @Override
   public void online(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {

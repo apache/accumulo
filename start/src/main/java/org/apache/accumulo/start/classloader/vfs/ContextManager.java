@@ -134,8 +134,6 @@ public class ContextManager {
 
   /**
    * configuration must be injected for ContextManager to work
-   * 
-   * @param config
    */
   public synchronized void setContextConfig(ContextsConfig config) {
     if (this.config != null)

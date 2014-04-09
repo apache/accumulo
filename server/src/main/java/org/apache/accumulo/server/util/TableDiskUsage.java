@@ -34,9 +34,6 @@ public class TableDiskUsage {
     List<String> tables = new ArrayList<String>();
   }
   
-  /**
-   * @param args
-   */
   public static void main(String[] args) throws Exception {
     FileSystem fs = FileSystem.get(new Configuration());
     Opts opts = new Opts();

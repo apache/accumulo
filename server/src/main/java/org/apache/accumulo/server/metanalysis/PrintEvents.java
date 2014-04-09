@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.ColumnUpdate;
@@ -33,6 +32,7 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.logger.LogFileValue;
 import org.apache.hadoop.io.Text;
 
@@ -52,9 +52,6 @@ public class PrintEvents {
     long time;
   }
   
-  /**
-   * @param args
-   */
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(PrintEvents.class.getName(), args);

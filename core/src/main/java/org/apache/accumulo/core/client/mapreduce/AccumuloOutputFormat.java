@@ -87,7 +87,6 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    *          a valid Accumulo user name (user must have Table.CREATE permission if {@link #setCreateTables(Job, boolean)} is set to true)
    * @param token
    *          the user's password
-   * @throws AccumuloSecurityException
    * @since 1.5.0
    */
   public static void setConnectorInfo(Job job, String principal, AuthenticationToken token) throws AccumuloSecurityException {

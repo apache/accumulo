@@ -112,10 +112,6 @@ public class RandomBatchWriter {
  
   /**
    * Writes a specified number of entries to Accumulo using a {@link BatchWriter}.
-   * 
-   * @throws AccumuloException
-   * @throws AccumuloSecurityException
-   * @throws TableNotFoundException
    */
   public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     Opts opts = new Opts();

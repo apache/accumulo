@@ -100,6 +100,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * 
    * @return an iterator over Key,Value pairs which meet the restrictions set on the scanner
    */
+  @Override
   public Iterator<Entry<Key,Value>> iterator();
   
   /**
@@ -107,7 +108,6 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * 
    * Setting to zero or Long.MAX_VALUE and TimeUnit.MILLISECONDS means to retry forever.
    * 
-   * @param timeOut
    * @param timeUnit
    *          determines how timeout is interpreted
    * @since 1.5.0

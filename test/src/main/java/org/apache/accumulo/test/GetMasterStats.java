@@ -16,12 +16,10 @@
  */
 package org.apache.accumulo.test;
 
-import java.io.IOException;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.accumulo.core.client.impl.MasterClient;
-import org.apache.accumulo.core.master.MasterNotRunningException;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
@@ -30,15 +28,8 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.monitor.Monitor;
 import org.apache.accumulo.server.security.SecurityConstants;
-import org.apache.thrift.transport.TTransportException;
 
 public class GetMasterStats {
-  /**
-   * @param args
-   * @throws MasterNotRunningException
-   * @throws IOException
-   * @throws TTransportException
-   */
   public static void main(String[] args) throws Exception {
     MasterClientService.Iface client = null;
     MasterMonitorInfo stats = null;

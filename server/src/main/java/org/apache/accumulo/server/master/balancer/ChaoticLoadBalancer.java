@@ -42,9 +42,6 @@ import org.apache.thrift.TException;
 public class ChaoticLoadBalancer extends TabletBalancer {
   Random r = new Random();
   
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.server.master.balancer.TabletBalancer#getAssignments(java.util.SortedMap, java.util.Map, java.util.Map)
-   */
   @Override
   public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current, Map<KeyExtent,TServerInstance> unassigned,
       Map<KeyExtent,TServerInstance> assignments) {
@@ -140,11 +137,6 @@ public class ChaoticLoadBalancer extends TabletBalancer {
     return 100;
   }
   
-  /*
-   * (non-Javadoc)
-   * 
-   * @see org.apache.accumulo.server.master.balancer.TabletBalancer#init(org.apache.accumulo.server.conf.ServerConfiguration)
-   */
   @Override
   public void init(ServerConfiguration conf) {
   }

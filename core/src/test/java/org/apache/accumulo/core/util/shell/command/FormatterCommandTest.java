@@ -23,8 +23,6 @@ import java.io.Writer;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
-import org.junit.Assert;
-
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -36,6 +34,7 @@ import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -150,17 +149,11 @@ public class FormatterCommandTest {
     
     public HexFormatter() {}
     
-    /* (non-Javadoc)
-     * @see java.util.Iterator#hasNext()
-     */
     @Override
     public boolean hasNext() {
       return this.iter.hasNext();
     }
 
-    /* (non-Javadoc)
-     * @see java.util.Iterator#next()
-     */
     @Override
     public String next() {
       final Entry<Key, Value> entry = iter.next();
@@ -192,16 +185,10 @@ public class FormatterCommandTest {
       return sb.toString();
     }
 
-    /* (non-Javadoc)
-     * @see java.util.Iterator#remove()
-     */
     @Override
     public void remove() {
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.accumulo.core.util.format.Formatter#initialize(java.lang.Iterable, boolean)
-     */
     @Override
     public void initialize(final Iterable<Entry<Key,Value>> scanner, final boolean printTimestamps) {
       this.iter = scanner.iterator();

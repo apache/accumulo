@@ -38,9 +38,6 @@ public class NativeMapStressTest {
   
   private static final Logger log = Logger.getLogger(NativeMapStressTest.class);
   
-  /**
-   * @param args
-   */
   public static void main(String[] args) {
     testLotsOfMapDeletes(true);
     testLotsOfMapDeletes(false);

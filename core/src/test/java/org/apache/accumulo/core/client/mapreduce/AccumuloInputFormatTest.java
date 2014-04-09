@@ -93,8 +93,6 @@ public class AccumuloInputFormatTest {
 
   /**
    * Test no max version configured.
-   * 
-   * @throws IOException
    */
   @Deprecated
   @Test
@@ -105,8 +103,6 @@ public class AccumuloInputFormatTest {
 
   /**
    * Check that the iterator configuration is getting stored in the Job conf correctly.
-   * 
-   * @throws IOException
    */
   @Test
   public void testSetIterator() throws IOException {
@@ -194,8 +190,6 @@ public class AccumuloInputFormatTest {
 
   /**
    * Test getting iterator settings for multiple iterators set
-   * 
-   * @throws IOException
    */
   @Test
   public void testGetIteratorSettings() throws IOException {

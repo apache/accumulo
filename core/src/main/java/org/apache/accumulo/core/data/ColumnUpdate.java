@@ -45,7 +45,6 @@ public class ColumnUpdate {
   
   /**
    * @deprecated use setTimestamp(long);
-   * @param timestamp
    */
   @Deprecated
   public void setSystemTimestamp(long timestamp) {

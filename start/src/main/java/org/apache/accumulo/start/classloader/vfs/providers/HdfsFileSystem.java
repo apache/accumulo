@@ -46,11 +46,6 @@ public class HdfsFileSystem extends AbstractFileSystem
 
     private FileSystem fs;
 
-    /**
-     * 
-     * @param rootName
-     * @param fileSystemOptions
-     */
     protected HdfsFileSystem(final FileName rootName, final FileSystemOptions fileSystemOptions)
     {
         super(rootName, null, fileSystemOptions);

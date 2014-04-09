@@ -64,9 +64,6 @@ public class NGramIngest extends Configured implements Tool  {
     }
   }
 
-  /**
-   * @param args
-   */
   @Override
   public int run(String[] args) throws Exception {
     Opts opts = new Opts();

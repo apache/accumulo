@@ -51,9 +51,6 @@ public class DumpZookeeper {
     String root = "/";
   }
   
-  /**
-   * @param args
-   */
   public static void main(String[] args) {
     Opts opts = new Opts();
     opts.parseArgs(DumpZookeeper.class.getName(), args);

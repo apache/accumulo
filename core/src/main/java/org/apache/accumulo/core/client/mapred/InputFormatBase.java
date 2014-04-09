@@ -96,7 +96,6 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
    *          a valid Accumulo user name (user must have Table.CREATE permission)
    * @param token
    *          the user's password
-   * @throws AccumuloSecurityException
    * @since 1.5.0
    */
   public static void setConnectorInfo(JobConf job, String principal, AuthenticationToken token) throws AccumuloSecurityException {

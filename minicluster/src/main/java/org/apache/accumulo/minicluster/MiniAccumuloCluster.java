@@ -60,9 +60,6 @@ public class MiniAccumuloCluster {
     private BufferedReader in;
     private BufferedWriter out;
     
-    /**
-     * @throws IOException
-     */
     public LogWriter(InputStream stream, File logFile) throws IOException {
       this.setDaemon(true);
       this.in = new BufferedReader(new InputStreamReader(stream, Constants.UTF8));
@@ -192,7 +189,6 @@ public class MiniAccumuloCluster {
    *          and Junit provide methods for creating temporary directories.
    * @param rootPassword
    *          Initial root password for instance.
-   * @throws IOException
    */
   public MiniAccumuloCluster(File dir, String rootPassword) throws IOException {
     this(new MiniAccumuloConfig(dir, rootPassword));
@@ -201,7 +197,6 @@ public class MiniAccumuloCluster {
   /**
    * @param config
    *          initial configuration
-   * @throws IOException
    */
   
   public MiniAccumuloCluster(MiniAccumuloConfig config) throws IOException {
@@ -297,8 +292,6 @@ public class MiniAccumuloCluster {
   /**
    * Starts Accumulo and Zookeeper processes. Can only be called once.
    * 
-   * @throws IOException
-   * @throws InterruptedException
    * @throws IllegalStateException
    *           if already started
    */
@@ -360,9 +353,6 @@ public class MiniAccumuloCluster {
   /**
    * Stops Accumulo and Zookeeper processes. If stop is not called, there is a shutdown hook that is setup to kill the processes. Howerver its probably best to
    * call stop in a finally block as soon as possible.
-   * 
-   * @throws IOException
-   * @throws InterruptedException
    */
   
   public void stop() throws IOException, InterruptedException {
