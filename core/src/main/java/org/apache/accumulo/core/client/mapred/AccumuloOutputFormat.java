@@ -85,7 +85,6 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    *          a valid Accumulo user name (user must have Table.CREATE permission if {@link #setCreateTables(JobConf, boolean)} is set to true)
    * @param token
    *          the user's password
-   * @throws AccumuloSecurityException
    * @since 1.5.0
    */
   public static void setConnectorInfo(JobConf job, String principal, AuthenticationToken token) throws AccumuloSecurityException {
@@ -104,7 +103,6 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    *          a valid Accumulo user name (user must have Table.CREATE permission if {@link #setCreateTables(JobConf, boolean)} is set to true)
    * @param tokenFile
    *          the path to the password file
-   * @throws AccumuloSecurityException
    * @since 1.6.0
    */
   public static void setConnectorInfo(JobConf job, String principal, String tokenFile) throws AccumuloSecurityException {

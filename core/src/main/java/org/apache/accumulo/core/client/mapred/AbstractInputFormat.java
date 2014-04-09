@@ -85,7 +85,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *          a valid Accumulo user name (user must have Table.CREATE permission)
    * @param token
    *          the user's password
-   * @throws org.apache.accumulo.core.client.AccumuloSecurityException
    * @since 1.5.0
    */
   public static void setConnectorInfo(JobConf job, String principal, AuthenticationToken token) throws AccumuloSecurityException {
@@ -104,7 +103,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *          a valid Accumulo user name (user must have Table.CREATE permission)
    * @param tokenFile
    *          the path to the token file
-   * @throws AccumuloSecurityException
    * @since 1.6.0
    */
   public static void setConnectorInfo(JobConf job, String principal, String tokenFile) throws AccumuloSecurityException {

@@ -20,9 +20,6 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 
 public class ConfigSanityCheck {
   
-  /**
-   * @param args
-   */
   public static void main(String[] args) {
     new ServerConfiguration(HdfsZooInstance.getInstance()).getConfiguration();
   }

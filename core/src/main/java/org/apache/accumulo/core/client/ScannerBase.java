@@ -107,7 +107,6 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * 
    * Setting to zero or Long.MAX_VALUE and TimeUnit.MILLISECONDS means to retry forever.
    * 
-   * @param timeOut
    * @param timeUnit
    *          determines how timeout is interpreted
    * @since 1.5.0

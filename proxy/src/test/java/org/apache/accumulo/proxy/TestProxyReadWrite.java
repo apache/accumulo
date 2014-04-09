@@ -108,8 +108,6 @@ public class TestProxyReadWrite {
   /**
    * Insert 100000 cells which have as the row [0..99999] (padded with zeros). Set a range so only the entries between -Inf...5 come back (there should be
    * 50,000)
-   * 
-   * @throws Exception
    */
   @Test
   public void readWriteBatchOneShotWithRange() throws Exception {
@@ -146,8 +144,6 @@ public class TestProxyReadWrite {
   /**
    * Insert 100000 cells which have as the row [0..99999] (padded with zeros). Set a columnFamily so only the entries with specified column family come back (there should be
    * 50,000)
-   * 
-   * @throws Exception
    */
   @Test
   public void readWriteBatchOneShotWithColumnFamilyOnly() throws Exception {
@@ -188,8 +184,6 @@ public class TestProxyReadWrite {
   /**
    * Insert 100000 cells which have as the row [0..99999] (padded with zeros). Set a columnFamily + columnQualififer so only the entries with specified column 
    * come back (there should be 50,000)
-   * 
-   * @throws Exception
    */
   @Test
   public void readWriteBatchOneShotWithFullColumn() throws Exception {
@@ -230,8 +224,6 @@ public class TestProxyReadWrite {
 
   /**
    * Insert 100000 cells which have as the row [0..99999] (padded with zeros). Filter the results so only the even numbers come back.
-   * 
-   * @throws Exception
    */
   @Test
   public void readWriteBatchOneShotWithFilterIterator() throws Exception {
@@ -307,8 +299,6 @@ public class TestProxyReadWrite {
   
   /**
    * Insert 100000 cells which have as the row [0..99999] (padded with zeros). Filter the results so only the even numbers come back.
-   * 
-   * @throws Exception
    */
   @Test
   public void readWriteOneShotWithFilterIterator() throws Exception {

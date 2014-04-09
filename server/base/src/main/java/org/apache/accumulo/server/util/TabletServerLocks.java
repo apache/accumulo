@@ -39,9 +39,6 @@ public class TabletServerLocks {
     @Parameter(names="-delete")
     String delete = null;
   }
-  /**
-   * @param args
-   */
   public static void main(String[] args) throws Exception {
     
     Instance instance = HdfsZooInstance.getInstance();

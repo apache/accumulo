@@ -18,8 +18,8 @@ package org.apache.accumulo.core.data;
 
 import java.io.DataInput;
 import java.io.DataOutput;
-import java.io.InvalidObjectException;
 import java.io.IOException;
+import java.io.InvalidObjectException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -320,6 +320,7 @@ public class Range implements WritableComparable<Range> {
    * @param o range to compare
    * @return comparison result
    */
+  @Override
   public int compareTo(Range o) {
     int comp;
     
@@ -592,11 +593,13 @@ public class Range implements WritableComparable<Range> {
     return new Range(sk, ski, ek, eki);
   }
   
+  @Override
   public String toString() {
     return ((startKeyInclusive && start != null) ? "[" : "(") + (start == null ? "-inf" : start) + "," + (stop == null ? "+inf" : stop)
         + ((stopKeyInclusive && stop != null) ? "]" : ")");
   }
   
+  @Override
   public void readFields(DataInput in) throws IOException {
     infiniteStartKey = in.readBoolean();
     infiniteStopKey = in.readBoolean();
@@ -622,6 +625,7 @@ public class Range implements WritableComparable<Range> {
     }
   }
   
+  @Override
   public void write(DataOutput out) throws IOException {
     out.writeBoolean(infiniteStartKey);
     out.writeBoolean(infiniteStopKey);

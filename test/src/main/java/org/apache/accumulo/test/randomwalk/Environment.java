@@ -17,9 +17,11 @@
 package org.apache.accumulo.test.randomwalk;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.lang.management.ManagementFactory;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -160,8 +162,6 @@ public class Environment {
    * Gets an Accumulo connector. The same connector is reused after the first call.
    * 
    * @return connector
-   * @throws AccumuloException
-   * @throws AccumuloSecurityException
    */
   public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
     if (connector == null) {
@@ -176,8 +176,6 @@ public class Environment {
    * @return multitable batch writer
    * @throws NumberFormatException
    *           if any of the numeric batch writer configuration properties cannot be parsed
-   * @throws AccumuloException
-   * @throws AccumuloSecurityException
    * @throws NumberFormatException
    *           if any configuration property cannot be parsed
    */

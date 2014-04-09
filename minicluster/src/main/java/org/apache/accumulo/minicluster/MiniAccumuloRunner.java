@@ -130,8 +130,6 @@ public class MiniAccumuloRunner {
    * 
    * @param args
    *          An optional -p argument can be specified with the path to a valid properties file.
-   * 
-   * @throws Exception
    */
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();

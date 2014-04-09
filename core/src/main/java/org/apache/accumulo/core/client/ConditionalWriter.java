@@ -53,8 +53,6 @@ public interface ConditionalWriter {
      * an exception it should take this into consideration.
      * 
      * @return status of a conditional mutation
-     * @throws AccumuloException
-     * @throws AccumuloSecurityException
      */
 
     public Status getStatus() throws AccumuloException, AccumuloSecurityException {

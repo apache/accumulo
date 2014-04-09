@@ -25,9 +25,6 @@ import org.apache.commons.io.FileUtils;
 
 public class CacheTestClean {
   
-  /**
-   * @param args
-   */
   public static void main(String[] args) throws Exception {
     String rootDir = args[0];
     File reportDir = new File(args[1]);

@@ -262,9 +262,6 @@ public class QueryUtil {
   
   /**
    * Lists the contents of a directory using the directory table, or searches for file or directory names (if the -search flag is included).
-   * 
-   * @param args
-   * @throws Exception
    */
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();

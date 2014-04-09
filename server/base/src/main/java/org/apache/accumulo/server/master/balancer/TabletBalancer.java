@@ -116,8 +116,6 @@ public abstract class TabletBalancer {
    * <li>Source and destination tablet servers are not null and current
    * </ul>
    * 
-   * @param current
-   * @param migrations
    * @return A list of TabletMigration object that passed sanity checks.
    */
   public static List<TabletMigration> checkMigrationSanity(Set<TServerInstance> current, List<TabletMigration> migrations) {

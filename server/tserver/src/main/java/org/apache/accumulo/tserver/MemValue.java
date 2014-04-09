@@ -50,6 +50,7 @@ public class MemValue extends Value {
   }
   
   // Override
+  @Override
   public void write(final DataOutput out) throws IOException {
     if (!merged) {
       byte[] combinedBytes = new byte[getSize() + 4];
@@ -64,11 +65,13 @@ public class MemValue extends Value {
     super.write(out);
   }
   
+  @Override
   public void set(final byte[] b) {
     super.set(b);
     merged = false;
   }
 
+  @Override
   public void copy(byte[] b) {
     super.copy(b);
     merged = false;
@@ -77,7 +80,6 @@ public class MemValue extends Value {
   /**
    * Takes a Value and will take out the embedded kvCount, and then return that value while replacing the Value with the original unembedded version
    * 
-   * @param v
    * @return The kvCount embedded in v.
    */
   public static int splitKVCount(Value v) {

@@ -58,8 +58,6 @@ public class MockNamespacesTest {
 
   /**
    * This test creates a table without specifying a namespace. In this case, it puts the table into the default namespace.
-   * 
-   * @throws Exception
    */
   @Test
   public void testDefaultNamespace() throws Exception {
@@ -76,8 +74,6 @@ public class MockNamespacesTest {
    * This test creates a new namespace "testing" and a table "testing.table1" which puts "table1" into the "testing" namespace. Then we create "testing.table2"
    * which creates "table2" and puts it into "testing" as well. Then we make sure that you can't delete a namespace with tables in it, and then we delete the
    * tables and delete the namespace.
-   * 
-   * @throws Exception
    */
   @Test
   public void testCreateAndDeleteNamespace() throws Exception {
@@ -126,8 +122,6 @@ public class MockNamespacesTest {
    * Checks to make sure namespace-level properties are overridden by table-level properties.
    * 
    * Checks to see if the default namespace's properties work as well.
-   * 
-   * @throws Exception
    */
 
   @Test
@@ -197,8 +191,6 @@ public class MockNamespacesTest {
 
   /**
    * This test renames and clones two separate table into different namespaces. different namespace.
-   * 
-   * @throws Exception
    */
   @Test
   public void testRenameAndCloneTableToNewNamespace() throws Exception {

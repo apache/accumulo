@@ -89,7 +89,6 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    *          a valid Accumulo user name (user must have Table.CREATE permission)
    * @param token
    *          the user's password
-   * @throws org.apache.accumulo.core.client.AccumuloSecurityException
    * @since 1.5.0
    */
   public static void setConnectorInfo(Job job, String principal, AuthenticationToken token) throws AccumuloSecurityException {
@@ -108,7 +107,6 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    *          a valid Accumulo user name (user must have Table.CREATE permission)
    * @param tokenFile
    *          the path to the token file
-   * @throws AccumuloSecurityException
    * @since 1.6.0
    */
   public static void setConnectorInfo(Job job, String principal, String tokenFile) throws AccumuloSecurityException {
@@ -532,6 +530,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @throws java.io.IOException
    *           if a table set on the job doesn't exist or an error occurs initializing the tablet locator
    */
+  @Override
   public List<InputSplit> getSplits(JobContext context) throws IOException {
     Level logLevel = getLogLevel(context);
     log.setLevel(logLevel);

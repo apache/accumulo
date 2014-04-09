@@ -422,8 +422,6 @@ public class CryptoModuleParameters {
    * 
    * For <b>encryption</b>, this parameter is <b>required</b>. <br>
    * For <b>decryption</b>, this parameter is ignored.
-   * 
-   * @param plaintextOutputStream
    */
   public void setPlaintextOutputStream(OutputStream plaintextOutputStream) {
     this.plaintextOutputStream = plaintextOutputStream;
@@ -477,8 +475,6 @@ public class CryptoModuleParameters {
    * <p>
    * 
    * This method should really only be called by {@link CryptoModule} implementations.
-   * 
-   * @param plaintextInputStream
    */
   
   public void setPlaintextInputStream(InputStream plaintextInputStream) {
@@ -496,8 +492,6 @@ public class CryptoModuleParameters {
   
   /**
    * Sets the encrypted input stream to wrap for decryption.
-   * 
-   * @param encryptedInputStream
    */
   
   public void setEncryptedInputStream(InputStream encryptedInputStream) {
