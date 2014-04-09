@@ -51,9 +51,6 @@ import org.apache.hadoop.io.Text;
 
 public class MetadataBatchScanTest {
   
-  /**
-   * @param args
-   */
   public static void main(String[] args) throws Exception {
     
     final Connector connector = new ZooKeeperInstance("acu14", "localhost").getConnector(SecurityConstants.getSystemCredentials());
@@ -205,6 +202,7 @@ public class MetadataBatchScanTest {
       count2.addStat(ss.count2);
     }
     
+    @Override
     public String toString() {
       return "[" + delta1 + "] [" + delta2 + "]";
     }

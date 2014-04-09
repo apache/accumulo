@@ -89,10 +89,6 @@ public class RestoreZookeeper {
     }
   }
   
-  /**
-   * @param args
-   * @throws Exception
-   */
   public static void main(String[] args) throws Exception {
     Logger.getRootLogger().setLevel(Level.WARN);
     

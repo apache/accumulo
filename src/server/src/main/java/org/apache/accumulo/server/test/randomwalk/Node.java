@@ -33,7 +33,6 @@ public abstract class Node {
    * 
    * @param state
    *          Random walk state passed between nodes
-   * @throws Exception
    */
   public abstract void visit(State state, Properties props) throws Exception;
   

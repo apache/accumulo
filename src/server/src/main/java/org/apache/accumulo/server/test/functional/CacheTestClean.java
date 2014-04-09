@@ -24,9 +24,6 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 
 public class CacheTestClean {
   
-  /**
-   * @param args
-   */
   public static void main(String[] args) throws Exception {
     String rootDir = args[0];
     File reportDir = new File(args[1]);

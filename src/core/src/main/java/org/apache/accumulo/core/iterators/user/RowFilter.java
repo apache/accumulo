@@ -130,7 +130,6 @@ public abstract class RowFilter extends WrappingIterator {
    *          always set top to the first column in the current row. By default this iterator will only see the columns the parent was seeked with. To see more
    *          columns reseek this iterator with those columns.
    * @return false if a row should be suppressed, otherwise true.
-   * @throws IOException
    */
   public abstract boolean acceptRow(SortedKeyValueIterator<Key,Value> rowIterator) throws IOException;
 

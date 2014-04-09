@@ -68,6 +68,7 @@ public class ContinuousMoru extends Configured implements Tool {
     
     private static final ColumnVisibility EMPTY_VIS = new ColumnVisibility();
 
+    @Override
     public void setup(Context context) throws IOException, InterruptedException {
       int max_cf = context.getConfiguration().getInt(MAX_CF, -1);
       int max_cq = context.getConfiguration().getInt(MAX_CQ, -1);
@@ -85,6 +86,7 @@ public class ContinuousMoru extends Configured implements Tool {
       count = 0;
     }
     
+    @Override
     public void map(Key key, Value data, Context context) throws IOException, InterruptedException {
       
       ContinuousWalk.validate(key, data);
@@ -171,7 +173,6 @@ public class ContinuousMoru extends Configured implements Tool {
    * 
    * @param args
    *          instanceName zookeepers username password table columns outputpath
-   * @throws Exception
    */
   public static void main(String[] args) throws Exception {
     int res = ToolRunner.run(CachedConfiguration.getInstance(), new ContinuousMoru(), args);

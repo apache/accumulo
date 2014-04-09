@@ -47,9 +47,6 @@ public class AddFilesWithMissingEntries {
   static final Logger log = Logger.getLogger(AddFilesWithMissingEntries.class);
   static boolean update = false;
   
-  /**
-   * @param args
-   */
   public static void main(String[] args) throws Exception {
     if (args.length > 1 || new HashSet<String>(Arrays.asList(args)).contains("-?")) {
       System.err.println("Usage: bin/accumulo " + AddFilesWithMissingEntries.class.getName() + " [update]");

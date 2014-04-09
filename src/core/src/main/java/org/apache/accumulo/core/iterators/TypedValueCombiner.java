@@ -115,8 +115,6 @@ public abstract class TypedValueCombiner<V> extends Combiner {
   
   /**
    * Sets the Encoder<V> used to translate Values to V and back.
-   * 
-   * @param encoder
    */
   protected void setEncoder(Encoder<V> encoder) {
     this.encoder = encoder;
@@ -125,7 +123,6 @@ public abstract class TypedValueCombiner<V> extends Combiner {
   /**
    * Instantiates and sets the Encoder<V> used to translate Values to V and back.
    * 
-   * @param encoderClass
    * @throws IllegalArgumentException
    *           if ClassNotFoundException, InstantiationException, or IllegalAccessException occurs
    */
@@ -146,7 +143,6 @@ public abstract class TypedValueCombiner<V> extends Combiner {
   /**
    * Tests whether v remains the same when encoded and decoded with the current encoder.
    * 
-   * @param v
    * @throws IllegalStateException
    *           if an encoder has not been set.
    * @throws IllegalArgumentException
@@ -161,8 +157,6 @@ public abstract class TypedValueCombiner<V> extends Combiner {
   /**
    * Tests whether v remains the same when encoded and decoded with the given encoder.
    * 
-   * @param encoder
-   * @param v
    * @throws IllegalArgumentException
    *           if the test fails.
    */

@@ -142,6 +142,7 @@ public class ThriftTransportPool {
       }
     }
 
+    @Override
     public void run() {
       try {
         closeConnections();
@@ -237,10 +238,12 @@ public class ThriftTransportPool {
       this.cacheKey = cacheKey2;
     }
     
+    @Override
     public boolean isOpen() {
       return wrappedTransport.isOpen();
     }
     
+    @Override
     public void open() throws TTransportException {
       try {
         ioCount++;
@@ -253,6 +256,7 @@ public class ThriftTransportPool {
       }
     }
     
+    @Override
     public int read(byte[] arg0, int arg1, int arg2) throws TTransportException {
       try {
         ioCount++;
@@ -265,6 +269,7 @@ public class ThriftTransportPool {
       }
     }
     
+    @Override
     public int readAll(byte[] arg0, int arg1, int arg2) throws TTransportException {
       try {
         ioCount++;
@@ -277,6 +282,7 @@ public class ThriftTransportPool {
       }
     }
     
+    @Override
     public void write(byte[] arg0, int arg1, int arg2) throws TTransportException {
       try {
         ioCount++;
@@ -289,6 +295,7 @@ public class ThriftTransportPool {
       }
     }
     
+    @Override
     public void write(byte[] arg0) throws TTransportException {
       try {
         ioCount++;
@@ -301,6 +308,7 @@ public class ThriftTransportPool {
       }
     }
     
+    @Override
     public void close() {
       try {
         ioCount++;
@@ -311,6 +319,7 @@ public class ThriftTransportPool {
       
     }
     
+    @Override
     public void flush() throws TTransportException {
       try {
         ioCount++;
@@ -323,6 +332,7 @@ public class ThriftTransportPool {
       }
     }
     
+    @Override
     public boolean peek() {
       try {
         ioCount++;
@@ -332,6 +342,7 @@ public class ThriftTransportPool {
       }
     }
     
+    @Override
     public byte[] getBuffer() {
       try {
         ioCount++;
@@ -341,6 +352,7 @@ public class ThriftTransportPool {
       }
     }
     
+    @Override
     public int getBufferPosition() {
       try {
         ioCount++;
@@ -350,6 +362,7 @@ public class ThriftTransportPool {
       }
     }
     
+    @Override
     public int getBytesRemainingInBuffer() {
       try {
         ioCount++;
@@ -359,6 +372,7 @@ public class ThriftTransportPool {
       }
     }
     
+    @Override
     public void consumeBuffer(int len) {
       try {
         ioCount++;
@@ -605,8 +619,6 @@ public class ThriftTransportPool {
   
   /**
    * Set the time after which idle connections should be closed
-   * 
-   * @param time
    */
   public synchronized void setIdleTime(long time) {
     this.killTime = time;

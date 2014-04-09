@@ -90,7 +90,6 @@ class TFileDumper {
    *          PrintStream to output the information.
    * @param conf
    *          The configuration object.
-   * @throws IOException
    */
   static public void dumpInfo(String file, PrintStream out, Configuration conf) throws IOException {
     final int maxKeySampleLen = 16;

@@ -503,6 +503,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
     
   }
   
+  @Override
   public void readFields(DataInput in) throws IOException {
     // this method is a little screwy so it will be compatible with older
     // code that serialized data
@@ -526,6 +527,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
     deleted = in.readBoolean();
   }
   
+  @Override
   public void write(DataOutput out) throws IOException {
     
     int colFamilyOffset = row.length;
@@ -630,6 +632,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * comes first. Lastly, a delete marker of true sorts before a delete marker of false.
    */
   
+  @Override
   public int compareTo(Key other) {
     return compareTo(other, PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL);
   }
@@ -675,6 +678,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
     return sb;
   }
   
+  @Override
   public String toString() {
     StringBuilder sb = rowColumnStringBuilder();
     sb.append(" ");
@@ -794,10 +798,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
   
   /**
    * Use this to decompress a list of keys received from thrift.
-   * 
-   * @param param
    */
-  
   public static void decompress(List<TKeyValue> param) {
     for (int i = 1; i < param.size(); i++) {
       TKey prevKey = param.get(i - 1).key;

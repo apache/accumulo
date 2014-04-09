@@ -793,13 +793,12 @@ public class CombinerTest {
   }
   
   /**
-   * @throws IOException
    * @deprecated since 1.4
    */
   @Deprecated
   public void testCombinerCompatibility() throws IOException {
     long[] la = {1l, 2l, 3l};
-    List<Long> ll = new ArrayList<Long>(Arrays.asList((Long) 1l, (Long) 2l, (Long) 3l));
+    List<Long> ll = new ArrayList<Long>(Arrays.asList(1l, 2l, 3l));
     assertEquals(ll, SummingArrayCombiner.VAR_LONG_ARRAY_ENCODER.decode(NumArraySummation.longArrayToBytes(la)));
     assertEquals(la, NumArraySummation.bytesToLongArray(SummingArrayCombiner.VAR_LONG_ARRAY_ENCODER.encode(ll)));
     testLongEncoding(42l);
@@ -809,7 +808,6 @@ public class CombinerTest {
   }
   
   /**
-   * @throws IOException
    * @deprecated since 1.4
    */
   @Deprecated

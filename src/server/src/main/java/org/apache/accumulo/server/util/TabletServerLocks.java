@@ -27,9 +27,6 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 
 public class TabletServerLocks {
   
-  /**
-   * @param args
-   */
   public static void main(String[] args) throws Exception {
     
     String tserverPath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZTSERVERS;

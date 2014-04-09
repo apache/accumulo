@@ -63,7 +63,6 @@ public class IteratorUtil {
   
   /**
    * @deprecated since 1.4
-   * @param aggregators
    * @return A map of Aggregator Table Properties.
    * 
    * @see TableOperations#attachIterator(String, IteratorSetting)

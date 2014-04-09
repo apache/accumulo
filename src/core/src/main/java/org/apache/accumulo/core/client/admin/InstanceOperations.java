@@ -58,8 +58,6 @@ public interface InstanceOperations {
    * 
    * @return A map of system properties set in zookeeper. If a property is not set in zookeeper, then it will return the value set in accumulo-site.xml on some
    *         server. If nothing is set in an accumulo-site.xml file it will return the default value for each property.
-   * @throws AccumuloException
-   * @throws AccumuloSecurityException
    */
 
   public Map<String,String> getSystemConfiguration() throws AccumuloException, AccumuloSecurityException;
@@ -68,8 +66,6 @@ public interface InstanceOperations {
    * 
    * @return A map of system properties set in accumulo-site.xml on some server. If nothing is set in an accumulo-site.xml file it will return the default value
    *         for each property.
-   * @throws AccumuloException
-   * @throws AccumuloSecurityException
    */
 
   public Map<String,String> getSiteConfiguration() throws AccumuloException, AccumuloSecurityException;
@@ -88,8 +84,6 @@ public interface InstanceOperations {
    * @param tserver
    *          The tablet server address should be of the form <ip address>:<port>
    * @return A list of active scans on tablet server.
-   * @throws AccumuloException
-   * @throws AccumuloSecurityException
    */
   
   public List<ActiveScan> getActiveScans(String tserver) throws AccumuloException, AccumuloSecurityException;
@@ -97,10 +91,7 @@ public interface InstanceOperations {
   /**
    * Test to see if the instance can load the given class as the given type.
    * 
-   * @param className
-   * @param asTypeName
    * @return true if the instance can load the given class as the given type, false otherwise
-   * @throws AccumuloException
    */
   public boolean testClassLoad(final String className, final String asTypeName) throws AccumuloException, AccumuloSecurityException;
   

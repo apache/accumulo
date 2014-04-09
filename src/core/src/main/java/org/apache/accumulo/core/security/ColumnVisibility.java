@@ -277,8 +277,6 @@ public class ColumnVisibility {
   
   /**
    * See {@link #ColumnVisibility(byte[])}
-   * 
-   * @param expression
    */
   public ColumnVisibility(String expression) {
     this(expression.getBytes());

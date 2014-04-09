@@ -27,9 +27,6 @@ import org.apache.hadoop.fs.FileSystem;
 
 public class TableDiskUsage {
   
-  /**
-   * @param args
-   */
   public static void main(String[] args) throws Exception {
     FileSystem fs = FileSystem.get(new Configuration());
     

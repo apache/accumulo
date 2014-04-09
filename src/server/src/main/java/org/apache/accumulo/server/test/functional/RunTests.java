@@ -186,10 +186,6 @@ public class RunTests extends Configured implements Tool {
     return 0;
   }
   
-  /**
-   * @param args
-   * @throws Exception
-   */
   public static void main(String[] args) throws Exception {
     if (args.length > 2) {
         try {

@@ -61,6 +61,7 @@ public class ContinuousVerify extends Configured implements Tool {
 
     private long corrupt = 0;
 
+    @Override
     public void map(Key key, Value data, Context context) throws IOException, InterruptedException {
       long r = Long.parseLong(key.getRow().toString(), 16);
       if (r < 0)
@@ -100,6 +101,7 @@ public class ContinuousVerify extends Configured implements Tool {
   public static class CReducer extends Reducer<LongWritable,VLongWritable,Text,Text> {
     private ArrayList<Long> refs = new ArrayList<Long>();
 
+    @Override
     public void reduce(LongWritable key, Iterable<VLongWritable> values, Context context) throws IOException, InterruptedException {
 
       int defCount = 0;
@@ -224,7 +226,6 @@ public class ContinuousVerify extends Configured implements Tool {
    * 
    * @param args
    *          instanceName zookeepers username password table columns outputpath
-   * @throws Exception
    */
   public static void main(String[] args) throws Exception {
     int res = ToolRunner.run(CachedConfiguration.getInstance(), new ContinuousVerify(), args);

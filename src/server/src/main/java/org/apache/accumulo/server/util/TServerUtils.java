@@ -81,9 +81,6 @@ public class TServerUtils {
    *          the name of the class that is providing the service
    * @param threadName
    *          name this service's thread for better debugging
-   * @param portSearchProperty
-   * @param minThreadProperty
-   * @param timeBetweenThreadChecksProperty
    * @return the server object created, and the port actually used
    * @throws UnknownHostException
    *           when we don't know our own address
@@ -167,6 +164,7 @@ public class TServerUtils {
       super(processor);
     }
     
+    @Override
     public TProcessor getProcessor(TTransport trans) {
       if (trans instanceof TBufferedSocket) {
         TBufferedSocket tsock = (TBufferedSocket) trans;
@@ -181,6 +179,7 @@ public class TServerUtils {
       super(args);
     }
     
+    @Override
     protected Runnable getRunnable(FrameBuffer frameBuffer) {
       return new Invocation(frameBuffer);
     }
@@ -193,6 +192,7 @@ public class TServerUtils {
         this.frameBuffer = frameBuffer;
       }
       
+      @Override
       public void run() {
         if (frameBuffer.trans_ instanceof TNonblockingSocket) {
           TNonblockingSocket tsock = (TNonblockingSocket) frameBuffer.trans_;
@@ -285,6 +285,7 @@ public class TServerUtils {
     // ServerPort result = startThreadPoolServer(port, processor, serverName, threadName, -1);
     final TServer finalServer = result.server;
     Runnable serveTask = new Runnable() {
+      @Override
       public void run() {
         try {
           finalServer.serve();

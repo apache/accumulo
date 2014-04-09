@@ -72,7 +72,6 @@ final class Chunk {
      * Have we reached the last chunk.
      * 
      * @return true if we have reached the last chunk.
-     * @throws java.io.IOException
      */
     public boolean isLastChunk() throws IOException {
       checkEOF();
@@ -83,7 +82,6 @@ final class Chunk {
      * How many bytes remain in the current chunk?
      * 
      * @return remaining bytes left in the current chunk.
-     * @throws java.io.IOException
      */
     public int getRemain() throws IOException {
       checkEOF();

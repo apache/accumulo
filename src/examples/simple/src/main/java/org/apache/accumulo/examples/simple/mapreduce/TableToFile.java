@@ -46,6 +46,7 @@ public class TableToFile extends Configured implements Tool {
    * The Mapper class that given a row number, will generate the appropriate output line.
    */
   public static class TTFMapper extends Mapper<Key,Value,NullWritable,Text> {
+    @Override
     public void map(Key row, Value data, Context context) throws IOException, InterruptedException {
       final Key r = row;
       final Value v = data;
@@ -107,7 +108,6 @@ public class TableToFile extends Configured implements Tool {
    * 
    * @param args
    *          instanceName zookeepers username password table columns outputpath
-   * @throws Exception
    */
   public static void main(String[] args) throws Exception {
     int res = ToolRunner.run(CachedConfiguration.getInstance(), new TableToFile(), args);

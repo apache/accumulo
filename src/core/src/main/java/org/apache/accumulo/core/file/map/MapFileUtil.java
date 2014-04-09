@@ -32,9 +32,6 @@ public class MapFileUtil {
   
   /**
    * @deprecated since 1.4
-   * @param conf
-   * @param fs
-   * @param dirName
    * @return true if the attempt was successful, false otherwise
    */
   @Deprecated
@@ -93,12 +90,7 @@ public class MapFileUtil {
   /**
    * @deprecated since 1.4
    * 
-   * @param acuTableConf
-   * @param conf
-   * @param fs
-   * @param dirname
    * @return a MapFile writer
-   * @throws IOException
    */
   @Deprecated
   public static MyMapFile.Writer openMapFileWriter(AccumuloConfiguration acuTableConf, Configuration conf, FileSystem fs, String dirname) throws IOException {

@@ -114,8 +114,6 @@ public abstract class AbstractMetricsImpl {
   
   /**
    * Registers a StandardMBean with the MBean Server
-   * 
-   * @throws Exception
    */
   public void register(StandardMBean mbean) throws Exception {
     // Register this object with the MBeanServer
@@ -129,8 +127,6 @@ public abstract class AbstractMetricsImpl {
   
   /**
    * Registers this MBean with the MBean Server
-   * 
-   * @throws Exception
    */
   public void register() throws Exception {
     // Register this object with the MBeanServer

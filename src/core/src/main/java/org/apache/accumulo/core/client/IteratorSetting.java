@@ -80,8 +80,6 @@ public class IteratorSetting {
 
   /**
    * Set the iterator's name. Must be a simple alphanumeric identifier.
-   * 
-   * @param name
    */
   public void setName(String name) {
     ArgumentChecker.notNull(name);
@@ -100,8 +98,6 @@ public class IteratorSetting {
   /**
    * Set the name of the class that implements the iterator. The class does not have to be present on the client, but it must be available to all tablet
    * servers.
-   * 
-   * @param iteratorClass
    */
   public void setIteratorClass(String iteratorClass) {
     ArgumentChecker.notNull(iteratorClass);

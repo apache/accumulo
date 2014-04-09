@@ -261,7 +261,6 @@ public class SendLogToChainsaw extends XMLLayout {
    *          parameter 0: path to log directory parameter 1: filter to apply for logs to include (uses wildcards (i.e. logger* and IS case sensitive) parameter
    *          2: chainsaw host parameter 3: chainsaw port parameter 4: start date filter parameter 5: end date filter parameter 6: optional regex filter to
    *          match on each log4j message parameter 7: optional level filter
-   * @throws Exception
    */
   public static void main(String[] args) throws Exception {
 

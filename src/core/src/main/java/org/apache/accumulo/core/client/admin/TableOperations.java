@@ -147,14 +147,12 @@ public interface TableOperations {
    * @param maxSplits
    *          specifies the maximum number of splits to return
    * @return the split points (end-row names) for the table's current split profile, grouped into fewer splits so as not to exceed maxSplits
-   * @throws TableNotFoundException
    */
   public Collection<Text> getSplits(String tableName, int maxSplits) throws TableNotFoundException;
   
   /**
    * Finds the max row within a given range. To find the max row in a table, pass null for start and end row.
    * 
-   * @param tableName
    * @param auths
    *          find the max row that can seen with these auths
    * @param startRow
@@ -167,10 +165,6 @@ public interface TableOperations {
    *          determines if the end row is included
    * 
    * @return The max row in the range, or null if there is no visible data in the range.
-   * 
-   * @throws AccumuloSecurityException
-   * @throws AccumuloException
-   * @throws TableNotFoundException
    */
   public Text getMaxRow(String tableName, Authorizations auths, Text startRow, boolean startInclusive, Text endRow, boolean endInclusive)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
@@ -298,7 +292,6 @@ public interface TableOperations {
    *           if a general error occurs
    * @throws AccumuloSecurityException
    *           if the user does not have permission
-   * @throws TableNotFoundException
    */
   public void flush(String tableName, Text start, Text end, boolean wait) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
   
@@ -430,7 +423,6 @@ public interface TableOperations {
    *           when there is a general accumulo error
    * @throws AccumuloSecurityException
    *           when the user does not have the proper permissions
-   * @throws TableNotFoundException
    */
   public void offline(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
   
@@ -442,7 +434,6 @@ public interface TableOperations {
    *           when there is a general accumulo error
    * @throws AccumuloSecurityException
    *           when the user does not have the proper permissions
-   * @throws TableNotFoundException
    */
   public void online(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
   
@@ -472,7 +463,6 @@ public interface TableOperations {
    *          object specifying the properties of the iterator
    * @throws AccumuloSecurityException
    *           thrown if the user does not have the ability to set properties on the table
-   * @throws AccumuloException
    * @throws TableNotFoundException
    *           throw if the table no longer exists
    * @throws IllegalArgumentException
@@ -489,7 +479,6 @@ public interface TableOperations {
    *          object specifying the properties of the iterator
    * @throws AccumuloSecurityException
    *           thrown if the user does not have the ability to set properties on the table
-   * @throws AccumuloException
    * @throws TableNotFoundException
    *           throw if the table no longer exists
    * @throws IllegalArgumentException
@@ -509,7 +498,6 @@ public interface TableOperations {
    *          the scopes of the iterator
    * @throws AccumuloSecurityException
    *           thrown if the user does not have the ability to set properties on the table
-   * @throws AccumuloException
    * @throws TableNotFoundException
    *           throw if the table no longer exists
    */
@@ -528,7 +516,6 @@ public interface TableOperations {
    * @return the settings for this iterator
    * @throws AccumuloSecurityException
    *           thrown if the user does not have the ability to set properties on the table
-   * @throws AccumuloException
    * @throws TableNotFoundException
    *           throw if the table no longer exists
    */
@@ -541,9 +528,6 @@ public interface TableOperations {
    * @param tableName
    *          the name of the table
    * @return a set of iterator names
-   * @throws AccumuloSecurityException
-   * @throws AccumuloException
-   * @throws TableNotFoundException
    */
   public Map<String,EnumSet<IteratorScope>> listIterators(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
   
@@ -555,8 +539,6 @@ public interface TableOperations {
    *          the name of the table
    * @param setting
    *          object specifying the properties of the iterator
-   * @throws AccumuloException
-   * @throws TableNotFoundException
    * @throws IllegalStateException
    *           if the setting conflicts with any existing iterators
    */

@@ -28,7 +28,6 @@ import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.security.SecurityConstants;
-import org.apache.thrift.TException;
 
 public class DumpTabletsOnServer {
   
@@ -36,10 +35,6 @@ public class DumpTabletsOnServer {
     System.out.println(String.format(fmt, args));
   }
   
-  /**
-   * @param args
-   * @throws TException
-   */
   public static void main(String[] args) throws Exception {
     if (args.length != 2) {
       System.err.println(String.format("Usage: accumulo %s hostname[:port] table", DumpTabletsOnServer.class.getName()));

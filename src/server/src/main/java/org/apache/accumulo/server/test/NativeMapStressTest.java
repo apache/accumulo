@@ -20,9 +20,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -37,9 +37,6 @@ public class NativeMapStressTest {
   
   private static final Logger log = Logger.getLogger(NativeMapStressTest.class);
   
-  /**
-   * @param args
-   */
   public static void main(String[] args) {
     testLotsOfMapDeletes(true);
     testLotsOfMapDeletes(false);

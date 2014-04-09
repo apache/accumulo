@@ -46,9 +46,6 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
   
   /**
    * @deprecated since 1.4, use {@link #setNumScansBeforeSeek(IteratorSetting, int)}
-   * @param scanner
-   * @param iteratorName
-   * @param num
    */
   @Deprecated
   public static void setNumScansBeforeSeek(Scanner scanner, String iteratorName, int num) {

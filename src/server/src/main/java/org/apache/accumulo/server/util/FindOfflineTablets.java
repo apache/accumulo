@@ -38,9 +38,6 @@ import org.apache.log4j.Logger;
 public class FindOfflineTablets {
   private static final Logger log = Logger.getLogger(FindOfflineTablets.class);
   
-  /**
-   * @param args
-   */
   public static void main(String[] args) throws Exception {
     if (args.length != 2) {
       System.err.println("Usage: " + FindOfflineTablets.class.getName() + " <instance> <zookeepers>");
@@ -53,7 +50,7 @@ public class FindOfflineTablets {
         Constants.ROOT_TABLET_EXTENT.toMetadataRange());
     MetaDataTableScanner metaScanner = new MetaDataTableScanner(zooInst, SecurityConstants.getSystemCredentials(), Constants.NON_ROOT_METADATA_KEYSPACE);
     @SuppressWarnings("unchecked")
-    Iterator<TabletLocationState> scanner = (Iterator<TabletLocationState>) new IteratorChain(rootScanner, metaScanner);
+    Iterator<TabletLocationState> scanner = new IteratorChain(rootScanner, metaScanner);
     final AtomicBoolean scanning = new AtomicBoolean(false);
     LiveTServerSet tservers = new LiveTServerSet(zooInst, new Listener() {
       @Override

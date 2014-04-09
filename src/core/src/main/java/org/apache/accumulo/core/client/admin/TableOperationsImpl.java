@@ -86,7 +86,6 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
-import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
 
 /**
@@ -116,6 +115,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * 
    * @return List of tables in accumulo
    */
+  @Override
   public SortedSet<String> list() {
     OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Fetching list of tables...");
     TreeSet<String> tableNames = new TreeSet<String>(Tables.getNameToIdMap(instance).keySet());
@@ -130,6 +130,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    *          the name of the table
    * @return true if the table exists
    */
+  @Override
   public boolean exists(String tableName) {
     ArgumentChecker.notNull(tableName);
     if (tableName.equals(Constants.METADATA_TABLE_NAME))
@@ -153,6 +154,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * @throws TableExistsException
    *           if the table already exists
    */
+  @Override
   public void create(String tableName) throws AccumuloException, AccumuloSecurityException, TableExistsException {
     create(tableName, true, TimeType.MILLIS);
   }
@@ -163,6 +165,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * @param limitVersion
    *          Enables/disables the versioning iterator, which will limit the number of Key versions kept.
    */
+  @Override
   public void create(String tableName, boolean limitVersion) throws AccumuloException, AccumuloSecurityException, TableExistsException {
     create(tableName, limitVersion, TimeType.MILLIS);
   }
@@ -175,6 +178,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * @param limitVersion
    *          Enables/disables the versioning iterator, which will limit the number of Key versions kept.
    */
+  @Override
   public void create(String tableName, boolean limitVersion, TimeType timeType) throws AccumuloException, AccumuloSecurityException, TableExistsException {
     ArgumentChecker.notNull(tableName, timeType);
     
@@ -311,6 +315,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * @throws TableNotFoundException
    *           if the table does not exist
    */
+  @Override
   public void addSplits(String tableName, SortedSet<Text> partitionKeys) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     String tableId = Tables.getTableId(instance, tableName);
     addSplits(tableName, partitionKeys, tableId);
@@ -356,7 +361,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
             if (opTimer != null)
               opTimer.stop("Split tablet in %DURATION%");
           } finally {
-            ThriftUtil.returnClient((TServiceClient) client);
+            ThriftUtil.returnClient(client);
           }
           
         } catch (TApplicationException tae) {
@@ -382,6 +387,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
   
+  @Override
   public void merge(String tableName, Text start, Text end) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     
     ArgumentChecker.notNull(tableName);
@@ -397,6 +403,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
   
+  @Override
   public void deleteRows(String tableName, Text start, Text end) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     
     ArgumentChecker.notNull(tableName);
@@ -456,7 +463,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * @param maxSplits
    *          specifies the maximum number of splits to return
    * @return the split points (end-row names) for the table's current split profile, grouped into fewer splits so as not to exceed maxSplits
-   * @throws TableNotFoundException
    */
   @Override
   public Collection<Text> getSplits(String tableName, int maxSplits) throws TableNotFoundException {
@@ -495,6 +501,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * @throws TableNotFoundException
    *           if the table does not exist
    */
+  @Override
   public void delete(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     ArgumentChecker.notNull(tableName);
     
@@ -549,6 +556,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * @throws TableExistsException
    *           if the new table name already exists
    */
+  @Override
   public void rename(String oldTableName, String newTableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException,
       TableExistsException {
     
@@ -560,6 +568,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   /**
    * @deprecated since 1.4 {@link #flush(String, Text, Text, boolean)}
    */
+  @Override
   @Deprecated
   public void flush(String tableName) throws AccumuloException, AccumuloSecurityException {
     try {
@@ -578,8 +587,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
    *           if a general error occurs
    * @throws AccumuloSecurityException
    *           if the user does not have permission
-   * @throws TableNotFoundException
    */
+  @Override
   public void flush(String tableName, Text start, Text end, boolean wait) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     ArgumentChecker.notNull(tableName);
     
@@ -587,6 +596,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     _flush(tableId, start, end, wait);
   }
   
+  @Override
   public void compact(String tableName, Text start, Text end, boolean flush, boolean wait) throws AccumuloSecurityException, TableNotFoundException,
       AccumuloException {
     ArgumentChecker.notNull(tableName);
@@ -673,6 +683,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * @throws AccumuloSecurityException
    *           if the user does not have permission
    */
+  @Override
   public void setProperty(final String tableName, final String property, final String value) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(tableName, property, value);
     MasterClient.execute(instance, new ClientExec<MasterClientService.Iface>() {
@@ -695,6 +706,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * @throws AccumuloSecurityException
    *           if the user does not have permission
    */
+  @Override
   public void removeProperty(final String tableName, final String property) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(tableName, property);
     MasterClient.execute(instance, new ClientExec<MasterClientService.Iface>() {
@@ -714,6 +726,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * @throws TableNotFoundException
    *           if the table does not exist
    */
+  @Override
   public Iterable<Entry<String,String>> getProperties(final String tableName) throws AccumuloException, TableNotFoundException {
     ArgumentChecker.notNull(tableName);
     try {
@@ -753,6 +766,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * @throws TableNotFoundException
    *           if the table does not exist
    */
+  @Override
   public void setLocalityGroups(String tableName, Map<String,Set<Text>> groups) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     // ensure locality groups do not overlap
     HashSet<Text> all = new HashSet<Text>();
@@ -802,6 +816,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * @throws TableNotFoundException
    *           if the table does not exist
    */
+  @Override
   public Map<String,Set<Text>> getLocalityGroups(String tableName) throws AccumuloException, TableNotFoundException {
     AccumuloConfiguration conf = new ConfigurationCopy(this.getProperties(tableName));
     Map<String,Set<ByteSequence>> groups = LocalityGroupUtil.getLocalityGroups(conf);
@@ -836,6 +851,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * @throws TableNotFoundException
    *           if the table does not exist
    */
+  @Override
   public Set<Range> splitRangeByTablets(String tableName, Range range, int maxSplits) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
     ArgumentChecker.notNull(tableName, range);
@@ -961,8 +977,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
    *           when there is a general accumulo error
    * @throws AccumuloSecurityException
    *           when the user does not have the proper permissions
-   * @throws TableNotFoundException
    */
+  @Override
   public void offline(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     
     ArgumentChecker.notNull(tableName);
@@ -985,8 +1001,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
    *           when there is a general accumulo error
    * @throws AccumuloSecurityException
    *           when the user does not have the proper permissions
-   * @throws TableNotFoundException
    */
+  @Override
   public void online(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     ArgumentChecker.notNull(tableName);
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()));
@@ -1008,6 +1024,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * @throws TableNotFoundException
    *           if table does not exist
    */
+  @Override
   public void clearLocatorCache(String tableName) throws TableNotFoundException {
     ArgumentChecker.notNull(tableName);
     TabletLocator tabLocator = TabletLocator.getInstance(instance, credentials, new Text(Tables.getTableId(instance, tableName)));
@@ -1019,6 +1036,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * 
    * @return the map from table name to internal table id
    */
+  @Override
   public Map<String,String> tableIdMap() {
     return Tables.getNameToIdMap(instance);
   }

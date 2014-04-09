@@ -39,21 +39,16 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
   /**
    * Scan the information about the tablets covered by this store
    */
+  @Override
   abstract public Iterator<TabletLocationState> iterator();
   
   /**
    * Store the assigned locations in the data store.
-   * 
-   * @param assignments
-   * @throws DistributedStoreException
    */
   abstract public void setFutureLocations(Collection<Assignment> assignments) throws DistributedStoreException;
   
   /**
    * Tablet servers will update the data store with the location when they bring the tablet online
-   * 
-   * @param assignments
-   * @throws DistributedStoreException
    */
   abstract public void setLocations(Collection<Assignment> assignments) throws DistributedStoreException;
   
@@ -62,7 +57,6 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
    * 
    * @param tablets
    *          the tablets' current information
-   * @throws DistributedStoreException
    */
   abstract public void unassign(Collection<TabletLocationState> tablets) throws DistributedStoreException;
   

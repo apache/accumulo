@@ -52,11 +52,6 @@ public class ConnectorImpl extends Connector {
      * 
      * Use {@link Instance#getConnector(String, byte[])}
      * 
-     * @param instance
-     * @param user
-     * @param password
-     * @throws AccumuloException
-     * @throws AccumuloSecurityException
      * @see Instance#getConnector(String user, byte[] password)
      * @deprecated Not for client use
      */
@@ -124,21 +119,11 @@ public class ConnectorImpl extends Connector {
     return new ScannerImpl(instance, credentials, getTableId(tableName), authorizations);
   }
   
-  /*
-   * (non-Javadoc)
-   * 
-   * @see accumulo.core.client.Connector#whoami()
-   */
   @Override
   public String whoami() {
     return credentials.user;
   }
   
-  /*
-   * (non-Javadoc)
-   * 
-   * @see accumulo.core.client.Connector#tableOperations()
-   */
   @Override
   public synchronized TableOperations tableOperations() {
     if (tableops == null)
@@ -146,11 +131,6 @@ public class ConnectorImpl extends Connector {
     return tableops;
   }
   
-  /*
-   * (non-Javadoc)
-   * 
-   * @see accumulo.core.client.Connector#securityOperations()
-   */
   @Override
   public synchronized SecurityOperations securityOperations() {
     if (secops == null)
@@ -159,11 +139,6 @@ public class ConnectorImpl extends Connector {
     return secops;
   }
   
-  /*
-   * (non-Javadoc)
-   * 
-   * @see accumulo.core.client.Connector#instanceOperations()
-   */
   @Override
   public synchronized InstanceOperations instanceOperations() {
     if (instanceops == null)

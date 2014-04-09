@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.util.HashMap;
 import java.util.Properties;
+
 import org.apache.log4j.Logger;
 import org.apache.log4j.xml.DOMConfigurator;
 
@@ -50,8 +51,6 @@ public class Framework {
    * 
    * @param startName
    *          Full name of starting graph or test
-   * @param state
-   * @param confDir
    */
   public int run(String startName, State state, String confDir) {
     
@@ -72,7 +71,6 @@ public class Framework {
    * @param id
    *          Name of node
    * @return Node specified by id
-   * @throws Exception
    */
   public Node getNode(String id) throws Exception {
     

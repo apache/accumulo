@@ -18,8 +18,8 @@ package org.apache.accumulo.core.data;
 
 import java.io.DataInput;
 import java.io.DataOutput;
-import java.io.InvalidObjectException;
 import java.io.IOException;
+import java.io.InvalidObjectException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -253,7 +253,6 @@ public class Range implements WritableComparable<Range> {
   
   /**
    * 
-   * @param key
    * @return true if the given key is before the range, otherwise false
    */
   public boolean beforeStartKey(Key key) {
@@ -278,7 +277,6 @@ public class Range implements WritableComparable<Range> {
   }
   
   /**
-   * @param key
    * @return true if the given key is after the range, otherwise false
    */
   
@@ -315,6 +313,7 @@ public class Range implements WritableComparable<Range> {
    * Compares this range to another range. Compares in the order start key, inclusiveness of start key, end key, inclusiveness of end key. Infinite keys sort
    * first, and non-infinite keys are compared with {@link Key#compareTo(Key)}. Inclusive sorts before non-inclusive.
    */
+  @Override
   public int compareTo(Range o) {
     int comp;
     
@@ -357,7 +356,6 @@ public class Range implements WritableComparable<Range> {
   
   /**
    * 
-   * @param key
    * @return true if the given key falls within the range
    */
   public boolean contains(Key key) {
@@ -377,7 +375,6 @@ public class Range implements WritableComparable<Range> {
    * [a,d], (g,t]
    * </pre>
    * 
-   * @param ranges
    * @return list of merged ranges
    */
   
@@ -447,7 +444,6 @@ public class Range implements WritableComparable<Range> {
    * System.out.println(range3.equals(new Range(&quot;c&quot;, &quot;f&quot;)));
    * </pre>
    * 
-   * @param range
    * @return the intersection
    * @throws IllegalArgumentException
    *           if ranges does not overlap
@@ -461,7 +457,6 @@ public class Range implements WritableComparable<Range> {
    * Same as other clip function except if gives the option to return null of the ranges do not overlap instead of throwing an exception.
    * 
    * @see Range#clip(Range)
-   * @param range
    * @param returnNullIfDisjoint
    *          If the ranges do not overlap and true is passed, then null is returned otherwise an exception is thrown.
    * @return the intersection
@@ -512,9 +507,6 @@ public class Range implements WritableComparable<Range> {
    * Creates a new range that is bounded by the columns passed in. The stary key in the returned range will have a column >= to the minimum column. The end key
    * in the returned range will have a column <= the max column.
    * 
-   * 
-   * @param min
-   * @param max
    * @return a column bounded range
    * @throws IllegalArgumentException
    *           if min > max
@@ -590,11 +582,13 @@ public class Range implements WritableComparable<Range> {
     return new Range(sk, ski, ek, eki);
   }
   
+  @Override
   public String toString() {
     return ((startKeyInclusive && start != null) ? "[" : "(") + (start == null ? "-inf" : start) + "," + (stop == null ? "+inf" : stop)
         + ((stopKeyInclusive && stop != null) ? "]" : ")");
   }
   
+  @Override
   public void readFields(DataInput in) throws IOException {
     infiniteStartKey = in.readBoolean();
     infiniteStopKey = in.readBoolean();
@@ -620,6 +614,7 @@ public class Range implements WritableComparable<Range> {
     }
   }
   
+  @Override
   public void write(DataOutput out) throws IOException {
     out.writeBoolean(infiniteStartKey);
     out.writeBoolean(infiniteStopKey);
@@ -738,8 +733,6 @@ public class Range implements WritableComparable<Range> {
   
   /**
    * Returns a Text that sorts just after all Texts beginning with a prefix
-   * 
-   * @param prefix
    */
   public static Text followingPrefix(Text prefix) {
     byte[] prefixBytes = prefix.getBytes();

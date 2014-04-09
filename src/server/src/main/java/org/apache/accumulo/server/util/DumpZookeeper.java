@@ -43,9 +43,6 @@ public class DumpZookeeper {
     }
   }
   
-  /**
-   * @param args
-   */
   public static void main(String[] args) {
     Logger.getRootLogger().setLevel(Level.WARN);
     PrintStream out = System.out;

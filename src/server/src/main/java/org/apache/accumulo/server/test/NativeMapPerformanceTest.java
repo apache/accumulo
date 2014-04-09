@@ -18,10 +18,10 @@ package org.apache.accumulo.server.test;
 
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.Random;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import org.apache.accumulo.core.data.Key;
@@ -174,9 +174,6 @@ public class NativeMapPerformanceTest {
     
   }
   
-  /**
-   * @param args
-   */
   public static void main(String[] args) {
     
     if (args.length != 3) {

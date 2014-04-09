@@ -174,11 +174,6 @@ public class RandomBatchScanner {
   /**
    * Scans over a specified number of entries to Accumulo using a {@link BatchScanner}. Completes scans twice to compare times for a fresh query with those for
    * a repeated query which has cached metadata and connections already established.
-   * 
-   * @param args
-   * @throws AccumuloException
-   * @throws AccumuloSecurityException
-   * @throws TableNotFoundException
    */
   public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     boolean status = true;

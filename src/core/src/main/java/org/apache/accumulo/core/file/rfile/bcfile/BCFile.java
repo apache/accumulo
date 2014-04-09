@@ -113,7 +113,6 @@ public final class BCFile {
       /**
        * @param compressionAlgo
        *          The compression algorithm to be used to for compression.
-       * @throws IOException
        */
       public WBlockState(Algorithm compressionAlgo, FSDataOutputStream fsOut, BytesWritable fsOutputBuffer, Configuration conf) throws IOException {
         this.compressAlgo = compressionAlgo;
@@ -207,7 +206,6 @@ public final class BCFile {
        * Get the raw size of the block.
        * 
        * @return the number of uncompressed bytes written through the BlockAppender so far.
-       * @throws IOException
        */
       public long getRawSize() throws IOException {
         /**
@@ -221,7 +219,6 @@ public final class BCFile {
        * 
        * @return the number of compressed bytes written to the underlying FS file. The size may be smaller than actual need to compress the all data written due
        *         to internal buffering inside the compressor.
-       * @throws IOException
        */
       public long getCompressedSize() throws IOException {
         return wBlkState.getCompressedSize();
@@ -264,7 +261,6 @@ public final class BCFile {
      *          FS output stream.
      * @param compressionName
      *          Name of the compression algorithm, which will be used for all data blocks.
-     * @throws IOException
      * @see Compression#getSupportedAlgorithms
      */
     public Writer(FSDataOutputStream fout, String compressionName, Configuration conf, boolean trackDataBlocks) throws IOException {
@@ -283,6 +279,7 @@ public final class BCFile {
     /**
      * Close the BCFile Writer. Attempting to use the Writer after calling <code>close</code> is not allowed and may lead to undetermined results.
      */
+    @Override
     public void close() throws IOException {
       if (closed == true) {
         return;
@@ -347,7 +344,6 @@ public final class BCFile {
      * @param compressionName
      *          The name of the compression algorithm to be used.
      * @return The BlockAppender stream
-     * @throws IOException
      * @throws MetaBlockAlreadyExists
      *           If the meta block with the name already exists.
      */
@@ -365,7 +361,6 @@ public final class BCFile {
      * @return The BlockAppender stream
      * @throws MetaBlockAlreadyExists
      *           If the meta block with the name already exists.
-     * @throws IOException
      */
     public BlockAppender prepareMetaBlock(String name) throws IOException, MetaBlockAlreadyExists {
       return prepareMetaBlock(name, getDefaultCompressionAlgorithm());
@@ -376,7 +371,6 @@ public final class BCFile {
      * Blocks may not be created after the first Meta Blocks. The caller must call BlockAppender.close() to conclude the block creation.
      * 
      * @return The BlockAppender stream
-     * @throws IOException
      */
     public BlockAppender prepareDataBlock() throws IOException {
       if (blkInProgress == true) {
@@ -407,6 +401,7 @@ public final class BCFile {
         this.compressAlgo = compressAlgo;
       }
       
+      @Override
       public void register(long raw, long begin, long end) {
         metaIndex.addEntry(new MetaIndexEntry(name, compressAlgo, new BlockRegion(begin, end - begin, raw)));
       }
@@ -421,6 +416,7 @@ public final class BCFile {
         // do nothing
       }
       
+      @Override
       public void register(long raw, long begin, long end) {
         dataIndex.addBlockRegion(new BlockRegion(begin, end - begin, raw));
       }
@@ -562,7 +558,6 @@ public final class BCFile {
      *          FS input stream.
      * @param fileLength
      *          Length of the corresponding file
-     * @throws IOException
      */
     public Reader(FSDataInputStream fin, long fileLength, Configuration conf) throws IOException {
       this.in = fin;
@@ -669,6 +664,7 @@ public final class BCFile {
     /**
      * Finishing reading the BCFile. Release all resources.
      */
+    @Override
     public void close() {
       // nothing to be done now
     }
@@ -688,7 +684,6 @@ public final class BCFile {
      * @param name
      *          meta block name
      * @return BlockReader input stream for reading the meta block.
-     * @throws IOException
      * @throws MetaBlockDoesNotExist
      *           The Meta Block with the given name does not exist.
      */
@@ -708,7 +703,6 @@ public final class BCFile {
      * @param blockIndex
      *          0-based data block index.
      * @return BlockReader input stream for reading the data block.
-     * @throws IOException
      */
     public BlockReader getDataBlock(int blockIndex) throws IOException {
       if (blockIndex < 0 || blockIndex >= getBlockCount()) {

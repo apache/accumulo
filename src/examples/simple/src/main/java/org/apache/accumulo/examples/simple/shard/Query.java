@@ -38,9 +38,6 @@ import org.apache.hadoop.io.Text;
 
 public class Query {
   
-  /**
-   * @param args
-   */
   public static void main(String[] args) throws Exception {
     
     if (args.length < 6) {

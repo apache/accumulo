@@ -330,9 +330,6 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * @deprecated since 1.4 use {@link #addIterator(Configuration, IteratorSetting)}
    * @see org.apache.accumulo.core.iterators.user.RegExFilter#setRegexs(IteratorSetting, String, String, String, String, boolean)
-   * @param job
-   * @param type
-   * @param regex
    */
   @Deprecated
   public static void setRegex(JobContext job, RegexType type, String regex) {
@@ -1096,7 +1093,6 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
      *          the iterators to configure on the scanner
      * @param options
      *          options for each configured iterator
-     * @throws AccumuloException
      */
     protected void setupIterators(Scanner scanner, List<AccumuloIterator> iterators, List<AccumuloIteratorOption> options)
         throws AccumuloException {
@@ -1133,6 +1129,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     /**
      * Initialize a scanner over the given input split using this task attempt configuration.
      */
+    @Override
     public void initialize(InputSplit inSplit, TaskAttemptContext attempt) throws IOException {
       Scanner scanner;
       split = (RangeInputSplit) inSplit;
@@ -1268,8 +1265,10 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       scannerIterator = scanner.iterator();
     }
 
+    @Override
     public void close() {}
 
+    @Override
     public float getProgress() throws IOException {
       if (numKeysRead > 0 && currentKey == null)
         return 1.0f;
@@ -1395,6 +1394,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * Read the metadata table to get tablets and match up ranges to them.
    */
+  @Override
   public List<InputSplit> getSplits(JobContext job) throws IOException {
     Configuration conf = InputFormatBase.getConfiguration(job);
 

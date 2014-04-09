@@ -62,9 +62,6 @@ public class InstanceOperationsImpl implements InstanceOperations {
     this.credentials = credentials;
   }
   
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.core.client.admin.InstanceOperations#setProperty(java.lang.String, java.lang.String)
-   */
   @Override
   public void setProperty(final String property, final String value) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(property, value);
@@ -76,9 +73,6 @@ public class InstanceOperationsImpl implements InstanceOperations {
     });
   }
   
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.core.client.admin.InstanceOperations#removeProperty(java.lang.String)
-   */
   @Override
   public void removeProperty(final String property) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(property);
@@ -90,9 +84,6 @@ public class InstanceOperationsImpl implements InstanceOperations {
     });
   }
   
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.core.client.admin.InstanceOperations#getSystemConfiguration()
-   */
   @Override
   public Map<String,String> getSystemConfiguration() throws AccumuloException, AccumuloSecurityException {
     return ServerClient.execute(instance, new ClientExecReturn<Map<String,String>,ClientService.Iface>() {
@@ -103,9 +94,6 @@ public class InstanceOperationsImpl implements InstanceOperations {
     });
   }
   
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.core.client.admin.InstanceOperations#getSiteConfiguration()
-   */
   @Override
   public Map<String,String> getSiteConfiguration() throws AccumuloException, AccumuloSecurityException {
     return ServerClient.execute(instance, new ClientExecReturn<Map<String,String>,ClientService.Iface>() {
@@ -115,10 +103,6 @@ public class InstanceOperationsImpl implements InstanceOperations {
       }
     });
   }
-  
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.core.client.admin.InstanceOperations#getTabletServers()
-   */
   
   @Override
   public List<String> getTabletServers() {
@@ -138,10 +122,6 @@ public class InstanceOperationsImpl implements InstanceOperations {
     }
     return results;
   }
-  
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.core.client.admin.InstanceOperations#getActiveScans(java.lang.String)
-   */
   
   @Override
   public List<ActiveScan> getActiveScans(String tserver) throws AccumuloException, AccumuloSecurityException {
@@ -171,9 +151,6 @@ public class InstanceOperationsImpl implements InstanceOperations {
     }
   }
   
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.core.client.admin.InstanceOperations#testClassLoad(java.lang.String, java.lang.String)
-   */
   @Override
   public boolean testClassLoad(final String className, final String asTypeName) throws AccumuloException, AccumuloSecurityException {
     return ServerClient.execute(instance, new ClientExecReturn<Boolean,ClientService.Iface>() {

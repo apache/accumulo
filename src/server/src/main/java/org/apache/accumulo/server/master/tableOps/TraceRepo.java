@@ -38,11 +38,6 @@ public class TraceRepo<T> implements Repo<T> {
     tinfo = Tracer.traceInfo();
   }
   
-  /*
-   * (non-Javadoc)
-   * 
-   * @see org.apache.accumulo.server.fate.Repo#isReady(long, java.lang.Object)
-   */
   @Override
   public long isReady(long tid, T environment) throws Exception {
     Span span = Trace.trace(tinfo, repo.getDescription());
@@ -53,11 +48,6 @@ public class TraceRepo<T> implements Repo<T> {
     }
   }
   
-  /*
-   * (non-Javadoc)
-   * 
-   * @see org.apache.accumulo.server.fate.Repo#call(long, java.lang.Object)
-   */
   @Override
   public Repo<T> call(long tid, T environment) throws Exception {
     Span span = Trace.trace(tinfo, repo.getDescription());
@@ -71,11 +61,6 @@ public class TraceRepo<T> implements Repo<T> {
     }
   }
   
-  /*
-   * (non-Javadoc)
-   * 
-   * @see org.apache.accumulo.server.fate.Repo#undo(long, java.lang.Object)
-   */
   @Override
   public void undo(long tid, T environment) throws Exception {
     Span span = Trace.trace(tinfo, repo.getDescription());
@@ -86,21 +71,11 @@ public class TraceRepo<T> implements Repo<T> {
     }
   }
   
-  /*
-   * (non-Javadoc)
-   * 
-   * @see org.apache.accumulo.server.fate.Repo#getDescription()
-   */
   @Override
   public String getDescription() {
     return repo.getDescription();
   }
   
-  /*
-   * (non-Javadoc)
-   * 
-   * @see org.apache.accumulo.server.fate.Repo#getReturn()
-   */
   @Override
   public String getReturn() {
     return repo.getReturn();

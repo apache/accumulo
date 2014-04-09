@@ -21,16 +21,10 @@ package org.apache.accumulo.core.iterators;
  */
 public class ValueFormatException extends IllegalArgumentException {
   
-  /**
-   * @param string
-   */
   public ValueFormatException(String string) {
     super(string);
   }
 
-  /**
-   * @param nfe
-   */
   public ValueFormatException(Exception nfe) {
     super(nfe);
   }

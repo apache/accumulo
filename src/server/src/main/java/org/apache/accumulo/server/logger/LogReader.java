@@ -51,7 +51,6 @@ public class LogReader {
    * 
    * @param args
    *          - first argument is the file to print
-   * @throws IOException
    */
   public static void main(String[] args) throws IOException {
     Configuration conf = CachedConfiguration.getInstance();

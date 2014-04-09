@@ -140,9 +140,6 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
   
   /**
    * Encode the maximum number of versions to return onto the ScanIterator
-   * 
-   * @param cfg
-   * @param maxVersions
    */
   public static void setMaxVersions(IteratorSetting cfg, int maxVersions) {
     cfg.addOption(MAXVERSIONS_OPT, Integer.toString(maxVersions));

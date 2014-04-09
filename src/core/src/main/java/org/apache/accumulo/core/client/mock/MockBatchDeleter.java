@@ -45,10 +45,6 @@ public class MockBatchDeleter extends MockBatchScanner implements BatchDeleter {
   
   /**
    * Create a {@link BatchDeleter} for the specified instance on the specified table where the writer uses the specified {@link Authorizations}.
-   * 
-   * @param acc
-   * @param tableName
-   * @param auths
    */
   public MockBatchDeleter(MockAccumulo acc, String tableName, Authorizations auths) {
     super(acc.tables.get(tableName), auths);
