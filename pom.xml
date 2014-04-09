@@ -816,10 +816,10 @@
         <artifactId>apache-rat-plugin</artifactId>
         <executions>
           <execution>
+            <id>check-licenses</id>
             <goals>
               <goal>check</goal>
             </goals>
-            <phase>verify</phase>
           </execution>
         </executions>
       </plugin>
