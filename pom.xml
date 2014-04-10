@@ -557,6 +557,7 @@
             <releaseProfiles>seal-jars</releaseProfiles>
             <useReleaseProfile>false</useReleaseProfile>
             <pushChanges>false</pushChanges>
+            <localCheckout>true</localCheckout>
           </configuration>
         </plugin>
         <plugin>
