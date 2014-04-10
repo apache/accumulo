@@ -1233,7 +1233,7 @@ public class Tablet {
       final TServerInstance lastLocation, Set<FileRef> scanFiles, long initFlushID, long initCompactID) throws IOException {
 
     TabletFiles tabletPaths = VolumeUtil.updateTabletVolumes(tabletServer.getLock(), fs, extent, new TabletFiles(location.toString(), rawLogEntries,
-        rawDatafiles));
+        rawDatafiles), tabletServer.isReplicationEnabled());
 
     Path locationPath;
 

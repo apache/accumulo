@@ -174,7 +174,7 @@ public class VolumeUtil {
    * This method does two things. First, it switches any volumes a tablet is using that are configured in instance.volumes.replacements. Second, if a tablet dir
    * is no longer configured for use it chooses a new tablet directory.
    */
-  public static TabletFiles updateTabletVolumes(ZooLock zooLock, VolumeManager vm, KeyExtent extent, TabletFiles tabletFiles) throws IOException {
+  public static TabletFiles updateTabletVolumes(ZooLock zooLock, VolumeManager vm, KeyExtent extent, TabletFiles tabletFiles, boolean replicationEnabled) throws IOException {
     List<Pair<Path,Path>> replacements = ServerConstants.getVolumeReplacements();
     log.trace("Using volume replacements: " + replacements);
 
@@ -225,7 +225,7 @@ public class VolumeUtil {
     }
 
     if (logsToRemove.size() + filesToRemove.size() > 0 || switchedDir != null)
-      MetadataTableUtil.updateTabletVolumes(extent, logsToRemove, logsToAdd, filesToRemove, filesToAdd, switchedDir, zooLock, SystemCredentials.get());
+      MetadataTableUtil.updateTabletVolumes(extent, logsToRemove, logsToAdd, filesToRemove, filesToAdd, switchedDir, zooLock, SystemCredentials.get(), replicationEnabled);
 
     ret.dir = decommisionedTabletDir(zooLock, vm, extent, tabletDir);
 
