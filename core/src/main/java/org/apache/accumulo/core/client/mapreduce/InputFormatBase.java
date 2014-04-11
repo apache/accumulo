@@ -1329,7 +1329,12 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       super();
     }
 
-    public RangeInputSplit(Range range, String[] locations) {
+    public RangeInputSplit(RangeInputSplit split) throws IOException {
+      this.setRange(split.getRange());
+      this.setLocations(split.getLocations());
+    }
+
+    protected RangeInputSplit(String table, Range range, String[] locations) {
       super(range, locations);
     }
   }
