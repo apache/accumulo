@@ -360,7 +360,11 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
       super(other);
     }
 
-    protected RangeInputSplit(String table, String tableId, Range range, String[] locations) {
+    protected RangeInputSplit(String table, Range range, String[] locations) {
+      super(table, "", range, locations);
+    }
+
+    public RangeInputSplit(String table, String tableId, Range range, String[] locations) {
       super(table, tableId, range, locations);
     }
   }
