@@ -26,6 +26,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.channels.ClosedChannelException;
 import java.nio.charset.StandardCharsets;
@@ -457,9 +458,24 @@ public class DfsLogger {
     try {
       write(key, EMPTY);
       sync.invoke(logFile);
-    } catch (Exception ex) {
-      log.error(ex);
-      throw new IOException(ex);
+    } catch (IllegalArgumentException e) {
+      log.error("Signature of sync method changed. Accumulo is likely incompatible with this version of Hadoop.");
+      throw new RuntimeException(e);
+    } catch (IllegalAccessException e) {
+      log.error("Could not invoke sync method due to permission error.");
+      throw new RuntimeException(e);
+    } catch (InvocationTargetException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof IOException) {
+        throw (IOException) cause;
+      } else if (cause instanceof RuntimeException) {
+        throw (RuntimeException) cause;
+      } else if (cause instanceof Error) {
+        throw (Error) cause;
+      } else {
+        // Cause is null, or some other checked exception that was added later.
+        throw new RuntimeException(e);
+      }
     }
   }
 
