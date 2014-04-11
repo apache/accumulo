@@ -51,6 +51,29 @@ public class MutationsRejectedException extends AccumuloException {
    *          server side errors
    * @param unknownErrors
    *          number of unknown errors
+   *          
+   * @deprecated since 1.6.0, see {@link #MutationsRejectedException(Instance, List, HashMap, Collection, int, Throwable)}
+   */
+  @Deprecated
+  public MutationsRejectedException(List<ConstraintViolationSummary> cvsList, HashMap<KeyExtent,Set<SecurityErrorCode>> hashMap,
+      Collection<String> serverSideErrors, int unknownErrors, Throwable cause) {
+    super("# constraint violations : " + cvsList.size() + "  security codes: " + hashMap.values() + "  # server errors " + serverSideErrors.size()
+        + " # exceptions " + unknownErrors, cause);
+    this.cvsl = cvsList;
+    this.af = hashMap;
+    this.es = serverSideErrors;
+    this.unknownErrors = unknownErrors;
+  }
+  
+  /**
+   * @param cvsList
+   *          list of constraint violations
+   * @param hashMap
+   *          authorization failures
+   * @param serverSideErrors
+   *          server side errors
+   * @param unknownErrors
+   *          number of unknown errors
    */
   public MutationsRejectedException(Instance instance, List<ConstraintViolationSummary> cvsList, HashMap<KeyExtent,Set<SecurityErrorCode>> hashMap,
       Collection<String> serverSideErrors, int unknownErrors, Throwable cause) {
