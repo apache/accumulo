@@ -44,7 +44,7 @@ import org.apache.accumulo.core.client.impl.OfflineScanner;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
-import org.apache.accumulo.core.client.mapreduce.lib.util.InputConfigurator;
+import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.Key;
@@ -189,12 +189,12 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    */
   @Deprecated
   public static void setZooKeeperInstance(Job job, String instanceName, String zooKeepers) {
-    InputConfigurator.setZooKeeperInstance(CLASS, job.getConfiguration(), instanceName, zooKeepers);
+    setZooKeeperInstance(job, new ClientConfiguration().withInstance(instanceName).withZkHosts(zooKeepers));
   }
 
   /**
    * Configures a {@link org.apache.accumulo.core.client.ZooKeeperInstance} for this job.
-   *
+   * 
    * @param job
    *          the Hadoop job instance to be configured
    * @param clientConfig
@@ -381,7 +381,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       Scanner scanner;
       split = (RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + split.getRange());
-      
+
       Instance instance = split.getInstance();
       if (null == instance) {
         instance = getInstance(attempt);
@@ -407,7 +407,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       // in case the table name changed, we can still use the previous name for terms of configuration,
       // but the scanner will use the table id resolved at job setup time
       InputTableConfig tableConfig = getInputTableConfig(attempt, split.getTableName());
-      
+
       Boolean isOffline = split.isOffline();
       if (null == isOffline) {
         isOffline = tableConfig.isOfflineScan();
@@ -422,12 +422,12 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       if (null == usesLocalIterators) {
         usesLocalIterators = tableConfig.shouldUseLocalIterators();
       }
-      
+
       List<IteratorSetting> iterators = split.getIterators();
       if (null == iterators) {
         iterators = tableConfig.getIterators();
       }
-      
+
       Collection<Pair<Text,Text>> columns = split.getFetchedColumns();
       if (null == columns) {
         columns = tableConfig.getFetchedColumns();
@@ -452,7 +452,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
           log.info("Using local iterators");
           scanner = new ClientSideIteratorScanner(scanner);
         }
-        
+
         setupIterators(attempt, scanner, split.getTableName(), split);
       } catch (Exception e) {
         throw new IOException(e);
@@ -490,12 +490,12 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
      * The Key that should be returned to the client
      */
     protected K currentK = null;
-    
+
     /**
      * The Value that should be return to the client
      */
     protected V currentV = null;
-    
+
     /**
      * The Key that is used to determine progress in the current InputSplit. It is not returned to the client and is only used internally
      */
@@ -542,7 +542,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
 
       String tableName = tableConfigEntry.getKey();
       InputTableConfig tableConfig = tableConfigEntry.getValue();
-      
+
       Instance instance = getInstance(context);
       boolean mockInstance;
       String tableId;
@@ -558,7 +558,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
         }
         mockInstance = false;
       }
-      
+
       Authorizations auths = getScanAuthorizations(context);
       String principal = getPrincipal(context);
       AuthenticationToken token = getAuthenticationToken(context);
@@ -625,7 +625,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
             if (autoAdjust) {
               // divide ranges into smaller ranges, based on the tablets
               RangeInputSplit split = new RangeInputSplit(tableName, tableId, ke.clip(r), new String[] {location});
-              
+
               split.setOffline(tableConfig.isOfflineScan());
               split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());
               split.setUsesLocalIterators(tableConfig.shouldUseLocalIterators());
@@ -638,7 +638,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
               split.setAuths(auths);
               split.setIterators(tableConfig.getIterators());
               split.setLogLevel(logLevel);
-              
+
               splits.add(split);
             } else {
               // don't divide ranges
@@ -668,7 +668,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
           split.setAuths(auths);
           split.setIterators(tableConfig.getIterators());
           split.setLogLevel(logLevel);
-          
+
           splits.add(split);
         }
     }

@@ -34,7 +34,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.mapreduce.lib.util.OutputConfigurator;
+import org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -186,7 +186,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
 
   @Deprecated
   public static void setZooKeeperInstance(JobConf job, String instanceName, String zooKeepers) {
-    OutputConfigurator.setZooKeeperInstance(CLASS, job, instanceName, zooKeepers);
+    setZooKeeperInstance(job, new ClientConfiguration().withInstance(instanceName).withZkHosts(zooKeepers));
   }
 
   /**

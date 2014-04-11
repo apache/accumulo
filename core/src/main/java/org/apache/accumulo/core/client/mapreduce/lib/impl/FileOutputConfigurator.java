@@ -14,26 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client.mapreduce.lib.util;
+package org.apache.accumulo.core.client.mapreduce.lib.impl;
+
+import java.util.Arrays;
+import java.util.Map.Entry;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.hadoop.conf.Configuration;
 
 /**
- * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
- * @since 1.5.0
+ * @since 1.6.0
  */
-@Deprecated
 public class FileOutputConfigurator extends ConfiguratorBase {
 
   /**
    * Configuration keys for {@link AccumuloConfiguration}.
    * 
-   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
-   * @since 1.5.0
+   * @since 1.6.0
    */
-  @Deprecated
   public static enum Opts {
     ACCUMULO_PROPERTIES;
   }
@@ -44,10 +44,8 @@ public class FileOutputConfigurator extends ConfiguratorBase {
    * 
    * @param property
    *          the Accumulo property to check
-   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
-   * @since 1.5.0
+   * @since 1.6.0
    */
-  @Deprecated
   protected static Boolean isSupportedAccumuloProperty(Property property) {
     switch (property) {
       case TABLE_FILE_COMPRESSION_TYPE:
@@ -62,6 +60,30 @@ public class FileOutputConfigurator extends ConfiguratorBase {
   }
 
   /**
+   * Helper for transforming Accumulo configuration properties into something that can be stored safely inside the Hadoop Job configuration.
+   * 
+   * @param implementingClass
+   *          the class whose name will be used as a prefix for the property configuration key
+   * @param conf
+   *          the Hadoop configuration object to configure
+   * @param property
+   *          the supported Accumulo property
+   * @param value
+   *          the value of the property to set
+   * @since 1.6.0
+   */
+  private static <T> void setAccumuloProperty(Class<?> implementingClass, Configuration conf, Property property, T value) {
+    if (isSupportedAccumuloProperty(property)) {
+      String val = String.valueOf(value);
+      if (property.getType().isValidFormat(val))
+        conf.set(enumToConfKey(implementingClass, Opts.ACCUMULO_PROPERTIES) + "." + property.getKey(), val);
+      else
+        throw new IllegalArgumentException("Value is not appropriate for property type '" + property.getType() + "'");
+    } else
+      throw new IllegalArgumentException("Unsupported configuration property " + property.getKey());
+  }
+
+  /**
    * This helper method provides an AccumuloConfiguration object constructed from the Accumulo defaults, and overridden with Accumulo properties that have been
    * stored in the Job's configuration.
    * 
@@ -69,12 +91,15 @@ public class FileOutputConfigurator extends ConfiguratorBase {
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
    *          the Hadoop configuration object to configure
-   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
-   * @since 1.5.0
+   * @since 1.6.0
    */
-  @Deprecated
   public static AccumuloConfiguration getAccumuloConfiguration(Class<?> implementingClass, Configuration conf) {
-    return org.apache.accumulo.core.client.mapreduce.lib.impl.FileOutputConfigurator.getAccumuloConfiguration(implementingClass, conf);
+    String prefix = enumToConfKey(implementingClass, Opts.ACCUMULO_PROPERTIES) + ".";
+    ConfigurationCopy acuConf = new ConfigurationCopy(AccumuloConfiguration.getDefaultConfiguration());
+    for (Entry<String,String> entry : conf)
+      if (entry.getKey().startsWith(prefix))
+        acuConf.set(Property.getPropertyByKey(entry.getKey().substring(prefix.length())), entry.getValue());
+    return acuConf;
   }
 
   /**
@@ -86,12 +111,12 @@ public class FileOutputConfigurator extends ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @param compressionType
    *          one of "none", "gz", "lzo", or "snappy"
-   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
-   * @since 1.5.0
+   * @since 1.6.0
    */
-  @Deprecated
   public static void setCompressionType(Class<?> implementingClass, Configuration conf, String compressionType) {
-    org.apache.accumulo.core.client.mapreduce.lib.impl.FileOutputConfigurator.setCompressionType(implementingClass, conf, compressionType);
+    if (compressionType == null || !Arrays.asList("none", "gz", "lzo", "snappy").contains(compressionType))
+      throw new IllegalArgumentException("Compression type must be one of: none, gz, lzo, snappy");
+    setAccumuloProperty(implementingClass, conf, Property.TABLE_FILE_COMPRESSION_TYPE, compressionType);
   }
 
   /**
@@ -107,12 +132,10 @@ public class FileOutputConfigurator extends ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @param dataBlockSize
    *          the block size, in bytes
-   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
-   * @since 1.5.0
+   * @since 1.6.0
    */
-  @Deprecated
   public static void setDataBlockSize(Class<?> implementingClass, Configuration conf, long dataBlockSize) {
-    org.apache.accumulo.core.client.mapreduce.lib.impl.FileOutputConfigurator.setDataBlockSize(implementingClass, conf, dataBlockSize);
+    setAccumuloProperty(implementingClass, conf, Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE, dataBlockSize);
   }
 
   /**
@@ -124,12 +147,10 @@ public class FileOutputConfigurator extends ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @param fileBlockSize
    *          the block size, in bytes
-   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
-   * @since 1.5.0
+   * @since 1.6.0
    */
-  @Deprecated
   public static void setFileBlockSize(Class<?> implementingClass, Configuration conf, long fileBlockSize) {
-    org.apache.accumulo.core.client.mapreduce.lib.impl.FileOutputConfigurator.setFileBlockSize(implementingClass, conf, fileBlockSize);
+    setAccumuloProperty(implementingClass, conf, Property.TABLE_FILE_BLOCK_SIZE, fileBlockSize);
   }
 
   /**
@@ -142,12 +163,10 @@ public class FileOutputConfigurator extends ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @param indexBlockSize
    *          the block size, in bytes
-   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
-   * @since 1.5.0
+   * @since 1.6.0
    */
-  @Deprecated
   public static void setIndexBlockSize(Class<?> implementingClass, Configuration conf, long indexBlockSize) {
-    org.apache.accumulo.core.client.mapreduce.lib.impl.FileOutputConfigurator.setIndexBlockSize(implementingClass, conf, indexBlockSize);
+    setAccumuloProperty(implementingClass, conf, Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX, indexBlockSize);
   }
 
   /**
@@ -159,12 +178,10 @@ public class FileOutputConfigurator extends ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @param replication
    *          the number of replicas for produced files
-   * @deprecated since 1.6.0; Configure your job with the appropriate InputFormat or OutputFormat.
-   * @since 1.5.0
+   * @since 1.6.0
    */
-  @Deprecated
   public static void setReplication(Class<?> implementingClass, Configuration conf, int replication) {
-    org.apache.accumulo.core.client.mapreduce.lib.impl.FileOutputConfigurator.setReplication(implementingClass, conf, replication);
+    setAccumuloProperty(implementingClass, conf, Property.TABLE_FILE_REPLICATION, replication);
   }
 
 }
