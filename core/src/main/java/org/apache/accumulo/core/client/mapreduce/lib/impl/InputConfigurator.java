@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client.mapreduce.lib.util;
+package org.apache.accumulo.core.client.mapreduce.lib.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -72,14 +72,14 @@ import org.apache.hadoop.util.StringUtils;
 import com.google.common.collect.Maps;
 
 /**
- * @since 1.5.0
+ * @since 1.6.0
  */
 public class InputConfigurator extends ConfiguratorBase {
 
   /**
    * Configuration keys for {@link Scanner}.
    * 
-   * @since 1.5.0
+   * @since 1.6.0
    */
   public static enum ScanOpts {
     TABLE_NAME, AUTHORIZATIONS, RANGES, COLUMNS, ITERATORS, TABLE_CONFIGS
@@ -88,7 +88,7 @@ public class InputConfigurator extends ConfiguratorBase {
   /**
    * Configuration keys for various features.
    * 
-   * @since 1.5.0
+   * @since 1.6.0
    */
   public static enum Features {
     AUTO_ADJUST_RANGES, SCAN_ISOLATION, USE_LOCAL_ITERATORS, SCAN_OFFLINE
@@ -103,7 +103,7 @@ public class InputConfigurator extends ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @param tableName
    *          the table to use when the tablename is null in the write call
-   * @since 1.5.0
+   * @since 1.6.0
    */
   public static void setInputTableName(Class<?> implementingClass, Configuration conf, String tableName) {
     checkArgument(tableName != null, "tableName is null");
@@ -117,7 +117,7 @@ public class InputConfigurator extends ConfiguratorBase {
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
    *          the Hadoop configuration object to configure
-   * @since 1.5.0
+   * @since 1.6.0
    */
   public static String getInputTableName(Class<?> implementingClass, Configuration conf) {
     return conf.get(enumToConfKey(implementingClass, ScanOpts.TABLE_NAME));
@@ -132,7 +132,7 @@ public class InputConfigurator extends ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @param auths
    *          the user's authorizations
-   * @since 1.5.0
+   * @since 1.6.0
    */
   public static void setScanAuthorizations(Class<?> implementingClass, Configuration conf, Authorizations auths) {
     if (auths != null && !auths.isEmpty())
@@ -147,7 +147,7 @@ public class InputConfigurator extends ConfiguratorBase {
    * @param conf
    *          the Hadoop configuration object to configure
    * @return the Accumulo scan authorizations
-   * @since 1.5.0
+   * @since 1.6.0
    * @see #setScanAuthorizations(Class, Configuration, Authorizations)
    */
   public static Authorizations getScanAuthorizations(Class<?> implementingClass, Configuration conf) {
@@ -166,7 +166,7 @@ public class InputConfigurator extends ConfiguratorBase {
    *          the ranges that will be mapped over
    * @throws IllegalArgumentException
    *           if the ranges cannot be encoded into base 64
-   * @since 1.5.0
+   * @since 1.6.0
    */
   public static void setRanges(Class<?> implementingClass, Configuration conf, Collection<Range> ranges) {
     checkArgument(ranges != null, "ranges is null");
@@ -194,7 +194,7 @@ public class InputConfigurator extends ConfiguratorBase {
    * @return the ranges
    * @throws IOException
    *           if the ranges have been encoded improperly
-   * @since 1.5.0
+   * @since 1.6.0
    * @see #setRanges(Class, Configuration, Collection)
    */
   public static List<Range> getRanges(Class<?> implementingClass, Configuration conf) throws IOException {
@@ -218,7 +218,7 @@ public class InputConfigurator extends ConfiguratorBase {
    * @param conf
    *          the Hadoop configuration object to configure
    * @return a list of iterators
-   * @since 1.5.0
+   * @since 1.6.0
    * @see #addIterator(Class, Configuration, IteratorSetting)
    */
   public static List<IteratorSetting> getIterators(Class<?> implementingClass, Configuration conf) {
@@ -256,7 +256,7 @@ public class InputConfigurator extends ConfiguratorBase {
    *          selected. An empty set is the default and is equivalent to scanning the all columns.
    * @throws IllegalArgumentException
    *           if the column family is null
-   * @since 1.5.0
+   * @since 1.6.0
    */
   public static void fetchColumns(Class<?> implementingClass, Configuration conf, Collection<Pair<Text,Text>> columnFamilyColumnQualifierPairs) {
     checkArgument(columnFamilyColumnQualifierPairs != null, "columnFamilyColumnQualifierPairs is null");
@@ -289,7 +289,7 @@ public class InputConfigurator extends ConfiguratorBase {
    * @param conf
    *          the Hadoop configuration object to configure
    * @return a set of columns
-   * @since 1.5.0
+   * @since 1.6.0
    * @see #fetchColumns(Class, Configuration, Collection)
    */
   public static Set<Pair<Text,Text>> getFetchedColumns(Class<?> implementingClass, Configuration conf) {
@@ -314,7 +314,8 @@ public class InputConfigurator extends ConfiguratorBase {
 
     for (String col : serialized) {
       int idx = col.indexOf(":");
-      Text cf = new Text(idx < 0 ? Base64.decodeBase64(col.getBytes(StandardCharsets.UTF_8)) : Base64.decodeBase64(col.substring(0, idx).getBytes(StandardCharsets.UTF_8)));
+      Text cf = new Text(idx < 0 ? Base64.decodeBase64(col.getBytes(StandardCharsets.UTF_8)) : Base64.decodeBase64(col.substring(0, idx).getBytes(
+          StandardCharsets.UTF_8)));
       Text cq = idx < 0 ? null : new Text(Base64.decodeBase64(col.substring(idx + 1).getBytes(StandardCharsets.UTF_8)));
       columns.add(new Pair<Text,Text>(cf, cq));
     }
@@ -332,7 +333,7 @@ public class InputConfigurator extends ConfiguratorBase {
    *          the configuration of the iterator
    * @throws IllegalArgumentException
    *           if the iterator can't be serialized into the configuration
-   * @since 1.5.0
+   * @since 1.6.0
    */
   public static void addIterator(Class<?> implementingClass, Configuration conf, IteratorSetting cfg) {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -372,7 +373,7 @@ public class InputConfigurator extends ConfiguratorBase {
    * @param enableFeature
    *          the feature is enabled if true, disabled otherwise
    * @see #setRanges(Class, Configuration, Collection)
-   * @since 1.5.0
+   * @since 1.6.0
    */
   public static void setAutoAdjustRanges(Class<?> implementingClass, Configuration conf, boolean enableFeature) {
     conf.setBoolean(enumToConfKey(implementingClass, Features.AUTO_ADJUST_RANGES), enableFeature);
@@ -386,7 +387,7 @@ public class InputConfigurator extends ConfiguratorBase {
    * @param conf
    *          the Hadoop configuration object to configure
    * @return false if the feature is disabled, true otherwise
-   * @since 1.5.0
+   * @since 1.6.0
    * @see #setAutoAdjustRanges(Class, Configuration, boolean)
    */
   public static Boolean getAutoAdjustRanges(Class<?> implementingClass, Configuration conf) {
@@ -405,7 +406,7 @@ public class InputConfigurator extends ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @param enableFeature
    *          the feature is enabled if true, disabled otherwise
-   * @since 1.5.0
+   * @since 1.6.0
    */
   public static void setScanIsolation(Class<?> implementingClass, Configuration conf, boolean enableFeature) {
     conf.setBoolean(enumToConfKey(implementingClass, Features.SCAN_ISOLATION), enableFeature);
@@ -419,7 +420,7 @@ public class InputConfigurator extends ConfiguratorBase {
    * @param conf
    *          the Hadoop configuration object to configure
    * @return true if the feature is enabled, false otherwise
-   * @since 1.5.0
+   * @since 1.6.0
    * @see #setScanIsolation(Class, Configuration, boolean)
    */
   public static Boolean isIsolated(Class<?> implementingClass, Configuration conf) {
@@ -439,7 +440,7 @@ public class InputConfigurator extends ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @param enableFeature
    *          the feature is enabled if true, disabled otherwise
-   * @since 1.5.0
+   * @since 1.6.0
    */
   public static void setLocalIterators(Class<?> implementingClass, Configuration conf, boolean enableFeature) {
     conf.setBoolean(enumToConfKey(implementingClass, Features.USE_LOCAL_ITERATORS), enableFeature);
@@ -453,7 +454,7 @@ public class InputConfigurator extends ConfiguratorBase {
    * @param conf
    *          the Hadoop configuration object to configure
    * @return true if the feature is enabled, false otherwise
-   * @since 1.5.0
+   * @since 1.6.0
    * @see #setLocalIterators(Class, Configuration, boolean)
    */
   public static Boolean usesLocalIterators(Class<?> implementingClass, Configuration conf) {
@@ -491,7 +492,7 @@ public class InputConfigurator extends ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @param enableFeature
    *          the feature is enabled if true, disabled otherwise
-   * @since 1.5.0
+   * @since 1.6.0
    */
   public static void setOfflineTableScan(Class<?> implementingClass, Configuration conf, boolean enableFeature) {
     conf.setBoolean(enumToConfKey(implementingClass, Features.SCAN_OFFLINE), enableFeature);
@@ -505,7 +506,7 @@ public class InputConfigurator extends ConfiguratorBase {
    * @param conf
    *          the Hadoop configuration object to configure
    * @return true if the feature is enabled, false otherwise
-   * @since 1.5.0
+   * @since 1.6.0
    * @see #setOfflineTableScan(Class, Configuration, boolean)
    */
   public static Boolean isOfflineScan(Class<?> implementingClass, Configuration conf) {
@@ -601,7 +602,7 @@ public class InputConfigurator extends ConfiguratorBase {
    * @return an Accumulo tablet locator
    * @throws TableNotFoundException
    *           if the table name set on the configuration doesn't exist
-   * @since 1.5.0
+   * @since 1.6.0
    */
   public static TabletLocator getTabletLocator(Class<?> implementingClass, Configuration conf, String tableId) throws TableNotFoundException {
     String instanceType = conf.get(enumToConfKey(implementingClass, InstanceOpts.TYPE));
@@ -621,7 +622,7 @@ public class InputConfigurator extends ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @throws IOException
    *           if the context is improperly configured
-   * @since 1.5.0
+   * @since 1.6.0
    */
   public static void validateOptions(Class<?> implementingClass, Configuration conf) throws IOException {
 

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client.mapreduce.lib.util;
+package org.apache.accumulo.core.client.mapreduce.lib.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -41,14 +41,14 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 /**
- * @since 1.5.0
+ * @since 1.6.0
  */
 public class ConfiguratorBase {
 
   /**
    * Configuration keys for {@link Instance#getConnector(String, AuthenticationToken)}.
    * 
-   * @since 1.5.0
+   * @since 1.6.0
    */
   public static enum ConnectorInfo {
     IS_CONFIGURED, PRINCIPAL, TOKEN,
@@ -71,7 +71,7 @@ public class ConfiguratorBase {
   /**
    * Configuration keys for {@link Instance}, {@link ZooKeeperInstance}, and {@link MockInstance}.
    * 
-   * @since 1.5.0
+   * @since 1.6.0
    */
   public static enum InstanceOpts {
     TYPE, NAME, ZOO_KEEPERS, CLIENT_CONFIG;
@@ -80,7 +80,7 @@ public class ConfiguratorBase {
   /**
    * Configuration keys for general configuration options.
    * 
-   * @since 1.5.0
+   * @since 1.6.0
    */
   public static enum GeneralOpts {
     LOG_LEVEL
@@ -94,7 +94,7 @@ public class ConfiguratorBase {
    * @param e
    *          the enum used to provide the unique part of the configuration key
    * @return the configuration key
-   * @since 1.5.0
+   * @since 1.6.0
    */
   protected static String enumToConfKey(Class<?> implementingClass, Enum<?> e) {
     return implementingClass.getSimpleName() + "." + e.getDeclaringClass().getSimpleName() + "." + StringUtils.camelize(e.name().toLowerCase());
@@ -115,7 +115,7 @@ public class ConfiguratorBase {
    *          a valid Accumulo user name
    * @param token
    *          the user's password
-   * @since 1.5.0
+   * @since 1.6.0
    */
   public static void setConnectorInfo(Class<?> implementingClass, Configuration conf, String principal, AuthenticationToken token)
       throws AccumuloSecurityException {
@@ -173,7 +173,7 @@ public class ConfiguratorBase {
    * @param conf
    *          the Hadoop configuration object to configure
    * @return true if the connector info has already been set, false otherwise
-   * @since 1.5.0
+   * @since 1.6.0
    * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
    */
   public static Boolean isConnectorInfoSet(Class<?> implementingClass, Configuration conf) {
@@ -188,7 +188,7 @@ public class ConfiguratorBase {
    * @param conf
    *          the Hadoop configuration object to configure
    * @return the principal
-   * @since 1.5.0
+   * @since 1.6.0
    * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
    */
   public static String getPrincipal(Class<?> implementingClass, Configuration conf) {
@@ -274,31 +274,9 @@ public class ConfiguratorBase {
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
    *          the Hadoop configuration object to configure
-   * @param instanceName
-   *          the Accumulo instance name
-   * @param zooKeepers
-   *          a comma-separated list of zookeeper servers
-   * @since 1.5.0
-   * @deprecated since 1.6.0; Use {@link #setZooKeeperInstance(Class, Configuration, ClientConfiguration)} instead.
-   */
-
-  @Deprecated
-  public static void setZooKeeperInstance(Class<?> implementingClass, Configuration conf, String instanceName, String zooKeepers) {
-    checkArgument(instanceName != null, "instanceName is null");
-    checkArgument(zooKeepers != null, "zooKeepers is null");
-    setZooKeeperInstance(implementingClass, conf, new ClientConfiguration().withInstance(instanceName).withZkHosts(zooKeepers));
-  }
-
-  /**
-   * Configures a {@link ZooKeeperInstance} for this job.
-   * 
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
    * @param clientConfig
    *          client configuration for specifying connection timeouts, SSL connection options, etc.
-   * @since 1.5.0
+   * @since 1.6.0
    */
   public static void setZooKeeperInstance(Class<?> implementingClass, Configuration conf, ClientConfiguration clientConfig) {
     String key = enumToConfKey(implementingClass, InstanceOpts.TYPE);
@@ -319,7 +297,7 @@ public class ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @param instanceName
    *          the Accumulo instance name
-   * @since 1.5.0
+   * @since 1.6.0
    */
   public static void setMockInstance(Class<?> implementingClass, Configuration conf, String instanceName) {
     String key = enumToConfKey(implementingClass, InstanceOpts.TYPE);
@@ -339,7 +317,7 @@ public class ConfiguratorBase {
    * @param conf
    *          the Hadoop configuration object to configure
    * @return an Accumulo instance
-   * @since 1.5.0
+   * @since 1.6.0
    * @see #setZooKeeperInstance(Class, Configuration, ClientConfiguration)
    * @see #setMockInstance(Class, Configuration, String)
    */
@@ -371,7 +349,7 @@ public class ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @param level
    *          the logging level
-   * @since 1.5.0
+   * @since 1.6.0
    */
   public static void setLogLevel(Class<?> implementingClass, Configuration conf, Level level) {
     checkArgument(level != null, "level is null");
@@ -387,7 +365,7 @@ public class ConfiguratorBase {
    * @param conf
    *          the Hadoop configuration object to configure
    * @return the log level
-   * @since 1.5.0
+   * @since 1.6.0
    * @see #setLogLevel(Class, Configuration, Level)
    */
   public static Level getLogLevel(Class<?> implementingClass, Configuration conf) {

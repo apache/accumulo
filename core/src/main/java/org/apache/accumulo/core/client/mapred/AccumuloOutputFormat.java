@@ -34,7 +34,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.mapreduce.lib.util.OutputConfigurator;
+import org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -176,24 +176,6 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * 
    * @param job
    *          the Hadoop job instance to be configured
-   * @param instanceName
-   *          the Accumulo instance name
-   * @param zooKeepers
-   *          a comma-separated list of zookeeper servers
-   * @since 1.5.0
-   * @deprecated since 1.6.0; Use {@link #setZooKeeperInstance(JobConf, ClientConfiguration)} instead.
-   */
-
-  @Deprecated
-  public static void setZooKeeperInstance(JobConf job, String instanceName, String zooKeepers) {
-    OutputConfigurator.setZooKeeperInstance(CLASS, job, instanceName, zooKeepers);
-  }
-
-  /**
-   * Configures a {@link ZooKeeperInstance} for this job.
-   * 
-   * @param job
-   *          the Hadoop job instance to be configured
    * @param clientConfig
    *          client configuration for specifying connection timeouts, SSL connection options, etc.
    * @since 1.6.0
@@ -222,7 +204,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    *          the Hadoop context for the configured job
    * @return an Accumulo instance
    * @since 1.5.0
-   * @see #setZooKeeperInstance(JobConf, String, String)
+   * @see #setZooKeeperInstance(JobConf, ClientConfiguration)
    * @see #setMockInstance(JobConf, String)
    */
   protected static Instance getInstance(JobConf job) {
