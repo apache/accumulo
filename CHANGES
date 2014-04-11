@@ -38,12 +38,12 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-1479] - Create per-user permissions for a given table namespace
     * [ACCUMULO-1482] - Put provided tables in their own (system) namespace
     * [ACCUMULO-1484] - Create node in per-table configuration hierarchy for table namespaces
+    * [ACCUMULO-1486] - Handle removal of sync method
     * [ACCUMULO-1487] - Package javadocs for monitor better, or not at all
     * [ACCUMULO-1491] - Stop packaging html pages with the monitor
     * [ACCUMULO-1502] - Add Trace Table docs to user manual
     * [ACCUMULO-1516] - Clean up Constants
     * [ACCUMULO-1517] - Add config.html, created by mvn docs profile) to Accumulo website.
-    * [ACCUMULO-1520] - Misc functional test fixes
     * [ACCUMULO-1530] - Provide upgrade path to two system metadata tables
     * [ACCUMULO-1537] - convert auto tests to integration tests, where possible for continuous integration
     * [ACCUMULO-1564] - Fix typo in MiniAccumuloCluster-related code: JDWP, not JWDP.
@@ -176,6 +176,7 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-1513] - Shell du command doesn't work unless in table context
     * [ACCUMULO-1514] - AccumuloVFSClassloader incorrectly treats folders as folders of jar files
     * [ACCUMULO-1518] - FileOperations expects RFile filenames to contain only 1 dot.
+    * [ACCUMULO-1520] - Misc functional test fixes
     * [ACCUMULO-1523] - property GENERAL_MAX_MESSAGE_SIZE is configured as "tserver.server.message.size.max"
     * [ACCUMULO-1529] - FormatterCommandTest fails in Eclipse
     * [ACCUMULO-1536] - load average on monitor page is an integer
@@ -457,6 +458,8 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-2631] - Excessively large number of minutes for trace page prints exception
     * [ACCUMULO-2648] - AccumuloInputFormat referencing incorrect RangeInputSplit
     * [ACCUMULO-2651] - Maven build error running rat check
+    * [ACCUMULO-2659] - Incompatible map reduce changes in 1.6.0
+    * [ACCUMULO-2660] - InvocationTargetException during ContinuousIngest
 
 ** Improvement
     * [ACCUMULO-112] - Investigate partitioning in memory map by locality group
@@ -570,6 +573,7 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-2350] - Missing recommendation on replacement for deprecated client APIs
     * [ACCUMULO-2441] - Document internal state stored in RFile names
     * [ACCUMULO-2454] - Aggregate Cobertura reports
+    * [ACCUMULO-2482] - Improve error message on ZK retries
     * [ACCUMULO-2499] - User manual should include list of default ports
     * [ACCUMULO-2521] - Expose FATE admin utility by name under bin/accumulo
     * [ACCUMULO-2528] - OfflineScanner is not volume-aware
