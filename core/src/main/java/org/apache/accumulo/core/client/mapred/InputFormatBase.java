@@ -316,26 +316,42 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
 
     @Override
     protected void setupIterators(JobConf job, Scanner scanner, String tableName, org.apache.accumulo.core.client.mapred.RangeInputSplit split) {
-      setupIterators(job, scanner, split);
+      List<IteratorSetting> iterators = null;
+
+      if (null == split) {
+        iterators = getIterators(job);
+      } else {
+        iterators = split.getIterators();
+      }
+
+      setupIterators(iterators, scanner);
+    }
+
+    /**
+     * Apply the configured iterators to the scanner.
+     * 
+     * @param iterators
+     *          the iterators to set
+     * @param scanner
+     *          the scanner to configure
+     */
+    protected void setupIterators(List<IteratorSetting> iterators, Scanner scanner) {
+      for (IteratorSetting iterator : iterators) {
+        scanner.addScanIterator(iterator);
+      }
     }
 
     /**
      * Apply the configured iterators from the configuration to the scanner.
      * 
      * @param job
-     *          the Hadoop job configuration
+     *          the job configuration
      * @param scanner
      *          the scanner to configure
      */
-    protected void setupIterators(JobConf job, Scanner scanner, org.apache.accumulo.core.client.mapreduce.RangeInputSplit split) {
-      List<IteratorSetting> iterators = split.getIterators();
-
-      if (null == iterators) {
-        iterators = getIterators(job);
-      }
-
-      for (IteratorSetting iterator : iterators)
-        scanner.addScanIterator(iterator);
+    @Deprecated
+    protected void setupIterators(JobConf job, Scanner scanner) {
+      setupIterators(getIterators(job), scanner);
     }
   }
 
