@@ -335,10 +335,23 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
      * @param scanner
      *          the scanner to configure
      */
+    @Deprecated
+    protected void setupIterators(TaskAttemptContext context, Scanner scanner) {
+      setupIterators(context, scanner, null);
+    }
+
+    /**
+     * Initialize a scanner over the given input split using this task attempt configuration.
+     */
     protected void setupIterators(TaskAttemptContext context, Scanner scanner, org.apache.accumulo.core.client.mapreduce.RangeInputSplit split) {
-      List<IteratorSetting> iterators = split.getIterators();
-      if (null == iterators) {
+      List<IteratorSetting> iterators = null;
+      if (null == split) {
         iterators = getIterators(context);
+      } else {
+        iterators = split.getIterators();
+        if (null == iterators) {
+          iterators = getIterators(context);
+        }
       }
       for (IteratorSetting iterator : iterators)
         scanner.addScanIterator(iterator);
