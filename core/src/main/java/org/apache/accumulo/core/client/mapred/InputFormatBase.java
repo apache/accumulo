@@ -356,5 +356,9 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
     public RangeInputSplit(String table, String tableId, Range range, String[] locations) {
       super(table, tableId, range, locations);
     }
+
+    protected RangeInputSplit(String table, Range range, String[] locations) {
+      super(table, "", range, locations);
+    }
   }
 }
