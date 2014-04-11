@@ -538,8 +538,10 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
     protected org.apache.accumulo.core.client.mapred.RangeInputSplit split;
 
     /**
-     * Apply the configured iterators from the configuration to the scanner.
+     * Apply the configured iterators to the scanner.
      * 
+     * @param iterators
+     *          the iterators to set
      * @param scanner
      *          the scanner to configure
      */
@@ -547,6 +549,18 @@ public abstract class InputFormatBase<K,V> implements InputFormat<K,V> {
       for (IteratorSetting iterator : iterators) {
         scanner.addScanIterator(iterator);
       }
+    }
+
+    /**
+     * Apply the configured iterators from the configuration to the scanner.
+     * 
+     * @param job
+     *          the job configuration
+     * @param scanner
+     *          the scanner to configure
+     */
+    protected void setupIterators(JobConf job, Scanner scanner) {
+      setupIterators(getIterators(job), scanner);
     }
 
     /**
