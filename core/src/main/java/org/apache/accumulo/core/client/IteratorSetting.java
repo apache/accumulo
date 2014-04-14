@@ -85,8 +85,6 @@ public class IteratorSetting implements Writable {
   
   /**
    * Set the iterator's name. Must be a simple alphanumeric identifier.
-   * 
-   * @param name
    */
   public void setName(String name) {
     checkArgument(name != null, "name is null");
@@ -105,8 +103,6 @@ public class IteratorSetting implements Writable {
   /**
    * Set the name of the class that implements the iterator. The class does not have to be present on the client, but it must be available to all tablet
    * servers.
-   * 
-   * @param iteratorClass
    */
   public void setIteratorClass(String iteratorClass) {
     checkArgument(iteratorClass != null, "iteratorClass is null");

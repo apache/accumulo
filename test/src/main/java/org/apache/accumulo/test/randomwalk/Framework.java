@@ -49,8 +49,6 @@ public class Framework {
    * 
    * @param startName
    *          Full name of starting graph or test
-   * @param state
-   * @param confDir
    */
   public int run(String startName, State state, Environment env, String confDir) {
     
@@ -72,7 +70,6 @@ public class Framework {
    * @param id
    *          Name of node
    * @return Node specified by id
-   * @throws Exception
    */
   public Node getNode(String id) throws Exception {
     

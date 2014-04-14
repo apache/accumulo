@@ -27,7 +27,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.TabletLocator;
-import org.apache.accumulo.core.client.mapreduce.lib.util.InputConfigurator;
+import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -335,10 +335,23 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
      * @param scanner
      *          the scanner to configure
      */
+    @Deprecated
+    protected void setupIterators(TaskAttemptContext context, Scanner scanner) {
+      setupIterators(context, scanner, null);
+    }
+
+    /**
+     * Initialize a scanner over the given input split using this task attempt configuration.
+     */
     protected void setupIterators(TaskAttemptContext context, Scanner scanner, org.apache.accumulo.core.client.mapreduce.RangeInputSplit split) {
-      List<IteratorSetting> iterators = split.getIterators();
-      if (null == iterators) {
+      List<IteratorSetting> iterators = null;
+      if (null == split) {
         iterators = getIterators(context);
+      } else {
+        iterators = split.getIterators();
+        if (null == iterators) {
+          iterators = getIterators(context);
+        }
       }
       for (IteratorSetting iterator : iterators)
         scanner.addScanIterator(iterator);
@@ -360,7 +373,11 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
       super(other);
     }
 
-    protected RangeInputSplit(String table, String tableId, Range range, String[] locations) {
+    protected RangeInputSplit(String table, Range range, String[] locations) {
+      super(table, "", range, locations);
+    }
+
+    public RangeInputSplit(String table, String tableId, Range range, String[] locations) {
       super(table, tableId, range, locations);
     }
   }

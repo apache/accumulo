@@ -34,7 +34,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.mapreduce.lib.util.OutputConfigurator;
+import org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -86,7 +86,6 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    *          a valid Accumulo user name (user must have Table.CREATE permission if {@link #setCreateTables(Job, boolean)} is set to true)
    * @param token
    *          the user's password
-   * @throws AccumuloSecurityException
    * @since 1.5.0
    */
   public static void setConnectorInfo(Job job, String principal, AuthenticationToken token) throws AccumuloSecurityException {
@@ -105,7 +104,6 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    *          a valid Accumulo user name (user must have Table.CREATE permission if {@link #setCreateTables(Job, boolean)} is set to true)
    * @param tokenFile
    *          the path to the token file
-   * @throws AccumuloSecurityException
    * @since 1.6.0
    */
   public static void setConnectorInfo(Job job, String principal, String tokenFile) throws AccumuloSecurityException {
@@ -172,23 +170,6 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    */
   protected static AuthenticationToken getAuthenticationToken(JobContext context) {
     return OutputConfigurator.getAuthenticationToken(CLASS, InputFormatBase.getConfiguration(context));
-  }
-
-  /**
-   * Configures a {@link ZooKeeperInstance} for this job.
-   * 
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param instanceName
-   *          the Accumulo instance name
-   * @param zooKeepers
-   *          a comma-separated list of zookeeper servers
-   * @since 1.5.0
-   * @deprecated since 1.6.0; Use {@link #setZooKeeperInstance(Job, ClientConfiguration)} instead.
-   */
-  @Deprecated
-  public static void setZooKeeperInstance(Job job, String instanceName, String zooKeepers) {
-    OutputConfigurator.setZooKeeperInstance(CLASS, job.getConfiguration(), instanceName, zooKeepers);
   }
 
   /**

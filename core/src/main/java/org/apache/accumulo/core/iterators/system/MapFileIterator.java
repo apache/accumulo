@@ -50,13 +50,6 @@ public class MapFileIterator implements FileSKVIterator {
   private FileSystem fs;
   private String dirName;
   
-  /**
-   * @param acuconf
-   * @param fs
-   * @param dir
-   * @param conf
-   * @throws IOException
-   */
   public MapFileIterator(AccumuloConfiguration acuconf, FileSystem fs, String dir, Configuration conf) throws IOException {
     this.reader = MapFileUtil.openMapFile(acuconf, fs, dir, conf);
     this.fs = fs;
@@ -86,6 +79,7 @@ public class MapFileIterator implements FileSKVIterator {
     reader.next(topKey, topValue);
   }
   
+  @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     if (columnFamilies.size() != 0 || inclusive) {
       throw new IllegalArgumentException("I do not know how to filter column families");

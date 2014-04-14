@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client.mapreduce.lib.util;
+package org.apache.accumulo.core.client.mapreduce.lib.impl;
 
 import java.io.IOException;
 import java.net.URI;
@@ -23,17 +23,29 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.Path;
 
+/**
+ * @since 1.6.0
+ */
 @SuppressWarnings("deprecation")
 public class DistributedCacheHelper {
-  
+
+  /**
+   * @since 1.6.0
+   */
   public static void addCacheFile(URI uri, Configuration conf) {
     DistributedCache.addCacheFile(uri, conf);
   }
-  
+
+  /**
+   * @since 1.6.0
+   */
   public static URI[] getCacheFiles(Configuration conf) throws IOException {
     return DistributedCache.getCacheFiles(conf);
   }
-  
+
+  /**
+   * @since 1.6.0
+   */
   public static Path[] getLocalCacheFiles(Configuration conf) throws IOException {
     return DistributedCache.getLocalCacheFiles(conf);
   }

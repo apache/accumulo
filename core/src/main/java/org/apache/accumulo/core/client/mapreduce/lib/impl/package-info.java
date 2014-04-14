@@ -28,7 +28,7 @@
  * may use these classes to implement their own static configurators. Once again, these classes are intended for internal use, but may be useful to developers
  * of plugins for other frameworks that read/write to Accumulo.
  * 
- * @since 1.5.0
+ * @since 1.6.0
  */
-package org.apache.accumulo.core.client.mapreduce.lib.util;
+package org.apache.accumulo.core.client.mapreduce.lib.impl;
 

@@ -94,9 +94,6 @@ public class GrepIterator extends Filter {
   
   /**
    * Encode the grep term as an option for a ScanIterator
-   * 
-   * @param cfg
-   * @param term
    */
   public static void setTerm(IteratorSetting cfg, String term) {
     cfg.addOption("term", term);

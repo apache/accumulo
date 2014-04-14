@@ -405,7 +405,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
     /**
      * while a session is reserved, it cannot be canceled or removed
-     * 
+     *
      * @param sessionId
      */
 
@@ -868,7 +868,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   /**
    * This little class keeps track of writes in progress and allows readers to wait for writes that started before the read. It assumes that the operation ids
    * are monotonically increasing.
-   * 
+   *
    */
   static class WriteTracker {
     private static AtomicLong operationCounter = new AtomicLong(1);
@@ -2104,7 +2104,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         // table does not exist, try to educate the client
         throw new NotServingTabletException(tkeyExtent);
       }
-      
+
       if (!security.canSplitTablet(credentials, tableId, namespaceId))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
@@ -2535,8 +2535,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       } catch (ThriftSecurityException e) {
         log.error(e, e);
         throw e;
-      } 
-      
+      }
+
       List<CompactionInfo> compactions = Compactor.getRunningCompactions();
       List<ActiveCompaction> ret = new ArrayList<ActiveCompaction>(compactions.size());
 
@@ -2921,9 +2921,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         tablet = new Tablet(TabletServer.this, locationToOpen, extent, trm, tabletsKeyValues);
         /*
          * If a minor compaction starts after a tablet opens, this indicates a log recovery occurred. This recovered data must be minor compacted.
-         * 
+         *
          * There are three reasons to wait for this minor compaction to finish before placing the tablet in online tablets.
-         * 
+         *
          * 1) The log recovery code does not handle data written to the tablet on multiple tablet servers. 2) The log recovery code does not block if memory is
          * full. Therefore recovering lots of tablets that use a lot of memory could run out of memory. 3) The minor compaction finish event did not make it to
          * the logs (the file will be in metadata, preventing replay of compacted data)... but do not want a majc to wipe the file out from metadata and then

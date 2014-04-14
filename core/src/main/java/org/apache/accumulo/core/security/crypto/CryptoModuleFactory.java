@@ -39,7 +39,6 @@ public class CryptoModuleFactory {
   /**
    * This method returns a crypto module based on settings in the given configuration parameter.
    * 
-   * @param conf
    * @return a class implementing the CryptoModule interface. It will *never* return null; rather, it will return a class which obeys the interface but makes no
    *         changes to the underlying data.
    */

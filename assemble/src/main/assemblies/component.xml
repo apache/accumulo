@@ -27,6 +27,7 @@
       <useTransitiveDependencies>false</useTransitiveDependencies>
       <includes>
         <include>${groupId}:${artifactId}-*</include>
+        <include>org.apache.commons:commons-math</include>
         <include>org.apache.commons:commons-vfs2</include>
         <include>com.beust:jcommander</include>
         <include>com.google.code.gson:gson</include>

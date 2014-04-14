@@ -44,7 +44,7 @@ import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.mapreduce.InputTableConfig;
-import org.apache.accumulo.core.client.mapreduce.lib.util.InputConfigurator;
+import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.Key;
@@ -85,7 +85,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *          a valid Accumulo user name (user must have Table.CREATE permission)
    * @param token
    *          the user's password
-   * @throws org.apache.accumulo.core.client.AccumuloSecurityException
    * @since 1.5.0
    */
   public static void setConnectorInfo(JobConf job, String principal, AuthenticationToken token) throws AccumuloSecurityException {
@@ -104,7 +103,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *          a valid Accumulo user name (user must have Table.CREATE permission)
    * @param tokenFile
    *          the path to the token file
-   * @throws AccumuloSecurityException
    * @since 1.6.0
    */
   public static void setConnectorInfo(JobConf job, String principal, String tokenFile) throws AccumuloSecurityException {
@@ -138,28 +136,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   }
 
   /**
-   * Gets the serialized token class from either the configuration or the token file.
-   * 
-   * @since 1.5.0
-   * @deprecated since 1.6.0; Use {@link #getAuthenticationToken(JobConf)} instead.
-   */
-  @Deprecated
-  protected static String getTokenClass(JobConf job) {
-    return getAuthenticationToken(job).getClass().getName();
-  }
-
-  /**
-   * Gets the serialized token from either the configuration or the token file.
-   * 
-   * @since 1.5.0
-   * @deprecated since 1.6.0; Use {@link #getAuthenticationToken(JobConf)} instead.
-   */
-  @Deprecated
-  protected static byte[] getToken(JobConf job) {
-    return AuthenticationToken.AuthenticationTokenSerializer.serialize(getAuthenticationToken(job));
-  }
-
-  /**
    * Gets the authenticated token from either the specified token file or directly from the configuration, whichever was used when the job was configured.
    * 
    * @param job
@@ -176,23 +152,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   /**
    * Configures a {@link org.apache.accumulo.core.client.ZooKeeperInstance} for this job.
    * 
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param instanceName
-   *          the Accumulo instance name
-   * @param zooKeepers
-   *          a comma-separated list of zookeeper servers
-   * @since 1.5.0
-   * @deprecated since 1.6.0; Use {@link #setZooKeeperInstance(JobConf, ClientConfiguration)} instead.
-   */
-  @Deprecated
-  public static void setZooKeeperInstance(JobConf job, String instanceName, String zooKeepers) {
-    InputConfigurator.setZooKeeperInstance(CLASS, job, instanceName, zooKeepers);
-  }
-
-  /**
-   * Configures a {@link org.apache.accumulo.core.client.ZooKeeperInstance} for this job.
-   *
    * @param job
    *          the Hadoop job instance to be configured
    * @param clientConfig
@@ -223,7 +182,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *          the Hadoop context for the configured job
    * @return an Accumulo instance
    * @since 1.5.0
-   * @see #setZooKeeperInstance(JobConf, String, String)
+   * @see #setZooKeeperInstance(JobConf, ClientConfiguration)
    * @see #setMockInstance(JobConf, String)
    */
   protected static Instance getInstance(JobConf job) {
@@ -374,7 +333,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       Scanner scanner;
       split = (RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + split.getRange());
-      
+
       Instance instance = split.getInstance();
       if (null == instance) {
         instance = getInstance(job);
@@ -400,7 +359,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       // in case the table name changed, we can still use the previous name for terms of configuration,
       // but the scanner will use the table id resolved at job setup time
       InputTableConfig tableConfig = getInputTableConfig(job, split.getTableName());
-      
+
       Boolean isOffline = split.isOffline();
       if (null == isOffline) {
         isOffline = tableConfig.isOfflineScan();
@@ -415,12 +374,12 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       if (null == usesLocalIterators) {
         usesLocalIterators = tableConfig.shouldUseLocalIterators();
       }
-      
+
       List<IteratorSetting> iterators = split.getIterators();
       if (null == iterators) {
         iterators = tableConfig.getIterators();
       }
-      
+
       Collection<Pair<Text,Text>> columns = split.getFetchedColumns();
       if (null == columns) {
         columns = tableConfig.getFetchedColumns();
@@ -450,7 +409,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         throw new IOException(e);
       }
 
-      
       // setup a scanner within the bounds of this split
       for (Pair<Text,Text> c : columns) {
         if (c.getSecond() != null) {
@@ -513,7 +471,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
     for (Map.Entry<String,InputTableConfig> tableConfigEntry : tableConfigs.entrySet()) {
       String tableName = tableConfigEntry.getKey();
       InputTableConfig tableConfig = tableConfigEntry.getValue();
-      
+
       Instance instance = getInstance(job);
       boolean mockInstance;
       String tableId;
@@ -529,11 +487,11 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         }
         mockInstance = false;
       }
-      
+
       Authorizations auths = getScanAuthorizations(job);
       String principal = getPrincipal(job);
       AuthenticationToken token = getAuthenticationToken(job);
-      
+
       boolean autoAdjust = tableConfig.shouldAutoAdjustRanges();
       List<Range> ranges = autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges()) : tableConfig.getRanges();
       if (ranges.isEmpty()) {
@@ -595,7 +553,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
             if (autoAdjust) {
               // divide ranges into smaller ranges, based on the tablets
               RangeInputSplit split = new RangeInputSplit(tableName, tableId, ke.clip(r), new String[] {location});
-              
+
               split.setOffline(tableConfig.isOfflineScan());
               split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());
               split.setUsesLocalIterators(tableConfig.shouldUseLocalIterators());
@@ -608,7 +566,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
               split.setAuths(auths);
               split.setIterators(tableConfig.getIterators());
               split.setLogLevel(logLevel);
-              
+
               splits.add(split);
             } else {
               // don't divide ranges
@@ -638,7 +596,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
           split.setAuths(auths);
           split.setIterators(tableConfig.getIterators());
           split.setLogLevel(logLevel);
-          
+
           splits.add(split);
         }
     }

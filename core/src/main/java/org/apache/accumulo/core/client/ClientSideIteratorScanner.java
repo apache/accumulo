@@ -144,8 +144,6 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   
   /**
    * Sets the source Scanner.
-   * 
-   * @param scanner
    */
   public void setSource(final Scanner scanner) {
     smi = new ScannerTranslator(scanner);
