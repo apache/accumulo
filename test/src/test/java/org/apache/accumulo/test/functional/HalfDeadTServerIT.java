@@ -53,6 +53,11 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
     cfg.useMiniDFS(true);
   }
   
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 4 * 60;
+  }
+
   class DumpOutput extends Daemon {
     
     private final BufferedReader rdr;
@@ -85,12 +90,12 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
     }
   }
   
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void testRecover() throws Exception {
     test(10);
   }
   
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void testTimeout() throws Exception {
     String results = test(40);
     if (results != null) {

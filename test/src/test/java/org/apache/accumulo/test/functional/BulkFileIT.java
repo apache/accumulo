@@ -42,7 +42,12 @@ import org.junit.Test;
 
 public class BulkFileIT extends SimpleMacIT {
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 2 * 60;
+  }
+
+  @Test
   public void testBulkFile() throws Exception {
     Connector c = getConnector();
     String tableName = getUniqueNames(1)[0];

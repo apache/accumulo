@@ -36,7 +36,12 @@ import org.junit.Test;
 
 public class MasterAssignmentIT extends SimpleMacIT {
   
-  @Test(timeout=2*60*1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 2 * 60;
+  }
+
+  @Test
   public void test() throws Exception {
     Connector c = getConnector();
     String tableName = super.getUniqueNames(1)[0];

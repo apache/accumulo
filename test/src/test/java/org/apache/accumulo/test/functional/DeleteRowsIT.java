@@ -39,6 +39,12 @@ import org.apache.log4j.Logger;
 import org.junit.Test;
 
 public class DeleteRowsIT extends SimpleMacIT {
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 10 * 60;
+  }
+
   private static final Logger log = Logger.getLogger(DeleteRowsIT.class);
 
   private static final int ROWS_PER_TABLET = 10;
@@ -57,7 +63,7 @@ public class DeleteRowsIT extends SimpleMacIT {
     ROWS.add("{");
   }
 
-  @Test(timeout = 10 * 60 * 1000)
+  @Test
   public void test() throws Exception {
     // Delete ranges of rows, and verify the tablets are removed.
     int i = 0;

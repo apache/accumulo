@@ -36,7 +36,12 @@ public class MetadataSplitIT extends ConfigurableMacIT {
     cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "100ms"));
   }
  
-  @Test(timeout = 2 * 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 2 * 60;
+  }
+
+  @Test
   public void test() throws Exception {
     Connector c = getConnector();
     assertEquals(1, c.tableOperations().listSplits(MetadataTable.NAME).size());

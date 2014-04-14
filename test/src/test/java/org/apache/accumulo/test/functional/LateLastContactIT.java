@@ -36,7 +36,12 @@ public class LateLastContactIT extends ConfigurableMacIT {
     cfg.setSiteConfig(Collections.singletonMap(Property.GENERAL_RPC_TIMEOUT.getKey(), "2s"));
   }
 
-  @Test(timeout = 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
+
+  @Test
   public void test() throws Exception {
     Process zombie = cluster.exec(ZombieTServer.class);
     assertEquals(0, zombie.waitFor());

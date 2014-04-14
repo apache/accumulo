@@ -27,7 +27,12 @@ import org.junit.Test;
 
 public class BackupMasterIT extends ConfigurableMacIT {
 
-  @Test(timeout= 10 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 10;
+  }
+
+  @Test
   public void test() throws Exception {
     // wait for master
     UtilWaitThread.sleep(1000);

@@ -50,7 +50,12 @@ public class WriteAheadLogIT extends ConfigurableMacIT {
     cfg.useMiniDFS(true);
   }
 
-  @Test(timeout = 10 * 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 10 * 60;
+  }
+
+  @Test
   public void test() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");

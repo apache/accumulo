@@ -24,7 +24,12 @@ import org.junit.Test;
 
 public class StartIT extends ConfigurableMacIT {
 
-  @Test(timeout = 30 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 30;
+  }
+
+  @Test
   public void test() throws Exception {
     assertTrue(exec(TestMain.class, "exception").waitFor() != 0);
     assertEquals(0, exec(TestMain.class, "success").waitFor());

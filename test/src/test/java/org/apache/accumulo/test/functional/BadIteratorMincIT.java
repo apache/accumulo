@@ -38,7 +38,12 @@ import org.junit.Test;
 
 public class BadIteratorMincIT extends SimpleMacIT {
 
-  @Test(timeout = 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
+
+  @Test
   public void test() throws Exception {
     Connector c = getConnector();
 

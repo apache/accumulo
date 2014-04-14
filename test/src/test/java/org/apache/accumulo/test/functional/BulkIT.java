@@ -37,7 +37,12 @@ public class BulkIT extends SimpleMacIT {
   static final int N = 100000;
   static final int COUNT = 5;
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 4 * 60;
+  }
+
+  @Test
   public void test() throws Exception {
     runTest(getConnector(), getUniqueNames(1)[0], this.getClass().getName(), testName.getMethodName());
   }

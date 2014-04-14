@@ -33,7 +33,12 @@ import org.junit.Test;
 // ACCUMULO-2361
 public class DeleteTableDuringSplitIT extends SimpleMacIT {
   
-  @Test(timeout= 10 * 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 10 * 60;
+  }
+
+  @Test
   public void test() throws Exception {
     String[] tableNames = getUniqueNames(100);
     // make a bunch of tables

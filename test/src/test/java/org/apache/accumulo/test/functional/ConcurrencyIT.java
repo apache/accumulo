@@ -67,13 +67,18 @@ public class ConcurrencyIT extends ConfigurableMacIT {
     cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "1"));
   }
   
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 2 * 60;
+  }
+
   /*
    * Below is a diagram of the operations in this test over time.
    * 
    * Scan 0 |------------------------------| Scan 1 |----------| Minc 1 |-----| Scan 2 |----------| Scan 3 |---------------| Minc 2 |-----| Majc 1 |-----|
    */
   
-  @Test(timeout = 2 * 60 * 1000)
+  @Test
   public void run() throws Exception {
     Connector c = getConnector();
     runTest(c);

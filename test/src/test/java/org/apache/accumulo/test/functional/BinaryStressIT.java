@@ -34,6 +34,11 @@ import org.junit.Test;
 public class BinaryStressIT extends ConfigurableMacIT {
   
   @Override
+  protected int defaultTimeoutSeconds() {
+    return 4 * 60;
+  }
+
+  @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = new HashMap<String,String>();
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "50K");
@@ -41,7 +46,7 @@ public class BinaryStressIT extends ConfigurableMacIT {
     cfg.setSiteConfig(siteConfig );
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void binaryStressTest() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("bt");

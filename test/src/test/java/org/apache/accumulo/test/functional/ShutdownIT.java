@@ -34,6 +34,11 @@ import org.junit.Test;
 
 public class ShutdownIT extends ConfigurableMacIT {
   
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 2 * 60;
+  }
+
   @Test(timeout = 4 * 60 * 1000)
   public void shutdownDuringIngest() throws Exception {
     Process ingest = cluster.exec(TestIngest.class, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD, "--createTable");
@@ -42,7 +47,7 @@ public class ShutdownIT extends ConfigurableMacIT {
     ingest.destroy();
   }
   
-  @Test(timeout = 2 * 60 * 1000)
+  @Test
   public void shutdownDuringQuery() throws Exception {
     assertEquals(0, cluster.exec(TestIngest.class, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "-u", "root","-p", ROOT_PASSWORD, "--createTable").waitFor());
     Process verify = cluster.exec(VerifyIngest.class, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD);
@@ -51,7 +56,7 @@ public class ShutdownIT extends ConfigurableMacIT {
     verify.destroy();
   }
   
-  @Test(timeout = 2 * 60 * 1000)
+  @Test
   public void shutdownDuringDelete() throws Exception {
     assertEquals(0, cluster.exec(TestIngest.class, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD, "--createTable").waitFor());
     Process deleter = cluster.exec(TestRandomDeletes.class, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD);
@@ -61,7 +66,7 @@ public class ShutdownIT extends ConfigurableMacIT {
   }
 
   
-  @Test(timeout = 2 * 60 * 1000)
+  @Test
   public void shutdownDuringDeleteTable() throws Exception {
     final Connector c = getConnector();
     for (int i = 0; i < 10 ; i++) {
@@ -90,7 +95,7 @@ public class ShutdownIT extends ConfigurableMacIT {
     assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
   }
   
-  @Test(timeout = 2 * 60 * 1000)
+  @Test
   public void adminStop() throws Exception {
     runAdminStopTest(getConnector(), cluster);
   }

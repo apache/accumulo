@@ -41,7 +41,12 @@ import com.google.common.base.Stopwatch;
  */
 public class ScannerIT extends SimpleMacIT {
 
-  @Test(timeout = 60000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
+
+  @Test
   public void testScannerReadaheadConfiguration() throws Exception {
     final String table = "table";
     Connector c = getConnector();

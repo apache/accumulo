@@ -33,6 +33,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.junit.Rule;
 import org.junit.rules.TestName;
+import org.junit.rules.Timeout;
 
 public abstract class AbstractMacIT {
   public static final Logger log = Logger.getLogger(AbstractMacIT.class);
@@ -110,6 +111,41 @@ public abstract class AbstractMacIT {
     siteConfig.put(Property.RPC_SSL_KEYSTORE_PASSWORD.getKey(), cfg.getRootPassword());
     siteConfig.put(Property.RPC_SSL_TRUSTSTORE_PATH.getKey(), publicTruststoreFile.getAbsolutePath());
     cfg.setSiteConfig(siteConfig);
+  }
+
+  /**
+   * If a given IT test has a method that takes longer than a class-set default timeout, declare it failed.
+   *
+   * Note that this provides a upper bound on test times, even in the presence of Test annotations with
+   * a timeout. That is, the Test annotatation can make the timing tighter but will not be able to allow
+   * a timeout that takes longer.
+   *
+   * Defaults to no timeout and can be changed via two mechanisms
+   *
+   * 1) A given IT class can override the defaultTimeoutSeconds method if test methods in that class should
+   *    have a timeout.
+   * 2) The system property "timeout.factor" is used as a multiplier for the class provided default
+   *
+   * Note that if either of these values is '0' tests will run with no timeout. The default class level
+   * timeout is set to 0.
+   *
+   */
+  @Rule
+  public Timeout testsShouldTimeout() {
+    int waitLonger = 0;
+    try {
+      waitLonger = Integer.parseInt(System.getProperty("timeout.factor"));
+    } catch (NumberFormatException exception) {
+      log.warn("Could not parse timeout.factor, defaulting to no timeout.");
+    }
+    return new Timeout(waitLonger * defaultTimeoutSeconds() * 1000);
+  }
+
+  /**
+   * time to wait per-method before declaring a timeout, in seconds.
+   */
+  protected int defaultTimeoutSeconds() {
+    return 0;
   }
 
   public abstract Connector getConnector() throws AccumuloException, AccumuloSecurityException;

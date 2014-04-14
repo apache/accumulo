@@ -42,13 +42,17 @@ import org.junit.Test;
 
 public class RowDeleteIT extends ConfigurableMacIT {
 
-  
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "50ms"));
   }
 
-  @Test(timeout = 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
+
+  @Test
   public void run() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("rdel1");

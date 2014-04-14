@@ -39,7 +39,12 @@ import org.junit.Test;
 
 public class AddSplitIT extends SimpleMacIT {
 
-  @Test(timeout = 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
+
+  @Test
   public void addSplitTest() throws Exception {
 
     String tableName = getUniqueNames(1)[0];

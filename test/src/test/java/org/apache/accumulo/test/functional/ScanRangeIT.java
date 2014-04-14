@@ -34,12 +34,17 @@ import org.junit.Test;
 
 public class ScanRangeIT extends SimpleMacIT {
 
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 2 * 60;
+  }
+
   private static final int TS_LIMIT = 1;
   private static final int CQ_LIMIT = 5;
   private static final int CF_LIMIT = 5;
   private static final int ROW_LIMIT = 100;
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Test
   public void run() throws Exception {
     Connector c = getConnector();
     String[] tableNames = getUniqueNames(2);
