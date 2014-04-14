@@ -53,8 +53,8 @@ import org.apache.log4j.Logger;
  */
 public abstract class Combiner extends WrappingIterator implements OptionDescriber {
   static final Logger log = Logger.getLogger(Combiner.class);
-  protected static final String COLUMNS_OPTION = "columns";
-  protected static final String ALL_OPTION = "all";
+  public static final String COLUMNS_OPTION = "columns";
+  public static final String ALL_OPTION = "all";
 
   /**
    * A Java Iterator that iterates over the Values for a given Key from a source SortedKeyValueIterator.

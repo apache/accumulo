@@ -17,8 +17,9 @@
 option java_package = "org.apache.accumulo.core.replication.proto";
 option optimize_for = SPEED;
 
-message ReplicationStatus {
-	required int64 begin = 1;
-	required int64 end = 2;
-	required bool closed = 3;
+message Status {
+	optional int64 begin = 1 [default = 0];
+	optional int64 end = 2 [default = 0];
+	optional bool infiniteEnd = 3 [default = false];
+	optional bool closed = 4 [default = false];
 }

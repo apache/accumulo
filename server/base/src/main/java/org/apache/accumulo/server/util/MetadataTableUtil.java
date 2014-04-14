@@ -63,8 +63,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Lo
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
-import org.apache.accumulo.core.replication.ReplicationStatusUtil;
-import org.apache.accumulo.core.replication.proto.Replication.ReplicationStatus;
+import org.apache.accumulo.core.replication.StatusUtil;
+import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -462,7 +462,7 @@ public class MetadataTableUtil {
       Mutation m = new Mutation(entry.getRow());
       m.put(entry.getColumnFamily(), entry.getColumnQualifier(), entry.getValue());
       if (replicationEnabled) {
-        ReplicationStatus status = ReplicationStatusUtil.newFile();
+        Status status = StatusUtil.newFile();
         m.put(MetadataSchema.TabletsSection.ReplicationColumnFamily.NAME, new Text(entry.filename), ProtobufUtil.toValue(status));
       }
       update(credentials, zooLock, m, entry.extent);
