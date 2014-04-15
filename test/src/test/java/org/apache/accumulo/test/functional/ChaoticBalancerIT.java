@@ -42,7 +42,12 @@ public class ChaoticBalancerIT extends ConfigurableMacIT {
     cfg.setSiteConfig(siteConfig );
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 4 * 60;
+  }
+
+  @Test
   public void test() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");

@@ -41,6 +41,11 @@ import org.junit.Test;
 // attempt to reproduce ACCUMULO-315
 public class DeleteRowsSplitIT extends SimpleMacIT {
 
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 4 * 60;
+  }
+
   private static final Logger log = Logger.getLogger(DeleteRowsSplitIT.class);
 
   private static final String LETTERS = "abcdefghijklmnopqrstuvwxyz";
@@ -53,7 +58,7 @@ public class DeleteRowsSplitIT extends SimpleMacIT {
     }
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void run() throws Exception {
     // Delete ranges of rows, and verify the are removed
     // Do this while adding many splits

@@ -29,7 +29,12 @@ import org.junit.Test;
 
 public class DeleteIT extends ConfigurableMacIT {
   
-  @Test(timeout = 2 * 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 2 * 60;
+  }
+
+  @Test
   public void test() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");

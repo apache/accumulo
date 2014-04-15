@@ -28,14 +28,19 @@ import org.junit.Test;
 
 public class BinaryIT extends ConfigurableMacIT {
 
-  @Test(timeout = 90 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 90;
+  }
+
+  @Test
   public void test() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("bt");
     runTest(c);
   }
 
-  @Test(timeout = 90 * 1000)
+  @Test
   public void testPreSplit() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("bt");

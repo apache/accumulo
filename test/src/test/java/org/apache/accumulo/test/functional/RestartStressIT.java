@@ -46,6 +46,11 @@ public class RestartStressIT extends ConfigurableMacIT {
     cfg.useMiniDFS(true);
   }
 
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 10 * 60;
+  }
+
   private static final TestIngest.Opts IOPTS;
   private static final VerifyIngest.Opts VOPTS;
   static {
@@ -56,7 +61,7 @@ public class RestartStressIT extends ConfigurableMacIT {
   private static final ScannerOpts SOPTS = new ScannerOpts();
   
   
-  @Test(timeout = 10 * 60 * 1000)
+  @Test
   public void test() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");

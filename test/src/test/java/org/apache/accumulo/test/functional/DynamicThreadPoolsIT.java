@@ -44,7 +44,12 @@ public class DynamicThreadPoolsIT extends ConfigurableMacIT {
     cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "100ms"));
   }
   
-  @Test(timeout = 4 * 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 4 * 60;
+  }
+
+  @Test
   public void test() throws Exception {
     final int TABLES = 15;
     Connector c = getConnector();

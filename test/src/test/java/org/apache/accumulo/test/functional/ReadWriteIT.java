@@ -58,8 +58,13 @@ public class ReadWriteIT extends ConfigurableMacIT {
   static final int ROWS = 200000;
   static final int COLS = 1;
   static final String COLF = "colf";
-  
-  @Test(timeout = 2 * 60 * 1000)
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 2 * 60;
+  }
+
+  @Test
   public void sunnyDay() throws Exception {
     // Start accumulo, create a table, insert some data, verify we can read it out.
     // Shutdown cleanly.
@@ -114,7 +119,7 @@ public class ReadWriteIT extends ConfigurableMacIT {
     return args;
   }
   
-  @Test(timeout = 60 * 1000)
+  @Test
   public void multiTableTest() throws Exception {
     // Write to multiple tables
     String instance = cluster.getInstanceName();
@@ -123,7 +128,7 @@ public class ReadWriteIT extends ConfigurableMacIT {
     exec(TestMultiTableIngest.class, args("--count", "" + ROWS, "--readonly", "-u", "root", "-i", instance, "-z", keepers, "-p", ROOT_PASSWORD));
   }
   
-  @Test(timeout = 60 * 1000)
+  @Test
   public void largeTest() throws Exception {
     // write a few large values
     Connector connector = getConnector();
@@ -131,7 +136,7 @@ public class ReadWriteIT extends ConfigurableMacIT {
     verify(connector, 2, 1, 500000, 0);
   }
   
-  @Test(timeout = 60 * 1000)
+  @Test
   public void interleaved() throws Exception {
     // read and write concurrently
     final Connector connector = getConnector();
@@ -172,7 +177,7 @@ public class ReadWriteIT extends ConfigurableMacIT {
     return m;
   }
   
-  @Test(timeout = 2 * 60 * 1000)
+  @Test
   public void localityGroupPerf() throws Exception {
     // verify that locality groups can make look-ups faster
     final Connector connector = getConnector();
@@ -198,7 +203,7 @@ public class ReadWriteIT extends ConfigurableMacIT {
     assertTrue(diff2 < diff);
   }
   
-  @Test(timeout = 60 * 1000)
+  @Test
   public void sunnyLG() throws Exception {
     // create a locality group, write to it and ensure it exists in the RFiles that result
     final Connector connector = getConnector();

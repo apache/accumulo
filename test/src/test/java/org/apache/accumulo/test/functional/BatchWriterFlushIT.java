@@ -43,7 +43,12 @@ public class BatchWriterFlushIT extends SimpleMacIT {
 
   private static final int NUM_TO_FLUSH = 100000;
 
-  @Test(timeout = 90 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 90;
+  }
+
+  @Test
   public void run() throws Exception {
     Connector c = getConnector();
     String[] tableNames = getUniqueNames(2);

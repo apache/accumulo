@@ -29,7 +29,12 @@ import org.junit.Test;
 
 public class WriteLotsIT extends SimpleMacIT {
 
-  @Test(timeout = 90 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 90;
+  }
+
+  @Test
   public void writeLots() throws Exception {
     final Connector c = getConnector();
     final String tableName = getUniqueNames(1)[0];

@@ -48,7 +48,12 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacIT {
     cfg.setSiteConfig(Collections.singletonMap(Property.GENERAL_RPC_TIMEOUT.getKey(), "2s"));
   }
   
-  @Test(timeout = 2 * 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 2 * 60;
+  }
+
+  @Test
   public void test() throws Exception {
     Connector c = this.getConnector();
     c.tableOperations().create("test");

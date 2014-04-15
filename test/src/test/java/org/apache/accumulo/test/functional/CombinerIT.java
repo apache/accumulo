@@ -39,6 +39,11 @@ import org.junit.Test;
 
 public class CombinerIT extends SimpleMacIT {
 
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
+
   private void checkSum(String tableName, Connector c) throws Exception {
     Scanner s = c.createScanner(tableName, Authorizations.EMPTY);
     Iterator<Entry<Key,Value>> i = s.iterator();
@@ -48,7 +53,7 @@ public class CombinerIT extends SimpleMacIT {
     assertFalse(i.hasNext());
   }
 
-  @Test(timeout = 60 * 1000)
+  @Test
   public void aggregationTest() throws Exception {
     Connector c = getConnector();
     String tableName = getUniqueNames(1)[0];

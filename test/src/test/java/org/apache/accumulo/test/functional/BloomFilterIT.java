@@ -62,7 +62,12 @@ public class BloomFilterIT extends ConfigurableMacIT {
     cfg.setSiteConfig(siteConfig );
   }
   
-  @Test(timeout = 6 * 60 *1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 6 * 60;
+  }
+
+  @Test
   public void test() throws Exception {
     Connector c = getConnector();
     for (String table : "bt1 bt2 bt3 bt4".split(" ")) {

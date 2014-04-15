@@ -25,7 +25,12 @@ import org.junit.Test;
 
 public class RenameIT extends SimpleMacIT {
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 2 * 60;
+  }
+
+  @Test
   public void renameTest() throws Exception {
     String[] tableNames = getUniqueNames(2);
     String name1 = tableNames[0];

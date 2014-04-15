@@ -34,7 +34,13 @@ import org.junit.Test;
  * 
  */
 public class CleanUpIT extends SimpleMacIT {
-  @Test(timeout = 30 * 1000)
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 30;
+  }
+
+  @Test
   public void run() throws Exception {
 
     String tableName = getUniqueNames(1)[0];

@@ -28,6 +28,11 @@ import org.junit.Test;
 
 public class ZooCacheIT extends ConfigurableMacIT {
 
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 2 * 60;
+  }
+
   private static String pathName = "/zcTest-42";
   private static File testDir;
 
@@ -36,7 +41,7 @@ public class ZooCacheIT extends ConfigurableMacIT {
     testDir = createSharedTestDir(ZooCacheIT.class.getName() + pathName);
   }
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Test
   public void test() throws Exception {
     assertEquals(0, exec(CacheTestClean.class, pathName, testDir.getAbsolutePath()).waitFor());
     final AtomicReference<Exception> ref = new AtomicReference<Exception>();

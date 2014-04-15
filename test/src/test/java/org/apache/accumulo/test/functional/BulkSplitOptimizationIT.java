@@ -51,10 +51,15 @@ public class BulkSplitOptimizationIT extends ConfigurableMacIT {
     cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "1s"));
   }
 
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 2 * 60;
+  }
+
   static final int ROWS = 100000;
   static final int SPLITS = 99;
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Test
   public void testBulkSplitOptimization() throws Exception {
     final Connector c = getConnector();
     c.tableOperations().create(TABLE_NAME);

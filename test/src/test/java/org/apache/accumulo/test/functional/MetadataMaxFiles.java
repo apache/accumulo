@@ -53,7 +53,12 @@ public class MetadataMaxFiles extends ConfigurableMacIT {
     cfg.setSiteConfig(siteConfig);
   }
   
-  @Test(timeout = 240 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 4 * 60;
+  }
+
+  @Test
   public void test() throws Exception {
     Connector c = getConnector();
     SortedSet<Text> splits = new TreeSet<Text>();
