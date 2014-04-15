@@ -50,7 +50,9 @@
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
+      <?SORTPOM IGNORE?>
       <version>14.0.1</version><!--$NO-MVN-MAN-VER$-->
+      <?SORTPOM RESUME?>
       <scope>test</scope>
     </dependency>
     <dependency>
