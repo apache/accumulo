@@ -103,6 +103,10 @@ public class RFileOperations extends FileOperations {
   
   @Override
   public FileSKVWriter openWriter(String file, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
+    return openWriter(file, fs, conf, acuconf, acuconf.get(Property.TABLE_FILE_COMPRESSION_TYPE));
+  }
+
+  FileSKVWriter openWriter(String file, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf, String compression) throws IOException {
     int hrep = conf.getInt("dfs.replication", -1);
     int trep = acuconf.getCount(Property.TABLE_FILE_REPLICATION);
     int rep = hrep;
@@ -118,8 +122,6 @@ public class RFileOperations extends FileOperations {
     
     long blockSize = acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE);
     long indexBlockSize = acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX);
-    
-    String compression = acuconf.get(Property.TABLE_FILE_COMPRESSION_TYPE);
     
     CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(fs.create(new Path(file), false, bufferSize, (short) rep, block), compression, conf);
     Writer writer = new RFile.Writer(_cbw, (int) blockSize, (int) indexBlockSize);
