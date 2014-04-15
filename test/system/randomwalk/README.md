@@ -58,6 +58,19 @@ the following command:
 
 > `$ ./bin/kill-all.sh`
 
+Module-Specific Configuration
+-----------------------------
+
+The user accounts for walkers that run the Concurrent.xml module must have
+password-less SSH access to the entire Accumulo cluster, so that they may run
+`$ACCUMULO_HOME/bin/start-all.sh`. Note that this is not the same script as the
+one that starts random walkers; it is the script to start up an Accumulo
+cluster. You can test that access is in place by running
+`$ACCUMULO_HOME/bin/start-all.sh` from the command line of each walker account.
+
+The above access is also needed for any modules that include Concurrent.xml,
+e.g., ShortClean.xml, LongClean.xml.
+
 Other Useful Commands
 ---------------------
 

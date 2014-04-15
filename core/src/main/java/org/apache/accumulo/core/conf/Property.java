@@ -479,6 +479,7 @@ public enum Property {
    * @return default value
    */
   public String getDefaultValue() {
+    String v;
     if (isInterpolated()) {
       PropertiesConfiguration pconf = new PropertiesConfiguration();
       Properties systemProperties = System.getProperties();
@@ -486,14 +487,13 @@ public enum Property {
         pconf.append(new MapConfiguration(systemProperties));
       }
       pconf.addProperty("hack_default_value", this.defaultValue);
-      String v = pconf.getString("hack_default_value");
-      if (this.type == PropertyType.ABSOLUTEPATH)
-        return new File(v).getAbsolutePath();
-      else
-        return v;
+      v = pconf.getString("hack_default_value");
     } else {
-      return getRawDefaultValue();
+      v = getRawDefaultValue();
     }
+    if (this.type == PropertyType.ABSOLUTEPATH && !(v.trim().equals("")))
+      v = new File(v).getAbsolutePath();
+    return v;
   }
 
   /**

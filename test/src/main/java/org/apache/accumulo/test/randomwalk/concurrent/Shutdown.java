@@ -35,7 +35,7 @@ public class Shutdown extends Test {
   
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
-    log.debug("shutting down");
+    log.info("shutting down");
     SetGoalState.main(new String[] {MasterGoalState.CLEAN_STOP.name()});
     
     while (!env.getConnector().instanceOperations().getTabletServers().isEmpty()) {
@@ -54,7 +54,8 @@ public class Shutdown extends Test {
       UtilWaitThread.sleep(1000);
     }
     
-    log.debug("tablet servers stopped");
+    log.info("servers stopped");
+    UtilWaitThread.sleep(10000);
   }
   
 }
