@@ -66,7 +66,7 @@ public class AccumuloDFSBase {
     
     try {
       cluster = new MiniDFSCluster(conf, 1, true, null);
-      cluster.waitActive();
+      cluster.waitClusterUp();
       // We can't assume that the hostname of "localhost" will still be "localhost" after
       // starting up the NameNode. We may get mapped into a FQDN via settings in /etc/hosts.
       HDFS_URI = cluster.getFileSystem().getUri();
@@ -123,7 +123,9 @@ public class AccumuloDFSBase {
 
   @AfterClass
   public static void tearDownMiniDfsCluster() {
-    cluster.shutdown();
+    if (null != cluster) {
+      cluster.shutdown();
+    }
   }
 
 }
