@@ -43,7 +43,12 @@ public class ScanSessionTimeOutIT extends ConfigurableMacIT {
     cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_SESSION_MAXIDLE.getKey(), "3"));
   }
 
-  @Test(timeout = 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
+
+  @Test
   public void run() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("abc");

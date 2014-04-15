@@ -36,7 +36,12 @@ import org.junit.Test;
  */
 public class SparseColumnFamilyIT extends SimpleMacIT {
 
-  @Test(timeout = 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
+
+  @Test
   public void sparceColumnFamily() throws Exception {
     String scftt = getUniqueNames(1)[0];
     Connector c = getConnector();

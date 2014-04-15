@@ -31,7 +31,12 @@ import org.junit.Test;
  */
 public class FateStarvationIT extends SimpleMacIT {
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 2 * 60;
+  }
+
+  @Test
   public void run() throws Exception {
     String tableName = getUniqueNames(1)[0];
     Connector c = getConnector();

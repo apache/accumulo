@@ -68,6 +68,10 @@ import org.junit.Test;
 
 public class SplitRecoveryIT extends ConfigurableMacIT {
   
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 30;
+  }
   
   private KeyExtent nke(String table, String endRow, String prevEndRow) {
     return new KeyExtent(new Text(table), endRow == null ? null : new Text(endRow), prevEndRow == null ? null : new Text(prevEndRow));
@@ -261,7 +265,7 @@ public class SplitRecoveryIT extends ConfigurableMacIT {
     new SplitRecoveryIT().run();
   }
   
-  @Test(timeout = 30 * 1000)
+  @Test
   public void test() throws Exception {
     assertEquals(0, exec(SplitRecoveryIT.class).waitFor());
   }

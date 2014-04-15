@@ -25,6 +25,9 @@
   <artifactId>accumulo-test</artifactId>
   <name>Testing</name>
   <description>Tests for Apache Accumulo.</description>
+  <properties>
+    <timeout.factor>1</timeout.factor>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>com.beust</groupId>
@@ -187,6 +190,15 @@
             </excludes>
           </configuration>
         </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <timeout.factor>${timeout.factor}</timeout.factor>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
       </plugins>
     </pluginManagement>
   </build>

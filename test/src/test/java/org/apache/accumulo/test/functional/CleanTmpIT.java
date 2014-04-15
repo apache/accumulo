@@ -47,7 +47,12 @@ public class CleanTmpIT extends ConfigurableMacIT {
     cfg.useMiniDFS(true);
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 4 * 60;
+  }
+
+  @Test
   public void test() throws Exception {
     Connector c = getConnector();
     // make a table

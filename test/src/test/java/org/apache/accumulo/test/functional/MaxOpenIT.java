@@ -51,10 +51,15 @@ public class MaxOpenIT extends ConfigurableMacIT {
     cfg.setSiteConfig(conf);
   }
 
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 3 * 60;
+  }
+
   private static final int NUM_TABLETS = 16;
   private static final int NUM_TO_INGEST = 10000;
   
-  @Test(timeout = 3 * 60 * 1000)
+  @Test
   public void run() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");

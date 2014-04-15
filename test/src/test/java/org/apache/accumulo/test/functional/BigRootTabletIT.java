@@ -41,7 +41,12 @@ public class BigRootTabletIT extends ConfigurableMacIT {
     cfg.setSiteConfig(siteConfig);
   }
   
-  @Test(timeout = 4 * 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 4 * 60;
+  }
+
+  @Test
   public void test() throws Exception {
     Connector c = getConnector();
     c.tableOperations().addSplits(MetadataTable.NAME, FunctionalTestUtils.splits("0 1 2 3 4 5 6 7 8 9 a".split(" ")));

@@ -50,6 +50,11 @@ public class LargeRowIT extends ConfigurableMacIT {
     cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "10ms"));
   }
 
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 4 * 60;
+  }
+
   private static final int SEED = 42;
   private static final String REG_TABLE_NAME = "lr";
   private static final String PRE_SPLIT_TABLE_NAME = "lrps";
@@ -58,7 +63,7 @@ public class LargeRowIT extends ConfigurableMacIT {
   private static final int NUM_PRE_SPLITS = 9;
   private static final int SPLIT_THRESH = ROW_SIZE * NUM_ROWS / NUM_PRE_SPLITS;
   
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void run() throws Exception {
     Random r = new Random();
     byte rowData[] = new byte[ROW_SIZE];

@@ -44,6 +44,12 @@ import org.codehaus.plexus.util.Base64;
 import org.junit.Test;
 
 public class MapReduceIT extends ConfigurableMacIT {
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
+
   public static final String hadoopTmpDirArg = "-Dhadoop.tmp.dir=" + System.getProperty("user.dir") + "/target/hadoop-tmp";
 
   static final String tablename = "mapredf";
@@ -53,7 +59,7 @@ public class MapReduceIT extends ConfigurableMacIT {
   static final String output_cq = "cq-MD4BASE64";
   static final String output_cfcq = input_cf + ":" + output_cq;
 
-  @Test(timeout = 60 * 1000)
+  @Test
   public void test() throws Exception {
     runTest(getConnector(), getCluster());
   }

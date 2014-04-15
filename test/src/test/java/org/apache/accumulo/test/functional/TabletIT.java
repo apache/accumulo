@@ -52,7 +52,12 @@ public class TabletIT extends ConfigurableMacIT {
     cfg.setSiteConfig(siteConfig);
   }
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 2 * 60;
+  }
+
+  @Test
   public void createTableTest() throws Exception {
     String tableName = getUniqueNames(1)[0];
     createTableTest(tableName, false);

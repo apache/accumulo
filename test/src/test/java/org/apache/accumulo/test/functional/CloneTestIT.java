@@ -51,7 +51,12 @@ import org.junit.Test;
  */
 public class CloneTestIT extends SimpleMacIT {
 
-  @Test(timeout = 120 * 1000)
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 2 * 60;
+  }
+
+  @Test
   public void testProps() throws Exception {
     String[] tableNames = getUniqueNames(2);
     String table1 = tableNames[0];
@@ -132,7 +137,7 @@ public class CloneTestIT extends SimpleMacIT {
     return bw;
   }
 
-  @Test(timeout = 120 * 1000)
+  @Test
   public void testDeleteClone() throws Exception {
     String[] tableNames = getUniqueNames(3);
     String table1 = tableNames[0];
