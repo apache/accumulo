@@ -27,38 +27,38 @@ import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 
 public abstract class LexicoderTest extends TestCase {
-  
+
   void assertEqualsB(byte[] ba1, byte[] ba2) {
     assertEquals(new Text(ba2), new Text(ba1));
   }
-  
-  public <T extends Comparable<T>> void assertSortOrder(Lexicoder<T> lexicoder, Comparator<T> comp, T... data) {
+
+  public <T extends Comparable<T>> void assertSortOrder(Lexicoder<T> lexicoder, Comparator<T> comp, List<T> data) {
     List<T> list = new ArrayList<T>();
     List<Text> encList = new ArrayList<Text>();
-    
+
     for (T d : data) {
       list.add(d);
       encList.add(new Text(lexicoder.encode(d)));
     }
-    
+
     if (comp != null)
       Collections.sort(list, comp);
     else
       Collections.sort(list);
-    
+
     Collections.sort(encList);
-    
+
     List<T> decodedList = new ArrayList<T>();
-    
+
     for (Text t : encList) {
       decodedList.add(lexicoder.decode(TextUtil.getBytes(t)));
     }
-    
+
     assertEquals(list, decodedList);
   }
-  
-  public <T extends Comparable<T>> void assertSortOrder(Lexicoder<T> lexicoder, T... data) {
+
+  public <T extends Comparable<T>> void assertSortOrder(Lexicoder<T> lexicoder, List<T> data) {
     assertSortOrder(lexicoder, null, data);
   }
-  
+
 }

@@ -131,7 +131,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
   }
 
-  private static final long ZOOKEEPER_STARTUP_WAIT = 20*1000;
+  private static final long ZOOKEEPER_STARTUP_WAIT = 20 * 1000;
 
   private boolean initialized = false;
   private Process zooKeeperProcess = null;
@@ -210,9 +210,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
           if (classLoader instanceof URLClassLoader) {
 
-            URLClassLoader ucl = (URLClassLoader) classLoader;
-
-            for (URL u : ucl.getURLs()) {
+            for (URL u : ((URLClassLoader) classLoader).getURLs()) {
               append(classpathBuilder, u);
             }
 
@@ -251,7 +249,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     for (Entry<String,String> sysProp : config.getSystemProperties().entrySet()) {
       argList.add(String.format("-D%s=%s", sysProp.getKey(), sysProp.getValue()));
     }
-    argList.addAll(Arrays.asList("-XX:+UseConcMarkSweepGC", "-XX:CMSInitiatingOccupancyFraction=75", "-Dapple.awt.UIElement=true", Main.class.getName(), className));
+    argList.addAll(Arrays.asList("-XX:+UseConcMarkSweepGC", "-XX:CMSInitiatingOccupancyFraction=75", "-Dapple.awt.UIElement=true", Main.class.getName(),
+        className));
     argList.addAll(Arrays.asList(args));
 
     ProcessBuilder builder = new ProcessBuilder(argList);
@@ -457,7 +456,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
             break;
         } catch (Exception e) {
           if (System.currentTimeMillis() - startTime >= ZOOKEEPER_STARTUP_WAIT) {
-            throw new RuntimeException("Zookeeper did not start within " + (ZOOKEEPER_STARTUP_WAIT/1000) + " seconds. Check the logs in " + config.getLogDir() + " for errors.  Last exception: " + e);
+            throw new RuntimeException("Zookeeper did not start within " + (ZOOKEEPER_STARTUP_WAIT / 1000) + " seconds. Check the logs in "
+                + config.getLogDir() + " for errors.  Last exception: " + e);
           }
           UtilWaitThread.sleep(250);
         } finally {

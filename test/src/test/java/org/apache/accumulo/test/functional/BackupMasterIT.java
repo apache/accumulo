@@ -29,7 +29,7 @@ public class BackupMasterIT extends ConfigurableMacIT {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 10;
+    return 20;
   }
 
   @Test

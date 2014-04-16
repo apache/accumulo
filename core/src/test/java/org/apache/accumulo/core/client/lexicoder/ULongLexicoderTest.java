@@ -16,11 +16,13 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
+import java.util.Arrays;
+
 public class ULongLexicoderTest extends LexicoderTest {
-  
+
   public void testEncoding() {
     ULongLexicoder ull = new ULongLexicoder();
-    
+
     assertEqualsB(ull.encode(0l), new byte[] {0x00});
     assertEqualsB(ull.encode(0x01l), new byte[] {0x01, 0x01});
     assertEqualsB(ull.encode(0x1234l), new byte[] {0x02, 0x12, 0x34});
@@ -30,7 +32,7 @@ public class ULongLexicoderTest extends LexicoderTest {
     assertEqualsB(ull.encode(0x1234567890abl), new byte[] {0x06, 0x12, 0x34, 0x56, 0x78, (byte) 0x90, (byte) 0xab});
     assertEqualsB(ull.encode(0x1234567890abcdl), new byte[] {0x07, 0x12, 0x34, 0x56, 0x78, (byte) 0x90, (byte) 0xab, (byte) 0xcd});
     assertEqualsB(ull.encode(0x1234567890abcdefl), new byte[] {0x08, 0x12, 0x34, 0x56, 0x78, (byte) 0x90, (byte) 0xab, (byte) 0xcd, (byte) 0xef});
-    
+
     assertEqualsB(ull.encode(0xff34567890abcdefl), new byte[] {0x09, 0x34, 0x56, 0x78, (byte) 0x90, (byte) 0xab, (byte) 0xcd, (byte) 0xef});
     assertEqualsB(ull.encode(0xffff567890abcdefl), new byte[] {0x0a, 0x56, 0x78, (byte) 0x90, (byte) 0xab, (byte) 0xcd, (byte) 0xef});
     assertEqualsB(ull.encode(0xffffff7890abcdefl), new byte[] {0x0b, 0x78, (byte) 0x90, (byte) 0xab, (byte) 0xcd, (byte) 0xef});
@@ -38,14 +40,14 @@ public class ULongLexicoderTest extends LexicoderTest {
     assertEqualsB(ull.encode(0xffffffffffabcdefl), new byte[] {0x0d, (byte) 0xab, (byte) 0xcd, (byte) 0xef});
     assertEqualsB(ull.encode(0xffffffffffffcdefl), new byte[] {0x0e, (byte) 0xcd, (byte) 0xef});
     assertEqualsB(ull.encode(0xffffffffffffffefl), new byte[] {0x0f, (byte) 0xef});
-    
+
     assertEqualsB(ull.encode(-1l), new byte[] {16});
   }
-  
+
   public void testSortOrder() {
     // only testing non negative
-    assertSortOrder(new ULongLexicoder(), 0l, 0x01l, 0x1234l, 0x123456l, 0x12345678l, 0x1234567890l, 0x1234567890abl, 0x1234567890abcdl, 0x1234567890abcdefl,
-        Long.MAX_VALUE);
+    assertSortOrder(new ULongLexicoder(),
+        Arrays.asList(0l, 0x01l, 0x1234l, 0x123456l, 0x12345678l, 0x1234567890l, 0x1234567890abl, 0x1234567890abcdl, 0x1234567890abcdefl, Long.MAX_VALUE));
   }
-  
+
 }
