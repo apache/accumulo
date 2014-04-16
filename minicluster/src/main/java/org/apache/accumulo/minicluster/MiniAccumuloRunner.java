@@ -203,8 +203,9 @@ public class MiniAccumuloRunner {
     printInfo(accumulo, shutdownPort);
 
     // start a socket on the shutdown port and block- anything connected to this port will activate the shutdown
-    ServerSocket shutdownServer = new ServerSocket(shutdownPort);
-    shutdownServer.accept();
+    try (ServerSocket shutdownServer = new ServerSocket(shutdownPort)) {
+      shutdownServer.accept();
+    }
 
     System.exit(0);
   }

@@ -250,8 +250,7 @@ public class ConfiguratorBase {
     } catch (IOException e) {
       throw new IllegalArgumentException("Couldn't open password file called \"" + tokenFile + "\".");
     }
-    java.util.Scanner fileScanner = new java.util.Scanner(in);
-    try {
+    try (java.util.Scanner fileScanner = new java.util.Scanner(in)) {
       while (fileScanner.hasNextLine()) {
         Credentials creds = Credentials.deserialize(fileScanner.nextLine());
         if (principal.equals(creds.getPrincipal())) {
@@ -259,11 +258,6 @@ public class ConfiguratorBase {
         }
       }
       throw new IllegalArgumentException("Couldn't find token for user \"" + principal + "\" in file \"" + tokenFile + "\"");
-    } finally {
-      if (fileScanner != null && fileScanner.ioException() == null)
-        fileScanner.close();
-      else if (fileScanner.ioException() != null)
-        throw new RuntimeException(fileScanner.ioException());
     }
   }
 

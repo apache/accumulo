@@ -322,10 +322,9 @@ public class AccumuloVFSClassLoader {
 
         if (classLoader instanceof URLClassLoader) {
           // If VFS class loader enabled, but no contexts defined.
-          URLClassLoader ucl = (URLClassLoader) classLoader;
           out.print("Level " + classLoaderDescription + " URL classpath items are:");
 
-          for (URL u : ucl.getURLs()) {
+          for (URL u : ((URLClassLoader) classLoader).getURLs()) {
             out.print("\t" + u.toExternalForm());
           }
 
