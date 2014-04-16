@@ -18,53 +18,62 @@ package org.apache.accumulo.core.file.rfile;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
+import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile.Writer;
 import org.apache.accumulo.core.file.rfile.bcfile.TFile;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.commons.cli.BasicParser;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+
+import com.beust.jcommander.IParameterValidator;
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.ParameterException;
 
 /**
  * Create an empty RFile for use in recovering from data loss where Accumulo still refers internally to a path.
  */
 public class CreateEmpty {
 
+  public static class NamedLikeRFile implements IParameterValidator {
+    @Override
+    public void validate(String name, String value) throws ParameterException {
+      if (!value.endsWith(".rf")) {
+        throw new ParameterException("File must end with .rf and '" + value + "' does not.");
+      }
+    }
+  }
+
+  public static class IsSupportedCompressionAlgorithm implements IParameterValidator {
+    @Override
+    public void validate(String name, String value) throws ParameterException {
+      String[] algorithms = TFile.getSupportedCompressionAlgorithms();
+      if (!((Arrays.asList(algorithms)).contains(value))) {
+        throw new ParameterException("Compression codec must be one of " + Arrays.toString(TFile.getSupportedCompressionAlgorithms()));
+      }
+    }
+  }
+
+  static class Opts extends Help {
+    @Parameter(names = {"-c", "--codec"}, description = "the compression codec to use.", validateWith = IsSupportedCompressionAlgorithm.class)
+    String codec = TFile.COMPRESSION_NONE;
+    @Parameter(description = " <path> { <path> ... } Each path given is a URL. Relative paths are resolved according to the default filesystem defined in your Hadoop configuration, which is usually an HDFS instance.", required = true, validateWith = NamedLikeRFile.class)
+    List<String> files = new ArrayList<String>();
+  }
+
   public static void main(String[] args) throws Exception {
     Configuration conf = CachedConfiguration.getInstance();
 
-    Options opts = new Options();
-    Option codecOption = new Option("c", "codec", true, "the compression codec to use. one of " + Arrays.toString(TFile.getSupportedCompressionAlgorithms()) + ". defaults to none.");
-    opts.addOption(codecOption);
-    Option help = new Option( "?", "help", false, "print this message" );
-    opts.addOption(help);
+    Opts opts = new Opts();
+    opts.parseArgs(CreateEmpty.class.getName(), args);
 
-    CommandLine commandLine = new BasicParser().parse(opts, args);
-    if (commandLine.hasOption(help.getOpt()) || 0 == commandLine.getArgs().length) {
-      HelpFormatter formatter = new HelpFormatter();
-      formatter.printHelp(120, "$ACCUMULO_HOME/bin/accumulo " + CreateEmpty.class.getName() + "[options] path [path ...]",
-          "", opts,
-          "each path given is a filesystem URL. Relative paths are resolved according to the default filesytem defined in your Hadoop configuration, which is usually an HDFS instance.");
-    }
-    String codec = commandLine.getOptionValue(codecOption.getOpt(), TFile.COMPRESSION_NONE);
-
-    for (String arg : commandLine.getArgs()) {
-      if (!arg.endsWith(".rf")) {
-        throw new IllegalArgumentException("File must end with .rf and '" + arg + "' does not.");
-      }
-    }
-
-    for (String arg : commandLine.getArgs()) {
+    for (String arg : opts.files) {
       Path path = new Path(arg);
-      FileSKVWriter writer = (new RFileOperations()).openWriter(arg, path.getFileSystem(conf), conf, DefaultConfiguration.getDefaultConfiguration(), codec);
+      FileSKVWriter writer = (new RFileOperations()).openWriter(arg, path.getFileSystem(conf), conf, DefaultConfiguration.getDefaultConfiguration(), opts.codec);
       writer.close();
     }
   }
