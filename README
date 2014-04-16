@@ -164,10 +164,6 @@ VERSION        NAME=VALUE
 1.0.x       -  dfs.support.append=true
 
 Additionally, it is strongly recommended that you enable 'dfs.datanode.synconclose'
-in your hdfs-site.xml configuration file to ensure that, in the face of unexpected 
-power loss to a datanode, files are wholly synced to disk.
-
-Additionally, it is strongly recommended that you enable 'dfs.datanode.synconclose'
 (only available in Apache Hadoop >=1.1.1 or >=0.23) in your hdfs-site.xml configuration 
 file to ensure that, in the face of unexpected power loss to a datanode, files are 
 wholly synced to disk.
