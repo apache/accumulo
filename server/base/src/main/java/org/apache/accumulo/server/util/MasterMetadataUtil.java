@@ -248,38 +248,61 @@ public class MasterMetadataUtil {
       Set<FileRef> filesInUseByScans, String address, ZooLock zooLock, Set<String> unusedWalLogs, TServerInstance lastLocation, long flushId, boolean replication) {
     if (extent.isRootTablet()) {
       if (unusedWalLogs != null) {
-        IZooReaderWriter zk = ZooReaderWriter.getInstance();
-        // unusedWalLogs will contain the location/name of each log in a log set
-        // the log set is stored under one of the log names, but not both
-        // find the entry under one of the names and delete it.
-        String root = MetadataTableUtil.getZookeeperLogLocation();
-        boolean foundEntry = false;
-        for (String entry : unusedWalLogs) {
-          String[] parts = entry.split("/");
-          String zpath = root + "/" + parts[parts.length - 1];
-          while (true) {
-            try {
-              if (zk.exists(zpath)) {
-                zk.recursiveDelete(zpath, NodeMissingPolicy.SKIP);
-                foundEntry = true;
-              }
-              break;
-            } catch (KeeperException e) {
-              log.error(e, e);
-            } catch (InterruptedException e) {
-              log.error(e, e);
-            }
-            UtilWaitThread.sleep(1000);
-          }
-        }
-        if (unusedWalLogs.size() > 0 && !foundEntry)
-          log.warn("WALog entry for root tablet did not exist " + unusedWalLogs);
+        updateRootTabletDataFile(extent, path, mergeFile, dfv, time, filesInUseByScans, address, zooLock, unusedWalLogs, lastLocation, flushId);
       }
+
       return;
     }
-    
+
+    Mutation m = getUpdateForTabletDataFile(extent, path, mergeFile, dfv, time, filesInUseByScans, address, zooLock, unusedWalLogs, lastLocation, flushId,
+        replication);
+
+    MetadataTableUtil.update(credentials, zooLock, m, extent);
+
+  }
+
+  /**
+   * Update the data file for the root tablet
+   */
+  protected static void updateRootTabletDataFile(KeyExtent extent, FileRef path, FileRef mergeFile, DataFileValue dfv, String time,
+      Set<FileRef> filesInUseByScans, String address, ZooLock zooLock, Set<String> unusedWalLogs, TServerInstance lastLocation, long flushId) {
+    IZooReaderWriter zk = ZooReaderWriter.getInstance();
+    // unusedWalLogs will contain the location/name of each log in a log set
+    // the log set is stored under one of the log names, but not both
+    // find the entry under one of the names and delete it.
+    String root = MetadataTableUtil.getZookeeperLogLocation();
+    boolean foundEntry = false;
+    for (String entry : unusedWalLogs) {
+      String[] parts = entry.split("/");
+      String zpath = root + "/" + parts[parts.length - 1];
+      while (true) {
+        try {
+          if (zk.exists(zpath)) {
+            zk.recursiveDelete(zpath, NodeMissingPolicy.SKIP);
+            foundEntry = true;
+          }
+          break;
+        } catch (KeeperException e) {
+          log.error(e, e);
+        } catch (InterruptedException e) {
+          log.error(e, e);
+        }
+        UtilWaitThread.sleep(1000);
+      }
+    }
+    if (unusedWalLogs.size() > 0 && !foundEntry)
+      log.warn("WALog entry for root tablet did not exist " + unusedWalLogs);
+  }
+
+  /**
+   * Create an update that updates a tablet
+   * @return A Mutation to update a tablet from the given information
+   */
+  protected static Mutation getUpdateForTabletDataFile(KeyExtent extent, FileRef path, FileRef mergeFile, DataFileValue dfv, String time,
+      Set<FileRef> filesInUseByScans, String address, ZooLock zooLock, Set<String> unusedWalLogs, TServerInstance lastLocation, long flushId,
+      boolean replication) {
     Mutation m = new Mutation(extent.getMetadataEntry());
-    
+
     if (dfv.getNumEntries() > 0) {
       m.put(DataFileColumnFamily.NAME, path.meta(), new Value(dfv.encode()));
       TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value(time.getBytes()));
@@ -307,17 +330,15 @@ public class MasterMetadataUtil {
         }
       }
     }
-    
+
     for (FileRef scanFile : filesInUseByScans)
       m.put(ScanFileColumnFamily.NAME, scanFile.meta(), new Value("".getBytes()));
-    
+
     if (mergeFile != null)
       m.putDelete(DataFileColumnFamily.NAME, mergeFile.meta());
-    
+
     TabletsSection.ServerColumnFamily.FLUSH_COLUMN.put(m, new Value((flushId + "").getBytes()));
-    
-    MetadataTableUtil.update(credentials, zooLock, m, extent);
-    
+
+    return m;
   }
-  
 }
