@@ -40,7 +40,11 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ReplicationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
+import org.apache.accumulo.core.protobuf.ProtobufUtil;
+import org.apache.accumulo.core.replication.StatusUtil;
+import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.ColumnFQ;
@@ -241,7 +245,7 @@ public class MasterMetadataUtil {
    * 
    */
   public static void updateTabletDataFile(KeyExtent extent, FileRef path, FileRef mergeFile, DataFileValue dfv, String time, Credentials credentials,
-      Set<FileRef> filesInUseByScans, String address, ZooLock zooLock, Set<String> unusedWalLogs, TServerInstance lastLocation, long flushId) {
+      Set<FileRef> filesInUseByScans, String address, ZooLock zooLock, Set<String> unusedWalLogs, TServerInstance lastLocation, long flushId, boolean replication) {
     if (extent.isRootTablet()) {
       if (unusedWalLogs != null) {
         IZooReaderWriter zk = ZooReaderWriter.getInstance();
@@ -287,8 +291,20 @@ public class MasterMetadataUtil {
         lastLocation.clearLastLocation(m);
     }
     if (unusedWalLogs != null) {
+      Value replValue = null;
+      if (replication) {
+        // This WAL is no longer used, so we can replicate the whole file
+        Status replStatus = StatusUtil.fileClosed();
+        replValue = ProtobufUtil.toValue(replStatus);
+      }
       for (String entry : unusedWalLogs) {
-        m.putDelete(LogColumnFamily.NAME, new Text(entry));
+        final Text textEntry = new Text(entry);
+        m.putDelete(LogColumnFamily.NAME, textEntry);
+
+        // Only add the new column when we're replicating this tablet
+        if (replication) {
+          m.put(ReplicationColumnFamily.NAME, textEntry, replValue);
+        }
       }
     }
     
