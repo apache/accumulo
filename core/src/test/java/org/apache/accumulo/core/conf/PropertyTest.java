@@ -78,42 +78,18 @@ public class PropertyTest {
       }
   }
 
-  private void typeCheckValidFormat(PropertyType type, String... args) {
-    for (String s : args)
-      assertTrue(s + " should be valid", type.isValidFormat(s));
-  }
-
-  private void typeCheckInvalidFormat(PropertyType type, String... args) {
-    for (String s : args)
-      assertFalse(s + " should be invalid", type.isValidFormat(s));
-  }
-
-  @Test
-  public void testTypes() {
-    typeCheckValidFormat(PropertyType.TIMEDURATION, "600", "30s", "45m", "30000ms", "3d", "1h");
-    typeCheckInvalidFormat(PropertyType.TIMEDURATION, "1w", "1h30m", "1s 200ms", "ms", "", "a");
-
-    typeCheckValidFormat(PropertyType.MEMORY, "1024", "20B", "100K", "1500M", "2G");
-    typeCheckInvalidFormat(PropertyType.MEMORY, "1M500K", "1M 2K", "1MB", "1.5G", "1,024K", "", "a");
-
-    typeCheckValidFormat(PropertyType.HOSTLIST, "localhost", "server1,server2,server3", "server1:1111,server2:3333", "localhost:1111", "server2:1111",
-        "www.server", "www.server:1111", "www.server.com", "www.server.com:111");
-    typeCheckInvalidFormat(PropertyType.HOSTLIST, ":111", "local host");
-
-    typeCheckValidFormat(PropertyType.ABSOLUTEPATH, "/foo", "/foo/c", "/");
-    // in hadoop 2.0 Path only normalizes Windows paths properly when run on a Windows system
-    // this makes the following checks fail
-    if (System.getProperty("os.name").toLowerCase().contains("windows"))
-      typeCheckValidFormat(PropertyType.ABSOLUTEPATH, "d:\\foo12", "c:\\foo\\g", "c:\\foo\\c", "c:\\");
-    typeCheckInvalidFormat(PropertyType.ABSOLUTEPATH, "foo12", "foo/g", "foo\\c");
-  }
-
   @Test
   public void testRawDefaultValues() {
     AccumuloConfiguration conf = AccumuloConfiguration.getDefaultConfiguration();
     assertEquals("${java.io.tmpdir}" + File.separator + "accumulo-vfs-cache-${user.name}", Property.VFS_CLASSLOADER_CACHE_DIR.getRawDefaultValue());
     assertEquals(new File(System.getProperty("java.io.tmpdir"), "accumulo-vfs-cache-" + System.getProperty("user.name")).getAbsolutePath(),
         conf.get(Property.VFS_CLASSLOADER_CACHE_DIR));
+  }
+
+  @Test
+  public void testGetDefaultValue_AbsolutePath() {
+    // should not expand because default is ""
+    assertEquals("", Property.GENERAL_MAVEN_PROJECT_BASEDIR.getDefaultValue());
   }
 
   @Test

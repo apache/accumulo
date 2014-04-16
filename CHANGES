@@ -157,7 +157,7 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-1345] - Provide feedback that a compaction is "stuck"
     * [ACCUMULO-1356] - shell tables command does not paginate
     * [ACCUMULO-1370] - tweak rat check excludes to work on a configured workspace
-    * [ACCUMULO-1379] -  PermGen leak
+    * [ACCUMULO-1379] - PermGen leak
     * [ACCUMULO-1382] - Pair incorrectly assumes its components are Comparable
     * [ACCUMULO-1407] - Fix documentation for deleterows
     * [ACCUMULO-1410] - ZooSession.connect barely adheres to timeout
@@ -458,8 +458,11 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-2631] - Excessively large number of minutes for trace page prints exception
     * [ACCUMULO-2648] - AccumuloInputFormat referencing incorrect RangeInputSplit
     * [ACCUMULO-2651] - Maven build error running rat check
-    * [ACCUMULO-2659] - Incompatible map reduce changes in 1.6.0
+    * [ACCUMULO-2659] - Incompatible API changes in 1.6.0
     * [ACCUMULO-2660] - InvocationTargetException during ContinuousIngest
+    * [ACCUMULO-2665] - NoClassDefFound building against Hadoop 2.4.0
+    * [ACCUMULO-2667] - annoying log message
+    * [ACCUMULO-2668] - slow WAL writes
 
 ** Improvement
     * [ACCUMULO-112] - Investigate partitioning in memory map by locality group
@@ -619,6 +622,7 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-2010] - Remove resource leak warnings
     * [ACCUMULO-2113] - Verify that The Hammer approach to resource leak is a viable short term fix
     * [ACCUMULO-2148] - Verify upgrade 1.5 to 1.6 works
+    * [ACCUMULO-2149] - Verify mappers run locally in 1.6
     * [ACCUMULO-2160] - Run findbugs for 1.6
     * [ACCUMULO-2254] - Remove run_findbugs.sh
     * [ACCUMULO-2283] - Remove server-extras module
@@ -629,6 +633,7 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-2616] - Bump plugin versions and parent POM version
     * [ACCUMULO-2652] - Build warnings from missing plugin version
     * [ACCUMULO-2653] - Remove useless javadocs
+    * [ACCUMULO-2670] - Corrupt license header in shelltest.txt
 
 ** Test
     * [ACCUMULO-1981] - BloomFilterLayerLookupTest does not run
@@ -640,6 +645,9 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-2508] - Security randomwalk fails "BAD_CREDENTIALS - Username or Password is Invalid"
     * [ACCUMULO-2543] - cacheBlock should be closed in BlockIndexTest
     * [ACCUMULO-2558] - Improve unit test coverage for server gc classes
+    * [ACCUMULO-2621] - Masters not restarting during concurrent randomwalk
+    * [ACCUMULO-2657] - Shard randomwalk fails for 1.6.0
+    * [ACCUMULO-2666] - provide a scaling factor for timeouts on ITs
 
 Release Notes - Accumulo - Version 1.5.0
 

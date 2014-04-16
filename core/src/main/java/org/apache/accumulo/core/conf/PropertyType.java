@@ -60,6 +60,8 @@ public enum PropertyType {
       "An absolute filesystem path. The filesystem depends on the property. This is the same as path, but enforces that its root is explicitly specified.") {
     @Override
     public boolean isValidFormat(String value) {
+      if (value.trim().equals(""))
+        return true;
       return new Path(value).isAbsolute();
     }
   },
