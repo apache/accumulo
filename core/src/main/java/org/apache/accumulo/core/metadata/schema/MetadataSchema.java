@@ -239,4 +239,20 @@ public class MetadataSchema {
     }
     
   }
+
+  /**
+   * Holds replication markers tracking status for files
+   */
+  public static class ReplicationSection {
+    private static final Section section = new Section(RESERVED_PREFIX + "repl", true, RESERVED_PREFIX + "repm", false);
+
+    public static Range getRange() {
+      return section.range;
+    }
+
+    public static String getRowPrefix() {
+      return section.rowPrefix;
+    }
+
+  }
 }

@@ -19,6 +19,7 @@ package org.apache.accumulo.server.util;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -1024,5 +1025,19 @@ public class MetadataTableUtil {
     }
 
     return tabletEntries;
+  }
+
+  public static void updateReplication(Credentials creds, KeyExtent extent, Collection<String> files, Status stat) {
+    // TODO could use batch writer, would need to handle failure and retry like update does - ACCUMULO-1294
+    for (String file : files) {
+      update(creds, null, createReplicationUpdateMutation(file, stat), extent);
+    }
+  }
+
+  protected static Mutation createReplicationUpdateMutation(String file, Status stat) {
+    Value v = ProtobufUtil.toValue(stat);
+    Mutation m = new Mutation(new Text(MetadataSchema.ReplicationSection.getRowPrefix() + file));
+    m.put(EMPTY_TEXT, EMPTY_TEXT, v);
+    return m;
   }
 }
