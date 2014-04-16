@@ -20,7 +20,6 @@ package org.apache.accumulo.core.client.mock;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.File;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Map.Entry;
@@ -49,12 +48,10 @@ import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 public class MockNamespacesTest {
 
   Random random = new Random();
-  public static TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   /**
    * This test creates a table without specifying a namespace. In this case, it puts the table into the default namespace.

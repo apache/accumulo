@@ -32,13 +32,20 @@ import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.commons.io.FileUtils;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.junit.rules.TestName;
 
 import com.beust.jcommander.JCommander;
-import com.google.common.io.Files;
 
 public class TestClientOpts {
+
+  @Rule
+  public TemporaryFolder tmpDir = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+
+  @Rule
+  public TestName testName = new TestName();
 
   @Test
   public void test() {
@@ -86,66 +93,57 @@ public class TestClientOpts {
 
   @Test
   public void testVolumes() throws IOException {
-    File tmpDir = Files.createTempDir();
-    try {
-      File instanceId = new File(tmpDir, "instance_id");
-      instanceId.mkdir();
-      File uuid = new File(instanceId, UUID.randomUUID().toString());
-      uuid.createNewFile();
-      // document the defaults
-      ClientOpts args = new ClientOpts();
-      File siteXml = File.createTempFile("TestClientOpts", "testVolumes-site.xml");
-      FileWriter fileWriter = new FileWriter(siteXml);
-      fileWriter.append("<configuration>\n");
+    File instanceId = tmpDir.newFolder("instance_id");
+    File uuid = new File(instanceId, UUID.randomUUID().toString());
+    uuid.createNewFile();
+    // document the defaults
+    ClientOpts args = new ClientOpts();
+    File siteXml = tmpDir.newFile(this.getClass().getSimpleName() + "-" + testName.getMethodName() + "-site.xml");
+    FileWriter fileWriter = new FileWriter(siteXml);
+    fileWriter.append("<configuration>\n");
 
-      fileWriter.append("<property><name>" + Property.INSTANCE_VOLUMES.getKey() + "</name><value>" + tmpDir.toURI().toString() + "</value></property>\n");
-      fileWriter.append("<property><name>" + ClientProperty.INSTANCE_NAME + "</name><value>foo</value></property>\n");
+    fileWriter.append("<property><name>" + Property.INSTANCE_VOLUMES.getKey() + "</name><value>" + tmpDir.getRoot().toURI().toString()
+        + "</value></property>\n");
+    fileWriter.append("<property><name>" + ClientProperty.INSTANCE_NAME + "</name><value>foo</value></property>\n");
 
-      fileWriter.append("</configuration>\n");
-      fileWriter.close();
+    fileWriter.append("</configuration>\n");
+    fileWriter.close();
 
-      JCommander jc = new JCommander();
-      jc.addObject(args);
+    JCommander jc = new JCommander();
+    jc.addObject(args);
 
-      jc.parse("--site-file", siteXml.getAbsolutePath());
+    jc.parse("--site-file", siteXml.getAbsolutePath());
 
-      args.getInstance();
-    } finally {
-      FileUtils.deleteQuietly(tmpDir);
-    }
+    args.getInstance();
   }
 
   @SuppressWarnings("deprecation")
   @Test
   public void testInstanceDir() throws IOException {
-    File tmpDir = Files.createTempDir();
-    try {
-      File instanceId = new File(tmpDir, "instance_id");
-      instanceId.mkdir();
-      File uuid = new File(instanceId, UUID.randomUUID().toString());
-      uuid.createNewFile();
-      // document the defaults
-      ClientOpts args = new ClientOpts();
-      File siteXml = File.createTempFile("TestClientOpts", "testVolumes-site.xml");
-      FileWriter fileWriter = new FileWriter(siteXml);
-      fileWriter.append("<configuration>\n");
+    File instanceId = tmpDir.newFolder("instance_id");
+    instanceId.mkdir();
+    File uuid = new File(instanceId, UUID.randomUUID().toString());
+    uuid.createNewFile();
+    // document the defaults
+    ClientOpts args = new ClientOpts();
+    File siteXml = tmpDir.newFile(this.getClass().getSimpleName() + "-" + testName.getMethodName() + "-site.xml");
+    FileWriter fileWriter = new FileWriter(siteXml);
+    fileWriter.append("<configuration>\n");
 
-      fileWriter.append("<property><name>" + Property.INSTANCE_DFS_DIR.getKey() + "</name><value>" + tmpDir.getAbsolutePath() + "</value></property>\n");
-      fileWriter.append("<property><name>" + Property.INSTANCE_DFS_URI.getKey() + "</name><value>file://</value></property>\n");
-      fileWriter.append("<property><name>" + ClientProperty.INSTANCE_NAME + "</name><value>foo</value></property>\n");
+    fileWriter
+        .append("<property><name>" + Property.INSTANCE_DFS_DIR.getKey() + "</name><value>" + tmpDir.getRoot().getAbsolutePath() + "</value></property>\n");
+    fileWriter.append("<property><name>" + Property.INSTANCE_DFS_URI.getKey() + "</name><value>file://</value></property>\n");
+    fileWriter.append("<property><name>" + ClientProperty.INSTANCE_NAME + "</name><value>foo</value></property>\n");
 
-      fileWriter.append("</configuration>\n");
-      fileWriter.close();
+    fileWriter.append("</configuration>\n");
+    fileWriter.close();
 
-      JCommander jc = new JCommander();
-      jc.addObject(args);
+    JCommander jc = new JCommander();
+    jc.addObject(args);
 
-      jc.parse("--site-file", siteXml.getAbsolutePath());
+    jc.parse("--site-file", siteXml.getAbsolutePath());
 
-      args.getInstance();
-    } finally {
-      FileUtils.deleteQuietly(tmpDir);
-    }
+    args.getInstance();
   }
 
 }
