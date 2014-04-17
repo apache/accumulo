@@ -20,6 +20,7 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
@@ -48,4 +49,8 @@ public class MetadataTableUtilTest {
     Assert.assertArrayEquals(stat.toByteArray(), col.getValue());
   }
 
+  @Test
+  public void noReplEntryOnMetadata() {
+    Assert.fail("Should not create a repl entry for the " + MetadataTable.NAME);
+  }
 }

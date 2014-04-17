@@ -24,6 +24,7 @@ import java.util.UUID;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ReplicationColumnFamily;
 import org.apache.accumulo.core.replication.StatusUtil;
@@ -33,7 +34,6 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.zookeeper.KeeperException;
 import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Test;
@@ -154,4 +154,8 @@ public class MasterMetadataUtilTest {
     }
   }
 
+  @Test
+  public void noReplicationOnMetadata() throws Exception {
+    Assert.fail("Should not create repl entry on " + MetadataTable.NAME);
+  }
 }

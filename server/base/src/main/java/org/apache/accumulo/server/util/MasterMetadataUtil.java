@@ -18,6 +18,7 @@ package org.apache.accumulo.server.util;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -320,13 +321,22 @@ public class MasterMetadataUtil {
         Status replStatus = StatusUtil.fileClosed();
         replValue = ProtobufUtil.toValue(replStatus);
       }
+
+      // hostname/fileURI
       for (String entry : unusedWalLogs) {
-        final Text textEntry = new Text(entry);
+        Text textEntry = new Text(entry);
         m.putDelete(LogColumnFamily.NAME, textEntry);
 
         // Only add the new column when we're replicating this tablet
-        if (replication) {
-          m.put(ReplicationColumnFamily.NAME, textEntry, replValue);
+        // We already know this isn't the root tablet
+        if (!extent.isMeta() && replication) {
+          // We only want the fileURI, split off the host
+          int offset = entry.indexOf('/');
+          Text filename = textEntry;
+          if (-1 != offset) {
+            filename = new Text(entry.substring(offset + 1));
+          }
+          m.put(ReplicationColumnFamily.NAME, filename, replValue);
         }
       }
     }

@@ -1036,7 +1036,15 @@ public class MetadataTableUtil {
 
   protected static Mutation createReplicationUpdateMutation(String file, Status stat) {
     Value v = ProtobufUtil.toValue(stat);
-    Mutation m = new Mutation(new Text(MetadataSchema.ReplicationSection.getRowPrefix() + file));
+    int offset = file.indexOf('/');
+    String fileOnly;
+    if (-1 != offset) {
+      fileOnly = file.substring(offset + 1);
+    } else {
+      log.warn("Expected forward-slash-delimited host/file: '" + file + "'");
+      fileOnly = file;
+    }
+    Mutation m = new Mutation(new Text(MetadataSchema.ReplicationSection.getRowPrefix() + fileOnly));
     m.put(EMPTY_TEXT, EMPTY_TEXT, v);
     return m;
   }
