@@ -119,6 +119,7 @@ import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.accumulo.server.util.FileUtil;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
+import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.server.util.TabletOperations;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
@@ -871,7 +872,7 @@ public class Tablet {
               tabletServer.getClientAddressString(), tabletServer.getLock(), unusedWalLogs, lastLocation, flushId, tabletServer.isReplicationEnabled());
 
           if (!(extent.isMeta() || extent.isRootTablet()) && tabletServer.isReplicationEnabled()) {
-            MetadataTableUtil.updateReplication(SystemCredentials.get(), extent, unusedWalLogs, StatusUtil.fileClosed());
+            ReplicationTableUtil.updateReplication(SystemCredentials.get(), extent, unusedWalLogs, StatusUtil.fileClosed());
           }
         }
 
@@ -1362,7 +1363,7 @@ public class Tablet {
         if (tabletServer.isReplicationEnabled()) {
           for (LogEntry logEntry : logEntries) {
             if (!extent.isMeta() && !extent.isRootTablet()) {
-              MetadataTableUtil.updateReplication(SystemCredentials.get(), extent, logEntry.logSet, StatusUtil.fileClosed());
+              ReplicationTableUtil.updateReplication(SystemCredentials.get(), extent, logEntry.logSet, StatusUtil.fileClosed());
             }
           }
         }

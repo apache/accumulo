@@ -28,7 +28,7 @@ import org.apache.accumulo.core.iterators.DevNull;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.replication.ReplicationTableSchema;
+import org.apache.accumulo.core.replication.ReplicationSchema;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.junit.Assert;
@@ -51,7 +51,7 @@ public class StatusCombinerTest {
     key = new Key();
     combiner = new StatusCombiner();
     builder = Status.newBuilder();
-    combiner.init(new DevNull(), ImmutableMap.of(Combiner.COLUMNS_OPTION, ReplicationTableSchema.StatusSection.NAME.toString()), new IteratorEnvironment() {
+    combiner.init(new DevNull(), ImmutableMap.of(Combiner.COLUMNS_OPTION, ReplicationSchema.StatusSection.NAME.toString()), new IteratorEnvironment() {
 
       public AccumuloConfiguration getConfig() {
         return null;

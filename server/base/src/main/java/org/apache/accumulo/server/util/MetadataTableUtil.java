@@ -19,7 +19,6 @@ package org.apache.accumulo.server.util;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -1027,25 +1026,4 @@ public class MetadataTableUtil {
     return tabletEntries;
   }
 
-  public static void updateReplication(Credentials creds, KeyExtent extent, Collection<String> files, Status stat) {
-    // TODO could use batch writer, would need to handle failure and retry like update does - ACCUMULO-1294
-    for (String file : files) {
-      update(creds, null, createReplicationUpdateMutation(file, stat), extent);
-    }
-  }
-
-  protected static Mutation createReplicationUpdateMutation(String file, Status stat) {
-    Value v = ProtobufUtil.toValue(stat);
-    int offset = file.indexOf('/');
-    String fileOnly;
-    if (-1 != offset) {
-      fileOnly = file.substring(offset + 1);
-    } else {
-      log.warn("Expected forward-slash-delimited host/file: '" + file + "'");
-      fileOnly = file;
-    }
-    Mutation m = new Mutation(new Text(MetadataSchema.ReplicationSection.getRowPrefix() + fileOnly));
-    m.put(EMPTY_TEXT, EMPTY_TEXT, v);
-    return m;
-  }
 }

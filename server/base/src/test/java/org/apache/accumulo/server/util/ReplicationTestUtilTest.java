@@ -20,23 +20,26 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.replication.ReplicationSchema;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class MetadataTableUtilTest {
+/**
+ * 
+ */
+public class ReplicationTestUtilTest {
 
   @Test
   public void replEntryMutation() {
     // We stopped using a WAL -- we need a reference that this WAL needs to be replicated completely
     Status stat = StatusUtil.fileClosed();
     String host = "hostname:port", file = "file:///accumulo/wal/127.0.0.1+9997" + UUID.randomUUID();
-    Text row = new Text(MetadataSchema.ReplicationSection.getRowPrefix() + file);
+    Text row = new Text(ReplicationSchema.ReplicationSection.getRowPrefix() + file);
     
-    Mutation m = MetadataTableUtil.createReplicationUpdateMutation(host+"/"+file, stat);
+    Mutation m = ReplicationTableUtil.createUpdateMutation(host+"/"+file, stat);
     
     Assert.assertEquals(row, new Text(m.getRow()));
     Assert.assertEquals(1, m.getUpdates().size());
@@ -47,4 +50,5 @@ public class MetadataTableUtilTest {
     Assert.assertEquals(0, col.getColumnVisibility().length);
     Assert.assertArrayEquals(stat.toByteArray(), col.getValue());
   }
+
 }

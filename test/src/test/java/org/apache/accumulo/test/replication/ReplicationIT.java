@@ -30,6 +30,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.replication.ReplicationSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
@@ -72,7 +73,7 @@ public class ReplicationIT extends ConfigurableMacIT {
 
     int replColumnCount = 0, replRowCount = 0;
     Set<String> replRows = Sets.newHashSet(), replColumns = Sets.newHashSet();
-    final String replRowPrefix = MetadataSchema.ReplicationSection.getRowPrefix(); 
+    final String replRowPrefix = ReplicationSchema.ReplicationSection.getRowPrefix(); 
     for (Entry<Key,Value> entry : conn.createScanner(MetadataTable.NAME, new Authorizations())) {
       Key k = entry.getKey();
       String row = k.getRow().toString();

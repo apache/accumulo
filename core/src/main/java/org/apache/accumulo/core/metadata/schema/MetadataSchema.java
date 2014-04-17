@@ -20,6 +20,7 @@ import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.hadoop.io.Text;
 
@@ -28,17 +29,7 @@ import org.apache.hadoop.io.Text;
  */
 public class MetadataSchema {
   
-  private static final String RESERVED_PREFIX = "~";
-  
-  private static class Section {
-    private String rowPrefix;
-    private Range range;
-    
-    private Section(String startRow, boolean startInclusive, String endRow, boolean endInclusive) {
-      rowPrefix = startRow;
-      range = new Range(startRow, startInclusive, endRow, endInclusive);
-    }
-  }
+  public static final String RESERVED_PREFIX = "~";
   
   /**
    * Used for storing information about tablets
@@ -47,7 +38,7 @@ public class MetadataSchema {
     private static final Section section = new Section(null, false, RESERVED_PREFIX, false);
     
     public static Range getRange() {
-      return section.range;
+      return section.getRange();
     }
     
     public static Range getRange(String tableId) {
@@ -199,11 +190,11 @@ public class MetadataSchema {
     private static final Section section = new Section(RESERVED_PREFIX, true, null, false);
     
     public static Range getRange() {
-      return section.range;
+      return section.getRange();
     }
     
     public static String getRowPrefix() {
-      return section.rowPrefix;
+      return section.getRowPrefix();
     }
     
   }
@@ -215,11 +206,11 @@ public class MetadataSchema {
     private static final Section section = new Section(RESERVED_PREFIX + "del", true, RESERVED_PREFIX + "dem", false);
     
     public static Range getRange() {
-      return section.range;
+      return section.getRange();
     }
     
     public static String getRowPrefix() {
-      return section.rowPrefix;
+      return section.getRowPrefix();
     }
     
   }
@@ -231,28 +222,12 @@ public class MetadataSchema {
     private static final Section section = new Section(RESERVED_PREFIX + "blip", true, RESERVED_PREFIX + "bliq", false);
     
     public static Range getRange() {
-      return section.range;
+      return section.getRange();
     }
     
     public static String getRowPrefix() {
-      return section.rowPrefix;
+      return section.getRowPrefix();
     }
     
-  }
-
-  /**
-   * Holds replication markers tracking status for files
-   */
-  public static class ReplicationSection {
-    private static final Section section = new Section(RESERVED_PREFIX + "repl", true, RESERVED_PREFIX + "repm", false);
-
-    public static Range getRange() {
-      return section.range;
-    }
-
-    public static String getRowPrefix() {
-      return section.rowPrefix;
-    }
-
   }
 }

@@ -14,19 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.replication;
+package org.apache.accumulo.core.schema;
 
-import org.apache.hadoop.io.Text;
+import org.apache.accumulo.core.data.Range;
 
-/**
- * 
- */
-public class ReplicationTableSchema {
-
-  public static class StatusSection {
-    public static final Text NAME = new Text("repl");
+public class Section {
+  private String rowPrefix;
+  private Range range;
+  
+  public Section(String startRow, boolean startInclusive, String endRow, boolean endInclusive) {
+    rowPrefix = startRow;
+    range = new Range(startRow, startInclusive, endRow, endInclusive);
   }
 
-  public static class WorkSection {
+  public String getRowPrefix() {
+    return rowPrefix;
+  }
+
+  public Range getRange() {
+    return range;
   }
 }
