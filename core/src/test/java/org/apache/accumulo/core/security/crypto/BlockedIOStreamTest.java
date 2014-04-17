@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.security.crypto;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertArrayEquals;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -136,7 +137,16 @@ public class BlockedIOStreamTest {
     baos.close();
 
     int blocks = (int) Math.ceil(size / (blockSize - 4.0));
-    assertEquals(blocks * 16, baos.toByteArray().length);
+    byte[] byteStream = baos.toByteArray();
+
+    assertEquals(blocks * 16, byteStream.length);
+
+    DataInputStream blockIn = new DataInputStream(new BlockedInputStream(new ByteArrayInputStream(byteStream), blockSize, blockSize));
+    byte[] giantRead = new byte[size];
+    blockIn.readFully(giantRead, 0, size);
+    blockIn.close();
+
+    assertArrayEquals(giant, giantRead);
   }
 
 }
