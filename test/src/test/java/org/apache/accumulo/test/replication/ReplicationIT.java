@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.replication;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -79,10 +81,26 @@ public class ReplicationIT extends ConfigurableMacIT {
       if (row.startsWith(replRowPrefix)) {
         replRowCount++;
         int offset = row.indexOf(replRowPrefix.charAt(replRowPrefix.length() - 1));
-        replRows.add(row.substring(offset + 1));
+
+        String fileUri = row.substring(offset + 1);
+        try {
+          new URI(fileUri);
+        } catch (URISyntaxException e) {
+          Assert.fail("Expected a valid URI: " + fileUri);
+        }
+        
+        replRows.add(fileUri);
       } else if (cf.equals(MetadataSchema.TabletsSection.ReplicationColumnFamily.NAME)) {
         replColumnCount++;
-        replColumns.add(k.getColumnQualifier().toString());
+
+        String fileUri = k.getColumnQualifier().toString();
+        try {
+          new URI(fileUri);
+        } catch (URISyntaxException e) {
+          Assert.fail("Expected a valid URI: " + fileUri);
+        }
+
+        replColumns.add(fileUri);
       } // else, ignored
     }
 

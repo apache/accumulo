@@ -20,7 +20,6 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
@@ -34,10 +33,10 @@ public class MetadataTableUtilTest {
   public void replEntryMutation() {
     // We stopped using a WAL -- we need a reference that this WAL needs to be replicated completely
     Status stat = StatusUtil.fileClosed();
-    String file = "file:///accumulo/wal/127.0.0.1+9997" + UUID.randomUUID();
+    String host = "hostname:port", file = "file:///accumulo/wal/127.0.0.1+9997" + UUID.randomUUID();
     Text row = new Text(MetadataSchema.ReplicationSection.getRowPrefix() + file);
     
-    Mutation m = MetadataTableUtil.createReplicationUpdateMutation(file, stat);
+    Mutation m = MetadataTableUtil.createReplicationUpdateMutation(host+"/"+file, stat);
     
     Assert.assertEquals(row, new Text(m.getRow()));
     Assert.assertEquals(1, m.getUpdates().size());
@@ -47,10 +46,5 @@ public class MetadataTableUtilTest {
     Assert.assertEquals(0, col.getColumnQualifier().length);
     Assert.assertEquals(0, col.getColumnVisibility().length);
     Assert.assertArrayEquals(stat.toByteArray(), col.getValue());
-  }
-
-  @Test
-  public void noReplEntryOnMetadata() {
-    Assert.fail("Should not create a repl entry for the " + MetadataTable.NAME);
   }
 }

@@ -51,8 +51,8 @@ public class MasterMetadataUtilTest {
     String time = "" + System.currentTimeMillis();
     Set<FileRef> filesInUseByScans = Collections.emptySet();
     String address = "127.0.0.1+9997";
-    String wal = "file:///accumulo/wal/" + address + "/" + UUID.randomUUID();
-    Set<String> unusedWalLogs = Sets.newHashSet(wal);
+    String host = "localhost:12345", wal = "file:///accumulo/wal/" + address + "/" + UUID.randomUUID();
+    Set<String> unusedWalLogs = Sets.newHashSet(host+"/"+wal);
     TServerInstance lastLocation = new TServerInstance(address, 1);
     long flushId = 1;
 
@@ -90,9 +90,9 @@ public class MasterMetadataUtilTest {
     String time = "" + System.currentTimeMillis();
     Set<FileRef> filesInUseByScans = Collections.emptySet();
     String address = "127.0.0.1+9997";
-    String wal1 = "file:///accumulo/wal/" + address + "/" + UUID.randomUUID(),
+    String host = "localhost:12345", wal1 = "file:///accumulo/wal/" + address + "/" + UUID.randomUUID(),
         wal2 = "file:///accumulo/wal/" + address + "/" + UUID.randomUUID();
-    Set<String> unusedWalLogs = Sets.newHashSet(wal1, wal2);
+    Set<String> unusedWalLogs = Sets.newHashSet(host+"/"+wal1, host+"/"+wal2);
     TServerInstance lastLocation = new TServerInstance(address, 1);
     long flushId = 1;
 
@@ -118,12 +118,12 @@ public class MasterMetadataUtilTest {
 
     Assert.assertEquals(unusedWalLogs.size(), foundReplWals.size());
     for (Text replWal : foundReplWals) {
-      Assert.assertTrue(replWal + " was not contained in original WAL set", unusedWalLogs.contains(replWal.toString()));
+      Assert.assertTrue(replWal + " was not contained in original WAL set", unusedWalLogs.contains(host + "/" + replWal.toString()));
     }
   }
 
   @Test
-  public void checkForNoReplicationEntries() throws Exception {
+  public void noWalsNoReplEntries() throws Exception {
     KeyExtent extent = new KeyExtent(new Text("1"), new Text("b"), new Text("a"));
     FileRef path = new FileRef("a-00000/F00000.rf", new Path("file:///accumulo/tables/1/a-00000/F00000.rf"));
     // 1MB, 1k elements
@@ -156,6 +156,34 @@ public class MasterMetadataUtilTest {
 
   @Test
   public void noReplicationOnMetadata() throws Exception {
-    Assert.fail("Should not create repl entry on " + MetadataTable.NAME);
+    KeyExtent extent = new KeyExtent(new Text(MetadataTable.ID), new Text("b"), new Text("a"));
+    FileRef path = new FileRef("a-00000/F00000.rf", new Path("file:///accumulo/tables/1/a-00000/F00000.rf"));
+    // 1MB, 1k elements
+    DataFileValue dfv = new DataFileValue(1048576, 1000);
+    String time = "" + System.currentTimeMillis();
+    Set<FileRef> filesInUseByScans = Collections.emptySet();
+    String address = "127.0.0.1+9997";
+    String host = "localhost:12345", wal = "file:///accumulo/wal/" + address + "/" + UUID.randomUUID();
+    Set<String> unusedWalLogs = Sets.newHashSet(host+"/"+wal);
+    TServerInstance lastLocation = new TServerInstance(address, 1);
+    long flushId = 1;
+
+    ZooLock lockMock = EasyMock.createNiceMock(ZooLock.class);
+    EasyMock.expect(lockMock.getSessionId()).andReturn(1l).anyTimes();
+
+    Mutation m = MasterMetadataUtil.getUpdateForTabletDataFile(extent, path, null, dfv, time, filesInUseByScans, address, lockMock, unusedWalLogs,
+        lastLocation, flushId, true);
+    EasyMock.replay();
+
+    Assert.assertEquals(extent.getMetadataEntry(), new Text(m.getRow()));
+    List<ColumnUpdate> updates = m.getUpdates();
+    Assert.assertTrue("Expected column updates", !updates.isEmpty());
+
+    for (ColumnUpdate update : updates) {
+      Text colfam = new Text(update.getColumnFamily());
+      if (ReplicationColumnFamily.NAME.equals(colfam)) {
+        Assert.fail("Did not expect to find replication entry: " + update);
+      }
+    }
   }
 }
