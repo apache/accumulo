@@ -70,49 +70,73 @@ public class BlockedIOStreamTest {
 
   @Test
   public void testSmallBufferBlockedIO() throws IOException {
-    writeRead(16, (12 + 4) * (int) (Math.ceil(25.0/12) + Math.ceil(31.0/12)));
+    writeRead(16, (12 + 4) * (int) (Math.ceil(25.0 / 12) + Math.ceil(31.0 / 12)));
   }
-  
+
   @Test
   public void testSpillingOverOutputStream() throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     // buffer will be size 12
     BlockedOutputStream blockOut = new BlockedOutputStream(baos, 16, 16);
     Random r = new Random(22);
-    
+
     byte[] undersized = new byte[11];
     byte[] perfectSized = new byte[12];
     byte[] overSized = new byte[13];
     byte[] perfectlyOversized = new byte[13];
     byte filler = (byte) r.nextInt();
-    
+
     r.nextBytes(undersized);
     r.nextBytes(perfectSized);
     r.nextBytes(overSized);
     r.nextBytes(perfectlyOversized);
-    
+
     // 1 block
     blockOut.write(undersized);
     blockOut.write(filler);
     blockOut.flush();
-    
+
     // 2 blocks
     blockOut.write(perfectSized);
     blockOut.write(filler);
     blockOut.flush();
-    
+
     // 2 blocks
     blockOut.write(overSized);
     blockOut.write(filler);
     blockOut.flush();
-    
+
     // 3 blocks
     blockOut.write(undersized);
     blockOut.write(perfectlyOversized);
     blockOut.write(filler);
     blockOut.flush();
-    
+
     blockOut.close();
-    assertEquals(16*8, baos.toByteArray().length);
+    assertEquals(16 * 8, baos.toByteArray().length);
   }
+
+  @Test
+  public void testGiantWrite() throws IOException {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    int blockSize = 16;
+    // buffer will be size 12
+    BlockedOutputStream blockOut = new BlockedOutputStream(baos, blockSize, blockSize);
+    Random r = new Random(22);
+
+    int size = 1024 * 1024 * 128;
+    byte[] giant = new byte[size];
+
+    r.nextBytes(giant);
+
+    blockOut.write(giant);
+    blockOut.flush();
+
+    blockOut.close();
+    baos.close();
+
+    int blocks = (int) Math.ceil(size / (blockSize - 4.0));
+    assertEquals(blocks * 16, baos.toByteArray().length);
+  }
+
 }
