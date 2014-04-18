@@ -496,7 +496,7 @@
                   <goal>jdeb</goal>
                 </goals>
                 <configuration>
-                  <deb>${project.build.directory}/${artifactId}_${project.version}.deb</deb>
+                  <deb>${project.build.directory}/${project.artifactId}_${project.version}.deb</deb>
                   <attach>false</attach>
                   <controlDir>src/packages/deb/accumulo</controlDir>
                   <installDir>/usr/lib/accumulo</installDir>
@@ -592,7 +592,7 @@
                   <attach>false</attach>
                   <controlDir>src/packages/deb/accumulo-native</controlDir>
                   <installDir>/usr/lib/accumulo</installDir>
-                  <deb>${project.build.directory}/${artifactId}-native_${project.version}-${os.arch}.deb</deb>
+                  <deb>${project.build.directory}/${project.artifactId}-native_${project.version}-${os.arch}.deb</deb>
                   <dataSet>
                     <data>
                       <src>src/server/src/main/c++</src>
@@ -632,7 +632,7 @@
                   <attach>false</attach>
                   <controlDir>src/packages/deb/accumulo-test</controlDir>
                   <installDir>/usr/lib/accumulo</installDir>
-                  <deb>${project.build.directory}/${artifactId}-test_${project.version}-${os.arch}.deb</deb>
+                  <deb>${project.build.directory}/${project.artifactId}-test_${project.version}-${os.arch}.deb</deb>
                   <dataSet>
                     <data>
                       <src>test</src>
