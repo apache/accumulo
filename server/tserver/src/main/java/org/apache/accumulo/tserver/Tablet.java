@@ -872,7 +872,7 @@ public class Tablet {
               tabletServer.getClientAddressString(), tabletServer.getLock(), unusedWalLogs, lastLocation, flushId, tabletServer.isReplicationEnabled());
 
           if (!(extent.isMeta() || extent.isRootTablet()) && tabletServer.isReplicationEnabled()) {
-            ReplicationTableUtil.updateReplication(SystemCredentials.get(), extent, unusedWalLogs, StatusUtil.fileClosed());
+            ReplicationTableUtil.updateFiles(SystemCredentials.get(), extent, unusedWalLogs, StatusUtil.fileClosed());
           }
         }
 
@@ -1360,11 +1360,9 @@ public class Tablet {
           absPaths.add(ref.path().toString());
 
         // Ensure that we write a record marking each WAL as requiring replication to make sure we don't abandon the data
-        if (tabletServer.isReplicationEnabled()) {
+        if (!extent.isMeta() && !extent.isRootTablet() && tabletServer.isReplicationEnabled()) {
           for (LogEntry logEntry : logEntries) {
-            if (!extent.isMeta() && !extent.isRootTablet()) {
-              ReplicationTableUtil.updateReplication(SystemCredentials.get(), extent, logEntry.logSet, StatusUtil.fileClosed());
-            }
+            ReplicationTableUtil.updateFiles(SystemCredentials.get(), extent, logEntry.logSet, StatusUtil.fileClosed());
           }
         }
 

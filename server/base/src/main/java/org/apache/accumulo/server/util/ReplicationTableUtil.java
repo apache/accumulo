@@ -34,6 +34,7 @@ import org.apache.accumulo.core.replication.ReplicationSchema.ReplicationSection
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.client.HdfsZooInstance;
@@ -51,7 +52,7 @@ public class ReplicationTableUtil {
 
   private ReplicationTableUtil() {}
 
-  public synchronized static Writer getReplicationTable(Credentials credentials) {
+  protected synchronized static Writer getReplicationTable(Credentials credentials) {
     Writer replicationTable = replicationTables.get(credentials);
     if (replicationTable == null) {
       Instance inst = HdfsZooInstance.getInstance();
@@ -75,7 +76,7 @@ public class ReplicationTableUtil {
   /**
    * Write the given Mutation to the replication table. 
    */
-  public static void update(Credentials credentials, Mutation m, KeyExtent extent) {
+  protected static void update(Credentials credentials, Mutation m, KeyExtent extent) {
     Writer t = getReplicationTable(credentials);
     while (true) {
       try {
@@ -94,12 +95,19 @@ public class ReplicationTableUtil {
     }
   }
 
+  public static void updateLogs(Credentials creds, KeyExtent extent, Collection<LogEntry> logs, Status stat) {
+    for (LogEntry entry : logs) {
+      updateFiles(creds, extent, entry.logSet, stat);
+    }
+  }
+
   /**
    * Write {@link ReplicationSection#getRowPrefix} entries for each provided file with the given {@link Status}.
    */
-  public static void updateReplication(Credentials creds, KeyExtent extent, Collection<String> files, Status stat) {
+  public static void updateFiles(Credentials creds, KeyExtent extent, Collection<String> files, Status stat) {
     // TODO could use batch writer, would need to handle failure and retry like update does - ACCUMULO-1294
     for (String file : files) {
+      // TODO Can preclude this addition if the extent is for a table we don't need to replicate
       update(creds, createUpdateMutation(file, stat), extent);
     }
   }

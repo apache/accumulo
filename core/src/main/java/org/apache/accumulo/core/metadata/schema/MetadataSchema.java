@@ -174,13 +174,6 @@ public class MetadataSchema {
       public static final Text NAME = new Text("chopped");
       public static final ColumnFQ CHOPPED_COLUMN = new ColumnFQ(NAME, new Text("chopped"));
     }
-
-    /**
-     * Column family for tracking files that require replication
-     */
-    public static class ReplicationColumnFamily {
-      public static final Text NAME = new Text("repl");
-    }
   }
   
   /**

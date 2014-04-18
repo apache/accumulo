@@ -62,9 +62,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
-import org.apache.accumulo.core.protobuf.ProtobufUtil;
-import org.apache.accumulo.core.replication.StatusUtil;
-import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -202,7 +199,7 @@ public class MetadataTableUtil {
   }
 
   public static void updateTabletVolumes(KeyExtent extent, List<LogEntry> logsToRemove, List<LogEntry> logsToAdd, List<FileRef> filesToRemove,
-      SortedMap<FileRef,DataFileValue> filesToAdd, String newDir, ZooLock zooLock, Credentials credentials, boolean replicationEnabled) {
+      SortedMap<FileRef,DataFileValue> filesToAdd, String newDir, ZooLock zooLock, Credentials credentials) {
 
     if (extent.isRootTablet()) {
       if (newDir != null)
@@ -213,7 +210,7 @@ public class MetadataTableUtil {
 
       // add before removing in case of process death
       for (LogEntry logEntry : logsToAdd)
-        addLogEntry(credentials, logEntry, zooLock, replicationEnabled);
+        addLogEntry(credentials, logEntry, zooLock);
 
       removeUnusedWALEntries(extent, logsToRemove, zooLock);
     } else {
@@ -437,7 +434,7 @@ public class MetadataTableUtil {
     return ZooUtil.getRoot(HdfsZooInstance.getInstance()) + RootTable.ZROOT_TABLET_WALOGS;
   }
 
-  public static void addLogEntry(Credentials credentials, LogEntry entry, ZooLock zooLock, boolean replicationEnabled) {
+  public static void addLogEntry(Credentials credentials, LogEntry entry, ZooLock zooLock) {
     if (entry.extent.isRootTablet()) {
       String root = getZookeeperLogLocation();
       while (true) {
@@ -461,10 +458,6 @@ public class MetadataTableUtil {
     } else {
       Mutation m = new Mutation(entry.getRow());
       m.put(entry.getColumnFamily(), entry.getColumnQualifier(), entry.getValue());
-      if (replicationEnabled) {
-        Status status = StatusUtil.newFile();
-        m.put(MetadataSchema.TabletsSection.ReplicationColumnFamily.NAME, new Text(entry.filename), ProtobufUtil.toValue(status));
-      }
       update(credentials, zooLock, m, entry.extent);
     }
   }

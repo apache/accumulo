@@ -36,7 +36,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ch
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ReplicationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -71,7 +70,7 @@ public class MetadataConstraints implements Constraint {
   private static final HashSet<Text> validColumnFams = new HashSet<Text>(Arrays.asList(TabletsSection.BulkFileColumnFamily.NAME,
       LogColumnFamily.NAME, ScanFileColumnFamily.NAME, DataFileColumnFamily.NAME,
       TabletsSection.CurrentLocationColumnFamily.NAME, TabletsSection.LastLocationColumnFamily.NAME, TabletsSection.FutureLocationColumnFamily.NAME,
-      ChoppedColumnFamily.NAME, ClonedColumnFamily.NAME, ReplicationColumnFamily.NAME));
+      ChoppedColumnFamily.NAME, ClonedColumnFamily.NAME));
   
   private static boolean isValidColumn(ColumnUpdate cu) {
     

@@ -24,6 +24,7 @@ import java.util.Set;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -31,11 +32,12 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.replication.ReplicationSchema;
+import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
@@ -71,13 +73,12 @@ public class ReplicationIT extends ConfigurableMacIT {
 
     conn.tableOperations().flush(table, null, null, true);
 
-    int replColumnCount = 0, replRowCount = 0;
-    Set<String> replRows = Sets.newHashSet(), replColumns = Sets.newHashSet();
+    int replRowCount = 0;
+    Set<String> replRows = Sets.newHashSet();
     final String replRowPrefix = ReplicationSchema.ReplicationSection.getRowPrefix(); 
-    for (Entry<Key,Value> entry : conn.createScanner(MetadataTable.NAME, new Authorizations())) {
+    for (Entry<Key,Value> entry : conn.createScanner(ReplicationTable.NAME, new Authorizations())) {
       Key k = entry.getKey();
       String row = k.getRow().toString();
-      Text cf = k.getColumnFamily();
 
       if (row.startsWith(replRowPrefix)) {
         replRowCount++;
@@ -91,26 +92,22 @@ public class ReplicationIT extends ConfigurableMacIT {
         }
         
         replRows.add(fileUri);
-      } else if (cf.equals(MetadataSchema.TabletsSection.ReplicationColumnFamily.NAME)) {
-        replColumnCount++;
-
-        String fileUri = k.getColumnQualifier().toString();
-        try {
-          new URI(fileUri);
-        } catch (URISyntaxException e) {
-          Assert.fail("Expected a valid URI: " + fileUri);
-        }
-
-        replColumns.add(fileUri);
       } // else, ignored
+    }
+
+    Set<String> wals = Sets.newHashSet();
+    Scanner s = conn.createScanner(MetadataTable.NAME, new Authorizations());
+    s.fetchColumnFamily(MetadataSchema.TabletsSection.LogColumnFamily.NAME);
+    for (Entry<Key,Value> entry : s) {
+      LogEntry logEntry = LogEntry.fromKeyValue(entry.getKey(), entry.getValue());
+      wals.add(logEntry.filename);
     }
 
     // We only have one file that should need replication (no trace table)
     // We should find an entry in tablet and in the repl row
-    Assert.assertEquals("Columns found: " + replColumns, 1, replColumnCount);
-    Assert.assertEquals("Rows foudn: "+ replRows, 1, replRowCount);
+    Assert.assertEquals("Rows found: "+ replRows, 1, replRowCount);
 
-    // As such, we should have one element in each set, and they should be the same value
-    Assert.assertEquals(replRows, replColumns);
+    // This should be the same set of WALs that we also are using
+    Assert.assertEquals(replRows, wals);
   }
 }

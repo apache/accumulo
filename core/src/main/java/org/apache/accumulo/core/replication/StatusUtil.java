@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.replication;
 
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.replication.proto.Replication.Status.Builder;
 
@@ -25,6 +27,7 @@ import org.apache.accumulo.core.replication.proto.Replication.Status.Builder;
 public class StatusUtil {
 
   private static final Status NEW_REPLICATION_STATUS, CLOSED_REPLICATION_STATUS;
+  private static final Value NEW_REPLICATION_STATUS_VALUE, CLOSED_REPLICATION_STATUS_VALUE;
 
   static {
     Status.Builder builder = Status.newBuilder();
@@ -33,6 +36,7 @@ public class StatusUtil {
     builder.setInfiniteEnd(false);
     builder.setClosed(false);
     NEW_REPLICATION_STATUS = builder.build();
+    NEW_REPLICATION_STATUS_VALUE = ProtobufUtil.toValue(NEW_REPLICATION_STATUS);
 
     builder = Status.newBuilder();
     builder.setBegin(0);
@@ -40,6 +44,7 @@ public class StatusUtil {
     builder.setInfiniteEnd(true);
     builder.setClosed(true);
     CLOSED_REPLICATION_STATUS = builder.build();
+    CLOSED_REPLICATION_STATUS_VALUE = ProtobufUtil.toValue(CLOSED_REPLICATION_STATUS);
   }
 
   /**
@@ -47,6 +52,13 @@ public class StatusUtil {
    */
   public static Status newFile() {
     return NEW_REPLICATION_STATUS;
+  }
+
+  /**
+   * @return A {@link Value} which represent a file with no data that is open for writes
+   */
+  public static Value newFileValue() {
+    return NEW_REPLICATION_STATUS_VALUE;
   }
 
   /**
@@ -113,9 +125,16 @@ public class StatusUtil {
   }
 
   /**
-   * @return A {@link Status} for a closed file of unknown length
+   * @return A {@link Status} for a closed file of unspecified length, all of which needs replicating.
    */
   public static Status fileClosed() {
     return CLOSED_REPLICATION_STATUS;
+  }
+
+  /**
+   * @return A {@link Value} for a closed file of unspecified length, all of which needs replicating.
+   */
+  public static Value fileClosedValue() {
+    return CLOSED_REPLICATION_STATUS_VALUE;
   }
 }

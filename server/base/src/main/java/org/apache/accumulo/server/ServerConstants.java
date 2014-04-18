@@ -25,6 +25,7 @@ import java.util.List;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.Volume;
@@ -140,6 +141,10 @@ public class ServerConstants {
 
   public static String[] getMetadataTableDirs() {
     return VolumeConfiguration.prefix(getTablesDirs(), MetadataTable.ID);
+  }
+
+  public static String[] getReplicationTableDirs() {
+    return VolumeConfiguration.prefix(getTablesDirs(), ReplicationTable.ID);
   }
 
   public static String[] getTemporaryDirs() {

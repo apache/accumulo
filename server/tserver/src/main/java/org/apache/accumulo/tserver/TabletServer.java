@@ -115,6 +115,7 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.security.AuthorizationContainer;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SecurityUtil;
@@ -180,6 +181,7 @@ import org.apache.accumulo.server.util.FileSystemMonitor;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
+import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.util.TServerUtils.ServerAddress;
 import org.apache.accumulo.server.util.time.RelativeTime;
@@ -3047,7 +3049,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     entry.server = logs.get(0).getLogger();
     entry.filename = logs.get(0).getFileName();
     entry.logSet = logSet;
-    MetadataTableUtil.addLogEntry(SystemCredentials.get(), entry, getLock(), isReplicationEnabled());
+    MetadataTableUtil.addLogEntry(SystemCredentials.get(), entry, getLock());
+    if (isReplicationEnabled()) {
+      // Got some new WALs, note this in the replication table
+      ReplicationTableUtil.updateFiles(SystemCredentials.get(), extent, logSet, StatusUtil.newFile());
+    }
   }
 
   private HostAndPort startServer(AccumuloConfiguration conf, String address, Property portHint, TProcessor processor, String threadName)
