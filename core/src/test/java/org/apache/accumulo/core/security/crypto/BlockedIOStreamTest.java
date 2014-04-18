@@ -23,9 +23,11 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Random;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.commons.lang.ArrayUtils;
 import org.junit.Test;
 
 public class BlockedIOStreamTest {
@@ -127,8 +129,13 @@ public class BlockedIOStreamTest {
 
     int size = 1024 * 1024 * 128;
     byte[] giant = new byte[size];
+    byte[] pattern = new byte[1024];
 
-    r.nextBytes(giant);
+    r.nextBytes(pattern);
+
+    for (int i = 0; i < size / 1024; i++) {
+      System.arraycopy(pattern, 0, giant, i * 1024, 1024);
+    }
 
     blockOut.write(giant);
     blockOut.flush();
@@ -142,11 +149,15 @@ public class BlockedIOStreamTest {
     assertEquals(blocks * 16, byteStream.length);
 
     DataInputStream blockIn = new DataInputStream(new BlockedInputStream(new ByteArrayInputStream(byteStream), blockSize, blockSize));
-    byte[] giantRead = new byte[size];
-    blockIn.readFully(giantRead, 0, size);
+    Arrays.fill(giant, (byte) 0);
+    blockIn.readFully(giant, 0, size);
     blockIn.close();
 
-    assertArrayEquals(giant, giantRead);
+    for (int i = 0; i < size / 1024; i++) {
+      byte[] readChunk = new byte[1024];
+      System.arraycopy(giant, i * 1024, readChunk, 0, 1024);
+      assertArrayEquals(pattern, readChunk);
+    }
   }
 
 }
