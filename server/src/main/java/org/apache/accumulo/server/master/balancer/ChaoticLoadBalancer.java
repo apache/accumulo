@@ -33,6 +33,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
+import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 
 /**
@@ -40,6 +41,7 @@ import org.apache.thrift.TException;
  * designed for performance, do not use on production systems. I'm calling it the LokiLoadBalancer.
  */
 public class ChaoticLoadBalancer extends TabletBalancer {
+  private static final Logger log = Logger.getLogger(ChaoticLoadBalancer.class);
   Random r = new Random();
   
   @Override
@@ -75,6 +77,8 @@ public class ChaoticLoadBalancer extends TabletBalancer {
     }
   }
   
+  protected final OutstandingMigrations outstandingMigrations = new OutstandingMigrations(log);
+
   /**
    * Will balance randomly, maintaining distribution
    */
@@ -83,8 +87,12 @@ public class ChaoticLoadBalancer extends TabletBalancer {
     Map<TServerInstance,Long> numTablets = new HashMap<TServerInstance,Long>();
     List<TServerInstance> underCapacityTServer = new ArrayList<TServerInstance>();
 
-    if (!migrations.isEmpty())
+    if (!migrations.isEmpty()) {
+      outstandingMigrations.migrations = migrations;
+      constraintNotMet(outstandingMigrations);
       return 100;
+    }
+    resetBalancerErrors();
 
     boolean moveMetadata = r.nextInt(4) == 0;
     long totalTablets = 0;
