@@ -82,6 +82,7 @@ import org.apache.accumulo.core.constraints.Constraint.Environment;
 import org.apache.accumulo.core.constraints.Violations;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Column;
+import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -115,7 +116,6 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.security.AuthorizationContainer;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SecurityUtil;
@@ -181,7 +181,6 @@ import org.apache.accumulo.server.util.FileSystemMonitor;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
-import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.util.TServerUtils.ServerAddress;
 import org.apache.accumulo.server.util.time.RelativeTime;
@@ -1717,6 +1716,21 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         throw new NoSuchScanIDException();
       }
 
+      log.trace("Writing mutations in closeUpdate: ");
+      for (Entry<Tablet,List<Mutation>> entry : us.queuedMutations.entrySet()) {
+        log.trace(entry.getKey().getExtent() + " => ");
+        for (Mutation m : entry.getValue()) {
+          StringBuilder sb = new StringBuilder(64);
+          for (ColumnUpdate update : m.getUpdates()) {
+            if (sb.length()>0) {
+              sb.append(", ");
+            }
+            sb.append(new String(update.getColumnFamily()) + " " + new String(update.getColumnQualifier()) +  " " + new String(update.getValue()));
+          }
+          log.trace(new String(m.getRow()) + " [" + sb + "]");
+        }
+      }
+
       // clients may or may not see data from an update session while
       // it is in progress, however when the update session is closed
       // want to ensure that reads wait for the write to finish
@@ -3050,10 +3064,6 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     entry.filename = logs.get(0).getFileName();
     entry.logSet = logSet;
     MetadataTableUtil.addLogEntry(SystemCredentials.get(), entry, getLock());
-    if (isReplicationEnabled()) {
-      // Got some new WALs, note this in the replication table
-      ReplicationTableUtil.updateFiles(SystemCredentials.get(), extent, logSet, StatusUtil.newFile());
-    }
   }
 
   private HostAndPort startServer(AccumuloConfiguration conf, String address, Property portHint, TProcessor processor, String threadName)

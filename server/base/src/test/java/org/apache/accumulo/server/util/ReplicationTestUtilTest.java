@@ -19,6 +19,7 @@ package org.apache.accumulo.server.util;
 import java.util.UUID;
 
 import org.apache.accumulo.core.data.ColumnUpdate;
+import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.replication.ReplicationSchema;
 import org.apache.accumulo.core.replication.StatusUtil;
@@ -38,8 +39,9 @@ public class ReplicationTestUtilTest {
     Status stat = StatusUtil.fileClosed();
     String host = "hostname:port", file = "file:///accumulo/wal/127.0.0.1+9997" + UUID.randomUUID();
     Text row = new Text(ReplicationSchema.ReplicationSection.getRowPrefix() + file);
+    KeyExtent extent = new KeyExtent(new Text("1"), new Text("b"), new Text("a"));
     
-    Mutation m = ReplicationTableUtil.createUpdateMutation(host+"/"+file, stat);
+    Mutation m = ReplicationTableUtil.createUpdateMutation(host+"/"+file, stat, extent);
     
     Assert.assertEquals(row, new Text(m.getRow()));
     Assert.assertEquals(1, m.getUpdates().size());

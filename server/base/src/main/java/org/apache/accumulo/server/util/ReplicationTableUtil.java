@@ -22,7 +22,6 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Writer;
@@ -56,16 +55,6 @@ public class ReplicationTableUtil {
     Writer replicationTable = replicationTables.get(credentials);
     if (replicationTable == null) {
       Instance inst = HdfsZooInstance.getInstance();
-      Connector conn;
-      try {
-        conn = inst.getConnector(credentials.getPrincipal(), credentials.getToken());
-      } catch (AccumuloException|AccumuloSecurityException e) {
-        log.error(e);
-        throw new RuntimeException(e);
-      }
-
-      // Create the table if it doesn't already exist
-      ReplicationTable.create(conn.tableOperations());
 
       replicationTable = new Writer(inst, credentials, ReplicationTable.ID);
       replicationTables.put(credentials, replicationTable);
@@ -108,11 +97,11 @@ public class ReplicationTableUtil {
     // TODO could use batch writer, would need to handle failure and retry like update does - ACCUMULO-1294
     for (String file : files) {
       // TODO Can preclude this addition if the extent is for a table we don't need to replicate
-      update(creds, createUpdateMutation(file, stat), extent);
+      update(creds, createUpdateMutation(file, stat, extent), extent);
     }
   }
 
-  protected static Mutation createUpdateMutation(String file, Status stat) {
+  protected static Mutation createUpdateMutation(String file, Status stat, KeyExtent extent) {
     Value v = ProtobufUtil.toValue(stat);
     int offset = file.indexOf('/');
     String fileOnly;
@@ -123,7 +112,7 @@ public class ReplicationTableUtil {
       fileOnly = file;
     }
     Mutation m = new Mutation(new Text(ReplicationSection.getRowPrefix() + fileOnly));
-    m.put(EMPTY_TEXT, EMPTY_TEXT, v);
+    m.put(extent.getTableId(), EMPTY_TEXT, v);
     return m;
   }
 }

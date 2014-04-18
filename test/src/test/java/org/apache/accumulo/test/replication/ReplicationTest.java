@@ -19,6 +19,7 @@ package org.apache.accumulo.test.replication;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map.Entry;
+import java.util.Arrays;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -30,6 +31,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.replication.ReplicationSchema;
 import org.apache.accumulo.core.replication.ReplicationTable;
@@ -42,18 +44,48 @@ import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 
 /**
  * 
  */
-public class ReplicationIT extends ConfigurableMacIT {
-  private static final Logger log = Logger.getLogger(ReplicationIT.class);
+public class ReplicationTest extends ConfigurableMacIT {
+  private static final Logger log = Logger.getLogger(ReplicationTest.class);
+
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 30;
+  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.REPLICATION_ENABLED, "true");
     cfg.setNumTservers(1);
+  }
+
+  @Test
+  public void replicationTableCreated() throws Exception {
+    Connector conn = getConnector();
+    Set<String> tables = conn.tableOperations().list();
+
+    Assert.assertEquals(Sets.newHashSet(RootTable.NAME, MetadataTable.NAME, ReplicationTable.NAME), tables);
+  }
+
+  @Test
+  public void readSystemTables() throws Exception {
+    Connector conn = getConnector();
+    Scanner s;
+    for (String table : Arrays.asList(RootTable.NAME, MetadataTable.NAME, ReplicationTable.NAME)) {
+      System.out.println("Table: " + table);
+      s = conn.createScanner(table, new Authorizations());
+      for (Entry<Key,Value> entry : s) {
+        System.out.println(entry.getKey().toStringNoTruncate() + " " + entry.getValue());
+      }
+//      Assert.assertNotEquals("Expected to find entries in " + table, 0, Iterables.size(s));
+    }
+
   }
   
   @Test

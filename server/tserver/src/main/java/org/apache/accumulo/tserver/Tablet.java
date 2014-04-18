@@ -1360,7 +1360,7 @@ public class Tablet {
           absPaths.add(ref.path().toString());
 
         // Ensure that we write a record marking each WAL as requiring replication to make sure we don't abandon the data
-        if (!extent.isMeta() && !extent.isRootTablet() && tabletServer.isReplicationEnabled()) {
+        if (!(extent.isMeta() || extent.isRootTablet()) && tabletServer.isReplicationEnabled()) {
           for (LogEntry logEntry : logEntries) {
             ReplicationTableUtil.updateFiles(SystemCredentials.get(), extent, logEntry.logSet, StatusUtil.fileClosed());
           }

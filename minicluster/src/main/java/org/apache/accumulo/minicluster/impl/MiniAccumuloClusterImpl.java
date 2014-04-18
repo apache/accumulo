@@ -492,7 +492,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
 
     if (gcProcess == null) {
-      gcProcess = _exec(SimpleGarbageCollector.class, ServerType.GARBAGE_COLLECTOR);
+//      gcProcess = _exec(SimpleGarbageCollector.class, ServerType.GARBAGE_COLLECTOR);
     }
   }
 

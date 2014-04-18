@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -33,9 +34,12 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.security.SystemCredentials;
+import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.tserver.Tablet.CommitSession;
 import org.apache.accumulo.tserver.TabletMutations;
 import org.apache.accumulo.tserver.TabletServer;
@@ -259,6 +263,16 @@ public class TabletServerLogger {
                   tserver.addLoggersToMetadata(copy, commitSession.getExtent(), commitSession.getLogId());
               } finally {
                 commitSession.finishUpdatingLogsUsed();
+              }
+
+              // Need to release
+              if (!(commitSession.getExtent().isMeta() || commitSession.getExtent().isRootTablet()) && tserver.isReplicationEnabled()) {
+                Set<String> logs = new HashSet<String>();
+                for (DfsLogger logger : copy) {
+                  logs.add(logger.getFileName());
+                }
+                // Got some new WALs, note this in the replication table
+                ReplicationTableUtil.updateFiles(SystemCredentials.get(), commitSession.getExtent(), logs, StatusUtil.newFile());
               }
             }
           }
