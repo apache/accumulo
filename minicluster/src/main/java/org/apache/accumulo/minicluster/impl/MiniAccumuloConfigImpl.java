@@ -30,7 +30,7 @@ import org.apache.accumulo.server.util.PortUtils;
 /**
  * Holds configuration for {@link MiniAccumuloClusterImpl}. Required configurations must be passed to constructor(s) and all other configurations are optional.
  * 
- * @since 1.5.0
+ * @since 1.6.0
  */
 public class MiniAccumuloConfigImpl implements AccumuloConfig {
 
@@ -204,6 +204,7 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
    * 
    * @since 1.6.0
    */
+  @Override
   public MiniAccumuloConfigImpl setZooKeeperPort(int zooKeeperPort) {
     this.configuredZookeeperPort = zooKeeperPort;
     this.zooKeeperPort = zooKeeperPort;
