@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.core.security.crypto;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -27,7 +27,6 @@ import java.util.Arrays;
 import java.util.Random;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.commons.lang.ArrayUtils;
 import org.junit.Test;
 
 public class BlockedIOStreamTest {
