@@ -66,7 +66,12 @@ public class Init extends Test {
         m.put(cf, "seq", Utils.getSeq(0));
 
         if (j % 1000 == 0 && j > 0) {
-          if (cw.write(m).getStatus() == Status.ACCEPTED)
+          Status status = cw.write(m).getStatus();
+          
+          while(status == Status.UNKNOWN)
+            status = cw.write(m).getStatus();
+          
+          if (status == Status.ACCEPTED)
             acceptedCount++;
           m = new ConditionalMutation(Utils.getBank(i));
         }

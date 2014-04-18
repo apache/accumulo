@@ -559,14 +559,14 @@ class ConditionalWriterImpl implements ConditionalWriter {
     
     SessionID sessionId = null;
     
-    try {
-      
-      client = getClient(location);
-      
+    try {        
       Map<TKeyExtent,List<TConditionalMutation>> tmutations = new HashMap<TKeyExtent,List<TConditionalMutation>>();
       
       CompressedIterators compressedIters = new CompressedIterators();
       convertMutations(mutations, cmidToCm, cmid, tmutations, compressedIters);
+      
+      //getClient() call must come after converMutations in case it throws a TException
+      client = getClient(location);
       
       List<TCMResult> tresults = null;
       while (tresults == null) {
@@ -615,7 +615,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
     } catch (Exception e) {
       queueException(location, cmidToCm, e);
     } finally {
-      unreserveSessionID(location);
+      if(sessionId != null)
+        unreserveSessionID(location);
       ThriftUtil.returnClient((TServiceClient) client);
     }
   }
@@ -637,7 +638,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       queueRetry(cmidToCm, location);
     } else {
       try {
-        invalidateSession(sessionId, location, mutations);
+        invalidateSession(sessionId, location);
         for (CMK cmk : cmidToCm.values())
           cmk.cm.queueResult(new Result(Status.UNKNOWN, cmk.cm, location));
       } catch (Exception e2) {
@@ -652,14 +653,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
    * 
    * If a conditional mutation is taking a long time to process, then this method will wait for it to finish... unless this exceeds timeout.
    */
-  private void invalidateSession(SessionID sessionId, String location, TabletServerMutations<QCMutation> mutations) throws AccumuloException,
+  private void invalidateSession(SessionID sessionId, String location) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
-    
-    ArrayList<QCMutation> mutList = new ArrayList<QCMutation>();
-    
-    for (List<QCMutation> tml : mutations.getMutations().values()) {
-      mutList.addAll(tml);
-    }
     
     long sleepTime = 50;
     
