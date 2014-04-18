@@ -433,6 +433,8 @@
             <target>1.6</target>
             <optimize>true</optimize>
             <encoding>UTF-8</encoding>
+            <showDeprecation>true</showDeprecation>
+            <showWarnings>true</showWarnings>
           </configuration>
         </plugin>
         <plugin>
