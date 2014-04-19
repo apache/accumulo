@@ -143,10 +143,6 @@ public class ServerConstants {
     return VolumeConfiguration.prefix(getTablesDirs(), MetadataTable.ID);
   }
 
-  public static String[] getReplicationTableDirs() {
-    return VolumeConfiguration.prefix(getTablesDirs(), ReplicationTable.ID);
-  }
-
   public static String[] getTemporaryDirs() {
     return VolumeConfiguration.prefix(getBaseUris(), "tmp");
   }

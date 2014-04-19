@@ -16,13 +16,34 @@
  */
 package org.apache.accumulo.core.replication;
 
-import org.apache.accumulo.core.client.impl.Namespaces;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.TableExistsException;
+import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.log4j.Logger;
 
 public class ReplicationTable {
   private static final Logger log = Logger.getLogger(ReplicationTable.class);
 
-  public static final String ID = "+repl";
-  public static final String NAME = Namespaces.ACCUMULO_NAMESPACE + ".replication";
+  public static final String NAME = "replication";
 
+  public static synchronized void create(TableOperations tops) {
+    if (tops.exists(NAME)) {
+      return;
+    }
+
+    for (int i = 0; i < 5; i++) {
+      try {
+        tops.create(NAME);
+        return;
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        log.error("Failed to create replication table", e);
+      } catch (TableExistsException e) {
+        return;
+      }
+      log.error("Retrying table creation in 1 second...");
+      UtilWaitThread.sleep(1000);
+    }
+  }
 }

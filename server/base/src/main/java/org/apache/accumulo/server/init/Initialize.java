@@ -50,7 +50,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
-import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
@@ -329,27 +328,6 @@ public class Initialize {
       }
     }
 
-    // the actual disk locations of the replication table and tablets
-    final Path[] replicationTableDirs = paths(ServerConstants.getReplicationTableDirs());
-    String tableReplicationTabletDir = fs.choose(VolumeConfiguration.prefix(ServerConstants.getReplicationTableDirs(), TABLE_TABLETS_TABLET_DIR));
-    String defaultReplicationTabletDir = fs.choose(VolumeConfiguration.prefix(ServerConstants.getReplicationTableDirs(), Constants.DEFAULT_TABLET_LOCATION));
-
-    // create replication table
-    for (Path mtd : replicationTableDirs) {
-      try {
-        fstat = fs.getFileStatus(mtd);
-        if (!fstat.isDir()) {
-          log.fatal("location " + mtd.toString() + " exists but is not a directory");
-          return;
-        }
-      } catch (FileNotFoundException fnfe) {
-        if (!fs.mkdirs(mtd)) {
-          log.fatal("unable to create directory " + mtd.toString());
-          return;
-        }
-      }
-    }
-
     // create root table and tablet
     try {
       fstat = fs.getFileStatus(rootTablet);
@@ -370,13 +348,6 @@ public class Initialize {
     initializeTableData(fs, MetadataTable.ID, rootTablet.toString(), tableMetadataTabletDir, defaultMetadataTabletDir);
 
     createDirectories(fs, tableMetadataTabletDir, defaultMetadataTabletDir);
-
-    // populate the metadata tablet with info about the default tablet
-    // the metadata tablet contains the key extent and locations of all the
-    // replication tablets
-    initializeTableData(fs, ReplicationTable.ID, defaultMetadataTabletDir, tableReplicationTabletDir, defaultReplicationTabletDir);
-
-    createDirectories(fs, tableReplicationTabletDir, defaultReplicationTabletDir);
   }
 
   @SuppressWarnings("deprecation")
@@ -491,7 +462,6 @@ public class Initialize {
     TableManager.prepareNewNamespaceState(uuid, Namespaces.ACCUMULO_NAMESPACE_ID, Namespaces.ACCUMULO_NAMESPACE, NodeExistsPolicy.FAIL);
     TableManager.prepareNewTableState(uuid, RootTable.ID, Namespaces.ACCUMULO_NAMESPACE_ID, RootTable.NAME, TableState.ONLINE, NodeExistsPolicy.FAIL);
     TableManager.prepareNewTableState(uuid, MetadataTable.ID, Namespaces.ACCUMULO_NAMESPACE_ID, MetadataTable.NAME, TableState.ONLINE, NodeExistsPolicy.FAIL);
-    TableManager.prepareNewTableState(uuid, ReplicationTable.ID, Namespaces.ACCUMULO_NAMESPACE_ID, ReplicationTable.NAME, TableState.ONLINE, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTSERVERS, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZPROBLEMS, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + RootTable.ZROOT_TABLET, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
@@ -594,7 +564,6 @@ public class Initialize {
   protected static void initMetadataConfig() throws IOException {
     initMetadataConfig(RootTable.ID);
     initMetadataConfig(MetadataTable.ID);
-    initMetadataConfig(ReplicationTable.ID);
   }
 
   private static void setMetadataReplication(int replication, String reason) throws IOException {
