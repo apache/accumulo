@@ -35,7 +35,7 @@ public class ReplicationConfigurationUtil {
     if (extent.isMeta() || extent.isRootTablet()) {
       return false;
     }
-    
+
     return conf.getBoolean(Property.TABLE_REPLICATION);
   }
 }
