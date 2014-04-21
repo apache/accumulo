@@ -19,6 +19,7 @@ package org.apache.accumulo.test.replication;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -43,6 +44,7 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
+import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -194,5 +196,91 @@ public class ReplicationTest extends ConfigurableMacIT {
 
     // After deleting tables, still no replication table
     Assert.assertFalse(conn.tableOperations().exists(ReplicationTable.NAME));
+  }
+
+  @Test
+  public void twoEntriesForTwoTables() throws Exception {
+    Connector conn = getConnector();
+    String table1 = "table1", table2 = "table2";
+
+    // replication shouldn't exist when we begin
+    Assert.assertFalse(conn.tableOperations().exists(ReplicationTable.NAME));
+
+    // Create two tables
+    conn.tableOperations().create(table1);
+    conn.tableOperations().create(table2);
+
+    // Enable replication on table1
+    conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION.getKey(), "true");
+
+    // Despite having replication on, we shouldn't have any need to write a record to it (and create it)
+    Assert.assertFalse(conn.tableOperations().exists(ReplicationTable.NAME));
+
+    // Write some data to table1
+    BatchWriter bw = conn.createBatchWriter(table1, new BatchWriterConfig());
+
+    for (int rows = 0; rows < 50; rows++) {
+      Mutation m = new Mutation(Integer.toString(rows));
+      for (int cols = 0; cols < 50; cols++) {
+        String value = Integer.toString(cols);
+        m.put(value, "", value);
+      }
+      bw.addMutation(m);
+    }
+
+    bw.close();
+
+    // Compact the table1
+    conn.tableOperations().compact(table1, null, null, true, true);
+
+    // After writing data, we'll get a replication table
+    Assert.assertTrue(conn.tableOperations().exists(ReplicationTable.NAME));
+    conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.READ);
+
+    // Verify that we found a single replication record that's for table1
+    Scanner s = ReplicationTable.getScanner(conn, new Authorizations());
+    Iterator<Entry<Key,Value>> iter = s.iterator();
+    Assert.assertTrue(iter.hasNext());
+    Entry<Key,Value> entry = iter.next();
+    Assert.assertEquals("Expected to find replication entry for " + table1, conn.tableOperations().tableIdMap().get(table1), entry.getKey().getColumnFamily().toString());
+    Assert.assertFalse(iter.hasNext());
+    s.close();
+
+    // Enable replication on table2
+    conn.tableOperations().setProperty(table2, Property.TABLE_REPLICATION.getKey(), "true");
+
+    // Write some data to table2
+    bw = conn.createBatchWriter(table2, new BatchWriterConfig());
+
+    for (int rows = 0; rows < 50; rows++) {
+      Mutation m = new Mutation(Integer.toString(rows));
+      for (int cols = 0; cols < 50; cols++) {
+        String value = Integer.toString(cols);
+        m.put(value, "", value);
+      }
+      bw.addMutation(m);
+    }
+
+    bw.close();
+
+    // Compact the table2
+    conn.tableOperations().compact(table2, null, null, true, true);
+
+    // After writing data, we'll get a replication table
+    Assert.assertTrue(conn.tableOperations().exists(ReplicationTable.NAME));
+    conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.READ);
+
+    Set<String> tableIds = Sets.newHashSet(conn.tableOperations().tableIdMap().get(table1), conn.tableOperations().tableIdMap().get(table2));
+
+    // Verify that we found two replication records: one for table1 and one for table2
+    s = ReplicationTable.getScanner(conn, new Authorizations());
+    iter = s.iterator();
+    Assert.assertTrue("Found no records in replication table", iter.hasNext());
+    entry = iter.next();
+    Assert.assertTrue("Expected to find element in replication table", tableIds.remove(entry.getKey().getColumnFamily().toString()));
+    Assert.assertTrue("Expected to find two elements in replication table, didn't find " + tableIds, iter.hasNext());
+    entry = iter.next();
+    Assert.assertTrue("Expected to find element in replication table", tableIds.remove(entry.getKey().getColumnFamily().toString()));
+    Assert.assertFalse("Expected to only find two elements in replication table", iter.hasNext());
   }
 }

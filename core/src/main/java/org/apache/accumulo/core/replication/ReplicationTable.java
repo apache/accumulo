@@ -18,8 +18,12 @@ package org.apache.accumulo.core.replication;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.log4j.Logger;
 
@@ -45,5 +49,9 @@ public class ReplicationTable {
       log.error("Retrying table creation in 1 second...");
       UtilWaitThread.sleep(1000);
     }
+  }
+
+  public static Scanner getScanner(Connector conn, Authorizations auths) throws TableNotFoundException {
+    return conn.createScanner(NAME, auths);
   }
 }

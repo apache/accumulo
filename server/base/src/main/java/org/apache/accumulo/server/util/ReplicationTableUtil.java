@@ -114,6 +114,9 @@ public class ReplicationTableUtil {
    * Write {@link ReplicationSection#getRowPrefix} entries for each provided file with the given {@link Status}.
    */
   public static void updateFiles(Credentials creds, KeyExtent extent, Collection<String> files, Status stat) {
+    if (log.isTraceEnabled()) {
+      log.trace("Updating replication for " + extent + " with " + files);
+    }
     // TODO could use batch writer, would need to handle failure and retry like update does - ACCUMULO-1294
     if (files.isEmpty()) {
       return;
@@ -127,7 +130,6 @@ public class ReplicationTableUtil {
   }
 
   protected static Mutation createUpdateMutation(String file, Value v, KeyExtent extent) {
-    log.info(file, new Exception());
     Mutation m = new Mutation(new Text(ReplicationSection.getRowPrefix() + file));
     m.put(extent.getTableId(), EMPTY_TEXT, v);
     return m;
