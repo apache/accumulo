@@ -369,7 +369,8 @@ public class DfsLogger {
 
       CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf.getConfiguration());
 
-      params.setPlaintextOutputStream(new NoFlushOutputStream(logFile));
+      NoFlushOutputStream nfos = new NoFlushOutputStream(logFile);
+      params.setPlaintextOutputStream(nfos);
 
       // In order to bootstrap the reading of this file later, we have to record the CryptoModule that was used to encipher it here,
       // so that that crypto module can re-read its own parameters.
@@ -381,9 +382,11 @@ public class DfsLogger {
 
       // If the module just kicks back our original stream, then just use it, don't wrap it in
       // another data OutputStream.
-      if (encipheringOutputStream == logFile) {
-        encryptingLogFile = logFile;
+      if (encipheringOutputStream == nfos) {
+        log.debug("No enciphering, using raw output stream");
+        encryptingLogFile = nfos;
       } else {
+        log.debug("Enciphering found, wrapping in DataOutputStream");
         encryptingLogFile = new DataOutputStream(encipheringOutputStream);
       }
 

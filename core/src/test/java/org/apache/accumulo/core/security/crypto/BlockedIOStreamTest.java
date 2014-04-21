@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.security.crypto;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayInputStream;
@@ -23,6 +24,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Random;
 
 import org.junit.Test;
@@ -70,49 +72,91 @@ public class BlockedIOStreamTest {
 
   @Test
   public void testSmallBufferBlockedIO() throws IOException {
-    writeRead(16, (12 + 4) * (int) (Math.ceil(25.0/12) + Math.ceil(31.0/12)));
+    writeRead(16, (12 + 4) * (int) (Math.ceil(25.0 / 12) + Math.ceil(31.0 / 12)));
   }
-  
+
   @Test
   public void testSpillingOverOutputStream() throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     // buffer will be size 12
     BlockedOutputStream blockOut = new BlockedOutputStream(baos, 16, 16);
     Random r = new Random(22);
-    
+
     byte[] undersized = new byte[11];
     byte[] perfectSized = new byte[12];
     byte[] overSized = new byte[13];
     byte[] perfectlyOversized = new byte[13];
     byte filler = (byte) r.nextInt();
-    
+
     r.nextBytes(undersized);
     r.nextBytes(perfectSized);
     r.nextBytes(overSized);
     r.nextBytes(perfectlyOversized);
-    
+
     // 1 block
     blockOut.write(undersized);
     blockOut.write(filler);
     blockOut.flush();
-    
+
     // 2 blocks
     blockOut.write(perfectSized);
     blockOut.write(filler);
     blockOut.flush();
-    
+
     // 2 blocks
     blockOut.write(overSized);
     blockOut.write(filler);
     blockOut.flush();
-    
+
     // 3 blocks
     blockOut.write(undersized);
     blockOut.write(perfectlyOversized);
     blockOut.write(filler);
     blockOut.flush();
-    
+
     blockOut.close();
-    assertEquals(16*8, baos.toByteArray().length);
+    assertEquals(16 * 8, baos.toByteArray().length);
   }
+
+  @Test
+  public void testGiantWrite() throws IOException {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    int blockSize = 16;
+    // buffer will be size 12
+    BlockedOutputStream blockOut = new BlockedOutputStream(baos, blockSize, blockSize);
+    Random r = new Random(22);
+
+    int size = 1024 * 1024 * 128;
+    byte[] giant = new byte[size];
+    byte[] pattern = new byte[1024];
+
+    r.nextBytes(pattern);
+
+    for (int i = 0; i < size / 1024; i++) {
+      System.arraycopy(pattern, 0, giant, i * 1024, 1024);
+    }
+
+    blockOut.write(giant);
+    blockOut.flush();
+
+    blockOut.close();
+    baos.close();
+
+    int blocks = (int) Math.ceil(size / (blockSize - 4.0));
+    byte[] byteStream = baos.toByteArray();
+
+    assertEquals(blocks * 16, byteStream.length);
+
+    DataInputStream blockIn = new DataInputStream(new BlockedInputStream(new ByteArrayInputStream(byteStream), blockSize, blockSize));
+    Arrays.fill(giant, (byte) 0);
+    blockIn.readFully(giant, 0, size);
+    blockIn.close();
+
+    for (int i = 0; i < size / 1024; i++) {
+      byte[] readChunk = new byte[1024];
+      System.arraycopy(giant, i * 1024, readChunk, 0, 1024);
+      assertArrayEquals(pattern, readChunk);
+    }
+  }
+
 }
