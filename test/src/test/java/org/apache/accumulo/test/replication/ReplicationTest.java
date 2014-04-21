@@ -18,6 +18,8 @@ package org.apache.accumulo.test.replication;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -40,17 +42,16 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 /**
  * 
  */
 public class ReplicationTest extends ConfigurableMacIT {
-  private static final Logger log = Logger.getLogger(ReplicationTest.class);
 
   @Override
   public int defaultTimeoutSeconds() {
@@ -75,24 +76,14 @@ public class ReplicationTest extends ConfigurableMacIT {
   public void readRootTable() throws Exception {
     Connector conn = getConnector();
     Scanner s = conn.createScanner(RootTable.NAME, new Authorizations());
-    int numRecords = 0;
-    for (Entry<Key,Value> entry : s) {
-      numRecords++;
-      System.out.println(entry.getKey().toStringNoTruncate() + " " + entry.getValue());
-    }
-    Assert.assertNotEquals(0, numRecords);
+    Assert.assertNotEquals(0, Iterables.size(s));
   }
 
   @Test
   public void readMetadataTable() throws Exception {
     Connector conn = getConnector();
     Scanner s = conn.createScanner(MetadataTable.NAME, new Authorizations());
-    int numRecords = 0;
-    for (Entry<Key,Value> entry : s) {
-      numRecords++;
-      System.out.println(entry.getKey().toStringNoTruncate() + " " + entry.getValue());
-    }
-    Assert.assertEquals(0, numRecords);
+    Assert.assertEquals(0, Iterables.size(s));
   }
 
   @Test
@@ -148,5 +139,54 @@ public class ReplicationTest extends ConfigurableMacIT {
 
     // This should be the same set of WALs that we also are using
     Assert.assertEquals(replRows, wals);
+  }
+
+  public void noRecordsWithoutReplication() throws Exception {
+    Connector conn = getConnector();
+    List<String> tables = new ArrayList<>();
+
+    // replication shouldn't exist when we begin
+    Assert.assertFalse(conn.tableOperations().exists(ReplicationTable.NAME));
+
+    for (int i = 0; i < 5; i++) {
+      String name = "table" + i;
+      tables.add(name);
+      conn.tableOperations().create(name);
+    }
+
+    // nor after we create some tables (that aren't being replicated)
+    Assert.assertFalse(conn.tableOperations().exists(ReplicationTable.NAME));
+
+    for (String table : tables) {
+      BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
+
+      for (int j = 0; j < 5; j++) {
+        Mutation m = new Mutation(Integer.toString(j));
+        for (int k = 0; k < 5; k++) {
+          String value = Integer.toString(k);
+          m.put(value, "", value);
+        }
+        bw.addMutation(m);
+      }
+
+      bw.close();
+    }
+
+    // After writing data, still no replication table
+    Assert.assertFalse(conn.tableOperations().exists(ReplicationTable.NAME));
+
+    for (String table : tables) {
+      conn.tableOperations().compact(table, null, null, true, true);
+    }
+
+    // After compacting data, still no replication table
+    Assert.assertFalse(conn.tableOperations().exists(ReplicationTable.NAME));
+
+    for (String table : tables) {
+      conn.tableOperations().delete(table);
+    }
+
+    // After deleting tables, still no replication table
+    Assert.assertFalse(conn.tableOperations().exists(ReplicationTable.NAME));
   }
 }
