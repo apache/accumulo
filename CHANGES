@@ -469,6 +469,7 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-2682] - README has duplicate synconclose paragraphs
     * [ACCUMULO-2686] - MiniAccumuloClusterImpl should be since 1.6.0
     * [ACCUMULO-2690] - DfsLogger outputstream short circuiting is never satisfied.
+    * [ACCUMULO-2695] - Failure while running conditional RW test w/ agitation
     * [ACCUMULO-2700] - SecurityOperation.authenticateSystemUser fails to properly validate system user
 
 ** Improvement
