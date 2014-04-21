@@ -452,6 +452,18 @@
     <pluginManagement>
       <plugins>
         <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>findbugs-maven-plugin</artifactId>
+          <version>2.5.3</version>
+          <configuration>
+            <xmlOutput>true</xmlOutput>
+            <effort>Max</effort>
+            <failOnError>true</failOnError>
+            <includeTests>true</includeTests>
+            <maxRank>1</maxRank>
+          </configuration>
+        </plugin>
+        <plugin>
           <groupId>com.google.code.sortpom</groupId>
           <artifactId>maven-sortpom-plugin</artifactId>
           <version>2.3.0</version>
@@ -810,6 +822,18 @@
             <goals>
               <goal>integration-test</goal>
               <goal>verify</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>findbugs-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>run-findbugs</id>
+            <goals>
+              <goal>check</goal>
             </goals>
           </execution>
         </executions>
