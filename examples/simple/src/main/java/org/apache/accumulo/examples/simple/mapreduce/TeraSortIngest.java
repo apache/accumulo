@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import org.apache.accumulo.core.cli.ClientOnRequiredTable;
+import org.apache.accumulo.core.cli.MapReduceClientOnRequiredTable;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
 import org.apache.accumulo.core.data.Mutation;
@@ -351,7 +351,7 @@ public class TeraSortIngest extends Configured implements Tool {
     ToolRunner.run(new Configuration(), new TeraSortIngest(), args);
   }
 
-  static class Opts extends ClientOnRequiredTable {
+  static class Opts extends MapReduceClientOnRequiredTable {
     @Parameter(names = "--count", description = "number of rows to ingest", required = true)
     long numRows;
     @Parameter(names = {"-nk", "--minKeySize"}, description = "miniumum key size", required = true)
@@ -392,7 +392,7 @@ public class TeraSortIngest extends Configured implements Tool {
     conf.setInt("cloudgen.maxkeylength", opts.maxKeyLength);
     conf.setInt("cloudgen.minvaluelength", opts.minValueLength);
     conf.setInt("cloudgen.maxvaluelength", opts.maxValueLength);
-    conf.set("cloudgen.tablename", opts.tableName);
+    conf.set("cloudgen.tablename", opts.getTableName());
 
     if (args.length > 10)
       conf.setInt(NUMSPLITS, opts.splits);

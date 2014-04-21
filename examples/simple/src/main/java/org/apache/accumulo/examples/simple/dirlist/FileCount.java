@@ -246,9 +246,9 @@ public class FileCount {
     inserts = 0;
     
     Connector conn = opts.getConnector();
-    Scanner scanner = conn.createScanner(opts.tableName, opts.auths);
+    Scanner scanner = conn.createScanner(opts.getTableName(), opts.auths);
     scanner.setBatchSize(scanOpts.scanBatchSize);
-    BatchWriter bw = conn.createBatchWriter(opts.tableName, bwOpts.getBatchWriterConfig());
+    BatchWriter bw = conn.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());
     
     long t1 = System.currentTimeMillis();
     

@@ -62,7 +62,7 @@ public class BulkImportDirectory {
       opts.parseArgs(BulkImportDirectory.class.getName(), args);
       fs.delete(new Path(opts.failures), true);
       fs.mkdirs(new Path(opts.failures));
-      opts.getConnector().tableOperations().importDirectory(opts.tableName, opts.source, opts.failures, false);
+      opts.getConnector().tableOperations().importDirectory(opts.getTableName(), opts.source, opts.failures, false);
     }
   }
 }

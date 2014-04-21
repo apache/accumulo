@@ -50,7 +50,7 @@ public class FateStarvationIT extends SimpleMacIT {
     opts.dataSize = 50;
     opts.rows = 100000;
     opts.cols = 1;
-    opts.tableName = tableName;
+    opts.setTableName(tableName);
     TestIngest.ingest(c, opts, new BatchWriterOpts());
 
     c.tableOperations().flush(tableName, null, null, true);

@@ -85,7 +85,7 @@ public class TestBinaryRows {
     final Text CF = new Text("cf"), CQ = new Text("cq");
     final byte[] CF_BYTES = "cf".getBytes(StandardCharsets.UTF_8), CQ_BYTES = "cq".getBytes(StandardCharsets.UTF_8);
     if (opts.mode.equals("ingest") || opts.mode.equals("delete")) {
-      BatchWriter bw = connector.createBatchWriter(opts.tableName, bwOpts.getBatchWriterConfig());
+      BatchWriter bw = connector.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());
       boolean delete = opts.mode.equals("delete");
       
       for (long i = 0; i < opts.num; i++) {
@@ -103,7 +103,7 @@ public class TestBinaryRows {
       
       bw.close();
     } else if (opts.mode.equals("verifyDeleted")) {
-      Scanner s = connector.createScanner(opts.tableName, opts.auths);
+      Scanner s = connector.createScanner(opts.getTableName(), opts.auths);
       s.setBatchSize(scanOpts.scanBatchSize);
       Key startKey = new Key(encodeLong(opts.start), CF_BYTES, CQ_BYTES, new byte[0], Long.MAX_VALUE);
       Key stopKey = new Key(encodeLong(opts.start + opts.num - 1), CF_BYTES, CQ_BYTES, new byte[0], 0);
@@ -117,7 +117,7 @@ public class TestBinaryRows {
     } else if (opts.mode.equals("verify")) {
       long t1 = System.currentTimeMillis();
       
-      Scanner s = connector.createScanner(opts.tableName, opts.auths);
+      Scanner s = connector.createScanner(opts.getTableName(), opts.auths);
       Key startKey = new Key(encodeLong(opts.start), CF_BYTES, CQ_BYTES, new byte[0], Long.MAX_VALUE);
       Key stopKey = new Key(encodeLong(opts.start + opts.num - 1), CF_BYTES, CQ_BYTES, new byte[0], 0);
       s.setBatchSize(scanOpts.scanBatchSize);
@@ -153,7 +153,7 @@ public class TestBinaryRows {
       for (int i = 0; i < numLookups; i++) {
         long row = ((r.nextLong() & 0x7fffffffffffffffl) % opts.num) + opts.start;
         
-        Scanner s = connector.createScanner(opts.tableName, opts.auths);
+        Scanner s = connector.createScanner(opts.getTableName(), opts.auths);
         s.setBatchSize(scanOpts.scanBatchSize);
         Key startKey = new Key(encodeLong(row), CF_BYTES, CQ_BYTES, new byte[0], Long.MAX_VALUE);
         Key stopKey = new Key(encodeLong(row), CF_BYTES, CQ_BYTES, new byte[0], 0);
@@ -195,8 +195,8 @@ public class TestBinaryRows {
         System.out.printf("added split point 0x%016x  %,12d%n", splitPoint, splitPoint);
       }
       
-      connector.tableOperations().create(opts.tableName);
-      connector.tableOperations().addSplits(opts.tableName, splits);
+      connector.tableOperations().create(opts.getTableName());
+      connector.tableOperations().addSplits(opts.getTableName(), splits);
       
     } else {
       throw new Exception("ERROR : " + opts.mode + " is not a valid operation.");

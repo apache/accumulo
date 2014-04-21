@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
 
-import org.apache.accumulo.core.cli.ClientOnRequiredTable;
+import org.apache.accumulo.core.cli.MapReduceClientOnRequiredTable;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.mapreduce.AccumuloFileOutputFormat;
 import org.apache.accumulo.core.client.mapreduce.lib.partition.RangePartitioner;
@@ -94,7 +94,7 @@ public class BulkIngestExample extends Configured implements Tool {
     }
   }
 
-  static class Opts extends ClientOnRequiredTable {
+  static class Opts extends MapReduceClientOnRequiredTable {
     @Parameter(names = "--inputDir", required = true)
     String inputDir;
     @Parameter(names = "--workDir", required = true)
@@ -131,7 +131,7 @@ public class BulkIngestExample extends Configured implements Tool {
       FileSystem fs = FileSystem.get(conf);
       out = new PrintStream(new BufferedOutputStream(fs.create(new Path(opts.workDir + "/splits.txt"))));
 
-      Collection<Text> splits = connector.tableOperations().listSplits(opts.tableName, 100);
+      Collection<Text> splits = connector.tableOperations().listSplits(opts.getTableName(), 100);
       for (Text split : splits)
         out.println(new String(Base64.encodeBase64(TextUtil.getBytes(split))));
 
@@ -145,7 +145,7 @@ public class BulkIngestExample extends Configured implements Tool {
       Path failures = new Path(opts.workDir, "failures");
       fs.delete(failures, true);
       fs.mkdirs(new Path(opts.workDir, "failures"));
-      connector.tableOperations().importDirectory(opts.tableName, opts.workDir + "/files", opts.workDir + "/failures", false);
+      connector.tableOperations().importDirectory(opts.getTableName(), opts.workDir + "/files", opts.workDir + "/failures", false);
 
     } catch (Exception e) {
       throw new RuntimeException(e);

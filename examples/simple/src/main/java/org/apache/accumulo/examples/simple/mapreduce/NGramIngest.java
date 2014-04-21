@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.cli.ClientOnRequiredTable;
+import org.apache.accumulo.core.cli.MapReduceClientOnRequiredTable;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -45,7 +45,7 @@ public class NGramIngest extends Configured implements Tool {
 
   private static final Logger log = Logger.getLogger(NGramIngest.class);
 
-  static class Opts extends ClientOnRequiredTable {
+  static class Opts extends MapReduceClientOnRequiredTable {
     @Parameter(names = "--input", required = true)
     String inputDirectory;
   }
@@ -83,9 +83,9 @@ public class NGramIngest extends Configured implements Tool {
     job.setNumReduceTasks(0);
     job.setSpeculativeExecution(false);
 
-    if (!opts.getConnector().tableOperations().exists(opts.tableName)) {
-      log.info("Creating table " + opts.tableName);
-      opts.getConnector().tableOperations().create(opts.tableName);
+    if (!opts.getConnector().tableOperations().exists(opts.getTableName())) {
+      log.info("Creating table " + opts.getTableName());
+      opts.getConnector().tableOperations().create(opts.getTableName());
       SortedSet<Text> splits = new TreeSet<Text>();
       String numbers[] = "1 2 3 4 5 6 7 8 9".split("\\s");
       String lower[] = "a b c d e f g h i j k l m n o p q r s t u v w x y z".split("\\s");
@@ -95,7 +95,7 @@ public class NGramIngest extends Configured implements Tool {
           splits.add(new Text(s));
         }
       }
-      opts.getConnector().tableOperations().addSplits(opts.tableName, splits);
+      opts.getConnector().tableOperations().addSplits(opts.getTableName(), splits);
     }
 
     TextInputFormat.addInputPath(job, new Path(opts.inputDirectory));

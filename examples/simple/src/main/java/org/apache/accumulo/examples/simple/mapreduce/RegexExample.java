@@ -18,7 +18,7 @@ package org.apache.accumulo.examples.simple.mapreduce;
 
 import java.io.IOException;
 
-import org.apache.accumulo.core.cli.ClientOnRequiredTable;
+import org.apache.accumulo.core.cli.MapReduceClientOnRequiredTable;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.data.Key;
@@ -43,7 +43,7 @@ public class RegexExample extends Configured implements Tool {
     }
   }
 
-  static class Opts extends ClientOnRequiredTable {
+  static class Opts extends MapReduceClientOnRequiredTable {
     @Parameter(names = "--rowRegex")
     String rowRegex;
     @Parameter(names = "--columnFamilyRegex")

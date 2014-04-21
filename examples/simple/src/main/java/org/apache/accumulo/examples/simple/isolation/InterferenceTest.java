@@ -160,16 +160,16 @@ public class InterferenceTest {
       opts.iterations = Long.MAX_VALUE;
     
     Connector conn = opts.getConnector();
-    if (!conn.tableOperations().exists(opts.tableName))
-      conn.tableOperations().create(opts.tableName);
+    if (!conn.tableOperations().exists(opts.getTableName()))
+      conn.tableOperations().create(opts.getTableName());
     
-    Thread writer = new Thread(new Writer(conn.createBatchWriter(opts.tableName, bwOpts.getBatchWriterConfig()), opts.iterations));
+    Thread writer = new Thread(new Writer(conn.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig()), opts.iterations));
     writer.start();
     Reader r;
     if (opts.isolated)
-      r = new Reader(new IsolatedScanner(conn.createScanner(opts.tableName, opts.auths)));
+      r = new Reader(new IsolatedScanner(conn.createScanner(opts.getTableName(), opts.auths)));
     else
-      r = new Reader(conn.createScanner(opts.tableName, opts.auths));
+      r = new Reader(conn.createScanner(opts.getTableName(), opts.auths));
     Thread reader;
     reader = new Thread(r);
     reader.start();

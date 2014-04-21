@@ -105,7 +105,7 @@ public class Index {
     
     String splitRegex = "\\W+";
     
-    BatchWriter bw = opts.getConnector().createBatchWriter(opts.tableName, bwOpts.getBatchWriterConfig());    
+    BatchWriter bw = opts.getConnector().createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());
     for (String filename : opts.files) {
       index(opts.partitions, new File(filename), splitRegex, bw);
     }

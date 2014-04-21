@@ -14,24 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.examples.simple.client;
+package org.apache.accumulo.core.cli;
 
-import org.apache.accumulo.core.cli.ClientOnRequiredTable;
-import org.apache.accumulo.core.client.Connector;
+import static org.junit.Assert.assertEquals;
 
-/**
- * Simple example for using tableOperations() (like create, delete, flush, etc).
- */
-public class Flush {
-  
-  public static void main(String[] args) {
-    ClientOnRequiredTable opts = new ClientOnRequiredTable();
-    opts.parseArgs(Flush.class.getName(), args);
-    try {
-      Connector connector = opts.getConnector();
-      connector.tableOperations().flush(opts.getTableName(), null, null, true);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+import org.junit.Before;
+import org.junit.Test;
+
+public class ClientOnDefaultTableTest {
+
+  ClientOnDefaultTable client;
+
+  @Before
+  public void setUp() {
+    client = new ClientOnDefaultTable("test");
+  }
+
+  @Test
+  public void testDefaultTable() {
+    assertEquals("test", client.getTableName());
+  }
+
+  @Test
+  public void testNonDefaultTable() {
+    client.parseArgs("program", new String[] {"--table", "other"});
+    assertEquals("other", client.getTableName());
   }
 }

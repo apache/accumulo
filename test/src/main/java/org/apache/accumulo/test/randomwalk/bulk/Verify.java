@@ -105,7 +105,7 @@ public class Verify extends Test {
   public static void main(String args[]) throws Exception {
     ClientOnRequiredTable opts = new ClientOnRequiredTable();
     opts.parseArgs(Verify.class.getName(), args);
-    Scanner scanner = opts.getConnector().createScanner(opts.tableName, opts.auths);
+    Scanner scanner = opts.getConnector().createScanner(opts.getTableName(), opts.auths);
     scanner.fetchColumnFamily(BulkPlusOne.CHECK_COLUMN_FAMILY);
     Text startBadRow = null;
     Text lastBadRow = null;

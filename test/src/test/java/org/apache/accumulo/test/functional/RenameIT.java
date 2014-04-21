@@ -39,17 +39,17 @@ public class RenameIT extends SimpleMacIT {
     ScannerOpts scanOpts = new ScannerOpts();
     TestIngest.Opts opts = new TestIngest.Opts();
     opts.createTable = true;
-    opts.tableName = name1;
+    opts.setTableName(name1);
     Connector c = getConnector();
     TestIngest.ingest(c, opts, bwOpts);
     c.tableOperations().rename(name1, name2);
     TestIngest.ingest(c, opts, bwOpts);
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-    vopts.tableName = name2;
+    vopts.setTableName(name2);
     VerifyIngest.verifyIngest(c, vopts, scanOpts);
     c.tableOperations().delete(name1);
     c.tableOperations().rename(name2, name1);
-    vopts.tableName = name1;
+    vopts.setTableName(name1);
     VerifyIngest.verifyIngest(c, vopts, scanOpts);
   }
 

@@ -30,7 +30,7 @@ import java.util.zip.Checksum;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.cli.ClientOnDefaultTable;
+import org.apache.accumulo.core.cli.MapReduceClientOnDefaultTable;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -56,7 +56,7 @@ import com.beust.jcommander.Parameter;
 
 public class ContinuousIngest {
   
-  static public class BaseOpts extends ClientOnDefaultTable {
+  static public class BaseOpts extends MapReduceClientOnDefaultTable {
     public class DebugConverter implements IStringConverter<String> {
       @Override
       public String convert(String debugLog) {

@@ -14,24 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.examples.simple.client;
+package org.apache.accumulo.core.cli;
 
-import org.apache.accumulo.core.cli.ClientOnRequiredTable;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
+import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
+import org.apache.hadoop.mapreduce.Job;
 
 /**
- * Simple example for using tableOperations() (like create, delete, flush, etc).
+ * Adds some MR awareness to the ClientOpts
  */
-public class Flush {
-  
-  public static void main(String[] args) {
-    ClientOnRequiredTable opts = new ClientOnRequiredTable();
-    opts.parseArgs(Flush.class.getName(), args);
-    try {
-      Connector connector = opts.getConnector();
-      connector.tableOperations().flush(opts.getTableName(), null, null, true);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+public class MapReduceClientOpts extends ClientOpts {
+  public void setAccumuloConfigs(Job job) throws AccumuloSecurityException {
+    AccumuloInputFormat.setZooKeeperInstance(job, this.getClientConfiguration());
+    AccumuloOutputFormat.setZooKeeperInstance(job, this.getClientConfiguration());
   }
 }

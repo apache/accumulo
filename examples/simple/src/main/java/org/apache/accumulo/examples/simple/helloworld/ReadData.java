@@ -55,7 +55,7 @@ public class ReadData {
     
     Connector connector = opts.getConnector();
     
-    Scanner scan = connector.createScanner(opts.tableName, opts.auths);
+    Scanner scan = connector.createScanner(opts.getTableName(), opts.auths);
     scan.setBatchSize(scanOpts.scanBatchSize);
     Key start = null;
     if (opts.startKey != null)
