@@ -146,6 +146,7 @@ public class ReplicationTest extends ConfigurableMacIT {
     Assert.assertEquals(replRows, wals);
   }
 
+  @Test
   public void noRecordsWithoutReplication() throws Exception {
     Connector conn = getConnector();
     List<String> tables = new ArrayList<>();
