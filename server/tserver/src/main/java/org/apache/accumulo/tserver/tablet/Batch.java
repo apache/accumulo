@@ -20,16 +20,32 @@ import java.util.List;
 
 import org.apache.accumulo.core.data.Key;
 
-class Batch {
-  final boolean skipContinueKey;
-  final List<KVEntry> results;
-  final Key continueKey;
-  final long numBytes;
+final class Batch {
+  private final boolean skipContinueKey;
+  private final List<KVEntry> results;
+  private final Key continueKey;
+  private final long numBytes;
   
   Batch(boolean skipContinueKey, List<KVEntry> results, Key continueKey, long numBytes) {
     this.skipContinueKey = skipContinueKey;
     this.results = results;
     this.continueKey = continueKey;
     this.numBytes = numBytes;
+  }
+
+  public boolean isSkipContinueKey() {
+    return skipContinueKey;
+  }
+
+  public List<KVEntry> getResults() {
+    return results;
+  }
+
+  public Key getContinueKey() {
+    return continueKey;
+  }
+
+  public long getNumBytes() {
+    return numBytes;
   }
 }

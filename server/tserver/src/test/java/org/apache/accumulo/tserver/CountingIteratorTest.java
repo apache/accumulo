@@ -26,7 +26,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
-import org.apache.accumulo.tserver.tablet.Compactor.CountingIterator;
 import org.junit.Assert;
 import org.junit.Test;
 

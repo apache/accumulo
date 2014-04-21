@@ -1303,7 +1303,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         throw new RuntimeException(t);
       }
 
-      ScanResult scanResult = new ScanResult(Key.compress(bresult.results), bresult.more);
+      ScanResult scanResult = new ScanResult(Key.compress(bresult.getResults()), bresult.isMore());
 
       scanSession.entriesReturned += scanResult.results.size();
 
@@ -1859,7 +1859,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
           Value val = null;
 
-          for (KVEntry entry2 : batch.results) {
+          for (KVEntry entry2 : batch.getResults()) {
             val = entry2.getValue();
             break;
           }

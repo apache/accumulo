@@ -18,7 +18,7 @@ package org.apache.accumulo.tserver.tablet;
 
 import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
 
-class CompactionRunner implements Runnable, Comparable<CompactionRunner> {
+final class CompactionRunner implements Runnable, Comparable<CompactionRunner> {
 
   private final Tablet tablet;
   private final MajorCompactionReason reason;

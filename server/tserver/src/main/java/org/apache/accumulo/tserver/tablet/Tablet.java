@@ -255,7 +255,7 @@ public class Tablet implements TabletCommitter {
   }
 
   public Tablet(TabletServer tabletServer, KeyExtent extent, TabletResourceManager trm, SplitInfo info) throws IOException {
-    this(tabletServer, new Text(info.dir), extent, trm, info.datafiles, info.time, info.initFlushID, info.initCompactID, info.lastLocation);
+    this(tabletServer, new Text(info.getDir()), extent, trm, info.getDatafiles(), info.getTime(), info.getInitFlushID(), info.getInitCompactID(), info.getLastLocation());
     splitCreationTime = System.currentTimeMillis();
   }
 
@@ -2539,7 +2539,7 @@ public class Tablet implements TabletCommitter {
     minorCompactionWaitingToStart = true;
   }
 
-  public void minorCompacationStarted() {
+  public void minorCompactionStarted() {
     minorCompactionWaitingToStart = false;
     minorCompactionInProgress = true;
   }

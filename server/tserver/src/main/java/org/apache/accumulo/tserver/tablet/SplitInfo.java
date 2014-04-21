@@ -32,13 +32,13 @@ import org.apache.accumulo.server.master.state.TServerInstance;
  * 
  */
 
-public class SplitInfo {
-  final String dir;
-  final SortedMap<FileRef,DataFileValue> datafiles;
-  final String time;
-  final long initFlushID;
-  final long initCompactID;
-  final TServerInstance lastLocation;
+final public class SplitInfo {
+  private final String dir;
+  private final SortedMap<FileRef,DataFileValue> datafiles;
+  private final String time;
+  private final long initFlushID;
+  private final long initCompactID;
+  private final TServerInstance lastLocation;
 
   SplitInfo(String d, SortedMap<FileRef,DataFileValue> dfv, String time, long initFlushID, long initCompactID, TServerInstance lastLocation) {
     this.dir = d;
@@ -47,6 +47,30 @@ public class SplitInfo {
     this.initFlushID = initFlushID;
     this.initCompactID = initCompactID;
     this.lastLocation = lastLocation;
+  }
+
+  public String getDir() {
+    return dir;
+  }
+
+  public SortedMap<FileRef,DataFileValue> getDatafiles() {
+    return datafiles;
+  }
+
+  public String getTime() {
+    return time;
+  }
+
+  public long getInitFlushID() {
+    return initFlushID;
+  }
+
+  public long getInitCompactID() {
+    return initCompactID;
+  }
+
+  public TServerInstance getLastLocation() {
+    return lastLocation;
   }
 
 }

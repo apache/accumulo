@@ -40,11 +40,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
-import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.iterators.system.DeletingIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
@@ -60,6 +58,7 @@ import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
+import org.apache.accumulo.tserver.CountingIterator;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.MinorCompactionReason;
 import org.apache.accumulo.tserver.TabletIteratorEnvironment;
@@ -70,57 +69,6 @@ import org.apache.log4j.Logger;
 public class Compactor implements Callable<CompactionStats> {
   private static final Logger log = Logger.getLogger(Compactor.class);
   private static final AtomicLong nextCompactorID = new AtomicLong(0);
-
-  public static class CountingIterator extends WrappingIterator {
-
-    private long count;
-    private final ArrayList<CountingIterator> deepCopies;
-    private final AtomicLong entriesRead;
-
-    @Override
-    public CountingIterator deepCopy(IteratorEnvironment env) {
-      return new CountingIterator(this, env);
-    }
-
-    private CountingIterator(CountingIterator other, IteratorEnvironment env) {
-      setSource(other.getSource().deepCopy(env));
-      count = 0;
-      this.deepCopies = other.deepCopies;
-      this.entriesRead = other.entriesRead;
-      deepCopies.add(this);
-    }
-
-    public CountingIterator(SortedKeyValueIterator<Key,Value> source, AtomicLong entriesRead) {
-      deepCopies = new ArrayList<Compactor.CountingIterator>();
-      this.setSource(source);
-      count = 0;
-      this.entriesRead = entriesRead;
-    }
-
-    @Override
-    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void next() throws IOException {
-      super.next();
-      count++;
-      if (count % 1024 == 0) {
-        entriesRead.addAndGet(1024);
-      }
-    }
-
-    public long getCount() {
-      long sum = 0;
-      for (CountingIterator dc : deepCopies) {
-        sum += dc.count;
-      }
-
-      return count + sum;
-    }
-  }
-
 
   public static class CompactionCanceledException extends Exception {
     private static final long serialVersionUID = 1L;

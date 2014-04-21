@@ -76,7 +76,7 @@ class ScanDataSource implements DataSource {
     this.tablet = tablet;
     expectedDeletionCount = tablet.getDataSourceDeletions();
     this.options = options;
-    this.interruptFlag = options.interruptFlag;
+    this.interruptFlag = options.getInterruptFlag();
   }
 
   @Override
@@ -147,7 +147,7 @@ class ScanDataSource implements DataSource {
       files = reservation.getSecond();
     }
 
-    Collection<InterruptibleIterator> mapfiles = fileManager.openFiles(files, options.isolated);
+    Collection<InterruptibleIterator> mapfiles = fileManager.openFiles(files, options.isIsolated());
 
     List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<SortedKeyValueIterator<Key,Value>>(mapfiles.size() + memIters.size());
 
@@ -167,12 +167,12 @@ class ScanDataSource implements DataSource {
 
     ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);
 
-    ColumnQualifierFilter colFilter = new ColumnQualifierFilter(cfsi, options.columnSet);
+    ColumnQualifierFilter colFilter = new ColumnQualifierFilter(cfsi, options.getColumnSet());
 
-    VisibilityFilter visFilter = new VisibilityFilter(colFilter, options.authorizations, options.defaultLabels);
+    VisibilityFilter visFilter = new VisibilityFilter(colFilter, options.getAuthorizations(), options.getDefaultLabels());
 
     return iterEnv.getTopLevelIterator(IteratorUtil
-        .loadIterators(IteratorScope.scan, visFilter, tablet.getExtent(), tablet.getTableConfiguration(), options.ssiList, options.ssio, iterEnv));
+        .loadIterators(IteratorScope.scan, visFilter, tablet.getExtent(), tablet.getTableConfiguration(), options.getSsiList(), options.getSsio(), iterEnv));
   }
 
   void close(boolean sawErrors) {

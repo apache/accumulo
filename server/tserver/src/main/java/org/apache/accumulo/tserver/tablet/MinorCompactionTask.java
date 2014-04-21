@@ -24,8 +24,11 @@ import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.accumulo.tserver.MinorCompactionReason;
 import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
+import org.apache.log4j.Logger;
 
 class MinorCompactionTask implements Runnable {
+
+  private static Logger log = Logger.getLogger(MinorCompactionTask.class);
 
   private final Tablet tablet;
   private long queued;
@@ -47,7 +50,7 @@ class MinorCompactionTask implements Runnable {
 
   @Override
   public void run() {
-    tablet.isMinorCompactionRunning();
+    tablet.minorCompactionStarted();
     Span minorCompaction = Trace.on("minorCompaction");
     try {
       FileRef newMapfileLocation = tablet.getNextMapFilename(mergeFile == null ? "F" : "M");
@@ -68,7 +71,7 @@ class MinorCompactionTask implements Runnable {
           tablet.getTabletServer().minorCompactionStarted(commitSession, commitSession.getWALogSeq() + 1, newMapfileLocation.path().toString());
           break;
         } catch (IOException e) {
-          Tablet.log.warn("Failed to write to write ahead log " + e.getMessage(), e);
+          log.warn("Failed to write to write ahead log " + e.getMessage(), e);
         }
       }
       span.stop();
@@ -83,7 +86,7 @@ class MinorCompactionTask implements Runnable {
         tablet.initiateMajorCompaction(MajorCompactionReason.NORMAL);
       }
     } catch (Throwable t) {
-      Tablet.log.error("Unknown error during minor compaction for extent: " + tablet.getExtent(), t);
+      log.error("Unknown error during minor compaction for extent: " + tablet.getExtent(), t);
       throw new RuntimeException(t);
     } finally {
       tablet.minorCompactionComplete();

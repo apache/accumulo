@@ -56,7 +56,7 @@ public class Scanner {
 
     ScanDataSource dataSource;
 
-    if (options.isolated) {
+    if (options.isIsolated()) {
       if (isolatedDataSource == null)
         isolatedDataSource = new ScanDataSource(tablet, options);
       dataSource = isolatedDataSource;
@@ -68,7 +68,7 @@ public class Scanner {
 
       SortedKeyValueIterator<Key,Value> iter;
 
-      if (options.isolated) {
+      if (options.isIsolated()) {
         if (isolatedIter == null)
           isolatedIter = new SourceSwitchingIterator(dataSource, true);
         else
@@ -78,16 +78,16 @@ public class Scanner {
         iter = new SourceSwitchingIterator(dataSource, false);
       }
 
-      results = tablet.nextBatch(iter, range, options.num, options.columnSet);
+      results = tablet.nextBatch(iter, range, options.getNum(), options.getColumnSet());
 
-      if (results.results == null) {
+      if (results.getResults() == null) {
         range = null;
         return new ScanBatch(new ArrayList<KVEntry>(), false);
-      } else if (results.continueKey == null) {
-        return new ScanBatch(results.results, false);
+      } else if (results.getContinueKey() == null) {
+        return new ScanBatch(results.getResults(), false);
       } else {
-        range = new Range(results.continueKey, !results.skipContinueKey, range.getEndKey(), range.isEndKeyInclusive());
-        return new ScanBatch(results.results, true);
+        range = new Range(results.getContinueKey(), !results.isSkipContinueKey(), range.getEndKey(), range.isEndKeyInclusive());
+        return new ScanBatch(results.getResults(), true);
       }
 
     } catch (IterationInterruptedException iie) {
@@ -111,13 +111,14 @@ public class Scanner {
     } finally {
       // code in finally block because always want
       // to return mapfiles, even when exception is thrown
-      if (!options.isolated)
+      if (!options.isIsolated()) {
         dataSource.close(false);
-      else 
+      } else { 
         dataSource.detachFileManager();
+      }
       
-      if (results != null && results.results != null)
-        tablet.updateQueryStats(results.results.size(), results.numBytes);
+      if (results != null && results.getResults() != null)
+        tablet.updateQueryStats(results.getResults().size(), results.getNumBytes());
     }
   }
 
@@ -125,7 +126,7 @@ public class Scanner {
   // this could lead to the case where file iterators that are in use by a thread are returned
   // to the pool... this would be bad
   public void close() {
-    options.interruptFlag.set(true);
+    options.getInterruptFlag().set(true);
     synchronized (this) {
       scanClosed = true;
       if (isolatedDataSource != null)

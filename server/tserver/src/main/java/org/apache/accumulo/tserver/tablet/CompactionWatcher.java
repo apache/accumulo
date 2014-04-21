@@ -51,6 +51,7 @@ public class CompactionWatcher implements Runnable {
     this.config = config;
   }
 
+  @Override
   public void run() {
     List<CompactionInfo> runningCompactions = Compactor.getRunningCompactions();
     

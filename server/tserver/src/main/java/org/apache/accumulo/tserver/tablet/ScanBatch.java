@@ -18,12 +18,20 @@ package org.apache.accumulo.tserver.tablet;
 
 import java.util.List;
 
-public class ScanBatch {
-  public final boolean more;
-  public final List<KVEntry> results;
+final public class ScanBatch {
+  private final boolean more;
+  private final List<KVEntry> results;
 
   ScanBatch(List<KVEntry> results, boolean more) {
     this.results = results;
     this.more = more;
+  }
+
+  public boolean isMore() {
+    return more;
+  }
+
+  public List<KVEntry> getResults() {
+    return results;
   }
 }
