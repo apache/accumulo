@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.tserver;
+package org.apache.accumulo.tserver.tablet;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -26,15 +26,14 @@ import java.util.Set;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.util.time.SimpleTimer;
-import org.apache.accumulo.tserver.Compactor.CompactionInfo;
 import org.apache.log4j.Logger;
 
 /**
  * 
  */
 public class CompactionWatcher implements Runnable {
-  private Map<List<Long>,ObservedCompactionInfo> observedCompactions = new HashMap<List<Long>,ObservedCompactionInfo>();
-  private AccumuloConfiguration config;
+  private final Map<List<Long>,ObservedCompactionInfo> observedCompactions = new HashMap<List<Long>,ObservedCompactionInfo>();
+  private final AccumuloConfiguration config;
   private static boolean watching = false;
   
   private static class ObservedCompactionInfo {

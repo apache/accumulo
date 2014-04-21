@@ -195,17 +195,7 @@ import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.accumulo.trace.instrument.thrift.TraceWrap;
 import org.apache.accumulo.trace.thrift.TInfo;
-import org.apache.accumulo.tserver.Compactor.CompactionInfo;
 import org.apache.accumulo.tserver.RowLocks.RowLock;
-import org.apache.accumulo.tserver.Tablet.CommitSession;
-import org.apache.accumulo.tserver.Tablet.KVEntry;
-import org.apache.accumulo.tserver.Tablet.LookupResult;
-import org.apache.accumulo.tserver.Tablet.MinorCompactionReason;
-import org.apache.accumulo.tserver.Tablet.ScanBatch;
-import org.apache.accumulo.tserver.Tablet.Scanner;
-import org.apache.accumulo.tserver.Tablet.SplitInfo;
-import org.apache.accumulo.tserver.Tablet.TConstraintViolationException;
-import org.apache.accumulo.tserver.Tablet.TabletClosedException;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
 import org.apache.accumulo.tserver.TabletStatsKeeper.Operation;
 import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
@@ -221,6 +211,17 @@ import org.apache.accumulo.tserver.metrics.TabletServerMBean;
 import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerUpdateMetrics;
+import org.apache.accumulo.tserver.tablet.CommitSession;
+import org.apache.accumulo.tserver.tablet.CompactionInfo;
+import org.apache.accumulo.tserver.tablet.CompactionWatcher;
+import org.apache.accumulo.tserver.tablet.Compactor;
+import org.apache.accumulo.tserver.tablet.KVEntry;
+import org.apache.accumulo.tserver.tablet.Tablet.LookupResult;
+import org.apache.accumulo.tserver.tablet.ScanBatch;
+import org.apache.accumulo.tserver.tablet.Scanner;
+import org.apache.accumulo.tserver.tablet.SplitInfo;
+import org.apache.accumulo.tserver.tablet.Tablet;
+import org.apache.accumulo.tserver.tablet.TabletClosedException;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.fs.FSError;
 import org.apache.hadoop.fs.FileSystem;
@@ -252,7 +253,10 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
   private TabletServerLogger logger;
 
-  protected TabletServerMinCMetrics mincMetrics = new TabletServerMinCMetrics();
+  protected final TabletServerMinCMetrics mincMetrics = new TabletServerMinCMetrics();
+  public TabletServerMinCMetrics getMinCMetrics() {
+    return mincMetrics;
+  }
 
   private ServerConfiguration serverConfig;
   private LogSorter logSorter = null;
@@ -629,7 +633,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
   }
 
-  static class TservConstraintEnv implements Environment {
+  public static class TservConstraintEnv implements Environment {
 
     private TCredentials credentials;
     private SecurityOperation security;
@@ -641,7 +645,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       this.credentials = credentials;
     }
 
-    void setExtent(KeyExtent ke) {
+    public void setExtent(KeyExtent ke) {
       this.ke = ke;
     }
 
@@ -1659,16 +1663,16 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
             commitSession.commit(mutations);
 
-            Tablet tablet = commitSession.getTablet();
+            KeyExtent extent = commitSession.getExtent();
 
-            if (tablet == us.currentTablet) {
+            if (extent == us.currentTablet.getExtent()) {
               // because constraint violations may filter out some
               // mutations, for proper
               // accounting with the client code, need to increment
               // the count based
               // on the original number of mutations from the client
               // NOT the filtered number
-              us.successfulCommits.increment(tablet, us.queuedMutations.get(tablet).size());
+              us.successfulCommits.increment(us.currentTablet, us.queuedMutations.get(us.currentTablet).size());
             }
           }
           long t2 = System.currentTimeMillis();
@@ -2141,7 +2145,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         KeyExtent ke = entry.getKey();
         if (ke.getTableId().compareTo(text) == 0) {
           Tablet tablet = entry.getValue();
-          TabletStats stats = tablet.timer.getTabletStats();
+          TabletStats stats = tablet.getTabletStats();
           stats.extent = ke.toThrift();
           stats.ingestRate = tablet.ingestRate();
           stats.queryRate = tablet.queryRate();
@@ -2563,11 +2567,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
   }
 
-  boolean isMajorCompactionDisabled() {
+  public boolean isMajorCompactionDisabled() {
     return majorCompactorDisabled;
   }
 
-  void executeSplit(Tablet tablet) {
+  public void executeSplit(Tablet tablet) {
     resourceManager.executeSplit(tablet.getExtent(), new LoggingRunnable(log, new SplitRunner(tablet)));
   }
 
@@ -2617,7 +2621,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
             }
 
             synchronized (tablet) {
-              if (tablet.initiateMajorCompaction(MajorCompactionReason.NORMAL) || tablet.majorCompactionQueued() || tablet.majorCompactionRunning()) {
+              if (tablet.initiateMajorCompaction(MajorCompactionReason.NORMAL) || tablet.isMajorCompactionQueued() || tablet.isMajorCompactionRunning()) {
                 numMajorCompactionsInProgress++;
                 continue;
               }
@@ -2683,16 +2687,15 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
     Entry<KeyExtent,SplitInfo> first = tabletInfo.firstEntry();
     TabletResourceManager newTrm0 = resourceManager.createTabletResourceManager(first.getKey(), getTableConfiguration(first.getKey()));
-    newTablets[0] = new Tablet(first.getKey(), TabletServer.this, newTrm0, first.getValue());
+    newTablets[0] = new Tablet(TabletServer.this, first.getKey(), newTrm0, first.getValue());
 
     Entry<KeyExtent,SplitInfo> last = tabletInfo.lastEntry();
     TabletResourceManager newTrm1 = resourceManager.createTabletResourceManager(last.getKey(), getTableConfiguration(last.getKey()));
-    newTablets[1] = new Tablet(last.getKey(), TabletServer.this, newTrm1, last.getValue());
+    newTablets[1] = new Tablet(TabletServer.this, last.getKey(), newTrm1, last.getValue());
 
     // roll tablet stats over into tablet server's statsKeeper object as
     // historical data
-    statsKeeper.saveMinorTimes(tablet.timer);
-    statsKeeper.saveMajorTimes(tablet.timer);
+    statsKeeper.saveMajorMinorTimes(tablet.getTabletStats());
 
     // lose the reference to the old tablet and open two new ones
     synchronized (onlineTablets) {
@@ -2719,7 +2722,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   private BlockingDeque<MasterMessage> masterMessages = new LinkedBlockingDeque<MasterMessage>();
 
   // add a message for the main thread to send back to the master
-  void enqueueMasterMessage(MasterMessage m) {
+  public void enqueueMasterMessage(MasterMessage m) {
     masterMessages.addLast(m);
   }
 
@@ -2808,9 +2811,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
       // roll tablet stats over into tablet server's statsKeeper object as
       // historical data
-      statsKeeper.saveMinorTimes(t.timer);
-      statsKeeper.saveMajorTimes(t.timer);
-
+      statsKeeper.saveMajorMinorTimes(t.getTabletStats());
       log.info("unloaded " + extent);
 
     }
@@ -2914,7 +2915,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         // this opens the tablet file and fills in the endKey in the
         // extent
         locationToOpen = VolumeUtil.switchRootTabletVolume(extent, locationToOpen);
-        tablet = new Tablet(TabletServer.this, locationToOpen, extent, trm, tabletsKeyValues);
+        tablet = new Tablet(TabletServer.this, extent, locationToOpen, trm, tabletsKeyValues);
         /*
          * If a minor compaction starts after a tablet opens, this indicates a log recovery occurred. This recovered data must be minor compacted.
          *
@@ -3018,7 +3019,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
   private static ObjectName OBJECT_NAME = null;
 
-  static AtomicLong seekCount = new AtomicLong(0);
+  public static final AtomicLong seekCount = new AtomicLong(0);
 
   public TabletStatsKeeper getStatsKeeper() {
     return statsKeeper;
@@ -3098,7 +3099,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     return address;
   }
 
-  ZooLock getLock() {
+  public ZooLock getLock() {
     return tabletServerLock;
   }
 
@@ -3452,7 +3453,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     return clientAddress.getHostText() + ":" + clientAddress.getPort();
   }
 
-  TServerInstance getTabletSession() {
+  public TServerInstance getTabletSession() {
     String address = getClientAddressString();
     if (address == null)
       return null;
@@ -3596,13 +3597,13 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       table.scanRate += tablet.scanRate();
       long recsInMemory = tablet.getNumEntriesInMemory();
       table.recsInMemory += recsInMemory;
-      if (tablet.minorCompactionRunning())
+      if (tablet.isMinorCompactionRunning())
         table.minors.running++;
-      if (tablet.minorCompactionQueued())
+      if (tablet.isMinorCompactionQueued())
         table.minors.queued++;
-      if (tablet.majorCompactionRunning())
+      if (tablet.isMajorCompactionRunning())
         table.majors.running++;
-      if (tablet.majorCompactionQueued())
+      if (tablet.isMajorCompactionQueued())
         table.majors.queued++;
     }
 
@@ -3775,7 +3776,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     if (this.isEnabled()) {
       int result = 0;
       for (Tablet tablet : Collections.unmodifiableCollection(onlineTablets.values())) {
-        if (tablet.majorCompactionQueued())
+        if (tablet.isMajorCompactionQueued())
           result++;
       }
       return result;
@@ -3788,7 +3789,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     if (this.isEnabled()) {
       int result = 0;
       for (Tablet tablet : Collections.unmodifiableCollection(onlineTablets.values())) {
-        if (tablet.minorCompactionRunning())
+        if (tablet.isMinorCompactionRunning())
           result++;
       }
       return result;
@@ -3801,7 +3802,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     if (this.isEnabled()) {
       int result = 0;
       for (Tablet tablet : Collections.unmodifiableCollection(onlineTablets.values())) {
-        if (tablet.minorCompactionQueued())
+        if (tablet.isMinorCompactionQueued())
           result++;
       }
       return result;

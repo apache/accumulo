@@ -54,11 +54,11 @@ import org.apache.accumulo.server.tabletserver.TabletState;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.trace.instrument.TraceExecutorService;
 import org.apache.accumulo.tserver.FileManager.ScanFileManager;
-import org.apache.accumulo.tserver.Tablet.MinorCompactionReason;
 import org.apache.accumulo.tserver.compaction.CompactionStrategy;
 import org.apache.accumulo.tserver.compaction.DefaultCompactionStrategy;
 import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
 import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
+import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.log4j.Logger;
 
 /**
@@ -69,33 +69,33 @@ import org.apache.log4j.Logger;
  */
 public class TabletServerResourceManager {
 
-  private ExecutorService minorCompactionThreadPool;
-  private ExecutorService majorCompactionThreadPool;
-  private ExecutorService rootMajorCompactionThreadPool;
-  private ExecutorService defaultMajorCompactionThreadPool;
-  private ExecutorService splitThreadPool;
-  private ExecutorService defaultSplitThreadPool;
-  private ExecutorService defaultMigrationPool;
-  private ExecutorService migrationPool;
-  private ExecutorService assignmentPool;
-  private ExecutorService assignMetaDataPool;
-  private ExecutorService readAheadThreadPool;
-  private ExecutorService defaultReadAheadThreadPool;
-  private Map<String,ExecutorService> threadPools = new TreeMap<String,ExecutorService>();
+  private static final Logger log = Logger.getLogger(TabletServerResourceManager.class);
+
+  private final ExecutorService minorCompactionThreadPool;
+  private final ExecutorService majorCompactionThreadPool;
+  private final ExecutorService rootMajorCompactionThreadPool;
+  private final ExecutorService defaultMajorCompactionThreadPool;
+  private final ExecutorService splitThreadPool;
+  private final ExecutorService defaultSplitThreadPool;
+  private final ExecutorService defaultMigrationPool;
+  private final ExecutorService migrationPool;
+  private final ExecutorService assignmentPool;
+  private final ExecutorService assignMetaDataPool;
+  private final ExecutorService readAheadThreadPool;
+  private final ExecutorService defaultReadAheadThreadPool;
+  private final Map<String,ExecutorService> threadPools = new TreeMap<String,ExecutorService>();
 
   private final VolumeManager fs;
 
-  private FileManager fileManager;
+  private final FileManager fileManager;
 
-  private MemoryManager memoryManager;
+  private final MemoryManager memoryManager;
 
-  private MemoryManagementFramework memMgmt;
+  private final MemoryManagementFramework memMgmt;
 
   private final LruBlockCache _dCache;
   private final LruBlockCache _iCache;
   private final ServerConfiguration conf;
-
-  private static final Logger log = Logger.getLogger(TabletServerResourceManager.class);
 
   private ExecutorService addEs(String name, ExecutorService tp) {
     if (threadPools.containsKey(name)) {
@@ -210,10 +210,10 @@ public class TabletServerResourceManager {
 
   private static class TabletStateImpl implements TabletState, Cloneable {
 
-    private long lct;
-    private Tablet tablet;
-    private long mts;
-    private long mcmts;
+    private final long lct;
+    private final Tablet tablet;
+    private final long mts;
+    private final long mcmts;
 
     public TabletStateImpl(Tablet t, long mts, long lct, long mcmts) {
       this.tablet = t;
@@ -249,11 +249,12 @@ public class TabletServerResourceManager {
 
   private class MemoryManagementFramework {
     private final Map<KeyExtent,TabletStateImpl> tabletReports;
-    private LinkedBlockingQueue<TabletStateImpl> memUsageReports;
+    private final LinkedBlockingQueue<TabletStateImpl> memUsageReports;
     private long lastMemCheckTime = System.currentTimeMillis();
     private long maxMem;
-    private Thread memoryGuardThread;
-    private Thread minorCompactionInitiatorThread;
+    private long lastMemTotal = 0;
+    private final Thread memoryGuardThread;
+    private final Thread minorCompactionInitiatorThread;
 
     MemoryManagementFramework() {
       tabletReports = Collections.synchronizedMap(new HashMap<KeyExtent,TabletStateImpl>());
@@ -286,8 +287,6 @@ public class TabletServerResourceManager {
       memoryGuardThread.start();
       minorCompactionInitiatorThread.start();
     }
-
-    private long lastMemTotal = 0;
 
     private void processTabletMemStats() {
       while (true) {
@@ -494,7 +493,7 @@ public class TabletServerResourceManager {
       lastReportedCommitTime = System.currentTimeMillis();
     }
 
-    synchronized ScanFileManager newScanFileManager() {
+    public synchronized ScanFileManager newScanFileManager() {
       if (closed)
         throw new IllegalStateException("closed");
       return fileManager.newScanFileManager(extent);
@@ -504,8 +503,8 @@ public class TabletServerResourceManager {
 
     // BEGIN methods that Tablets call to manage memory
 
-    private AtomicLong lastReportedSize = new AtomicLong();
-    private AtomicLong lastReportedMincSize = new AtomicLong();
+    private final AtomicLong lastReportedSize = new AtomicLong();
+    private final AtomicLong lastReportedMincSize = new AtomicLong();
     private volatile long lastReportedCommitTime = 0;
 
     public void updateMemoryUsageStats(Tablet tablet, long size, long mincSize) {
@@ -544,7 +543,7 @@ public class TabletServerResourceManager {
     // BEGIN methods that Tablets call to make decisions about major compaction
     // when too many files are open, we may want tablets to compact down
     // to one map file
-    boolean needsMajorCompaction(SortedMap<FileRef,DataFileValue> tabletFiles, MajorCompactionReason reason) {
+    public boolean needsMajorCompaction(SortedMap<FileRef,DataFileValue> tabletFiles, MajorCompactionReason reason) {
       if (closed)
         return false;// throw new IOException("closed");
 
@@ -585,11 +584,11 @@ public class TabletServerResourceManager {
     // tablets call this method to run minor compactions,
     // this allows us to control how many minor compactions
     // run concurrently in a tablet server
-    void executeMinorCompaction(final Runnable r) {
+    public void executeMinorCompaction(final Runnable r) {
       minorCompactionThreadPool.execute(new LoggingRunnable(log, r));
     }
 
-    void close() throws IOException {
+    public void close() throws IOException {
       // always obtain locks in same order to avoid deadlock
       synchronized (TabletServerResourceManager.this) {
         synchronized (this) {

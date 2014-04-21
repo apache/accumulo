@@ -567,7 +567,7 @@ public class InMemoryMap {
     
   }
   
-  class MemoryIterator extends WrappingIterator implements InterruptibleIterator {
+  public class MemoryIterator extends WrappingIterator implements InterruptibleIterator {
     
     private AtomicBoolean closed;
     private SourceSwitchingIterator ssi;

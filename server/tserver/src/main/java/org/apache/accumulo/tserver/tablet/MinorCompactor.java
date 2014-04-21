@@ -14,13 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.tserver;
+package org.apache.accumulo.tserver.tablet;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Random;
 
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -34,8 +35,8 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
-import org.apache.accumulo.tserver.Tablet.MinorCompactionReason;
-import org.apache.hadoop.conf.Configuration;
+import org.apache.accumulo.tserver.InMemoryMap;
+import org.apache.accumulo.tserver.MinorCompactionReason;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 
@@ -52,9 +53,9 @@ public class MinorCompactor extends Compactor {
     return Collections.singletonMap(mergeFile, dfv);
   }
   
-  MinorCompactor(Configuration conf, VolumeManager fs, InMemoryMap imm, FileRef mergeFile, DataFileValue dfv, FileRef outputFile, TableConfiguration acuTableConf,
+  public MinorCompactor(VolumeManager fs, InMemoryMap imm, FileRef mergeFile, DataFileValue dfv, FileRef outputFile, TableConfiguration acuTableConf,
       KeyExtent extent, MinorCompactionReason mincReason) {
-    super(conf, fs, toFileMap(mergeFile, dfv), imm, outputFile, true, acuTableConf, extent, new CompactionEnv() {
+    super(fs, toFileMap(mergeFile, dfv), imm, outputFile, true, acuTableConf, extent, new CompactionEnv() {
       
       @Override
       public boolean isCompactionEnabled() {
@@ -65,9 +66,7 @@ public class MinorCompactor extends Compactor {
       public IteratorScope getIteratorScope() {
         return IteratorScope.minc;
       }
-    });
-    
-    super.mincReason = mincReason;
+    }, Collections.<IteratorSetting>emptyList(), mincReason.ordinal());
   }
   
   private boolean isTableDeleting() {

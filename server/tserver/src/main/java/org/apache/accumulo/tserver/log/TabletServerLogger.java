@@ -36,10 +36,10 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.tserver.Tablet.CommitSession;
 import org.apache.accumulo.tserver.TabletMutations;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.log.DfsLogger.LoggerOperation;
+import org.apache.accumulo.tserver.tablet.CommitSession;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 
@@ -81,7 +81,7 @@ public class TabletServerLogger {
   }
 
   private static boolean enabled(CommitSession commitSession) {
-    return enabled(commitSession.getTablet().getTableConfiguration());
+    return commitSession.getUseWAL();
   }
 
   static private abstract class TestCallWithWriteLock {
