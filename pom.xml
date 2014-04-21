@@ -1061,7 +1061,7 @@
       <id>sunny</id>
       <properties>
         <failIfNoTests>false</failIfNoTests>
-        <it.test>ReadWriteIT,SimpleProxyIT,ExamplesIT</it.test>
+        <it.test>ReadWriteIT,SimpleProxyIT,ExamplesIT,ShellServerIT</it.test>
       </properties>
     </profile>
     <profile>
