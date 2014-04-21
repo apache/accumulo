@@ -37,6 +37,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.replication.ReplicationSchema;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
@@ -104,6 +105,10 @@ public class ReplicationTest extends ConfigurableMacIT {
     bw.close();
 
     conn.tableOperations().flush(table, null, null, true);
+
+    Assert.assertTrue(conn.tableOperations().exists(ReplicationTable.NAME));
+
+    conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.READ);
 
     Set<String> replRows = Sets.newHashSet();
     final String replRowPrefix = ReplicationSchema.ReplicationSection.getRowPrefix();

@@ -249,12 +249,14 @@ class SetupPermissions extends MasterRepo {
   public Repo<Master> call(long tid, Master env) throws Exception {
     // give all table permissions to the creator
     SecurityOperation security = AuditedSecurityOperation.getInstance();
-    for (TablePermission permission : TablePermission.values()) {
-      try {
-        security.grantTablePermission(SystemCredentials.get().toThrift(env.getInstance()), tableInfo.user, tableInfo.tableId, permission, tableInfo.namespaceId);
-      } catch (ThriftSecurityException e) {
-        Logger.getLogger(FinishCreateTable.class).error(e.getMessage(), e);
-        throw e;
+    if (!tableInfo.user.equals(SystemCredentials.get().getPrincipal())) {
+      for (TablePermission permission : TablePermission.values()) {
+        try {
+          security.grantTablePermission(SystemCredentials.get().toThrift(env.getInstance()), tableInfo.user, tableInfo.tableId, permission, tableInfo.namespaceId);
+        } catch (ThriftSecurityException e) {
+          Logger.getLogger(FinishCreateTable.class).error(e.getMessage(), e);
+          throw e;
+        }
       }
     }
 
