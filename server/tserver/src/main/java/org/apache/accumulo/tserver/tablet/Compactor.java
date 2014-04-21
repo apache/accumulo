@@ -58,7 +58,6 @@ import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
-import org.apache.accumulo.tserver.CountingIterator;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.MinorCompactionReason;
 import org.apache.accumulo.tserver.TabletIteratorEnvironment;
@@ -134,15 +133,15 @@ public class Compactor implements Callable<CompactionStats> {
     return compactions;
   }
 
-  public Compactor(VolumeManager fs, Map<FileRef,DataFileValue> files, InMemoryMap imm, FileRef outputFile, boolean propogateDeletes,
-      AccumuloConfiguration acuTableConf, KeyExtent extent, CompactionEnv env, List<IteratorSetting> iterators, int reason) {
-    this.extent = extent;
-    this.fs = fs;
+  public Compactor(Tablet tablet, Map<FileRef,DataFileValue> files, InMemoryMap imm, FileRef outputFile, boolean propogateDeletes,
+      CompactionEnv env, List<IteratorSetting> iterators, int reason, AccumuloConfiguration tableConfiguation) {
+    this.extent = tablet.getExtent();
+    this.fs = tablet.getTabletServer().getFileSystem();
+    this.acuTableConf = tableConfiguation;
     this.filesToCompact = files;
     this.imm = imm;
     this.outputFile = outputFile;
     this.propogateDeletes = propogateDeletes;
-    this.acuTableConf = acuTableConf;
     this.env = env;
     this.iterators = iterators;
     this.reason = reason;

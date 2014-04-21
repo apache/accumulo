@@ -856,7 +856,6 @@ public class Tablet implements TabletCommitter {
     ScanOptions opts = new ScanOptions(num, authorizations, this.defaultSecurityLabel, columns, ssiList, ssio, interruptFlag, isolated);
     return new Scanner(this, range, opts);
   }
-
   DataFileValue minorCompact(VolumeManager fs, InMemoryMap memTable, FileRef tmpDatafile, FileRef newDatafile, FileRef mergeFile,
       boolean hasQueueTime, long queued, CommitSession commitSession, long flushId, MinorCompactionReason mincReason) {
     boolean failed = false;
@@ -875,7 +874,7 @@ public class Tablet implements TabletCommitter {
         if (mergeFile != null)
           dfv = getDatafileManager().getDatafileSizes().get(mergeFile);
 
-        MinorCompactor compactor = new MinorCompactor(fs, memTable, mergeFile, dfv, tmpDatafile, tableConfiguration, extent, mincReason);
+        MinorCompactor compactor = new MinorCompactor(this, memTable, mergeFile, dfv, tmpDatafile, mincReason, tableConfiguration);
         stats = compactor.call();
       } finally {
         span.stop();
@@ -888,13 +887,13 @@ public class Tablet implements TabletCommitter {
         span.stop();
       }
       return new DataFileValue(stats.getFileSize(), stats.getEntriesWritten());
-    } catch (Exception E) {
+    } catch (Exception e) {
       failed = true;
-      throw new RuntimeException(E);
-    } catch (Error E) {
+      throw new RuntimeException(e);
+    } catch (Error e) {
       // Weird errors like "OutOfMemoryError" when trying to create the thread for the compaction
       failed = true;
-      throw new RuntimeException(E);
+      throw new RuntimeException(e);
     } finally {
       try {
         getTabletMemory().finalizeMinC();
@@ -1850,8 +1849,8 @@ public class Tablet implements TabletCommitter {
 
           // always propagate deletes, unless last batch
           boolean lastBatch = filesToCompact.isEmpty();
-          Compactor compactor = new Compactor(getTabletServer().getFileSystem(), copy, null, compactTmpName, lastBatch ? propogateDeletes : true, tableConf, extent, cenv,
-              compactionIterators, reason.ordinal());
+          Compactor compactor = new Compactor(this, copy, null, compactTmpName, lastBatch ? propogateDeletes : true, cenv,
+              compactionIterators, reason.ordinal(), tableConf);
 
           CompactionStats mcs = compactor.call();
 

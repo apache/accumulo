@@ -23,7 +23,6 @@ import java.util.Random;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.impl.Tables;
-import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -31,7 +30,6 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.FileRef;
-import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
@@ -53,9 +51,8 @@ public class MinorCompactor extends Compactor {
     return Collections.singletonMap(mergeFile, dfv);
   }
   
-  public MinorCompactor(VolumeManager fs, InMemoryMap imm, FileRef mergeFile, DataFileValue dfv, FileRef outputFile, TableConfiguration acuTableConf,
-      KeyExtent extent, MinorCompactionReason mincReason) {
-    super(fs, toFileMap(mergeFile, dfv), imm, outputFile, true, acuTableConf, extent, new CompactionEnv() {
+  public MinorCompactor(Tablet tablet, InMemoryMap imm, FileRef mergeFile, DataFileValue dfv, FileRef outputFile, MinorCompactionReason mincReason, TableConfiguration tableConfig) {
+    super(tablet, toFileMap(mergeFile, dfv), imm, outputFile, true, new CompactionEnv() {
       
       @Override
       public boolean isCompactionEnabled() {
@@ -66,7 +63,7 @@ public class MinorCompactor extends Compactor {
       public IteratorScope getIteratorScope() {
         return IteratorScope.minc;
       }
-    }, Collections.<IteratorSetting>emptyList(), mincReason.ordinal());
+    }, Collections.<IteratorSetting>emptyList(), mincReason.ordinal(), tableConfig);
   }
   
   private boolean isTableDeleting() {
