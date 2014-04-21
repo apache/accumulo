@@ -87,6 +87,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
+import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -867,11 +868,12 @@ public class Tablet {
           if (commitSession.getMaxCommittedTime() > persistedTime)
             persistedTime = commitSession.getMaxCommittedTime();
 
+          boolean replicate = ReplicationConfigurationUtil.isEnabled(extent, tabletServer.getTableConfiguration(extent));
           String time = tabletTime.getMetadataValue(persistedTime);
           MasterMetadataUtil.updateTabletDataFile(extent, newDatafile, absMergeFile, dfv, time, SystemCredentials.get(), filesInUseByScans,
-              tabletServer.getClientAddressString(), tabletServer.getLock(), unusedWalLogs, lastLocation, flushId, tabletServer.isReplicationEnabled());
+              tabletServer.getClientAddressString(), tabletServer.getLock(), unusedWalLogs, lastLocation, flushId, replicate);
 
-          if (!(extent.isMeta() || extent.isRootTablet()) && tabletServer.isReplicationEnabled()) {
+          if (replicate) {
             // unusedWalLogs is of the form host/fileURI, need to strip off the host portion
             Set<String> logFileOnly = new HashSet<>();
             for (String unusedWalLog : unusedWalLogs) {
@@ -1250,7 +1252,7 @@ public class Tablet {
       final TServerInstance lastLocation, Set<FileRef> scanFiles, long initFlushID, long initCompactID) throws IOException {
 
     TabletFiles tabletPaths = VolumeUtil.updateTabletVolumes(tabletServer.getLock(), fs, extent, new TabletFiles(location.toString(), rawLogEntries,
-        rawDatafiles), tabletServer.isReplicationEnabled());
+        rawDatafiles), ReplicationConfigurationUtil.isEnabled(extent, tabletServer.getTableConfiguration(extent)));
 
     Path locationPath;
 
@@ -1371,7 +1373,7 @@ public class Tablet {
           absPaths.add(ref.path().toString());
 
         // Ensure that we write a record marking each WAL as requiring replication to make sure we don't abandon the data
-        if (!(extent.isMeta() || extent.isRootTablet()) && tabletServer.isReplicationEnabled()) {
+        if (ReplicationConfigurationUtil.isEnabled(extent, tabletServer.getTableConfiguration(extent))) {
           for (LogEntry logEntry : logEntries) {
             ReplicationTableUtil.updateFiles(SystemCredentials.get(), extent, logEntry.logSet, StatusUtil.fileClosed());
           }

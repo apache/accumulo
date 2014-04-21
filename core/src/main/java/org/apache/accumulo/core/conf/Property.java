@@ -416,6 +416,8 @@ public enum Property {
       "A customizable major compaction strategy."),
   TABLE_COMPACTION_STRATEGY_PREFIX("table.majc.compaction.strategy.opts.", null, PropertyType.PREFIX,
       "Properties in this category are used to configure the compaction strategy."),
+  @Experimental
+  TABLE_REPLICATION("table.replication", "false", PropertyType.BOOLEAN, "Is replication enabled for the given table"),
 
   // VFS ClassLoader properties
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(AccumuloVFSClassLoader.VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, "", PropertyType.STRING,
@@ -439,8 +441,6 @@ public enum Property {
 
   @Experimental
   REPLICATION_PREFIX("replication.", null, PropertyType.PREFIX, "Properties in this category affect the replication of data to other Accumulo instances."),
-  @Experimental
-  REPLICATION_ENABLED("replication.enabled", "false", PropertyType.BOOLEAN, "Global switch to enable replication for the given instance"),
   @Experimental
   REPLICATION_SLAVES("replication.slave.", null, PropertyType.PREFIX, "Properties in this category control what systems data can be replicated to"),
   @Experimental
