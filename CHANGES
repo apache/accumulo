@@ -140,6 +140,7 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-2585] - WriteAheadLogIT.test times out
     * [ACCUMULO-2605] - TServerUtilsTest.testStopTServer_ES fails with class not found
     * [ACCUMULO-2620] - org.apache.accumulo.core.client.TableExistsException: Table run exists
+    * [ACCUMULO-2680] - BackupMasterIT timing too tight
 
 ** Bug
     * [ACCUMULO-324] - System/site constraints and iterators should NOT affect the METADATA table
@@ -463,6 +464,12 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-2665] - NoClassDefFound building against Hadoop 2.4.0
     * [ACCUMULO-2667] - annoying log message
     * [ACCUMULO-2668] - slow WAL writes
+    * [ACCUMULO-2671] - BlockedOutputStream can hit a StackOverflowError
+    * [ACCUMULO-2675] - TestClientOpts is creating files in /tmp
+    * [ACCUMULO-2682] - README has duplicate synconclose paragraphs
+    * [ACCUMULO-2686] - MiniAccumuloClusterImpl should be since 1.6.0
+    * [ACCUMULO-2690] - DfsLogger outputstream short circuiting is never satisfied.
+    * [ACCUMULO-2700] - SecurityOperation.authenticateSystemUser fails to properly validate system user
 
 ** Improvement
     * [ACCUMULO-112] - Investigate partitioning in memory map by locality group
@@ -580,6 +587,7 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-2499] - User manual should include list of default ports
     * [ACCUMULO-2521] - Expose FATE admin utility by name under bin/accumulo
     * [ACCUMULO-2528] - OfflineScanner is not volume-aware
+    * [ACCUMULO-2529] - bake desired warnings into normal maven build
     * [ACCUMULO-2592] - Add new interfaces that better allow extension/implementations of Accumulo clusters
 
 ** New Feature
@@ -634,6 +642,7 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-2652] - Build warnings from missing plugin version
     * [ACCUMULO-2653] - Remove useless javadocs
     * [ACCUMULO-2670] - Corrupt license header in shelltest.txt
+    * [ACCUMULO-2697] - Automatically run findbugs to detect serious issues in the build
 
 ** Test
     * [ACCUMULO-1981] - BloomFilterLayerLookupTest does not run
