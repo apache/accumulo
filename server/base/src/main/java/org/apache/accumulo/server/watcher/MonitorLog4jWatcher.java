@@ -22,6 +22,7 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.log4j.Appender;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
 import org.apache.log4j.helpers.FileWatchdog;
 import org.apache.log4j.xml.DOMConfigurator;
 import org.apache.zookeeper.KeeperException.NoNodeException;
@@ -40,14 +41,22 @@ public class MonitorLog4jWatcher extends FileWatchdog implements Watcher {
   private static final String PORT_PROPERTY_NAME = "org.apache.accumulo.core.host.log.port";
 
   private final Object lock;
+  private final boolean usingProperties;
   private boolean loggingDisabled = false;
   protected String path;
 
-  public MonitorLog4jWatcher(String instance, String filename, int delay) {
+  public MonitorLog4jWatcher(String instance, String filename) {
     super(filename);
-    setDelay(delay);
+    usingProperties = (filename != null && filename.endsWith(".properties"));
     this.path = ZooUtil.getRoot(instance) + Constants.ZMONITOR_LOG4J_ADDR;
     this.lock = new Object();
+  }
+
+  boolean isUsingProperties() {
+    return usingProperties;
+  }
+  String getPath() {
+    return path;
   }
 
   @Override
@@ -85,7 +94,11 @@ public class MonitorLog4jWatcher extends FileWatchdog implements Watcher {
   private void resetLogger() {
     // Force a reset on the logger's configuration
     LogManager.resetConfiguration();
-    new DOMConfigurator().doConfigure(filename, LogManager.getLoggerRepository());
+    if (usingProperties) {
+      new PropertyConfigurator().doConfigure(filename, LogManager.getLoggerRepository());
+    } else {
+      new DOMConfigurator().doConfigure(filename, LogManager.getLoggerRepository());
+    }
   }
 
   @Override
