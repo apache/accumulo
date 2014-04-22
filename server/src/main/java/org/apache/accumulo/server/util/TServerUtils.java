@@ -148,12 +148,7 @@ public class TServerUtils {
         metrics.add(ThriftMetrics.idle, (now - idleStart));
       }
       try {
-        try {
-          return other.process(in, out);
-        } catch (NullPointerException ex) {
-          // THRIFT-1447 - remove with thrift 0.9
-          return true;
-        }
+        return other.process(in, out);
       } finally {
         if (metrics.isEnabled()) {
           idleStart = System.currentTimeMillis();
