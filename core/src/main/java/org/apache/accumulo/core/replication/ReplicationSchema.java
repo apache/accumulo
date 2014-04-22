@@ -16,10 +16,13 @@
  */
 package org.apache.accumulo.core.replication;
 
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.hadoop.io.Text;
+
+import com.google.common.base.Preconditions;
 
 /**
  * 
@@ -47,5 +50,11 @@ public class ReplicationSchema {
       return section.getRowPrefix();
     }
 
+    public static String getTableId(Key k) {
+      Preconditions.checkNotNull(k);
+      Preconditions.checkArgument(getRange().contains(k), "Key does not fall within ReplicationSection range");
+
+      return k.getColumnFamily().toString();
+    }
   }
 }

@@ -54,4 +54,8 @@ public class ReplicationTable {
   public static Scanner getScanner(Connector conn, Authorizations auths) throws TableNotFoundException {
     return conn.createScanner(NAME, auths);
   }
+
+  public static Scanner getScanner(Connector conn) throws TableNotFoundException {
+    return getScanner(conn, new Authorizations());
+  }
 }

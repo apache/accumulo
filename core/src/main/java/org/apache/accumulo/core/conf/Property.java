@@ -418,6 +418,10 @@ public enum Property {
       "Properties in this category are used to configure the compaction strategy."),
   @Experimental
   TABLE_REPLICATION("table.replication", "false", PropertyType.BOOLEAN, "Is replication enabled for the given table"),
+  @Experimental
+  TABLE_REPLICATION_TARGETS("table.replication.target.", null, PropertyType.PREFIX, "Enumerate a mapping of other systems which this table should " +
+      "replicate their data to. The key suffix is the identifying cluster name and the value is an identifier for a location on the target system, " +
+      "e.g. the ID of the table on the target to replicate to"),
 
   // VFS ClassLoader properties
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(AccumuloVFSClassLoader.VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, "", PropertyType.STRING,
@@ -443,8 +447,6 @@ public enum Property {
   REPLICATION_PREFIX("replication.", null, PropertyType.PREFIX, "Properties in this category affect the replication of data to other Accumulo instances."),
   @Experimental
   REPLICATION_SLAVES("replication.slave.", null, PropertyType.PREFIX, "Properties in this category control what systems data can be replicated to"),
-  @Experimental
-  REPLICATION_TABLES("replication.table.", null, PropertyType.PREFIX, "Properties in this category control table-specific replication configuration"),
   @Experimental
   REPLICATION_TABLET_SCAN_INTERVAL("replication.tablet.interval", "30s", PropertyType.TIMEDURATION, "Amount of time to sleep before scanning tablets for new replication data"),
   @Experimental
