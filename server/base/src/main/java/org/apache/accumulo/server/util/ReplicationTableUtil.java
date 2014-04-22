@@ -27,12 +27,11 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.Writer;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
-import org.apache.accumulo.core.replication.ReplicationSchema.ReplicationSection;
+import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Credentials;
@@ -49,7 +48,6 @@ import org.apache.log4j.Logger;
  */
 public class ReplicationTableUtil {
 
-  private static final Text EMPTY_TEXT = new Text();
   private static Map<Credentials,Writer> replicationTables = new HashMap<Credentials,Writer>();
   private static final Logger log = Logger.getLogger(ReplicationTableUtil.class);
 
@@ -111,7 +109,7 @@ public class ReplicationTableUtil {
   }
 
   /**
-   * Write {@link ReplicationSection#getRowPrefix} entries for each provided file with the given {@link Status}.
+   * Write replication ingest entries for each provided file with the given {@link Status}.
    */
   public static void updateFiles(Credentials creds, KeyExtent extent, Collection<String> files, Status stat) {
     if (log.isTraceEnabled()) {
@@ -130,8 +128,11 @@ public class ReplicationTableUtil {
   }
 
   public static Mutation createUpdateMutation(String file, Value v, KeyExtent extent) {
-    Mutation m = new Mutation(new Text(ReplicationSection.getRowPrefix() + file));
-    m.put(extent.getTableId(), EMPTY_TEXT, v);
-    return m;
+    return createUpdateMutation(new Text(file), v, extent);
+  }
+
+  public static Mutation createUpdateMutation(Text file, Value v, KeyExtent extent) {
+    Mutation m = new Mutation(file);
+    return StatusSection.add(m, extent.getTableId(), v);
   }
 }

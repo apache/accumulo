@@ -17,7 +17,8 @@
 package org.apache.accumulo.core.replication;
 
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.replication.ReplicationSchema.ReplicationSection;
+import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
+import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
@@ -27,79 +28,74 @@ public class ReplicationSchemaTest {
   @Test
   public void extractFile() {
     String file = "hdfs://foo:8020/bar";
-    Key k = new Key(ReplicationSection.getRowPrefix() + file);
+    Key k = new Key(new Text(file), StatusSection.NAME);
     Text extractedFile = new Text();
-    ReplicationSection.getFile(k, extractedFile);
+    StatusSection.getFile(k, extractedFile);
     Assert.assertEquals(file, extractedFile.toString());
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void incorrectPrefixOnFileExtract() {
-    String file = "hdfs://foo:8020/bar";
-    Key k = new Key("somethingelse" + file);
-    Text extractedFile = new Text();
-    ReplicationSection.getFile(k, extractedFile);
   }
 
   @Test(expected = NullPointerException.class)
   public void failOnNullKeyForFileExtract() {
     Text extractedFile = new Text();
-    ReplicationSection.getFile(null, extractedFile);
+    StatusSection.getFile(null, extractedFile);
   }
 
   @Test(expected = NullPointerException.class)
   public void failOnNullBufferForFileExtract() {
     String file = "hdfs://foo:8020/bar";
-    Key k = new Key(ReplicationSection.getRowPrefix() + file);
+    Key k = new Key(file);
     Text extractedFile = null;
-    ReplicationSection.getFile(k, extractedFile);
+    StatusSection.getFile(k, extractedFile);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void failOnExtractEmptyFile() {
     String file = "";
-    Key k = new Key(ReplicationSection.getRowPrefix() + file);
+    Key k = new Key(file);
     Text extractedFile = new Text();
-    ReplicationSection.getFile(k, extractedFile);
+    StatusSection.getFile(k, extractedFile);
     Assert.assertEquals(file, extractedFile.toString());
   }
 
   @Test
   public void extractTableId() {
-    String tableId = "1";
-    Key k = new Key(ReplicationSection.getRowPrefix() + "foo", tableId);
-    Assert.assertEquals(tableId, ReplicationSection.getTableId(k));
+    Text tableId = new Text("1");
+    Key k = new Key(new Text("foo"), StatusSection.NAME, tableId);
+    Assert.assertEquals(tableId.toString(), StatusSection.getTableId(k));
   }
 
   @Test
   public void extractTableIdUsingText() {
-    String tableId = "1";
-    Key k = new Key(ReplicationSection.getRowPrefix() + "foo", tableId);
+    Text tableId = new Text("1");
+    Key k = new Key(new Text("foo"), StatusSection.NAME, tableId);
     Text buffer = new Text();
-    ReplicationSection.getTableId(k, buffer);
-    Assert.assertEquals(tableId, buffer.toString());
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void incorrectPrefixOnTableIdExtract() {
-    String tableId = "1";
-    String file = "hdfs://foo:8020/bar";
-    Key k = new Key("somethingelse" + file, tableId);
-    Text extractedFile = new Text();
-    ReplicationSection.getFile(k, extractedFile);
+    StatusSection.getTableId(k, buffer);
+    Assert.assertEquals(tableId.toString(), buffer.toString());
   }
 
   @Test(expected = NullPointerException.class)
   public void failOnNullKeyForTableIdExtract() {
     Text extractedFile = new Text();
-    ReplicationSection.getFile(null, extractedFile);
+    StatusSection.getFile(null, extractedFile);
   }
 
   @Test(expected = NullPointerException.class)
   public void failOnNullBufferForTableIdExtract() {
     String file = "hdfs://foo:8020/bar";
-    Key k = new Key(ReplicationSection.getRowPrefix() + file);
+    Key k = new Key(file);
     Text extractedFile = null;
-    ReplicationSection.getFile(k, extractedFile);
+    StatusSection.getFile(k, extractedFile);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void failOnIncorrectStatusColfam() {
+    Key k = new Key("file", WorkSection.NAME.toString(), "");
+    StatusSection.getFile(k, new Text());
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void failOnIncorrectWorkColfam() {
+    Key k = new Key("file", StatusSection.NAME.toString(), "");
+    WorkSection.getFile(k, new Text());
   }
 }

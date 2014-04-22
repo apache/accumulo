@@ -36,6 +36,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.replication.ReplicationSchema;
 import org.apache.accumulo.core.replication.ReplicationTable;
+import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -88,23 +89,19 @@ public class ReplicationTest extends ConfigurableMacIT {
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.READ);
 
     Set<String> replRows = Sets.newHashSet();
-    final String replRowPrefix = ReplicationSchema.ReplicationSection.getRowPrefix();
-    for (Entry<Key,Value> entry : conn.createScanner(ReplicationTable.NAME, new Authorizations())) {
+    Scanner scanner = ReplicationTable.getScanner(conn);
+    StatusSection.limit(scanner);
+    for (Entry<Key,Value> entry : scanner) {
       Key k = entry.getKey();
-      String row = k.getRow().toString();
 
-      if (row.startsWith(replRowPrefix)) {
-        int offset = row.indexOf(replRowPrefix.charAt(replRowPrefix.length() - 1));
+      String fileUri = k.getRow().toString();
+      try {
+        new URI(fileUri);
+      } catch (URISyntaxException e) {
+        Assert.fail("Expected a valid URI: " + fileUri);
+      }
 
-        String fileUri = row.substring(offset + 1);
-        try {
-          new URI(fileUri);
-        } catch (URISyntaxException e) {
-          Assert.fail("Expected a valid URI: " + fileUri);
-        }
-
-        replRows.add(fileUri);
-      } // else, ignored
+      replRows.add(fileUri);
     }
 
     Set<String> wals = Sets.newHashSet();
@@ -217,7 +214,7 @@ public class ReplicationTest extends ConfigurableMacIT {
     Iterator<Entry<Key,Value>> iter = s.iterator();
     Assert.assertTrue(iter.hasNext());
     Entry<Key,Value> entry = iter.next();
-    Assert.assertEquals("Expected to find replication entry for " + table1, conn.tableOperations().tableIdMap().get(table1), entry.getKey().getColumnFamily().toString());
+    Assert.assertEquals("Expected to find replication entry for " + table1, conn.tableOperations().tableIdMap().get(table1), entry.getKey().getColumnQualifier().toString());
     Assert.assertFalse(iter.hasNext());
     s.close();
 
@@ -252,10 +249,10 @@ public class ReplicationTest extends ConfigurableMacIT {
     iter = s.iterator();
     Assert.assertTrue("Found no records in replication table", iter.hasNext());
     entry = iter.next();
-    Assert.assertTrue("Expected to find element in replication table", tableIds.remove(entry.getKey().getColumnFamily().toString()));
+    Assert.assertTrue("Expected to find element in replication table", tableIds.remove(entry.getKey().getColumnQualifier().toString()));
     Assert.assertTrue("Expected to find two elements in replication table, didn't find " + tableIds, iter.hasNext());
     entry = iter.next();
-    Assert.assertTrue("Expected to find element in replication table", tableIds.remove(entry.getKey().getColumnFamily().toString()));
+    Assert.assertTrue("Expected to find element in replication table", tableIds.remove(entry.getKey().getColumnQualifier().toString()));
     Assert.assertFalse("Expected to only find two elements in replication table", iter.hasNext());
   }
 }

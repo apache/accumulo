@@ -16,11 +16,12 @@
  */
 package org.apache.accumulo.core.replication;
 
+import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.schema.Section;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
@@ -30,35 +31,48 @@ import com.google.common.base.Preconditions;
  */
 public class ReplicationSchema {
 
-  public static class StatusSection {
-    public static final Text NAME = new Text("repl");
-  }
-
   public static class WorkSection {
-    private static final Section section = new Section("work", false, "worl", false);
+    public static final Text NAME = new Text("work");
+    private static final ByteSequence BYTE_SEQ_NAME = new ArrayByteSequence("work");
 
-    public static Range getRange() {
-      return section.getRange();
+    public static void getFile(Key k, Text buff) {
+      Preconditions.checkNotNull(k);
+      Preconditions.checkNotNull(buff);
+      Preconditions.checkArgument(BYTE_SEQ_NAME.equals(k.getColumnFamilyData()), "Given replication work key with incorrect colfam");
+      _getFile(k, buff);
     }
 
-    public static String getRowPrefix() {
-      return section.getRowPrefix();
+    public static ReplicationTarget getTarget(Key k) {
+      return getTarget(k, new Text());
+    }
+
+    public static ReplicationTarget getTarget(Key k, Text buff) {
+      Preconditions.checkArgument(BYTE_SEQ_NAME.equals(k.getColumnFamilyData()), "Given replication work key with incorrect colfam");
+      k.getColumnQualifier(buff);
+
+      return ReplicationTarget.from(buff);
+    }
+
+    /**
+     * Limit the scanner to only pull replication work records
+     * @param scanner
+     */
+    public static void limit(ScannerBase scanner) {
+      scanner.fetchColumnFamily(NAME);
+    }
+
+    public static Mutation add(Mutation m, Text serializedTarget, Value v) {
+      m.put(NAME, serializedTarget, v);
+      return m;
     }
   }
 
   /**
    * Holds replication markers tracking status for files
    */
-  public static class ReplicationSection {
-    private static final Section section = new Section("repl", false, "repm", false);
-
-    public static Range getRange() {
-      return section.getRange();
-    }
-
-    public static String getRowPrefix() {
-      return section.getRowPrefix();
-    }
+  public static class StatusSection {
+    public static final Text NAME = new Text("repl");
+    private static final ByteSequence BYTE_SEQ_NAME = new ArrayByteSequence("repl");
 
     /**
      * Extract the table ID from the colfam (inefficiently if called repeatedly)
@@ -80,9 +94,8 @@ public class ReplicationSchema {
     public static void getTableId(Key k, Text buff) {
       Preconditions.checkNotNull(k);
       Preconditions.checkNotNull(buff);
-      Preconditions.checkArgument(getRange().contains(k), "Key (%s) does not fall within ReplicationSection range", k);
 
-      k.getColumnFamily(buff);
+      k.getColumnQualifier(buff);
     }
 
     /**
@@ -93,22 +106,26 @@ public class ReplicationSchema {
     public static void getFile(Key k, Text buff) {
       Preconditions.checkNotNull(k);
       Preconditions.checkNotNull(buff);
-      Preconditions.checkArgument(getRange().contains(k), "Key (%s) does not fall within ReplicationSection range", k);
+      Preconditions.checkArgument(BYTE_SEQ_NAME.equals(k.getColumnFamilyData()), "Given replication status key with incorrect colfam");
 
-      k.getRow(buff);
-      ByteSequence rowByteSequence = k.getRowData();
-
-      // No implementation that isn't backed by an array..
-      Preconditions.checkArgument(rowByteSequence.isBackedByArray());
-
-      byte[] rowBytes = rowByteSequence.getBackingArray();
-      int rowLength = rowByteSequence.length();
-
-      // We should have at the "~repl" plus something
-      int rowPrefixLength = getRowPrefix().length();
-      Preconditions.checkArgument(rowLength > rowPrefixLength);
-
-      buff.set(rowBytes, rowPrefixLength, rowLength - rowPrefixLength);
+      _getFile(k, buff);
     }
+
+    /**
+     * Limit the scanner to only return ingest records
+     * @param scanner
+     */
+    public static void limit(ScannerBase scanner) {
+      scanner.fetchColumnFamily(NAME);
+    }
+
+    public static Mutation add(Mutation m, Text tableId, Value v) {
+      m.put(NAME, tableId, v);
+      return m;
+    }
+  }
+
+  private static void _getFile(Key k, Text buff) {
+    k.getRow(buff);
   }
 }

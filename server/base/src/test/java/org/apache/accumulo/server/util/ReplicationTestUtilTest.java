@@ -22,8 +22,8 @@ import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
-import org.apache.accumulo.core.replication.ReplicationSchema;
 import org.apache.accumulo.core.replication.StatusUtil;
+import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
@@ -39,7 +39,7 @@ public class ReplicationTestUtilTest {
     // We stopped using a WAL -- we need a reference that this WAL needs to be replicated completely
     Status stat = StatusUtil.fileClosed();
     String file = "file:///accumulo/wal/127.0.0.1+9997" + UUID.randomUUID();
-    Text row = new Text(ReplicationSchema.ReplicationSection.getRowPrefix() + file);
+    Text row = new Text(file);
     KeyExtent extent = new KeyExtent(new Text("1"), new Text("b"), new Text("a"));
     
     Mutation m = ReplicationTableUtil.createUpdateMutation(file, ProtobufUtil.toValue(stat), extent);
@@ -48,8 +48,8 @@ public class ReplicationTestUtilTest {
     Assert.assertEquals(1, m.getUpdates().size());
     ColumnUpdate col = m.getUpdates().get(0);
 
-    Assert.assertEquals(extent.getTableId(), new Text(col.getColumnFamily()));
-    Assert.assertEquals(0, col.getColumnQualifier().length);
+    Assert.assertEquals(StatusSection.NAME, new Text(col.getColumnFamily()));
+    Assert.assertEquals(extent.getTableId(), new Text(col.getColumnQualifier()));
     Assert.assertEquals(0, col.getColumnVisibility().length);
     Assert.assertArrayEquals(stat.toByteArray(), col.getValue());
   }

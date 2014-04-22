@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.master.replication;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -31,12 +32,15 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.replication.ReplicationSchema;
+import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
+import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
+import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
@@ -72,14 +76,16 @@ public class WorkMaker extends Daemon {
         continue;
       }
 
-      s.setRange(ReplicationSchema.ReplicationSection.getRange());
+      // Only pull records about data that has been ingested and is ready for replication
+      StatusSection.limit(s);
+
       TableConfiguration tableConf;
 
       Text file = new Text(), tableId = new Text();
       for (Entry<Key,Value> entry : s) {
         // Extract the useful bits from the ~repl keys
-        ReplicationSchema.ReplicationSection.getFile(entry.getKey(), file);
-        ReplicationSchema.ReplicationSection.getTableId(entry.getKey(), tableId); 
+        ReplicationSchema.StatusSection.getFile(entry.getKey(), file);
+        ReplicationSchema.StatusSection.getTableId(entry.getKey(), tableId); 
 
         // Get the table configuration for the ~repl record
         tableConf = ServerConfiguration.getTableConfiguration(conn.getInstance(), tableId.toString());
@@ -105,15 +111,32 @@ public class WorkMaker extends Daemon {
     // TODO come up with something that tries to avoid creating a new BatchWriter all the time
     BatchWriter bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
     try {
-      Mutation m = new Mutation(WorkSection.getRowPrefix() + file);
+      Mutation m = new Mutation(file);
+
+      ReplicationTarget target = new ReplicationTarget();
+      DataOutputBuffer buffer = new DataOutputBuffer();
+      Text t = new Text();
       for (Entry<String,String> entry : targets.entrySet()) {
-        m.put(entry.getKey(), entry.getValue(), v);
+        buffer.reset();
+
+        // Set up the writable
+        target.setRemoteName(entry.getKey());
+        target.setRemoteIdentifier(entry.getValue());
+        target.write(buffer);
+
+        // Throw it in a text for the mutation
+        t.set(buffer.getData(), 0, buffer.getLength());
+
+        // Add it to the work section
+        WorkSection.add(m, t, v);
       }
       try {
         bw.addMutation(m);
       } catch (MutationsRejectedException e) {
         log.warn("Failed to write work mutations for replication, will retry", e);
       }
+    } catch (IOException e) {
+      log.warn("Failed to serialize data to Text, will retry", e);
     } finally {
       try {
         bw.close();

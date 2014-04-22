@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.server.replication.remote;
 
-import org.apache.accumulo.server.replication.ReplicationTarget;
-import org.apache.accumulo.server.replication.ServerReplication;
+import org.apache.accumulo.core.replication.ReplicationTarget;
+import org.apache.accumulo.core.replication.ServerReplication;
 import org.apache.hadoop.fs.Path;
 
 /**

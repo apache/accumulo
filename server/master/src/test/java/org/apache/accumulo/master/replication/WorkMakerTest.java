@@ -17,9 +17,11 @@
 package org.apache.accumulo.master.replication;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
@@ -33,6 +35,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
+import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
@@ -89,19 +92,22 @@ public class WorkMakerTest {
 
     WorkMaker workMaker = new WorkMaker(conn, conf);
 
+    ReplicationTarget expected = new ReplicationTarget("remote_cluster_1", "4");
     workMaker.addWorkRecord(new Text(file), StatusUtil.fileClosedValue(), ImmutableMap.of("remote_cluster_1", "4"));
 
     Scanner s = ReplicationTable.getScanner(conn);
-    s.setRange(WorkSection.getRange());
+    WorkSection.limit(s);
+
     Iterator<Entry<Key,Value>> iter = s.iterator();
     Assert.assertTrue(iter.hasNext());
 
     Entry<Key,Value> workEntry = iter.next();
     Key workKey = workEntry.getKey();
+    ReplicationTarget actual = ReplicationTarget.from(workKey.getColumnQualifier());
 
-    Assert.assertEquals(WorkSection.getRowPrefix() + file, workKey.getRow().toString());
-    Assert.assertEquals("remote_cluster_1", workKey.getColumnFamily().toString());
-    Assert.assertEquals("4", workKey.getColumnQualifier().toString());
+    Assert.assertEquals(file, workKey.getRow().toString());
+    Assert.assertEquals(WorkSection.NAME, workKey.getColumnFamily());
+    Assert.assertEquals(expected, actual);
     Assert.assertEquals(workEntry.getValue(), StatusUtil.fileClosedValue());
 
     Assert.assertFalse(iter.hasNext());
@@ -125,23 +131,30 @@ public class WorkMakerTest {
     WorkMaker workMaker = new WorkMaker(conn, conf);
 
     Map<String,String> targetClusters = ImmutableMap.of("remote_cluster_1", "4", "remote_cluster_2", "6", "remote_cluster_3", "8");
+    Set<ReplicationTarget> expectedTargets = new HashSet<>();
+    for (Entry<String,String> cluster : targetClusters.entrySet()) {
+      expectedTargets.add(new ReplicationTarget(cluster.getKey(), cluster.getValue()));
+    }
     workMaker.addWorkRecord(new Text(file), StatusUtil.fileClosedValue(), targetClusters);
 
     Scanner s = ReplicationTable.getScanner(conn);
-    s.setRange(WorkSection.getRange());
+    WorkSection.limit(s);
 
-    Map<String,String> actualClusters = new HashMap<>();
+    Set<ReplicationTarget> actualTargets = new HashSet<>();
     for (Entry<Key,Value> entry : s) {
-      actualClusters.put(entry.getKey().getColumnFamily().toString(), entry.getKey().getColumnQualifier().toString());
+      Assert.assertEquals(file, entry.getKey().getRow().toString());
+      Assert.assertEquals(WorkSection.NAME, entry.getKey().getColumnFamily());
+
+      ReplicationTarget target = ReplicationTarget.from(entry.getKey().getColumnQualifier());
+      actualTargets.add(target);
     }
 
-    for (Entry<String,String> expected : targetClusters.entrySet()) {
-      Assert.assertTrue("Did not find expected key: " + expected.getKey(), actualClusters.containsKey(expected.getKey()));
-      Assert.assertEquals("Values differed for " + expected.getKey(), expected.getValue(), actualClusters.get(expected.getKey()));
-      actualClusters.remove(expected.getKey());
+    for (ReplicationTarget expected : expectedTargets) {
+      Assert.assertTrue("Did not find expected target: " + expected, actualTargets.contains(expected));
+      actualTargets.remove(expected);
     }
 
-    Assert.assertTrue("Found extra replication work entries: " + actualClusters, actualClusters.isEmpty());
+    Assert.assertTrue("Found extra replication work entries: " + actualTargets, actualTargets.isEmpty());
   }
 
 }
