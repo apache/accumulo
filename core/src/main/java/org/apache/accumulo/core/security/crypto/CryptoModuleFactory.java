@@ -258,6 +258,7 @@ public class CryptoModuleFactory {
     // Get all the options from the configuration
     Map<String,String> cryptoOpts = conf.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX);
     cryptoOpts.putAll(conf.getAllPropertiesWithPrefix(Property.INSTANCE_PREFIX));
+    cryptoOpts.remove(Property.INSTANCE_SECRET.getKey());
     cryptoOpts.put(Property.CRYPTO_BLOCK_STREAM_SIZE.getKey(), Integer.toString((int) conf.getMemoryInBytes(Property.CRYPTO_BLOCK_STREAM_SIZE)));
 
     return fillParamsObjectFromStringMap(params, cryptoOpts);
