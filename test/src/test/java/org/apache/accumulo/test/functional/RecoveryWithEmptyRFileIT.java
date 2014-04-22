@@ -53,8 +53,6 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestMultiTableIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.RemoteIterator;
-import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -117,14 +115,6 @@ public class RecoveryWithEmptyRFileIT extends ConfigurableMacIT {
     meta.close();
     assertTrue(foundFile);
 
-    if(log.isTraceEnabled()) {
-      log.trace("Enumerating backing filesystem paths:");
-      RemoteIterator<LocatedFileStatus> paths = cluster.getFileSystem().listFiles(new Path("/"), true);
-      while (paths.hasNext()) {
-        FileStatus path = paths.next();
-        log.trace(path.toString());
-      }
-    }
     log.trace("invalidate cached file handles by issuing a compaction");
     connector.tableOperations().online("test_ingest", true);
     connector.tableOperations().compact("test_ingest", null, null, false, true);
