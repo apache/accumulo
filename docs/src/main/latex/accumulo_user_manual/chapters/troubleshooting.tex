@@ -95,6 +95,17 @@ finds the file system clean:
   $ hadoop fsck /accumulo
 \end{verbatim}\endgroup
 
+You can use:
+
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+  $ hadoop fsck /accumulo/path/to/corrupt/file -locations -blocks -files
+\end{verbatim}\endgroup
+
+to locate the block references of individual corrupt files and use those
+references to search the name node and individual data node logs to determine which 
+servers those blocks have been assigned and then try to fix any underlying file
+system issues on those nodes.
+
 On a larger cluster, you may need to increase the number of Xceivers
 
 \begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
@@ -621,6 +632,75 @@ but the basic approach is:
  \item Import the directories under \texttt{/corrupt/tables/<id>} into the new instance
 \end{itemize}
 
+Q. One or more HDFS Files under /accumulo/tables are corrupt
+
+Accumulo maintains multiple references into the tablet files in the METADATA
+table and within the tablet server hosting the file, this makes it difficult to
+reliably just remove those references.
+
+The directory structure in HDFS for tables will follow the general structure:
+
+\small
+\begin{verbatim}
+  /accumulo
+  /accumulo/tables/
+  /accumulo/tables/!0
+  /accumulo/tables/!0/default_tablet/A000001.rf
+  /accumulo/tables/!0/t-00001/A000002.rf
+  /accumulo/tables/1
+  /accumulo/tables/1/default_tablet/A000003.rf
+  /accumulo/tables/1/t-00001/A000004.rf
+  /accumulo/tables/1/t-00001/A000005.rf
+  /accumulo/tables/2/default_tablet/A000006.rf
+  /accumulo/tables/2/t-00001/A000007.rf
+\end{verbatim}
+\normalsize
+
+If files under /accumulo/tables are corrupt, the best course of action is to
+recover those files in hdsf see the section on HDFS. Once these recovery efforts
+have been exhausted, the next step depends on where the missing file(s) are
+located. Different actions are required when the bad files are in Accumulo data
+table files or if they are metadata table files.
+
+{\bf Data File Corruption}
+
+When an Accumulo data file is corrupt, the most reliable way to restore Accumulo
+operations is to replace the missing file with an “empty” file so that
+references to the file in the METADATA table and within the tablet server
+hosting the file can be resolved by Accumulo. An empty file can be created using
+the CreateEmpty utiity:
+
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+  $accumulo org.apache.accumulo.core.file.rfile.CreateEmpty /path/to/empty/file/empty.rf
+\end{verbatim}\endgroup
+
+The process is to delete the corrupt file and then move the empty file into its
+place (The generated empty file can be copied and used multiple times if necessary and does not need
+to be regenerated each time)
+
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+  $hadoop fs –rm /accumulo/tables/corrupt/file/thename.rf; \
+  hadoop fs -mv /path/to/empty/file/empty.rf /accumulo/tables/corrupt/file/thename.rf
+\end{verbatim}\endgroup
+
+{\bf Metadata File Corruption}
+
+If the corrupt files are metadata files, see \ref{sec:metadata} (under the path
+\begin{verbatim}/accumulo/tables/!0\end{verbatim}) then you will need to rebuild
+the metadata table by initializing a new instance of Accumulo and then importing
+all of the existing data into the new instance.  This is the same procedure as
+recovering from a zookeeper failure (see \ref{ZooKeeper Failure}, except that
+you will have the benefit of having the existing user and table authorizations
+that are maintained in zookeeper.
+
+You can use the DumpZookeeper utility to save this information for reference
+before creating the new instance.  You will not be able to use RestoreZookeeper
+because the table names and references are likely to be different between the
+original and the new instances, but it can serve as a reference.
+
+A. If the files cannot be recovered, replace corrupt data files with a empty
+rfiles to allow references in the metadata table and in the tablet servers to be
+resolved. Rebuild the metadata table if the corrupt files are metadata files.
 
 \subsection{ZooKeeper Failure}
 Q. I lost my ZooKeeper quorum (hardware failure), but HDFS is still intact. How can I recover my Accumulo instance?
