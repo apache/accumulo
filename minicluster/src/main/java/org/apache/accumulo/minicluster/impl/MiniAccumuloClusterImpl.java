@@ -598,9 +598,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       lw.flush();
     }
 
-    if (zooKeeperProcess != null) {
-      zooKeeperProcess.destroy();
-      zooKeeperProcess.waitFor();
+    if (gcProcess != null) {
+      gcProcess.destroy();
+      gcProcess.waitFor();
     }
     if (masterProcess != null) {
       masterProcess.destroy();
@@ -614,9 +614,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         }
       }
     }
-    if (gcProcess != null) {
-      gcProcess.destroy();
-      gcProcess.waitFor();
+    if (zooKeeperProcess != null) {
+      zooKeeperProcess.destroy();
+      zooKeeperProcess.waitFor();
     }
 
     zooKeeperProcess = null;
