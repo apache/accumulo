@@ -101,10 +101,6 @@ public class WorkMaker extends Daemon {
     }
   }
 
-  protected TableConfiguration getTableConf(Connector conn, String tableId) {
-    return ServerConfiguration.getTableConfiguration(conn.getInstance(), tableId);
-  }
-  
   protected void addWorkRecord(Text file, Value v, Map<String,String> targets) throws TableNotFoundException {
     // TODO come up with something that tries to avoid creating a new BatchWriter all the time
     BatchWriter bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
