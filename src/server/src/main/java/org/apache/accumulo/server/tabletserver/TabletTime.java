@@ -78,6 +78,10 @@ public abstract class TabletTime {
   }
   
   public static String maxMetadataTime(String mv1, String mv2) {
+    if (mv1 == null && mv2 == null) {
+      return null;
+    }
+    
     if (mv1 == null) {
       checkType(mv2);
       return mv2;
