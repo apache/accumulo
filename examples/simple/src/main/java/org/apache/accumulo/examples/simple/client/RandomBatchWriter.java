@@ -124,12 +124,10 @@ public class RandomBatchWriter {
     Opts opts = new Opts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(RandomBatchWriter.class.getName(), args, bwOpts);
-    if ((opts.max - opts.min) < (long)opts.num) {
-      System.err
-          .println(String
-              .format(
-                  "You must specify a min and a max that allow for at least num possible values. For example, you requested %d rows, but a min of %d and a max of %d (exclusive), which only allows for %d rows.",
-                  opts.num, opts.min, opts.max, (opts.max - opts.min)));
+    if ((opts.max - opts.min) < 1L * opts.num) { // right-side multiplied by 1L to convert to long in a way that doesn't trigger FindBugs
+      System.err.println(String.format("You must specify a min and a max that allow for at least num possible values. "
+          + "For example, you requested %d rows, but a min of %d and a max of %d (exclusive), which only allows for %d rows.", opts.num, opts.min, opts.max,
+          (opts.max - opts.min)));
       System.exit(1);
     }
     Random r;
