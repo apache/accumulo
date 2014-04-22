@@ -33,7 +33,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.replication.ReplicationSchema;
 import org.apache.accumulo.core.replication.ReplicationTable;
@@ -44,11 +43,9 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 /**
@@ -65,28 +62,6 @@ public class ReplicationTest extends ConfigurableMacIT {
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
     cfg.setNumTservers(1);
-  }
-
-  @Test
-  public void noReplicationTableCreatedImmediately() throws Exception {
-    Connector conn = getConnector();
-    Set<String> tables = conn.tableOperations().list();
-
-    Assert.assertEquals(Sets.newHashSet(RootTable.NAME, MetadataTable.NAME), tables);
-  }
-
-  @Test
-  public void readRootTable() throws Exception {
-    Connector conn = getConnector();
-    Scanner s = conn.createScanner(RootTable.NAME, new Authorizations());
-    Assert.assertNotEquals(0, Iterables.size(s));
-  }
-
-  @Test
-  public void readMetadataTable() throws Exception {
-    Connector conn = getConnector();
-    Scanner s = conn.createScanner(MetadataTable.NAME, new Authorizations());
-    Assert.assertEquals(0, Iterables.size(s));
   }
 
   @Test
