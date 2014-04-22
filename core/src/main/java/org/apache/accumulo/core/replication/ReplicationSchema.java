@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.replication;
 
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -50,11 +51,55 @@ public class ReplicationSchema {
       return section.getRowPrefix();
     }
 
+    /**
+     * Extract the table ID from the colfam (inefficiently if called repeatedly)
+     * @param k Key to extract from
+     * @return The table ID
+     * @see #getTableId(Key,Text) 
+     */
     public static String getTableId(Key k) {
-      Preconditions.checkNotNull(k);
-      Preconditions.checkArgument(getRange().contains(k), "Key does not fall within ReplicationSection range");
+      Text buff = new Text();
+      getTableId(k, buff);
+      return buff.toString();
+    }
 
-      return k.getColumnFamily().toString();
+    /**
+     * Extract the table ID from the colfam into the given {@link Text}
+     * @param k Key to extract from
+     * @param buff Text to place table ID into
+     */
+    public static void getTableId(Key k, Text buff) {
+      Preconditions.checkNotNull(k);
+      Preconditions.checkNotNull(buff);
+      Preconditions.checkArgument(getRange().contains(k), "Key (%s) does not fall within ReplicationSection range", k);
+
+      k.getColumnFamily(buff);
+    }
+
+    /**
+     * Extract the file name from the row suffix into the given {@link Text}
+     * @param k Key to extract from
+     * @param buff Text to place file name into
+     */
+    public static void getFile(Key k, Text buff) {
+      Preconditions.checkNotNull(k);
+      Preconditions.checkNotNull(buff);
+      Preconditions.checkArgument(getRange().contains(k), "Key (%s) does not fall within ReplicationSection range", k);
+
+      k.getRow(buff);
+      ByteSequence rowByteSequence = k.getRowData();
+
+      // No implementation that isn't backed by an array..
+      Preconditions.checkArgument(rowByteSequence.isBackedByArray());
+
+      byte[] rowBytes = rowByteSequence.getBackingArray();
+      int rowLength = rowByteSequence.length();
+
+      // We should have at the "~repl" plus something
+      int rowPrefixLength = getRowPrefix().length();
+      Preconditions.checkArgument(rowLength > rowPrefixLength);
+
+      buff.set(rowBytes, rowPrefixLength, rowLength - rowPrefixLength);
     }
   }
 }
