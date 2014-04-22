@@ -35,13 +35,22 @@ public class ReplicationSchema {
   }
 
   public static class WorkSection {
+    private static final Section section = new Section("work", false, "worl", false);
+
+    public static Range getRange() {
+      return section.getRange();
+    }
+
+    public static String getRowPrefix() {
+      return section.getRowPrefix();
+    }
   }
 
   /**
    * Holds replication markers tracking status for files
    */
   public static class ReplicationSection {
-    private static final Section section = new Section(MetadataSchema.RESERVED_PREFIX + "repl", true, MetadataSchema.RESERVED_PREFIX + "repm", false);
+    private static final Section section = new Section("repl", false, "repm", false);
 
     public static Range getRange() {
       return section.getRange();
