@@ -44,10 +44,13 @@ import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+
+import com.google.common.primitives.Bytes;
 
 public class CryptoTest {
   
@@ -99,6 +102,29 @@ public class CryptoTest {
     assertEquals("SHA1PRNG", params.getRandomNumberGenerator());
     assertEquals("SUN", params.getRandomNumberGeneratorProvider());
     assertEquals("org.apache.accumulo.core.security.crypto.CachingHDFSSecretKeyEncryptionStrategy", params.getKeyEncryptionStrategyClass());
+  }
+  
+  @Test
+  public void testCryptoModuleDoesntLeakSensitive() throws IOException {
+    AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);    
+
+    CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    params.setPlaintextOutputStream(baos);
+
+    CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
+
+    cryptoModule.getEncryptingOutputStream(params);
+    params.getEncryptedOutputStream().close();
+    
+    // If we get here, we have encrypted bytes
+    byte[] streamBytes = baos.toByteArray();
+    for (Property prop : Property.values()) {
+      if (prop.isSensitive()) {
+        byte[] toCheck = prop.getKey().getBytes();
+        assertEquals(-1, Bytes.indexOf(streamBytes, toCheck));  }
+    }    
+
   }
   
   @Test

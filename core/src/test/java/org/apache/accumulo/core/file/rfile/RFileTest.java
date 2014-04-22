@@ -1751,7 +1751,7 @@ public class RFileTest {
   }
 
   @Test
-  public void testCryptoDoesntLeakInstanceSecret() throws IOException {
+  public void testCryptoDoesntLeakSensitive() throws IOException {
     conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     // test an empty file
 
@@ -1763,10 +1763,12 @@ public class RFileTest {
     byte[] rfBytes = trf.baos.toByteArray();
     
     // If we get here, we have encrypted bytes
-    byte[] toCheck = Property.INSTANCE_SECRET.getKey().getBytes();
-    assertEquals(-1, Bytes.indexOf(rfBytes, toCheck));
+    for (Property prop : Property.values()) {
+      if (prop.isSensitive()) {
+        byte[] toCheck = prop.getKey().getBytes();
+        assertEquals(-1, Bytes.indexOf(rfBytes, toCheck));  }
+    }    
   }
-
   
   @Test
   public void testRootTabletEncryption() throws Exception {
