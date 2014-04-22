@@ -21,6 +21,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.SortedSet;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.admin.TimeType;
@@ -43,6 +44,7 @@ public class MockAccumulo {
   final Map<String,String> systemProperties = new HashMap<String,String>();
   Map<String,MockUser> users = new HashMap<String,MockUser>();
   final FileSystem fs;
+  final AtomicInteger tableIdCounter = new AtomicInteger(0);
 
   MockAccumulo(FileSystem fs) {
     this.fs = fs;
@@ -91,7 +93,7 @@ public class MockAccumulo {
     }
 
     MockNamespace n = namespaces.get(namespace);
-    MockTable t = new MockTable(n, useVersions, timeType);
+    MockTable t = new MockTable(n, useVersions, timeType, Integer.toString(tableIdCounter.incrementAndGet()));
     t.userPermissions.put(username, EnumSet.allOf(TablePermission.class));
     t.setNamespaceName(namespace);
     t.setNamespace(n);

@@ -129,7 +129,7 @@ public class ReplicationTableUtil {
     }
   }
 
-  protected static Mutation createUpdateMutation(String file, Value v, KeyExtent extent) {
+  public static Mutation createUpdateMutation(String file, Value v, KeyExtent extent) {
     Mutation m = new Mutation(new Text(ReplicationSection.getRowPrefix() + file));
     m.put(extent.getTableId(), EMPTY_TEXT, v);
     return m;
