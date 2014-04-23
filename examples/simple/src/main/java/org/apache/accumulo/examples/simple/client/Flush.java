@@ -29,7 +29,7 @@ public class Flush {
     opts.parseArgs(Flush.class.getName(), args);
     try {
       Connector connector = opts.getConnector();
-      connector.tableOperations().flush(opts.tableName, null, null, true);
+      connector.tableOperations().flush(opts.getTableName(), null, null, true);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

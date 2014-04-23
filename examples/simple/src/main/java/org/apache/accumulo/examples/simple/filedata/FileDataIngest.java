@@ -188,11 +188,11 @@ public class FileDataIngest {
     opts.parseArgs(FileDataIngest.class.getName(), args, bwOpts);
     
     Connector conn = opts.getConnector();
-    if (!conn.tableOperations().exists(opts.tableName)) {
-      conn.tableOperations().create(opts.tableName);
-      conn.tableOperations().attachIterator(opts.tableName, new IteratorSetting(1, ChunkCombiner.class));
+    if (!conn.tableOperations().exists(opts.getTableName())) {
+      conn.tableOperations().create(opts.getTableName());
+      conn.tableOperations().attachIterator(opts.getTableName(), new IteratorSetting(1, ChunkCombiner.class));
     }
-    BatchWriter bw = conn.createBatchWriter(opts.tableName, bwOpts.getBatchWriterConfig());
+    BatchWriter bw = conn.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());
     FileDataIngest fdi = new FileDataIngest(opts.chunkSize, opts.visibility);
     for (String filename : opts.files) {
       fdi.insertFileData(filename, bw);

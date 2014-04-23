@@ -155,11 +155,11 @@ public class SecurityOperation {
     if (!credentials.getInstanceId().equals(HdfsZooInstance.getInstance().getInstanceID()))
       throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.INVALID_INSTANCEID);
 
+    AuthenticationToken token = AuthenticationTokenSerializer.deserialize(credentials.getTokenClassName(), credentials.getToken());
     if (isSystemUser(credentials)) {
-      authenticateSystemUser(credentials);
+      authenticateSystemUserToken(credentials, token);
     } else {
       try {
-        AuthenticationToken token = AuthenticationTokenSerializer.deserialize(credentials.getTokenClassName(), credentials.getToken());
         if (!authenticator.authenticateUser(credentials.getPrincipal(), token)) {
           throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
         }
@@ -170,8 +170,8 @@ public class SecurityOperation {
     }
   }
 
-  private void authenticateSystemUser(TCredentials credentials) throws ThriftSecurityException {
-    if (SystemCredentials.get().getToken().equals(credentials.getToken()))
+  private void authenticateSystemUserToken(TCredentials credentials, AuthenticationToken token) throws ThriftSecurityException {
+    if (!SystemCredentials.get().getToken().equals(token))
       throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
   }
 

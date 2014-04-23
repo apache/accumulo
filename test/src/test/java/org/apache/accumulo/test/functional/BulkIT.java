@@ -62,7 +62,7 @@ public class BulkIT extends SimpleMacIT {
     opts.rows = N;
     opts.instance = c.getInstance().getInstanceName();
     opts.cols = 1;
-    opts.tableName = tableName;
+    opts.setTableName(tableName);
     String fileFormat = "/testrf/"+filePrefix+"rf%02d";
     for (int i = 0; i < COUNT; i++) {
       opts.outputFile = base + String.format(fileFormat, i);
@@ -76,7 +76,7 @@ public class BulkIT extends SimpleMacIT {
     TestIngest.ingest(c, opts, BWOPTS);
     c.tableOperations().importDirectory(tableName, base + "/testrf", bulkFailures, false);
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-    vopts.tableName = tableName;
+    vopts.setTableName(tableName);
     vopts.random = 56;
     for (int i = 0; i < COUNT; i++) {
       vopts.startRow = i * N;

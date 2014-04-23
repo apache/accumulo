@@ -378,7 +378,7 @@ public final class Compression {
     throw new IllegalArgumentException("Unsupported compression algorithm name: " + compressName);
   }
   
-  static String[] getSupportedAlgorithms() {
+  public static String[] getSupportedAlgorithms() {
     Algorithm[] algos = Algorithm.class.getEnumConstants();
     
     ArrayList<String> ret = new ArrayList<String>();

@@ -48,7 +48,7 @@ public class VerifyIngest {
     opts.parseArgs(VerifyIngest.class.getName(), args);
     
     Connector connector = opts.getConnector();
-    Scanner scanner = connector.createScanner(opts.tableName, opts.auths);
+    Scanner scanner = connector.createScanner(opts.getTableName(), opts.auths);
     
     scanner.setRange(new Range(new Text(String.format("row_%08d", opts.startRow)), null));
     

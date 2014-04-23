@@ -50,7 +50,7 @@ public class WriteLotsIT extends SimpleMacIT {
             TestIngest.Opts opts = new TestIngest.Opts();
             opts.startRow = index * 10000;
             opts.rows = 10000;
-            opts.tableName = tableName;
+            opts.setTableName(tableName);
             TestIngest.ingest(c, opts, new BatchWriterOpts());
           } catch (Exception ex) {
             ref.set(ex);
@@ -68,7 +68,7 @@ public class WriteLotsIT extends SimpleMacIT {
     }
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     vopts.rows = 10000 * 10;
-    vopts.tableName = tableName;
+    vopts.setTableName(tableName);
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
   }
 

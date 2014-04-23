@@ -55,7 +55,7 @@ public class BinaryIT extends ConfigurableMacIT {
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     ScannerOpts scanOpts = new ScannerOpts();
     TestBinaryRows.Opts opts = new TestBinaryRows.Opts();
-    opts.tableName = "bt";
+    opts.setTableName("bt");
     opts.start = 0;
     opts.num = 100000;
     opts.mode = "ingest";

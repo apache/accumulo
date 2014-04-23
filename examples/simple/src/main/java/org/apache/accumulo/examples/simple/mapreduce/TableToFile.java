@@ -21,7 +21,7 @@ import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.HashSet;
 import java.util.Map;
 
-import org.apache.accumulo.core.cli.ClientOnRequiredTable;
+import org.apache.accumulo.core.cli.MapReduceClientOnRequiredTable;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.data.Key;
@@ -47,7 +47,7 @@ import com.beust.jcommander.Parameter;
  */
 public class TableToFile extends Configured implements Tool {
 
-  static class Opts extends ClientOnRequiredTable {
+  static class Opts extends MapReduceClientOnRequiredTable {
     @Parameter(names = "--output", description = "output directory", required = true)
     String output;
     @Parameter(names = "--columns", description = "columns to extract, in cf:cq{,cf:cq,...} form")

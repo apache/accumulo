@@ -91,17 +91,17 @@ public class Merge {
     try {
       Connector conn = opts.getConnector();
       
-      if (!conn.tableOperations().exists(opts.tableName)) {
-        System.err.println("table " + opts.tableName + " does not exist");
+      if (!conn.tableOperations().exists(opts.getTableName())) {
+        System.err.println("table " + opts.getTableName() + " does not exist");
         return;
       }
       if (opts.goalSize == null || opts.goalSize < 1) {
-        AccumuloConfiguration tableConfig = new ConfigurationCopy(conn.tableOperations().getProperties(opts.tableName));
+        AccumuloConfiguration tableConfig = new ConfigurationCopy(conn.tableOperations().getProperties(opts.getTableName()));
         opts.goalSize = tableConfig.getMemoryInBytes(Property.TABLE_SPLIT_THRESHOLD);
       }
       
-      message("Merging tablets in table %s to %d bytes", opts.tableName, opts.goalSize);
-      mergomatic(conn, opts.tableName, opts.begin, opts.end, opts.goalSize, opts.force);
+      message("Merging tablets in table %s to %d bytes", opts.getTableName(), opts.goalSize);
+      mergomatic(conn, opts.getTableName(), opts.begin, opts.end, opts.goalSize, opts.force);
     } catch (Exception ex) {
       throw new MergeException(ex);
     }

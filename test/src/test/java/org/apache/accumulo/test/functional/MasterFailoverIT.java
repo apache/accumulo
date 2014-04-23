@@ -56,7 +56,7 @@ public class MasterFailoverIT extends ConfigurableMacIT {
     c.tableOperations().rename("test_ingest", "test_ingest2");
     try {
       VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-      vopts.tableName = "test_ingest2";
+      vopts.setTableName("test_ingest2");
       VerifyIngest.verifyIngest(c, vopts, SOPTS);
     } finally {
       p.destroy();

@@ -53,11 +53,11 @@ public class TableIT extends SimpleMacIT {
     String tableName = getUniqueNames(1)[0];
     to.create(tableName);
     TestIngest.Opts opts = new TestIngest.Opts();
-    opts.tableName = tableName;
+    opts.setTableName(tableName);
     TestIngest.ingest(c, opts, new BatchWriterOpts());
     to.flush(tableName, null, null, true);
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-    vopts.tableName = tableName;
+    vopts.setTableName(tableName);
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
     String id = to.tableIdMap().get(tableName);
     Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);

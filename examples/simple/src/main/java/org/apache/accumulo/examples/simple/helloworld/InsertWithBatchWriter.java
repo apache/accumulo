@@ -44,9 +44,9 @@ public class InsertWithBatchWriter {
     Connector connector = opts.getConnector();
     MultiTableBatchWriter mtbw = connector.createMultiTableBatchWriter(bwOpts.getBatchWriterConfig());
     
-    if (!connector.tableOperations().exists(opts.tableName))
-      connector.tableOperations().create(opts.tableName);
-    BatchWriter bw = mtbw.getBatchWriter(opts.tableName);
+    if (!connector.tableOperations().exists(opts.getTableName()))
+      connector.tableOperations().create(opts.getTableName());
+    BatchWriter bw = mtbw.getBatchWriter(opts.getTableName());
     
     Text colf = new Text("colfam");
     System.out.println("writing ...");

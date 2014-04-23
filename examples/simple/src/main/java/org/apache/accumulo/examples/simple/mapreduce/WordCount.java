@@ -18,7 +18,7 @@ package org.apache.accumulo.examples.simple.mapreduce;
 
 import java.io.IOException;
 
-import org.apache.accumulo.core.cli.ClientOnRequiredTable;
+import org.apache.accumulo.core.cli.MapReduceClientOnRequiredTable;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -41,7 +41,7 @@ import com.beust.jcommander.Parameter;
  */
 public class WordCount extends Configured implements Tool {
 
-  static class Opts extends ClientOnRequiredTable {
+  static class Opts extends MapReduceClientOnRequiredTable {
     @Parameter(names = "--input", description = "input directory")
     String inputDirectory;
   }

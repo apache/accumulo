@@ -70,7 +70,7 @@ public class CountTest extends TestCase {
     ScannerOpts scanOpts = new ScannerOpts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.instance = "counttest";
-    opts.tableName = "dirlisttable";
+    opts.setTableName("dirlisttable");
     opts.password = new Password("secret");
     opts.mock = true;
     opts.password = new Opts.Password("");

@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 
-import org.apache.accumulo.core.cli.ClientOnRequiredTable;
+import org.apache.accumulo.core.cli.MapReduceClientOnRequiredTable;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -73,7 +73,7 @@ public class UniqueColumns extends Configured implements Tool {
     }
   }
 
-  static class Opts extends ClientOnRequiredTable {
+  static class Opts extends MapReduceClientOnRequiredTable {
     @Parameter(names = "--output", description = "output directory")
     String output;
     @Parameter(names = "--reducers", description = "number of reducers to use", required = true)
@@ -93,7 +93,7 @@ public class UniqueColumns extends Configured implements Tool {
     job.setJobName(jobName);
     job.setJarByClass(this.getClass());
 
-    String clone = opts.tableName;
+    String clone = opts.getTableName();
     Connector conn = null;
 
     opts.setAccumuloConfigs(job);
@@ -105,8 +105,8 @@ public class UniqueColumns extends Configured implements Tool {
        */
 
       conn = opts.getConnector();
-      clone = opts.tableName + "_" + jobName;
-      conn.tableOperations().clone(opts.tableName, clone, true, new HashMap<String,String>(), new HashSet<String>());
+      clone = opts.getTableName() + "_" + jobName;
+      conn.tableOperations().clone(opts.getTableName(), clone, true, new HashMap<String,String>(), new HashSet<String>());
       conn.tableOperations().offline(clone);
 
       AccumuloInputFormat.setOfflineTableScan(job, true);

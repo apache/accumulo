@@ -61,7 +61,7 @@ public class ReadWriteIT extends ConfigurableMacIT {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 2 * 60;
+    return 4 * 60;
   }
 
   @Test
@@ -100,7 +100,7 @@ public class ReadWriteIT extends ConfigurableMacIT {
     TestIngest.ingest(connector, opts, new BatchWriterOpts());
   }
   
-  private static void verify(Connector connector, int rows, int cols, int width, int offset) throws Exception {
+  public static void verify(Connector connector, int rows, int cols, int width, int offset) throws Exception {
     verify(connector, rows, cols, width, offset, COLF);
   }
   

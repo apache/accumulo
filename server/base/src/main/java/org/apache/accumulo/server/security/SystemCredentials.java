@@ -44,55 +44,55 @@ import org.apache.hadoop.io.Writable;
  * @since 1.6.0
  */
 public final class SystemCredentials extends Credentials {
-  
+
   private static final SecurityPermission SYSTEM_CREDENTIALS_PERMISSION = new SecurityPermission("systemCredentialsPermission");
-  
+
   private static SystemCredentials SYSTEM_CREDS = null;
   private static final String SYSTEM_PRINCIPAL = "!SYSTEM";
-  private static final SystemToken SYSTEM_TOKEN = SystemToken.get();
-  
+
   private final TCredentials AS_THRIFT;
-  
-  private SystemCredentials() {
-    super(SYSTEM_PRINCIPAL, SYSTEM_TOKEN);
-    AS_THRIFT = super.toThrift(HdfsZooInstance.getInstance());
+
+  SystemCredentials(Instance instance) {
+    super(SYSTEM_PRINCIPAL, SystemToken.get(instance));
+    AS_THRIFT = super.toThrift(instance);
   }
-  
+
   public static SystemCredentials get() {
     SecurityManager sm = System.getSecurityManager();
     if (sm != null) {
       sm.checkPermission(SYSTEM_CREDENTIALS_PERMISSION);
     }
     if (SYSTEM_CREDS == null) {
-      SYSTEM_CREDS = new SystemCredentials();
+      SYSTEM_CREDS = new SystemCredentials(HdfsZooInstance.getInstance());
     }
     return SYSTEM_CREDS;
   }
-  
+
   @Override
   public TCredentials toThrift(Instance instance) {
     if (!AS_THRIFT.getInstanceId().equals(instance.getInstanceID()))
       throw new IllegalArgumentException("Unexpected instance used for " + SystemCredentials.class.getSimpleName() + ": " + instance.getInstanceID());
     return AS_THRIFT;
   }
-  
+
   /**
    * An {@link AuthenticationToken} type for Accumulo servers for inter-server communication.
    * 
    * @since 1.6.0
    */
   public static final class SystemToken extends PasswordToken {
-    
+
     /**
      * A Constructor for {@link Writable}.
      */
     public SystemToken() {}
-    
+
     private SystemToken(byte[] systemPassword) {
       super(systemPassword);
     }
-    
-    private static SystemToken get() {
+
+    private static SystemToken get(Instance instance) {
+      byte[] instanceIdBytes = instance.getInstanceID().getBytes(StandardCharsets.UTF_8);
       byte[] confChecksum;
       MessageDigest md;
       try {
@@ -100,11 +100,11 @@ public final class SystemCredentials extends Credentials {
       } catch (NoSuchAlgorithmException e) {
         throw new RuntimeException("Failed to compute configuration checksum", e);
       }
-      
+
       // seed the config with the version and instance id, so at least it's not empty
       md.update(ServerConstants.WIRE_VERSION.toString().getBytes(StandardCharsets.UTF_8));
-      md.update(HdfsZooInstance.getInstance().getInstanceID().getBytes(StandardCharsets.UTF_8));
-      
+      md.update(instanceIdBytes);
+
       for (Entry<String,String> entry : ServerConfiguration.getSiteConfiguration()) {
         // only include instance properties
         if (entry.getKey().startsWith(Property.INSTANCE_PREFIX.toString())) {
@@ -113,16 +113,15 @@ public final class SystemCredentials extends Credentials {
         }
       }
       confChecksum = md.digest();
-      
+
       int wireVersion = ServerConstants.WIRE_VERSION;
-      byte[] inst = HdfsZooInstance.getInstance().getInstanceID().getBytes(StandardCharsets.UTF_8);
-      
-      ByteArrayOutputStream bytes = new ByteArrayOutputStream(3 * (Integer.SIZE / Byte.SIZE) + inst.length + confChecksum.length);
+
+      ByteArrayOutputStream bytes = new ByteArrayOutputStream(3 * (Integer.SIZE / Byte.SIZE) + instanceIdBytes.length + confChecksum.length);
       DataOutputStream out = new DataOutputStream(bytes);
       try {
         out.write(wireVersion * -1);
-        out.write(inst.length);
-        out.write(inst);
+        out.write(instanceIdBytes.length);
+        out.write(instanceIdBytes);
         out.write(confChecksum.length);
         out.write(confChecksum);
       } catch (IOException e) {
@@ -132,5 +131,5 @@ public final class SystemCredentials extends Credentials {
       return new SystemToken(Base64.encodeBase64(bytes.toByteArray()));
     }
   }
-  
+
 }

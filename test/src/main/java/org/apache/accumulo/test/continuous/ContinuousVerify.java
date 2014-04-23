@@ -25,7 +25,7 @@ import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 
-import org.apache.accumulo.core.cli.ClientOnDefaultTable;
+import org.apache.accumulo.core.cli.MapReduceClientOnDefaultTable;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.data.Key;
@@ -158,7 +158,7 @@ public class ContinuousVerify extends Configured implements Tool {
     }
   }
 
-  static class Opts extends ClientOnDefaultTable {
+  static class Opts extends MapReduceClientOnDefaultTable {
     @Parameter(names = "--output", description = "location in HDFS to store the results; must not exist", required = true)
     String outputDir = "/tmp/continuousVerify";
 

@@ -37,14 +37,14 @@ public class SetupTable {
     Opts opts = new Opts();
     opts.parseArgs(SetupTable.class.getName(), args);
     Connector conn = opts.getConnector();
-    conn.tableOperations().create(opts.tableName);
+    conn.tableOperations().create(opts.getTableName());
     if (!opts.splits.isEmpty()) {
       // create a table with initial partitions
       TreeSet<Text> intialPartitions = new TreeSet<Text>();
       for (String split : opts.splits) {
         intialPartitions.add(new Text(split));
       }
-      conn.tableOperations().addSplits(opts.tableName, intialPartitions);
+      conn.tableOperations().addSplits(opts.getTableName(), intialPartitions);
     } 
   }
 }

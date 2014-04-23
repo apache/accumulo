@@ -71,7 +71,7 @@ public class Query {
     BatchScannerOpts bsOpts = new BatchScannerOpts();
     opts.parseArgs(Query.class.getName(), args, bsOpts);
     Connector conn = opts.getConnector();
-    BatchScanner bs = conn.createBatchScanner(opts.tableName, opts.auths, bsOpts.scanThreads);
+    BatchScanner bs = conn.createBatchScanner(opts.getTableName(), opts.auths, bsOpts.scanThreads);
     bs.setTimeout(bsOpts.scanTimeout, TimeUnit.MILLISECONDS);
 
     for (String entry : query(bs, opts.terms))

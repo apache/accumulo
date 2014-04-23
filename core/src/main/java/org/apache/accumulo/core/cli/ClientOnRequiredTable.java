@@ -16,35 +16,18 @@
  */
 package org.apache.accumulo.core.cli;
 
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
-import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
-import org.apache.hadoop.mapreduce.Job;
-
 import com.beust.jcommander.Parameter;
 
+
 public class ClientOnRequiredTable extends ClientOpts {
-  
   @Parameter(names = {"-t", "--table"}, required = true, description = "table to use")
-  public String tableName = null;
-  
-  @Parameter(names = {"-tf", "--tokenFile"}, description = "File in hdfs containing the user's authentication token create with \"bin/accumulo create-token\"")
-  public String tokenFile = "";
-  
-  @Override
-  public void setAccumuloConfigs(Job job) throws AccumuloSecurityException {
-    super.setAccumuloConfigs(job);
-    
-    if (tokenFile.isEmpty()) {
-      AccumuloInputFormat.setConnectorInfo(job, principal, getToken());
-      AccumuloOutputFormat.setConnectorInfo(job, principal, getToken());
-    } else {
-      AccumuloInputFormat.setConnectorInfo(job, principal, tokenFile);
-      AccumuloOutputFormat.setConnectorInfo(job, principal, tokenFile);
-    }
-    AccumuloInputFormat.setInputTableName(job, tableName);
-    AccumuloInputFormat.setScanAuthorizations(job, auths);
-    AccumuloOutputFormat.setCreateTables(job, true);
-    AccumuloOutputFormat.setDefaultTableName(job, tableName);
+  private String tableName;
+
+  public String getTableName() {
+    return tableName;
+  }
+
+  public void setTableName(String tableName) {
+    this.tableName = tableName;
   }
 }

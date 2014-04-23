@@ -109,14 +109,14 @@ public class CollectTabletStats {
     Instance instance = opts.getInstance();
     final ServerConfiguration sconf = new ServerConfiguration(instance);
     
-    String tableId = Tables.getNameToIdMap(instance).get(opts.tableName);
+    String tableId = Tables.getNameToIdMap(instance).get(opts.getTableName());
     if (tableId == null) {
-      log.error("Unable to find table named " + opts.tableName);
+      log.error("Unable to find table named " + opts.getTableName());
       System.exit(-1);
     }
     
     TreeMap<KeyExtent,String> tabletLocations = new TreeMap<KeyExtent,String>();
-    List<KeyExtent> candidates = findTablets(!opts.selectFarTablets, new Credentials(opts.principal, opts.getToken()), opts.tableName, instance,
+    List<KeyExtent> candidates = findTablets(!opts.selectFarTablets, new Credentials(opts.principal, opts.getToken()), opts.getTableName(), instance,
         tabletLocations);
     
     if (candidates.size() < opts.numThreads) {
@@ -136,7 +136,7 @@ public class CollectTabletStats {
     System.out.println();
     System.out.println("run location      : " + InetAddress.getLocalHost().getHostName() + "/" + InetAddress.getLocalHost().getHostAddress());
     System.out.println("num threads       : " + opts.numThreads);
-    System.out.println("table             : " + opts.tableName);
+    System.out.println("table             : " + opts.getTableName());
     System.out.println("table id          : " + tableId);
     
     for (KeyExtent ke : tabletsToTest) {
@@ -217,7 +217,7 @@ public class CollectTabletStats {
         Test test = new Test(ke) {
           @Override
           public int runTest() throws Exception {
-            return scanTablet(conn, opts.tableName, opts.auths, scanOpts.scanBatchSize, ke.getPrevEndRow(), ke.getEndRow(), columns);
+            return scanTablet(conn, opts.getTableName(), opts.auths, scanOpts.scanBatchSize, ke.getPrevEndRow(), ke.getEndRow(), columns);
           }
         };
         
@@ -234,7 +234,7 @@ public class CollectTabletStats {
         @Override
         public void run() {
           try {
-            calcTabletStats(conn, opts.tableName, opts.auths, scanOpts.scanBatchSize, ke, columns);
+            calcTabletStats(conn, opts.getTableName(), opts.auths, scanOpts.scanBatchSize, ke, columns);
           } catch (Exception e) {
             e.printStackTrace();
           }

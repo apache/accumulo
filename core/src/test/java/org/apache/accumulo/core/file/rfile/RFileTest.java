@@ -40,6 +40,7 @@ import java.util.Set;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -70,6 +71,8 @@ import org.apache.log4j.Logger;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+
+import com.google.common.primitives.Bytes;
 
 public class RFileTest {
 
@@ -1747,6 +1750,26 @@ public class RFileTest {
     conf = null;
   }
 
+  @Test
+  public void testCryptoDoesntLeakSensitive() throws IOException {
+    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    // test an empty file
+
+    TestRFile trf = new TestRFile(conf);
+
+    trf.openWriter();
+    trf.closeWriter();
+
+    byte[] rfBytes = trf.baos.toByteArray();
+    
+    // If we get here, we have encrypted bytes
+    for (Property prop : Property.values()) {
+      if (prop.isSensitive()) {
+        byte[] toCheck = prop.getKey().getBytes();
+        assertEquals(-1, Bytes.indexOf(rfBytes, toCheck));  }
+    }    
+  }
+  
   @Test
   public void testRootTabletEncryption() throws Exception {
 

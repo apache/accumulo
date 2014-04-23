@@ -65,7 +65,7 @@ public class ContinuousStatsCollector {
     public StatsCollectionTask(Opts opts, int scanBatchSize) {
       this.opts = opts;
       this.scanBatchSize = scanBatchSize;
-      this.tableId = Tables.getNameToIdMap(opts.getInstance()).get(opts.tableName);
+      this.tableId = Tables.getNameToIdMap(opts.getInstance()).get(opts.getTableName());
       System.out
           .println("TIME TABLET_SERVERS TOTAL_ENTRIES TOTAL_INGEST TOTAL_QUERY TABLE_RECS TABLE_RECS_IN_MEM TABLE_INGEST TABLE_QUERY TABLE_TABLETS TABLE_TABLETS_ONLINE"
               + " ACCUMULO_DU ACCUMULO_DIRS ACCUMULO_FILES TABLE_DU TABLE_DIRS TABLE_FILES"
