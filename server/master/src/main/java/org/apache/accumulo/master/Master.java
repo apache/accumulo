@@ -76,6 +76,7 @@ import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.master.recovery.RecoveryManager;
+import org.apache.accumulo.master.replication.WorkDriver;
 import org.apache.accumulo.master.state.TableCounts;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.ServerConstants;
@@ -164,6 +165,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   final SortedMap<KeyExtent,TServerInstance> migrations = Collections.synchronizedSortedMap(new TreeMap<KeyExtent,TServerInstance>());
   final EventCoordinator nextEvent = new EventCoordinator();
   final private Object mergeLock = new Object();
+  private WorkDriver replicationWorkDriver;
   RecoveryManager recoveryManager = null;
 
   ZooLock masterLock = null;
@@ -936,6 +938,10 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       watcher.start();
     }
 
+    // Start the daemon to scan the replication table and make units of work
+    replicationWorkDriver = new WorkDriver(this);
+    replicationWorkDriver.start();
+
     // Once we are sure the upgrade is complete, we can safely allow fate use.
     waitForMetadataUpgrade.await();
 
@@ -980,6 +986,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
     final long deadline = System.currentTimeMillis() + MAX_CLEANUP_WAIT_TIME;
     statusThread.join(remaining(deadline));
+    replicationWorkDriver.join(remaining(deadline));
 
     // quit, even if the tablet servers somehow jam up and the watchers
     // don't stop

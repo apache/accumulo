@@ -28,7 +28,6 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
@@ -86,13 +85,12 @@ public class WorkMakerTest {
     Mutation m = ReplicationTableUtil.createUpdateMutation(file, StatusUtil.fileClosedValue(), extent);
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     bw.addMutation(m);
-    bw.close();
+    bw.flush();
 
-    ConfigurationCopy conf = new ConfigurationCopy(new HashMap<String,String>());
-
-    WorkMaker workMaker = new WorkMaker(conn, conf);
+    WorkMaker workMaker = new WorkMaker(conn);
 
     ReplicationTarget expected = new ReplicationTarget("remote_cluster_1", "4");
+    workMaker.setBatchWriter(bw);
     workMaker.addWorkRecord(new Text(file), StatusUtil.fileClosedValue(), ImmutableMap.of("remote_cluster_1", "4"));
 
     Scanner s = ReplicationTable.getScanner(conn);
@@ -124,17 +122,16 @@ public class WorkMakerTest {
     Mutation m = ReplicationTableUtil.createUpdateMutation(file, StatusUtil.fileClosedValue(), extent);
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     bw.addMutation(m);
-    bw.close();
+    bw.flush();
 
-    ConfigurationCopy conf = new ConfigurationCopy(new HashMap<String,String>());
-
-    WorkMaker workMaker = new WorkMaker(conn, conf);
+    WorkMaker workMaker = new WorkMaker(conn);
 
     Map<String,String> targetClusters = ImmutableMap.of("remote_cluster_1", "4", "remote_cluster_2", "6", "remote_cluster_3", "8");
     Set<ReplicationTarget> expectedTargets = new HashSet<>();
     for (Entry<String,String> cluster : targetClusters.entrySet()) {
       expectedTargets.add(new ReplicationTarget(cluster.getKey(), cluster.getValue()));
     }
+    workMaker.setBatchWriter(bw);
     workMaker.addWorkRecord(new Text(file), StatusUtil.fileClosedValue(), targetClusters);
 
     Scanner s = ReplicationTable.getScanner(conn);
