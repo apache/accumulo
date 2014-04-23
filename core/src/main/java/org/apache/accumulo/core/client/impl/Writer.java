@@ -40,7 +40,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
-import org.apache.thrift.transport.TTransportException;
 
 public class Writer {
   
@@ -77,9 +76,6 @@ public class Writer {
       return;
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code);
-    } catch (TTransportException e) {
-      log.warn("Error connecting to " + server + ": " + e);
-      throw e;
     } finally {
       ThriftUtil.returnClient((TServiceClient) client);
     }
