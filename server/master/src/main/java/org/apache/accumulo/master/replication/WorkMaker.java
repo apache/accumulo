@@ -34,12 +34,12 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.replication.ReplicationSchema;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
-import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
+import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -53,6 +53,8 @@ public class WorkMaker extends Daemon {
 
   final Connector conn;
   final AccumuloConfiguration conf;
+
+  private BatchWriter writer;
 
   public WorkMaker(Connector conn, AccumuloConfiguration conf) {
     super("Replication Table Work Maker");
@@ -68,11 +70,16 @@ public class WorkMaker extends Daemon {
         UtilWaitThread.sleep(5000);
       }
 
+
       final Scanner s;
       try {
         s = ReplicationTable.getScanner(conn);
+        if (null == writer) {
+          writer = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
+        }
       } catch (TableNotFoundException e) {
         log.warn("Replication table was deleted");
+        writer = null;
         continue;
       }
 
@@ -100,6 +107,7 @@ public class WorkMaker extends Daemon {
             addWorkRecord(file, entry.getValue(), replicationTargets);
           } catch (TableNotFoundException e) {
             log.warn("Replication table was deleted");
+            writer = null;
             continue;
           }
         }
@@ -109,7 +117,6 @@ public class WorkMaker extends Daemon {
 
   protected void addWorkRecord(Text file, Value v, Map<String,String> targets) throws TableNotFoundException {
     // TODO come up with something that tries to avoid creating a new BatchWriter all the time
-    BatchWriter bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
     try {
       Mutation m = new Mutation(file);
 
@@ -131,7 +138,7 @@ public class WorkMaker extends Daemon {
         WorkSection.add(m, t, v);
       }
       try {
-        bw.addMutation(m);
+        writer.addMutation(m);
       } catch (MutationsRejectedException e) {
         log.warn("Failed to write work mutations for replication, will retry", e);
       }
@@ -139,7 +146,7 @@ public class WorkMaker extends Daemon {
       log.warn("Failed to serialize data to Text, will retry", e);
     } finally {
       try {
-        bw.close();
+        writer.flush();
       } catch (MutationsRejectedException e) {
         log.warn("Failed to write work mutations for replication, will retry", e);
       }
