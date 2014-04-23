@@ -460,7 +460,7 @@
             <effort>Max</effort>
             <failOnError>true</failOnError>
             <includeTests>true</includeTests>
-            <maxRank>4</maxRank>
+            <maxRank>6</maxRank>
           </configuration>
         </plugin>
         <plugin>

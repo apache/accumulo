@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.Date;
 import java.util.List;
@@ -83,21 +84,25 @@ abstract public class BasicServlet extends HttpServlet {
 
   private static final String DEFAULT_CONTENT_TYPE = "text/html";
 
-  public static final Cookie getCookie(HttpServletRequest req, String name) {
+  public static final void setCookie(HttpServletResponse resp, String name, String value) {
+    resp.addCookie(new Cookie(name, value));
+  }
+
+  public static final String getCookieValue(HttpServletRequest req, String name) {
     if (req.getCookies() != null)
       for (Cookie c : req.getCookies())
         if (c.getName().equals(name))
-          return c;
+          return c.getValue();
     return null;
   }
 
   protected void pageStart(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) throws Exception {
     resp.setContentType(DEFAULT_CONTENT_TYPE);
     int refresh = -1;
-    Cookie c = getCookie(req, "page.refresh.rate");
-    if (c != null && c.getValue() != null) {
+    String refreshStr = getCookieValue(req, "page.refresh.rate");
+    if (refreshStr != null) {
       try {
-        refresh = Integer.parseInt(c.getValue());
+        refresh = Integer.parseInt(BasicServlet.decode(refreshStr));
       } catch (NumberFormatException e) {
         // ignore improperly formatted user cookie
       }
@@ -246,7 +251,16 @@ abstract public class BasicServlet extends HttpServlet {
       return URLEncoder.encode(s, Constants.UTF8.name());
     } catch (UnsupportedEncodingException e) {
       Logger.getLogger(BasicServlet.class).fatal(Constants.UTF8.name() + " is not a recognized encoding", e);
-      throw new RuntimeException(e);
+      throw new AssertionError(e); // can't happen with UTF-8
+    }
+  }
+
+  public static String decode(String s) {
+    try {
+      return URLDecoder.decode(s, Constants.UTF8.name());
+    } catch (UnsupportedEncodingException e) {
+      Logger.getLogger(BasicServlet.class).fatal(Constants.UTF8.name() + " is not a recognized encoding", e);
+      throw new AssertionError(e); // can't happen with UTF-8
     }
   }
 
