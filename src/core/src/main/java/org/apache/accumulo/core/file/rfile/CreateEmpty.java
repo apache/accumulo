@@ -16,12 +16,10 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.file.FileSKVWriter;
-import org.apache.accumulo.core.file.rfile.RFile.Writer;
 import org.apache.accumulo.core.file.rfile.bcfile.TFile;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.commons.cli.BasicParser;
@@ -30,7 +28,6 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 /**
