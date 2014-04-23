@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.util.UtilWaitThread;
@@ -79,7 +80,9 @@ public class ReplicationTable {
     }
 
     if (!iterators.containsKey(COMBINER_NAME)) {
+      // Set our combiner and combine all columns
       IteratorSetting setting = new IteratorSetting(50, COMBINER_NAME, StatusCombiner.class);
+      Combiner.setCombineAllColumns(setting, true);
       try {
         tops.attachIterator(NAME, setting);
       } catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {

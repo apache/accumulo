@@ -24,6 +24,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.junit.Assert;
 import org.junit.Before;
@@ -93,6 +94,7 @@ public class ReplicationTableTest {
     Assert.assertTrue(iterators.containsKey(ReplicationTable.COMBINER_NAME));
 
     IteratorSetting expected = new IteratorSetting(50, ReplicationTable.COMBINER_NAME, StatusCombiner.class);
+    Combiner.setCombineAllColumns(expected, true);
     IteratorSetting setting = tops.getIteratorSetting(ReplicationTable.NAME, ReplicationTable.COMBINER_NAME, IteratorScope.scan);
 
     Assert.assertEquals(expected, setting);
