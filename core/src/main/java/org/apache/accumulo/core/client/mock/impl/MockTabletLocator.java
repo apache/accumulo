@@ -14,40 +14,57 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client.mock;
+package org.apache.accumulo.core.client.mock.impl;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Credentials;
-import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.hadoop.io.Text;
 
-/**
- * @deprecated since 1.6.0; not intended for public api and you should not use it.
- */
-@Deprecated
-public class MockTabletLocator extends org.apache.accumulo.core.client.mock.impl.MockTabletLocator {
+public class MockTabletLocator extends TabletLocator {
   public MockTabletLocator() {}
 
-  public TabletLocation locateTablet(Text row, boolean skipRow, boolean retry, TCredentials credentials) throws AccumuloException, AccumuloSecurityException,
+  @Override
+  public TabletLocation locateTablet(Credentials credentials, Text row, boolean skipRow, boolean retry) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
-    return locateTablet(Credentials.fromThrift(credentials), row, skipRow, retry);
-  }
-  
-  public <T extends Mutation> void binMutations(List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures, TCredentials credentials)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    binMutations(Credentials.fromThrift(credentials), mutations, binnedMutations, failures);
+    throw new UnsupportedOperationException();
   }
 
-  public List<Range> binRanges(List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges, TCredentials credentials) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException {
-    return binRanges(Credentials.fromThrift(credentials), ranges, binnedRanges);
+  @Override
+  public <T extends Mutation> void binMutations(Credentials credentials, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    TabletServerMutations<T> tsm = new TabletServerMutations<T>("5");
+    for (T m : mutations)
+      tsm.addMutation(new KeyExtent(), m);
+    binnedMutations.put("", tsm);
   }
+
+  @Override
+  public List<Range> binRanges(Credentials credentials, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException {
+    binnedRanges.put("", Collections.singletonMap(new KeyExtent(new Text(), null, null), ranges));
+    return Collections.emptyList();
+  }
+
+  @Override
+  public void invalidateCache(KeyExtent failedExtent) {}
+
+  @Override
+  public void invalidateCache(Collection<KeyExtent> keySet) {}
+
+  @Override
+  public void invalidateCache() {}
+
+  @Override
+  public void invalidateCache(String server) {}
 }
