@@ -52,6 +52,7 @@ import org.apache.log4j.Logger;
 public class VolumeUtil {
 
   private static final Logger log = Logger.getLogger(VolumeUtil.class);
+  private static final SecureRandom rand = new SecureRandom();
 
   private static boolean isActiveVolume(Path dir) {
 
@@ -156,7 +157,6 @@ public class VolumeUtil {
       this.datafiles = datafiles;
     }
   }
-
 
   public static Text switchRootTabletVolume(KeyExtent extent, Text location) throws IOException {
     if (extent.isRootTablet()) {
@@ -344,8 +344,7 @@ public class VolumeUtil {
   }
 
   private static Path getBackupName(FileSystem fs, Path path) {
-    SecureRandom rand = new SecureRandom();
-    return new Path(path.getParent(), path.getName() + "_" + System.currentTimeMillis() + "_" + Math.abs(rand.nextInt()) + ".bak");
+    return new Path(path.getParent(), path.getName() + "_" + System.currentTimeMillis() + "_" + (rand.nextInt(Integer.MAX_VALUE) + 1) + ".bak");
   }
 
 }
