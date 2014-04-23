@@ -472,7 +472,7 @@
             <effort>Max</effort>
             <failOnError>true</failOnError>
             <includeTests>true</includeTests>
-            <maxRank>1</maxRank>
+            <maxRank>4</maxRank>
           </configuration>
         </plugin>
         <plugin>
@@ -632,19 +632,6 @@
           <configuration>
             <lifecycleMappingMetadata>
               <pluginExecutions>
-                <pluginExecution>
-                  <pluginExecutionFilter>
-                    <groupId>org.codehaus.mojo</groupId>
-                    <artifactId>build-helper-maven-plugin</artifactId>
-                    <versionRange>[1.8,)</versionRange>
-                    <goals>
-                      <goal>regex-property</goal>
-                    </goals>
-                  </pluginExecutionFilter>
-                  <action>
-                    <ignore />
-                  </action>
-                </pluginExecution>
                 <pluginExecution>
                   <pluginExecutionFilter>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -872,25 +859,6 @@
             <goals>
               <goal>check</goal>
             </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>build-helper-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>regex-property</id>
-            <goals>
-              <goal>regex-property</goal>
-            </goals>
-            <configuration>
-              <name>project.version.base</name>
-              <value>${project.version}</value>
-              <regex>-SNAPSHOT</regex>
-              <replacement />
-              <failIfNoMatch>false</failIfNoMatch>
-            </configuration>
           </execution>
         </executions>
       </plugin>
