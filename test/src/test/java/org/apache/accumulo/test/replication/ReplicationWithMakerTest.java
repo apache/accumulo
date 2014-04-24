@@ -166,13 +166,14 @@ public class ReplicationWithMakerTest extends ConfigurableMacIT {
     StatusSection.limit(s);
     Assert.assertEquals(2, Iterables.size(s));
 
+    // We should eventually get 2 work records recorded, need to account for a potential delay though
+    // might see: status1 -> work1 -> status2 -> (our scans) -> work2
     notFound = true;
     for (int i = 0; i < 10 && notFound; i++) {
       s = ReplicationTable.getScanner(conn);
       WorkSection.limit(s);
       int elementsFound = Iterables.size(s);
-      if (0 < elementsFound) {
-        Assert.assertEquals(2, elementsFound);
+      if (2 == elementsFound) {
         notFound = false;
       }
       Thread.sleep(500);
