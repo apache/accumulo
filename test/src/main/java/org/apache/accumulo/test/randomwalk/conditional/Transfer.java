@@ -122,6 +122,10 @@ public class Transfer extends Test {
 
       ConditionalWriter cw = (ConditionalWriter) state.get("cw");
       Status status = cw.write(cm).getStatus();
+      while(status == Status.UNKNOWN){
+        log.debug("retrying transfer "+status);
+        status = cw.write(cm).getStatus();
+      }
       log.debug("transfer result " + bank + " " + status + " " + a1 + " " + a2);
     }
 

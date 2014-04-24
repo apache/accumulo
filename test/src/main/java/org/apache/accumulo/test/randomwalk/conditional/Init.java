@@ -77,8 +77,14 @@ public class Init extends Test {
         }
 
       }
-      if (m.getConditions().size() > 0)
-        cw.write(m);
+      if (m.getConditions().size() > 0){
+        Status status = cw.write(m).getStatus();
+        while(status == Status.UNKNOWN)
+          status = cw.write(m).getStatus();
+        
+        if (status == Status.ACCEPTED)
+          acceptedCount++;
+      }
 
       log.debug("Added bank " + Utils.getBank(i) + " " + acceptedCount);
     }
