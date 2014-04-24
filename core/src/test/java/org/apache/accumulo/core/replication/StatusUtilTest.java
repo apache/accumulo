@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.core.replication;
 
-import static org.junit.Assert.*;
-
+import org.apache.accumulo.core.replication.proto.Replication.Status;
+import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -26,8 +26,32 @@ import org.junit.Test;
 public class StatusUtilTest {
 
   @Test
-  public void test() {
-    fail("This class needs some tests");
+  public void newFileIsNotCompletelyReplicated() {
+    Assert.assertFalse(StatusUtil.isCompletelyReplicated(StatusUtil.newFile()));
   }
 
+  @Test
+  public void openFileIsNotCompletelyReplicated() {
+    Assert.assertFalse(StatusUtil.isCompletelyReplicated(Status.newBuilder().setClosed(false).setBegin(0).setEnd(1000).setInfiniteEnd(false).build()));
+  }
+
+  @Test
+  public void closedFileWithDifferentBeginEndIsNotCompletelyReplicated() {
+    Assert.assertFalse(StatusUtil.isCompletelyReplicated(Status.newBuilder().setClosed(true).setBegin(0).setEnd(1000).setInfiniteEnd(false).build()));
+  }
+
+  @Test
+  public void closedFileWithInfEndAndNonMaxBeginIsNotCompletelyReplicated() {
+    Assert.assertFalse(StatusUtil.isCompletelyReplicated(Status.newBuilder().setClosed(true).setInfiniteEnd(true).setBegin(10000).build()));
+  }
+
+  @Test
+  public void closedFileWithInfEndAndMaxBeginIsCompletelyReplicated() {
+    Assert.assertTrue(StatusUtil.isCompletelyReplicated(Status.newBuilder().setClosed(true).setInfiniteEnd(true).setBegin(Long.MAX_VALUE).build()));
+  }
+
+  @Test
+  public void closeFileWithEqualBeginEndIsCompletelyReplicated() {
+    Assert.assertTrue(StatusUtil.isCompletelyReplicated(Status.newBuilder().setClosed(true).setEnd(100000).setBegin(100000).build()));
+  }
 }
