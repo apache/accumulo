@@ -29,10 +29,22 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
+import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
+import org.apache.accumulo.core.replication.StatusUtil;
+import org.apache.accumulo.core.replication.proto.Replication.Status;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
@@ -42,6 +54,7 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
@@ -55,6 +68,7 @@ import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 
 import com.google.common.net.HostAndPort;
+import com.google.protobuf.InvalidProtocolBufferException;
 
 public class GarbageCollectWriteAheadLogs {
   private static final Logger log = Logger.getLogger(GarbageCollectWriteAheadLogs.class);
@@ -122,7 +136,7 @@ public class GarbageCollectWriteAheadLogs {
       
       span = Trace.start("removeMetadataEntries");
       try {
-        count = removeMetadataEntries(nameToFileMap, sortedWALogs, status);
+        count = removeMetadataEntries(nameToFileMap, sortedWALogs, status, SystemCredentials.get());
       } catch (Exception ex) {
         log.error("Unable to scan metadata table", ex);
         return;
@@ -274,12 +288,22 @@ public class GarbageCollectWriteAheadLogs {
     return result;
   }
   
-  private int removeMetadataEntries(Map<String,Path>  nameToFileMap, Map<String, Path> sortedWALogs, GCStatus status) throws IOException, KeeperException,
+  protected int removeMetadataEntries(Map<String,Path>  nameToFileMap, Map<String, Path> sortedWALogs, GCStatus status, Credentials creds) throws IOException, KeeperException,
       InterruptedException {
-    int count = 0;
-    Iterator<LogEntry> iterator = MetadataTableUtil.getLogEntries(SystemCredentials.get());
+    Connector conn;
+    try {
+      conn =  instance.getConnector(creds.getPrincipal(), creds.getToken());
+    } catch (AccumuloException|AccumuloSecurityException e) {
+      log.error("Failed to get connector", e);
+      throw new IllegalArgumentException(e);
+    }
 
+    int count = 0;
+    Iterator<LogEntry> iterator = MetadataTableUtil.getLogEntries(creds);
+
+    // For each WAL reference in the metadata table
     while (iterator.hasNext()) {
+      // Each metadata reference has at least one WAL file
       for (String entry : iterator.next().logSet) {
         String uuid = new Path(entry).getName();
         if (!isUUID(uuid)) {
@@ -291,11 +315,59 @@ public class GarbageCollectWriteAheadLogs {
         if (pathFromNN != null) {
           status.currentLog.inUse++;
           sortedWALogs.remove(uuid);
+        } else if (neededByReplication(conn, entry)) {
+          // If we haven't already removed it, check to see if this WAL is
+          // "in use" by replication (needed for replication purposes)
+          status.currentLog.inUse++;
+          sortedWALogs.remove(uuid);
         }
+
         count++;
       }
     }
     return count;
+  }
+
+  /**
+   * Determine if the given WAL is needed for replication
+   * @param wal The full path (URI) 
+   * @return True if the WAL is still needed by replication (not a candidate for deletion)
+   */
+  protected boolean neededByReplication(Connector conn, String wal) {
+    Iterable<Entry<Key,Value>> iter;
+    try {
+      iter = getReplicationStatusForFile(conn, wal);
+    } catch (TableNotFoundException e) {
+      log.trace("Replication table was not found");
+      return false;
+    }
+
+    // TODO Push down this filter to the tserver to only return records
+    // that are not completely replicated and convert this loop into a
+    // `return s.iterator.hasNext()` statement
+    for (Entry<Key,Value> entry : iter) {
+      try {
+        Status status = Status.parseFrom(entry.getValue().get());
+        if (!StatusUtil.isCompletelyReplicated(status)) {
+          return true;
+        }
+      } catch (InvalidProtocolBufferException e) {
+        log.error("Could not deserialize Status protobuf for " + entry.getKey(), e);
+      }
+    }
+
+    return false;
+  }
+
+  protected Iterable<Entry<Key,Value>> getReplicationStatusForFile(Connector conn, String wal) throws TableNotFoundException {
+    Scanner s = ReplicationTable.getScanner(conn);
+
+    // Scan only the Status records
+    StatusSection.limit(s);
+    // Only look for this specific WAL
+    s.setRange(Range.exact(wal));
+
+    return s;
   }
 
   private int scanServers(Map<Path,String> fileToServerMap, Map<String,Path> nameToFileMap) throws Exception {

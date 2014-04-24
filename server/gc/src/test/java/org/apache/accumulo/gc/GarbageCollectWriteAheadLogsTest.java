@@ -16,25 +16,39 @@
  */
 package org.apache.accumulo.gc;
 
-import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.Path;
-
-import org.junit.Before;
-import org.junit.Test;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
+
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.UUID;
+
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.protobuf.ProtobufUtil;
+import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
+import org.apache.accumulo.core.replication.StatusUtil;
+import org.apache.accumulo.core.replication.proto.Replication.Status;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.Path;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.google.common.collect.Maps;
 
 public class GarbageCollectWriteAheadLogsTest {
   private static final long BLOCK_SIZE = 64000000L;
@@ -262,8 +276,54 @@ public class GarbageCollectWriteAheadLogsTest {
     assertFalse(GarbageCollectWriteAheadLogs.isUUID(null));
   }
 
+  private static class ReplicationGCWAL extends GarbageCollectWriteAheadLogs {
+
+    private List<Entry<Key,Value>> replData;
+    /**
+     * @param instance
+     * @param fs
+     * @param useTrash
+     * @throws IOException
+     */
+    ReplicationGCWAL(Instance instance, VolumeManager fs, boolean useTrash, List<Entry<Key,Value>> replData) throws IOException {
+      super(instance, fs, useTrash);
+      this.replData = replData;
+    }
+
+    @Override
+    protected Iterable<Entry<Key,Value>> getReplicationStatusForFile(Connector conn, String wal) throws TableNotFoundException {
+      return this.replData;
+    }
+  }
+
   @Test
-  public void replicationEntriesPreventsGC() {
-    
+  public void replicationEntriesAffectGC() throws Exception {
+    String file1 = UUID.randomUUID().toString(), file2 = UUID.randomUUID().toString();
+    Connector conn = createMock(Connector.class);
+
+    // Write a Status record which should prevent file1 from being deleted
+    LinkedList<Entry<Key,Value>> replData = new LinkedList<>();
+    replData.add(Maps.immutableEntry(new Key("/wals/" + file1, StatusSection.NAME.toString(), "1"), StatusUtil.newFileValue()));
+
+    ReplicationGCWAL replGC = new ReplicationGCWAL(instance, volMgr, false, replData);
+
+    replay(conn);
+
+    // Open (not-closed) file must be retained
+    assertTrue(replGC.neededByReplication(conn, "/wals/" + file1));
+
+    // No replication data, not needed
+    replData.clear();
+    assertFalse(replGC.neededByReplication(conn, "/wals/" + file2));
+
+    // The file is closed but not replicated, must be retained
+    replData.add(Maps.immutableEntry(new Key("/wals/" + file1, StatusSection.NAME.toString(), "1"), StatusUtil.fileClosedValue()));
+    assertTrue(replGC.neededByReplication(conn, "/wals/" + file1));
+
+    // File is closed and fully replicated, can be deleted
+    replData.clear();
+    replData.add(Maps.immutableEntry(new Key("/wals/" + file1, StatusSection.NAME.toString(), "1"),
+        ProtobufUtil.toValue(Status.newBuilder().setInfiniteEnd(true).setBegin(Long.MAX_VALUE).setClosed(true).build())));
+    assertFalse(replGC.neededByReplication(conn, "/wals/" + file1));
   }
 }
