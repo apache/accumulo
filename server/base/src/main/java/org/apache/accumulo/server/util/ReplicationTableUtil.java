@@ -112,8 +112,8 @@ public class ReplicationTableUtil {
    * Write replication ingest entries for each provided file with the given {@link Status}.
    */
   public static void updateFiles(Credentials creds, KeyExtent extent, Collection<String> files, Status stat) {
-    if (log.isTraceEnabled()) {
-      log.trace("Updating replication for " + extent + " with " + files);
+    if (log.isDebugEnabled()) {
+      log.debug("Updating replication for " + extent + " with " + files + " using " + stat.toString().replace("\n", ", "));
     }
     // TODO could use batch writer, would need to handle failure and retry like update does - ACCUMULO-1294
     if (files.isEmpty()) {

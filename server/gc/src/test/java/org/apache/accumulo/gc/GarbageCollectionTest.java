@@ -28,11 +28,15 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.replication.StatusUtil;
+import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
@@ -49,6 +53,7 @@ public class GarbageCollectionTest {
 
     ArrayList<String> deletes = new ArrayList<String>();
     ArrayList<String> tablesDirsToDelete = new ArrayList<String>();
+    TreeMap<String,Status> filesToReplicate = new TreeMap<String,Status>();
 
     @Override
     public List<String> getCandidates(String continuePoint) {
@@ -128,6 +133,11 @@ public class GarbageCollectionTest {
 
     @Override
     public void incrementInUseStat(long i) {}
+
+    @Override
+    public Iterator<Entry<String,Status>> getReplicationNeededIterator() throws AccumuloException, AccumuloSecurityException {
+      return filesToReplicate.entrySet().iterator();
+    }
   }
 
   private void assertRemoved(TestGCE gce, String... refs) {
@@ -544,5 +554,23 @@ public class GarbageCollectionTest {
     Assert.assertEquals(tids.size(), gce.tablesDirsToDelete.size());
     Assert.assertTrue(tids.containsAll(gce.tablesDirsToDelete));
 
+  }
+
+  @Test
+  public void replicationRecordsPreventDeletion() throws Exception {
+    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
+
+    TestGCE gce = new TestGCE();
+
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/1/t-00001/A000001.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf");
+
+    Status status = Status.newBuilder().setClosed(true).setEnd(100).setBegin(100).build();
+    gce.filesToReplicate.put("hdfs://foo.com:6000/accumulo/tables/1/t-00001/A000001.rf", status);
+
+    gca.collect(gce);
+
+    Assert.assertEquals(1, gce.deletes.size());
+    Assert.assertEquals("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf", gce.deletes.get(0));
   }
 }

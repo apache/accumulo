@@ -261,4 +261,9 @@ public class GarbageCollectWriteAheadLogsTest {
     assertFalse(GarbageCollectWriteAheadLogs.isUUID("0" + UUID.randomUUID().toString()));
     assertFalse(GarbageCollectWriteAheadLogs.isUUID(null));
   }
+
+  @Test
+  public void replicationEntriesPreventsGC() {
+    
+  }
 }

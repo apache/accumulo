@@ -33,6 +33,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
+import org.apache.accumulo.core.replication.proto.Replication.Status;
 
 /**
  * 
@@ -115,4 +116,13 @@ public interface GarbageCollectionEnvironment {
    *          Value to increment the still-in-use count by.
    */
   void incrementInUseStat(long i);
+
+  /**
+   * Determine if the given absolute file is still pending replication
+   * @param absolutePath Absolute path to a file
+   * @return True if the file still needs to be replicated
+   * @throws AccumuloException
+   * @throws AccumuloSecurityException
+   */
+  Iterator<Entry<String,Status>> getReplicationNeededIterator() throws AccumuloException, AccumuloSecurityException;
 }

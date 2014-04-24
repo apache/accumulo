@@ -60,6 +60,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
+import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
+import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.SecurityUtil;
@@ -82,6 +84,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.fs.VolumeUtil;
+import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.Halt;
@@ -103,7 +106,9 @@ import org.apache.zookeeper.KeeperException;
 import com.beust.jcommander.Parameter;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Maps;
 import com.google.common.net.HostAndPort;
+import com.google.protobuf.InvalidProtocolBufferException;
 
 public class SimpleGarbageCollector implements Iface {
   private static final Text EMPTY_TEXT = new Text();
@@ -503,6 +508,35 @@ public class SimpleGarbageCollector implements Iface {
     @Override
     public void incrementInUseStat(long i) {
       status.current.inUse += i;
+    }
+
+    @Override
+    public Iterator<Entry<String,Status>> getReplicationNeededIterator() throws AccumuloException, AccumuloSecurityException {
+      Credentials creds = SystemCredentials.get();
+      Connector conn = instance.getConnector(creds.getPrincipal(), creds.getToken());
+      try {
+        Scanner s = ReplicationTable.getScanner(conn);
+        StatusSection.limit(s);
+        return Iterators.transform(s.iterator(), new Function<Entry<Key,Value>,Entry<String,Status>>() {
+
+          @Override
+          public Entry<String,Status> apply(Entry<Key,Value> input) {
+            String file = input.getKey().getRow().toString();
+            Status stat;
+            try {
+              stat = Status.parseFrom(input.getValue().get());
+            } catch (InvalidProtocolBufferException e) {
+              log.warn("Could not deserialize protobuf for: " +  input.getKey());
+              stat = null;
+            }
+            return Maps.immutableEntry(file, stat);
+          }
+          
+        });
+      } catch (TableNotFoundException e) {
+        // No elements that we need to preclude
+        return Iterators.emptyIterator();
+      }
     }
 
   }
