@@ -557,7 +557,7 @@ public class GarbageCollectionTest {
   }
 
   @Test
-  public void replicationRecordsPreventDeletion() throws Exception {
+  public void finishedReplicationRecordsDontPreventDeletion() throws Exception {
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
     TestGCE gce = new TestGCE();
@@ -570,6 +570,67 @@ public class GarbageCollectionTest {
 
     gca.collect(gce);
 
+    // No refs to A000002.rf, and a closed, finished repl for A000001.rf should not preclude
+    // it from being deleted
+    Assert.assertEquals(2, gce.deletes.size());
+  }
+
+  @Test
+  public void openReplicationRecordsPreventDeletion() throws Exception {
+    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
+
+    TestGCE gce = new TestGCE();
+
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/1/t-00001/A000001.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf");
+
+    // We replicated all of the data, but we might still write more data to the file
+    Status status = Status.newBuilder().setClosed(false).setEnd(1000).setBegin(100).build();
+    gce.filesToReplicate.put("hdfs://foo.com:6000/accumulo/tables/1/t-00001/A000001.rf", status);
+
+    gca.collect(gce);
+
+    // We need to replicate that one file still, should not delete it.
+    Assert.assertEquals(1, gce.deletes.size());
+    Assert.assertEquals("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf", gce.deletes.get(0));
+  }
+
+  @Test
+  public void newReplicationRecordsPreventDeletion() throws Exception {
+    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
+
+    TestGCE gce = new TestGCE();
+
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/1/t-00001/A000001.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf");
+
+    // We replicated all of the data, but we might still write more data to the file
+    Status status = StatusUtil.newFile();
+    gce.filesToReplicate.put("hdfs://foo.com:6000/accumulo/tables/1/t-00001/A000001.rf", status);
+
+    gca.collect(gce);
+
+    // We need to replicate that one file still, should not delete it.
+    Assert.assertEquals(1, gce.deletes.size());
+    Assert.assertEquals("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf", gce.deletes.get(0));
+  }
+
+  @Test
+  public void bulkImportReplicationRecordsPreventDeletion() throws Exception {
+    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
+
+    TestGCE gce = new TestGCE();
+
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/1/t-00001/A000001.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf");
+
+    // Some file of unknown length has no replication yet (representative of the bulk-import case)
+    Status status = Status.newBuilder().setInfiniteEnd(true).setBegin(0).setClosed(true).build();
+    gce.filesToReplicate.put("hdfs://foo.com:6000/accumulo/tables/1/t-00001/A000001.rf", status);
+
+    gca.collect(gce);
+
+    // We need to replicate that one file still, should not delete it.
     Assert.assertEquals(1, gce.deletes.size());
     Assert.assertEquals("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf", gce.deletes.get(0));
   }
