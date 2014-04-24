@@ -137,4 +137,21 @@ public class StatusUtil {
   public static Value fileClosedValue() {
     return CLOSED_REPLICATION_STATUS_VALUE;
   }
+
+  /**
+   * Is the given Status fully replicated and is its file ready for deletion on the source
+   * @param status a Status protobuf
+   * @return True if the file this Status references can be deleted.
+   */
+  public static boolean isCompletelyReplicated(Status status) {
+    if (status.getClosed()) {
+      if (status.getInfiniteEnd()) {
+        return Long.MAX_VALUE == status.getBegin();
+      } else {
+        return status.getBegin() == status.getEnd();
+      }
+    }
+
+    return false;
+  }
 }
