@@ -18,6 +18,7 @@ package org.apache.accumulo.server.replication;
 
 import java.util.EnumSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -26,11 +27,14 @@ import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
+
+import com.google.common.collect.ImmutableMap;
 
 /**
  * 
@@ -98,5 +102,10 @@ public class ReplicationTableTest {
     IteratorSetting setting = tops.getIteratorSetting(ReplicationTable.NAME, ReplicationTable.COMBINER_NAME, IteratorScope.scan);
 
     Assert.assertEquals(expected, setting);
+
+    // Check for locality groups too
+    Map<String,Set<Text>> expectedLocalityGroups = ImmutableMap.of(ReplicationTable.STATUS_LG_NAME, ReplicationTable.STATUS_LG_COLFAMS,
+        ReplicationTable.WORK_LG_NAME, ReplicationTable.WORK_LG_COLFAMS);
+    Assert.assertEquals(expectedLocalityGroups, tops.getLocalityGroups(ReplicationTable.NAME));
   }
 }
