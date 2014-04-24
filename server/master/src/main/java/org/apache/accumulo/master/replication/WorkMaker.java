@@ -17,11 +17,11 @@
 package org.apache.accumulo.master.replication;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
@@ -34,7 +34,6 @@ import org.apache.accumulo.core.replication.ReplicationSchema;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTarget;
-import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.replication.ReplicationTable;
@@ -58,18 +57,18 @@ public class WorkMaker {
 
   public void run() {
     if (!conn.tableOperations().exists(ReplicationTable.NAME)) {
-      log.trace("Replication table does not yet exist");
-      UtilWaitThread.sleep(5000);
+      log.info("Replication table does not yet exist");
+      return;
     }
 
     final Scanner s;
     try {
       s = ReplicationTable.getScanner(conn);
       if (null == writer) {
-        writer = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
+        setBatchWriter(ReplicationTable.getBatchWriter(conn));
       }
     } catch (TableNotFoundException e) {
-      log.warn("Replication table was deleted");
+      log.warn("Replication table did exist, but does not anymore");
       writer = null;
       return;
     }
@@ -81,26 +80,22 @@ public class WorkMaker {
 
     Text file = new Text(), tableId = new Text();
     for (Entry<Key,Value> entry : s) {
-      // Extract the useful bits from the ~repl keys
+      // Extract the useful bits from the status key
       ReplicationSchema.StatusSection.getFile(entry.getKey(), file);
       ReplicationSchema.StatusSection.getTableId(entry.getKey(), tableId);
+      log.info("Processing replication status record for " + file + " on table "+ tableId);
 
-      // Get the table configuration for the ~repl record
+      // Get the table configuration for the table specified by the status record
       tableConf = ServerConfiguration.getTableConfiguration(conn.getInstance(), tableId.toString());
 
       // Pull the relevant replication targets
       // TODO Cache this instead of pulling it every time
-      Map<String,String> replicationTargets = tableConf.getAllPropertiesWithPrefix(Property.TABLE_REPLICATION_TARGETS);
+      Map<String,String> replicationTargets = getReplicationTargets(tableConf);
 
       // If we have targets, we need to make a work record
+      // TODO Don't replicate if it's a only a newFile entry (nothing to replicate yet)
       if (!replicationTargets.isEmpty()) {
-        try {
-          addWorkRecord(file, entry.getValue(), replicationTargets);
-        } catch (TableNotFoundException e) {
-          log.warn("Replication table was deleted");
-          writer = null;
-          continue;
-        }
+        addWorkRecord(file, entry.getValue(), replicationTargets);
       }
     }
   }
@@ -109,8 +104,21 @@ public class WorkMaker {
     this.writer = bw;
   }
 
-  protected void addWorkRecord(Text file, Value v, Map<String,String> targets) throws TableNotFoundException {
+  protected Map<String,String> getReplicationTargets(TableConfiguration tableConf) {
+    final Map<String,String> props = tableConf.getAllPropertiesWithPrefix(Property.TABLE_REPLICATION_TARGETS);
+    final Map<String,String> targets = new HashMap<>();
+    final int propKeyLength = Property.TABLE_REPLICATION_TARGETS.getKey().length();
+
+    for (Entry<String,String> prop : props.entrySet()) {
+      targets.put(prop.getKey().substring(propKeyLength), prop.getValue());
+    }
+
+    return targets;
+  }
+
+  protected void addWorkRecord(Text file, Value v, Map<String,String> targets) {
     // TODO come up with something that tries to avoid creating a new BatchWriter all the time
+    log.info("Adding work records for " + file + " to targets " + targets);
     try {
       Mutation m = new Mutation(file);
 

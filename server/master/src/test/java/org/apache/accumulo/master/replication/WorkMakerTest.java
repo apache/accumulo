@@ -153,5 +153,4 @@ public class WorkMakerTest {
 
     Assert.assertTrue("Found extra replication work entries: " + actualTargets, actualTargets.isEmpty());
   }
-
 }

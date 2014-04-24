@@ -179,6 +179,9 @@ public enum Property {
       "A class that implements a mechansim to steal write access to a file"),
   MASTER_FATE_THREADPOOL_SIZE("master.fate.threadpool.size", "4", PropertyType.COUNT,
       "The number of threads used to run FAult-Tolerant Executions. These are primarily table operations like merge."),
+  @Experimental
+  MASTER_REPLICATION_STATUS_SCAN_INTERVAL("master.replication.status.scan.interval", "30s", PropertyType.TIMEDURATION,
+      "Amount of time to sleep before scanning the status section of the replication table for new data"),
 
   // properties that are specific to tablet server behavior
   TSERV_PREFIX("tserver.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the tablet servers"),
@@ -447,8 +450,6 @@ public enum Property {
   REPLICATION_PREFIX("replication.", null, PropertyType.PREFIX, "Properties in this category affect the replication of data to other Accumulo instances."),
   @Experimental
   REPLICATION_SLAVES("replication.slave.", null, PropertyType.PREFIX, "Properties in this category control what systems data can be replicated to"),
-  @Experimental
-  REPLICATION_TABLET_SCAN_INTERVAL("replication.tablet.interval", "30s", PropertyType.TIMEDURATION, "Amount of time to sleep before scanning tablets for new replication data"),
   @Experimental
   REPLICATION_BATCH_SIZE("replication.batch.size", "1000", PropertyType.COUNT, "Maximum number of updates (WAL) or key-value pairs (RFile) to send in one replication task"),
   @Experimental

@@ -34,7 +34,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.replication.ReplicationSchema;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
@@ -50,7 +49,7 @@ import org.junit.Test;
 import com.google.common.collect.Sets;
 
 /**
- * 
+ * Tests for replication that should be run at every build -- basic functionality
  */
 public class ReplicationTest extends ConfigurableMacIT {
 
@@ -62,6 +61,8 @@ public class ReplicationTest extends ConfigurableMacIT {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
+    // Run the master work maker infrequently
+    cfg.setProperty(Property.MASTER_REPLICATION_STATUS_SCAN_INTERVAL, "99999999");
     cfg.setNumTservers(1);
   }
 
@@ -255,4 +256,5 @@ public class ReplicationTest extends ConfigurableMacIT {
     Assert.assertTrue("Expected to find element in replication table", tableIds.remove(entry.getKey().getColumnQualifier().toString()));
     Assert.assertFalse("Expected to only find two elements in replication table", iter.hasNext());
   }
+
 }

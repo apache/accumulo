@@ -19,6 +19,8 @@ package org.apache.accumulo.master.replication;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.master.Master;
@@ -31,6 +33,7 @@ public class WorkDriver extends Daemon {
   private static final Logger log = Logger.getLogger(WorkDriver.class);
   
   private final Master master;
+  private final AccumuloConfiguration conf;
 
   private WorkMaker workMaker;
 
@@ -38,6 +41,7 @@ public class WorkDriver extends Daemon {
     super("Replication Work Driver");
     
     this.master = master;
+    this.conf = master.getConfiguration().getConfiguration();
   }
 
   @Override
@@ -61,7 +65,7 @@ public class WorkDriver extends Daemon {
       workMaker.run();
 
       // Sleep for a bit
-      UtilWaitThread.sleep(30000);
+      UtilWaitThread.sleep(conf.getTimeInMillis(Property.MASTER_REPLICATION_STATUS_SCAN_INTERVAL));
     }
   }
 }
