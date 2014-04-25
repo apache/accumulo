@@ -879,13 +879,16 @@ public class Tablet {
             for (String unusedWalLog : unusedWalLogs) {
               int index = unusedWalLog.indexOf('/');
               if (-1 == index) {
-                log.warn("Could not find host component to strip from WAL");
+                log.warn("Could not find host component to strip from DFSLogger representation of WAL");
               } else {
                 unusedWalLog = unusedWalLog.substring(index + 1);
               }
               logFileOnly.add(unusedWalLog);
             }
-            ReplicationTableUtil.updateFiles(SystemCredentials.get(), extent, logFileOnly, StatusUtil.fileClosed());
+
+            // Mark that we have data we want to replicate
+            // This WAL could still be in use by other Tablets though
+            ReplicationTableUtil.updateFiles(SystemCredentials.get(), extent, logFileOnly, StatusUtil.openWithUnknownLength());
           }
         }
 

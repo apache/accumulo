@@ -26,8 +26,8 @@ import org.apache.accumulo.core.replication.proto.Replication.Status.Builder;
  */
 public class StatusUtil {
 
-  private static final Status NEW_REPLICATION_STATUS, CLOSED_REPLICATION_STATUS;
-  private static final Value NEW_REPLICATION_STATUS_VALUE, CLOSED_REPLICATION_STATUS_VALUE;
+  private static final Status NEW_REPLICATION_STATUS, CLOSED_REPLICATION_STATUS, INF_END_REPLICATION_STATUS;
+  private static final Value NEW_REPLICATION_STATUS_VALUE, CLOSED_REPLICATION_STATUS_VALUE, INF_END_REPLICATION_STATUS_VALUE;
 
   static {
     Status.Builder builder = Status.newBuilder();
@@ -45,6 +45,14 @@ public class StatusUtil {
     builder.setClosed(true);
     CLOSED_REPLICATION_STATUS = builder.build();
     CLOSED_REPLICATION_STATUS_VALUE = ProtobufUtil.toValue(CLOSED_REPLICATION_STATUS);
+
+    builder = Status.newBuilder();
+    builder.setBegin(0);
+    builder.setEnd(0);
+    builder.setInfiniteEnd(true);
+    builder.setClosed(false);
+    INF_END_REPLICATION_STATUS = builder.build();
+    INF_END_REPLICATION_STATUS_VALUE = ProtobufUtil.toValue(INF_END_REPLICATION_STATUS);
   }
 
   /**
@@ -136,6 +144,20 @@ public class StatusUtil {
    */
   public static Value fileClosedValue() {
     return CLOSED_REPLICATION_STATUS_VALUE;
+  }
+
+  /**
+   * @return A {@link Status} for an open file of unspecified length, all of which needs replicating.
+   */
+  public static Status openWithUnknownLength() {
+    return INF_END_REPLICATION_STATUS;
+  }
+
+  /**
+   * @return A {@link Value} for an open file of unspecified length, all of which needs replicating.
+   */
+  public static Value openWithUnknownLengthValue() {
+    return INF_END_REPLICATION_STATUS_VALUE;
   }
 
   /**

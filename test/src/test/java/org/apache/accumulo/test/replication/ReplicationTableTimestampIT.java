@@ -88,7 +88,7 @@ public class ReplicationTableTimestampIT extends ConfigurableMacIT {
       LogEntry logEntry = LogEntry.fromKeyValue(entry.getKey(), entry.getValue());
 
       for (String log : logEntry.logSet) {
-        logs.put(log, logEntry.extent.getTableId().toString());
+        logs.put(new Path(log).toString(), logEntry.extent.getTableId().toString());
       }
     }
     return logs;
