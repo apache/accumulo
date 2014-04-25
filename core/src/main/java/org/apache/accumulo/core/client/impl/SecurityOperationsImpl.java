@@ -14,32 +14,78 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client.admin;
+package org.apache.accumulo.core.client.impl;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import java.nio.ByteBuffer;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.admin.SecurityOperations;
+import org.apache.accumulo.core.client.impl.thrift.ClientService;
+import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.trace.instrument.Tracer;
-import org.apache.accumulo.core.security.thrift.TCredentials;
 
-/**
- * @deprecated since 1.6.0; not intended for public api and you should not use it.
- */
-@Deprecated
-public class SecurityOperationsImpl extends org.apache.accumulo.core.client.impl.SecurityOperationsImpl {
+public class SecurityOperationsImpl implements SecurityOperations {
+
+  private Instance instance;
+  private Credentials credentials;
+
+  private void execute(ClientExec<ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
+    try {
+      ServerClient.executeRaw(instance, exec);
+    } catch (ThriftTableOperationException ttoe) {
+      // recast missing table
+      if (ttoe.getType() == TableOperationExceptionType.NOTFOUND)
+        throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST);
+      else if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND)
+        throw new AccumuloSecurityException(null, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
+      else
+        throw new AccumuloException(ttoe);
+    } catch (ThriftSecurityException e) {
+      throw new AccumuloSecurityException(e.user, e.code, e);
+    } catch (AccumuloException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new AccumuloException(e);
+    }
+  }
+
+  private <T> T execute(ClientExecReturn<T,ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
+    try {
+      return ServerClient.executeRaw(instance, exec);
+    } catch (ThriftTableOperationException ttoe) {
+      // recast missing table
+      if (ttoe.getType() == TableOperationExceptionType.NOTFOUND)
+        throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST);
+      else if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND)
+        throw new AccumuloSecurityException(null, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
+      else
+        throw new AccumuloException(ttoe);
+    } catch (ThriftSecurityException e) {
+      throw new AccumuloSecurityException(e.user, e.code, e);
+    } catch (AccumuloException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new AccumuloException(e);
+    }
+  }
 
   public SecurityOperationsImpl(Instance instance, Credentials credentials) {
-    checkArgument(instance != null, "instance is null");
-    checkArgument(credentials != null, "credentials is null");
+    ArgumentChecker.notNull(instance, credentials);
     this.instance = instance;
     this.credentials = credentials;
   }
@@ -53,8 +99,7 @@ public class SecurityOperationsImpl extends org.apache.accumulo.core.client.impl
 
   @Override
   public void createLocalUser(final String principal, final PasswordToken password) throws AccumuloException, AccumuloSecurityException {
-    checkArgument(principal != null, "principal is null");
-    checkArgument(password != null, "password is null");
+    ArgumentChecker.notNull(principal, password);
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
@@ -71,7 +116,7 @@ public class SecurityOperationsImpl extends org.apache.accumulo.core.client.impl
 
   @Override
   public void dropLocalUser(final String principal) throws AccumuloException, AccumuloSecurityException {
-    checkArgument(principal != null, "principal is null");
+    ArgumentChecker.notNull(principal);
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
@@ -88,8 +133,7 @@ public class SecurityOperationsImpl extends org.apache.accumulo.core.client.impl
 
   @Override
   public boolean authenticateUser(final String principal, final AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
-    checkArgument(principal != null, "principal is null");
-    checkArgument(token != null, "token is null");
+    ArgumentChecker.notNull(principal, token);
     final Credentials toAuth = new Credentials(principal, token);
     return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
       @Override
@@ -107,8 +151,7 @@ public class SecurityOperationsImpl extends org.apache.accumulo.core.client.impl
 
   @Override
   public void changeLocalUserPassword(final String principal, final PasswordToken token) throws AccumuloException, AccumuloSecurityException {
-    checkArgument(principal != null, "principal is null");
-    checkArgument(token != null, "token is null");
+    ArgumentChecker.notNull(principal, token);
     final Credentials toChange = new Credentials(principal, token);
     execute(new ClientExec<ClientService.Client>() {
       @Override
@@ -123,8 +166,7 @@ public class SecurityOperationsImpl extends org.apache.accumulo.core.client.impl
 
   @Override
   public void changeUserAuthorizations(final String principal, final Authorizations authorizations) throws AccumuloException, AccumuloSecurityException {
-    checkArgument(principal != null, "principal is null");
-    checkArgument(authorizations != null, "authorizations is null");
+    ArgumentChecker.notNull(principal, authorizations);
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
@@ -136,7 +178,7 @@ public class SecurityOperationsImpl extends org.apache.accumulo.core.client.impl
 
   @Override
   public Authorizations getUserAuthorizations(final String principal) throws AccumuloException, AccumuloSecurityException {
-    checkArgument(principal != null, "principal is null");
+    ArgumentChecker.notNull(principal);
     return execute(new ClientExecReturn<Authorizations,ClientService.Client>() {
       @Override
       public Authorizations execute(ClientService.Client client) throws Exception {
@@ -147,8 +189,7 @@ public class SecurityOperationsImpl extends org.apache.accumulo.core.client.impl
 
   @Override
   public boolean hasSystemPermission(final String principal, final SystemPermission perm) throws AccumuloException, AccumuloSecurityException {
-    checkArgument(principal != null, "principal is null");
-    checkArgument(perm != null, "perm is null");
+    ArgumentChecker.notNull(principal, perm);
     return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
       @Override
       public Boolean execute(ClientService.Client client) throws Exception {
@@ -159,9 +200,7 @@ public class SecurityOperationsImpl extends org.apache.accumulo.core.client.impl
 
   @Override
   public boolean hasTablePermission(final String principal, final String table, final TablePermission perm) throws AccumuloException, AccumuloSecurityException {
-    checkArgument(principal != null, "principal is null");
-    checkArgument(table != null, "table is null");
-    checkArgument(perm != null, "perm is null");
+    ArgumentChecker.notNull(principal, table, perm);
     try {
       return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
         @Override
@@ -180,9 +219,7 @@ public class SecurityOperationsImpl extends org.apache.accumulo.core.client.impl
   @Override
   public boolean hasNamespacePermission(final String principal, final String namespace, final NamespacePermission permission) throws AccumuloException,
       AccumuloSecurityException {
-    checkArgument(principal != null, "principal is null");
-    checkArgument(namespace != null, "namespace is null");
-    checkArgument(permission != null, "permission is null");
+    ArgumentChecker.notNull(principal, namespace, permission);
     return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
       @Override
       public Boolean execute(ClientService.Client client) throws Exception {
@@ -193,8 +230,7 @@ public class SecurityOperationsImpl extends org.apache.accumulo.core.client.impl
 
   @Override
   public void grantSystemPermission(final String principal, final SystemPermission permission) throws AccumuloException, AccumuloSecurityException {
-    checkArgument(principal != null, "principal is null");
-    checkArgument(permission != null, "permission is null");
+    ArgumentChecker.notNull(principal, permission);
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
@@ -206,9 +242,7 @@ public class SecurityOperationsImpl extends org.apache.accumulo.core.client.impl
   @Override
   public void grantTablePermission(final String principal, final String table, final TablePermission permission) throws AccumuloException,
       AccumuloSecurityException {
-    checkArgument(principal != null, "principal is null");
-    checkArgument(table != null, "table is null");
-    checkArgument(permission != null, "permission is null");
+    ArgumentChecker.notNull(principal, table, permission);
     try {
       execute(new ClientExec<ClientService.Client>() {
         @Override
@@ -227,9 +261,7 @@ public class SecurityOperationsImpl extends org.apache.accumulo.core.client.impl
   @Override
   public void grantNamespacePermission(final String principal, final String namespace, final NamespacePermission permission) throws AccumuloException,
       AccumuloSecurityException {
-    checkArgument(principal != null, "principal is null");
-    checkArgument(namespace != null, "namespace is null");
-    checkArgument(permission != null, "permission is null");
+    ArgumentChecker.notNull(principal, namespace, permission);
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
@@ -240,8 +272,7 @@ public class SecurityOperationsImpl extends org.apache.accumulo.core.client.impl
 
   @Override
   public void revokeSystemPermission(final String principal, final SystemPermission permission) throws AccumuloException, AccumuloSecurityException {
-    checkArgument(principal != null, "principal is null");
-    checkArgument(permission != null, "permission is null");
+    ArgumentChecker.notNull(principal, permission);
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
@@ -253,9 +284,7 @@ public class SecurityOperationsImpl extends org.apache.accumulo.core.client.impl
   @Override
   public void revokeTablePermission(final String principal, final String table, final TablePermission permission) throws AccumuloException,
       AccumuloSecurityException {
-    checkArgument(principal != null, "principal is null");
-    checkArgument(table != null, "table is null");
-    checkArgument(permission != null, "permission is null");
+    ArgumentChecker.notNull(principal, table, permission);
     try {
       execute(new ClientExec<ClientService.Client>() {
         @Override
@@ -274,9 +303,7 @@ public class SecurityOperationsImpl extends org.apache.accumulo.core.client.impl
   @Override
   public void revokeNamespacePermission(final String principal, final String namespace, final NamespacePermission permission) throws AccumuloException,
       AccumuloSecurityException {
-    checkArgument(principal != null, "principal is null");
-    checkArgument(namespace != null, "namespace is null");
-    checkArgument(permission != null, "permission is null");
+    ArgumentChecker.notNull(principal, namespace, permission);
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
@@ -285,7 +312,20 @@ public class SecurityOperationsImpl extends org.apache.accumulo.core.client.impl
     });
   }
 
-  public SecurityOperationsImpl(Instance instance, TCredentials credentials) {
-    this(instance, Credentials.fromThrift(credentials));
+  @Deprecated
+  @Override
+  public Set<String> listUsers() throws AccumuloException, AccumuloSecurityException {
+    return listLocalUsers();
   }
+
+  @Override
+  public Set<String> listLocalUsers() throws AccumuloException, AccumuloSecurityException {
+    return execute(new ClientExecReturn<Set<String>,ClientService.Client>() {
+      @Override
+      public Set<String> execute(ClientService.Client client) throws Exception {
+        return client.listLocalUsers(Tracer.traceInfo(), credentials.toThrift(instance));
+      }
+    });
+  }
+
 }

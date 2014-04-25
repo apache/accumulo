@@ -16,31 +16,18 @@
  */
 package org.apache.accumulo.core.client.admin;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.data.KeyExtent;
-import org.apache.accumulo.core.data.thrift.IterInfo;
 
 
 /**
  * 
  * @since 1.5.0
  */
-public class ActiveCompaction {
-  
-  private org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction tac;
-  private Instance instance;
-
-  ActiveCompaction(Instance instance, org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction tac) {
-    this.tac = tac;
-    this.instance = instance;
-  }
+public abstract class ActiveCompaction {
 
   public static enum CompactionType {
     /**
@@ -88,97 +75,55 @@ public class ActiveCompaction {
    * 
    * @return name of the table the compaction is running against
    */
-  
-  public String getTable() throws TableNotFoundException {
-    return Tables.getTableName(instance, getExtent().getTableId().toString());
-  }
+  public abstract String getTable() throws TableNotFoundException;
   
   /**
    * @return tablet thats is compacting
    */
-
-  public KeyExtent getExtent() {
-    return new KeyExtent(tac.getExtent());
-  }
+  public abstract KeyExtent getExtent();
   
   /**
    * @return how long the compaction has been running in milliseconds
    */
-
-  public long getAge() {
-    return tac.getAge();
-  }
+  public abstract long getAge();
   
   /**
    * @return the files the compaction is reading from
    */
-
-  public List<String> getInputFiles() {
-    return tac.getInputFiles();
-  }
+  public abstract List<String> getInputFiles();
   
   /**
    * @return file compactions is writing too
    */
-
-  public String getOutputFile() {
-    return tac.getOutputFile();
-  }
+  public abstract String getOutputFile();
   
   /**
    * @return the type of compaction
    */
-  public CompactionType getType() {
-    return CompactionType.valueOf(tac.getType().name());
-  }
+  public abstract CompactionType getType();
   
   /**
    * @return the reason the compaction was started
    */
-
-  public CompactionReason getReason() {
-    return CompactionReason.valueOf(tac.getReason().name());
-  }
+  public abstract CompactionReason getReason();
   
   /**
    * @return the locality group that is compacting
    */
-
-  public String getLocalityGroup() {
-    return tac.getLocalityGroup();
-  }
+  public abstract String getLocalityGroup();
   
   /**
    * @return the number of key/values read by the compaction
    */
+  public abstract long getEntriesRead();
 
-  public long getEntriesRead() {
-    return tac.getEntriesRead();
-  }
-  
   /**
    * @return the number of key/values written by the compaction
    */
-
-  public long getEntriesWritten() {
-    return tac.getEntriesWritten();
-  }
+  public abstract long getEntriesWritten();
   
   /**
    * @return the per compaction iterators configured
    */
-
-  public List<IteratorSetting> getIterators() {
-    ArrayList<IteratorSetting> ret = new ArrayList<IteratorSetting>();
-    
-    for (IterInfo ii : tac.getSsiList()) {
-      IteratorSetting settings = new IteratorSetting(ii.getPriority(), ii.getIterName(), ii.getClassName());
-      Map<String,String> options = tac.getSsio().get(ii.getIterName());
-      settings.addOptions(options);
-      
-      ret.add(settings);
-    }
-    
-    return ret;
-  }
+  public abstract List<IteratorSetting> getIterators();
 }

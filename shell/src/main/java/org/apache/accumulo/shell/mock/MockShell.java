@@ -21,7 +21,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.io.Writer;
 
+import org.apache.commons.io.output.WriterOutputStream;
+
+import org.apache.commons.cli.CommandLine;
 import jline.console.ConsoleReader;
 
 import org.apache.accumulo.core.client.mock.MockInstance;
@@ -36,11 +40,28 @@ public class MockShell extends Shell {
   
   protected InputStream in;
   protected OutputStream out;
-  
+
+  /**
+   * Will only be set if you use either the Writer constructor or the setWriter(Writer) method
+   * @deprecated since 1.6.0; use out
+   */
+  @Deprecated
+  protected Writer writer = null;
+
   public MockShell(InputStream in, OutputStream out) throws IOException {
     super();
     this.in = in;
     this.out = out;
+    // we presume they don't use the writer field unless they use the other constructor.
+  }
+
+  /**
+   * @deprecated since 1.6.0; use OutputStream version
+   */
+  @Deprecated
+  public MockShell(InputStream in, Writer out) throws IOException {
+    this(in, new WriterOutputStream(out, Constants.UTF8.name()));
+    this.writer = out;
   }
   
   public boolean config(String... args) {
@@ -67,6 +88,15 @@ public class MockShell extends Shell {
   protected void setInstance(ShellOptionsJC options) {
     // We always want a MockInstance for this test
     instance = new MockInstance();
+  }
+
+  /**
+   * @deprecated since 1.6.0; use ShellOptionsJC version
+   */
+  @Deprecated
+  protected void setInstance(CommandLine cl) {
+    // same result as in previous version
+    setInstance((ShellOptionsJC)null);
   }
   
   public int start() throws IOException {
@@ -122,6 +152,15 @@ public class MockShell extends Shell {
    */
   public void setConsoleWriter(OutputStream out) {
     this.out = out;
+  }
+
+  /**
+   * @deprecated since 1.6.0; use the OutputStream version
+   */
+  @Deprecated
+  public void setConsoleWriter(Writer out) {
+    setConsoleWriter(new WriterOutputStream(out, Constants.UTF8.name()));
+    this.writer = out;
   }
   
   /**

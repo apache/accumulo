@@ -14,15 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client.admin;
-
-import static com.google.common.base.Preconditions.checkArgument;
+package org.apache.accumulo.core.client.impl;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -52,9 +49,50 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.IsolatedScanner;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.NamespaceExistsException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.RowIterator;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableDeletedException;
+import org.apache.accumulo.core.client.TableExistsException;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.TableOfflineException;
+import org.apache.accumulo.core.client.admin.DiskUsage;
+import org.apache.accumulo.core.client.admin.FindMax;
+import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
+import org.apache.accumulo.core.client.impl.thrift.ClientService;
+import org.apache.accumulo.core.client.impl.thrift.ClientService.Client;
+import org.apache.accumulo.core.client.impl.thrift.TDiskUsage;
+import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.constraints.Constraint;
+import org.apache.accumulo.core.data.ByteSequence;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.master.thrift.FateOperation;
+import org.apache.accumulo.core.master.thrift.MasterClientService;
+import org.apache.accumulo.core.metadata.MetadataServicer;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
@@ -62,6 +100,7 @@ import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -76,9 +115,6 @@ import org.apache.log4j.Logger;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
-import org.apache.accumulo.core.security.thrift.TCredentials;
-
-import com.google.common.base.Joiner;
 
 public class TableOperationsImpl extends TableOperationsHelper {
   private Instance instance;
@@ -88,11 +124,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   private static final Logger log = Logger.getLogger(TableOperations.class);
 
-/**
- * @deprecated since 1.6.0; not intended for public api and you should not use it.
- */
-@Deprecated
-public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.TableOperationsImpl {
   /**
    * @param instance
    *          the connection information for this instance
@@ -100,15 +131,14 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
    *          the username/password for this connection
    */
   public TableOperationsImpl(Instance instance, Credentials credentials) {
-    checkArgument(instance != null, "instance is null");
-    checkArgument(credentials != null, "credentials is null");
+    ArgumentChecker.notNull(instance, credentials);
     this.instance = instance;
     this.credentials = credentials;
   }
 
   /**
    * Retrieve a list of tables in Accumulo.
-   * 
+   *
    * @return List of tables in accumulo
    */
   @Override
@@ -121,14 +151,14 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
 
   /**
    * A method to check if a table exists in Accumulo.
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @return true if the table exists
    */
   @Override
   public boolean exists(String tableName) {
-    checkArgument(tableName != null, "tableName is null");
+    ArgumentChecker.notNull(tableName);
     if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME))
       return true;
 
@@ -140,7 +170,7 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
 
   /**
    * Create a table with no special configuration
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @throws AccumuloException
@@ -176,10 +206,9 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
    */
   @Override
   public void create(String tableName, boolean limitVersion, TimeType timeType) throws AccumuloException, AccumuloSecurityException, TableExistsException {
-    checkArgument(tableName != null, "tableName is null");
-    checkArgument(timeType != null, "timeType is null");
+    ArgumentChecker.notNull(tableName, timeType);
 
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(StandardCharsets.UTF_8)), ByteBuffer.wrap(timeType.name().getBytes(StandardCharsets.UTF_8)));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(Constants.UTF8)), ByteBuffer.wrap(timeType.name().getBytes(Constants.UTF8)));
 
     Map<String,String> opts;
     if (limitVersion)
@@ -493,9 +522,9 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
   @Override
   public void merge(String tableName, Text start, Text end) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
-    checkArgument(tableName != null, "tableName is null");
+    ArgumentChecker.notNull(tableName);
     ByteBuffer EMPTY = ByteBuffer.allocate(0);
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(StandardCharsets.UTF_8)), start == null ? EMPTY : TextUtil.getByteBuffer(start),
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(Constants.UTF8)), start == null ? EMPTY : TextUtil.getByteBuffer(start),
         end == null ? EMPTY : TextUtil.getByteBuffer(end));
     Map<String,String> opts = new HashMap<String,String>();
     try {
@@ -509,9 +538,9 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
   @Override
   public void deleteRows(String tableName, Text start, Text end) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
-    checkArgument(tableName != null, "tableName is null");
+    ArgumentChecker.notNull(tableName);
     ByteBuffer EMPTY = ByteBuffer.allocate(0);
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(StandardCharsets.UTF_8)), start == null ? EMPTY : TextUtil.getByteBuffer(start),
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(Constants.UTF8)), start == null ? EMPTY : TextUtil.getByteBuffer(start),
         end == null ? EMPTY : TextUtil.getByteBuffer(end));
     Map<String,String> opts = new HashMap<String,String>();
     try {
@@ -530,7 +559,7 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
   @Override
   public Collection<Text> listSplits(String tableName) throws TableNotFoundException, AccumuloSecurityException {
 
-    checkArgument(tableName != null, "tableName is null");
+    ArgumentChecker.notNull(tableName);
 
     String tableId = Tables.getTableId(instance, tableName);
 
@@ -621,7 +650,7 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
 
   /**
    * Delete a table
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @throws AccumuloException
@@ -633,9 +662,9 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
    */
   @Override
   public void delete(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    checkArgument(tableName != null, "tableName is null");
+    ArgumentChecker.notNull(tableName);
 
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(StandardCharsets.UTF_8)));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(Constants.UTF8)));
     Map<String,String> opts = new HashMap<String,String>();
 
     try {
@@ -651,8 +680,7 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
   public void clone(String srcTableName, String newTableName, boolean flush, Map<String,String> propertiesToSet, Set<String> propertiesToExclude)
       throws AccumuloSecurityException, TableNotFoundException, AccumuloException, TableExistsException {
 
-    checkArgument(srcTableName != null, "srcTableName is null");
-    checkArgument(newTableName != null, "newTableName is null");
+    ArgumentChecker.notNull(srcTableName, newTableName);
 
     String srcTableId = Tables.getTableId(instance, srcTableName);
 
@@ -665,7 +693,7 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
     if (propertiesToSet == null)
       propertiesToSet = Collections.emptyMap();
 
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(srcTableId.getBytes(StandardCharsets.UTF_8)), ByteBuffer.wrap(newTableName.getBytes(StandardCharsets.UTF_8)));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(srcTableId.getBytes(Constants.UTF8)), ByteBuffer.wrap(newTableName.getBytes(Constants.UTF8)));
     Map<String,String> opts = new HashMap<String,String>();
     for (Entry<String,String> entry : propertiesToSet.entrySet()) {
       if (entry.getKey().startsWith(CLONE_EXCLUDE_PREFIX))
@@ -682,7 +710,7 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
 
   /**
    * Rename a table
-   * 
+   *
    * @param oldTableName
    *          the old table name
    * @param newTableName
@@ -700,7 +728,7 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
   public void rename(String oldTableName, String newTableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException,
       TableExistsException {
 
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldTableName.getBytes(StandardCharsets.UTF_8)), ByteBuffer.wrap(newTableName.getBytes(StandardCharsets.UTF_8)));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldTableName.getBytes(Constants.UTF8)), ByteBuffer.wrap(newTableName.getBytes(Constants.UTF8)));
     Map<String,String> opts = new HashMap<String,String>();
     doTableFateOperation(oldTableName, TableNotFoundException.class, FateOperation.TABLE_RENAME, args, opts);
   }
@@ -720,7 +748,7 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
 
   /**
    * Flush a table
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @throws AccumuloException
@@ -730,7 +758,7 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
    */
   @Override
   public void flush(String tableName, Text start, Text end, boolean wait) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    checkArgument(tableName != null, "tableName is null");
+    ArgumentChecker.notNull(tableName);
 
     String tableId = Tables.getTableId(instance, tableName);
     _flush(tableId, start, end, wait);
@@ -745,7 +773,7 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
   @Override
   public void compact(String tableName, Text start, Text end, List<IteratorSetting> iterators, boolean flush, boolean wait) throws AccumuloSecurityException,
       TableNotFoundException, AccumuloException {
-    checkArgument(tableName != null, "tableName is null");
+    ArgumentChecker.notNull(tableName);
     ByteBuffer EMPTY = ByteBuffer.allocate(0);
 
     String tableId = Tables.getTableId(instance, tableName);
@@ -753,7 +781,7 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
     if (flush)
       _flush(tableId, start, end, true);
 
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes(StandardCharsets.UTF_8)), start == null ? EMPTY : TextUtil.getByteBuffer(start),
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes(Constants.UTF8)), start == null ? EMPTY : TextUtil.getByteBuffer(start),
         end == null ? EMPTY : TextUtil.getByteBuffer(end), ByteBuffer.wrap(IteratorUtil.encodeIteratorSettings(iterators)));
 
     Map<String,String> opts = new HashMap<String,String>();
@@ -774,7 +802,7 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
   public void cancelCompaction(String tableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException {
     String tableId = Tables.getTableId(instance, tableName);
 
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes(StandardCharsets.UTF_8)));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes(Constants.UTF8)));
 
     Map<String,String> opts = new HashMap<String,String>();
     try {
@@ -844,7 +872,7 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
 
   /**
    * Sets a property on a table
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @param property
@@ -858,9 +886,7 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
    */
   @Override
   public void setProperty(final String tableName, final String property, final String value) throws AccumuloException, AccumuloSecurityException {
-    checkArgument(tableName != null, "tableName is null");
-    checkArgument(property != null, "property is null");
-    checkArgument(value != null, "value is null");
+    ArgumentChecker.notNull(tableName, property, value);
     try {
       MasterClient.executeTable(instance, new ClientExec<MasterClientService.Client>() {
         @Override
@@ -875,7 +901,7 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
 
   /**
    * Removes a property from a table
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @param property
@@ -887,8 +913,7 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
    */
   @Override
   public void removeProperty(final String tableName, final String property) throws AccumuloException, AccumuloSecurityException {
-    checkArgument(tableName != null, "tableName is null");
-    checkArgument(property != null, "property is null");
+    ArgumentChecker.notNull(tableName, property);
     try {
       MasterClient.executeTable(instance, new ClientExec<MasterClientService.Client>() {
         @Override
@@ -903,7 +928,7 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
 
   /**
    * Gets properties of a table
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @return all properties visible by this table (system and per-table properties)
@@ -912,7 +937,7 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
    */
   @Override
   public Iterable<Entry<String,String>> getProperties(final String tableName) throws AccumuloException, TableNotFoundException {
-    checkArgument(tableName != null, "tableName is null");
+    ArgumentChecker.notNull(tableName);
     try {
       return ServerClient.executeRaw(instance, new ClientExecReturn<Map<String,String>,ClientService.Client>() {
         @Override
@@ -939,7 +964,7 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
 
   /**
    * Sets a tables locality groups. A tables locality groups can be changed at any time.
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @param groups
@@ -971,7 +996,7 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
     }
 
     try {
-      setProperty(tableName, Property.TABLE_LOCALITY_GROUPS.getKey(), Joiner.on(",").join(groups.keySet()));
+      setProperty(tableName, Property.TABLE_LOCALITY_GROUPS.getKey(), StringUtil.join(groups.keySet(), ","));
     } catch (AccumuloException e) {
       if (e.getCause() instanceof TableNotFoundException)
         throw (TableNotFoundException) e.getCause();
@@ -996,9 +1021,9 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
   }
 
   /**
-   * 
+   *
    * Gets the locality groups currently set for a table.
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @return mapping of locality group names to column families in the locality group
@@ -1045,8 +1070,7 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
   @Override
   public Set<Range> splitRangeByTablets(String tableName, Range range, int maxSplits) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
-    checkArgument(tableName != null, "tableName is null");
-    checkArgument(range != null, "range is null");
+    ArgumentChecker.notNull(tableName, range);
     if (maxSplits < 1)
       throw new IllegalArgumentException("maximum splits must be >= 1");
     if (maxSplits == 1)
@@ -1137,17 +1161,15 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
   @Override
   public void importDirectory(String tableName, String dir, String failureDir, boolean setTime) throws IOException, AccumuloSecurityException,
       TableNotFoundException, AccumuloException {
-    checkArgument(tableName != null, "tableName is null");
-    checkArgument(dir != null, "dir is null");
-    checkArgument(failureDir != null, "failureDir is null");
+    ArgumentChecker.notNull(tableName, dir, failureDir);
     // check for table existance
     Tables.getTableId(instance, tableName);
 
     Path dirPath = checkPath(dir, "Bulk", "");
     Path failPath = checkPath(failureDir, "Bulk", "failure");
 
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(StandardCharsets.UTF_8)), ByteBuffer.wrap(dirPath.toString().getBytes(StandardCharsets.UTF_8)),
-        ByteBuffer.wrap(failPath.toString().getBytes(StandardCharsets.UTF_8)), ByteBuffer.wrap((setTime + "").getBytes(StandardCharsets.UTF_8)));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(Constants.UTF8)), ByteBuffer.wrap(dirPath.toString().getBytes(Constants.UTF8)),
+        ByteBuffer.wrap(failPath.toString().getBytes(Constants.UTF8)), ByteBuffer.wrap((setTime + "").getBytes(Constants.UTF8)));
     Map<String,String> opts = new HashMap<String,String>();
 
     try {
@@ -1281,7 +1303,7 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
   }
 
   /**
-   * 
+   *
    * @param tableName
    *          the table to take offline
    * @throws AccumuloException
@@ -1292,9 +1314,9 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
   @Override
   public void offline(String tableName, boolean wait) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
 
-    checkArgument(tableName != null, "tableName is null");
+    ArgumentChecker.notNull(tableName);
     String tableId = Tables.getTableId(instance, tableName);
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes(StandardCharsets.UTF_8)));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes(Constants.UTF8)));
     Map<String,String> opts = new HashMap<String,String>();
 
     try {
@@ -1314,7 +1336,7 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
   }
 
   /**
-   * 
+   *
    * @param tableName
    *          the table to take online
    * @throws AccumuloException
@@ -1324,9 +1346,9 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
    */
   @Override
   public void online(String tableName, boolean wait) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
-    checkArgument(tableName != null, "tableName is null");
+    ArgumentChecker.notNull(tableName);
     String tableId = Tables.getTableId(instance, tableName);
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes(StandardCharsets.UTF_8)));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes(Constants.UTF8)));
     Map<String,String> opts = new HashMap<String,String>();
 
     try {
@@ -1342,7 +1364,7 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
 
   /**
    * Clears the tablet locator cache for a specified table
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @throws TableNotFoundException
@@ -1350,14 +1372,14 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
    */
   @Override
   public void clearLocatorCache(String tableName) throws TableNotFoundException {
-    checkArgument(tableName != null, "tableName is null");
+    ArgumentChecker.notNull(tableName);
     TabletLocator tabLocator = TabletLocator.getLocator(instance, new Text(Tables.getTableId(instance, tableName)));
     tabLocator.invalidateCache();
   }
 
   /**
    * Get a mapping of table name to internal table id.
-   * 
+   *
    * @return the map from table name to internal table id
    */
   @Override
@@ -1368,8 +1390,7 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
   @Override
   public Text getMaxRow(String tableName, Authorizations auths, Text startRow, boolean startInclusive, Text endRow, boolean endInclusive)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-    checkArgument(tableName != null, "tableName is null");
-    checkArgument(auths != null, "auths is null");
+    ArgumentChecker.notNull(tableName, auths);
     Scanner scanner = instance.getConnector(credentials.getPrincipal(), credentials.getToken()).createScanner(tableName, auths);
     return FindMax.findMax(scanner, startRow, startInclusive, endRow, endInclusive);
   }
@@ -1426,7 +1447,7 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
       ZipEntry zipEntry;
       while ((zipEntry = zis.getNextEntry()) != null) {
         if (zipEntry.getName().equals(Constants.EXPORT_TABLE_CONFIG_FILE)) {
-          BufferedReader in = new BufferedReader(new InputStreamReader(zis, StandardCharsets.UTF_8));
+          BufferedReader in = new BufferedReader(new InputStreamReader(zis, Constants.UTF8));
           try {
             String line;
             while ((line = in.readLine()) != null) {
@@ -1448,8 +1469,7 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
 
   @Override
   public void importTable(String tableName, String importDir) throws TableExistsException, AccumuloException, AccumuloSecurityException {
-    checkArgument(tableName != null, "tableName is null");
-    checkArgument(importDir != null, "importDir is null");
+    ArgumentChecker.notNull(tableName, importDir);
 
     try {
       importDir = checkPath(importDir, "Table", "").toString();
@@ -1472,7 +1492,7 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
       Logger.getLogger(this.getClass()).warn("Failed to check if imported table references external java classes : " + ioe.getMessage());
     }
 
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(StandardCharsets.UTF_8)), ByteBuffer.wrap(importDir.getBytes(StandardCharsets.UTF_8)));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(Constants.UTF8)), ByteBuffer.wrap(importDir.getBytes(Constants.UTF8)));
 
     Map<String,String> opts = Collections.emptyMap();
 
@@ -1487,10 +1507,9 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
 
   @Override
   public void exportTable(String tableName, String exportDir) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-    checkArgument(tableName != null, "tableName is null");
-    checkArgument(exportDir != null, "exportDir is null");
+    ArgumentChecker.notNull(tableName, exportDir);
 
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(StandardCharsets.UTF_8)), ByteBuffer.wrap(exportDir.getBytes(StandardCharsets.UTF_8)));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(Constants.UTF8)), ByteBuffer.wrap(exportDir.getBytes(Constants.UTF8)));
 
     Map<String,String> opts = Collections.emptyMap();
 
@@ -1505,9 +1524,7 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
   @Override
   public boolean testClassLoad(final String tableName, final String className, final String asTypeName) throws TableNotFoundException, AccumuloException,
       AccumuloSecurityException {
-    checkArgument(tableName != null, "tableName is null");
-    checkArgument(className != null, "className is null");
-    checkArgument(asTypeName != null, "asTypeName is null");
+    ArgumentChecker.notNull(tableName, className, asTypeName);
 
     try {
       return ServerClient.executeRaw(instance, new ClientExecReturn<Boolean,ClientService.Client>() {
@@ -1569,13 +1586,4 @@ public class TableOperationsImpl extends org.apache.accumulo.core.client.impl.Ta
     }
   }
 
-  /**
-   * @param instance
-   *          the connection information for this instance
-   * @param credentials
-   *          the username/password for this connection
-   */
-  public TableOperationsImpl(Instance instance, TCredentials credentials) {
-    this(instance, Credentials.fromThrift(credentials));
-  }
 }

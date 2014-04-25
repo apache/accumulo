@@ -16,75 +16,13 @@
  */
 package org.apache.accumulo.core.client.mock;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.admin.ActiveCompaction;
-import org.apache.accumulo.core.client.admin.ActiveScan;
-import org.apache.accumulo.core.client.admin.InstanceOperations;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
-
 /**
- * 
+ * @deprecated since 1.6.0; not intended for public api and you should not use it.
  */
-public class MockInstanceOperations implements InstanceOperations {
-  MockAccumulo acu;
+@Deprecated
+public class MockInstanceOperations extends MockInstanceOperationsImpl {
   
   public MockInstanceOperations(MockAccumulo acu) {
-    this.acu = acu;
-  }
-  
-  @Override
-  public void setProperty(String property, String value) throws AccumuloException, AccumuloSecurityException {
-    acu.setProperty(property, value);
-  }
-  
-  @Override
-  public void removeProperty(String property) throws AccumuloException, AccumuloSecurityException {
-    acu.removeProperty(property);
-  }
-  
-  @Override
-  public Map<String,String> getSystemConfiguration() throws AccumuloException, AccumuloSecurityException {
-    return acu.systemProperties;
-  }
-  
-  @Override
-  public Map<String,String> getSiteConfiguration() throws AccumuloException, AccumuloSecurityException {
-    return acu.systemProperties;
-  }
-  
-  @Override
-  public List<String> getTabletServers() {
-    return new ArrayList<String>();
-  }
-  
-  @Override
-  public List<ActiveScan> getActiveScans(String tserver) throws AccumuloException, AccumuloSecurityException {
-    return new ArrayList<ActiveScan>();
-  }
-  
-  @Override
-  public boolean testClassLoad(String className, String asTypeName) throws AccumuloException, AccumuloSecurityException {
-    try {
-      AccumuloVFSClassLoader.loadClass(className, Class.forName(asTypeName));
-    } catch (ClassNotFoundException e) {
-      e.printStackTrace();
-      return false;
-    }
-    return true;
-  }
-  
-  @Override
-  public List<ActiveCompaction> getActiveCompactions(String tserver) throws AccumuloException, AccumuloSecurityException {
-    return new ArrayList<ActiveCompaction>();
-  }
-  
-  @Override
-  public void ping(String tserver) throws AccumuloException {
-    
+    super(acu);
   }
 }

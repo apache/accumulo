@@ -14,9 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client.admin;
+package org.apache.accumulo.core.client.impl;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,14 +27,12 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.util.ArgumentChecker;
 
-/**
- * @deprecated since 1.6.0; not intended for public api and you should not use it.
- */
-@Deprecated
-public abstract class TableOperationsHelper extends org.apache.accumulo.core.client.impl.TableOperationsHelper {
+public abstract class TableOperationsHelper implements TableOperations {
 
   @Override
   public void attachIterator(String tableName, IteratorSetting setting) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
@@ -45,9 +42,7 @@ public abstract class TableOperationsHelper extends org.apache.accumulo.core.cli
   @Override
   public void attachIterator(String tableName, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException,
       TableNotFoundException {
-    checkArgument(tableName != null, "tableName is null");
-    checkArgument(setting != null, "setting is null");
-    checkArgument(scopes != null, "scopes is null");
+    ArgumentChecker.notNull(tableName, setting, scopes);
     checkIteratorConflicts(tableName, setting, scopes);
     for (IteratorScope scope : scopes) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), setting.getName());
@@ -77,9 +72,7 @@ public abstract class TableOperationsHelper extends org.apache.accumulo.core.cli
   @Override
   public IteratorSetting getIteratorSetting(String tableName, String name, IteratorScope scope) throws AccumuloSecurityException, AccumuloException,
       TableNotFoundException {
-    checkArgument(tableName != null, "tableName is null");
-    checkArgument(name != null, "name is null");
-    checkArgument(scope != null, "scope is null");
+    ArgumentChecker.notNull(tableName, name, scope);
     int priority = -1;
     String classname = null;
     Map<String,String> settings = new HashMap<String,String>();
@@ -124,9 +117,7 @@ public abstract class TableOperationsHelper extends org.apache.accumulo.core.cli
 
   @Override
   public void checkIteratorConflicts(String tableName, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException, TableNotFoundException {
-    checkArgument(tableName != null, "tableName is null");
-    checkArgument(setting != null, "setting is null");
-    checkArgument(scopes != null, "scopes is null");
+    ArgumentChecker.notNull(tableName, setting, scopes);
     for (IteratorScope scope : scopes) {
       String scopeStr = String.format("%s%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase());
       String nameStr = String.format("%s.%s", scopeStr, setting.getName());
