@@ -25,7 +25,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.Writer;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
@@ -39,7 +38,7 @@ import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.replication.ReplicationTable;
-import org.apache.accumulo.server.security.SystemCredentials;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
@@ -53,14 +52,24 @@ public class ReplicationTableUtil {
 
   private ReplicationTableUtil() {}
 
+  /**
+   * For testing purposes only -- should not be called by server code
+   * <p>
+   * Allows mocking of a Writer for testing
+   * @param creds Credentials
+   * @param writer A Writer to use for the given credentials
+   */
+  protected synchronized static void addWriter(Credentials creds, Writer writer) {
+    replicationTables.put(creds, writer);
+  }
+
   protected synchronized static Writer getReplicationTable(Credentials credentials) {
     Writer replicationTable = replicationTables.get(credentials);
     if (replicationTable == null) {
       Instance inst = HdfsZooInstance.getInstance();
-      Credentials creds = SystemCredentials.get();
       Connector conn;
       try {
-        conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
+        conn = inst.getConnector(credentials.getPrincipal(), credentials.getToken());
       } catch (AccumuloException | AccumuloSecurityException e) {
         log.error("Cannot get connector", e);
         throw new RuntimeException(e);
@@ -122,15 +131,16 @@ public class ReplicationTableUtil {
     Value v = ProtobufUtil.toValue(stat);
     for (String file : files) {
       // TODO Can preclude this addition if the extent is for a table we don't need to replicate
-      update(creds, createUpdateMutation(file, v, extent), extent);
+      update(creds, createUpdateMutation(new Path(file), v, extent), extent);
     }
   }
 
-  public static Mutation createUpdateMutation(String file, Value v, KeyExtent extent) {
-    return createUpdateMutation(new Text(file), v, extent);
+  public static Mutation createUpdateMutation(Path file, Value v, KeyExtent extent) {
+    // Need to normalize the file path so we can assuredly find it again later
+    return createUpdateMutation(new Text(file.toString()), v, extent);
   }
 
-  public static Mutation createUpdateMutation(Text file, Value v, KeyExtent extent) {
+  private static Mutation createUpdateMutation(Text file, Value v, KeyExtent extent) {
     Mutation m = new Mutation(file);
     return StatusSection.add(m, extent.getTableId(), v);
   }

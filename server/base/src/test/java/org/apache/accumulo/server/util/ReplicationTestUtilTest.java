@@ -22,9 +22,10 @@ import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
-import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
+import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
@@ -42,7 +43,7 @@ public class ReplicationTestUtilTest {
     Text row = new Text(file);
     KeyExtent extent = new KeyExtent(new Text("1"), new Text("b"), new Text("a"));
     
-    Mutation m = ReplicationTableUtil.createUpdateMutation(file, ProtobufUtil.toValue(stat), extent);
+    Mutation m = ReplicationTableUtil.createUpdateMutation(new Path(file), ProtobufUtil.toValue(stat), extent);
     
     Assert.assertEquals(row, new Text(m.getRow()));
     Assert.assertEquals(1, m.getUpdates().size());

@@ -94,6 +94,7 @@ public class WorkMaker {
 
       // If we have targets, we need to make a work record
       // TODO Don't replicate if it's a only a newFile entry (nothing to replicate yet)
+      //   -- Another scanner over the WorkSection can make this relatively cheap
       if (!replicationTargets.isEmpty()) {
         addWorkRecord(file, entry.getValue(), replicationTargets);
       }

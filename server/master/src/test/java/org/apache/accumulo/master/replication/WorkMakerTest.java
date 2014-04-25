@@ -38,6 +38,7 @@ import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Before;
@@ -82,7 +83,7 @@ public class WorkMakerTest {
     String file = "hdfs://localhost:8020/accumulo/wal/123456-1234-1234-12345678";
 
     KeyExtent extent = new KeyExtent(new Text(tableId), null, null);
-    Mutation m = ReplicationTableUtil.createUpdateMutation(file, StatusUtil.fileClosedValue(), extent);
+    Mutation m = ReplicationTableUtil.createUpdateMutation(new Path(file), StatusUtil.fileClosedValue(), extent);
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     bw.addMutation(m);
     bw.flush();
@@ -119,7 +120,7 @@ public class WorkMakerTest {
     String file = "hdfs://localhost:8020/accumulo/wal/123456-1234-1234-12345678";
 
     KeyExtent extent = new KeyExtent(new Text(tableId), null, null);
-    Mutation m = ReplicationTableUtil.createUpdateMutation(file, StatusUtil.fileClosedValue(), extent);
+    Mutation m = ReplicationTableUtil.createUpdateMutation(new Path(file), StatusUtil.fileClosedValue(), extent);
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     bw.addMutation(m);
     bw.flush();
