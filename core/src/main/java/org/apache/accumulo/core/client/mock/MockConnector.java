@@ -124,17 +124,17 @@ public class MockConnector extends Connector {
   
   @Override
   public TableOperations tableOperations() {
-    return new MockTableOperationsImpl(acu, username);
+    return new MockTableOperations(acu, username);
   }
   
   @Override
   public SecurityOperations securityOperations() {
-    return new MockSecurityOperationsImpl(acu);
+    return new MockSecurityOperations(acu);
   }
   
   @Override
   public InstanceOperations instanceOperations() {
-    return new MockInstanceOperationsImpl(acu);
+    return new MockInstanceOperations(acu);
   }
 
   @Override

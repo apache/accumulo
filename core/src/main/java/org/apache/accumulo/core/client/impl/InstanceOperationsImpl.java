@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -25,10 +28,10 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
+import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.ConfigurationType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
@@ -37,7 +40,6 @@ import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.util.AddressUtil;
-import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
@@ -60,14 +62,16 @@ public class InstanceOperationsImpl implements InstanceOperations {
    *          the Credential, containing principal and Authentication Token
    */
   public InstanceOperationsImpl(Instance instance, Credentials credentials) {
-    ArgumentChecker.notNull(instance, credentials);
+    checkArgument(instance != null, "instance is null");
+    checkArgument(credentials != null, "credentials is null");
     this.instance = instance;
     this.credentials = credentials;
   }
 
   @Override
   public void setProperty(final String property, final String value) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(property, value);
+    checkArgument(property != null, "property is null");
+    checkArgument(value != null, "value is null");
     MasterClient.execute(instance, new ClientExec<MasterClientService.Client>() {
       @Override
       public void execute(MasterClientService.Client client) throws Exception {
@@ -78,7 +82,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
   @Override
   public void removeProperty(final String property) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(property);
+    checkArgument(property != null, "property is null");
     MasterClient.execute(instance, new ClientExec<MasterClientService.Client>() {
       @Override
       public void execute(MasterClientService.Client client) throws Exception {
@@ -118,7 +122,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
         List<String> copy = new ArrayList<String>(children);
         Collections.sort(copy);
         byte[] data = cache.get(path + "/" + candidate + "/" + copy.get(0));
-        if (data != null && !"master".equals(new String(data, Constants.UTF8))) {
+        if (data != null && !"master".equals(new String(data, StandardCharsets.UTF_8))) {
           results.add(candidate);
         }
       }

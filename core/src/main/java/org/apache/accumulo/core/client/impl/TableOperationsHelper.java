@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,7 +31,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.util.ArgumentChecker;
 
 public abstract class TableOperationsHelper implements TableOperations {
 
@@ -42,7 +42,9 @@ public abstract class TableOperationsHelper implements TableOperations {
   @Override
   public void attachIterator(String tableName, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException,
       TableNotFoundException {
-    ArgumentChecker.notNull(tableName, setting, scopes);
+    checkArgument(tableName != null, "tableName is null");
+    checkArgument(setting != null, "setting is null");
+    checkArgument(scopes != null, "scopes is null");
     checkIteratorConflicts(tableName, setting, scopes);
     for (IteratorScope scope : scopes) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), setting.getName());
@@ -72,7 +74,9 @@ public abstract class TableOperationsHelper implements TableOperations {
   @Override
   public IteratorSetting getIteratorSetting(String tableName, String name, IteratorScope scope) throws AccumuloSecurityException, AccumuloException,
       TableNotFoundException {
-    ArgumentChecker.notNull(tableName, name, scope);
+    checkArgument(tableName != null, "tableName is null");
+    checkArgument(name != null, "name is null");
+    checkArgument(scope != null, "scope is null");
     int priority = -1;
     String classname = null;
     Map<String,String> settings = new HashMap<String,String>();
@@ -117,7 +121,9 @@ public abstract class TableOperationsHelper implements TableOperations {
 
   @Override
   public void checkIteratorConflicts(String tableName, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException, TableNotFoundException {
-    ArgumentChecker.notNull(tableName, setting, scopes);
+    checkArgument(tableName != null, "tableName is null");
+    checkArgument(setting != null, "setting is null");
+    checkArgument(scopes != null, "scopes is null");
     for (IteratorScope scope : scopes) {
       String scopeStr = String.format("%s%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase());
       String nameStr = String.format("%s.%s", scopeStr, setting.getName());

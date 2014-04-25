@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import java.nio.ByteBuffer;
 import java.util.Set;
 
@@ -35,7 +36,6 @@ import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.trace.instrument.Tracer;
 
@@ -85,7 +85,8 @@ public class SecurityOperationsImpl implements SecurityOperations {
   }
 
   public SecurityOperationsImpl(Instance instance, Credentials credentials) {
-    ArgumentChecker.notNull(instance, credentials);
+    checkArgument(instance != null, "instance is null");
+    checkArgument(credentials != null, "credentials is null");
     this.instance = instance;
     this.credentials = credentials;
   }
@@ -99,7 +100,8 @@ public class SecurityOperationsImpl implements SecurityOperations {
 
   @Override
   public void createLocalUser(final String principal, final PasswordToken password) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(principal, password);
+    checkArgument(principal != null, "principal is null");
+    checkArgument(password != null, "password is null");
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
@@ -116,7 +118,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
 
   @Override
   public void dropLocalUser(final String principal) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(principal);
+    checkArgument(principal != null, "principal is null");
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
@@ -133,7 +135,8 @@ public class SecurityOperationsImpl implements SecurityOperations {
 
   @Override
   public boolean authenticateUser(final String principal, final AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(principal, token);
+    checkArgument(principal != null, "principal is null");
+    checkArgument(token != null, "token is null");
     final Credentials toAuth = new Credentials(principal, token);
     return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
       @Override
@@ -151,7 +154,8 @@ public class SecurityOperationsImpl implements SecurityOperations {
 
   @Override
   public void changeLocalUserPassword(final String principal, final PasswordToken token) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(principal, token);
+    checkArgument(principal != null, "principal is null");
+    checkArgument(token != null, "token is null");
     final Credentials toChange = new Credentials(principal, token);
     execute(new ClientExec<ClientService.Client>() {
       @Override
@@ -166,7 +170,8 @@ public class SecurityOperationsImpl implements SecurityOperations {
 
   @Override
   public void changeUserAuthorizations(final String principal, final Authorizations authorizations) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(principal, authorizations);
+    checkArgument(principal != null, "principal is null");
+    checkArgument(authorizations != null, "authorizations is null");
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
@@ -178,7 +183,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
 
   @Override
   public Authorizations getUserAuthorizations(final String principal) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(principal);
+    checkArgument(principal != null, "principal is null");
     return execute(new ClientExecReturn<Authorizations,ClientService.Client>() {
       @Override
       public Authorizations execute(ClientService.Client client) throws Exception {
@@ -189,7 +194,8 @@ public class SecurityOperationsImpl implements SecurityOperations {
 
   @Override
   public boolean hasSystemPermission(final String principal, final SystemPermission perm) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(principal, perm);
+    checkArgument(principal != null, "principal is null");
+    checkArgument(perm != null, "perm is null");
     return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
       @Override
       public Boolean execute(ClientService.Client client) throws Exception {
@@ -200,7 +206,9 @@ public class SecurityOperationsImpl implements SecurityOperations {
 
   @Override
   public boolean hasTablePermission(final String principal, final String table, final TablePermission perm) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(principal, table, perm);
+    checkArgument(principal != null, "principal is null");
+    checkArgument(table != null, "table is null");
+    checkArgument(perm != null, "perm is null");
     try {
       return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
         @Override
@@ -219,7 +227,9 @@ public class SecurityOperationsImpl implements SecurityOperations {
   @Override
   public boolean hasNamespacePermission(final String principal, final String namespace, final NamespacePermission permission) throws AccumuloException,
       AccumuloSecurityException {
-    ArgumentChecker.notNull(principal, namespace, permission);
+    checkArgument(principal != null, "principal is null");
+    checkArgument(namespace != null, "namespace is null");
+    checkArgument(permission != null, "permission is null");
     return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
       @Override
       public Boolean execute(ClientService.Client client) throws Exception {
@@ -230,7 +240,8 @@ public class SecurityOperationsImpl implements SecurityOperations {
 
   @Override
   public void grantSystemPermission(final String principal, final SystemPermission permission) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(principal, permission);
+    checkArgument(principal != null, "principal is null");
+    checkArgument(permission != null, "permission is null");
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
@@ -242,7 +253,9 @@ public class SecurityOperationsImpl implements SecurityOperations {
   @Override
   public void grantTablePermission(final String principal, final String table, final TablePermission permission) throws AccumuloException,
       AccumuloSecurityException {
-    ArgumentChecker.notNull(principal, table, permission);
+    checkArgument(principal != null, "principal is null");
+    checkArgument(table != null, "table is null");
+    checkArgument(permission != null, "permission is null");
     try {
       execute(new ClientExec<ClientService.Client>() {
         @Override
@@ -261,7 +274,9 @@ public class SecurityOperationsImpl implements SecurityOperations {
   @Override
   public void grantNamespacePermission(final String principal, final String namespace, final NamespacePermission permission) throws AccumuloException,
       AccumuloSecurityException {
-    ArgumentChecker.notNull(principal, namespace, permission);
+    checkArgument(principal != null, "principal is null");
+    checkArgument(namespace != null, "namespace is null");
+    checkArgument(permission != null, "permission is null");
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
@@ -272,7 +287,8 @@ public class SecurityOperationsImpl implements SecurityOperations {
 
   @Override
   public void revokeSystemPermission(final String principal, final SystemPermission permission) throws AccumuloException, AccumuloSecurityException {
-    ArgumentChecker.notNull(principal, permission);
+    checkArgument(principal != null, "principal is null");
+    checkArgument(permission != null, "permission is null");
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
@@ -284,7 +300,9 @@ public class SecurityOperationsImpl implements SecurityOperations {
   @Override
   public void revokeTablePermission(final String principal, final String table, final TablePermission permission) throws AccumuloException,
       AccumuloSecurityException {
-    ArgumentChecker.notNull(principal, table, permission);
+    checkArgument(principal != null, "principal is null");
+    checkArgument(table != null, "table is null");
+    checkArgument(permission != null, "permission is null");
     try {
       execute(new ClientExec<ClientService.Client>() {
         @Override
@@ -303,7 +321,9 @@ public class SecurityOperationsImpl implements SecurityOperations {
   @Override
   public void revokeNamespacePermission(final String principal, final String namespace, final NamespacePermission permission) throws AccumuloException,
       AccumuloSecurityException {
-    ArgumentChecker.notNull(principal, namespace, permission);
+    checkArgument(principal != null, "principal is null");
+    checkArgument(namespace != null, "namespace is null");
+    checkArgument(permission != null, "permission is null");
     execute(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
