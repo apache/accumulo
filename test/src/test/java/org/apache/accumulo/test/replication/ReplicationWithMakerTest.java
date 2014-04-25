@@ -104,9 +104,8 @@ public class ReplicationWithMakerTest extends ConfigurableMacIT {
 
     bw.close();
 
-    // Make sure the replication table exists at this point and grant ourselves read access
+    // Make sure the replication table exists at this point
     Assert.assertTrue(conn.tableOperations().exists(ReplicationTable.NAME));
-    conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.READ);
 
     // Make sure that we have one status element, should be a new file
     Scanner s = ReplicationTable.getScanner(conn);
@@ -231,7 +230,6 @@ public class ReplicationWithMakerTest extends ConfigurableMacIT {
     bw.close();
 
     Assert.assertTrue(conn.tableOperations().exists(ReplicationTable.NAME));
-    conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.READ);
 
     boolean notFound = true;
     Scanner s;

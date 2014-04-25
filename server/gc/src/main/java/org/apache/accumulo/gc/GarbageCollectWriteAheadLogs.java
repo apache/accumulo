@@ -146,6 +146,19 @@ public class GarbageCollectWriteAheadLogs {
       
       long logEntryScanStop = System.currentTimeMillis();
       log.info(String.format("%d log entries scanned in %.2f seconds", count, (logEntryScanStop - fileScanStop) / 1000.));
+
+      span = Trace.start("removeReplicationEntries");
+      try {
+        count = removeReplicationEntries(sortedWALogs, status, SystemCredentials.get());
+      } catch (Exception ex) {
+        log.error("Unable to scan replication table", ex);
+        return;
+      } finally {
+        span.stop();
+      }
+
+      long replicationEntryScanStop = System.currentTimeMillis();
+      log.info(String.format("%d replication entries scanned in %.2f seconds",  count, (replicationEntryScanStop - logEntryScanStop) / 1000.));
       
       span = Trace.start("removeFiles");
       Map<String,ArrayList<Path>> serverToFileMap = mapServersToFiles(fileToServerMap, nameToFileMap);
@@ -290,14 +303,6 @@ public class GarbageCollectWriteAheadLogs {
   
   protected int removeMetadataEntries(Map<String,Path>  nameToFileMap, Map<String, Path> sortedWALogs, GCStatus status, Credentials creds) throws IOException, KeeperException,
       InterruptedException {
-    Connector conn;
-    try {
-      conn =  instance.getConnector(creds.getPrincipal(), creds.getToken());
-    } catch (AccumuloException|AccumuloSecurityException e) {
-      log.error("Failed to get connector", e);
-      throw new IllegalArgumentException(e);
-    }
-
     int count = 0;
     Iterator<LogEntry> iterator = MetadataTableUtil.getLogEntries(creds);
 
@@ -315,16 +320,38 @@ public class GarbageCollectWriteAheadLogs {
         if (pathFromNN != null) {
           status.currentLog.inUse++;
           sortedWALogs.remove(uuid);
-        } else if (neededByReplication(conn, entry)) {
-          // If we haven't already removed it, check to see if this WAL is
-          // "in use" by replication (needed for replication purposes)
-          status.currentLog.inUse++;
-          sortedWALogs.remove(uuid);
         }
 
         count++;
       }
     }
+
+    return count;
+  }
+
+  protected int removeReplicationEntries(Map<String,Path> sortedWALogs, GCStatus status, Credentials creds) throws IOException, KeeperException, InterruptedException {
+    Connector conn;
+    try {
+      conn =  instance.getConnector(creds.getPrincipal(), creds.getToken());
+    } catch (AccumuloException|AccumuloSecurityException e) {
+      log.error("Failed to get connector", e);
+      throw new IllegalArgumentException(e);
+    }
+
+    int count = 0;
+
+    for (Entry<String,Path> sortedWAL : sortedWALogs.entrySet()) {
+      String fullPath = sortedWAL.getValue().toString();
+      if (neededByReplication(conn, fullPath)) {
+        log.info("Removing from delete list because it needs replication: " + fullPath);
+        // If we haven't already removed it, check to see if this WAL is
+        // "in use" by replication (needed for replication purposes)
+        status.currentLog.inUse++;
+        sortedWALogs.remove(sortedWAL.getKey());
+      }
+      count++;
+    }
+
     return count;
   }
 
@@ -334,6 +361,7 @@ public class GarbageCollectWriteAheadLogs {
    * @return True if the WAL is still needed by replication (not a candidate for deletion)
    */
   protected boolean neededByReplication(Connector conn, String wal) {
+    log.info("Checking replication table for " + wal);
     Iterable<Entry<Key,Value>> iter;
     try {
       iter = getReplicationStatusForFile(conn, wal);

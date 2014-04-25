@@ -57,7 +57,7 @@ public class ReplicationTableTest {
   public void replicationTableCreated() {
     TableOperations tops = conn.tableOperations();
     Assert.assertFalse(tops.exists(ReplicationTable.NAME));
-    ReplicationTable.create(tops);
+    ReplicationTable.create(conn);
     Assert.assertTrue(tops.exists(ReplicationTable.NAME));
   }
 
@@ -67,14 +67,14 @@ public class ReplicationTableTest {
     Assert.assertFalse(tops.exists(ReplicationTable.NAME));
 
     // Create the table
-    ReplicationTable.create(tops);
+    ReplicationTable.create(conn);
 
     // Make sure it exists and save off the id
     Assert.assertTrue(tops.exists(ReplicationTable.NAME));
     String tableId = tops.tableIdMap().get(ReplicationTable.NAME);
 
     // Try to make it again, should return quickly
-    ReplicationTable.create(tops);
+    ReplicationTable.create(conn);
     Assert.assertTrue(tops.exists(ReplicationTable.NAME));
 
     // Verify we have the same table as previously
@@ -91,7 +91,7 @@ public class ReplicationTableTest {
 
     Assert.assertFalse(iterators.containsKey(ReplicationTable.COMBINER_NAME));
 
-    ReplicationTable.configure(tops);
+    ReplicationTable.configure(conn);
 
     // After configure the iterator should be set
     iterators = tops.listIterators(ReplicationTable.NAME);

@@ -66,9 +66,8 @@ public class ReplicationTableUtil {
         throw new RuntimeException(e);
       }
 
-      TableOperations tops = conn.tableOperations();
-      ReplicationTable.create(tops);
-      String id = tops.tableIdMap().get(ReplicationTable.NAME);
+      ReplicationTable.create(conn);
+      String id = conn.tableOperations().tableIdMap().get(ReplicationTable.NAME);
 
       if (null == id) {
         throw new RuntimeException("Could not get replication table ID");
