@@ -122,7 +122,7 @@ public class GarbageCollectWriteAheadLogs {
     try {
       
       Map<String, Path> sortedWALogs = getSortedWALogs();
-      
+
       status.currentLog.started = System.currentTimeMillis();
       
       Map<Path,String> fileToServerMap = new HashMap<Path,String>();
@@ -133,7 +133,7 @@ public class GarbageCollectWriteAheadLogs {
           (fileScanStop - status.currentLog.started) / 1000.));
       status.currentLog.candidates = fileToServerMap.size();
       span.stop();
-      
+
       span = Trace.start("removeMetadataEntries");
       try {
         count = removeMetadataEntries(nameToFileMap, sortedWALogs, status, SystemCredentials.get());
@@ -143,13 +143,13 @@ public class GarbageCollectWriteAheadLogs {
       } finally {
         span.stop();
       }
-      
+
       long logEntryScanStop = System.currentTimeMillis();
       log.info(String.format("%d log entries scanned in %.2f seconds", count, (logEntryScanStop - fileScanStop) / 1000.));
 
       span = Trace.start("removeReplicationEntries");
       try {
-        count = removeReplicationEntries(sortedWALogs, status, SystemCredentials.get());
+        count = removeReplicationEntries(nameToFileMap, sortedWALogs, status, SystemCredentials.get());
       } catch (Exception ex) {
         log.error("Unable to scan replication table", ex);
         return;
@@ -162,7 +162,7 @@ public class GarbageCollectWriteAheadLogs {
       
       span = Trace.start("removeFiles");
       Map<String,ArrayList<Path>> serverToFileMap = mapServersToFiles(fileToServerMap, nameToFileMap);
-      
+
       count = removeFiles(nameToFileMap, serverToFileMap, sortedWALogs, status);
       
       long removeStop = System.currentTimeMillis();
@@ -329,7 +329,7 @@ public class GarbageCollectWriteAheadLogs {
     return count;
   }
 
-  protected int removeReplicationEntries(Map<String,Path> sortedWALogs, GCStatus status, Credentials creds) throws IOException, KeeperException, InterruptedException {
+  protected int removeReplicationEntries(Map<String,Path>  nameToFileMap, Map<String,Path> sortedWALogs, GCStatus status, Credentials creds) throws IOException, KeeperException, InterruptedException {
     Connector conn;
     try {
       conn =  instance.getConnector(creds.getPrincipal(), creds.getToken());
@@ -340,14 +340,16 @@ public class GarbageCollectWriteAheadLogs {
 
     int count = 0;
 
-    for (Entry<String,Path> sortedWAL : sortedWALogs.entrySet()) {
-      String fullPath = sortedWAL.getValue().toString();
+    for (Entry<String,Path> wal : nameToFileMap.entrySet()) {
+      String fullPath = wal.getValue().toString();
       if (neededByReplication(conn, fullPath)) {
-        log.info("Removing from delete list because it needs replication: " + fullPath);
         // If we haven't already removed it, check to see if this WAL is
         // "in use" by replication (needed for replication purposes)
         status.currentLog.inUse++;
-        sortedWALogs.remove(sortedWAL.getKey());
+        Path removed = nameToFileMap.remove(wal.getKey());
+        if (null != removed) {
+          sortedWALogs.remove(wal.getKey());
+        }
       }
       count++;
     }
