@@ -140,7 +140,7 @@ public class AuditMessageIT extends ConfigurableMacIT {
   }
 
   @Before
-  public void setup() throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException {
+  public void resetInstance() throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException {
     conn = getConnector();
 
     // I don't want to recreate the instance for every test since it will take ages.

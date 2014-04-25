@@ -74,7 +74,7 @@ public class ScannerIT extends SimpleMacIT {
     s.setBatchSize(1);
     s.setRange(new Range());
 
-    Stopwatch sw = Stopwatch.createUnstarted();
+    Stopwatch sw = new Stopwatch();
     Iterator<Entry<Key,Value>> iterator = s.iterator();
 
     sw.start();
@@ -96,7 +96,7 @@ public class ScannerIT extends SimpleMacIT {
     s.setBatchSize(1);
     s.setReadaheadThreshold(0l);
 
-    sw = Stopwatch.createUnstarted();
+    sw = new Stopwatch();
     iterator = s.iterator();
 
     sw.start();

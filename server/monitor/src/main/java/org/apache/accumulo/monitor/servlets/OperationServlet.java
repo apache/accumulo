@@ -18,7 +18,6 @@ package org.apache.accumulo.monitor.servlets;
 
 import java.io.IOException;
 
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -33,21 +32,21 @@ import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.log4j.Logger;
 
 public class OperationServlet extends BasicServlet {
-  
+
   private static final long serialVersionUID = 1L;
-  
+
   @Override
   protected String getTitle(HttpServletRequest req) {
     return "Operations";
   }
-  
+
   @Override
   public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
     String redir = null;
     try {
       String operation = req.getParameter("action");
       redir = req.getParameter("redir");
-      
+
       if (operation != null) {
         for (Class<?> subclass : OperationServlet.class.getClasses()) {
           Object t;
@@ -69,36 +68,35 @@ public class OperationServlet extends BasicServlet {
       log.error(t, t);
     } finally {
       try {
-        if (redir != null)
-          resp.sendRedirect(redir);
-        else
-          resp.sendRedirect("/");
+        redir = redir == null ? "" : redir;
+        redir = redir.startsWith("/") ? redir.substring(1) : redir;
+        resp.sendRedirect("/" + redir); // this makes findbugs happy
         resp.flushBuffer();
       } catch (Throwable t) {
         log.error(t, t);
       }
     }
   }
-  
+
   private interface WebOperation {
     void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) throws Exception;
   }
-  
+
   public static class RefreshOperation implements WebOperation {
     @Override
     public void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) {
       String value = req.getParameter("value");
-      resp.addCookie(new Cookie("page.refresh.rate", value == null ? "5" : value));
+      BasicServlet.setCookie(resp, "page.refresh.rate", value == null ? "5" : BasicServlet.encode(value));
     }
   }
-  
+
   public static class ClearLogOperation implements WebOperation {
     @Override
     public void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) {
       LogService.getInstance().clear();
     }
   }
-  
+
   public static class ClearTableProblemsOperation implements WebOperation {
     @Override
     public void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) {
@@ -110,7 +108,7 @@ public class OperationServlet extends BasicServlet {
       }
     }
   }
-  
+
   public static class ClearProblemOperation implements WebOperation {
     @Override
     public void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) {
@@ -124,7 +122,7 @@ public class OperationServlet extends BasicServlet {
       }
     }
   }
-  
+
   public static class SortTableOperation implements WebOperation {
     @Override
     public void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) throws IOException {
@@ -134,13 +132,18 @@ public class OperationServlet extends BasicServlet {
       String col = req.getParameter("col");
       if (table == null || page == null || (asc == null && col == null))
         return;
-      if (asc == null)
-        resp.addCookie(new Cookie("tableSort." + page + "." + table + "." + "sortCol", col));
-      else
-        resp.addCookie(new Cookie("tableSort." + page + "." + table + "." + "sortAsc", asc));
+      page = BasicServlet.encode(page);
+      table = BasicServlet.encode(table);
+      if (asc == null) {
+        col = BasicServlet.encode(col);
+        BasicServlet.setCookie(resp, "tableSort." + page + "." + table + "." + "sortCol", col);
+      } else {
+        asc = BasicServlet.encode(asc);
+        BasicServlet.setCookie(resp, "tableSort." + page + "." + table + "." + "sortAsc", asc);
+      }
     }
   }
-  
+
   public static class ToggleLegendOperation implements WebOperation {
     @Override
     public void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) throws Exception {
@@ -149,10 +152,13 @@ public class OperationServlet extends BasicServlet {
       String show = req.getParameter("show");
       if (table == null || page == null || show == null)
         return;
-      resp.addCookie(new Cookie("tableLegend." + page + "." + table + "." + "show", show));
+      page = BasicServlet.encode(page);
+      table = BasicServlet.encode(table);
+      show = BasicServlet.encode(show);
+      BasicServlet.setCookie(resp, "tableLegend." + page + "." + table + "." + "show", show);
     }
   }
-  
+
   public static class ClearDeadServerOperation implements WebOperation {
     @Override
     public void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) {

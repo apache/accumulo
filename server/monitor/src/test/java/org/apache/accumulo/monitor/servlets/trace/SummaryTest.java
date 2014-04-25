@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.monitor.servlets.trace;
+package org.apache.accumulo.monitor.servlets.trace;
 
 import org.junit.Before;
 import org.junit.Test;

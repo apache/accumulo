@@ -45,8 +45,6 @@ import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -282,8 +280,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       return transactionWatcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, new Callable<List<String>>() {
         @Override
         public List<String> call() throws Exception {
-          return BulkImporter.bulkLoad(new ServerConfiguration(instance).getConfiguration(), instance, new Credentials(credentials.getPrincipal(),
-              AuthenticationTokenSerializer.deserialize(credentials.getTokenClassName(), credentials.getToken())), tid, tableId, files, errorDir, setTime);
+          return BulkImporter.bulkLoad(new ServerConfiguration(instance).getConfiguration(), instance, Credentials.fromThrift(credentials), tid, tableId, files, errorDir, setTime);
         }
       });
     } catch (AccumuloSecurityException e) {
@@ -396,8 +393,8 @@ public class ClientServiceHandler implements ClientService.Iface {
   @Override
   public List<TDiskUsage> getDiskUsage(Set<String> tables, TCredentials credentials) throws ThriftTableOperationException, ThriftSecurityException, TException {
     try {
-      AuthenticationToken token = AuthenticationTokenSerializer.deserialize(credentials.getTokenClassName(), credentials.getToken());
-      Connector conn = instance.getConnector(credentials.getPrincipal(), token);
+      final Credentials creds = Credentials.fromThrift(credentials);
+      Connector conn = instance.getConnector(creds.getPrincipal(), creds.getToken());
 
       HashSet<String> tableIds = new HashSet<String>();
 

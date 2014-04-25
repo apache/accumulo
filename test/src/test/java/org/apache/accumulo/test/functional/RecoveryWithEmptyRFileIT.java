@@ -17,28 +17,13 @@
 package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.net.URL;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.cli.ScannerOpts;
-import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.rfile.CreateEmpty;
@@ -46,14 +31,8 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.monitor.Monitor;
-import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.functional.ReadWriteIT;
-import org.apache.accumulo.test.TestIngest;
-import org.apache.accumulo.test.TestMultiTableIngest;
-import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -124,7 +103,8 @@ public class RecoveryWithEmptyRFileIT extends ConfigurableMacIT {
     scan.setRange(new Range());
     long cells = 0l;
     for (Entry<Key,Value> entry : scan) {
-      cells++;
+      if (entry != null)
+        cells++;
     }
     scan.close();
     assertEquals(0l, cells);
