@@ -197,12 +197,13 @@ public class ExamplesIT extends AbstractMacIT {
     assertTrue(result.contains("accumulo-site.xml"));
   }
 
-  @Test(timeout = 5 * 1000)
+  @Test(timeout = 6 * 1000)
   public void testAgeoffFilter() throws Exception {
     c.tableOperations().create("filtertest");
     is = new IteratorSetting(10, AgeOffFilter.class);
     AgeOffFilter.setTTL(is, 1000L);
     c.tableOperations().attachIterator("filtertest", is);
+    UtilWaitThread.sleep(500); // let zookeeper updates propagate.
     bw = c.createBatchWriter("filtertest", bwc);
     Mutation m = new Mutation("foo");
     m.put("a", "b", "c");
