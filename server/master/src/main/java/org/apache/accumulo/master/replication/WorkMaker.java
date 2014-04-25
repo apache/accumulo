@@ -37,6 +37,8 @@ import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.replication.ReplicationTable;
+import org.apache.accumulo.trace.instrument.Span;
+import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -61,43 +63,53 @@ public class WorkMaker {
       return;
     }
 
-    final Scanner s;
+    Span span = Trace.start("replicationWorkMaker");
     try {
-      s = ReplicationTable.getScanner(conn);
-      if (null == writer) {
-        setBatchWriter(ReplicationTable.getBatchWriter(conn));
+      final Scanner s;
+      try {
+        s = ReplicationTable.getScanner(conn);
+        if (null == writer) {
+          setBatchWriter(ReplicationTable.getBatchWriter(conn));
+        }
+      } catch (TableNotFoundException e) {
+        log.warn("Replication table did exist, but does not anymore");
+        writer = null;
+        return;
       }
-    } catch (TableNotFoundException e) {
-      log.warn("Replication table did exist, but does not anymore");
-      writer = null;
-      return;
-    }
-
-    // Only pull records about data that has been ingested and is ready for replication
-    StatusSection.limit(s);
-
-    TableConfiguration tableConf;
-
-    Text file = new Text(), tableId = new Text();
-    for (Entry<Key,Value> entry : s) {
-      // Extract the useful bits from the status key
-      ReplicationSchema.StatusSection.getFile(entry.getKey(), file);
-      ReplicationSchema.StatusSection.getTableId(entry.getKey(), tableId);
-      log.info("Processing replication status record for " + file + " on table "+ tableId);
-
-      // Get the table configuration for the table specified by the status record
-      tableConf = ServerConfiguration.getTableConfiguration(conn.getInstance(), tableId.toString());
-
-      // Pull the relevant replication targets
-      // TODO Cache this instead of pulling it every time
-      Map<String,String> replicationTargets = getReplicationTargets(tableConf);
-
-      // If we have targets, we need to make a work record
-      // TODO Don't replicate if it's a only a newFile entry (nothing to replicate yet)
-      //   -- Another scanner over the WorkSection can make this relatively cheap
-      if (!replicationTargets.isEmpty()) {
-        addWorkRecord(file, entry.getValue(), replicationTargets);
+  
+      // Only pull records about data that has been ingested and is ready for replication
+      StatusSection.limit(s);
+  
+      TableConfiguration tableConf;
+  
+      Text file = new Text(), tableId = new Text();
+      for (Entry<Key,Value> entry : s) {
+        // Extract the useful bits from the status key
+        ReplicationSchema.StatusSection.getFile(entry.getKey(), file);
+        ReplicationSchema.StatusSection.getTableId(entry.getKey(), tableId);
+        log.info("Processing replication status record for " + file + " on table "+ tableId);
+  
+        // Get the table configuration for the table specified by the status record
+        tableConf = ServerConfiguration.getTableConfiguration(conn.getInstance(), tableId.toString());
+  
+        // Pull the relevant replication targets
+        // TODO Cache this instead of pulling it every time
+        Map<String,String> replicationTargets = getReplicationTargets(tableConf);
+  
+        // If we have targets, we need to make a work record
+        // TODO Don't replicate if it's a only a newFile entry (nothing to replicate yet)
+        //   -- Another scanner over the WorkSection can make this relatively cheap
+        if (!replicationTargets.isEmpty()) {
+          Span workSpan = Trace.start("createWorkMutations");
+          try {
+            addWorkRecord(file, entry.getValue(), replicationTargets);
+          } finally {
+            workSpan.stop();
+          }
+        }
       }
+    } finally {
+      span.stop();
     }
   }
 
