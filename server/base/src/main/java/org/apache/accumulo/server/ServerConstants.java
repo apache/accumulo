@@ -32,7 +32,6 @@ import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeUtil;
-import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.hadoop.fs.Path;
 
 public class ServerConstants {
