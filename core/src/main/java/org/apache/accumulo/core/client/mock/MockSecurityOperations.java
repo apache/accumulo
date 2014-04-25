@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.core.client.mock;
 
+/**
+ * @deprecated since 1.6.0; not intended for public api and you should not use it.
+ */
+@Deprecated
 public class MockSecurityOperations extends MockSecurityOperationsImpl {
 
   MockSecurityOperations(MockAccumulo acu) {
