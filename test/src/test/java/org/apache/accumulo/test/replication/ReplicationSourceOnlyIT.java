@@ -84,7 +84,8 @@ public class ReplicationSourceOnlyIT extends ConfigurableMacIT {
       LogEntry logEntry = LogEntry.fromKeyValue(entry.getKey(), entry.getValue());
 
       for (String log : logEntry.logSet) {
-        logs.put(log, logEntry.extent.getTableId().toString());
+        // Need to normalize the log file from LogEntry
+        logs.put(new Path(log).toString(), logEntry.extent.getTableId().toString());
       }
     }
     return logs;

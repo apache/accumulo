@@ -42,6 +42,7 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.Assert;
 import org.junit.Test;
@@ -110,7 +111,7 @@ public class ReplicationTest extends ConfigurableMacIT {
     s.fetchColumnFamily(MetadataSchema.TabletsSection.LogColumnFamily.NAME);
     for (Entry<Key,Value> entry : s) {
       LogEntry logEntry = LogEntry.fromKeyValue(entry.getKey(), entry.getValue());
-      wals.add(logEntry.filename);
+      wals.add(new Path(logEntry.filename).toString());
     }
 
     // We only have one file that should need replication (no trace table)
