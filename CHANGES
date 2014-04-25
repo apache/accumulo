@@ -22,6 +22,7 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-1029] - Remove unnecessary svn:ignore items
     * [ACCUMULO-1132] - Use a concrete implementation of AuthenticationToken for !SYSTEM user
     * [ACCUMULO-1218] - document the recovery from a failed zookeeper
+    * [ACCUMULO-1219] - document recovery when a file is missing
     * [ACCUMULO-1220] - document steps to recover when a WAL is corrupted or missing
     * [ACCUMULO-1270] - Require license checks on every build
     * [ACCUMULO-1367] - Instance name and ports in MiniAccumuloCluster should be configurable
@@ -30,7 +31,6 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-1383] - Add javadoc for lexicoders
     * [ACCUMULO-1388] - Allow users to configure memory used by MiniAccumulo processes
     * [ACCUMULO-1390] - Document how to use single node Accumulo
-    * [ACCUMULO-1391] - Create a MACConfig object to make tweaking the MAC easier
     * [ACCUMULO-1409] - Make MiniAccumuloCluster support native maps
     * [ACCUMULO-1412] - Allow shell password to come from a variety of sources
     * [ACCUMULO-1431] - Clean-up/Simplify .gitignore
@@ -59,7 +59,6 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-1627] - Add hashcode() and equals() to ConditionalMutation
     * [ACCUMULO-1654] - Bug in encryption-at-rest causes periodic IOExceptions
     * [ACCUMULO-1674] - Use Credentials to clean up internals of mapreduce configuration
-    * [ACCUMULO-1684] - WAL encryption beaks WAL
     * [ACCUMULO-1688] - Ensure ZooLock.watchParent is properly set in case of Connection loss
     * [ACCUMULO-1712] - Remove special characters from path names of metadata tables
     * [ACCUMULO-1713] - defer deleting _tmp files to recovery-likely scenarios
@@ -115,7 +114,6 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-2438] - deleting all table rows caused tablet load failure
     * [ACCUMULO-2444] - Add unit tests to o.a.a.core.security
     * [ACCUMULO-2451] - updateAccumuloVersion only updates the data version on a single configured volume
-    * [ACCUMULO-2452] - DfsLogger.write(LogFileKey, LogFileValue) flushes with every call
     * [ACCUMULO-2456] - NamespacesIT.verifyIteratorInheritance
     * [ACCUMULO-2457] - SimpleProxyIT fails to find a scanner using {{getActiveScans}}
     * [ACCUMULO-2458] - BloomFilterIT fails to find improved performance
@@ -136,11 +134,16 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-2547] - LargeRowIT.basicTest times out
     * [ACCUMULO-2551] - Add read-only access to Fate
     * [ACCUMULO-2555] - DeleterFormatterTest.testNoConfirm fails
+    * [ACCUMULO-2569] - ExamplesIT.testAgeoffFilter times out
     * [ACCUMULO-2584] - ShellServerIT.listscans fails
     * [ACCUMULO-2585] - WriteAheadLogIT.test times out
     * [ACCUMULO-2605] - TServerUtilsTest.testStopTServer_ES fails with class not found
     * [ACCUMULO-2620] - org.apache.accumulo.core.client.TableExistsException: Table run exists
     * [ACCUMULO-2680] - BackupMasterIT timing too tight
+    * [ACCUMULO-2715] - [FindBugs] Bad comparison of int with 0x7fffffffffffffffL
+    * [ACCUMULO-2718] - [FindBugs] Confusing both setup() and setUp() methods in AuditMessageIT
+    * [ACCUMULO-2720] - [FindBugs] HTTP response splitting vulnerabilities in the OperationServlet
+    * [ACCUMULO-2728] - [FindBugs] Bad random number generation in VolumeUtil
 
 ** Bug
     * [ACCUMULO-324] - System/site constraints and iterators should NOT affect the METADATA table
@@ -157,7 +160,6 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-1326] - ShellTest.authsTests failing in trunk.
     * [ACCUMULO-1345] - Provide feedback that a compaction is "stuck"
     * [ACCUMULO-1356] - shell tables command does not paginate
-    * [ACCUMULO-1370] - tweak rat check excludes to work on a configured workspace
     * [ACCUMULO-1379] - PermGen leak
     * [ACCUMULO-1382] - Pair incorrectly assumes its components are Comparable
     * [ACCUMULO-1407] - Fix documentation for deleterows
@@ -196,7 +198,6 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-1605] - stack overflow MilliSpan.java:113
     * [ACCUMULO-1616] - Incorrect use of getCanonicalName in BloomFilterLayer code (and others)
     * [ACCUMULO-1618] - No ability to disable trash for root tablet & WAL
-    * [ACCUMULO-1624] - Delete table running slow in clone integration test
     * [ACCUMULO-1626] - Mutation equals() method does not always work
     * [ACCUMULO-1629] - Files in cloned table disappear when source deleted
     * [ACCUMULO-1630] - Accumulo gc cannot identify as non localhost address
@@ -222,7 +223,6 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-1734] - Mutation is hard to check in unit tests
     * [ACCUMULO-1735] - test ShutdownIT#stopDuringStart sometimes times out
     * [ACCUMULO-1743] - Seeing unexpected trace output
-    * [ACCUMULO-1745] - Merge broken on cloned tables
     * [ACCUMULO-1752] - MAC start() method should timeout when it can't connect to Zookeeper
     * [ACCUMULO-1774] - DevNull iterator documentation is incorrect
     * [ACCUMULO-1775] - zooCacheTest fails due to missing /tmp/zcTest-42
@@ -302,7 +302,6 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-1994] - proxy does not handle Key timestamps correctly
     * [ACCUMULO-1997] - Perform validation on ACCUMULO_HOME
     * [ACCUMULO-1998] - Encrypted WALogs seem to be excessively buffering
-    * [ACCUMULO-2006] - MetadataSplitIT fails
     * [ACCUMULO-2009] - ExamplesIT fails with Hadoop 1.2.1
     * [ACCUMULO-2012] - Cloning the metadata table fails with faulty error
     * [ACCUMULO-2013] - Cloning tables results in errors from the master
@@ -316,7 +315,6 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-2036] - Mappers are not running locally
     * [ACCUMULO-2037] - Tablets not assigned to last location
     * [ACCUMULO-2042] - Scalability test does not run
-    * [ACCUMULO-2045] - Accumulo fails to init when using viewfs://
     * [ACCUMULO-2047] - Failures when using two namenodes and viewfs://
     * [ACCUMULO-2054] - Concurrent random walk test fails
     * [ACCUMULO-2056] - NotSerializableException: com.google.common.net.HostAndPort
@@ -353,7 +351,6 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-2127] - example accumulo-site.xmls put Hadoop 2 jars ahead of Accumulo jars on classpath
     * [ACCUMULO-2128] - Provide resource cleanup via static utility rather than Instance.close
     * [ACCUMULO-2134] - SimpleProxyIT fails on TableNotFoundException
-    * [ACCUMULO-2140] - Race conditions between client operations and upgrade
     * [ACCUMULO-2142] - GC doesn't advertise its port
     * [ACCUMULO-2146] - typo in continuous-env.sh.example
     * [ACCUMULO-2154] - NoNodeException error in master
@@ -373,9 +370,9 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-2194] - Back-to-back Security randomwalk tests fail
     * [ACCUMULO-2196] - ConfigurableMacIT tests should each use their own dirs
     * [ACCUMULO-2198] - Concurrent randomwalk fails with unbalanced servers
-    * [ACCUMULO-2199] - FileNotFound exception attempting to run continuous ingest verification
     * [ACCUMULO-2202] - Bloom loader missleading ERROR
     * [ACCUMULO-2206] - close consistency check failure
+    * [ACCUMULO-2208] - Provide better error handling when unable to cleanly close log
     * [ACCUMULO-2209] - Rename DefaultKeyEncryptionStrategy to something more descriptive
     * [ACCUMULO-2210] - socket should be closed in MiniAccumuloClusterImpl#start()
     * [ACCUMULO-2211] - Security randomwalk fails "User doesn't exist and they SHOULD"
@@ -398,12 +395,12 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-2266] - TServer should ensure wal settings are valid for underlying FS
     * [ACCUMULO-2270] - bulk import thread pool initialized in non-static method.
     * [ACCUMULO-2289] - Correct Tables.getNamespace to clarify namespace name or ID
+    * [ACCUMULO-2293] - AccumuloSecurityException might be thrown instead of TableNotFoundException on flush or clone
     * [ACCUMULO-2295] - Various ITs timing too sensitive
     * [ACCUMULO-2297] - Additional unnecessary member on InputFormatBase
     * [ACCUMULO-2298] - ExamplesIT should be chunked into several smaller tests
     * [ACCUMULO-2306] - SslWithClientAuthIT.bulk consistently fails in parallel
     * [ACCUMULO-2312] - NPE running Concurrent randomwalk
-    * [ACCUMULO-2315] - Concurrent random walk test needs better handling of Namespace/table not found
     * [ACCUMULO-2316] - Table based Security operations should throw Table not found exceptions over namespace not found
     * [ACCUMULO-2318] - Renaming table don't require namespace
     * [ACCUMULO-2319] - TabletServerResourceManager MemoryManagementFramework constructor starts threads
@@ -449,6 +446,7 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-2515] - NamespaceConfiguration doesn't invalidateCache
     * [ACCUMULO-2519] - FATE operation failed across upgrade
     * [ACCUMULO-2520] - Garbage collector deleted everything when given bad input
+    * [ACCUMULO-2523] - TabletTime.maxMetadataTime NPE if both arguments are null
     * [ACCUMULO-2524] - ProblemReport needs to check for nulls on construction
     * [ACCUMULO-2526] - Top level files in tarball should be 644, not 755
     * [ACCUMULO-2539] - SummingCombiner does not adhere to Combiner#COLUMNS_OPTION
@@ -471,6 +469,14 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-2690] - DfsLogger outputstream short circuiting is never satisfied.
     * [ACCUMULO-2695] - Failure while running conditional RW test w/ agitation
     * [ACCUMULO-2700] - SecurityOperation.authenticateSystemUser fails to properly validate system user
+    * [ACCUMULO-2713] - Instance secret written out with other configuration items to RFiles and WALogs when encryption is turned on
+    * [ACCUMULO-2714] - Integration test classpath issues with Guava
+    * [ACCUMULO-2716] - Duplicate connection loss logging in Writer
+    * [ACCUMULO-2717] - multiTableTest is timing out
+    * [ACCUMULO-2723] - orphaned monitor test
+    * [ACCUMULO-2729] - Conditional RW test not checking status
+    * [ACCUMULO-2730] - assigned tablets in DELETING state are not deleted
+    * [ACCUMULO-2733] - Credentials is missing deserializer to match Thrift serializer
 
 ** Improvement
     * [ACCUMULO-112] - Investigate partitioning in memory map by locality group
@@ -497,7 +503,6 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-1313] - Use annotations to filter/hide sensitive configuration properties when logging
     * [ACCUMULO-1335] - DU command should be available through the java API
     * [ACCUMULO-1347] - Accumulo Shell Does Not support comments
-    * [ACCUMULO-1349] - Enable tests with a suffix of IT to run in a profile
     * [ACCUMULO-1357] - Make debugging MiniAccumuloCluster easier
     * [ACCUMULO-1371] - Improve message in config.sh when HADOOP_PREFIX is not a directory.
     * [ACCUMULO-1375] - Update README files in proxy module.
@@ -586,8 +591,6 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-2454] - Aggregate Cobertura reports
     * [ACCUMULO-2482] - Improve error message on ZK retries
     * [ACCUMULO-2499] - User manual should include list of default ports
-    * [ACCUMULO-2521] - Expose FATE admin utility by name under bin/accumulo
-    * [ACCUMULO-2528] - OfflineScanner is not volume-aware
     * [ACCUMULO-2529] - bake desired warnings into normal maven build
     * [ACCUMULO-2592] - Add new interfaces that better allow extension/implementations of Accumulo clusters
 
@@ -642,8 +645,13 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-2616] - Bump plugin versions and parent POM version
     * [ACCUMULO-2652] - Build warnings from missing plugin version
     * [ACCUMULO-2653] - Remove useless javadocs
+    * [ACCUMULO-2654] - means to create empty rfile for recovery
     * [ACCUMULO-2670] - Corrupt license header in shelltest.txt
     * [ACCUMULO-2697] - Automatically run findbugs to detect serious issues in the build
+    * [ACCUMULO-2707] - Remove build-helper task: regex-property from build
+    * [ACCUMULO-2708] - Lower the rank threshold for findbugs execution in the build
+    * [ACCUMULO-2726] - Maintain binary backwards compat for non-deprecated API components for 1.5 -> 1.6
+    * [ACCUMULO-2734] - javadoc bug with multi-line @code tag
 
 ** Test
     * [ACCUMULO-1981] - BloomFilterLayerLookupTest does not run
@@ -652,12 +660,14 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-2392] - SimpleMacIT should document which MAC it is using
     * [ACCUMULO-2470] - Improve unit test coverage for server base classes
     * [ACCUMULO-2488] - Concurrent randomwalk balance check needs refinement
+    * [ACCUMULO-2498] - Improve unit tests coverage for core module
     * [ACCUMULO-2508] - Security randomwalk fails "BAD_CREDENTIALS - Username or Password is Invalid"
     * [ACCUMULO-2543] - cacheBlock should be closed in BlockIndexTest
     * [ACCUMULO-2558] - Improve unit test coverage for server gc classes
     * [ACCUMULO-2621] - Masters not restarting during concurrent randomwalk
     * [ACCUMULO-2657] - Shard randomwalk fails for 1.6.0
     * [ACCUMULO-2666] - provide a scaling factor for timeouts on ITs
+    * [ACCUMULO-2735] - Add specific test to ensure merging cloned tables are functional
 
 Release Notes - Accumulo - Version 1.5.0
 
@@ -705,22 +715,18 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-993] - Create unit tests for mapred package
     * [ACCUMULO-996] - explore exposing accumulo token in proxy
     * [ACCUMULO-1001] - Fix problems with TransformingIterator
-    * [ACCUMULO-1003] - what is the point of SecuritySerDe?
     * [ACCUMULO-1004] - functional tests are failing
     * [ACCUMULO-1007] - Ruby example for proxy is busted
     * [ACCUMULO-1008] - Lift gen-{cpp,java,py,rb} from proxy's build.dir
-    * [ACCUMULO-1019] - Continuous ingest README wrong after package move
     * [ACCUMULO-1024] - Deprecate built-in user management utilities
     * [ACCUMULO-1025] - Don't deprecate AuthInfo
     * [ACCUMULO-1026] - Don't use @Deprecated to mean "Not for Client Use"
-    * [ACCUMULO-1027] - Consolidate the thrift objects for Authentication information
     * [ACCUMULO-1028] - Distinguish the user principal from the authentication token
     * [ACCUMULO-1041] - Generic interface for arbitrary token handling
     * [ACCUMULO-1047] - test 1.5.0
     * [ACCUMULO-1061] - Shutdown thread commented out
     * [ACCUMULO-1073] - Update website for 1.5.0 release
     * [ACCUMULO-1074] - Can not run as multiple users
-    * [ACCUMULO-1080] - MAster is not seeing tablet server go away
     * [ACCUMULO-1087] - master doesn't retry log recovery
     * [ACCUMULO-1089] - Missing word in Accumulo documentation
     * [ACCUMULO-1090] - Inconsistent text in example in Accumulo documentation
@@ -749,7 +755,6 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-1185] - document running accumulo from HDFS
     * [ACCUMULO-1187] - review user and developer manuals for old information
     * [ACCUMULO-1194] - re-document deprecated getConnector() API's
-    * [ACCUMULO-1241] - Update ASF copyrights?
     * [ACCUMULO-1247] - Make master handle tablet with multiple locations
     * [ACCUMULO-1248] - Metadata cache should handle tablets with multiple locations
     * [ACCUMULO-1271] - Make apache-release profile work for us
@@ -778,7 +783,6 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-108] - simple.gc.GCLotsOfCandidatesTest does not use the TestUtils settings properly
     * [ACCUMULO-160] - Makefile needs play nice on 64 and 32 bit systems
     * [ACCUMULO-189] - RegExFilter deepCopy NullPointerException
-    * [ACCUMULO-198] - Can't build RPM
     * [ACCUMULO-209] - RegExFilter does not properly regex when using multi-byte characters
     * [ACCUMULO-226] - BatchScanner iterator implementation erroneously returns true for hasNext upon subsequent hasNext calls
     * [ACCUMULO-228] - Default map does not accurately count bytes in memory
@@ -789,7 +793,6 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-333] - Shell 'help' should wrap more cleanly
     * [ACCUMULO-360] - Bulk importing Keys with invalid ColumnVisibility doesn't fail until scan
     * [ACCUMULO-369] - master retries failed bulk imports too quickly
-    * [ACCUMULO-392] - Accumulo does not start up nicely in provisioned hadoop installations
     * [ACCUMULO-396] - Shell in mock mode doesn't use instance name
     * [ACCUMULO-398] - Table tablets not evenly spread.
     * [ACCUMULO-408] - Large bulk imports timing out
@@ -810,7 +813,6 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-533] - make system iterators thread-safer
     * [ACCUMULO-534] - simple.logicalTime.LogicalTimeTest is timing out
     * [ACCUMULO-535] - shell functional test is failing
-    * [ACCUMULO-536] - bulk split optimization test is failing
     * [ACCUMULO-537] - SimpleBalancerFairness functional test is failing
     * [ACCUMULO-538] - examples functional test is failing
     * [ACCUMULO-539] - fix warning about deprecated md5 module when running functional tests
@@ -822,14 +824,12 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-566] - monitor should display zero tablet servers as red, even if there's only one tablet server configured
     * [ACCUMULO-568] - Test creates a core/null directory
     * [ACCUMULO-570] - dirlist example README is a little inconsistent
-    * [ACCUMULO-575] - Potential data loss when datanode fails immediately after minor compaction
     * [ACCUMULO-589] - Unable to set system properties in shell
     * [ACCUMULO-590] - NPE in TableLoadBalancer
     * [ACCUMULO-591] - Need to clear tablet location cache before computing input splits in input format
     * [ACCUMULO-596] - Shell doesn't accept hex characters with nonzero first bit
     * [ACCUMULO-597] - need timezone label to clarify the times on the monitoring graphs
     * [ACCUMULO-601] - client fails to resolve master hostname when not using fully qualified domain name
-    * [ACCUMULO-604] - Running Low On Memory messages in monitor is a bit overzealous
     * [ACCUMULO-605] - NPE on MasterMonitorInfo also spammy
     * [ACCUMULO-606] - Shell needs add aggregator ability restored
     * [ACCUMULO-616] - Table setting table.scan.max.memory ignored
@@ -868,7 +868,6 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-701] - No longer seeing TApplicationException
     * [ACCUMULO-702] - build on ubuntu hangs without required dependencies
     * [ACCUMULO-709] - AddFilesWithMissingEntries adds tmp files
-    * [ACCUMULO-721] - Reloading of lib/ext classloader causes LinkageError
     * [ACCUMULO-727] - Bulk Import retry time needs to be longer/configurable
     * [ACCUMULO-733] - add description of the BatchWriter behavior
     * [ACCUMULO-737] - The PrintInfo.printMetaBlockInfo method does not close a BCFile.Reader
@@ -888,7 +887,6 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-779] - ZooStore can starve completed Repos
     * [ACCUMULO-781] - Move README_UBUNTU to docs directory.
     * [ACCUMULO-782] - MockConnector returns a MockInstance that is not equivalent to it's parent MockInstance
-    * [ACCUMULO-783] - start-agitator.sh starts both agitator and magitator but stop-agitator.sh only stops agitator
     * [ACCUMULO-784] - agitator maxkill/minkill issue
     * [ACCUMULO-785] - Need age off finished fate operations
     * [ACCUMULO-787] - Debian packages rely on old hadoop-zookeeper package
@@ -905,7 +903,6 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-827] - CloudStone Code Has Issues
     * [ACCUMULO-832] - Create directory for debug logs
     * [ACCUMULO-834] - thrift server responds slowly to large numbers of requests
-    * [ACCUMULO-837] - NetUtils.getInputStream() yeilds NoSuchMethodError
     * [ACCUMULO-843] - Mock does not implement locality groups or merging
     * [ACCUMULO-844] - VisibilityFilter does not catch BadArgumentException
     * [ACCUMULO-845] - Handle method.include calls consistently in TraceWrap class.
@@ -937,9 +934,7 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-926] - Extraneous vfs output should be logged (and breaks functional tests)
     * [ACCUMULO-928] - The TableLoadBalancer.getTableOperations method should not rely on Zookeeper.
     * [ACCUMULO-929] - Ignore JetBrains .idea and .iml files
-    * [ACCUMULO-939] - Writing to HDFS gets stuck
     * [ACCUMULO-940] - Generated code needs license headers
-    * [ACCUMULO-943] - Continuous Ingest graphs are broken by VFS extra output
     * [ACCUMULO-944] - start-here doesn't work if you define your roles by IP
     * [ACCUMULO-954] - ZooLock watcher can stop watching
     * [ACCUMULO-965] - Zookeeper session ids created as unsigned long, parsed in ZooUtils.java as signed long
@@ -980,12 +975,10 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-1086] - Configuration secrets exposed via thrift RPC with no authentication
     * [ACCUMULO-1088] - master not balancing because balance information is out-of-date
     * [ACCUMULO-1104] - improve documentation
-    * [ACCUMULO-1106] - MiniAccumuloTest fails on hadoop 2.0
     * [ACCUMULO-1107] - Rpm fails to install on Centos 6.3 x86_64 using yum
     * [ACCUMULO-1110] - deadlock found in major compaction
     * [ACCUMULO-1111] - stack overflow in random walk test
     * [ACCUMULO-1112] - master state is UNLOAD_METADATA_TABLE and goal state is NORMAL: stuck
-    * [ACCUMULO-1113] - consistency check failure on !METADATA table
     * [ACCUMULO-1114] - class cast exception during Security random walk
     * [ACCUMULO-1115] - Config node in concurrent random walk doesn't work for tables
     * [ACCUMULO-1117] - noisy logs during random walk
@@ -1028,7 +1021,6 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-1214] - Proxy SimpleTest fails reading stale zookeeper data
     * [ACCUMULO-1227] - simple.largeRow.LargeRowTest FAILED due to out of range exception
     * [ACCUMULO-1231] - running FindOfflineTablets with no arguments throws NPE
-    * [ACCUMULO-1232] - table_info tablet offline for a long time
     * [ACCUMULO-1233] - race condition looking at zookeeper nodes
     * [ACCUMULO-1234] - setscaniter can cause iterator class warning to appear in monitor
     * [ACCUMULO-1235] - tablet fails to load after split fix
@@ -1040,14 +1032,12 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-1250] - Fail the build when thrift profile activated and thrift fails
     * [ACCUMULO-1251] - TFramedTransport frame size limited on client side
     * [ACCUMULO-1253] - docs/config.html generation broken
-    * [ACCUMULO-1255] - Occasional errors in vfs2 unit tests
     * [ACCUMULO-1257] - strange updates to metadata table
     * [ACCUMULO-1261] - System tests fail from clean checkout
     * [ACCUMULO-1264] - !METADATA table merge hangs
     * [ACCUMULO-1265] - copy dependencies breaks "mvn compile"
     * [ACCUMULO-1276] - problems running generate_monitor_certificate.sh
     * [ACCUMULO-1277] - Race condition between master and tserver when acquiring tserver lock
-    * [ACCUMULO-1279] - Accumulo example configs run out of heap space
     * [ACCUMULO-1282] - Monitor requires jumping through hadoop permissions hoops (and granting accumulo broad permissions)
     * [ACCUMULO-1283] - new configuration test in random walk sets timeout values much too high
     * [ACCUMULO-1284] - FindOfflineTablets uses a batch scanner over the ROOT and META tablet types
@@ -1062,7 +1052,6 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-1348] - Accumulo Shell does not respect 'exit' when executing file
     * [ACCUMULO-1358] - Shell's setiter is not informative when using a bad class name
     * [ACCUMULO-1365] - proxy SimpleTest fails trying to get a port
-    * [ACCUMULO-1374] - Sudden Death of master, gc, and tservers
     * [ACCUMULO-1384] - bin/config.sh has hard-coded version that isn't updated with the build
     * [ACCUMULO-1389] - RPM has dependency on "jdk", it should be "jre"
     * [ACCUMULO-1392] - kerberos directions in README
@@ -1094,8 +1083,6 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-161] - Add ability to maven to build in memory map code
     * [ACCUMULO-173] - Integrate SVN build number into packaging
     * [ACCUMULO-174] - Create maven goal/profile for documentation
-    * [ACCUMULO-187] - Maven goal/profile for javadocs
-    * [ACCUMULO-190] - Cleanup pom version numbers
     * [ACCUMULO-227] - Improve in memory map counts to provide cell level uniqueness for repeated columns in  mutation
     * [ACCUMULO-241] - Visibility labels should allow more characters
     * [ACCUMULO-259] - ZKAuthentictor needs to be split up
@@ -1106,7 +1093,6 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-339] - Add lib and target directories to .gitignore file.
     * [ACCUMULO-348] - Adding splits to table via the shell with addsplits is very slow when adding a lot of split points
     * [ACCUMULO-350] - Support loading (reloading?) jars out of hdfs
-    * [ACCUMULO-358] - Create examples for trial users
     * [ACCUMULO-362] - Integrate automatic CHANGES into build
     * [ACCUMULO-376] - Shell command list needs orginization
     * [ACCUMULO-377] - Shell scan command needs support for multiple columns
@@ -1120,7 +1106,6 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-442] - Please add comments to src/trace/thift.sh
     * [ACCUMULO-451] - Change byte val[] to byte[] val in Mutation.java per PMD suggestion.
     * [ACCUMULO-453] - Profile and optimize server activity visualization
-    * [ACCUMULO-455] - Reintroduce support for running external jars on the accumulo classpath
     * [ACCUMULO-467] - Allow the properties for AccumuloFileOutputFormat to be set in a mapreduce job
     * [ACCUMULO-473] - Support binary search within RFile blocks
     * [ACCUMULO-498] - Key.getColumnVisibility() should return a ColumnVisibility, not a Text
@@ -1226,7 +1211,6 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-19] - Debian packaging support
     * [ACCUMULO-49] - optionally monitor swappiness on every server
     * [ACCUMULO-196] - Add command and control features to the Monitor
-    * [ACCUMULO-347] - some more features should be added to screen
     * [ACCUMULO-404] - Support running on-top of Kerberos-enabled HDFS
     * [ACCUMULO-420] - Allow per compaction iterator settings
     * [ACCUMULO-456] - Need utility for exporting and importing tables
@@ -1249,7 +1233,6 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-152] - Purge old utils
     * [ACCUMULO-242] - Make appropriate references to Apache Accumulo
     * [ACCUMULO-288] - Remove MyMapFile
-    * [ACCUMULO-323] - Double check constraint permissions
     * [ACCUMULO-353] - "mvn" should not build tgz
     * [ACCUMULO-438] - Rename cloudtrace package to org.apache.accumulo.cloudtrace
     * [ACCUMULO-457] - make mvn site useful
@@ -1272,10 +1255,7 @@ Release Notes - Accumulo - Version 1.5.0
     * [ACCUMULO-755] - Run findbugs for 1.5
     * [ACCUMULO-786] - Look into walog space usage
     * [ACCUMULO-796] - purge MLock
-    * [ACCUMULO-883] - evaluate different thrift components for performance
-    * [ACCUMULO-946] - Accumulo web page should list contributor organizations
     * [ACCUMULO-951] - Remove obsolete branches in subversion
-    * [ACCUMULO-953] - Deprecate the "setiter" and replace with "setiterator"
     * [ACCUMULO-957] - Modify codestyle formatter to allow turning off the formatter
     * [ACCUMULO-960] - We don't need logger options anymore
     * [ACCUMULO-970] - Release 1.5.0
@@ -1370,7 +1350,6 @@ Release Notes - Accumulo - Version 1.4.0
     * [ACCUMULO-299] - tracing not working
     * [ACCUMULO-300] - monitor page warns if the number of tablets goes into the hundreds of thousands: this is no longer a significant limitation to scalability
     * [ACCUMULO-301] - TApplicationException running example in README.shard
-    * [ACCUMULO-304] - shell not connecting
     * [ACCUMULO-308] - Isolation example is broken
     * [ACCUMULO-310] - AccumuloInputFormat and AccumuloOutputFormat configuration methods don't match
     * [ACCUMULO-314] - Re-queue tablets immediately after major compaction if there is more work
@@ -1392,7 +1371,6 @@ Release Notes - Accumulo - Version 1.4.0
     * [ACCUMULO-368] - tablet had location but was not loaded
     * [ACCUMULO-373] - file missing during a major compaction
     * [ACCUMULO-374] - wikisearch-ingest stop list should be removed
-    * [ACCUMULO-380] - UnsupportedOperation exception on wikisearch example
     * [ACCUMULO-393] - Master not balancing after agitation
     * [ACCUMULO-395] - Map reduce reading from Accumulo is not running mapper locally
     * [ACCUMULO-405] - References to accumulo-examples still exist
@@ -1427,7 +1405,6 @@ Release Notes - Accumulo - Version 1.4.0
     * [ACCUMULO-50] - Add Security Randomwalk to All Randomwalk test
     * [ACCUMULO-67] - zookeeper session id encoded in metadata in two different ways
     * [ACCUMULO-68] - Document new 1.4 features in user manual
-    * [ACCUMULO-69] - Document how Accumulo uses Zookeeper and HDFS
     * [ACCUMULO-87] - Accumulo needs a logo
     * [ACCUMULO-90] - add ":" to the legal character making up the term in a visibility expression
     * [ACCUMULO-101] - Include tserver.memory.maps.max in the example xml file
@@ -1439,7 +1416,6 @@ Release Notes - Accumulo - Version 1.4.0
     * [ACCUMULO-139] - Add Snappy support
     * [ACCUMULO-153] - Iterator options for input formats can't contain certain characters
     * [ACCUMULO-154] - Combiner configuration is confusing
-    * [ACCUMULO-156] - Refactor Trie
     * [ACCUMULO-162] - TimestampFilter requires both start and end timestamps
     * [ACCUMULO-167] - Add static configuration methods to all user iterators
     * [ACCUMULO-188] - Need functional test to test reloading iterators
@@ -1449,7 +1425,6 @@ Release Notes - Accumulo - Version 1.4.0
     * [ACCUMULO-248] - In user manual, please define 'Mutation' before using it.
     * [ACCUMULO-251] - Add wording to README.bloom about reason for flushing.
     * [ACCUMULO-252] - Improve start-up scripts to avoid common errors
-    * [ACCUMULO-256] - Monitor page needs uptime
     * [ACCUMULO-265] - Fix iterator priority conflict in README.combiner
     * [ACCUMULO-273] - Report stuck random walk test
     * [ACCUMULO-274] - Add descriptions to README.filedata
