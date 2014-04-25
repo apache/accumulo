@@ -91,6 +91,15 @@ public class Credentials {
   }
 
   /**
+   * Converts a given thrift object to our internal Credentials representation.
+   * @param serialized a Thrift encoded set of credentials
+   * @return a new Credentials instance; destroy the token when you're done.
+   */
+  public static Credentials fromThrift(TCredentials serialized) {
+    return new Credentials(serialized.getPrincipal(), AuthenticationTokenSerializer.deserialize(serialized.getTokenClassName(), serialized.getToken()));
+  }
+
+  /**
    * Converts the current object to a serialized form. The object returned from this contains a non-destroyable version of the {@link AuthenticationToken}, so
    * references to it should be tightly controlled.
    * 

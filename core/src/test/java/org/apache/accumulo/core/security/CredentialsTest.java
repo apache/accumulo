@@ -62,6 +62,14 @@ public class CredentialsTest {
       assertTrue(AccumuloSecurityException.class.cast(e.getCause()).getSecurityErrorCode().equals(SecurityErrorCode.TOKEN_EXPIRED));
     }
   }
+
+  @Test
+  public void roundtripThrift() throws DestroyFailedException {
+    Credentials creds = new Credentials("test", new PasswordToken("testing"));
+    TCredentials tCreds = creds.toThrift(new MockInstance());
+    Credentials roundtrip = Credentials.fromThrift(tCreds);
+    assertEquals("Roundtrip through thirft changed credentials equality", creds, roundtrip);
+  }
   
   @Test
   public void testMockConnector() throws AccumuloException, DestroyFailedException, AccumuloSecurityException {

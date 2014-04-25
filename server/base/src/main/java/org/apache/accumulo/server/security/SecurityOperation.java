@@ -30,7 +30,6 @@ import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.data.thrift.TColumn;
@@ -154,24 +153,21 @@ public class SecurityOperation {
     if (!credentials.getInstanceId().equals(HdfsZooInstance.getInstance().getInstanceID()))
       throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.INVALID_INSTANCEID);
 
-    AuthenticationToken token = AuthenticationTokenSerializer.deserialize(credentials.getTokenClassName(), credentials.getToken());
+    Credentials creds = Credentials.fromThrift(credentials);
     if (isSystemUser(credentials)) {
-      authenticateSystemUserToken(credentials, token);
+      if (!(SystemCredentials.get().equals(creds))) {
+        throw new ThriftSecurityException(creds.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
+      }
     } else {
       try {
-        if (!authenticator.authenticateUser(credentials.getPrincipal(), token)) {
-          throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
+        if (!authenticator.authenticateUser(creds.getPrincipal(), creds.getToken())) {
+          throw new ThriftSecurityException(creds.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
         }
       } catch (AccumuloSecurityException e) {
         log.debug(e);
         throw e.asThriftException();
       }
     }
-  }
-
-  private void authenticateSystemUserToken(TCredentials credentials, AuthenticationToken token) throws ThriftSecurityException {
-    if (!SystemCredentials.get().getToken().equals(token))
-      throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
   }
 
   public boolean canAskAboutUser(TCredentials credentials, String user) throws ThriftSecurityException {
@@ -187,19 +183,11 @@ public class SecurityOperation {
     if (credentials.equals(toAuth))
       return true;
     try {
-      AuthenticationToken token = reassembleToken(toAuth);
-      return authenticator.authenticateUser(toAuth.getPrincipal(), token);
+      Credentials toCreds = Credentials.fromThrift(toAuth);
+      return authenticator.authenticateUser(toCreds.getPrincipal(), toCreds.getToken());
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
     }
-  }
-
-  private AuthenticationToken reassembleToken(TCredentials toAuth) throws AccumuloSecurityException {
-    String tokenClass = toAuth.getTokenClassName();
-    if (authenticator.validTokenClass(tokenClass)) {
-      return AuthenticationTokenSerializer.deserialize(toAuth.getTokenClassName(), toAuth.getToken());
-    }
-    throw new AccumuloSecurityException(toAuth.getPrincipal(), SecurityErrorCode.INVALID_TOKEN);
   }
 
   public Authorizations getUserAuthorizations(TCredentials credentials, String user) throws ThriftSecurityException {
