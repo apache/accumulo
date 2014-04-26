@@ -27,31 +27,31 @@ public class StatusUtilTest {
 
   @Test
   public void newFileIsNotCompletelyReplicated() {
-    Assert.assertFalse(StatusUtil.isCompletelyReplicated(StatusUtil.newFile()));
+    Assert.assertFalse(StatusUtil.isSafeForRemoval(StatusUtil.newFile()));
   }
 
   @Test
   public void openFileIsNotCompletelyReplicated() {
-    Assert.assertFalse(StatusUtil.isCompletelyReplicated(Status.newBuilder().setClosed(false).setBegin(0).setEnd(1000).setInfiniteEnd(false).build()));
+    Assert.assertFalse(StatusUtil.isSafeForRemoval(Status.newBuilder().setClosed(false).setBegin(0).setEnd(1000).setInfiniteEnd(false).build()));
   }
 
   @Test
   public void closedFileWithDifferentBeginEndIsNotCompletelyReplicated() {
-    Assert.assertFalse(StatusUtil.isCompletelyReplicated(Status.newBuilder().setClosed(true).setBegin(0).setEnd(1000).setInfiniteEnd(false).build()));
+    Assert.assertFalse(StatusUtil.isSafeForRemoval(Status.newBuilder().setClosed(true).setBegin(0).setEnd(1000).setInfiniteEnd(false).build()));
   }
 
   @Test
   public void closedFileWithInfEndAndNonMaxBeginIsNotCompletelyReplicated() {
-    Assert.assertFalse(StatusUtil.isCompletelyReplicated(Status.newBuilder().setClosed(true).setInfiniteEnd(true).setBegin(10000).build()));
+    Assert.assertFalse(StatusUtil.isSafeForRemoval(Status.newBuilder().setClosed(true).setInfiniteEnd(true).setBegin(10000).build()));
   }
 
   @Test
   public void closedFileWithInfEndAndMaxBeginIsCompletelyReplicated() {
-    Assert.assertTrue(StatusUtil.isCompletelyReplicated(Status.newBuilder().setClosed(true).setInfiniteEnd(true).setBegin(Long.MAX_VALUE).build()));
+    Assert.assertTrue(StatusUtil.isSafeForRemoval(Status.newBuilder().setClosed(true).setInfiniteEnd(true).setBegin(Long.MAX_VALUE).build()));
   }
 
   @Test
   public void closeFileWithEqualBeginEndIsCompletelyReplicated() {
-    Assert.assertTrue(StatusUtil.isCompletelyReplicated(Status.newBuilder().setClosed(true).setEnd(100000).setBegin(100000).build()));
+    Assert.assertTrue(StatusUtil.isSafeForRemoval(Status.newBuilder().setClosed(true).setEnd(100000).setBegin(100000).build()));
   }
 }

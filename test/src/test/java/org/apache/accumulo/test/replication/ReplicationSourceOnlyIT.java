@@ -195,10 +195,6 @@ public class ReplicationSourceOnlyIT extends ConfigurableMacIT {
     // They might not yet all be closed though (might be newfile)
     Assert.assertEquals("Metadata log distribution: " + logs, logs.keySet(), replFiles);
 
-    for (Entry<Key,Value> entry : ReplicationTable.getScanner(conn)) {
-      System.out.println(entry.getKey().toStringNoTruncate() + " " + Status.parseFrom(entry.getValue().get()).toString().replace("\n", ", "));
-    }
-
     for (String replFile : replFiles) {
       Path p = new Path(replFile);
       FileSystem fs = p.getFileSystem(new Configuration());

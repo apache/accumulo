@@ -75,6 +75,7 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
+import org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerOpts;
@@ -512,8 +513,7 @@ public class SimpleGarbageCollector implements Iface {
 
     @Override
     public Iterator<Entry<String,Status>> getReplicationNeededIterator() throws AccumuloException, AccumuloSecurityException {
-      Credentials creds = SystemCredentials.get();
-      Connector conn = instance.getConnector(creds.getPrincipal(), creds.getToken());
+      Connector conn = instance.getConnector(credentials.getPrincipal(), credentials.getToken());
       try {
         Scanner s = ReplicationTable.getScanner(conn);
         StatusSection.limit(s);
@@ -593,6 +593,18 @@ public class SimpleGarbageCollector implements Iface {
 
       tStop = System.currentTimeMillis();
       log.info(String.format("Collect cycle took %.2f seconds", ((tStop - tStart) / 1000.0)));
+
+      // We want to prune references to fully-replicated WALs from the replication table which are no longer referenced in the metadata table
+      // before running GarbageCollectWriteAheadLogs to ensure we delete as many files as possible.
+      Span replSpan = Trace.start("replication");
+      try {
+        CloseWriteAheadLogReferences closeWals = new CloseWriteAheadLogReferences(instance, credentials);
+        closeWals.run();
+      } catch (Exception e) {
+        log.error("Error trying to close write-ahead logs for replication table", e);
+      } finally {
+        replSpan.stop();
+      }
 
       // Clean up any unused write-ahead logs
       Span waLogs = Trace.start("walogs");

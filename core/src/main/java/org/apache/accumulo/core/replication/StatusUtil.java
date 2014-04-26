@@ -165,15 +165,20 @@ public class StatusUtil {
    * @param status a Status protobuf
    * @return True if the file this Status references can be deleted.
    */
-  public static boolean isCompletelyReplicated(Status status) {
-    if (status.getClosed()) {
-      if (status.getInfiniteEnd()) {
-        return Long.MAX_VALUE == status.getBegin();
-      } else {
-        return status.getBegin() == status.getEnd();
-      }
-    }
+  public static boolean isSafeForRemoval(Status status) {
+    return status.getClosed() && isFullyReplicated(status);
+  }
 
-    return false;
+  /**
+   * Is the given Status fully replicated but potentially not yet safe for deletion
+   * @param status a Status protobuf
+   * @return True if the file this Status references is fully replicated so far
+   */
+  public static boolean isFullyReplicated(Status status) {
+    if (status.getInfiniteEnd()) {
+      return Long.MAX_VALUE == status.getBegin();
+    } else {
+      return status.getBegin() == status.getEnd();
+    }
   }
 }

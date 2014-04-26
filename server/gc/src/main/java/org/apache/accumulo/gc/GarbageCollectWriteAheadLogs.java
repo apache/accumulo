@@ -378,7 +378,7 @@ public class GarbageCollectWriteAheadLogs {
     for (Entry<Key,Value> entry : iter) {
       try {
         Status status = Status.parseFrom(entry.getValue().get());
-        if (!StatusUtil.isCompletelyReplicated(status)) {
+        if (!StatusUtil.isSafeForRemoval(status)) {
           return true;
         }
       } catch (InvalidProtocolBufferException e) {

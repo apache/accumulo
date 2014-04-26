@@ -234,7 +234,7 @@ public class GarbageCollectionAlgorithm {
       pendingReplication.next();
 
       // We cannot delete a file if it is still needed for replication
-      if (!StatusUtil.isCompletelyReplicated(pendingReplica.getValue())) {
+      if (!StatusUtil.isSafeForRemoval(pendingReplica.getValue())) {
         // If it must be replicated, we must remove it from the candidate set to prevent deletion
         candidates.remove();
       }
