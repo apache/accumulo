@@ -340,16 +340,17 @@ public class GarbageCollectWriteAheadLogs {
 
     int count = 0;
 
-    for (Entry<String,Path> wal : nameToFileMap.entrySet()) {
+    Iterator<Entry<String,Path>> walIter = nameToFileMap.entrySet().iterator();
+    while (walIter.hasNext()) {
+      Entry<String,Path> wal = walIter.next();
       String fullPath = wal.getValue().toString();
       if (neededByReplication(conn, fullPath)) {
         // If we haven't already removed it, check to see if this WAL is
         // "in use" by replication (needed for replication purposes)
         status.currentLog.inUse++;
-        Path removed = nameToFileMap.remove(wal.getKey());
-        if (null != removed) {
-          sortedWALogs.remove(wal.getKey());
-        }
+
+        walIter.remove();
+        sortedWALogs.remove(wal.getKey());
       }
       count++;
     }

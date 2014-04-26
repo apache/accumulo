@@ -27,24 +27,36 @@ import static org.junit.Assert.assertTrue;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
 
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.mock.MockInstance;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -64,6 +76,7 @@ public class GarbageCollectWriteAheadLogsTest {
   private VolumeManager volMgr;
   private GarbageCollectWriteAheadLogs gcwal;
   private long modTime;
+  private GCStatus status;
 
   @Before
   public void setUp() throws Exception {
@@ -71,6 +84,7 @@ public class GarbageCollectWriteAheadLogsTest {
     volMgr = createMock(VolumeManager.class);
     gcwal = new GarbageCollectWriteAheadLogs(instance, volMgr, false);
     modTime = System.currentTimeMillis();
+    status = createMock(GCStatus.class);
   }
 
   @Test
@@ -325,5 +339,31 @@ public class GarbageCollectWriteAheadLogsTest {
     replData.add(Maps.immutableEntry(new Key("/wals/" + file1, StatusSection.NAME.toString(), "1"),
         ProtobufUtil.toValue(Status.newBuilder().setInfiniteEnd(true).setBegin(Long.MAX_VALUE).setClosed(true).build())));
     assertFalse(replGC.neededByReplication(conn, "/wals/" + file1));
+  }
+
+  @Test
+  public void removeReplicationEntries() throws Exception {
+    String file1 = UUID.randomUUID().toString(), file2 = UUID.randomUUID().toString();
+
+    Instance inst = new MockInstance("removeReplicationEntries");
+    Credentials creds = new Credentials("root", new PasswordToken(""));
+    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
+
+    ReplicationTable.create(conn);
+
+    BatchWriter bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
+    Mutation m = new Mutation("/wals/" + file1);
+    StatusSection.add(m, new Text("1"), StatusUtil.newFileValue());
+    bw.addMutation(m);
+    m = new Mutation("/wals/" + file2);
+    StatusSection.add(m, new Text("1"), StatusUtil.newFileValue());
+    bw.addMutation(m);
+
+    Map<String,Path> nameToFileMap = new HashMap<>();
+    Map<String,Path> sortedWALogs = Collections.emptyMap();
+
+    gcwal.removeReplicationEntries(nameToFileMap, sortedWALogs, this.status, creds);
+
+    Assert.assertEquals(0, nameToFileMap.size());
   }
 }
