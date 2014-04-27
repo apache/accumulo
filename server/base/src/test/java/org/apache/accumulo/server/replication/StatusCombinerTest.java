@@ -85,14 +85,6 @@ public class StatusCombinerTest {
   }
 
   @Test
-  public void noMessagesIsEmptyAndClosed() {
-    Status result = combiner.typedReduce(key, Collections.<Status> emptyList().iterator());
-    Assert.assertEquals(0l, result.getBegin());
-    Assert.assertEquals(0l, result.getEnd());
-    Assert.assertEquals(true, result.getClosed());
-  }
-
-  @Test
   public void newStatusWithNewIngest() {
     Status orig = StatusUtil.newFile();
     Status status = StatusUtil.replicatedAndIngested(10, 20);
