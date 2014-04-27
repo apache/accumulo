@@ -223,4 +223,20 @@ public class MetadataSchema {
     }
     
   }
+
+  /**
+   * Holds references to files that need replication
+   */
+  public static class ReplicationSection {
+    public static final Text COLF = new Text("stat");
+    private static final Section section = new Section(RESERVED_PREFIX + "repl", true, RESERVED_PREFIX + "repm", false);
+
+    public static Range getRange() {
+      return section.getRange();
+    }
+
+    public static String getRowPrefix() {
+      return section.getRowPrefix();
+    }
+  }
 }
