@@ -38,6 +38,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
  * Messages that are "closed", stay closed. "Begin" and "end" always choose the maximum of the two.
  */
 public class StatusCombiner extends TypedValueCombiner<Status> {
+  private static final Logger log = Logger.getLogger(StatusCombiner.class);
 
   public static class StatusEncoder implements Encoder<Status> {
     private static final Logger log = Logger.getLogger(StatusEncoder.class);
@@ -89,6 +90,7 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
       // message to reduce
       if (null == combined) {
         if (!iter.hasNext()) {
+          log.info("Combined: " + key.toStringNoTruncate() + " " + status.toString().replace("\n", ", "));
           return status;
         } else {
           combined = Status.newBuilder();
@@ -99,11 +101,7 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
       combine(combined, status);
     }
 
-    // Default case
-    if (null == combined) {
-      return Status.newBuilder().setBegin(0l).setEnd(0l).setClosed(true).build();
-    }
-
+    log.info("Combined: " + key.toStringNoTruncate() + " " + combined.toString().replace("\n", ", "));
     return combined.build();
   }
 
@@ -116,6 +114,7 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
    *          The Status we're combining
    */
   public void combine(Builder combined, Status status) {
+    log.info("Combining " + status.toString().replace("\n", ", ") + " into " + builderToString(combined));
     // offset up to which replication is completed
     combined.setBegin(Math.max(combined.getBegin(), status.getBegin()));
 
@@ -124,5 +123,12 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
 
     // will more data be added to the underlying file
     combined.setClosed(combined.getClosed() | status.getClosed());
+
+    // persist the infinite end
+    combined.setInfiniteEnd(combined.getInfiniteEnd() | status.getInfiniteEnd());
+  }
+
+  private String builderToString(Builder builder) {
+    return "begin: " + builder.getBegin() + ", end: " + builder.getEnd() + ", infiniteEnd: " + builder.getInfiniteEnd() + ", closed: "+ builder.getClosed(); 
   }
 }

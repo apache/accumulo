@@ -188,12 +188,14 @@ public class CloseWriteAheadLogReferences implements Runnable {
 
         // Ignore things that aren't completely replicated as we can't delete those anyways
         if (StatusUtil.isFullyReplicated(status)) {
+          log.info("*Is* fully replicated " + entry.getKey().toStringNoTruncate());
           entry.getKey().getRow(replFileText);
           String replFile = replFileText.toString();
 
           // We only want to clean up WALs (which is everything but rfiles) and only when
           // metadata doesn't have a reference to the given WAL
           if (!replFile.endsWith(RFILE_SUFFIX) && !referencedWals.contains(replFile)) {
+            log.info("Closing unreferenced WAL");
             try {
               closeWal(bw, entry.getKey());
             } catch (MutationsRejectedException e) {
@@ -201,6 +203,8 @@ public class CloseWriteAheadLogReferences implements Runnable {
               continue;
             }
           }
+        } else {
+          log.info("Is NOT fully replicated " + entry.getKey().toStringNoTruncate());
         }
       }
     } catch (TableNotFoundException e) {
