@@ -88,29 +88,33 @@ public class ReplicationTableUtil {
         throw new RuntimeException(e);
       }
 
-      TableOperations tops = conn.tableOperations();
-      Map<String,EnumSet<IteratorScope>> iterators = null;
-      try {
-        iterators = tops.listIterators(MetadataTable.NAME);
-      } catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
-        throw new RuntimeException(e);
-      }
-
-      if (!iterators.containsKey(COMBINER_NAME)) {
-        // Set our combiner and combine all columns
-        IteratorSetting setting = new IteratorSetting(50, COMBINER_NAME, StatusCombiner.class);
-        Combiner.setColumns(setting, Collections.singletonList(new Column(MetadataSchema.ReplicationSection.COLF)));
-        try {
-          tops.attachIterator(MetadataTable.NAME, setting);
-        } catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
-          throw new RuntimeException(e);
-        }
-      }
+      configureReplicationCombiner(conn, MetadataTable.NAME);
 
       replicationTable = new Writer(inst, credentials, MetadataTable.ID);
       writers.put(credentials, replicationTable);
     }
     return replicationTable;
+  }
+
+  public static void configureReplicationCombiner(Connector conn, String tableName) {
+    TableOperations tops = conn.tableOperations();
+    Map<String,EnumSet<IteratorScope>> iterators = null;
+    try {
+      iterators = tops.listIterators(tableName);
+    } catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
+      throw new RuntimeException(e);
+    }
+
+    if (!iterators.containsKey(COMBINER_NAME)) {
+      // Set our combiner and combine all columns
+      IteratorSetting setting = new IteratorSetting(50, COMBINER_NAME, StatusCombiner.class);
+      Combiner.setColumns(setting, Collections.singletonList(new Column(MetadataSchema.ReplicationSection.COLF)));
+      try {
+        tops.attachIterator(tableName, setting);
+      } catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
+        throw new RuntimeException(e);
+      }
+    }
   }
 
   /**

@@ -27,8 +27,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
-import org.apache.accumulo.core.replication.ReplicationSchema;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.replication.ReplicationTable;
@@ -46,9 +46,22 @@ public class StatusMaker {
   private final Connector conn;
 
   private BatchWriter writer;
+  private String sourceTableName = MetadataTable.NAME;
 
   public StatusMaker(Connector conn) {
     this.conn = conn;
+  }
+
+  /**
+   * Not for public use -- visible only for testing
+   * <p>
+   * Used to read records from a table other than 'metadata'
+   * 
+   * @param table
+   *          The table to read from
+   */
+  public void setSourceTableName(String table) {
+    this.sourceTableName = table;
   }
 
   public void run() {
@@ -58,7 +71,7 @@ public class StatusMaker {
     try {
       final Scanner s;
       try {
-        s = conn.createScanner(MetadataTable.NAME, new Authorizations());
+        s = conn.createScanner(sourceTableName, new Authorizations());
         if (null == writer) {
           setBatchWriter(ReplicationTable.getBatchWriter(conn));
         }
@@ -67,22 +80,24 @@ public class StatusMaker {
         writer = null;
         return;
       }
-  
+
       // Only pull records about data that has been ingested and is ready for replication
       s.fetchColumnFamily(ReplicationSection.COLF);
       s.setRange(ReplicationSection.getRange());
-  
+
       Text row = new Text(), tableId = new Text();
       for (Entry<Key,Value> entry : s) {
         // Extract the useful bits from the status key
-        ReplicationSchema.StatusSection.getFile(entry.getKey(), row);
-        ReplicationSchema.StatusSection.getTableId(entry.getKey(), tableId);
+        MetadataSchema.ReplicationSection.getFile(entry.getKey(), row);
+        MetadataSchema.ReplicationSection.getTableId(entry.getKey(), tableId);
 
-        String rowStr = row.toString(); 
+        String rowStr = row.toString();
         rowStr = rowStr.substring(ReplicationSection.getRowPrefix().length());
 
-        log.info("Processing replication status record for " + row + " on table "+ tableId);
-  
+        if (log.isTraceEnabled()) {
+          log.trace("Processing replication status record for " + row + " on table " + tableId);
+        }
+
         Span workSpan = Trace.start("createStatusMutations");
         try {
           addStatusRecord(rowStr, tableId, entry.getValue());

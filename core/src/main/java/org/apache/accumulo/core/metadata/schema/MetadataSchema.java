@@ -17,12 +17,15 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.hadoop.io.Text;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Describes the table schema used for metadata tables
@@ -229,6 +232,7 @@ public class MetadataSchema {
    */
   public static class ReplicationSection {
     public static final Text COLF = new Text("stat");
+    private static final ArrayByteSequence COLF_BYTE_SEQ = new ArrayByteSequence(COLF.toString());
     private static final Section section = new Section(RESERVED_PREFIX + "repl", true, RESERVED_PREFIX + "repm", false);
 
     public static Range getRange() {
@@ -237,6 +241,43 @@ public class MetadataSchema {
 
     public static String getRowPrefix() {
       return section.getRowPrefix();
+    }
+
+    /**
+     * Extract the table ID from the colfam (inefficiently if called repeatedly)
+     * @param k Key to extract from
+     * @return The table ID
+     * @see #getTableId(Key,Text) 
+     */
+    public static String getTableId(Key k) {
+      Text buff = new Text();
+      getTableId(k, buff);
+      return buff.toString();
+    }
+
+    /**
+     * Extract the table ID from the colfam into the given {@link Text}
+     * @param k Key to extract from
+     * @param buff Text to place table ID into
+     */
+    public static void getTableId(Key k, Text buff) {
+      Preconditions.checkNotNull(k);
+      Preconditions.checkNotNull(buff);
+
+      k.getColumnQualifier(buff);
+    }
+
+    /**
+     * Extract the file name from the row suffix into the given {@link Text}
+     * @param k Key to extract from
+     * @param buff Text to place file name into
+     */
+    public static void getFile(Key k, Text buff) {
+      Preconditions.checkNotNull(k);
+      Preconditions.checkNotNull(buff);
+      Preconditions.checkArgument(COLF_BYTE_SEQ.equals(k.getColumnFamilyData()), "Given metadata replication status key with incorrect colfam");
+
+      k.getRow(buff);
     }
   }
 }

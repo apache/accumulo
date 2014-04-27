@@ -90,7 +90,9 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
       // message to reduce
       if (null == combined) {
         if (!iter.hasNext()) {
-          log.info("Combined: " + key.toStringNoTruncate() + " " + status.toString().replace("\n", ", "));
+          if (log.isTraceEnabled()) {
+            log.trace("Combined: " + key.toStringNoTruncate() + " " + status.toString().replace("\n", ", "));
+          }
           return status;
         } else {
           combined = Status.newBuilder();
@@ -101,7 +103,10 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
       combine(combined, status);
     }
 
-    log.info("Combined: " + key.toStringNoTruncate() + " " + combined.toString().replace("\n", ", "));
+    if (log.isTraceEnabled()) {
+      log.trace("Combined: " + key.toStringNoTruncate() + " " + combined.toString().replace("\n", ", "));
+    }
+
     return combined.build();
   }
 
@@ -114,7 +119,10 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
    *          The Status we're combining
    */
   public void combine(Builder combined, Status status) {
-    log.info("Combining " + status.toString().replace("\n", ", ") + " into " + builderToString(combined));
+    if (log.isTraceEnabled()) {
+      log.trace("Combining " + status.toString().replace("\n", ", ") + " into " + builderToString(combined));
+    }
+
     // offset up to which replication is completed
     combined.setBegin(Math.max(combined.getBegin(), status.getBegin()));
 
