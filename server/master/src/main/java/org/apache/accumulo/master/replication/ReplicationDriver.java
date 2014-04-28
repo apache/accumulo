@@ -70,7 +70,7 @@ public class ReplicationDriver extends Daemon {
       workMaker.run();
 
       // Sleep for a bit
-      UtilWaitThread.sleep(conf.getTimeInMillis(Property.MASTER_REPLICATION_STATUS_SCAN_INTERVAL));
+      UtilWaitThread.sleep(conf.getTimeInMillis(Property.MASTER_REPLICATION_SCAN_INTERVAL));
     }
   }
 }

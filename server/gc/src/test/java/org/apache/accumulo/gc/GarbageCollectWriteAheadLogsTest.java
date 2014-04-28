@@ -366,9 +366,4 @@ public class GarbageCollectWriteAheadLogsTest {
 
     Assert.assertEquals(0, nameToFileMap.size());
   }
-
-  @Test
-  public void confirmDeletesFromReplication() throws Exception {
-    Assert.fail("Implement me, dummy");
-  }
 }

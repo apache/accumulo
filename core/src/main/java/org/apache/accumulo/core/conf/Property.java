@@ -180,7 +180,7 @@ public enum Property {
   MASTER_FATE_THREADPOOL_SIZE("master.fate.threadpool.size", "4", PropertyType.COUNT,
       "The number of threads used to run FAult-Tolerant Executions. These are primarily table operations like merge."),
   @Experimental
-  MASTER_REPLICATION_STATUS_SCAN_INTERVAL("master.replication.status.scan.interval", "30s", PropertyType.TIMEDURATION,
+  MASTER_REPLICATION_SCAN_INTERVAL("master.replication.status.scan.interval", "30s", PropertyType.TIMEDURATION,
       "Amount of time to sleep before scanning the status section of the replication table for new data"),
 
   // properties that are specific to tablet server behavior

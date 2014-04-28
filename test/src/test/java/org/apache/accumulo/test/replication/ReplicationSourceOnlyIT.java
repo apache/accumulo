@@ -62,7 +62,7 @@ public class ReplicationSourceOnlyIT extends ConfigurableMacIT {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setProperty(Property.MASTER_REPLICATION_STATUS_SCAN_INTERVAL, "1s");
+    cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
     cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "1M");
     cfg.setProperty(Property.GC_CYCLE_START, "1s");
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1s");

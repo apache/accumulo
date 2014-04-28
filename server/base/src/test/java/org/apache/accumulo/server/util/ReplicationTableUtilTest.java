@@ -27,6 +27,7 @@ import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
@@ -74,13 +75,13 @@ public class ReplicationTableUtilTest {
     Assert.assertEquals(1, mutations.size());
     Mutation m = mutations.get(0);
 
-    Assert.assertEquals("file:/home/user/accumulo/wal/server+port/" + uuid, new Text(m.getRow()).toString());
+    Assert.assertEquals(MetadataSchema.ReplicationSection.getRowPrefix() + "file:/home/user/accumulo/wal/server+port/" + uuid, new Text(m.getRow()).toString());
 
     List<ColumnUpdate> updates = m.getUpdates();
     Assert.assertEquals(1, updates.size());
     ColumnUpdate update = updates.get(0);
 
-    Assert.assertEquals(StatusSection.NAME.toString(), new Text(update.getColumnFamily()).toString());
+    Assert.assertEquals(MetadataSchema.ReplicationSection.COLF, new Text(update.getColumnFamily()));
     Assert.assertEquals("1", new Text(update.getColumnQualifier()).toString());
     Assert.assertEquals(StatusUtil.newFileValue(), new Value(update.getValue()));
   }
@@ -96,11 +97,11 @@ public class ReplicationTableUtilTest {
 
     Mutation m = ReplicationTableUtil.createUpdateMutation(filePath, ProtobufUtil.toValue(stat), extent);
 
-    Assert.assertEquals(row, new Text(m.getRow()));
+    Assert.assertEquals(new Text(MetadataSchema.ReplicationSection.getRowPrefix() + row), new Text(m.getRow()));
     Assert.assertEquals(1, m.getUpdates().size());
     ColumnUpdate col = m.getUpdates().get(0);
 
-    Assert.assertEquals(StatusSection.NAME, new Text(col.getColumnFamily()));
+    Assert.assertEquals(MetadataSchema.ReplicationSection.COLF, new Text(col.getColumnFamily()));
     Assert.assertEquals(extent.getTableId(), new Text(col.getColumnQualifier()));
     Assert.assertEquals(0, col.getColumnVisibility().length);
     Assert.assertArrayEquals(stat.toByteArray(), col.getValue());

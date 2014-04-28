@@ -38,6 +38,7 @@ import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
@@ -63,7 +64,7 @@ public class ReplicationTest extends ConfigurableMacIT {
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
     // Run the master work maker infrequently
-    cfg.setProperty(Property.MASTER_REPLICATION_STATUS_SCAN_INTERVAL, "99999999");
+    cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "0");
     cfg.setNumTservers(1);
   }
 
@@ -84,34 +85,49 @@ public class ReplicationTest extends ConfigurableMacIT {
 
     bw.close();
 
-    conn.tableOperations().flush(table, null, null, true);
-
-    Assert.assertTrue(conn.tableOperations().exists(ReplicationTable.NAME));
-
-    conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.READ);
+    // After writing data, we'll get a replication table
+    boolean exists = conn.tableOperations().exists(ReplicationTable.NAME);
+    int attempts = 5;
+    do {
+      if (!exists) {
+        UtilWaitThread.sleep(200);
+        exists = conn.tableOperations().exists(ReplicationTable.NAME);
+        attempts--;
+      }
+    } while (!exists && attempts > 0);
+    Assert.assertTrue("Replication table did not exist", exists);
 
     Set<String> replRows = Sets.newHashSet();
-    Scanner scanner = ReplicationTable.getScanner(conn);
-    StatusSection.limit(scanner);
-    for (Entry<Key,Value> entry : scanner) {
-      Key k = entry.getKey();
-
-      String fileUri = k.getRow().toString();
-      try {
-        new URI(fileUri);
-      } catch (URISyntaxException e) {
-        Assert.fail("Expected a valid URI: " + fileUri);
+    Scanner scanner;
+    attempts = 5;
+    while (replRows.isEmpty() && attempts > 0) {
+      scanner = ReplicationTable.getScanner(conn);
+      StatusSection.limit(scanner);
+      for (Entry<Key,Value> entry : scanner) {
+        Key k = entry.getKey();
+  
+        String fileUri = k.getRow().toString();
+        try {
+          new URI(fileUri);
+        } catch (URISyntaxException e) {
+          Assert.fail("Expected a valid URI: " + fileUri);
+        }
+  
+        replRows.add(fileUri);
       }
-
-      replRows.add(fileUri);
     }
 
     Set<String> wals = Sets.newHashSet();
-    Scanner s = conn.createScanner(MetadataTable.NAME, new Authorizations());
-    s.fetchColumnFamily(MetadataSchema.TabletsSection.LogColumnFamily.NAME);
-    for (Entry<Key,Value> entry : s) {
-      LogEntry logEntry = LogEntry.fromKeyValue(entry.getKey(), entry.getValue());
-      wals.add(new Path(logEntry.filename).toString());
+    Scanner s;
+    attempts = 5;
+    while (wals.isEmpty() && attempts > 0) {
+      s = conn.createScanner(MetadataTable.NAME, new Authorizations());
+      s.fetchColumnFamily(MetadataSchema.TabletsSection.LogColumnFamily.NAME);
+      for (Entry<Key,Value> entry : s) {
+        LogEntry logEntry = LogEntry.fromKeyValue(entry.getKey(), entry.getValue());
+        wals.add(new Path(logEntry.filename).toString());
+      }
+      attempts--;
     }
 
     // We only have one file that should need replication (no trace table)
@@ -208,6 +224,17 @@ public class ReplicationTest extends ConfigurableMacIT {
     conn.tableOperations().compact(table1, null, null, true, true);
 
     // After writing data, we'll get a replication table
+    boolean exists = conn.tableOperations().exists(ReplicationTable.NAME);
+    int attempts = 5;
+    do {
+      if (!exists) {
+        UtilWaitThread.sleep(200);
+        exists = conn.tableOperations().exists(ReplicationTable.NAME);
+        attempts--;
+      }
+    } while (!exists && attempts > 0);
+    Assert.assertTrue("Replication table did not exist", exists);
+
     Assert.assertTrue(conn.tableOperations().exists(ReplicationTable.NAME));
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.READ);
 

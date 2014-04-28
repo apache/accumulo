@@ -58,7 +58,7 @@ public class ReplicationWithMakerTest extends ConfigurableMacIT {
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
     cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "1M");
-    cfg.setProperty(Property.MASTER_REPLICATION_STATUS_SCAN_INTERVAL, "1s");
+    cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "0");
     cfg.setNumTservers(1);
   }
 
@@ -104,24 +104,42 @@ public class ReplicationWithMakerTest extends ConfigurableMacIT {
     bw.close();
 
     // Make sure the replication table exists at this point
-    Assert.assertTrue(conn.tableOperations().exists(ReplicationTable.NAME));
+    boolean exists = conn.tableOperations().exists(ReplicationTable.NAME);
+    attempts = 5;
+    do {
+      if (!exists) {
+        UtilWaitThread.sleep(200);
+        exists = conn.tableOperations().exists(ReplicationTable.NAME);
+        attempts--;
+      }
+    } while (!exists && attempts > 0);
+    Assert.assertTrue("Replication table did not exist", exists);
 
     // Make sure that we have one status element, should be a new file
     Scanner s = ReplicationTable.getScanner(conn);
     StatusSection.limit(s);
-    Entry<Key,Value> entry;
-    try{
-      entry = Iterables.getOnlyElement(s);
-    } catch (IllegalArgumentException e) {
-      // saw this contain 2 elements once
-      s = ReplicationTable.getScanner(conn);
-      StatusSection.limit(s);
-      for (Entry<Key,Value> content : s) {
-        log.info(content.getKey().toStringNoTruncate() + " => " + content.getValue());
+    Entry<Key,Value> entry = null;
+    attempts = 5;
+    while (null == entry && attempts > 0) {
+      try{
+        entry = Iterables.getOnlyElement(s);
+      } catch (NoSuchElementException e) {
+        entry = null;
+        Thread.sleep(200);
+      } catch (IllegalArgumentException e) {
+        // saw this contain 2 elements once
+        s = ReplicationTable.getScanner(conn);
+        StatusSection.limit(s);
+        for (Entry<Key,Value> content : s) {
+          log.info(content.getKey().toStringNoTruncate() + " => " + content.getValue());
+        }
+        throw e;
+      } finally {
+        attempts--;
       }
-      throw e;
     }
-    Assert.assertEquals(StatusUtil.newFile(), Status.parseFrom(entry.getValue().get()));
+    Assert.assertNotNull(entry);
+    Assert.assertEquals(StatusUtil.openWithUnknownLength(), Status.parseFrom(entry.getValue().get()));
 
     // Try a couple of times to watch for the work record to be created
     boolean notFound = true;
@@ -228,7 +246,17 @@ public class ReplicationWithMakerTest extends ConfigurableMacIT {
 
     bw.close();
 
-    Assert.assertTrue(conn.tableOperations().exists(ReplicationTable.NAME));
+    // Make sure the replication table exists at this point
+    boolean exists = conn.tableOperations().exists(ReplicationTable.NAME);
+    attempts = 5;
+    do {
+      if (!exists) {
+        UtilWaitThread.sleep(200);
+        exists = conn.tableOperations().exists(ReplicationTable.NAME);
+        attempts--;
+      }
+    } while (!exists && attempts > 0);
+    Assert.assertTrue("Replication table did not exist", exists);
 
     boolean notFound = true;
     Scanner s;

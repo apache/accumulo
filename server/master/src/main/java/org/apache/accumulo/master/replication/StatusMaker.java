@@ -65,20 +65,13 @@ public class StatusMaker {
   }
 
   public void run() {
-    ReplicationTable.create(conn);
-
     Span span = Trace.start("replicationStatusMaker");
     try {
       final Scanner s;
       try {
         s = conn.createScanner(sourceTableName, new Authorizations());
-        if (null == writer) {
-          setBatchWriter(ReplicationTable.getBatchWriter(conn));
-        }
       } catch (TableNotFoundException e) {
-        log.warn("Replication table did exist, but does not anymore");
-        writer = null;
-        return;
+        throw new RuntimeException(e);
       }
 
       // Only pull records about data that has been ingested and is ready for replication
@@ -87,6 +80,16 @@ public class StatusMaker {
 
       Text row = new Text(), tableId = new Text();
       for (Entry<Key,Value> entry : s) {
+        if (null == writer) {
+          ReplicationTable.create(conn);
+          try {
+            setBatchWriter(ReplicationTable.getBatchWriter(conn));
+          } catch (TableNotFoundException e) {
+            log.warn("Replication table did exist, but does not anymore");
+            writer = null;
+            return;
+          }
+        }
         // Extract the useful bits from the status key
         MetadataSchema.ReplicationSection.getFile(entry.getKey(), row);
         MetadataSchema.ReplicationSection.getTableId(entry.getKey(), tableId);
