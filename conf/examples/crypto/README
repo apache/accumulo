@@ -1,4 +1,4 @@
-Title: Java API Compliance Checker Instructions
+Title: Apache Accumulo Crypto Configuration Example
 Notice:    Licensed to the Apache Software Foundation (ASF) under one
            or more contributor license agreements.  See the NOTICE file
            distributed with this work for additional information
@@ -16,13 +16,8 @@ Notice:    Licensed to the Apache Software Foundation (ASF) under one
            specific language governing permissions and limitations
            under the License.
 
-There is a tool that can analyze the difference between APIs called
-japi-compliance[1]. This tool is useful for checking API compatability of
-different Accumulo versions.   To run this tool edit the xml files to specify
-the location of accumulo core jars and set the library version.  Then run the
-following command.
+This accumulo-site.xml file demonstrates how to configure the basic encryption at rest feature.
 
-  japi-compliance-checker.pl -skip-deprecated -old japi-accumulo-1.5.xml -new japi-accumulo-1.6.xml -l accumulo
-
-[1]: http://ispras.linuxbase.org/index.php/Java_API_Compliance_Checker
-
+The default configuration shown here is not entirely secure, as the master key for all encryption keys
+is stored alongside the encrypted files.  Placing that master key somewhere secure is an exercise
+left to the reader.
