@@ -30,12 +30,15 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
+import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
+
+import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
  * Reads replication records from the metadata table and creates status records in the replication table
@@ -81,6 +84,7 @@ public class StatusMaker {
       Text row = new Text(), tableId = new Text();
       for (Entry<Key,Value> entry : s) {
         if (null == writer) {
+          // Ensures table exists and is properly configured
           ReplicationTable.create(conn);
           try {
             setBatchWriter(ReplicationTable.getBatchWriter(conn));
@@ -98,7 +102,12 @@ public class StatusMaker {
         rowStr = rowStr.substring(ReplicationSection.getRowPrefix().length());
 
         if (log.isTraceEnabled()) {
-          log.trace("Processing replication status record for " + row + " on table " + tableId);
+          try {
+            log.trace("Processing replication status record for " + rowStr + " on table " + tableId + " with " + Status.parseFrom(entry.getValue().get()).toString().replace("\n", ", "));
+          } catch (InvalidProtocolBufferException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+          }
         }
 
         Span workSpan = Trace.start("createStatusMutations");

@@ -21,14 +21,13 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -66,6 +65,7 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
     cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "1M");
     cfg.setProperty(Property.GC_CYCLE_START, "1s");
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1s");
+    cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "0");
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
@@ -114,7 +114,7 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
           }
         }
       }
-    
+
     });
 
     t.start();
@@ -124,8 +124,6 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
     conn.tableOperations().create(table1);
     conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION.getKey(), "true");
     conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION_TARGETS.getKey() + "cluster1", "1");
-
-    Thread.sleep(1000);
 
     // Write some data to table1
     BatchWriter bw = conn.createBatchWriter(table1, new BatchWriterConfig());
@@ -140,12 +138,9 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
 
     bw.close();
 
-
     conn.tableOperations().create(table2);
     conn.tableOperations().setProperty(table2, Property.TABLE_REPLICATION.getKey(), "true");
     conn.tableOperations().setProperty(table2, Property.TABLE_REPLICATION_TARGETS.getKey() + "cluster1", "1");
-
-    Thread.sleep(1000);
 
     // Write some data to table2
     bw = conn.createBatchWriter(table2, new BatchWriterConfig());
@@ -160,12 +155,9 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
 
     bw.close();
 
-
     conn.tableOperations().create(table3);
     conn.tableOperations().setProperty(table3, Property.TABLE_REPLICATION.getKey(), "true");
     conn.tableOperations().setProperty(table3, Property.TABLE_REPLICATION_TARGETS.getKey() + "cluster1", "1");
-
-    Thread.sleep(1000);
 
     // Write some data to table3
     bw = conn.createBatchWriter(table3, new BatchWriterConfig());
@@ -187,7 +179,7 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
 
     keepRunning.set(false);
     t.join(5000);
-    
+
     // write a Long.MAX_VALUE into each repl entry
     Scanner s = ReplicationTable.getScanner(conn);
     StatusSection.limit(s);
@@ -204,17 +196,38 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
     }
     bw.close();
 
-//    System.out.println("**** WALs from metadata");
-//    for (String metadataWal : metadataWals) {
-//      System.out.println(metadataWal);
-//    }
+    // System.out.println("**** WALs from metadata");
+    // for (String metadataWal : metadataWals) {
+    // System.out.println(metadataWal);
+    // }
+    //
+    // System.out.println("**** WALs from replication");
+    // s = ReplicationTable.getScanner(conn);
+    // StatusSection.limit(s);
+    // for (Entry<Key,Value> entry : s) {
+    // System.out.println(entry.getKey().toStringNoTruncate() + " " + Status.parseFrom(entry.getValue().get()).toString().replace("\n", ", "));
+    // }
 
-//    System.out.println("**** WALs from replication");
-//    s = ReplicationTable.getScanner(conn);
-//    StatusSection.limit(s);
-//    for (Entry<Key,Value> entry : s) {
-//      System.out.println(entry.getKey().toStringNoTruncate() + " " + Status.parseFrom(entry.getValue().get()).toString().replace("\n", ", "));
-//    }
+    s = ReplicationTable.getScanner(conn);
+    StatusSection.limit(s);
+    bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
+    for (Entry<Key,Value> entry : s) {
+      Status status = Status.parseFrom(entry.getValue().get());
+      Assert.assertFalse(status.getClosed());
+
+      // Fake that each one is fully replicated
+      Mutation m = new Mutation(entry.getKey().getRow());
+      m.put(entry.getKey().getColumnFamily().toString(), entry.getKey().getColumnQualifier().toString(), StatusUtil.newFileValue());
+      bw.addMutation(m);
+    }
+    bw.close();
+
+    // System.out.println("**** WALs from replication");
+    // s = ReplicationTable.getScanner(conn);
+    // StatusSection.limit(s);
+    // for (Entry<Key,Value> entry : s) {
+    // System.out.println(entry.getKey().toStringNoTruncate() + " " + Status.parseFrom(entry.getValue().get()).toString().replace("\n", ", "));
+    // }
 
     // Kill the tserver(s) and restart them
     // to ensure that the WALs we previously observed all move to closed.
@@ -232,11 +245,28 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
       Entry<Key,Value> entry : s) {}
     }
 
+    // for (int i = 0; i < 5; i++) {
+    // s = conn.createScanner(MetadataTable.NAME, new Authorizations());
+    // s.setRange(ReplicationSection.getRange());
+    // System.out.println("**** Metadata");
+    // for (Entry<Key,Value> entry : s) {
+    // System.out.println(entry.getKey().toStringNoTruncate() + " " + Status.parseFrom(entry.getValue().get()).toString().replace("\n", ", "));
+    // }
+    //
+    // s = ReplicationTable.getScanner(conn);
+    // StatusSection.limit(s);
+    // System.out.println("**** Replication status");
+    // for (Entry<Key,Value> entry : s) {
+    // System.out.println(entry.getKey().toStringNoTruncate() + " " + Status.parseFrom(entry.getValue().get()).toString().replace("\n", ", "));
+    // }
+    //
+    // Thread.sleep(1000);
+    // }
+
     try {
       boolean allClosed = true;
       for (int i = 0; i < 10; i++) {
-//        System.out.println();
-        UtilWaitThread.sleep(1000);
+        // System.out.println();
         allClosed = true;
 
         s = ReplicationTable.getScanner(conn);
@@ -246,31 +276,40 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
         while (allClosed && iter.hasNext()) {
           Entry<Key,Value> entry = iter.next();
           String wal = entry.getKey().getRow().toString();
-//          System.out.println(entry.getKey().toStringNoTruncate() + " " + Status.parseFrom(entry.getValue().get()).toString().replace("\n", ", "));
+          // System.out.println(entry.getKey().toStringNoTruncate() + " " + Status.parseFrom(entry.getValue().get()).toString().replace("\n", ", "));
           if (metadataWals.contains(wal)) {
-//            System.out.println("Checked");
+            // System.out.println("Checked");
             Status status = Status.parseFrom(entry.getValue().get());
             allClosed &= status.getClosed();
-//          } else {
-//            System.out.println("Ignored");
+          } else {
+            // System.out.println("Ignored");
           }
         }
 
         if (allClosed) {
           return;
         }
+
+        UtilWaitThread.sleep(1000);
       }
     } finally {
       gc.destroy();
       gc.waitFor();
     }
 
-//    System.out.println("****** Final Replication logs before failure");
-//    s = ReplicationTable.getScanner(conn);
-//    StatusSection.limit(s);
-//    for (Entry<Key,Value> entry : s) {
-//      System.out.println(entry.getKey().toStringNoTruncate() + " " + Status.parseFrom(entry.getValue().get()).toString().replace("\n", ", "));
-//    }
+    // System.out.println("****** Replication table iterators");
+    // System.out.println(conn.tableOperations().listIterators(ReplicationTable.NAME));
+    // for (Entry<String,String> entry : conn.tableOperations().getProperties(ReplicationTable.NAME)) {
+    // System.out.println(entry.getKey()+ "=" + entry.getValue());
+    // }
+    // System.out.println();
+
+    System.out.println("****** Final Replication logs before failure");
+    s = ReplicationTable.getScanner(conn);
+    StatusSection.limit(s);
+    for (Entry<Key,Value> entry : s) {
+      System.out.println(entry.getKey().toStringNoTruncate() + " " + Status.parseFrom(entry.getValue().get()).toString().replace("\n", ", "));
+    }
     Assert.fail("Expected all replication records to be closed");
   }
 }

@@ -16,23 +16,38 @@
  */
 package org.apache.accumulo.server.util;
 
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.replay;
+
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.IteratorSetting.Column;
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.Writer;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.Combiner;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
-import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
-import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.replication.StatusUtil;
+import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.server.replication.StatusCombiner;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
@@ -105,5 +120,26 @@ public class ReplicationTableUtilTest {
     Assert.assertEquals(extent.getTableId(), new Text(col.getColumnQualifier()));
     Assert.assertEquals(0, col.getColumnVisibility().length);
     Assert.assertArrayEquals(stat.toByteArray(), col.getValue());
+  }
+
+  @Test
+  public void setsCombinerOnMetadataCorrectly() throws Exception {
+    Connector conn = createMock(Connector.class);
+    TableOperations tops = createMock(TableOperations.class);
+    
+    String myMetadataTable = "mymetadata";
+    Map<String,EnumSet<IteratorScope>> iterators = new HashMap<>();
+    iterators.put("vers", EnumSet.of(IteratorScope.majc, IteratorScope.minc, IteratorScope.scan));
+    IteratorSetting combiner = new IteratorSetting(15, "replcombiner", StatusCombiner.class);
+    Combiner.setColumns(combiner, Collections.singletonList(new Column(ReplicationSection.COLF)));
+
+    expect(conn.tableOperations()).andReturn(tops);
+    expect(tops.listIterators(myMetadataTable)).andReturn(iterators);
+    tops.attachIterator(myMetadataTable, combiner);
+    expectLastCall().once();
+    
+    replay(conn, tops);
+
+    ReplicationTableUtil.configureMetadataTable(conn, myMetadataTable);
   }
 }

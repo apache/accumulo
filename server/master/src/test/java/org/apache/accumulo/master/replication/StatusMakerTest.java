@@ -62,7 +62,7 @@ public class StatusMakerTest {
 
     String sourceTable = "source";
     conn.tableOperations().create(sourceTable);
-    ReplicationTableUtil.configureReplicationCombiner(conn, sourceTable);
+    ReplicationTableUtil.configureMetadataTable(conn, sourceTable);
 
     BatchWriter bw = conn.createBatchWriter(sourceTable, new BatchWriterConfig());
     String walPrefix = "hdfs://localhost:8020/accumulo/wals/tserver+port/";

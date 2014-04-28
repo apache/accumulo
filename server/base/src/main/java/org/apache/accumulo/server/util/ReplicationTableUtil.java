@@ -88,7 +88,7 @@ public class ReplicationTableUtil {
         throw new RuntimeException(e);
       }
 
-      configureReplicationCombiner(conn, MetadataTable.NAME);
+      configureMetadataTable(conn, MetadataTable.NAME);
 
       replicationTable = new Writer(inst, credentials, MetadataTable.ID);
       writers.put(credentials, replicationTable);
@@ -96,7 +96,7 @@ public class ReplicationTableUtil {
     return replicationTable;
   }
 
-  public static void configureReplicationCombiner(Connector conn, String tableName) {
+  public synchronized static void configureMetadataTable(Connector conn, String tableName) {
     TableOperations tops = conn.tableOperations();
     Map<String,EnumSet<IteratorScope>> iterators = null;
     try {
@@ -107,7 +107,8 @@ public class ReplicationTableUtil {
 
     if (!iterators.containsKey(COMBINER_NAME)) {
       // Set our combiner and combine all columns
-      IteratorSetting setting = new IteratorSetting(50, COMBINER_NAME, StatusCombiner.class);
+      // Need to set the combiner beneath versioning since we don't want to turn it off
+      IteratorSetting setting = new IteratorSetting(15, COMBINER_NAME, StatusCombiner.class);
       Combiner.setColumns(setting, Collections.singletonList(new Column(MetadataSchema.ReplicationSection.COLF)));
       try {
         tops.attachIterator(tableName, setting);

@@ -70,7 +70,7 @@ public class ReplicationWithMakerTest extends ConfigurableMacIT {
     // replication shouldn't exist when we begin
     Assert.assertFalse(conn.tableOperations().exists(ReplicationTable.NAME));
 
-    // Create two tables
+    // Create a table
     conn.tableOperations().create(table1);
 
     int attempts = 5;
@@ -115,6 +115,13 @@ public class ReplicationWithMakerTest extends ConfigurableMacIT {
     } while (!exists && attempts > 0);
     Assert.assertTrue("Replication table did not exist", exists);
 
+    // ACCUMULO-2743 The Observer in the tserver has to be made aware of the change to get the combiner (made by the master)
+    for (int i = 0; i < 5 && !conn.tableOperations().listIterators(ReplicationTable.NAME).keySet().contains(ReplicationTable.COMBINER_NAME); i++) {
+      UtilWaitThread.sleep(1000);
+    }
+
+    Assert.assertTrue("Did not find expected combiner", conn.tableOperations().listIterators(ReplicationTable.NAME).keySet().contains(ReplicationTable.COMBINER_NAME));
+
     // Make sure that we have one status element, should be a new file
     Scanner s = ReplicationTable.getScanner(conn);
     StatusSection.limit(s);
@@ -138,6 +145,7 @@ public class ReplicationWithMakerTest extends ConfigurableMacIT {
         attempts--;
       }
     }
+
     Assert.assertNotNull(entry);
     Assert.assertEquals(StatusUtil.openWithUnknownLength(), Status.parseFrom(entry.getValue().get()));
 

@@ -241,6 +241,18 @@ public class ReplicationTest extends ConfigurableMacIT {
     // Verify that we found a single replication record that's for table1
     Scanner s = ReplicationTable.getScanner(conn, new Authorizations());
     Iterator<Entry<Key,Value>> iter = s.iterator();
+    attempts = 5;
+    while (attempts > 0) {
+      if (!iter.hasNext()) {
+        s.close();
+        Thread.sleep(1000);
+        s = ReplicationTable.getScanner(conn, new Authorizations());
+        iter = s.iterator();
+        attempts--;
+      } else {
+        break;
+      }
+    }
     Assert.assertTrue(iter.hasNext());
     Entry<Key,Value> entry = iter.next();
     Assert.assertEquals("Expected to find replication entry for " + table1, conn.tableOperations().tableIdMap().get(table1), entry.getKey().getColumnQualifier().toString());

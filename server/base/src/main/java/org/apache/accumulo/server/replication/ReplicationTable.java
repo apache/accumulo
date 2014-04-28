@@ -47,7 +47,7 @@ public class ReplicationTable {
   private static final Logger log = Logger.getLogger(ReplicationTable.class);
 
   public static final String NAME = "replication";
-  public static final String COMBINER_NAME = "combiner";
+  public static final String COMBINER_NAME = "statuscombiner";
 
   public static final String STATUS_LG_NAME = StatusSection.NAME.toString();
   public static final Set<Text> STATUS_LG_COLFAMS = Collections.singleton(StatusSection.NAME);
@@ -58,26 +58,36 @@ public class ReplicationTable {
   public static synchronized void create(Connector conn) {
     TableOperations tops = conn.tableOperations();
     if (tops.exists(NAME)) {
-      if (configure(conn)) {
+      if (configureReplicationTable(conn)) {
         return;
       }
     }
 
     for (int i = 0; i < 5; i++) {
       try {
-        tops.create(NAME);
-        configure(conn);
-        return;
+        if (!tops.exists(NAME)) {
+          tops.create(NAME, false);
+        }
+        break;
       } catch (AccumuloException | AccumuloSecurityException e) {
         log.error("Failed to create replication table", e);
       } catch (TableExistsException e) {
-        // Shouldn't happen unless FATE is broken
-        configure(conn);
-        return;
+        // Shouldn't happen unless someone else made the table
       }
       log.error("Retrying table creation in 1 second...");
       UtilWaitThread.sleep(1000);
     }
+
+    for (int i = 0; i < 5; i++) {
+      if (configureReplicationTable(conn)) {
+        return;
+      }
+
+      log.error("Failed to configure the replication table, retying...");
+      UtilWaitThread.sleep(1000);
+    }
+
+    throw new RuntimeException("Could not configure replication table");
   }
 
   /**
@@ -87,11 +97,12 @@ public class ReplicationTable {
    *          Connector for the instance
    * @return True if the replication table is properly configured
    */
-  protected static synchronized boolean configure(Connector conn) {
+  protected static synchronized boolean configureReplicationTable(Connector conn) {
     try {
       conn.securityOperations().grantTablePermission("root", NAME, TablePermission.READ);
     } catch (AccumuloException | AccumuloSecurityException e) {
       log.warn("Could not grant root user read access to replication table", e);
+      // Should this be fatal? It's only for convenience, all r/w is done by !SYSTEM
     }
 
     TableOperations tops = conn.tableOperations();

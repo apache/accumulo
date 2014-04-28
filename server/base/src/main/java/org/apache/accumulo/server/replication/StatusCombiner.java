@@ -91,7 +91,7 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
       if (null == combined) {
         if (!iter.hasNext()) {
           if (log.isTraceEnabled()) {
-            log.trace("Combined: " + key.toStringNoTruncate() + " " + status.toString().replace("\n", ", "));
+            log.trace("Returned single value: " + key.toStringNoTruncate() + " " + status.toString().replace("\n", ", "));
           }
           return status;
         } else {

@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.replication;
 
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
@@ -91,12 +92,13 @@ public class ReplicationTableTest {
 
     Assert.assertFalse(iterators.containsKey(ReplicationTable.COMBINER_NAME));
 
-    ReplicationTable.configure(conn);
+    ReplicationTable.configureReplicationTable(conn);
 
     // After configure the iterator should be set
     iterators = tops.listIterators(ReplicationTable.NAME);
     Assert.assertTrue(iterators.containsKey(ReplicationTable.COMBINER_NAME));
 
+    // Needs to be set below versioning
     IteratorSetting expected = new IteratorSetting(50, ReplicationTable.COMBINER_NAME, StatusCombiner.class);
     Combiner.setCombineAllColumns(expected, true);
     IteratorSetting setting = tops.getIteratorSetting(ReplicationTable.NAME, ReplicationTable.COMBINER_NAME, IteratorScope.scan);
@@ -107,5 +109,20 @@ public class ReplicationTableTest {
     Map<String,Set<Text>> expectedLocalityGroups = ImmutableMap.of(ReplicationTable.STATUS_LG_NAME, ReplicationTable.STATUS_LG_COLFAMS,
         ReplicationTable.WORK_LG_NAME, ReplicationTable.WORK_LG_COLFAMS);
     Assert.assertEquals(expectedLocalityGroups, tops.getLocalityGroups(ReplicationTable.NAME));
+  }
+
+  @Test
+  public void disablesVersioning() throws Exception {
+    TableOperations tops = conn.tableOperations();
+
+    if (tops.exists(ReplicationTable.NAME)) {
+      tops.delete(ReplicationTable.NAME);
+    }
+
+    ReplicationTable.create(conn);
+
+    Set<String> iters = tops.listIterators(ReplicationTable.NAME).keySet();
+
+    Assert.assertEquals(Collections.singleton(ReplicationTable.COMBINER_NAME), iters);
   }
 }

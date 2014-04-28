@@ -346,27 +346,6 @@ public class CloseWriteAheadLogReferencesTest {
   }
 
   @Test
-  public void partiallyReplicatedUnreferencedWalsAreNotClosed() throws Exception {
-    Set<String> wals = Collections.emptySet();
-    Instance inst = new MockInstance(testName.getMethodName());
-    Connector conn = inst.getConnector("root", new PasswordToken(""));
-
-    ReplicationTable.create(conn);
-    BatchWriter bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
-    Mutation m = new Mutation("file:/accumulo/wal/tserver+port/12345");
-    StatusSection.add(m, new Text("1"), ProtobufUtil.toValue(StatusUtil.ingestedUntil(1000)));
-    bw.addMutation(m);
-    bw.close();
-
-    refs.updateReplicationTable(conn, wals);
-
-    Scanner s = ReplicationTable.getScanner(conn);
-    Entry<Key,Value> entry = Iterables.getOnlyElement(s);
-    Status status = Status.parseFrom(entry.getValue().get());
-    Assert.assertFalse(status.getClosed());
-  }
-
-  @Test
   public void partiallyReplicatedReferencedWalsAreNotClosed() throws Exception {
     String file = "file:/accumulo/wal/tserver+port/12345";
     Set<String> wals = Collections.singleton(file);

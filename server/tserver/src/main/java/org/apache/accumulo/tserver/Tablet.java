@@ -858,6 +858,22 @@ public class Tablet {
         MetadataTableUtil.addDeleteEntries(extent, Collections.singleton(absMergeFile), SystemCredentials.get());
 
       Set<String> unusedWalLogs = beginClearingUnusedLogs();
+      boolean replicate = ReplicationConfigurationUtil.isEnabled(extent, tabletServer.getTableConfiguration(extent));
+      Set<String> logFileOnly = null;
+      if (replicate) {
+        // unusedWalLogs is of the form host/fileURI, need to strip off the host portion
+        logFileOnly = new HashSet<>();
+        for (String unusedWalLog : unusedWalLogs) {
+          int index = unusedWalLog.indexOf('/');
+          if (-1 == index) {
+            log.warn("Could not find host component to strip from DFSLogger representation of WAL");
+          } else {
+            unusedWalLog = unusedWalLog.substring(index + 1);
+          }
+          logFileOnly.add(unusedWalLog);
+        }
+      }
+
       try {
         // the order of writing to metadata and walog is important in the face of machine/process failures
         // need to write to metadata before writing to walog, when things are done in the reverse order
@@ -868,26 +884,13 @@ public class Tablet {
           if (commitSession.getMaxCommittedTime() > persistedTime)
             persistedTime = commitSession.getMaxCommittedTime();
 
-          boolean replicate = ReplicationConfigurationUtil.isEnabled(extent, tabletServer.getTableConfiguration(extent));
           String time = tabletTime.getMetadataValue(persistedTime);
           MasterMetadataUtil.updateTabletDataFile(extent, newDatafile, absMergeFile, dfv, time, SystemCredentials.get(), filesInUseByScans,
-              tabletServer.getClientAddressString(), tabletServer.getLock(), unusedWalLogs, lastLocation, flushId, replicate);
-
-          if (replicate) {
-            // unusedWalLogs is of the form host/fileURI, need to strip off the host portion
-            Set<String> logFileOnly = new HashSet<>();
-            for (String unusedWalLog : unusedWalLogs) {
-              int index = unusedWalLog.indexOf('/');
-              if (-1 == index) {
-                log.warn("Could not find host component to strip from DFSLogger representation of WAL");
-              } else {
-                unusedWalLog = unusedWalLog.substring(index + 1);
-              }
-              logFileOnly.add(unusedWalLog);
-            }
+              tabletServer.getClientAddressString(), tabletServer.getLock(), unusedWalLogs, lastLocation, flushId);
 
             // Mark that we have data we want to replicate
             // This WAL could still be in use by other Tablets though
+          if (replicate) {
             ReplicationTableUtil.updateFiles(SystemCredentials.get(), extent, logFileOnly, StatusUtil.openWithUnknownLength());
           }
         }
