@@ -18,7 +18,6 @@ package org.apache.accumulo.shell.commands;
 
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.ListIterator;
 
 import jline.console.history.History.Entry;
 
@@ -27,37 +26,31 @@ import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.collections.iterators.AbstractIteratorDecorator;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
 
 public class HistoryCommand extends Command {
   private Option clearHist;
   private Option disablePaginationOpt;
   
-  @SuppressWarnings("unchecked")
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException {
     if (cl.hasOption(clearHist.getOpt())) {
       shellState.getReader().getHistory().clear();
     } else {
-      ListIterator<Entry> it = shellState.getReader().getHistory().entries();
-      shellState.printLines(new HistoryLineIterator(it), !cl.hasOption(disablePaginationOpt.getOpt()));
+      Iterator<Entry> source = shellState.getReader().getHistory().entries();
+      Iterator<String> historyIterator = Iterators.transform(source, new Function<Entry,String>() {
+        @Override
+        public String apply(Entry input) {
+          return String.format("%d: %s", input.index() + 1, input.value());
+        }
+      });
+
+      shellState.printLines(historyIterator, !cl.hasOption(disablePaginationOpt.getOpt()));
     }
     
     return 0;
-  }
-  
-  /**
-   * Decorator that converts an Iterator<History.Entry> to an Iterator<String>.
-   */
-  private static class HistoryLineIterator extends AbstractIteratorDecorator {
-    public HistoryLineIterator(Iterator<Entry> iterator) {
-      super(iterator);
-    }
-    
-    @Override
-    public String next() {
-      return super.next().toString();
-    }
   }
   
   @Override
