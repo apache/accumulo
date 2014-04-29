@@ -568,7 +568,7 @@
             <goals>clean deploy</goals>
             <preparationGoals>clean verify</preparationGoals>
             <tagNameFormat>@{project.version}</tagNameFormat>
-            <releaseProfiles>seal-jars</releaseProfiles>
+            <releaseProfiles>seal-jars,skip-findbugs</releaseProfiles>
             <useReleaseProfile>false</useReleaseProfile>
             <pushChanges>false</pushChanges>
             <localCheckout>true</localCheckout>
@@ -1022,6 +1022,14 @@
         <sealJars>true</sealJars>
         <skipITs>true</skipITs>
         <skipTests>true</skipTests>
+      </properties>
+    </profile>
+    <profile>
+      <!-- Skip findbugs executing when the
+           apache-release profile is activated. -->
+      <id>skip-findbugs</id>
+      <properties>
+        <findbugs.skip>true</findbugs.skip>
       </properties>
     </profile>
     <profile>
