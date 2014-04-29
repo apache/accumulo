@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.client.impl;
 
-import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -34,11 +33,11 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
-import org.apache.thrift.transport.TTransportException;
 
 public class Writer {
   
@@ -70,9 +69,6 @@ public class Writer {
       return;
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code);
-    } catch (TTransportException e) {
-      log.warn("Error connecting to " + server + ": " + e);
-      throw e;
     } finally {
       ThriftUtil.returnClient((TServiceClient) client);
     }
