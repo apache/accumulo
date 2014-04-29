@@ -91,6 +91,11 @@ public interface AccumuloConfig {
   public Map<String,String> getSiteConfig();
 
   /**
+   * @return The configured ZooKeeper port
+   */
+  public int getZooKeeperPort();
+
+  /**
    * @return name of configured instance
    */
   public String getInstanceName();
