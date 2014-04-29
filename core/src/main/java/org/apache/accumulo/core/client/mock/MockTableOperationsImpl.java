@@ -372,8 +372,8 @@ class MockTableOperationsImpl extends TableOperationsHelper {
     if (!exists(tableName))
       throw new TableNotFoundException(tableName, tableName, "");
     MockTable t = acu.tables.get(tableName);
-    Text startText = new Text(start);
-    Text endText = new Text(end);
+    Text startText = start != null ? new Text(start) : new Text();
+    Text endText = end != null ? new Text(end) : new Text(t.table.lastKey().getRow().getBytes());
     startText.append(ZERO, 0, 1);
     endText.append(ZERO, 0, 1);
     Set<Key> keep = new TreeSet<Key>(t.table.subMap(new Key(startText), new Key(endText)).keySet());
