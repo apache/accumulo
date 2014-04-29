@@ -275,5 +275,62 @@ public class MockTableOperationsTest {
     }
     Assert.assertEquals(5, oneCnt);
   }
-  
+
+  @Test
+  public void testDeleteRowsWithNullKeys() throws Exception {
+    Instance instance = new MockInstance("rows");
+    Connector connector = instance.getConnector("user", new PasswordToken("foo"));
+    TableOperations to = connector.tableOperations();
+    to.create("test2");
+    BatchWriter bw = connector.createBatchWriter("test2", new BatchWriterConfig());
+    for (int r = 0; r < 30; r++) {
+      Mutation m = new Mutation(Integer.toString(r));
+      for (int c = 0; c < 5; c++) {
+        m.put(new Text("cf"), new Text(Integer.toString(c)), new Value(Integer.toString(c).getBytes()));
+      }
+      bw.addMutation(m);
+    }
+    bw.flush();
+
+    // test null end
+    // will remove rows 4 through 9 (6 * 5 = 30 entries)
+    to.deleteRows("test2", new Text("30"), null);
+    Scanner s = connector.createScanner("test2", Constants.NO_AUTHS);
+    int rowCnt = 0;
+    for (Entry<Key,Value> entry : s) {
+      String rowId = entry.getKey().getRow().toString();
+      Assert.assertFalse(rowId.startsWith("30"));
+      rowCnt++;
+    }
+    s.close();
+    Assert.assertEquals(120, rowCnt);
+
+    // test null start
+    // will remove 0-1, 10-19, 2
+    to.deleteRows("test2", null, new Text("2"));
+    s = connector.createScanner("test2", Constants.NO_AUTHS);
+    rowCnt = 0;
+    for (Entry<Key,Value> entry : s) {
+      char rowStart = entry.getKey().getRow().toString().charAt(0);
+      Assert.assertTrue(rowStart >= '2');
+      rowCnt++;
+    }
+    s.close();
+    Assert.assertEquals(55, rowCnt);
+
+    // test null start and end
+    // deletes everything still left
+    to.deleteRows("test2", null, null);
+    s = connector.createScanner("test2", Constants.NO_AUTHS);
+    rowCnt = 0;
+    for (@SuppressWarnings("unused")
+    Entry<Key,Value> entry : s) {
+      rowCnt++;
+    }
+    s.close();
+    to.delete("test2");
+    Assert.assertEquals(0, rowCnt);
+
+  }
+
 }
