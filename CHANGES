@@ -483,6 +483,7 @@ Release Notes - Accumulo - Version 1.6.0
     * [ACCUMULO-2748] - MockTableOperations.deleteRow does not handle null for start or end keys
     * [ACCUMULO-2749] - 1.6.0RC4 slower than 1.5.1
     * [ACCUMULO-2752] - Missing getZooKeeperPort on AccumuloConfig interface
+    * [ACCUMULO-2756] - multiTableTest is timing out
 
 ** Improvement
     * [ACCUMULO-112] - Investigate partitioning in memory map by locality group
