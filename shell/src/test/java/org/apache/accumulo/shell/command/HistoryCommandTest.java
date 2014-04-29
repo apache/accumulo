@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.util.shell.command;
+package org.apache.accumulo.shell.command;
 
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
@@ -29,8 +29,8 @@ import jline.console.ConsoleReader;
 import jline.console.history.History;
 import jline.console.history.MemoryHistory;
 
-import org.apache.accumulo.core.util.shell.Shell;
-import org.apache.accumulo.core.util.shell.commands.HistoryCommand;
+import org.apache.accumulo.shell.Shell;
+import org.apache.accumulo.shell.commands.HistoryCommand;
 import org.apache.commons.cli.CommandLine;
 import org.junit.Assume;
 import org.junit.Before;
