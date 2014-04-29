@@ -79,8 +79,7 @@ public class ReadWriteIT extends ConfigurableMacIT {
     assertTrue(result.length() > 100);
     log.debug("Stopping mini accumulo cluster");
     Process shutdown = cluster.exec(Admin.class, "stopAll");
-    shutdown.waitFor();
-    assertTrue(shutdown.exitValue() == 0);
+    assertEquals(0, shutdown.waitFor());
     log.debug("success!");
     monitor.destroy();
   }
@@ -124,8 +123,10 @@ public class ReadWriteIT extends ConfigurableMacIT {
     // Write to multiple tables
     String instance = cluster.getInstanceName();
     String keepers = cluster.getZooKeepers();
-    exec(TestMultiTableIngest.class, args("--count", "" + ROWS, "-u", "root", "-i", instance, "-z", keepers, "-p", ROOT_PASSWORD));
-    exec(TestMultiTableIngest.class, args("--count", "" + ROWS, "--readonly", "-u", "root", "-i", instance, "-z", keepers, "-p", ROOT_PASSWORD));
+    Process p1 = exec(TestMultiTableIngest.class, args("--count", "" + ROWS, "-u", "root", "-i", instance, "-z", keepers, "-p", ROOT_PASSWORD));
+    Process p2 = exec(TestMultiTableIngest.class, args("--count", "" + ROWS, "--readonly", "-u", "root", "-i", instance, "-z", keepers, "-p", ROOT_PASSWORD));
+    assertEquals(0, p1.waitFor());
+    assertEquals(0, p2.waitFor());
   }
   
   @Test
