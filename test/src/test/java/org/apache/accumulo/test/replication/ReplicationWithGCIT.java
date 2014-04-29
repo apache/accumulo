@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -34,7 +35,10 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
+import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
+import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
@@ -51,8 +55,11 @@ import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
+import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.google.common.collect.Iterables;
 
 /**
  * 
@@ -311,5 +318,130 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
       System.out.println(entry.getKey().toStringNoTruncate() + " " + Status.parseFrom(entry.getValue().get()).toString().replace("\n", ", "));
     }
     Assert.fail("Expected all replication records to be closed");
+  }
+
+  @Test
+  public void replicatedStatusEntriesAreDeleted() throws Exception {
+    Connector conn = getConnector();
+    String table1 = "table1";
+
+    // replication shouldn't exist when we begin
+    Assert.assertFalse(conn.tableOperations().exists(ReplicationTable.NAME));
+
+    // Create two tables
+    conn.tableOperations().create(table1);
+
+    int attempts = 5;
+    while (attempts > 0) {
+      try {
+        // Enable replication on table1
+        conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION.getKey(), "true");
+        // Replicate table1 to cluster1 in the table with id of '4'
+        conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION_TARGETS.getKey() + "cluster1", "4");
+        attempts = 0;
+      } catch (Exception e) {
+        attempts--;
+        if (attempts <= 0) {
+          throw e;
+        }
+        UtilWaitThread.sleep(500);
+      }
+    }
+
+    // Write some data to table1
+    BatchWriter bw = conn.createBatchWriter(table1, new BatchWriterConfig());
+    for (int rows = 0; rows < 2000; rows++) {
+      Mutation m = new Mutation(Integer.toString(rows));
+      for (int cols = 0; cols < 50; cols++) {
+        String value = Integer.toString(cols);
+        m.put(value, "", value);
+      }
+      bw.addMutation(m);
+    }
+
+    bw.close();
+
+    // Make sure the replication table exists at this point
+    boolean exists = conn.tableOperations().exists(ReplicationTable.NAME);
+    attempts = 5;
+    do {
+      if (!exists) {
+        UtilWaitThread.sleep(200);
+        exists = conn.tableOperations().exists(ReplicationTable.NAME);
+        attempts--;
+      }
+    } while (!exists && attempts > 0);
+    Assert.assertTrue("Replication table did not exist", exists);
+
+    boolean notFound = true;
+    Scanner s;
+    for (int i = 0; i < 10 && notFound; i++) {
+      s = ReplicationTable.getScanner(conn);
+      WorkSection.limit(s);
+      try {
+        Entry<Key,Value> e = Iterables.getOnlyElement(s);
+        Text expectedColqual = ReplicationTarget.toText(new ReplicationTarget("cluster1", "4"));
+        Assert.assertEquals(expectedColqual, e.getKey().getColumnQualifier());
+        notFound = false;
+      } catch (NoSuchElementException e) {
+      } catch (IllegalArgumentException e) {
+        s = ReplicationTable.getScanner(conn);
+        for (Entry<Key,Value> content : s) {
+          log.info(content.getKey().toStringNoTruncate() + " => " + content.getValue());
+        }
+        Assert.fail("Found more than one work section entry");
+      }
+
+      Thread.sleep(500);
+    }
+
+    if (notFound) {
+      s = ReplicationTable.getScanner(conn);
+      for (Entry<Key,Value> content : s) {
+        log.info(content.getKey().toStringNoTruncate() + " => " + content.getValue());
+      }
+      Assert.assertFalse("Did not find the work entry for the status entry", notFound);
+    }
+
+    /**
+     * By this point, we should have data ingested into a table, with at least
+     * one WAL as a candidate for replication. It may or may not yet be closed.
+     */
+
+    // Kill the tserver(s) and restart them
+    // to ensure that the WALs we previously observed all move to closed.
+    for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
+      cluster.killProcess(ServerType.TABLET_SERVER, proc);
+    }
+
+    cluster.exec(TabletServer.class);
+
+    // Make sure we can read all the tables (recovery complete)
+    s = conn.createScanner(table1, new Authorizations());
+    for (@SuppressWarnings("unused")
+    Entry<Key,Value> entry : s) {}
+
+    /**
+     * After recovery completes, we should have unreplicated, closed Status messages.
+     * The close happens at the beginning of log recovery.
+     */
+
+    s = ReplicationTable.getScanner(conn);
+    bw = ReplicationTable.getBatchWriter(conn);
+    Status.Builder builder = Status.newBuilder();
+    for (Entry<Key,Value> entry : s) {
+      Key k = entry.getKey();
+      Value v = entry.getValue();
+      Status status = Status.parseFrom(v.get());
+
+      // Sanity check -- no way to get stuff replicated yet.
+      Assert.assertEquals(0, status.getBegin());
+
+      builder.setBegin(Long.MAX_VALUE).setEnd(status.getEnd()).setClosed(status.getClosed()).setInfiniteEnd(status.getInfiniteEnd());
+
+      Mutation m = new Mutation(k.getRow());
+      m.put(k.getColumnFamily(), k.getColumnQualifier(), ProtobufUtil.toValue(builder.build()));
+      bw.addMutation(m);
+    }
   }
 }

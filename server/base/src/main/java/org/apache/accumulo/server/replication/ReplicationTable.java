@@ -23,6 +23,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -161,5 +162,17 @@ public class ReplicationTable {
 
   public static BatchWriter getBatchWriter(Connector conn, BatchWriterConfig config) throws TableNotFoundException {
     return conn.createBatchWriter(NAME, config);
+  }
+
+  public static BatchScanner getBatchScanner(Connector conn, int queryThreads) throws TableNotFoundException {
+    return conn.createBatchScanner(NAME, new Authorizations(), queryThreads);
+  }
+
+  public static boolean exists(Connector conn) {
+    return exists(conn.tableOperations());
+  }
+
+  public static boolean exists(TableOperations tops) {
+    return tops.exists(NAME);
   }
 }
