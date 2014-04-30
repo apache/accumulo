@@ -33,7 +33,9 @@ import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.minicluster.impl.ProcessReference;
 import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.hadoop.conf.Configuration;
@@ -58,12 +60,20 @@ public class ReplicationWithMakerTest extends ConfigurableMacIT {
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
     cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "1M");
+    // Run the process in the master which writes replication records from metadata to replication
+    // repeatedly without pause
     cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "0");
     cfg.setNumTservers(1);
   }
 
   @Test
   public void singleTableSingleTarget() throws Exception {
+    // We want to kill the GC so it doesn't come along and close Status records and mess up the comparisons
+    // against expected Status messages.
+    for (ProcessReference proc : cluster.getProcesses().get(ServerType.GARBAGE_COLLECTOR)) {
+      cluster.killProcess(ServerType.GARBAGE_COLLECTOR, proc);
+    }
+    
     Connector conn = getConnector();
     String table1 = "table1";
 
@@ -80,7 +90,7 @@ public class ReplicationWithMakerTest extends ConfigurableMacIT {
         conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION.getKey(), "true");
         // Replicate table1 to cluster1 in the table with id of '4'
         conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION_TARGETS.getKey() + "cluster1", "4");
-        attempts = 0;
+        break;
       } catch (Exception e) {
         attempts--;
         if (attempts <= 0) {
@@ -113,26 +123,39 @@ public class ReplicationWithMakerTest extends ConfigurableMacIT {
         attempts--;
       }
     } while (!exists && attempts > 0);
-    Assert.assertTrue("Replication table did not exist", exists);
+    Assert.assertTrue("Replication table was never created", exists);
 
     // ACCUMULO-2743 The Observer in the tserver has to be made aware of the change to get the combiner (made by the master)
     for (int i = 0; i < 5 && !conn.tableOperations().listIterators(ReplicationTable.NAME).keySet().contains(ReplicationTable.COMBINER_NAME); i++) {
       UtilWaitThread.sleep(1000);
     }
 
-    Assert.assertTrue("Did not find expected combiner", conn.tableOperations().listIterators(ReplicationTable.NAME).keySet().contains(ReplicationTable.COMBINER_NAME));
+    Assert.assertTrue("Combiner was never set on replication table",
+        conn.tableOperations().listIterators(ReplicationTable.NAME).keySet().contains(ReplicationTable.COMBINER_NAME));
+
+    // Trigger the minor compaction, waiting for it to finish.
+    // This should write the entry to metadata that the file has data
+    conn.tableOperations().flush(ReplicationTable.NAME, null, null, true);
 
     // Make sure that we have one status element, should be a new file
     Scanner s = ReplicationTable.getScanner(conn);
     StatusSection.limit(s);
     Entry<Key,Value> entry = null;
     attempts = 5;
+    // This record will move from new to new with infinite length because of the minc (flush)
+    Status expectedStatus = StatusUtil.openWithUnknownLength();
     while (null == entry && attempts > 0) {
-      try{
+      try {
         entry = Iterables.getOnlyElement(s);
+        if (!expectedStatus.equals(Status.parseFrom(entry.getValue().get()))) {
+          entry = null;
+          // the master process didn't yet fire and write the new mutation, wait for it to do
+          // so and try to read it again
+          Thread.sleep(1000);
+        }
       } catch (NoSuchElementException e) {
         entry = null;
-        Thread.sleep(200);
+        Thread.sleep(500);
       } catch (IllegalArgumentException e) {
         // saw this contain 2 elements once
         s = ReplicationTable.getScanner(conn);
@@ -146,8 +169,8 @@ public class ReplicationWithMakerTest extends ConfigurableMacIT {
       }
     }
 
-    Assert.assertNotNull(entry);
-    Assert.assertEquals(StatusUtil.openWithUnknownLength(), Status.parseFrom(entry.getValue().get()));
+    Assert.assertNotNull("Could not find expected entry in replication table", entry);
+    Assert.assertEquals("Expected to find a replication entry that is open with infinite length", expectedStatus, Status.parseFrom(entry.getValue().get()));
 
     // Try a couple of times to watch for the work record to be created
     boolean notFound = true;
@@ -276,8 +299,7 @@ public class ReplicationWithMakerTest extends ConfigurableMacIT {
         Text expectedColqual = ReplicationTarget.toText(new ReplicationTarget("cluster1", "4"));
         Assert.assertEquals(expectedColqual, e.getKey().getColumnQualifier());
         notFound = false;
-      } catch (NoSuchElementException e) {
-      } catch (IllegalArgumentException e) {
+      } catch (NoSuchElementException e) {} catch (IllegalArgumentException e) {
         s = ReplicationTable.getScanner(conn);
         for (Entry<Key,Value> content : s) {
           log.info(content.getKey().toStringNoTruncate() + " => " + content.getValue());

@@ -496,7 +496,7 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
     s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.setRange(ReplicationSection.getRange());
     recordsFound = 0;
-    for (@SuppressWarnings("unused") Entry<Key,Value> entry : s) {
+    for (Entry<Key,Value> entry : s) {
       recordsFound++;
       log.info(entry.getKey().toStringNoTruncate() + " " + Status.parseFrom(entry.getValue().get()).toString().replace("\n", ", "));
     }
