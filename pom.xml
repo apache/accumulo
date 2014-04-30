@@ -896,6 +896,9 @@
         <artifactId>maven-pmd-plugin</artifactId>
         <version>3.1</version>
         <configuration>
+          <excludes>
+            <exclude>**/thrift/*.java</exclude>
+          </excludes>
           <format>html</format>
           <includeTests>true</includeTests>
           <targetJdk>1.6</targetJdk>
