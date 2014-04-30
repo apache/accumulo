@@ -16,52 +16,52 @@
  */
 package org.apache.accumulo.test.randomwalk;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+
 import java.io.File;
+import java.io.IOException;
+import java.net.URISyntaxException;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 
-import junit.framework.TestCase;
-
 import org.apache.accumulo.test.randomwalk.unit.CreateTable;
-import org.junit.Assert;
+import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
 
-public class FrameworkTest extends TestCase {
+public class FrameworkTest {
 
-  public void testXML() {
+  // Need to use fully qualified name here because of conflict with org.apache.accumulo.test.randomwalk.Test
+  @org.junit.Test
+  public void testXML() throws SAXException, URISyntaxException, ParserConfigurationException, IOException {
+    SchemaFactory sf = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+    Schema moduleSchema = sf.newSchema(getFile("/randomwalk/module.xsd"));
 
     DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-    DocumentBuilder docbuilder;
-
-    SchemaFactory sf = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-    Schema moduleSchema = null;
-    try {
-      moduleSchema = sf.newSchema(new File(this.getClass().getResource("/randomwalk/module.xsd").toURI()));
-    } catch (Exception e) {
-      Assert.fail("Caught exception: " + e);
-    }
-
     dbf.setSchema(moduleSchema);
 
-    try {
-      File f = new File(this.getClass().getResource("/randomwalk/Basic.xml").toURI());
-      docbuilder = dbf.newDocumentBuilder();
-      docbuilder.parse(f);
-    } catch (Exception e) {
-      Assert.fail("Caught exception: " + e);
-    }
+    DocumentBuilder docbuilder = dbf.newDocumentBuilder();
+    Document document = docbuilder.parse(getFile("/randomwalk/Basic.xml"));
+
+    assertNotEquals("Parsing randomwalk xml should result in nodes.", 0, document.getChildNodes().getLength());
   }
 
-  public void testRWTest() {
+  private File getFile(String resource) throws URISyntaxException {
+    return new File(this.getClass().getResource(resource).toURI());
+  }
 
+  @org.junit.Test
+  public void testRWTest() {
     Test t1 = new CreateTable();
-    assertTrue(t1.toString().equals("org.apache.accumulo.test.randomwalk.unit.CreateTable"));
+    assertEquals("org.apache.accumulo.test.randomwalk.unit.CreateTable", t1.toString());
 
     Test t2 = new CreateTable();
-    assertTrue(t1.equals(t2));
+    assertEquals("CreateTable test nodes were not equal.", t1, t2);
   }
 
 }
