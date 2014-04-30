@@ -97,7 +97,7 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
   
   @Test
   public void testTimeout() throws Exception {
-    String results = test(40);
+    String results = test(20);
     if (results != null) {
     	if (!results.contains("Session expired")) {
     		System.out.println("Failed to find Session expired in");
@@ -164,21 +164,24 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
         VerifyIngest.verifyIngest(c, vopts, SOPTS);
       } else {
         UtilWaitThread.sleep(5 * 1000);
+        tserver.waitFor();
+        t.join();
+        tserver = null;
       }
       // verify the process was blocked
       String results = t.toString();
       assertTrue(results.contains("sleeping\nsleeping\nsleeping\n"));
-      assertTrue(results.contains("Zookeeper error, will retry"));
       return results;
     } finally {
       if (ingest != null) {
         ingest.destroy();
         ingest.waitFor();
       }
-      tserver.destroy();
-      tserver.waitFor();
-      t.join();
-      UtilWaitThread.sleep(1000);
+      if (tserver != null) {
+        tserver.destroy();
+        tserver.waitFor();
+        t.join();
+      }
     }
   }
   
