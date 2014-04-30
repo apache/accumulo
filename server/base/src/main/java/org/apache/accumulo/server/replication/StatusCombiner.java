@@ -104,7 +104,7 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
     }
 
     if (log.isTraceEnabled()) {
-      log.trace("Combined: " + key.toStringNoTruncate() + " " + combined.toString().replace("\n", ", "));
+      log.trace("Combined: " + key.toStringNoTruncate() + " " + combined.build().toString().replace("\n", ", "));
     }
 
     return combined.build();

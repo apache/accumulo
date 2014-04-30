@@ -36,7 +36,8 @@ import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 
@@ -44,7 +45,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
  * Reads replication records from the metadata table and creates status records in the replication table
  */
 public class StatusMaker {
-  private static final Logger log = Logger.getLogger(StatusMaker.class);
+  private static final Logger log = LoggerFactory.getLogger(StatusMaker.class);
 
   private final Connector conn;
 
@@ -101,14 +102,12 @@ public class StatusMaker {
         String rowStr = row.toString();
         rowStr = rowStr.substring(ReplicationSection.getRowPrefix().length());
 
-        if (log.isTraceEnabled()) {
-          try {
-            log.trace("Processing replication status record for " + rowStr + " on table " + tableId + " with " + Status.parseFrom(entry.getValue().get()).toString().replace("\n", ", "));
-          } catch (InvalidProtocolBufferException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+        try {
+          log.debug("Creating replication status record for {} on table {} with {}.", rowStr, tableId, Status.parseFrom(entry.getValue().get()).toString().replace("\n", ", "));
+        } catch (InvalidProtocolBufferException e) {
+          // TODO Auto-generated catch block
+          e.printStackTrace();
           }
-        }
 
         Span workSpan = Trace.start("createStatusMutations");
         try {

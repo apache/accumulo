@@ -345,6 +345,7 @@ public class GarbageCollectWriteAheadLogs {
       Entry<String,Path> wal = walIter.next();
       String fullPath = wal.getValue().toString();
       if (neededByReplication(conn, fullPath)) {
+        log.debug("Removing WAL from candidate deletion as it is still needed for replication: " + fullPath);
         // If we haven't already removed it, check to see if this WAL is
         // "in use" by replication (needed for replication purposes)
         status.currentLog.inUse++;

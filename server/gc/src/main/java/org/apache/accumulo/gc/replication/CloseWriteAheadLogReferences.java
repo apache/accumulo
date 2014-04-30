@@ -49,6 +49,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -78,6 +79,11 @@ public class CloseWriteAheadLogReferences implements Runnable {
 
   @Override
   public void run() {
+    // As long as we depend on a newer Guava than Hadoop uses, we have to make sure we're compatible with
+    // what the version they bundle uses.
+    @SuppressWarnings("deprecation")
+    Stopwatch sw = new Stopwatch();
+
     Connector conn;
     try {
       conn = instance.getConnector(creds.getPrincipal(), creds.getToken());
@@ -94,17 +100,27 @@ public class CloseWriteAheadLogReferences implements Runnable {
     Span findWalsSpan = Trace.start("findReferencedWals");
     HashSet<String> referencedWals = null;
     try {
+      sw.start();
       referencedWals = getReferencedWals(conn);
     } finally {
+      sw.stop();
       findWalsSpan.stop();
     }
 
+    log.info("Found " + referencedWals.size() + " WALs referenced in metadata in " + sw.toString());
+    sw.reset();
+
     Span updateReplicationSpan = Trace.start("updateReplicationTable");
+    long recordsClosed = 0;
     try {
-      updateReplicationTable(conn, referencedWals);
+      sw.start();
+      recordsClosed = updateReplicationTable(conn, referencedWals);
     } finally {
+      sw.stop();
       updateReplicationSpan.stop();
     }
+
+    log.info("Closed " + recordsClosed + " WAL replication references in replication table in " + sw.toString());
   }
 
   /**
@@ -167,9 +183,10 @@ public class CloseWriteAheadLogReferences implements Runnable {
    * @param referencedWals
    *          {@link Set} of paths to WALs that are referenced in the tablets section of the metadata table
    */
-  protected void updateReplicationTable(Connector conn, Set<String> referencedWals) {
+  protected long updateReplicationTable(Connector conn, Set<String> referencedWals) {
     BatchScanner bs = null;
     BatchWriter bw = null;
+    long recordsClosed = 0;
     try {
       bw = ReplicationTable.getBatchWriter(conn);
       bs = conn.createBatchScanner(ReplicationTable.NAME, new Authorizations(), 4);
@@ -195,6 +212,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
         if (!status.getClosed() && !replFile.endsWith(RFILE_SUFFIX) && !referencedWals.contains(replFile)) {
           try {
             closeWal(bw, entry.getKey());
+            recordsClosed++;
           } catch (MutationsRejectedException e) {
             log.error("Failed to submit delete mutation for " + entry.getKey());
             continue;
@@ -215,8 +233,9 @@ public class CloseWriteAheadLogReferences implements Runnable {
           log.error("Failed to write delete mutations for replication table", e);
         }
       }
-
     }
+
+    return recordsClosed;
   }
 
   /**
@@ -229,7 +248,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
    * @throws MutationsRejectedException
    */
   protected void closeWal(BatchWriter bw, Key k) throws MutationsRejectedException {
-    log.info("Closing unreferenced WAL: " + k.toStringNoTruncate());
+    log.debug("Closing unreferenced WAL: " + k.toStringNoTruncate());
     Mutation m = new Mutation(k.getRow());
     m.put(k.getColumnFamily(), k.getColumnQualifier(), StatusUtil.fileClosedValue());
     bw.addMutation(m);

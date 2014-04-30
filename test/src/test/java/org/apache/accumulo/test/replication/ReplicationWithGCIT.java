@@ -25,6 +25,7 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -34,6 +35,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
@@ -71,7 +73,7 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
     cfg.setNumTservers(1);
     cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "1M");
     cfg.setProperty(Property.GC_CYCLE_START, "1s");
-    cfg.setProperty(Property.GC_CYCLE_DELAY, "1s");
+    cfg.setProperty(Property.GC_CYCLE_DELAY, "0");
     cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "0");
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
@@ -373,23 +375,42 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
     } while (!exists && attempts > 0);
     Assert.assertTrue("Replication table did not exist", exists);
 
+    // Grant ourselves the write permission for later
+    conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
+
     boolean notFound = true;
     Scanner s;
     for (int i = 0; i < 10 && notFound; i++) {
-      s = ReplicationTable.getScanner(conn);
-      WorkSection.limit(s);
       try {
+        s = ReplicationTable.getScanner(conn);
+        WorkSection.limit(s);
         Entry<Key,Value> e = Iterables.getOnlyElement(s);
         Text expectedColqual = ReplicationTarget.toText(new ReplicationTarget("cluster1", "4"));
         Assert.assertEquals(expectedColqual, e.getKey().getColumnQualifier());
         notFound = false;
-      } catch (NoSuchElementException e) {
-      } catch (IllegalArgumentException e) {
+      } catch (NoSuchElementException e) {} catch (IllegalArgumentException e) {
         s = ReplicationTable.getScanner(conn);
         for (Entry<Key,Value> content : s) {
           log.info(content.getKey().toStringNoTruncate() + " => " + content.getValue());
         }
         Assert.fail("Found more than one work section entry");
+      } catch (RuntimeException e) {
+        Throwable cause = e.getCause();
+        if (cause instanceof AccumuloSecurityException) {
+          AccumuloSecurityException sec = (AccumuloSecurityException) cause;
+          switch (sec.getSecurityErrorCode()) {
+            case PERMISSION_DENIED:
+              // retry -- the grant didn't happen yet
+              log.warn("Sleeping because permission was denied");
+              Thread.sleep(500);
+              break;
+            default:
+              throw e;
+          }
+
+        } else {
+          throw e;
+        }
       }
 
       Thread.sleep(500);
@@ -404,8 +425,7 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
     }
 
     /**
-     * By this point, we should have data ingested into a table, with at least
-     * one WAL as a candidate for replication. It may or may not yet be closed.
+     * By this point, we should have data ingested into a table, with at least one WAL as a candidate for replication. It may or may not yet be closed.
      */
 
     // Kill the tserver(s) and restart them
@@ -422,8 +442,7 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
     Entry<Key,Value> entry : s) {}
 
     /**
-     * After recovery completes, we should have unreplicated, closed Status messages.
-     * The close happens at the beginning of log recovery.
+     * After recovery completes, we should have unreplicated, closed Status messages. The close happens at the beginning of log recovery.
      */
 
     s = ReplicationTable.getScanner(conn);
@@ -443,5 +462,45 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
       m.put(k.getColumnFamily(), k.getColumnQualifier(), ProtobufUtil.toValue(builder.build()));
       bw.addMutation(m);
     }
+
+    bw.close();
+
+    /**
+     * After we set the begin to Long.MAX_VALUE, the RemoveCompleteReplicationRecords class will start deleting the records which have been closed by
+     * CloseWriteAheadLogReferences (which will have been working since we restarted the tserver(s))
+     */
+
+    // Wait for a bit since the GC has to run (should be running after a one second delay)
+    Thread.sleep(5000);
+
+    int recordsFound = 0;
+    for (int i = 0; i < 5; i++) {
+      s = ReplicationTable.getScanner(conn);
+      recordsFound = 0;
+      for (Entry<Key,Value> entry : s) {
+        recordsFound++;
+        log.info(entry.getKey().toStringNoTruncate() + " " + Status.parseFrom(entry.getValue().get()).toString().replace("\n", ", "));
+      }
+
+      if (0 == recordsFound) {
+        break;
+      } else {
+        Thread.sleep(1000);
+        log.info("");
+      }
+    }
+
+    Assert.assertEquals("Found unexpected replication records in the replication table", 0, recordsFound);
+
+    // If the replication table entries were deleted, so should the metadata table replication entries
+    s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    s.setRange(ReplicationSection.getRange());
+    recordsFound = 0;
+    for (@SuppressWarnings("unused") Entry<Key,Value> entry : s) {
+      recordsFound++;
+      log.info(entry.getKey().toStringNoTruncate() + " " + Status.parseFrom(entry.getValue().get()).toString().replace("\n", ", "));
+    }
+
+    Assert.assertEquals("Found unexpected replication records in the metadata table", 0, recordsFound);
   }
 }

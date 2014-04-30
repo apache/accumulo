@@ -98,7 +98,7 @@ public class ReplicationTableTimestampIT extends ConfigurableMacIT {
   public void closedReplicationStatusStayClosed() throws Exception {
     final Connector conn = getConnector();
     String table1 = "table1", table2 = "table2", table3 = "table3";
-    final Multimap<String,String> logs = HashMultimap.create();
+    final Multimap<String,String> metadataTableWals = HashMultimap.create();
     final AtomicBoolean keepRunning = new AtomicBoolean(true);
 
     Thread t = new Thread(new Runnable() {
@@ -108,7 +108,7 @@ public class ReplicationTableTimestampIT extends ConfigurableMacIT {
         // when that happens
         while (keepRunning.get()) {
           try {
-            logs.putAll(getLogs(conn));
+            metadataTableWals.putAll(getLogs(conn));
           } catch (TableNotFoundException e) {
             log.error("Metadata table doesn't exist");
           }
@@ -173,9 +173,11 @@ public class ReplicationTableTimestampIT extends ConfigurableMacIT {
 
     bw.close();
 
+    // Stop the thread which is constantly scanning metadata to track all WALs seen
     keepRunning.set(false);
     t.join(5000);
 
+    // See which files we have for replication in the replication table
     Scanner s = ReplicationTable.getScanner(conn);
     StatusSection.limit(s);
     Set<String> replFiles = new HashSet<>();
@@ -183,10 +185,10 @@ public class ReplicationTableTimestampIT extends ConfigurableMacIT {
       replFiles.add(entry.getKey().getRow().toString());
     }
 
-    // We might have a WAL that was use solely for the replication table
+    // We might have a WAL that was used solely for the replication table
     // We want to remove that from our list as it should not appear in the replication table
     String replicationTableId = conn.tableOperations().tableIdMap().get(ReplicationTable.NAME);
-    Iterator<Entry<String,String>> observedLogs = logs.entries().iterator();
+    Iterator<Entry<String,String>> observedLogs = metadataTableWals.entries().iterator();
     while (observedLogs.hasNext()) {
       Entry<String,String> observedLog = observedLogs.next();
       if (replicationTableId.equals(observedLog.getValue())) {
@@ -196,7 +198,7 @@ public class ReplicationTableTimestampIT extends ConfigurableMacIT {
 
     // We should have *some* reference to each log that was seen in the metadata table
     // They might not yet all be closed though (might be newfile)
-    Assert.assertEquals("Metadata log distribution: " + logs, logs.keySet(), replFiles);
+    Assert.assertEquals("Metadata log distribution: " + metadataTableWals, metadataTableWals.keySet(), replFiles);
 
     LinkedListMultimap<String,Entry<Key,Value>> kvByRow = LinkedListMultimap.create();
     s = ReplicationTable.getScanner(conn);
