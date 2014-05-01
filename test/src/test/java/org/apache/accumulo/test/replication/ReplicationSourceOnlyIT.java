@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.replication;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -168,6 +169,11 @@ public class ReplicationSourceOnlyIT extends ConfigurableMacIT {
     }
 
     bw.close();
+
+    // Force a write to metadata for the data written
+    for (String table : Arrays.asList(table1, table2, table3)) {
+      conn.tableOperations().flush(table, null, null, true);
+    }
 
     keepRunning.set(false);
     t.join(5000);
