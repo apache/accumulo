@@ -21,6 +21,8 @@ import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.replication.proto.Replication.Status.Builder;
 
+import com.google.protobuf.InvalidProtocolBufferException;
+
 /**
  * Helper methods to create Status protobuf messages
  */
@@ -161,6 +163,15 @@ public class StatusUtil {
   }
 
   /**
+   * @param v Value with serialized Status
+   * @return A Status created from the Value
+   * @throws InvalidProtocolBufferException
+   */
+  public static Status fromValue(Value v) throws InvalidProtocolBufferException {
+    return Status.parseFrom(v.get());
+  }
+
+  /**
    * Is the given Status fully replicated and is its file ready for deletion on the source
    * @param status a Status protobuf
    * @return True if the file this Status references can be deleted.
@@ -179,6 +190,19 @@ public class StatusUtil {
       return Long.MAX_VALUE == status.getBegin();
     } else {
       return status.getBegin() >= status.getEnd();
+    }
+  }
+
+  /**
+   * Given the {@link Status}, is there replication work to be done
+   * @param status Status for a file
+   * @return true if replication work is required
+   */
+  public static boolean isWorkRequired(Status status) {
+    if (status.getInfiniteEnd()) {
+      return Long.MAX_VALUE == status.getBegin();
+    } else {
+      return status.getBegin() < status.getEnd();
     }
   }
 }
