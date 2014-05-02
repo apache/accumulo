@@ -378,7 +378,11 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           public void run() {
             try {
               log.info("Starting to upgrade !METADATA table.");
-              MetadataTableUtil.moveMetaDeleteMarkers(instance, SystemCredentials.get());
+              if (accumuloPersistentVersion == ServerConstants.TWO_VERSIONS_AGO) {
+                MetadataTableUtil.moveMetaDeleteMarkersFrom14(instance, SystemCredentials.get());
+              } else {
+                MetadataTableUtil.moveMetaDeleteMarkers(instance, SystemCredentials.get());
+              }
               log.info("Updating persistent data version.");
               Accumulo.updateAccumuloVersion(fs, accumuloPersistentVersion);
               log.info("Upgrade complete");
