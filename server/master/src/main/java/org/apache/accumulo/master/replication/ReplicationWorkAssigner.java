@@ -215,11 +215,12 @@ public class ReplicationWorkAssigner implements Runnable {
         if (StatusUtil.isWorkRequired(status)) {
           Path p = new Path(file);
           String filename = p.getName();
+          entry.getKey().getColumnQualifier(buffer);
+          String key = filename + "|" + buffer;
 
           // And, we haven't already queued this file up for work already
-          if (!queuedWork.contains(filename)) {
-            entry.getKey().getColumnQualifier(buffer);
-            queueWork(file, filename, buffer);
+          if (!queuedWork.contains(key)) {
+            queueWork(key, file);
           }
         }
       }
@@ -238,10 +239,9 @@ public class ReplicationWorkAssigner implements Runnable {
    * @param filename
    *          Filename
    */
-  protected void queueWork(String path, String filename, Text serializedTarget) {
+  protected void queueWork(String key, String path) {
     try {
-      String key = filename + "|" + serializedTarget;
-      workQueue.addWork(key, path.getBytes(StandardCharsets.UTF_8));
+      workQueue.addWork(key, path);
       queuedWork.add(key);
     } catch (KeeperException | InterruptedException e) {
       log.warn("Could not queue work for {}", path, e);
@@ -252,11 +252,12 @@ public class ReplicationWorkAssigner implements Runnable {
    * Iterate over the queued work to remove entries that have been completed.
    */
   protected void cleanupFinishedWork() {
-    Iterator<String> work = queuedWork.iterator();
+    final Iterator<String> work = queuedWork.iterator();
+    final String instanceId = master.getInstance().getInstanceID();
     while (work.hasNext()) {
       String filename = work.next();
       // Null equates to the work was finished
-      if (null == zooCache.get(ZooUtil.getRoot(master.getInstance()) + Constants.ZREPLICATION + "/" + filename)) {
+      if (null == zooCache.get(ZooUtil.getRoot(instanceId) + Constants.ZREPLICATION + "/" + filename)) {
         work.remove();
       }
     }

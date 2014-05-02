@@ -20,16 +20,20 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Mutation;
@@ -41,6 +45,7 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
+import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
@@ -79,12 +84,13 @@ public class ReplicationWorkAssignerTest {
     assigner.setWorkQueue(workQueue);
 
     Path p = new Path("/accumulo/wal/tserver+port/" + UUID.randomUUID());
-    assigner.queueWork(p.toString(), p.getName(), serializedTarget);
     
-    workQueue.addWork(p.getName(), p.toString().getBytes(StandardCharsets.UTF_8));
+    workQueue.addWork(p.getName() + "|" + serializedTarget.toString(), p.toString());
     expectLastCall().once();
 
     replay(workQueue);
+
+    assigner.queueWork(p.getName() + "|" + serializedTarget, p.toString());
 
     Assert.assertEquals(1, queuedWork.size());
     Assert.assertEquals(p.getName() + "|" + serializedTarget, queuedWork.iterator().next());
@@ -101,6 +107,8 @@ public class ReplicationWorkAssignerTest {
 
     assigner.setWorkQueue(workQueue);
     assigner.initializeQueuedWork();
+
+    verify(workQueue);
 
     Set<String> queuedWork = assigner.getQueuedWork();
     Assert.assertEquals("Expected existing work and queued work to be the same size", existingWork.size(), queuedWork.size());
@@ -141,28 +149,34 @@ public class ReplicationWorkAssignerTest {
     @SuppressWarnings("unchecked")
     HashSet<String> queuedWork = createMock(HashSet.class);
     assigner.setQueuedWork(queuedWork);
+    assigner.setWorkQueue(workQueue);
+    assigner.setMaxQueueSize(Integer.MAX_VALUE);
 
     expect(queuedWork.size()).andReturn(0).anyTimes();
 
     // Make sure we expect the invocations in the correct order (accumulo is sorted)
     if (file1.compareTo(file2) <= 0) {
       String key = filename1 + "|" + serializedTarget1;
-      workQueue.addWork(key, file1.getBytes(StandardCharsets.UTF_8));
+      expect(queuedWork.contains(key)).andReturn(false);
+      workQueue.addWork(key, file1);
       expectLastCall().once();
       expect(queuedWork.add(key)).andReturn(true).once();
       
       key = filename2 + "|" + serializedTarget2;
-      workQueue.addWork(key, file2.getBytes(StandardCharsets.UTF_8));
+      expect(queuedWork.contains(key)).andReturn(false);
+      workQueue.addWork(key, file2);
       expectLastCall().once();
       expect(queuedWork.add(key)).andReturn(true).once();
     } else {
       String key = filename2 + "|" + serializedTarget2;
-      workQueue.addWork(key, file2.getBytes(StandardCharsets.UTF_8));
+      expect(queuedWork.contains(key)).andReturn(false);
+      workQueue.addWork(key, file2);
       expectLastCall().once();
       expect(queuedWork.add(key)).andReturn(true).once();
 
       key = filename1 + "|" + serializedTarget1;
-      workQueue.addWork(key, file1.getBytes(StandardCharsets.UTF_8));
+      expect(queuedWork.contains(key)).andReturn(false);
+      workQueue.addWork(key, file1);
       expectLastCall().once();
       expect(queuedWork.add(key)).andReturn(true).once();
     }
@@ -170,6 +184,8 @@ public class ReplicationWorkAssignerTest {
     replay(queuedWork, workQueue);
 
     assigner.createWork();
+
+    verify(queuedWork, workQueue);
   }
 
   @Test
@@ -192,6 +208,7 @@ public class ReplicationWorkAssignerTest {
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     String filename1 = UUID.randomUUID().toString(), filename2 = UUID.randomUUID().toString();
     String file1 = "/accumulo/wal/tserver+port/" + filename1, file2 = "/accumulo/wal/tserver+port/" + filename2;
+
     Mutation m = new Mutation(file1);
     WorkSection.add(m, serializedTarget1, StatusUtil.newFileValue());
     bw.addMutation(m);
@@ -206,12 +223,78 @@ public class ReplicationWorkAssignerTest {
     @SuppressWarnings("unchecked")
     HashSet<String> queuedWork = createMock(HashSet.class);
     assigner.setQueuedWork(queuedWork);
+    assigner.setMaxQueueSize(Integer.MAX_VALUE);
 
-    expect(queuedWork.size()).andReturn(0).anyTimes();
+    expect(queuedWork.size()).andReturn(0).times(2);
 
     replay(queuedWork, workQueue);
 
     assigner.createWork();
+    
+    verify(queuedWork, workQueue);
   }
 
+  @Test
+  public void workNotInZooKeeperIsCleanedUp() {
+    Set<String> queuedWork = new LinkedHashSet<>(Arrays.asList("wal1", "wal2"));
+    assigner.setQueuedWork(queuedWork);
+
+    Instance inst = createMock(Instance.class);
+    ZooCache cache = createMock(ZooCache.class);
+    assigner.setZooCache(cache);
+
+    expect(master.getInstance()).andReturn(inst);
+    expect(inst.getInstanceID()).andReturn("id");
+    expect(cache.get(Constants.ZROOT + "/id" + Constants.ZREPLICATION + "/wal1")).andReturn(null);
+    expect(cache.get(Constants.ZROOT + "/id" + Constants.ZREPLICATION + "/wal2")).andReturn(null);
+
+    replay(cache, inst, master);
+
+    assigner.cleanupFinishedWork();
+
+    verify(cache, inst, master);
+    Assert.assertTrue("Queued work was not emptied", queuedWork.isEmpty());
+  }
+
+  @Test
+  public void workNotReAdded() throws Exception  {
+    Set<String> queuedWork = new HashSet<>();
+
+    assigner.setQueuedWork(queuedWork);
+
+    ReplicationTarget target = new ReplicationTarget("cluster1", "table1"); 
+    Text serializedTarget = ReplicationTarget.toText(target);
+
+    queuedWork.add("wal1|" + serializedTarget.toString());
+
+    MockInstance inst = new MockInstance(test.getMethodName());
+    Credentials creds = new Credentials("root", new PasswordToken(""));
+    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
+
+    // Set the connector
+    assigner.setConnector(conn);
+
+    // Create and grant ourselves write to the replication table
+    ReplicationTable.create(conn);
+    conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
+
+    // Create two mutations, both of which need replication work done
+    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    String file1 = "/accumulo/wal/tserver+port/wal1";
+    Mutation m = new Mutation(file1);
+    WorkSection.add(m, serializedTarget, StatusUtil.openWithUnknownLengthValue());
+    bw.addMutation(m);
+
+    bw.close();
+
+    DistributedWorkQueue workQueue = createMock(DistributedWorkQueue.class);
+    assigner.setWorkQueue(workQueue);
+    assigner.setMaxQueueSize(Integer.MAX_VALUE);
+
+    replay(workQueue);
+    
+    assigner.createWork();
+
+    verify(workQueue);
+  }
 }
