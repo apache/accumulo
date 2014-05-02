@@ -25,7 +25,6 @@
 
 <skip_packages>
   org.apache.accumulo.core.client.impl
-  org.apache.accumulo.core.client.mock
   org.apache.accumulo.core.data.thrift
 </skip_packages>
 

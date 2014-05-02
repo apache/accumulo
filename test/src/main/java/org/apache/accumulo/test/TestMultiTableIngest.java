@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.hadoop.io.Text;
 
@@ -51,6 +52,9 @@ public class TestMultiTableIngest {
   private static void readBack(Opts opts, ScannerOpts scanOpts, Connector conn, List<String> tableNames) throws Exception {
     int i = 0;
     for (String table : tableNames) {
+      // wait for table to exist
+      while (!conn.tableOperations().exists(table))
+        UtilWaitThread.sleep(100);
       Scanner scanner = conn.createScanner(table, opts.auths);
       scanner.setBatchSize(scanOpts.scanBatchSize);
       int count = i;

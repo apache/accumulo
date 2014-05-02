@@ -27,46 +27,43 @@ import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 
-/**
- * 
- */
-public class MockInstanceOperations implements InstanceOperations {
+class MockInstanceOperations implements InstanceOperations {
   MockAccumulo acu;
-  
+
   public MockInstanceOperations(MockAccumulo acu) {
     this.acu = acu;
   }
-  
+
   @Override
   public void setProperty(String property, String value) throws AccumuloException, AccumuloSecurityException {
     acu.setProperty(property, value);
   }
-  
+
   @Override
   public void removeProperty(String property) throws AccumuloException, AccumuloSecurityException {
     acu.removeProperty(property);
   }
-  
+
   @Override
   public Map<String,String> getSystemConfiguration() throws AccumuloException, AccumuloSecurityException {
     return acu.systemProperties;
   }
-  
+
   @Override
   public Map<String,String> getSiteConfiguration() throws AccumuloException, AccumuloSecurityException {
     return acu.systemProperties;
   }
-  
+
   @Override
   public List<String> getTabletServers() {
     return new ArrayList<String>();
   }
-  
+
   @Override
   public List<ActiveScan> getActiveScans(String tserver) throws AccumuloException, AccumuloSecurityException {
     return new ArrayList<ActiveScan>();
   }
-  
+
   @Override
   public boolean testClassLoad(String className, String asTypeName) throws AccumuloException, AccumuloSecurityException {
     try {
@@ -77,14 +74,14 @@ public class MockInstanceOperations implements InstanceOperations {
     }
     return true;
   }
-  
+
   @Override
   public List<ActiveCompaction> getActiveCompactions(String tserver) throws AccumuloException, AccumuloSecurityException {
     return new ArrayList<ActiveCompaction>();
   }
-  
+
   @Override
   public void ping(String tserver) throws AccumuloException {
-    
+
   }
 }

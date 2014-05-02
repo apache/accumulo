@@ -38,7 +38,7 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.FindMax;
-import org.apache.accumulo.core.client.admin.TableOperationsHelper;
+import org.apache.accumulo.core.client.impl.TableOperationsHelper;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -60,7 +60,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
-public class MockTableOperations extends TableOperationsHelper {
+class MockTableOperations extends TableOperationsHelper {
   private static final byte[] ZERO = {0};
   private final MockAccumulo acu;
   private final String username;
@@ -373,8 +373,8 @@ public class MockTableOperations extends TableOperationsHelper {
     if (!exists(tableName))
       throw new TableNotFoundException(tableName, tableName, "");
     MockTable t = acu.tables.get(tableName);
-    Text startText = new Text(start);
-    Text endText = new Text(end);
+    Text startText = start != null ? new Text(start) : new Text();
+    Text endText = end != null ? new Text(end) : new Text(t.table.lastKey().getRow().getBytes());
     startText.append(ZERO, 0, 1);
     endText.append(ZERO, 0, 1);
     Set<Key> keep = new TreeSet<Key>(t.table.subMap(new Key(startText), new Key(endText)).keySet());

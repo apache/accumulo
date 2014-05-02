@@ -36,13 +36,13 @@ public class MockShell extends Shell {
   
   protected InputStream in;
   protected OutputStream out;
-  
+
   public MockShell(InputStream in, OutputStream out) throws IOException {
     super();
     this.in = in;
     this.out = out;
   }
-  
+
   public boolean config(String... args) {
     configError = super.config(args);
     
@@ -68,7 +68,7 @@ public class MockShell extends Shell {
     // We always want a MockInstance for this test
     instance = new MockInstance();
   }
-  
+
   public int start() throws IOException {
     if (configError)
       return 1;
@@ -123,7 +123,7 @@ public class MockShell extends Shell {
   public void setConsoleWriter(OutputStream out) {
     this.out = out;
   }
-  
+
   /**
    * Convenience method to create the byte-array to hand to the console
    * 

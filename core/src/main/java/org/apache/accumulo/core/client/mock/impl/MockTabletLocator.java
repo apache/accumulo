@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client.mock;
+package org.apache.accumulo.core.client.mock.impl;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -33,13 +33,13 @@ import org.apache.hadoop.io.Text;
 
 public class MockTabletLocator extends TabletLocator {
   public MockTabletLocator() {}
-  
+
   @Override
   public TabletLocation locateTablet(Credentials credentials, Text row, boolean skipRow, boolean retry) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
     throw new UnsupportedOperationException();
   }
-  
+
   @Override
   public <T extends Mutation> void binMutations(Credentials credentials, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
@@ -48,23 +48,23 @@ public class MockTabletLocator extends TabletLocator {
       tsm.addMutation(new KeyExtent(), m);
     binnedMutations.put("", tsm);
   }
-  
+
   @Override
   public List<Range> binRanges(Credentials credentials, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
     binnedRanges.put("", Collections.singletonMap(new KeyExtent(new Text(), null, null), ranges));
     return Collections.emptyList();
   }
-  
+
   @Override
   public void invalidateCache(KeyExtent failedExtent) {}
-  
+
   @Override
   public void invalidateCache(Collection<KeyExtent> keySet) {}
-  
+
   @Override
   public void invalidateCache() {}
-  
+
   @Override
   public void invalidateCache(String server) {}
 }

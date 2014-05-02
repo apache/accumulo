@@ -25,7 +25,8 @@
 
 <skip_packages>
   org.apache.accumulo.core.client.impl
-  org.apache.accumulo.core.client.mock
+  org.apache.accumulo.core.client.lexicoders.impl
+  org.apache.accumulo.core.client.mapreduce.lib.impl
   org.apache.accumulo.core.data.thrift
   org.apache.accumulo.minicluster.impl
 </skip_packages>

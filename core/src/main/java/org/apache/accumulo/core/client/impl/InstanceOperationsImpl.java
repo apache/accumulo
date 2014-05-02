@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client.admin;
+package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -28,12 +28,10 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.admin.ActiveCompaction;
+import org.apache.accumulo.core.client.admin.ActiveScan;
+import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.impl.ClientExec;
-import org.apache.accumulo.core.client.impl.ClientExecReturn;
-import org.apache.accumulo.core.client.impl.MasterClient;
-import org.apache.accumulo.core.client.impl.ServerClient;
-import org.apache.accumulo.core.client.impl.ServerConfigurationUtil;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.ConfigurationType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
@@ -56,7 +54,7 @@ import org.apache.thrift.transport.TTransportException;
 public class InstanceOperationsImpl implements InstanceOperations {
   private Instance instance;
   private Credentials credentials;
-  
+
   /**
    * @param instance
    *          the connection information for this instance
@@ -69,7 +67,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     this.instance = instance;
     this.credentials = credentials;
   }
-  
+
   @Override
   public void setProperty(final String property, final String value) throws AccumuloException, AccumuloSecurityException {
     checkArgument(property != null, "property is null");
@@ -81,7 +79,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       }
     });
   }
-  
+
   @Override
   public void removeProperty(final String property) throws AccumuloException, AccumuloSecurityException {
     checkArgument(property != null, "property is null");
@@ -92,7 +90,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       }
     });
   }
-  
+
   @Override
   public Map<String,String> getSystemConfiguration() throws AccumuloException, AccumuloSecurityException {
     return ServerClient.execute(instance, new ClientExecReturn<Map<String,String>,ClientService.Client>() {
@@ -102,7 +100,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       }
     });
   }
-  
+
   @Override
   public Map<String,String> getSiteConfiguration() throws AccumuloException, AccumuloSecurityException {
     return ServerClient.execute(instance, new ClientExecReturn<Map<String,String>,ClientService.Client>() {
@@ -112,7 +110,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       }
     });
   }
-  
+
   @Override
   public List<String> getTabletServers() {
     ZooCache cache = ZooCache.getInstance(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
@@ -131,17 +129,17 @@ public class InstanceOperationsImpl implements InstanceOperations {
     }
     return results;
   }
-  
+
   @Override
   public List<ActiveScan> getActiveScans(String tserver) throws AccumuloException, AccumuloSecurityException {
     Client client = null;
     try {
       client = ThriftUtil.getTServerClient(tserver, ServerConfigurationUtil.getConfiguration(instance));
-      
+
       List<ActiveScan> as = new ArrayList<ActiveScan>();
       for (org.apache.accumulo.core.tabletserver.thrift.ActiveScan activeScan : client.getActiveScans(Tracer.traceInfo(), credentials.toThrift(instance))) {
         try {
-          as.add(new ActiveScan(instance, activeScan));
+          as.add(new ActiveScanImpl(instance, activeScan));
         } catch (TableNotFoundException e) {
           throw new AccumuloException(e);
         }
@@ -158,7 +156,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
         ThriftUtil.returnClient(client);
     }
   }
-  
+
   @Override
   public boolean testClassLoad(final String className, final String asTypeName) throws AccumuloException, AccumuloSecurityException {
     return ServerClient.execute(instance, new ClientExecReturn<Boolean,ClientService.Client>() {
@@ -168,17 +166,17 @@ public class InstanceOperationsImpl implements InstanceOperations {
       }
     });
   }
-  
+
   @Override
   public List<ActiveCompaction> getActiveCompactions(String tserver) throws AccumuloException, AccumuloSecurityException {
     Client client = null;
     try {
       client = ThriftUtil.getTServerClient(tserver, ServerConfigurationUtil.getConfiguration(instance));
-      
+
       List<ActiveCompaction> as = new ArrayList<ActiveCompaction>();
       for (org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction activeCompaction : client.getActiveCompactions(Tracer.traceInfo(),
           credentials.toThrift(instance))) {
-        as.add(new ActiveCompaction(instance, activeCompaction));
+        as.add(new ActiveCompactionImpl(instance, activeCompaction));
       }
       return as;
     } catch (TTransportException e) {
@@ -192,7 +190,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
         ThriftUtil.returnClient(client);
     }
   }
-  
+
   @Override
   public void ping(String tserver) throws AccumuloException {
     TTransport transport = null;

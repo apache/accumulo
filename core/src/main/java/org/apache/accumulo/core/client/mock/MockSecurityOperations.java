@@ -30,7 +30,7 @@ import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 
-public class MockSecurityOperations implements SecurityOperations {
+class MockSecurityOperations implements SecurityOperations {
 
   final private MockAccumulo acu;
 

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client.admin;
+package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -62,14 +62,10 @@ import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
-import org.apache.accumulo.core.client.impl.AccumuloServerException;
-import org.apache.accumulo.core.client.impl.ClientExec;
-import org.apache.accumulo.core.client.impl.ClientExecReturn;
-import org.apache.accumulo.core.client.impl.MasterClient;
-import org.apache.accumulo.core.client.impl.ServerClient;
-import org.apache.accumulo.core.client.impl.ServerConfigurationUtil;
-import org.apache.accumulo.core.client.impl.Tables;
-import org.apache.accumulo.core.client.impl.TabletLocator;
+import org.apache.accumulo.core.client.admin.DiskUsage;
+import org.apache.accumulo.core.client.admin.FindMax;
+import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.ClientService.Client;
@@ -146,7 +142,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   /**
    * Retrieve a list of tables in Accumulo.
-   * 
+   *
    * @return List of tables in accumulo
    */
   @Override
@@ -159,7 +155,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   /**
    * A method to check if a table exists in Accumulo.
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @return true if the table exists
@@ -178,7 +174,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   /**
    * Create a table with no special configuration
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @throws AccumuloException
@@ -659,7 +655,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   /**
    * Delete a table
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @throws AccumuloException
@@ -720,7 +716,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   /**
    * Rename a table
-   * 
+   *
    * @param oldTableName
    *          the old table name
    * @param newTableName
@@ -758,7 +754,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   /**
    * Flush a table
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @throws AccumuloException
@@ -882,7 +878,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   /**
    * Sets a property on a table
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @param property
@@ -913,7 +909,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   /**
    * Removes a property from a table
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @param property
@@ -941,7 +937,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   /**
    * Gets properties of a table
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @return all properties visible by this table (system and per-table properties)
@@ -977,7 +973,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   /**
    * Sets a tables locality groups. A tables locality groups can be changed at any time.
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @param groups
@@ -1034,9 +1030,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   /**
-   * 
+   *
    * Gets the locality groups currently set for a table.
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @return mapping of locality group names to column families in the locality group
@@ -1319,7 +1315,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   /**
-   * 
+   *
    * @param tableName
    *          the table to take offline
    * @throws AccumuloException
@@ -1352,7 +1348,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   /**
-   * 
+   *
    * @param tableName
    *          the table to take online
    * @throws AccumuloException
@@ -1380,7 +1376,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   /**
    * Clears the tablet locator cache for a specified table
-   * 
+   *
    * @param tableName
    *          the name of the table
    * @throws TableNotFoundException
@@ -1395,7 +1391,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   /**
    * Get a mapping of table name to internal table id.
-   * 
+   *
    * @return the map from table name to internal table id
    */
   @Override

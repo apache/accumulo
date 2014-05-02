@@ -580,7 +580,7 @@
             <goals>clean deploy</goals>
             <preparationGoals>clean verify</preparationGoals>
             <tagNameFormat>@{project.version}</tagNameFormat>
-            <releaseProfiles>seal-jars</releaseProfiles>
+            <releaseProfiles>seal-jars,skip-findbugs</releaseProfiles>
             <useReleaseProfile>false</useReleaseProfile>
             <pushChanges>false</pushChanges>
             <localCheckout>true</localCheckout>
@@ -908,6 +908,9 @@
         <artifactId>maven-pmd-plugin</artifactId>
         <version>3.1</version>
         <configuration>
+          <excludes>
+            <exclude>**/thrift/*.java</exclude>
+          </excludes>
           <format>html</format>
           <includeTests>true</includeTests>
           <targetJdk>1.7</targetJdk>
@@ -1034,6 +1037,14 @@
         <sealJars>true</sealJars>
         <skipITs>true</skipITs>
         <skipTests>true</skipTests>
+      </properties>
+    </profile>
+    <profile>
+      <!-- Skip findbugs executing when the
+           apache-release profile is activated. -->
+      <id>skip-findbugs</id>
+      <properties>
+        <findbugs.skip>true</findbugs.skip>
       </properties>
     </profile>
     <profile>
