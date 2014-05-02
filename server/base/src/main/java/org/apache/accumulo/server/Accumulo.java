@@ -56,14 +56,18 @@ public class Accumulo {
   private static final Logger log = Logger.getLogger(Accumulo.class);
   
   public static synchronized void updateAccumuloVersion(VolumeManager fs) {
+    updateAccumuloVersion(fs, ServerConstants.PREV_DATA_VERSION);
+  }
+
+  public static synchronized void updateAccumuloVersion(VolumeManager fs, int oldVersion) {
     for (Volume volume : fs.getVolumes()) {
       try {
-        if (getAccumuloPersistentVersion(fs) == ServerConstants.PREV_DATA_VERSION) {
+        if (getAccumuloPersistentVersion(fs) == oldVersion) {
           log.debug("Attempting to upgrade " + volume);
           Path dataVersionLocation = ServerConstants.getDataVersionLocation(volume);
           fs.create(new Path(dataVersionLocation, Integer.toString(ServerConstants.DATA_VERSION))).close();
           // TODO document failure mode & recovery if FS permissions cause above to work and below to fail ACCUMULO-2596
-          Path prevDataVersionLoc = new Path(dataVersionLocation, Integer.toString(ServerConstants.PREV_DATA_VERSION));
+          Path prevDataVersionLoc = new Path(dataVersionLocation, Integer.toString(oldVersion));
           if (!fs.delete(prevDataVersionLoc)) {
             throw new RuntimeException("Could not delete previous data version location (" + prevDataVersionLoc + ") for " + volume);
           }
@@ -176,7 +180,7 @@ public class Accumulo {
     Accumulo.waitForZookeeperAndHdfs(fs);
     
     Version codeVersion = new Version(Constants.VERSION);
-    if (dataVersion != ServerConstants.DATA_VERSION && dataVersion != ServerConstants.PREV_DATA_VERSION) {
+    if (dataVersion != ServerConstants.DATA_VERSION && dataVersion != ServerConstants.PREV_DATA_VERSION && dataVersion != ServerConstants.TWO_VERSIONS_AGO) {
       throw new RuntimeException("This version of accumulo (" + codeVersion + ") is not compatible with files stored using data version " + dataVersion);
     }
     

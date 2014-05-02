@@ -349,7 +349,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   private void upgradeMetadata() {
     // we make sure we're only doing the rest of this method once so that we can signal to other threads that an upgrade wasn't needed.
     if (upgradeMetadataRunning.compareAndSet(false, true)) {
-      if (Accumulo.getAccumuloPersistentVersion(fs) == ServerConstants.PREV_DATA_VERSION) {
+      final int accumuloPersistentVersion = Accumulo.getAccumuloPersistentVersion(fs);
+      if (accumuloPersistentVersion == ServerConstants.TWO_VERSIONS_AGO || accumuloPersistentVersion == ServerConstants.PREV_DATA_VERSION) {
         // sanity check that we passed the Fate verification prior to ZooKeeper upgrade, and that Fate still hasn't been started.
         // Change both to use Guava's Verify once we use Guava 17.
         if (!haveUpgradedZooKeeper) {
@@ -365,7 +366,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
               log.info("Starting to upgrade !METADATA table.");
               MetadataTableUtil.moveMetaDeleteMarkers(instance, SystemCredentials.get());
               log.info("Updating persistent data version.");
-              Accumulo.updateAccumuloVersion(fs);
+              Accumulo.updateAccumuloVersion(fs, accumuloPersistentVersion);
               log.info("Upgrade complete");
               waitForMetadataUpgrade.countDown();
             } catch (Exception ex) {
