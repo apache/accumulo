@@ -222,6 +222,7 @@ import org.apache.accumulo.tserver.metrics.TabletServerMBean;
 import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerUpdateMetrics;
+import org.apache.accumulo.tserver.replication.ReplicationWorker;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.fs.FSError;
 import org.apache.hadoop.fs.FileSystem;
@@ -257,6 +258,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
   private ServerConfiguration serverConfig;
   private LogSorter logSorter = null;
+  private ReplicationWorker replWorker = null;
 
   public TabletServer(ServerConfiguration conf, VolumeManager fs) {
     super();
@@ -265,6 +267,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     this.fs = fs;
     AccumuloConfiguration aconf = getSystemConfiguration();
     this.logSorter = new LogSorter(instance, fs, aconf);
+    this.replWorker = new ReplicationWorker(instance, fs, aconf);
     SimpleTimer.getInstance(aconf).schedule(new Runnable() {
       @Override
       public void run() {
@@ -3200,6 +3203,10 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       log.error("Error setting watches for recoveries");
       throw new RuntimeException(ex);
     }
+
+    ThreadPoolExecutor replicationThreadPool = new SimpleThreadPool(getSystemConfiguration().getCount(Property.REPLICATION_WORKER_THREADS), "replication task");
+    replWorker.setExecutor(replicationThreadPool);
+    replWorker.run();
 
     try {
       OBJECT_NAME = new ObjectName("accumulo.server.metrics:service=TServerInfo,name=TabletServerMBean,instance=" + Thread.currentThread().getName());

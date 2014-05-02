@@ -16,23 +16,22 @@
  */
 package org.apache.accumulo.tserver.replication;
 
-import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.tabletserver.thrift.ReplicationFailedException;
-import org.apache.accumulo.core.tabletserver.thrift.TabletServerReplicationService.Iface;
-import org.apache.accumulo.trace.thrift.TInfo;
-import org.apache.thrift.TException;
+import org.apache.accumulo.server.zookeeper.DistributedWorkQueue.Processor;
 
 /**
  * 
  */
-public class TabletServerReplication implements Iface {
+public class ReplicationProcessor implements Processor {
 
   @Override
-  public boolean replicateData(TInfo tinfo, TCredentials credentials, String file, long offset, long count) throws ThriftSecurityException,
-      ReplicationFailedException, TException {
+  public ReplicationProcessor newProcessor() {
+    return new ReplicationProcessor();
+  }
+
+  @Override
+  public void process(String workID, byte[] data) {
     // TODO Auto-generated method stub
-    return false;
+
   }
 
 }
