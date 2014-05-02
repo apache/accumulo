@@ -274,7 +274,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     // introduce unnecessary complexity to try to make the master do it), but be aware
     // that the master is not the only thing that may alter zookeeper before starting.
 
-    if (Accumulo.getAccumuloPersistentVersion(fs) == ServerConstants.PREV_DATA_VERSION) {
+    final int accumuloPersistentVersion = Accumulo.getAccumuloPersistentVersion(fs);
+    if (accumuloPersistentVersion == ServerConstants.TWO_VERSIONS_AGO || accumuloPersistentVersion == ServerConstants.PREV_DATA_VERSION) {
       // This Master hasn't started Fate yet, so any outstanding transactions must be from before the upgrade.
       // Change to Guava's Verify once we use Guava 17.
       if (null != fate) {
@@ -285,6 +286,19 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         log.info("Upgrading zookeeper");
 
         IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+        final String zooRoot = ZooUtil.getRoot(instance);
+
+        if (accumuloPersistentVersion == ServerConstants.TWO_VERSIONS_AGO) {
+          zoo.recursiveDelete(zooRoot + "/loggers", NodeMissingPolicy.SKIP);
+          zoo.recursiveDelete(zooRoot + "/dead/loggers", NodeMissingPolicy.SKIP);
+
+          final byte[] zero = new byte[] {'0'};
+          zoo.putPersistentData(zooRoot + Constants.ZRECOVERY, zero, NodeExistsPolicy.SKIP);
+
+          for (String id : Tables.getIdToNameMap(instance).keySet()) {
+            zoo.putPersistentData(zooRoot + Constants.ZTABLES + "/" + id + Constants.ZTABLE_COMPACT_CANCEL_ID, zero, NodeExistsPolicy.SKIP);
+          }
+        }
 
         // create initial namespaces
         String namespaces = ZooUtil.getRoot(instance) + Constants.ZNAMESPACES;
