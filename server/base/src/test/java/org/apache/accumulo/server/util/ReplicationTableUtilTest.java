@@ -20,6 +20,7 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -87,6 +88,8 @@ public class ReplicationTableUtilTest {
 
     ReplicationTableUtil.updateFiles(creds, new KeyExtent(new Text("1"), null, null), Collections.singleton(myFile), StatusUtil.newFile());
 
+    verify(writer);
+
     Assert.assertEquals(1, mutations.size());
     Mutation m = mutations.get(0);
 
@@ -141,5 +144,7 @@ public class ReplicationTableUtilTest {
     replay(conn, tops);
 
     ReplicationTableUtil.configureMetadataTable(conn, myMetadataTable);
+
+    verify(conn, tops);
   }
 }
