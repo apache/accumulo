@@ -388,7 +388,9 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
         Text expectedColqual = ReplicationTarget.toText(new ReplicationTarget("cluster1", "4"));
         Assert.assertEquals(expectedColqual, e.getKey().getColumnQualifier());
         notFound = false;
-      } catch (NoSuchElementException e) {} catch (IllegalArgumentException e) {
+      } catch (NoSuchElementException e) {
+
+      } catch (IllegalArgumentException e) {
         s = ReplicationTable.getScanner(conn);
         for (Entry<Key,Value> content : s) {
           log.info(content.getKey().toStringNoTruncate() + " => " + content.getValue());
@@ -441,6 +443,34 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
     for (@SuppressWarnings("unused")
     Entry<Key,Value> entry : s) {}
 
+    // Wait for a bit since the GC has to run (should be running after a one second delay)
+    Thread.sleep(5000);
+
+    // Need to make sure we get the entries in metadata
+    boolean foundResults = false;
+    for (int i = 0; i < 5 && !foundResults; i++) {
+      s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+      s.setRange(ReplicationSection.getRange());
+      if (Iterables.size(s) > 0) {
+        foundResults = true;
+      }
+      Thread.sleep(1000);
+    }
+
+    Assert.assertTrue("Did not find any replication entries in the metadata table", foundResults);
+
+    // Then we need to get those records over to the replication table
+    foundResults = false;
+    for (int i = 0; i < 5 && !foundResults; i++) {
+      s = ReplicationTable.getScanner(conn);
+      if (Iterables.size(s) > 0) {
+        foundResults = true;
+      }
+      Thread.sleep(1000);
+    }
+
+    Assert.assertTrue("Did nto find any replication entries in the replication table", foundResults);
+
     /**
      * After recovery completes, we should have unreplicated, closed Status messages. The close happens at the beginning of log recovery.
      */
@@ -458,6 +488,7 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
 
       builder.setBegin(Long.MAX_VALUE).setEnd(status.getEnd()).setClosed(status.getClosed()).setInfiniteEnd(status.getInfiniteEnd());
 
+      log.info("Writing update to replication to " + k);
       Mutation m = new Mutation(k.getRow());
       m.put(k.getColumnFamily(), k.getColumnQualifier(), ProtobufUtil.toValue(builder.build()));
       bw.addMutation(m);
