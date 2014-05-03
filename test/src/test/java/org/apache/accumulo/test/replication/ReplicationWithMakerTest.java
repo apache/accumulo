@@ -32,6 +32,7 @@ import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
@@ -282,12 +283,18 @@ public class ReplicationWithMakerTest extends ConfigurableMacIT {
     attempts = 5;
     do {
       if (!exists) {
-        UtilWaitThread.sleep(200);
+        UtilWaitThread.sleep(500);
         exists = conn.tableOperations().exists(ReplicationTable.NAME);
         attempts--;
       }
     } while (!exists && attempts > 0);
     Assert.assertTrue("Replication table did not exist", exists);
+
+    for (int i = 0; i < 5 && !conn.securityOperations().hasTablePermission("root", ReplicationTable.NAME, TablePermission.READ); i++) {
+      Thread.sleep(1000);
+    }
+
+    Assert.assertTrue(conn.securityOperations().hasTablePermission("root", ReplicationTable.NAME, TablePermission.READ));
 
     boolean notFound = true;
     Scanner s;
