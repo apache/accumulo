@@ -117,8 +117,8 @@ public class RemoveCompleteReplicationRecords implements Runnable {
    * when that {@link Status} is fully replicated and closed, as defined by {@link StatusUtil#isSafeForRemoval(Status)}.
    * @param conn A Connector
    * @param bs A BatchScanner to read replication status records from
-   * @param bw A BatchWriter to write deletes to the metadata table
-   * @param bw A BatchWriter to write deletes to the replication table
+   * @param metaBw A BatchWriter to write deletes to the metadata table
+   * @param replBw A BatchWriter to write deletes to the replication table
    * @return Number of records removed
    */
   protected long removeCompleteRecords(Connector conn, BatchScanner bs, BatchWriter metaBw, BatchWriter replBw) {
@@ -148,6 +148,8 @@ public class RemoveCompleteReplicationRecords implements Runnable {
 
         log.debug("Issuing delete for {}", k.toStringNoTruncate());
 
+        // *Must* delete from metadata table first, otherwise we risk re-creating the 
+        // record in the replication table and double-replicating the data
         Mutation metaMutation = new Mutation(ReplicationSection.getRowPrefix() + row.toString());
         metaMutation.putDelete(ReplicationSection.COLF, colq);
         try {
