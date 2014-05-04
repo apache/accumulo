@@ -46,7 +46,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class RemoteReplication {
+@SuppressWarnings("all") public class RemoteReplicationServicer {
 
   public interface Iface {
 

@@ -460,6 +460,8 @@ public enum Property {
   REPLICATION_WORK_ASSIGNMENT_SLEEP("replication.work.assignment.sleep", "30s", PropertyType.TIMEDURATION, "Amount of time to sleep between replication work assignment"),
   @Experimental
   REPLICATION_WORKER_THREADS("replication.worker.threads", "4", PropertyType.COUNT, "Size of the threadpool that each tabletserver devotes to replicating data"),
+  @Experimental
+  REPLICATION_RECEIPT_SERVICE_PORT("replication.receipt.service.port", "1001", PropertyType.PORT, "Listen port used by thrift service in tserver listening for replication"),
 
   ;
 
