@@ -461,7 +461,7 @@ public enum Property {
   @Experimental
   REPLICATION_WORKER_THREADS("replication.worker.threads", "4", PropertyType.COUNT, "Size of the threadpool that each tabletserver devotes to replicating data"),
   @Experimental
-  REPLICATION_RECEIPT_SERVICE_PORT("replication.receipt.service.port", "1001", PropertyType.PORT, "Listen port used by thrift service in tserver listening for replication"),
+  REPLICATION_RECEIPT_SERVICE_PORT("replication.receipt.service.port", "10001", PropertyType.PORT, "Listen port used by thrift service in tserver listening for replication"),
 
   ;
 
