@@ -44,6 +44,8 @@ public class ConfigurableMacIT extends AbstractMacIT {
 
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {}
 
+  public void beforeClusterStart(MiniAccumuloConfigImpl cfg) throws Exception {}
+
   @Before
   public void setUp() throws Exception {
     MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(
@@ -63,6 +65,7 @@ public class ConfigurableMacIT extends AbstractMacIT {
       coreSite.writeXml(out);
       out.close();
     }
+    beforeClusterStart(cfg);
     cluster.start();
   }
 
