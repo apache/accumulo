@@ -112,6 +112,35 @@ public class Accumulo {
     }
   }
   
+  /**
+   * Finds the best log4j configuration file. A generic file is used only if an
+   * application-specific file is not available. An XML file is preferred over
+   * a properties file, if possible.
+   *
+   * @param confDir directory where configuration files should reside
+   * @param application application name for configuration file name
+   * @return configuration file name
+   */
+  static String locateLogConfig(String confDir, String application) {
+    String explicitConfigFile = System.getProperty("log4j.configuration");
+    if (explicitConfigFile != null) {
+      return explicitConfigFile;
+    }
+    String[] configFiles = {
+      String.format("%s/%s_logger.xml", confDir, application),
+      String.format("%s/%s_logger.properties", confDir, application),
+      String.format("%s/generic_logger.xml", confDir),
+      String.format("%s/generic_logger.properties", confDir)
+    };
+    String defaultConfigFile = configFiles[2];  // generic_logger.xml
+    for (String f : configFiles) {
+      if (new File(f).exists()) {
+        return f;
+      }
+    }
+    return defaultConfigFile;
+  }
+
   public static void init(VolumeManager fs, ServerConfiguration config, String application) throws UnknownHostException {
     
     System.setProperty("org.apache.accumulo.core.application", application);
@@ -128,11 +157,7 @@ public class Accumulo {
     System.setProperty("org.apache.accumulo.core.host.log.port", Integer.toString(logPort));
     
     // Use a specific log config, if it exists
-    String logConfig = String.format("%s/%s_logger.xml", System.getenv("ACCUMULO_CONF_DIR"), application);
-    if (!new File(logConfig).exists()) {
-      // otherwise, use the generic config
-      logConfig = String.format("%s/generic_logger.xml", System.getenv("ACCUMULO_CONF_DIR"));
-    }
+    String logConfig = locateLogConfig(System.getenv("ACCUMULO_CONF_DIR"), application);
     // Turn off messages about not being able to reach the remote logger... we protect against that.
     LogLog.setQuietMode(true);
 
@@ -142,7 +167,9 @@ public class Accumulo {
     DOMConfigurator.configureAndWatch(auditConfig, 5000);
 
     // Configure logging using information advertised in zookeeper by the monitor
-    new MonitorLog4jWatcher(config.getInstance().getInstanceID(), logConfig, 5000).start();
+    MonitorLog4jWatcher logConfigWatcher = new MonitorLog4jWatcher(config.getInstance().getInstanceID(), logConfig);
+    logConfigWatcher.setDelay(5000L);
+    logConfigWatcher.start();
 
     log.info(application + " starting");
     log.info("Instance " + config.getInstance().getInstanceID());
