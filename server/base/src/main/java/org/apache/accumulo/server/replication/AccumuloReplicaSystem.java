@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.replication;
+package org.apache.accumulo.server.replication;
 
 import java.nio.ByteBuffer;
 
@@ -24,13 +24,18 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.ClientExecReturn;
 import org.apache.accumulo.core.client.impl.ReplicationClient;
+import org.apache.accumulo.core.client.impl.ServerConfigurationUtil;
 import org.apache.accumulo.core.client.replication.ReplicaSystem;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer.Client;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.hadoop.fs.Path;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
@@ -62,11 +67,16 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
   @Override
   public Status replicate(Path p, Status status, ReplicationTarget target) {
+    Instance localInstance = HdfsZooInstance.getInstance();
+    AccumuloConfiguration localConf = ServerConfigurationUtil.getConfiguration(localInstance);
+    
     Instance peerInstance = getPeerInstance(target);
     // Remote identifier is an integer (table id) in this case.
     final int remoteTableId = Integer.parseInt(target.getRemoteIdentifier());
 
-    for (int i = 0; i < 10; i++) {
+    // Attempt the replication of this status a number of times before giving up and
+    // trying to replicate it again later some other time.
+    for (int i = 0; i < localConf.getCount(Property.REPLICATION_WORK_ATTEMPTS); i++) {
       String peerTserver;
       try {
         // Ask the master on the remote what TServer we should talk with to replicate the data
@@ -92,10 +102,13 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   
       // We have a tserver on the remote -- send the data its way.
       ByteBuffer result;
+      //TODO should chunk up the given file into some configurable sizes instead of just sending the entire file all at once
+      //     configuration should probably just be size based.
       try {
         result = ReplicationClient.executeServicerWithReturn(peerInstance, peerTserver, new ClientExecReturn<ByteBuffer,ReplicationServicer.Client>() {
           @Override
           public ByteBuffer execute(Client client) throws Exception {
+            //TODO This needs to actually send the appropriate data, and choose replicateLog or replicateKeyValues
             return client.replicateLog(remoteTableId, null);
           }
         });
