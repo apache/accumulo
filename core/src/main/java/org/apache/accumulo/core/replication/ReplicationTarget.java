@@ -31,22 +31,22 @@ import org.apache.hadoop.io.WritableUtils;
  */
 public class ReplicationTarget implements Writable {
 
-  private String remoteName;
+  private String peerName;
   private String remoteIdentifier;
 
   public ReplicationTarget() { }
 
-  public ReplicationTarget(String remoteName, String remoteIdentifier) {
-    this.remoteName = remoteName;
+  public ReplicationTarget(String peerName, String remoteIdentifier) {
+    this.peerName = peerName;
     this.remoteIdentifier = remoteIdentifier;
   }
 
-  public String getRemoteName() {
-    return remoteName;
+  public String getPeerName() {
+    return peerName;
   }
 
-  public void setRemoteName(String remoteName) {
-    this.remoteName = remoteName;
+  public void setPeerName(String peerName) {
+    this.peerName = peerName;
   }
 
   public String getRemoteIdentifier() {
@@ -59,11 +59,11 @@ public class ReplicationTarget implements Writable {
 
   @Override
   public void write(DataOutput out) throws IOException {
-    if (null == remoteName) {
+    if (null == peerName) {
       out.writeBoolean(false);
     } else {
       out.writeBoolean(true);
-      WritableUtils.writeString(out, remoteName);
+      WritableUtils.writeString(out, peerName);
     }
 
     if (null == remoteIdentifier) {
@@ -77,7 +77,7 @@ public class ReplicationTarget implements Writable {
   @Override
   public void readFields(DataInput in) throws IOException {
     if (in.readBoolean()) {
-      this.remoteName = WritableUtils.readString(in);
+      this.peerName = WritableUtils.readString(in);
     }
     if (in.readBoolean()) {
       this.remoteIdentifier = WritableUtils.readString(in);
@@ -87,13 +87,13 @@ public class ReplicationTarget implements Writable {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder(64);
-    sb.append("Remote Name: ").append(remoteName).append(" Remote identifier: ").append(remoteIdentifier);
+    sb.append("Remote Name: ").append(peerName).append(" Remote identifier: ").append(remoteIdentifier);
     return sb.toString();
   }
 
   @Override
   public int hashCode() {
-    return remoteName.hashCode() ^ remoteIdentifier.hashCode();
+    return peerName.hashCode() ^ remoteIdentifier.hashCode();
   }
 
   @Override
@@ -101,7 +101,7 @@ public class ReplicationTarget implements Writable {
     if (o instanceof ReplicationTarget) {
       ReplicationTarget other = (ReplicationTarget) o;
 
-      return remoteName.equals(other.remoteName) && remoteIdentifier.equals(other.remoteIdentifier);
+      return peerName.equals(other.peerName) && remoteIdentifier.equals(other.remoteIdentifier);
     }
 
     return false;
@@ -127,16 +127,34 @@ public class ReplicationTarget implements Writable {
   }
 
   /**
+   * Deserialize a ReplicationTarget
+   * @param s Serialized copy
+   * @return the deserialized version
+   */
+  public static ReplicationTarget from(String s) {
+    ReplicationTarget target = new ReplicationTarget();
+    DataInputBuffer buffer = new DataInputBuffer();
+    buffer.reset(s.getBytes(), s.length());
+
+    try {
+      target.readFields(buffer);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+
+    return target;
+  }
+
+  /**
    * Convenience method to serialize a ReplicationTarget to {@link Text} using the {@link Writable} methods without caring about
    * performance penalties due to excessive object creation
-   * @param target The object to serialize
    * @return The serialized representation of the object
    */
-  public static Text toText(ReplicationTarget target) {
+  public Text toText() {
     DataOutputBuffer buffer = new DataOutputBuffer();
 
     try {
-      target.write(buffer);
+      this.write(buffer);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

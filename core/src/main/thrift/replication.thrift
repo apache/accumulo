@@ -38,11 +38,11 @@ exception RemoteReplicationException {
     2:string reason
 }
 
-service RemoteReplicationCoordinator {
+service ReplicationCoordinator {
 	string getServicerAddress(1:i32 remoteTableId) throws (1:NoServersAvailableException e),
 }
 
-service RemoteReplicationServicer {
-    void replicateLog(1:i32 remoteTableId, 2:WalEdits data) throws (1:RemoteReplicationException e),
-    void replicateKeyValues(1:i32 remoteTableId, 2:KeyValues data) throws (1:RemoteReplicationException e)
+service ReplicationServicer {
+    binary replicateLog(1:i32 remoteTableId, 2:WalEdits data) throws (1:RemoteReplicationException e),
+    binary replicateKeyValues(1:i32 remoteTableId, 2:KeyValues data) throws (1:RemoteReplicationException e)
 }

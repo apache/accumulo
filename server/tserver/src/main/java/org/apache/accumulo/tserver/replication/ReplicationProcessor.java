@@ -16,22 +16,146 @@
  */
 package org.apache.accumulo.tserver.replication;
 
+import java.io.IOException;
+import java.util.Map;
+
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.replication.ReplicaSystem;
+import org.apache.accumulo.core.client.replication.ReplicaSystemFactory;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.protobuf.ProtobufUtil;
+import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
+import org.apache.accumulo.core.replication.ReplicationTarget;
+import org.apache.accumulo.core.replication.StatusUtil;
+import org.apache.accumulo.core.replication.proto.Replication.Status;
+import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.replication.ReplicationTable;
+import org.apache.accumulo.server.replication.ReplicationWorkAssignerHelper;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue.Processor;
+import org.apache.hadoop.fs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Iterables;
+import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
- * 
+ * Transmit the given data to a peer
  */
 public class ReplicationProcessor implements Processor {
+  private static final Logger log = LoggerFactory.getLogger(ReplicationProcessor.class);
+
+  private Instance inst;
+  private AccumuloConfiguration conf;
+  private VolumeManager fs;
+  private Credentials creds;
+
+  public ReplicationProcessor(Instance inst, AccumuloConfiguration conf, VolumeManager fs) {
+    this.conf = conf;
+    this.fs = fs;
+    creds = SystemCredentials.get();
+  }
 
   @Override
   public ReplicationProcessor newProcessor() {
-    return new ReplicationProcessor();
+    return new ReplicationProcessor(inst, conf, fs);
   }
 
   @Override
   public void process(String workID, byte[] data) {
-    // TODO Auto-generated method stub
+    ReplicationTarget target = ReplicationWorkAssignerHelper.fromQueueKey(workID).getValue();
+    String file = new String(data);
 
+    // Find the configured replication peer so we know how to replicate to it
+    Map<String,String> configuredPeers = conf.getAllPropertiesWithPrefix(Property.REPLICATION_PEERS);
+    String peerType = configuredPeers.get(target.getPeerName());
+    if (null == peerType) {
+      String msg = "Cannot process replication for unknown peer: " +  target.getPeerName();
+      log.warn(msg);
+      throw new IllegalArgumentException(msg);
+    }
+
+    // Get the peer that we're replicating to
+    ReplicaSystem replica = ReplicaSystemFactory.get(peerType);
+    Status status;
+    try {
+      status = getStatus(file, target);
+    } catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
+      log.error("Could not look for necessary replication record", e);
+      throw new IllegalStateException("Could not look for replication record", e);
+    } catch (InvalidProtocolBufferException e) {
+      log.error("Could not deserialize Status from Work section for {} and ", file, target);
+      throw new RuntimeException("Could not parse Status for work record", e);
+    }
+
+    // We don't need to do anything (shouldn't have gotten this work record in the first place)
+    if (!StatusUtil.isWorkRequired(status)) {
+      log.info("Received work request for {} and {}, but it does not need replication. Ignoring...", file, target);
+      return;
+    }
+
+    // Sanity check that nothing bad happened and our replication source still exists
+    Path filePath = new Path(file);
+    try {
+      if (!fs.exists(filePath)) {
+        log.warn("Received work request for {} and {}, but the file doesn't exist", filePath, target);
+        return;
+      }
+    } catch (IOException e) {
+      log.error("Could not determine if file exists {}", filePath, e);
+      throw new RuntimeException(e);
+    }
+
+    // Replicate that sucker
+    Status replicatedStatus = replica.replicate(filePath, status, target);
+
+    // If we got a different status
+    if (!replicatedStatus.equals(status)) {
+      // We actually did some work!
+      recordNewStatus(filePath, replicatedStatus, target);
+    }
+
+    // otherwise, we didn't actually replicate because there was error sending the data
+    // we can just not record any updates, and it will be picked up again by the work assigner
   }
 
+  public Status getStatus(String file, ReplicationTarget target) throws TableNotFoundException, AccumuloException, AccumuloSecurityException, InvalidProtocolBufferException {
+    Scanner s = ReplicationTable.getScanner(inst.getConnector(creds.getPrincipal(), creds.getToken()));
+    s.setRange(Range.exact(file));
+    s.fetchColumn(WorkSection.NAME, target.toText());
+    
+    return Status.parseFrom(Iterables.getOnlyElement(s).getValue().get());
+  }
+
+  /**
+   * Record the updated Status for this file and target
+   * @param filePath Path to file being replicated
+   * @param status Updated Status after replication
+   * @param target Peer that was replicated to
+   */
+  public void recordNewStatus(Path filePath, Status status, ReplicationTarget target) {
+    try {
+      Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
+      BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+      Mutation m = new Mutation(filePath.toString());
+      WorkSection.add(m, target.toText(), ProtobufUtil.toValue(status));
+      bw.addMutation(m);
+      bw.close();
+    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
+      log.error("Error recording updated Status for {}", filePath, e);
+      throw new RuntimeException(e);
+    }
+    
+  }
 }

@@ -22,7 +22,6 @@ import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -76,7 +75,7 @@ public class ReplicationWorkAssignerTest {
   @Test
   public void workQueuedUsingFileName() throws Exception {
     ReplicationTarget target = new ReplicationTarget("cluster1", "table1"); 
-    Text serializedTarget = ReplicationTarget.toText(target);
+    Text serializedTarget = target.toText();
 
     DistributedWorkQueue workQueue = createMock(DistributedWorkQueue.class);
     Set<String> queuedWork = new HashSet<>();
@@ -118,7 +117,7 @@ public class ReplicationWorkAssignerTest {
   @Test
   public void createWorkForFilesNeedingIt() throws Exception {
     ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1"), target2 = new ReplicationTarget("cluster1", "table2"); 
-    Text serializedTarget1 = ReplicationTarget.toText(target1), serializedTarget2 = ReplicationTarget.toText(target2);
+    Text serializedTarget1 = target1.toText(), serializedTarget2 = target2.toText();
 
     MockInstance inst = new MockInstance(test.getMethodName());
     Credentials creds = new Credentials("root", new PasswordToken(""));
@@ -191,7 +190,7 @@ public class ReplicationWorkAssignerTest {
   @Test
   public void doNotCreateWorkForFilesNotNeedingIt() throws Exception {
     ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1"), target2 = new ReplicationTarget("cluster1", "table2"); 
-    Text serializedTarget1 = ReplicationTarget.toText(target1), serializedTarget2 = ReplicationTarget.toText(target2);
+    Text serializedTarget1 = target1.toText(), serializedTarget2 = target2.toText();
 
     MockInstance inst = new MockInstance(test.getMethodName());
     Credentials creds = new Credentials("root", new PasswordToken(""));
@@ -263,7 +262,7 @@ public class ReplicationWorkAssignerTest {
     assigner.setQueuedWork(queuedWork);
 
     ReplicationTarget target = new ReplicationTarget("cluster1", "table1"); 
-    Text serializedTarget = ReplicationTarget.toText(target);
+    Text serializedTarget = target.toText();
 
     queuedWork.add("wal1|" + serializedTarget.toString());
 

@@ -18,6 +18,7 @@ package org.apache.accumulo.core.client;
 
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NamespaceOperations;
+import org.apache.accumulo.core.client.admin.ReplicationOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.security.Authorizations;
@@ -228,4 +229,12 @@ public abstract class Connector {
    * @return an object to modify instance configuration
    */
   public abstract InstanceOperations instanceOperations();
+
+  /**
+   * Retrieves a ReplicationOperations object to manage replication configuration.
+   * 
+   * @return an object to modify replication configuration
+   * @since 1.7.0
+   */
+  public abstract ReplicationOperations replicationOperations();
 }

@@ -303,7 +303,7 @@ public class ReplicationWithMakerTest extends ConfigurableMacIT {
       WorkSection.limit(s);
       try {
         Entry<Key,Value> e = Iterables.getOnlyElement(s);
-        Text expectedColqual = ReplicationTarget.toText(new ReplicationTarget("cluster1", "4"));
+        Text expectedColqual = new ReplicationTarget("cluster1", "4").toText();
         Assert.assertEquals(expectedColqual, e.getKey().getColumnQualifier());
         notFound = false;
       } catch (NoSuchElementException e) {} catch (IllegalArgumentException e) {

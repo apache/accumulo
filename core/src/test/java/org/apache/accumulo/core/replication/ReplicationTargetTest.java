@@ -81,7 +81,18 @@ public class ReplicationTargetTest {
     Text t = new Text();
     t.set(buffer.getData(), 0, buffer.getLength());
 
-    Assert.assertEquals(t, ReplicationTarget.toText(expected));
+    Assert.assertEquals(t, expected.toText());
+  }
+
+  @Test
+  public void staticFromStringHelper() throws Exception {
+    ReplicationTarget expected = new ReplicationTarget("foo", "bar");
+    DataOutputBuffer buffer = new DataOutputBuffer();
+    expected.write(buffer);
+    Text t = new Text();
+    t.set(buffer.getData(), 0, buffer.getLength());
+
+    Assert.assertEquals(expected, ReplicationTarget.from(t.toString()));
   }
 
 }

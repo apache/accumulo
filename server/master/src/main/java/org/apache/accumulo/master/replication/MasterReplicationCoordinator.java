@@ -23,7 +23,7 @@ import java.util.Set;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.replication.thrift.NoServersAvailableException;
-import org.apache.accumulo.core.replication.thrift.RemoteReplicationCoordinator;
+import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.thrift.TException;
@@ -33,7 +33,7 @@ import com.google.common.base.Preconditions;
 /**
  * Choose a tserver to service a replication task
  */
-public class MasterReplicationCoordinator implements RemoteReplicationCoordinator.Iface {
+public class MasterReplicationCoordinator implements ReplicationCoordinator.Iface {
 
   public static enum NoServersAvailable {
     NO_ONLINE_SERVERS

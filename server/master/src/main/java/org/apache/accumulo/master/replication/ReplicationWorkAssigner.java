@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.master.replication;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -38,6 +37,7 @@ import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.replication.ReplicationTable;
+import org.apache.accumulo.server.replication.ReplicationWorkAssignerHelper;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.hadoop.fs.Path;
@@ -215,8 +215,8 @@ public class ReplicationWorkAssigner implements Runnable {
         if (StatusUtil.isWorkRequired(status)) {
           Path p = new Path(file);
           String filename = p.getName();
-          entry.getKey().getColumnQualifier(buffer);
-          String key = filename + "|" + buffer;
+          WorkSection.getTarget(entry.getKey(), buffer);
+          String key = ReplicationWorkAssignerHelper.getQueueKey(filename, buffer.toString());
 
           // And, we haven't already queued this file up for work already
           if (!queuedWork.contains(key)) {
@@ -234,10 +234,10 @@ public class ReplicationWorkAssigner implements Runnable {
   /**
    * Distribute the work for the given path with filename
    * 
+   * @param key
+   *          Unique key to identify this work in the queue
    * @param path
    *          Full path to a file
-   * @param filename
-   *          Filename
    */
   protected void queueWork(String key, String path) {
     try {

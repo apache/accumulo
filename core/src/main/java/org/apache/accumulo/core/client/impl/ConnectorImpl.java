@@ -19,6 +19,7 @@ package org.apache.accumulo.core.client.impl;
 import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
@@ -35,6 +36,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NamespaceOperations;
+import org.apache.accumulo.core.client.admin.ReplicationOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
@@ -51,6 +53,7 @@ public class ConnectorImpl extends Connector {
   private TableOperations tableops = null;
   private NamespaceOperations namespaceops = null;
   private InstanceOperations instanceops = null;
+  private ReplicationOperations replicationops = null;
 
   public ConnectorImpl(final Instance instance, Credentials cred) throws AccumuloException, AccumuloSecurityException {
     checkArgument(instance != null, "instance is null");
@@ -181,5 +184,14 @@ public class ConnectorImpl extends Connector {
       instanceops = new InstanceOperationsImpl(instance, credentials);
 
     return instanceops;
+  }
+
+  @Override
+  public synchronized ReplicationOperations replicationOperations() {
+    if (null == replicationops) {
+      replicationops = new ReplicationOperationsImpl(instance, credentials); 
+    }
+
+    return replicationops;
   }
 }
