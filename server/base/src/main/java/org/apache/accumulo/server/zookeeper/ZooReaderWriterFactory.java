@@ -18,6 +18,7 @@ package org.apache.accumulo.server.zookeeper;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
+import java.nio.charset.Charset;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -31,6 +32,7 @@ import org.apache.accumulo.server.conf.ServerConfiguration;
  * A factory for {@link ZooReaderWriter} objects.
  */
 public class ZooReaderWriterFactory {
+  private static final Charset UTF8 = Charset.forName("UTF-8");
   private static final String SCHEME = "digest";
   private static final String USER = "accumulo";
   private static IZooReaderWriter instance = null;
@@ -48,7 +50,7 @@ public class ZooReaderWriterFactory {
    * @return reader/writer
    */
   public IZooReaderWriter getZooReaderWriter(String string, int timeInMillis, String secret) {
-    return new ZooReaderWriter(string, timeInMillis, SCHEME, (USER + ":" + secret).getBytes(Constants.UTF8));
+    return new ZooReaderWriter(string, timeInMillis, SCHEME, (USER + ":" + secret).getBytes(UTF8));
   }
 
   /**
