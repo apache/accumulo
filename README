@@ -72,7 +72,7 @@ library into the $ACCUMULO_HOME/lib/native/map.
 
 Building Documentation
 
-Use the following command to build the User Manual (docs/target/accumulo_user_manual.pdf)
+Use the following command to build the User Manual (docs/target/generated-docs/accumulo_user_manual.html)
 and the configuration HTML page (docs/target/config.html)
 
   mvn package -P docs -DskipTests

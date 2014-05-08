@@ -38,6 +38,48 @@
       <build>
         <plugins>
           <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-resources-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>copy-asciidoc</id>
+                <goals>
+                  <goal>copy-resources</goal>
+                </goals>
+                <phase>compile</phase>
+                <configuration>
+                  <outputDirectory>${project.build.directory}/asciidoc</outputDirectory>
+                  <resources>
+                    <resource>
+                      <directory>src/main/asciidoc</directory>
+                    </resource>
+                  </resources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.asciidoctor</groupId>
+            <artifactId>asciidoctor-maven-plugin</artifactId>
+            <configuration>
+              <backend>html</backend>
+              <doctype>book</doctype>
+              <embedAssets>true</embedAssets>
+              <imagesDir>${project.build.directory}/asciidoc/images</imagesDir>
+              <sourceDirectory>${project.build.directory}/asciidoc</sourceDirectory>
+              <sourceHighlighter>highlightjs</sourceHighlighter>
+            </configuration>
+            <executions>
+              <execution>
+                <id>output-html</id>
+                <goals>
+                  <goal>process-asciidoc</goal>
+                </goals>
+                <phase>prepare-package</phase>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>exec-maven-plugin</artifactId>
             <executions>
@@ -51,7 +93,7 @@
                   <executable>mkdir</executable>
                   <arguments>
                     <argument>-p</argument>
-                    <argument>${project.build.directory}/latex/accumulo_user_manual/appendices</argument>
+                    <argument>${project.build.directory}/asciidoc/appendices</argument>
                   </arguments>
                 </configuration>
               </execution>
@@ -80,23 +122,10 @@
                   <mainClass>org.apache.accumulo.core.conf.DefaultConfiguration</mainClass>
                   <classpathScope>compile</classpathScope>
                   <arguments>
-                    <argument>--generate-latex</argument>
-                    <argument>${project.build.directory}/latex/accumulo_user_manual/appendices/config.tex</argument>
+                    <argument>--generate-asciidoc</argument>
+                    <argument>${project.build.directory}/asciidoc/appendices/config.txt</argument>
                   </arguments>
                 </configuration>
-              </execution>
-            </executions>
-          </plugin>
-          <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>latex-maven-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>build-pdf-manuals</id>
-                <goals>
-                  <goal>latex</goal>
-                </goals>
-                <phase>prepare-package</phase>
               </execution>
             </executions>
           </plugin>
@@ -105,15 +134,15 @@
             <artifactId>build-helper-maven-plugin</artifactId>
             <executions>
               <execution>
-                <id>attach-user-manual-pdf</id>
+                <id>attach-user-manual-html</id>
                 <goals>
                   <goal>attach-artifact</goal>
                 </goals>
                 <configuration>
                   <artifacts>
                     <artifact>
-                      <file>${project.build.directory}/accumulo_user_manual.pdf</file>
-                      <type>pdf</type>
+                      <file>${project.build.directory}/generated-docs/accumulo_user_manual.html</file>
+                      <type>html</type>
                       <classifier>user-manual</classifier>
                     </artifact>
                   </artifacts>

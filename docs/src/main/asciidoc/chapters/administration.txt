@@ -1,22 +1,21 @@
+// Licensed to the Apache Software Foundation (ASF) under one or more
+// contributor license agreements.  See the NOTICE file distributed with
+// this work for additional information regarding copyright ownership.
+// The ASF licenses this file to You under the Apache License, Version 2.0
+// (the "License"); you may not use this file except in compliance with
+// the License.  You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-% Licensed to the Apache Software Foundation (ASF) under one or more
-% contributor license agreements. See the NOTICE file distributed with
-% this work for additional information regarding copyright ownership.
-% The ASF licenses this file to You under the Apache License, Version 2.0
-% (the "License"); you may not use this file except in compliance with
-% the License. You may obtain a copy of the License at
-%
-%     http://www.apache.org/licenses/LICENSE-2.0
-%
-% Unless required by applicable law or agreed to in writing, software
-% distributed under the License is distributed on an "AS IS" BASIS,
-% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-% See the License for the specific language governing permissions and
-% limitations under the License.
+== Administration
 
-\chapter{Administration}
-
-\section{Hardware}
+=== Hardware
 
 Because we are running essentially two or three systems simultaneously layered
 across the cluster: HDFS, Accumulo and MapReduce, it is typical for hardware to
@@ -28,11 +27,11 @@ typically have as little as 2 x 300GB disks and as much as 4 x 1TB or 2TB disks.
 
 It is possible to do with less than this, such as with 1u servers with 2 cores and 4GB
 each, but in this case it is recommended to only run up to two processes per
-machine - i.e. DataNode and TabletServer or DataNode and MapReduce worker but
+machine -- i.e. DataNode and TabletServer or DataNode and MapReduce worker but
 not all three. The constraint here is having enough available heap space for all the
 processes on a machine.
 
-\section{Network}
+=== Network
 
 Accumulo communicates via remote procedure calls over TCP/IP for both passing
 data and control messages. In addition, Accumulo uses HDFS clients to
@@ -43,79 +42,63 @@ In addition to needing access to ports associated with HDFS and ZooKeeper, Accum
 use the following default ports. Please make sure that they are open, or change
 their value in conf/accumulo-site.xml.
 
-\begin{table}[t]
-\centering
-\begin{tabular}{|l|c|c|}
-\hline
-Port & Description & Property Name\\
-\hline
-4445 & Shutdown Port (Accumulo MiniCluster) & n/a\\
-\hline
-4560 & Accumulo monitor (for centralized log display) & monitor.port.log4j\\
-\hline
-9997 & Tablet Server & tserver.port.client\\
-\hline
-9999 & Master Server & master.port.client\\
-\hline
-12234 & Accumulo Tracer & trace.port.client\\
-\hline
-42424 & Accumulo Proxy Server & n/a\\
-\hline
-50091 & Accumulo GC & gc.port.client\\
-\hline
-50095 & Accumulo HTTP monitor & monitor.port.client\\
-\hline
-\end{tabular}
-\caption{Accumulo default ports}
-\label{tab:template}
-\end{table}
+.Accumulo default ports
+[width="75%",cols=">,^2,^2"]
+[options="header"]
+|====
+|Port | Description | Property Name
+|4445 | Shutdown Port (Accumulo MiniCluster) | n/a
+|4560 | Accumulo monitor (for centralized log display) | monitor.port.log4j
+|9997 | Tablet Server | tserver.port.client
+|9999 | Master Server | master.port.client
+|12234 | Accumulo Tracer | trace.port.client
+|42424 | Accumulo Proxy Server | n/a
+|50091 | Accumulo GC | gc.port.client
+|50095 | Accumulo HTTP monitor | monitor.port.client
+|====
 
-In addition, the user can provide '0' and an ephemeral port will be chosen instead. This
+In addition, the user can provide +0+ and an ephemeral port will be chosen instead. This
 ephemeral port is likely to be unique and not already bound. Thus, configuring ports to
-use '0' instead of an explicit value, should, in most cases, work around any issues of
+use +0+ instead of an explicit value, should, in most cases, work around any issues of
 running multiple distinct Accumulo instances (or any other process which tries to use the
 same default ports) on the same hardware.
 
-\section{Installation}
+=== Installation
 Choose a directory for the Accumulo installation. This directory will be referenced
-by the environment variable \texttt{\$ACCUMULO\_HOME}. Run the following:
+by the environment variable +$ACCUMULO_HOME+. Run the following:
 
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
-$ tar xzf accumulo-1.5.0-bin.tar.gz    # unpack to subdirectory
-$ mv accumulo-1.5.0 $ACCUMULO_HOME # move to desired location
-\end{verbatim}\endgroup
+  $ tar xzf accumulo-1.6.0-bin.tar.gz    # unpack to subdirectory
+  $ mv accumulo-1.6.0 $ACCUMULO_HOME # move to desired location
 
 Repeat this step at each machine within the cluster. Usually all machines have the
-same \texttt{\$ACCUMULO\_HOME}.
+same +$ACCUMULO_HOME+.
 
-\section{Dependencies}
+=== Dependencies
 Accumulo requires HDFS and ZooKeeper to be configured and running
 before starting. Password-less SSH should be configured between at least the
 Accumulo master and TabletServer machines. It is also a good idea to run Network
 Time Protocol (NTP) within the cluster to ensure nodes' clocks don't get too out of
-sync, which can cause problems with automatically timestamped data. 
+sync, which can cause problems with automatically timestamped data.
 
-\section{Configuration}
+=== Configuration
 
 Accumulo is configured by editing several Shell and XML files found in
-\texttt{\$ACCUMULO\_HOME/conf}. The structure closely resembles Hadoop's configuration
++$ACCUMULO_HOME/conf+. The structure closely resembles Hadoop's configuration
 files.
 
-\subsection{Edit conf/accumulo-env.sh}
+==== Edit conf/accumulo-env.sh
 
-Accumulo needs to know where to find the software it depends on. Edit accumulo-env.sh 
+Accumulo needs to know where to find the software it depends on. Edit accumulo-env.sh
 and specify the following:
 
-\begin{enumerate}
-\item{Enter the location of the installation directory of Accumulo for \texttt{\$ACCUMULO\_HOME}}
-\item{Enter your system's Java home for \texttt{\$JAVA\_HOME}}
-\item{Enter the location of Hadoop for \texttt{\$HADOOP\_PREFIX}}
-\item{Choose a location for Accumulo logs and enter it for \texttt{\$ACCUMULO\_LOG\_DIR}}
-\item{Enter the location of ZooKeeper for \texttt{\$ZOOKEEPER\_HOME}}
-\end{enumerate}
+. Enter the location of the installation directory of Accumulo for +$ACCUMULO_HOME+
+. Enter your system's Java home for +$JAVA_HOME+
+. Enter the location of Hadoop for +$HADOOP_PREFIX+
+. Choose a location for Accumulo logs and enter it for +$ACCUMULO_LOG_DIR+
+. Enter the location of ZooKeeper for +$ZOOKEEPER_HOME+
 
 By default Accumulo TabletServers are set to use 1GB of memory. You may change
-this by altering the value of \texttt{\$ACCUMULO\_TSERVER\_OPTS}. Note the syntax is that of
+this by altering the value of +$ACCUMULO_TSERVER_OPTS+. Note the syntax is that of
 the Java JVM command line options. This value should be less than the physical
 memory of the machines running TabletServers.
 
@@ -133,7 +116,7 @@ machines to allow them to use more heap space. If you are running these on the
 same machine on a small cluster, likewise make sure their heap space settings fit
 within the available memory.
 
-\subsection{Native Map}
+==== Native Map
 
 The tablet server uses a data structure called a MemTable to store sorted key/value
 pairs in memory when they are first received from the client. When a minor compaction
@@ -147,73 +130,66 @@ in the JVM by causing it to pause much less frequently.
 For other operating systems, the native map can be built from the codebase in two ways-
 from maven or from the Makefile.
 
-\begin{enumerate}
-\item{Build from maven using the following command: \texttt{mvn clean package -Pnative.}}
-\item{Build from the c++ source by running \texttt{make} in the \texttt{\$ACCUMULO\_HOME/server/src/main/c++} directory.}
-\end{enumerate}
+. Build from maven using the following command: +mvn clean package -Pnative+.
+. Build from the c++ source by running +make+ in the `$ACCUMULO_HOME/server/src/main/c++` directory.
 
 After building the native map from the source, you will find the artifact in
-\texttt{\$ACCUMULO\_HOME/lib/native.} Upon starting up, the tablet server will look
++$ACCUMULO_HOME/lib/native+. Upon starting up, the tablet server will look
 in this directory for the map library. If the file is renamed or moved from its
 target directory, the tablet server may not be able to find it.
 
-\subsection{Cluster Specification}
+==== Cluster Specification
 
 On the machine that will serve as the Accumulo master:
 
-\begin{enumerate}
-\item{Write the IP address or domain name of the Accumulo Master to the\\\texttt{\$ACCUMULO\_HOME/conf/masters} file.}
-\item{Write the IP addresses or domain name of the machines that will be TabletServers in\\\texttt{\$ACCUMULO\_HOME/conf/slaves}, one per line.}
-\end{enumerate}
+. Write the IP address or domain name of the Accumulo Master to the +$ACCUMULO_HOME/conf/masters+ file.
+. Write the IP addresses or domain name of the machines that will be TabletServers in +$ACCUMULO_HOME/conf/slaves+, one per line.
 
 Note that if using domain names rather than IP addresses, DNS must be configured
 properly for all machines participating in the cluster. DNS can be a confusing source
 of errors.
 
-\subsection{Accumulo Settings}
-Specify appropriate values for the following settings in\\
-\texttt{\$ACCUMULO\_HOME/conf/accumulo-site.xml} :
+==== Accumulo Settings
+Specify appropriate values for the following settings in
++$ACCUMULO_HOME/conf/accumulo-site.xml+ :
 
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+[source,xml]
 <property>
     <name>instance.zookeeper.host</name>
     <value>zooserver-one:2181,zooserver-two:2181</value>
     <description>list of zookeeper servers</description>
 </property>
-\end{verbatim}\endgroup
 
 This enables Accumulo to find ZooKeeper. Accumulo uses ZooKeeper to coordinate
 settings between processes and helps finalize TabletServer failure.
 
-
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+[source,xml]
 <property>
     <name>instance.secret</name>
     <value>DEFAULT</value>
 </property>
-\end{verbatim}\endgroup
 
 The instance needs a secret to enable secure communication between servers. Configure your
-secret and make sure that the \texttt{accumulo-site.xml} file is not readable to other users.
+secret and make sure that the +accumulo-site.xml+ file is not readable to other users.
 
 Some settings can be modified via the Accumulo shell and take effect immediately, but
 some settings require a process restart to take effect. See the configuration documentation
-(available in the docs directory of the tarball and in Appendix~\ref{app:config}) for details.
+(available in the docs directory of the tarball and in <<configuration>>) for details.
 
-\subsection{Deploy Configuration}
+==== Deploy Configuration
 
 Copy the masters, slaves, accumulo-env.sh, and if necessary, accumulo-site.xml
-from the\\\texttt{\$ACCUMULO\_HOME/conf/} directory on the master to all the machines
+from the +$ACCUMULO_HOME/conf/+ directory on the master to all the machines
 specified in the slaves file.
 
-\section{Initialization}
+=== Initialization
 
 Accumulo must be initialized to create the structures it uses internally to locate
 data across the cluster. HDFS is required to be configured and running before
 Accumulo can be initialized.
 
-Once HDFS is started, initialization can be performed by executing\\
-\texttt{\$ACCUMULO\_HOME/bin/accumulo init} . This script will prompt for a name
+Once HDFS is started, initialization can be performed by executing
++$ACCUMULO_HOME/bin/accumulo init+ . This script will prompt for a name
 for this instance of Accumulo. The instance name is used to identify a set of tables
 and instance-specific settings. The script will then write some information into
 HDFS so Accumulo can start properly.
@@ -221,71 +197,63 @@ HDFS so Accumulo can start properly.
 The initialization script will prompt you to set a root password. Once Accumulo is
 initialized it can be started.
 
-\section{Running}
+=== Running
 
-\subsection{Starting Accumulo}
+==== Starting Accumulo
 
 Make sure Hadoop is configured on all of the machines in the cluster, including
 access to a shared HDFS instance. Make sure HDFS and ZooKeeper are running.
 Make sure ZooKeeper is configured and running on at least one machine in the
 cluster.
-Start Accumulo using the \texttt{bin/start-all.sh} script.
+Start Accumulo using the +bin/start-all.sh+ script.
 
 To verify that Accumulo is running, check the Status page as described under
-\emph{Monitoring}. In addition, the Shell can provide some information about the status of
+_Monitoring_. In addition, the Shell can provide some information about the status of
 tables via reading the metadata tables.
 
-\subsection{Stopping Accumulo}
+==== Stopping Accumulo
 
-To shutdown cleanly, run \texttt{bin/stop-all.sh} and the master will orchestrate the
+To shutdown cleanly, run +bin/stop-all.sh+ and the master will orchestrate the
 shutdown of all the tablet servers. Shutdown waits for all minor compactions to finish, so it may
 take some time for particular configurations.
 
-\subsection{Adding a Node}
+==== Adding a Node
 
-Update your \texttt{\$ACCUMULO\_HOME/conf/slaves} (or \texttt{\$ACCUMULO\_CONF\_DIR/slaves}) file to account for the addition.
+Update your +$ACCUMULO_HOME/conf/slaves+ (or +$ACCUMULO_CONF_DIR/slaves+) file to account for the addition.
 
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
-$ACCUMULO_HOME/bin/accumulo admin start <host(s)> {<host> ...}
-\end{verbatim}\endgroup
+  $ACCUMULO_HOME/bin/accumulo admin start <host(s)> {<host> ...}
 
 Alternatively, you can ssh to each of the hosts you want to add and run:
 
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
-$ACCUMULO\_HOME/bin/start-here.sh
-\end{verbatim}\endgroup
+  $ACCUMULO_HOME/bin/start-here.sh
 
-Make sure the host in question has the new configuration, or else the tablet 
-server won't start; at a minimum this needs to be on the host(s) being added, 
+Make sure the host in question has the new configuration, or else the tablet
+server won't start; at a minimum this needs to be on the host(s) being added,
 but in practice it's good to ensure consistent configuration across all nodes.
 
-\subsection{Decomissioning a Node}
+==== Decomissioning a Node
 
-If you need to take a node out of operation, you can trigger a graceful shutdown of a tablet 
+If you need to take a node out of operation, you can trigger a graceful shutdown of a tablet
 server. Accumulo will automatically rebalance the tablets across the available tablet servers.
 
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
-$ACCUMULO_HOME/bin/accumulo admin stop <host(s)> {<host> ...}
-\end{verbatim}\endgroup
+  $ACCUMULO_HOME/bin/accumulo admin stop <host(s)> {<host> ...}
 
 Alternatively, you can ssh to each of the hosts you want to remove and run:
 
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
-$ACCUMULO\_HOME/bin/stop-here.sh
-\end{verbatim}\endgroup
+  $ACCUMULO_HOME/bin/stop-here.sh
 
-Be sure to update your \texttt{\$ACCUMUL\_HOME/conf/slaves} (or \texttt{\$ACCUMULO\_CONF\_DIR/slaves}) file to 
-account for the removal of these hosts. Bear in mind that the monitor will not re-read the 
-slaves file automatically, so it will report the decomissioned servers as down; it's 
+Be sure to update your +$ACCUMULO_HOME/conf/slaves+ (or +$ACCUMULO_CONF_DIR/slaves+) file to
+account for the removal of these hosts. Bear in mind that the monitor will not re-read the
+slaves file automatically, so it will report the decomissioned servers as down; it's
 recommended that you restart the monitor so that the node list is up to date.
 
-\section{Monitoring}
+=== Monitoring
 
 The Accumulo Master provides an interface for monitoring the status and health of
-Accumulo components. This interface can be accessed by pointing a web browser to\\
-\texttt{http://accumulomaster:50095/status}
+Accumulo components. This interface can be accessed by pointing a web browser to
++http://accumulomaster:50095/status+
 
-\section{Tracing}
+=== Tracing
 It can be difficult to determine why some operations are taking longer
 than expected. For example, you may be looking up items with very low
 latency, but sometimes the lookups take much longer. Determining the
@@ -298,48 +266,45 @@ enabled follows all the requests made on behalf of the user throughout
 the distributed infrastructure of accumulo, and across all threads of
 execution.
 
-These time spans will be inserted into the \texttt{trace} table in
+These time spans will be inserted into the +trace+ table in
 Accumulo. You can browse recent traces from the Accumulo monitor
-page. You can also read the \texttt{trace} table directly like any
+page. You can also read the +trace+ table directly like any
 other table.
 
 The design of Accumulo's distributed tracing follows that of
-\href{http://research.google.com/pubs/pub36356.html}{Google's Dapper}.
+http://research.google.com/pubs/pub36356.html[Google's Dapper].
 
-\subsection{Tracers}
+==== Tracers
 To collect traces, Accumulo needs at least one server listed in
-\\\texttt{\$ACCUMULO\_HOME/conf/tracers}. The server collects traces
-from clients and writes them to the \texttt{trace} table. The Accumulo
+ +$ACCUMULO_HOME/conf/tracers+. The server collects traces
+from clients and writes them to the +trace+ table. The Accumulo
 user that the tracer connects to Accumulo with can be configured with
 the following properties
 
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
-trace.user
-trace.token.property.password
-\end{verbatim}\endgroup
+  trace.user
+  trace.token.property.password
 
-\subsection{Instrumenting a Client}
+==== Instrumenting a Client
 Tracing can be used to measure a client operation, such as a scan, as
 the operation traverses the distributed system. To enable tracing for
 your application call
 
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+[source,java]
 DistributedTrace.enable(instance, new ZooReader(instance), hostname, "myApplication");
-\end{verbatim}\endgroup
 
 Once tracing has been enabled, a client can wrap an operation in a trace.
 
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+[source,java]
 Trace.on("Client Scan");
 BatchScanner scanner = conn.createBatchScanner(...);
 // Configure your scanner
 for (Entry entry : scanner) {
 }
 Trace.off();
-\end{verbatim}\endgroup
 
 Additionally, the user can create additional Spans within a Trace.
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+
+[source,java]
 Trace.on("Client Update");
 ...
 Span readSpan = Trace.start("Read");
@@ -350,23 +315,23 @@ Span writeSpan = Trace.start("Write");
 ...
 writeSpan.stop();
 Trace.off();
-\end{verbatim}\endgroup
 
 Like Dapper, Accumulo tracing supports user defined annotations to associate additional data with a Trace.
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+
+[source,java]
 ...
 int numberOfEntriesRead = 0;
 Span readSpan = Trace.start("Read");
 // Do the read, update the counter
 ...
 readSpan.data("Number of Entries Read", String.valueOf(numberOfEntriesRead));
-\end{verbatim}\endgroup
 
 Some client operations may have a high volume within your
 application. As such, you may wish to only sample a percentage of
 operations for tracing. As seen below, the CountSampler can be used to
 help enable tracing for 1-in-1000 operations
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+
+[source,java]
 Sampler sampler = new CountSampler(1000);
 ...
 if (sampler.next()) {
@@ -374,26 +339,27 @@ if (sampler.next()) {
 }
 ...
 Trace.offNoFlush();
-\end{verbatim}\endgroup
 
 It should be noted that it is safe to turn off tracing even if it
-isn't currently active. The Trace.offNoFlush() should be used if the
-user does not wish to have Trace.off() block while flushing trace
+isn't currently active. The +Trace.offNoFlush()+ should be used if the
+user does not wish to have +Trace.off()+ block while flushing trace
 data.
 
-\subsection{Viewing Collected Traces}
+==== Viewing Collected Traces
 To view collected traces, use the "Recent Traces" link on the Monitor
 UI. You can also programmatically access and print traces using the
-\texttt{TraceDump} class.
++TraceDump+ class.
 
-\subsection{Tracing from the Shell}
+==== Tracing from the Shell
 You can enable tracing for operations run from the shell by using the
-\texttt{trace on} and \texttt{trace off} commands.
++trace on+ and +trace off+ commands.
 
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+----
 root@test test> trace on
+
 root@test test> scan
 a b:c []    d
+
 root@test test> trace off
 Waiting for trace information
 Waiting for trace information
@@ -404,13 +370,13 @@ Time  Start  Service@Location       Name
     7+1691       shell@localhost scan:location
     6+1692         tserver@localhost startScan
     5+1692           tserver@localhost tablet read ahead 6
-\end{verbatim}\endgroup
+----
 
-\section{Logging}
-Accumulo processes each write to a set of log files. By default these are found under\\
-\texttt{\$ACCUMULO/logs/}.
+=== Logging
+Accumulo processes each write to a set of log files. By default these are found under
++$ACCUMULO/logs/+.
 
-\section{Recovery}
+=== Recovery
 
 In the event of TabletServer failure or error on shutting Accumulo down, some
 mutations may not have been minor compacted to HDFS properly. In this case,
@@ -422,10 +388,9 @@ failure during shutdown).
 Recovery is performed by asking a tablet server to sort the logs so that tablets can easily find their missing
 updates. The sort status of each file is displayed on
 Accumulo monitor status page. Once the recovery is complete any
-tablets involved should return to an ``online" state. Until then those tablets will be
+tablets involved should return to an ``online'' state. Until then those tablets will be
 unavailable to clients.
 
 The Accumulo client library is configured to retry failed mutations and in many
 cases clients will be able to continue processing after the recovery process without
 throwing an exception.
-

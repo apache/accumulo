@@ -47,7 +47,7 @@
       <outputFileNameMapping>${artifactId}_user_manual.${artifact.extension}</outputFileNameMapping>
       <useTransitiveDependencies>false</useTransitiveDependencies>
       <includes>
-        <include>${groupId}:${artifactId}-docs:pdf:user-manual</include>
+        <include>${groupId}:${artifactId}-docs:html:user-manual</include>
       </includes>
     </dependencySet>
   </dependencySets>
