@@ -177,6 +177,8 @@ public class ReplicationWorkAssigner extends Daemon {
 
       // Keep the state of the work we queued correct
       cleanupFinishedWork();
+
+      UtilWaitThread.sleep(conf.getTimeInMillis(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP));
     }
   }
 

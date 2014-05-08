@@ -55,6 +55,7 @@ import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
@@ -62,6 +63,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
+import com.google.protobuf.TextFormat;
 
 /**
  * 
@@ -205,18 +207,6 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
     }
     bw.close();
 
-    // System.out.println("**** WALs from metadata");
-    // for (String metadataWal : metadataWals) {
-    // System.out.println(metadataWal);
-    // }
-    //
-    // System.out.println("**** WALs from replication");
-    // s = ReplicationTable.getScanner(conn);
-    // StatusSection.limit(s);
-    // for (Entry<Key,Value> entry : s) {
-    // System.out.println(entry.getKey().toStringNoTruncate() + " " + Status.parseFrom(entry.getValue().get()).toString().replace("\n", ", "));
-    // }
-
     s = ReplicationTable.getScanner(conn);
     StatusSection.limit(s);
     bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
@@ -230,13 +220,6 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
       bw.addMutation(m);
     }
     bw.close();
-
-    // System.out.println("**** WALs from replication");
-    // s = ReplicationTable.getScanner(conn);
-    // StatusSection.limit(s);
-    // for (Entry<Key,Value> entry : s) {
-    // System.out.println(entry.getKey().toStringNoTruncate() + " " + Status.parseFrom(entry.getValue().get()).toString().replace("\n", ", "));
-    // }
 
     // Kill the tserver(s) and restart them
     // to ensure that the WALs we previously observed all move to closed.
@@ -253,24 +236,6 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
       for (@SuppressWarnings("unused")
       Entry<Key,Value> entry : s) {}
     }
-
-    // for (int i = 0; i < 5; i++) {
-    // s = conn.createScanner(MetadataTable.NAME, new Authorizations());
-    // s.setRange(ReplicationSection.getRange());
-    // System.out.println("**** Metadata");
-    // for (Entry<Key,Value> entry : s) {
-    // System.out.println(entry.getKey().toStringNoTruncate() + " " + Status.parseFrom(entry.getValue().get()).toString().replace("\n", ", "));
-    // }
-    //
-    // s = ReplicationTable.getScanner(conn);
-    // StatusSection.limit(s);
-    // System.out.println("**** Replication status");
-    // for (Entry<Key,Value> entry : s) {
-    // System.out.println(entry.getKey().toStringNoTruncate() + " " + Status.parseFrom(entry.getValue().get()).toString().replace("\n", ", "));
-    // }
-    //
-    // Thread.sleep(1000);
-    // }
 
     try {
       boolean allClosed = true;
@@ -306,18 +271,10 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
       gc.waitFor();
     }
 
-    // System.out.println("****** Replication table iterators");
-    // System.out.println(conn.tableOperations().listIterators(ReplicationTable.NAME));
-    // for (Entry<String,String> entry : conn.tableOperations().getProperties(ReplicationTable.NAME)) {
-    // System.out.println(entry.getKey()+ "=" + entry.getValue());
-    // }
-    // System.out.println();
-
-    System.out.println("****** Final Replication logs before failure");
     s = ReplicationTable.getScanner(conn);
     StatusSection.limit(s);
     for (Entry<Key,Value> entry : s) {
-      System.out.println(entry.getKey().toStringNoTruncate() + " " + Status.parseFrom(entry.getValue().get()).toString().replace("\n", ", "));
+      log.info(entry.getKey().toStringNoTruncate() + " " + TextFormat.shortDebugString(Status.parseFrom(entry.getValue().get())));
     }
     Assert.fail("Expected all replication records to be closed");
   }
@@ -325,6 +282,7 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
   @Test
   public void replicatedStatusEntriesAreDeleted() throws Exception {
     Connector conn = getConnector();
+    FileSystem fs = FileSystem.getLocal(new Configuration());
     String table1 = "table1";
 
     // replication shouldn't exist when we begin
@@ -469,7 +427,15 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
       Thread.sleep(1000);
     }
 
-    Assert.assertTrue("Did nto find any replication entries in the replication table", foundResults);
+    Assert.assertTrue("Did not find any replication entries in the replication table", foundResults);
+
+    s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    s.setRange(ReplicationSection.getRange());
+    for (Entry<Key,Value> entry : s) {
+      String row = entry.getKey().getRow().toString();
+      Path file = new Path(row.substring(ReplicationSection.getRowPrefix().length()));
+      Assert.assertTrue(file + " did not exist when it should", fs.exists(file));
+    }
 
     /**
      * After recovery completes, we should have unreplicated, closed Status messages. The close happens at the beginning of log recovery.

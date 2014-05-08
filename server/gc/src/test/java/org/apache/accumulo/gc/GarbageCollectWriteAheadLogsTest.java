@@ -29,17 +29,19 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
@@ -59,13 +61,13 @@ import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
 public class GarbageCollectWriteAheadLogsTest {
@@ -313,7 +315,7 @@ public class GarbageCollectWriteAheadLogsTest {
     }
 
     @Override
-    protected Iterable<Entry<Key,Value>> getReplicationStatusForFile(Connector conn, String wal) throws TableNotFoundException {
+    protected Iterable<Entry<Key,Value>> getReplicationStatusForFile(Connector conn, String wal) {
       return this.replData;
     }
   }
@@ -433,5 +435,65 @@ public class GarbageCollectWriteAheadLogsTest {
 
     // Both should have been deleted
     Assert.assertEquals(0, nameToFileMap.size());
+  }
+
+  @Test
+  public void noReplicationTableDoesntLimitMetatdataResults() throws Exception {
+    Instance inst = new MockInstance(testName.getMethodName());
+    Connector conn = inst.getConnector("root", new PasswordToken(""));
+
+    String wal = "hdfs://localhost:8020/accumulo/wal/tserver+port/123456-1234-1234-12345678";
+    BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    Mutation m = new Mutation(ReplicationSection.getRowPrefix() + wal);
+    m.put(ReplicationSection.COLF, new Text("1"), StatusUtil.newFileValue());
+    bw.addMutation(m);
+    bw.close();
+
+    GarbageCollectWriteAheadLogs gcWALs = new GarbageCollectWriteAheadLogs(inst, volMgr, false);
+
+    Iterable<Entry<Key,Value>> data = gcWALs.getReplicationStatusForFile(conn, wal);
+    Entry<Key,Value> entry = Iterables.getOnlyElement(data);
+
+    Assert.assertEquals(ReplicationSection.getRowPrefix() + wal, entry.getKey().getRow().toString());
+  }
+
+  @Test
+  public void fetchesReplicationEntriesFromMetadataAndReplicationTables() throws Exception {
+    Instance inst = new MockInstance(testName.getMethodName());
+    Connector conn = inst.getConnector("root", new PasswordToken(""));
+    ReplicationTable.create(conn);
+
+    String wal = "hdfs://localhost:8020/accumulo/wal/tserver+port/123456-1234-1234-12345678";
+    BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    Mutation m = new Mutation(ReplicationSection.getRowPrefix() + wal);
+    m.put(ReplicationSection.COLF, new Text("1"), StatusUtil.newFileValue());
+    bw.addMutation(m);
+    bw.close();
+
+    bw = ReplicationTable.getBatchWriter(conn);
+    m = new Mutation(wal);
+    StatusSection.add(m, new Text("1"), StatusUtil.newFileValue());
+    bw.addMutation(m);
+    bw.close();
+
+    GarbageCollectWriteAheadLogs gcWALs = new GarbageCollectWriteAheadLogs(inst, volMgr, false);
+
+    Iterable<Entry<Key,Value>> iter = gcWALs.getReplicationStatusForFile(conn, wal);
+    Map<Key,Value> data = new HashMap<>();
+    for (Entry<Key,Value> e : iter) {
+      data.put(e.getKey(), e.getValue());
+    }
+
+    Assert.assertEquals(2, data.size());
+
+    // Should get one element from each table (metadata and replication)
+    for (Key k : data.keySet()) {
+      String row = k.getRow().toString();
+      if (row.startsWith(ReplicationSection.getRowPrefix())) {
+        Assert.assertTrue(row.endsWith(wal));
+      } else {
+        Assert.assertEquals(wal, row);
+      }
+    }
   }
 }

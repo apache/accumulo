@@ -108,11 +108,11 @@ public class ReplicationIT extends ConfigurableMacIT {
       
       Scanner s = ReplicationTable.getScanner(connMaster);
       for (Entry<Key,Value> e : s) {
-        System.out.println(e.getKey().toStringNoTruncate() + " " + TextFormat.shortDebugString(Status.parseFrom(e.getValue().get())));
+        log.info(e.getKey().toStringNoTruncate() + " " + TextFormat.shortDebugString(Status.parseFrom(e.getValue().get())));
       }
 
-      System.out.println();
-      System.out.println();
+      log.info("");
+      log.info("");
 
       Thread.sleep(1000);
     }

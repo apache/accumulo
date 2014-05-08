@@ -66,16 +66,18 @@ import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 import com.google.common.net.HostAndPort;
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.TextFormat;
 
 public class GarbageCollectWriteAheadLogs {
-  private static final Logger log = Logger.getLogger(GarbageCollectWriteAheadLogs.class);
+  private static final Logger log = LoggerFactory.getLogger(GarbageCollectWriteAheadLogs.class);
   
   private final Instance instance;
   private final VolumeManager fs;
@@ -191,7 +193,7 @@ public class GarbageCollectWriteAheadLogs {
     } catch (KeeperException.NoNodeException ex) {
       return false;
     } catch (Exception ex) {
-      log.debug(ex, ex);
+      log.debug(ex.toString(), ex);
       return true;
     }
   }
@@ -349,13 +351,15 @@ public class GarbageCollectWriteAheadLogs {
       Entry<String,Path> wal = walIter.next();
       String fullPath = wal.getValue().toString();
       if (neededByReplication(conn, fullPath)) {
-        log.debug("Removing WAL from candidate deletion as it is still needed for replication: " + fullPath);
+        log.debug("Removing WAL from candidate deletion as it is still needed for replication: {} ", fullPath);
         // If we haven't already removed it, check to see if this WAL is
         // "in use" by replication (needed for replication purposes)
         status.currentLog.inUse++;
 
         walIter.remove();
         sortedWALogs.remove(wal.getKey());
+      } else {
+        log.debug("WAL not needed for replication {}", fullPath);
       }
       count++;
     }
@@ -370,13 +374,25 @@ public class GarbageCollectWriteAheadLogs {
    */
   protected boolean neededByReplication(Connector conn, String wal) {
     log.info("Checking replication table for " + wal);
-    Iterable<Entry<Key,Value>> iter;
-    try {
-      iter = getReplicationStatusForFile(conn, wal);
-    } catch (TableNotFoundException e) {
-      log.trace("Replication table was not found");
-      return false;
-    }
+
+    // try {
+    // log.info("Current state of Metadata table");
+    // for (Entry<Key,Value> entry : conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    // log.info(entry.getKey().toStringNoTruncate() + "=" + TextFormat.shortDebugString(Status.parseFrom(entry.getValue().get())));
+    // }
+    // } catch (Exception e) {
+    // log.error("Could not read metadata table");
+    // }
+    // try {
+    // log.info("Current state of replication table");
+    // for (Entry<Key,Value> entry : conn.createScanner(ReplicationTable.NAME, Authorizations.EMPTY)) {
+    // log.info(entry.getKey().toStringNoTruncate() + "=" + TextFormat.shortDebugString(Status.parseFrom(entry.getValue().get())));
+    // }
+    // } catch (Exception e) {
+    // log.error("Could not read replication table");
+    // }
+    
+    Iterable<Entry<Key,Value>> iter = getReplicationStatusForFile(conn, wal);
 
     // TODO Push down this filter to the tserver to only return records
     // that are not completely replicated and convert this loop into a
@@ -384,6 +400,7 @@ public class GarbageCollectWriteAheadLogs {
     for (Entry<Key,Value> entry : iter) {
       try {
         Status status = Status.parseFrom(entry.getValue().get());
+        log.info("Checking if {} is safe for removal with {}", wal, TextFormat.shortDebugString(status));
         if (!StatusUtil.isSafeForRemoval(status)) {
           return true;
         }
@@ -395,21 +412,34 @@ public class GarbageCollectWriteAheadLogs {
     return false;
   }
 
-  protected Iterable<Entry<Key,Value>> getReplicationStatusForFile(Connector conn, String wal) throws TableNotFoundException {
-    Scanner replScanner = ReplicationTable.getScanner(conn);
+  protected Iterable<Entry<Key,Value>> getReplicationStatusForFile(Connector conn, String wal) {
+    Scanner metaScanner;
+    try {
+      metaScanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    } catch (TableNotFoundException e) {
+      throw new RuntimeException(e);
+    }
 
-    // Scan only the Status records
-    StatusSection.limit(replScanner);
-    // Only look for this specific WAL
-    replScanner.setRange(Range.exact(wal));
-
-    Scanner metaScanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     // Need to add in the replication section prefix
     metaScanner.setRange(Range.exact(ReplicationSection.getRowPrefix() + wal));
     // Limit the column family to be sure
     metaScanner.fetchColumnFamily(ReplicationSection.COLF);
 
-    return Iterables.concat(replScanner, metaScanner);
+    try {
+      Scanner replScanner = ReplicationTable.getScanner(conn);
+  
+      // Scan only the Status records
+      StatusSection.limit(replScanner);
+
+      // Only look for this specific WAL
+      replScanner.setRange(Range.exact(wal));
+
+      return Iterables.concat(metaScanner, replScanner);
+    } catch (TableNotFoundException e) {
+      // do nothing
+    }
+
+    return metaScanner;
   }
 
   private int scanServers(Map<Path,String> fileToServerMap, Map<String,Path> nameToFileMap) throws Exception {
