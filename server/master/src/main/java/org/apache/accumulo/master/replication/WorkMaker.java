@@ -34,6 +34,8 @@ import org.apache.accumulo.core.replication.ReplicationSchema;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTarget;
+import org.apache.accumulo.core.replication.StatusUtil;
+import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.replication.ReplicationTable;
@@ -41,13 +43,16 @@ import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
  * Reads replication records from the replication table and creates work records which include target replication system information.
  */
 public class WorkMaker {
-  private static final Logger log = Logger.getLogger(WorkMaker.class);
+  private static final Logger log = LoggerFactory.getLogger(WorkMaker.class);
 
   private final Connector conn;
 
@@ -88,6 +93,20 @@ public class WorkMaker {
         ReplicationSchema.StatusSection.getFile(entry.getKey(), file);
         ReplicationSchema.StatusSection.getTableId(entry.getKey(), tableId);
         log.info("Processing replication status record for " + file + " on table "+ tableId);
+
+        Status status;
+        try {
+          status = Status.parseFrom(entry.getValue().get());
+        } catch (InvalidProtocolBufferException e) {
+          log.error("Could not parse protobuf for {} from table {}", file, tableId);
+          continue;
+        }
+
+        // Don't create the record if we have nothing to do
+        // TODO put this into a filter on serverside
+        if (!StatusUtil.isWorkRequired(status)) {
+          continue;
+        }
   
         // Get the table configuration for the table specified by the status record
         tableConf = ServerConfiguration.getTableConfiguration(conn.getInstance(), tableId.toString());

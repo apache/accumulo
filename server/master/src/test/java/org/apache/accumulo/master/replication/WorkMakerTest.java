@@ -28,16 +28,16 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.replication.ReplicationTable;
-import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
@@ -47,6 +47,7 @@ import org.junit.Test;
 import org.junit.rules.TestName;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 
 /**
  * 
@@ -82,11 +83,16 @@ public class WorkMakerTest {
     String tableId = conn.tableOperations().tableIdMap().get(table);
     String file = "hdfs://localhost:8020/accumulo/wal/123456-1234-1234-12345678";
 
-    KeyExtent extent = new KeyExtent(new Text(tableId), null, null);
-    Mutation m = ReplicationTableUtil.createUpdateMutation(new Path(file), StatusUtil.fileClosedValue(), extent);
+    Mutation m = new Mutation(new Path(file).toString());
+    m.put(StatusSection.NAME, new Text(tableId), StatusUtil.fileClosedValue());
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     bw.addMutation(m);
     bw.flush();
+
+    // Assert that we have one record in the status section
+    Scanner s = ReplicationTable.getScanner(conn);
+    StatusSection.limit(s);
+    Assert.assertEquals(1, Iterables.size(s));
 
     WorkMaker workMaker = new WorkMaker(conn);
 
@@ -94,7 +100,7 @@ public class WorkMakerTest {
     workMaker.setBatchWriter(bw);
     workMaker.addWorkRecord(new Text(file), StatusUtil.fileClosedValue(), ImmutableMap.of("remote_cluster_1", "4"));
 
-    Scanner s = ReplicationTable.getScanner(conn);
+    s = ReplicationTable.getScanner(conn);
     WorkSection.limit(s);
 
     Iterator<Entry<Key,Value>> iter = s.iterator();
@@ -119,11 +125,16 @@ public class WorkMakerTest {
     String tableId = conn.tableOperations().tableIdMap().get(table);
     String file = "hdfs://localhost:8020/accumulo/wal/123456-1234-1234-12345678";
 
-    KeyExtent extent = new KeyExtent(new Text(tableId), null, null);
-    Mutation m = ReplicationTableUtil.createUpdateMutation(new Path(file), StatusUtil.fileClosedValue(), extent);
+    Mutation m = new Mutation(new Path(file).toString());
+    m.put(StatusSection.NAME, new Text(tableId), StatusUtil.fileClosedValue());
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     bw.addMutation(m);
     bw.flush();
+
+    // Assert that we have one record in the status section
+    Scanner s = ReplicationTable.getScanner(conn);
+    StatusSection.limit(s);
+    Assert.assertEquals(1, Iterables.size(s));
 
     WorkMaker workMaker = new WorkMaker(conn);
 
@@ -135,7 +146,7 @@ public class WorkMakerTest {
     workMaker.setBatchWriter(bw);
     workMaker.addWorkRecord(new Text(file), StatusUtil.fileClosedValue(), targetClusters);
 
-    Scanner s = ReplicationTable.getScanner(conn);
+    s = ReplicationTable.getScanner(conn);
     WorkSection.limit(s);
 
     Set<ReplicationTarget> actualTargets = new HashSet<>();
@@ -153,5 +164,39 @@ public class WorkMakerTest {
     }
 
     Assert.assertTrue("Found extra replication work entries: " + actualTargets, actualTargets.isEmpty());
+  }
+
+  @Test
+  public void dontCreateWorkForEntriesWithNothingToReplicate() throws Exception {
+    String table = name.getMethodName();
+    conn.tableOperations().create(name.getMethodName());
+    String tableId = conn.tableOperations().tableIdMap().get(table);
+    String file = "hdfs://localhost:8020/accumulo/wal/123456-1234-1234-12345678";
+
+    Mutation m = new Mutation(new Path(file).toString());
+    m.put(StatusSection.NAME, new Text(tableId), StatusUtil.newFileValue());
+    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    bw.addMutation(m);
+    bw.flush();
+
+    // Assert that we have one record in the status section
+    Scanner s = ReplicationTable.getScanner(conn);
+    StatusSection.limit(s);
+    Assert.assertEquals(1, Iterables.size(s));
+
+    WorkMaker workMaker = new WorkMaker(conn);
+
+    conn.tableOperations().setProperty(ReplicationTable.NAME, Property.TABLE_REPLICATION_TARGETS.getKey() + "remote_cluster_1", "4");
+
+    workMaker.setBatchWriter(bw);
+
+    // If we don't shortcircuit out, we should get an exception because ServerConfiguration.getTableConfiguration
+    // won't work with MockAccumulo
+    workMaker.run();
+
+    s = ReplicationTable.getScanner(conn);
+    WorkSection.limit(s);
+
+    Assert.assertEquals(0, Iterables.size(s));
   }
 }
