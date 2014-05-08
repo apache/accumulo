@@ -41,9 +41,12 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -67,6 +70,7 @@ import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 
+import com.google.common.collect.Iterables;
 import com.google.common.net.HostAndPort;
 import com.google.protobuf.InvalidProtocolBufferException;
 
@@ -392,14 +396,20 @@ public class GarbageCollectWriteAheadLogs {
   }
 
   protected Iterable<Entry<Key,Value>> getReplicationStatusForFile(Connector conn, String wal) throws TableNotFoundException {
-    Scanner s = ReplicationTable.getScanner(conn);
+    Scanner replScanner = ReplicationTable.getScanner(conn);
 
     // Scan only the Status records
-    StatusSection.limit(s);
+    StatusSection.limit(replScanner);
     // Only look for this specific WAL
-    s.setRange(Range.exact(wal));
+    replScanner.setRange(Range.exact(wal));
 
-    return s;
+    Scanner metaScanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    // Need to add in the replication section prefix
+    metaScanner.setRange(Range.exact(ReplicationSection.getRowPrefix() + wal));
+    // Limit the column family to be sure
+    metaScanner.fetchColumnFamily(ReplicationSection.COLF);
+
+    return Iterables.concat(replScanner, metaScanner);
   }
 
   private int scanServers(Map<Path,String> fileToServerMap, Map<String,Path> nameToFileMap) throws Exception {
