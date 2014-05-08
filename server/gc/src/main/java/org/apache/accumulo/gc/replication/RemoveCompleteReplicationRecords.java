@@ -77,7 +77,7 @@ public class RemoveCompleteReplicationRecords implements Runnable {
       metaBw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
       replBw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
     } catch (TableNotFoundException e) {
-      log.error("Replication table was deleted", e);
+      log.debug("Not attempting to remove complete replication records as the replication table doesn't yet exist");
       return;
     }
 

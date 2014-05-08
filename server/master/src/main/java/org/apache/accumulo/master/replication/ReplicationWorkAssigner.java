@@ -227,7 +227,7 @@ public class ReplicationWorkAssigner extends Daemon {
           if (!queuedWork.contains(key)) {
             queueWork(key, file);
           } else {
-            log.debug("Not re-queueing work for {}", key);
+            log.trace("Not re-queueing work for {}", key);
           }
         } else {
           log.debug("Not queueing work for {} because [{}] doesn't need replication", file, TextFormat.shortDebugString(status));
