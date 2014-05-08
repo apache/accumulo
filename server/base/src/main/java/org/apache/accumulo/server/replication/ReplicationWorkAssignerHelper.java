@@ -38,18 +38,7 @@ public class ReplicationWorkAssignerHelper {
    * @return Key for identifying work in queue
    */
   public static String getQueueKey(String filename, ReplicationTarget replTarget) {
-    return getQueueKey(filename, replTarget.toText().toString());
-  }
-
-  /**
-   * Serialize a filename and a {@link ReplicationTarget} into the expected
-   * key format for use with the {@link DistributedWorkQueue}
-   * @param filename Filename for data to be replicated
-   * @param replTargetStr Serialized {@link ReplicationTarget}
-   * @return Key for identifying work in queue
-   */
-  public static String getQueueKey(String filename, String replTargetStr) {
-    return filename + KEY_SEPARATOR + replTargetStr;
+    return filename + KEY_SEPARATOR + replTarget.getPeerName() + KEY_SEPARATOR + replTarget.getRemoteIdentifier();
   }
 
   /**
@@ -64,6 +53,13 @@ public class ReplicationWorkAssignerHelper {
       throw new IllegalArgumentException("Could not find expected separator in queue key '" + queueKey + "'");
     }
 
-    return Maps.immutableEntry(queueKey.substring(0, index), ReplicationTarget.from(queueKey.substring(index + 1)));
+    String filename = queueKey.substring(0, index);
+
+    int secondIndex = queueKey.indexOf(KEY_SEPARATOR, index + 1);
+    if (-1 == secondIndex) {
+      throw new IllegalArgumentException("Could not find expected separator in queue key '" + queueKey + "'");
+    }
+
+    return Maps.immutableEntry(filename, new ReplicationTarget(queueKey.substring(index + 1, secondIndex), queueKey.substring(secondIndex + 1)));
   }
 }

@@ -24,6 +24,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.master.Master;
+import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.log4j.Logger;
 
 /**
@@ -37,6 +38,7 @@ public class ReplicationDriver extends Daemon {
 
   private WorkMaker workMaker;
   private StatusMaker statusMaker;
+  private Connector conn;
 
   public ReplicationDriver(Master master) {
     super("Replication Driver");
@@ -49,7 +51,6 @@ public class ReplicationDriver extends Daemon {
   public void run() {
     while (master.stillMaster()) {
       if (null == workMaker) {
-        Connector conn;
         try {
           conn = master.getConnector();
         } catch (AccumuloException | AccumuloSecurityException e) {
@@ -64,6 +65,7 @@ public class ReplicationDriver extends Daemon {
       }
 
       // Make status markers from replication records in metadata
+      // This will end up creating the replication table too
       statusMaker.run();
 
       // Tell the work maker to make work

@@ -50,9 +50,9 @@ import org.slf4j.LoggerFactory;
 
   public interface Iface {
 
-    public ByteBuffer replicateLog(int remoteTableId, WalEdits data) throws RemoteReplicationException, org.apache.thrift.TException;
+    public long replicateLog(int remoteTableId, WalEdits data) throws RemoteReplicationException, org.apache.thrift.TException;
 
-    public ByteBuffer replicateKeyValues(int remoteTableId, KeyValues data) throws RemoteReplicationException, org.apache.thrift.TException;
+    public long replicateKeyValues(int remoteTableId, KeyValues data) throws RemoteReplicationException, org.apache.thrift.TException;
 
   }
 
@@ -84,7 +84,7 @@ import org.slf4j.LoggerFactory;
       super(iprot, oprot);
     }
 
-    public ByteBuffer replicateLog(int remoteTableId, WalEdits data) throws RemoteReplicationException, org.apache.thrift.TException
+    public long replicateLog(int remoteTableId, WalEdits data) throws RemoteReplicationException, org.apache.thrift.TException
     {
       send_replicateLog(remoteTableId, data);
       return recv_replicateLog();
@@ -98,7 +98,7 @@ import org.slf4j.LoggerFactory;
       sendBase("replicateLog", args);
     }
 
-    public ByteBuffer recv_replicateLog() throws RemoteReplicationException, org.apache.thrift.TException
+    public long recv_replicateLog() throws RemoteReplicationException, org.apache.thrift.TException
     {
       replicateLog_result result = new replicateLog_result();
       receiveBase(result, "replicateLog");
@@ -111,7 +111,7 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "replicateLog failed: unknown result");
     }
 
-    public ByteBuffer replicateKeyValues(int remoteTableId, KeyValues data) throws RemoteReplicationException, org.apache.thrift.TException
+    public long replicateKeyValues(int remoteTableId, KeyValues data) throws RemoteReplicationException, org.apache.thrift.TException
     {
       send_replicateKeyValues(remoteTableId, data);
       return recv_replicateKeyValues();
@@ -125,7 +125,7 @@ import org.slf4j.LoggerFactory;
       sendBase("replicateKeyValues", args);
     }
 
-    public ByteBuffer recv_replicateKeyValues() throws RemoteReplicationException, org.apache.thrift.TException
+    public long recv_replicateKeyValues() throws RemoteReplicationException, org.apache.thrift.TException
     {
       replicateKeyValues_result result = new replicateKeyValues_result();
       receiveBase(result, "replicateKeyValues");
@@ -181,7 +181,7 @@ import org.slf4j.LoggerFactory;
         prot.writeMessageEnd();
       }
 
-      public ByteBuffer getResult() throws RemoteReplicationException, org.apache.thrift.TException {
+      public long getResult() throws RemoteReplicationException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
@@ -216,7 +216,7 @@ import org.slf4j.LoggerFactory;
         prot.writeMessageEnd();
       }
 
-      public ByteBuffer getResult() throws RemoteReplicationException, org.apache.thrift.TException {
+      public long getResult() throws RemoteReplicationException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
@@ -261,6 +261,7 @@ import org.slf4j.LoggerFactory;
         replicateLog_result result = new replicateLog_result();
         try {
           result.success = iface.replicateLog(args.remoteTableId, args.data);
+          result.setSuccessIsSet(true);
         } catch (RemoteReplicationException e) {
           result.e = e;
         }
@@ -285,6 +286,7 @@ import org.slf4j.LoggerFactory;
         replicateKeyValues_result result = new replicateKeyValues_result();
         try {
           result.success = iface.replicateKeyValues(args.remoteTableId, args.data);
+          result.setSuccessIsSet(true);
         } catch (RemoteReplicationException e) {
           result.e = e;
         }
@@ -754,7 +756,7 @@ import org.slf4j.LoggerFactory;
   public static class replicateLog_result implements org.apache.thrift.TBase<replicateLog_result, replicateLog_result._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("replicateLog_result");
 
-    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRING, (short)0);
+    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.I64, (short)0);
     private static final org.apache.thrift.protocol.TField E_FIELD_DESC = new org.apache.thrift.protocol.TField("e", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
@@ -763,7 +765,7 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new replicateLog_resultTupleSchemeFactory());
     }
 
-    public ByteBuffer success; // required
+    public long success; // required
     public RemoteReplicationException e; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -828,11 +830,13 @@ import org.slf4j.LoggerFactory;
     }
 
     // isset id assignments
+    private static final int __SUCCESS_ISSET_ID = 0;
+    private byte __isset_bitfield = 0;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING          , true)));
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
       tmpMap.put(_Fields.E, new org.apache.thrift.meta_data.FieldMetaData("e", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
@@ -843,11 +847,12 @@ import org.slf4j.LoggerFactory;
     }
 
     public replicateLog_result(
-      ByteBuffer success,
+      long success,
       RemoteReplicationException e)
     {
       this();
       this.success = success;
+      setSuccessIsSet(true);
       this.e = e;
     }
 
@@ -855,10 +860,8 @@ import org.slf4j.LoggerFactory;
      * Performs a deep copy on <i>other</i>.
      */
     public replicateLog_result(replicateLog_result other) {
-      if (other.isSetSuccess()) {
-        this.success = org.apache.thrift.TBaseHelper.copyBinary(other.success);
-;
-      }
+      __isset_bitfield = other.__isset_bitfield;
+      this.success = other.success;
       if (other.isSetE()) {
         this.e = new RemoteReplicationException(other.e);
       }
@@ -870,42 +873,32 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.success = null;
+      setSuccessIsSet(false);
+      this.success = 0;
       this.e = null;
     }
 
-    public byte[] getSuccess() {
-      setSuccess(org.apache.thrift.TBaseHelper.rightSize(success));
-      return success == null ? null : success.array();
+    public long getSuccess() {
+      return this.success;
     }
 
-    public ByteBuffer bufferForSuccess() {
-      return success;
-    }
-
-    public replicateLog_result setSuccess(byte[] success) {
-      setSuccess(success == null ? (ByteBuffer)null : ByteBuffer.wrap(success));
-      return this;
-    }
-
-    public replicateLog_result setSuccess(ByteBuffer success) {
+    public replicateLog_result setSuccess(long success) {
       this.success = success;
+      setSuccessIsSet(true);
       return this;
     }
 
     public void unsetSuccess() {
-      this.success = null;
+      __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __SUCCESS_ISSET_ID);
     }
 
     /** Returns true if field success is set (has been assigned a value) and false otherwise */
     public boolean isSetSuccess() {
-      return this.success != null;
+      return EncodingUtils.testBit(__isset_bitfield, __SUCCESS_ISSET_ID);
     }
 
     public void setSuccessIsSet(boolean value) {
-      if (!value) {
-        this.success = null;
-      }
+      __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __SUCCESS_ISSET_ID, value);
     }
 
     public RemoteReplicationException getE() {
@@ -938,7 +931,7 @@ import org.slf4j.LoggerFactory;
         if (value == null) {
           unsetSuccess();
         } else {
-          setSuccess((ByteBuffer)value);
+          setSuccess((Long)value);
         }
         break;
 
@@ -956,7 +949,7 @@ import org.slf4j.LoggerFactory;
     public Object getFieldValue(_Fields field) {
       switch (field) {
       case SUCCESS:
-        return getSuccess();
+        return Long.valueOf(getSuccess());
 
       case E:
         return getE();
@@ -993,12 +986,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_success = true && this.isSetSuccess();
-      boolean that_present_success = true && that.isSetSuccess();
+      boolean this_present_success = true;
+      boolean that_present_success = true;
       if (this_present_success || that_present_success) {
         if (!(this_present_success && that_present_success))
           return false;
-        if (!this.success.equals(that.success))
+        if (this.success != that.success)
           return false;
       }
 
@@ -1068,11 +1061,7 @@ import org.slf4j.LoggerFactory;
       boolean first = true;
 
       sb.append("success:");
-      if (this.success == null) {
-        sb.append("null");
-      } else {
-        org.apache.thrift.TBaseHelper.toString(this.success, sb);
-      }
+      sb.append(this.success);
       first = false;
       if (!first) sb.append(", ");
       sb.append("e:");
@@ -1101,6 +1090,8 @@ import org.slf4j.LoggerFactory;
 
     private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
       try {
+        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
+        __isset_bitfield = 0;
         read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
       } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
@@ -1126,8 +1117,8 @@ import org.slf4j.LoggerFactory;
           }
           switch (schemeField.id) {
             case 0: // SUCCESS
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-                struct.success = iprot.readBinary();
+              if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
+                struct.success = iprot.readI64();
                 struct.setSuccessIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -1157,9 +1148,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.success != null) {
+        if (struct.isSetSuccess()) {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
-          oprot.writeBinary(struct.success);
+          oprot.writeI64(struct.success);
           oprot.writeFieldEnd();
         }
         if (struct.e != null) {
@@ -1193,7 +1184,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 2);
         if (struct.isSetSuccess()) {
-          oprot.writeBinary(struct.success);
+          oprot.writeI64(struct.success);
         }
         if (struct.isSetE()) {
           struct.e.write(oprot);
@@ -1205,7 +1196,7 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
-          struct.success = iprot.readBinary();
+          struct.success = iprot.readI64();
           struct.setSuccessIsSet(true);
         }
         if (incoming.get(1)) {
@@ -1678,7 +1669,7 @@ import org.slf4j.LoggerFactory;
   public static class replicateKeyValues_result implements org.apache.thrift.TBase<replicateKeyValues_result, replicateKeyValues_result._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("replicateKeyValues_result");
 
-    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRING, (short)0);
+    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.I64, (short)0);
     private static final org.apache.thrift.protocol.TField E_FIELD_DESC = new org.apache.thrift.protocol.TField("e", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
@@ -1687,7 +1678,7 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new replicateKeyValues_resultTupleSchemeFactory());
     }
 
-    public ByteBuffer success; // required
+    public long success; // required
     public RemoteReplicationException e; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -1752,11 +1743,13 @@ import org.slf4j.LoggerFactory;
     }
 
     // isset id assignments
+    private static final int __SUCCESS_ISSET_ID = 0;
+    private byte __isset_bitfield = 0;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING          , true)));
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
       tmpMap.put(_Fields.E, new org.apache.thrift.meta_data.FieldMetaData("e", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
@@ -1767,11 +1760,12 @@ import org.slf4j.LoggerFactory;
     }
 
     public replicateKeyValues_result(
-      ByteBuffer success,
+      long success,
       RemoteReplicationException e)
     {
       this();
       this.success = success;
+      setSuccessIsSet(true);
       this.e = e;
     }
 
@@ -1779,10 +1773,8 @@ import org.slf4j.LoggerFactory;
      * Performs a deep copy on <i>other</i>.
      */
     public replicateKeyValues_result(replicateKeyValues_result other) {
-      if (other.isSetSuccess()) {
-        this.success = org.apache.thrift.TBaseHelper.copyBinary(other.success);
-;
-      }
+      __isset_bitfield = other.__isset_bitfield;
+      this.success = other.success;
       if (other.isSetE()) {
         this.e = new RemoteReplicationException(other.e);
       }
@@ -1794,42 +1786,32 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.success = null;
+      setSuccessIsSet(false);
+      this.success = 0;
       this.e = null;
     }
 
-    public byte[] getSuccess() {
-      setSuccess(org.apache.thrift.TBaseHelper.rightSize(success));
-      return success == null ? null : success.array();
+    public long getSuccess() {
+      return this.success;
     }
 
-    public ByteBuffer bufferForSuccess() {
-      return success;
-    }
-
-    public replicateKeyValues_result setSuccess(byte[] success) {
-      setSuccess(success == null ? (ByteBuffer)null : ByteBuffer.wrap(success));
-      return this;
-    }
-
-    public replicateKeyValues_result setSuccess(ByteBuffer success) {
+    public replicateKeyValues_result setSuccess(long success) {
       this.success = success;
+      setSuccessIsSet(true);
       return this;
     }
 
     public void unsetSuccess() {
-      this.success = null;
+      __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __SUCCESS_ISSET_ID);
     }
 
     /** Returns true if field success is set (has been assigned a value) and false otherwise */
     public boolean isSetSuccess() {
-      return this.success != null;
+      return EncodingUtils.testBit(__isset_bitfield, __SUCCESS_ISSET_ID);
     }
 
     public void setSuccessIsSet(boolean value) {
-      if (!value) {
-        this.success = null;
-      }
+      __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __SUCCESS_ISSET_ID, value);
     }
 
     public RemoteReplicationException getE() {
@@ -1862,7 +1844,7 @@ import org.slf4j.LoggerFactory;
         if (value == null) {
           unsetSuccess();
         } else {
-          setSuccess((ByteBuffer)value);
+          setSuccess((Long)value);
         }
         break;
 
@@ -1880,7 +1862,7 @@ import org.slf4j.LoggerFactory;
     public Object getFieldValue(_Fields field) {
       switch (field) {
       case SUCCESS:
-        return getSuccess();
+        return Long.valueOf(getSuccess());
 
       case E:
         return getE();
@@ -1917,12 +1899,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_success = true && this.isSetSuccess();
-      boolean that_present_success = true && that.isSetSuccess();
+      boolean this_present_success = true;
+      boolean that_present_success = true;
       if (this_present_success || that_present_success) {
         if (!(this_present_success && that_present_success))
           return false;
-        if (!this.success.equals(that.success))
+        if (this.success != that.success)
           return false;
       }
 
@@ -1992,11 +1974,7 @@ import org.slf4j.LoggerFactory;
       boolean first = true;
 
       sb.append("success:");
-      if (this.success == null) {
-        sb.append("null");
-      } else {
-        org.apache.thrift.TBaseHelper.toString(this.success, sb);
-      }
+      sb.append(this.success);
       first = false;
       if (!first) sb.append(", ");
       sb.append("e:");
@@ -2025,6 +2003,8 @@ import org.slf4j.LoggerFactory;
 
     private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
       try {
+        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
+        __isset_bitfield = 0;
         read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
       } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
@@ -2050,8 +2030,8 @@ import org.slf4j.LoggerFactory;
           }
           switch (schemeField.id) {
             case 0: // SUCCESS
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-                struct.success = iprot.readBinary();
+              if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
+                struct.success = iprot.readI64();
                 struct.setSuccessIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -2081,9 +2061,9 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.success != null) {
+        if (struct.isSetSuccess()) {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
-          oprot.writeBinary(struct.success);
+          oprot.writeI64(struct.success);
           oprot.writeFieldEnd();
         }
         if (struct.e != null) {
@@ -2117,7 +2097,7 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeBitSet(optionals, 2);
         if (struct.isSetSuccess()) {
-          oprot.writeBinary(struct.success);
+          oprot.writeI64(struct.success);
         }
         if (struct.isSetE()) {
           struct.e.write(oprot);
@@ -2129,7 +2109,7 @@ import org.slf4j.LoggerFactory;
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
-          struct.success = iprot.readBinary();
+          struct.success = iprot.readI64();
           struct.setSuccessIsSet(true);
         }
         if (incoming.get(1)) {

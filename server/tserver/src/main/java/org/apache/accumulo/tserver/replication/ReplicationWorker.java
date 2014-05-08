@@ -23,6 +23,7 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.zookeeper.KeeperException;
 
@@ -49,7 +50,7 @@ public class ReplicationWorker implements Runnable {
   @Override
   public void run() {
     try {
-      new DistributedWorkQueue(ZooUtil.getRoot(inst) + Constants.ZREPLICATION, conf).startProcessing(new ReplicationProcessor(inst, conf, fs), executor);
+      new DistributedWorkQueue(ZooUtil.getRoot(inst) + Constants.ZREPLICATION, conf).startProcessing(new ReplicationProcessor(inst, conf, fs, SystemCredentials.get()), executor);
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
     }

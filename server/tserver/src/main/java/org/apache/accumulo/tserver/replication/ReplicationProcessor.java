@@ -38,10 +38,10 @@ import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.accumulo.server.replication.ReplicationWorkAssignerHelper;
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue.Processor;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -56,20 +56,21 @@ import com.google.protobuf.InvalidProtocolBufferException;
 public class ReplicationProcessor implements Processor {
   private static final Logger log = LoggerFactory.getLogger(ReplicationProcessor.class);
 
-  private Instance inst;
-  private AccumuloConfiguration conf;
-  private VolumeManager fs;
-  private Credentials creds;
+  private final Instance inst;
+  private final AccumuloConfiguration conf;
+  private final VolumeManager fs;
+  private final Credentials creds;
 
-  public ReplicationProcessor(Instance inst, AccumuloConfiguration conf, VolumeManager fs) {
+  public ReplicationProcessor(Instance inst, AccumuloConfiguration conf, VolumeManager fs, Credentials creds) {
+    this.inst = inst;
     this.conf = conf;
     this.fs = fs;
-    creds = SystemCredentials.get();
+    this.creds = creds;
   }
 
   @Override
   public ReplicationProcessor newProcessor() {
-    return new ReplicationProcessor(inst, conf, fs);
+    return new ReplicationProcessor(inst, new ServerConfiguration(inst).getConfiguration(), fs, creds);
   }
 
   @Override
@@ -77,14 +78,11 @@ public class ReplicationProcessor implements Processor {
     ReplicationTarget target = ReplicationWorkAssignerHelper.fromQueueKey(workID).getValue();
     String file = new String(data);
 
+    log.debug("Received replication work for {} to {}", file, target);
+
     // Find the configured replication peer so we know how to replicate to it
-    Map<String,String> configuredPeers = conf.getAllPropertiesWithPrefix(Property.REPLICATION_PEERS);
-    String peerType = configuredPeers.get(target.getPeerName());
-    if (null == peerType) {
-      String msg = "Cannot process replication for unknown peer: " +  target.getPeerName();
-      log.warn(msg);
-      throw new IllegalArgumentException(msg);
-    }
+    // Classname,Configuration
+    String peerType = getPeerType(target.getPeerName());
 
     // Get the peer that we're replicating to
     ReplicaSystem replica = ReplicaSystemFactory.get(peerType);
@@ -126,8 +124,23 @@ public class ReplicationProcessor implements Processor {
       recordNewStatus(filePath, replicatedStatus, target);
     }
 
+    log.debug("Did not replicate any new data for {} to {}", filePath, target);
+
     // otherwise, we didn't actually replicate because there was error sending the data
     // we can just not record any updates, and it will be picked up again by the work assigner
+  }
+
+  public String getPeerType(String peerName) {
+    // Find the configured replication peer so we know how to replicate to it
+    Map<String,String> configuredPeers = conf.getAllPropertiesWithPrefix(Property.REPLICATION_PEERS);
+    String peerType = configuredPeers.get(Property.REPLICATION_PEERS.getKey() + peerName);
+    if (null == peerType) {
+      String msg = "Cannot process replication for unknown peer: " +  peerName;
+      log.warn(msg);
+      throw new IllegalArgumentException(msg);
+    }
+
+    return peerType;
   }
 
   public Status getStatus(String file, ReplicationTarget target) throws TableNotFoundException, AccumuloException, AccumuloSecurityException, InvalidProtocolBufferException {

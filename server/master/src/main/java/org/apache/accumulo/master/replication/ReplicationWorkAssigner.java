@@ -32,8 +32,11 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
+import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
+import org.apache.accumulo.core.util.Daemon;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.replication.ReplicationTable;
@@ -48,6 +51,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.TextFormat;
 
 /**
  * Read work records from the replication table, create work entries for other nodes to complete.
@@ -55,7 +59,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
  * Uses the DistributedWorkQueue to make the work available for any tserver. This approach does not consider the locality of the tabletserver performing the
  * work in relation to the data being replicated (local HDFS blocks).
  */
-public class ReplicationWorkAssigner implements Runnable {
+public class ReplicationWorkAssigner extends Daemon {
   private static final Logger log = LoggerFactory.getLogger(ReplicationWorkAssigner.class);
 
   private Master master;
@@ -68,6 +72,7 @@ public class ReplicationWorkAssigner implements Runnable {
   private ZooCache zooCache;
 
   public ReplicationWorkAssigner(Master master, Connector conn) {
+    super("Replication Work Assigner");
     this.master = master;
     this.conn = conn;
   }
@@ -185,7 +190,7 @@ public class ReplicationWorkAssigner implements Runnable {
     try {
       bs = ReplicationTable.getBatchScanner(conn, 4);
     } catch (TableNotFoundException e) {
-      log.warn("Could not find replication table", e);
+      UtilWaitThread.sleep(1000);
       return;
     }
 
@@ -216,12 +221,16 @@ public class ReplicationWorkAssigner implements Runnable {
           Path p = new Path(file);
           String filename = p.getName();
           WorkSection.getTarget(entry.getKey(), buffer);
-          String key = ReplicationWorkAssignerHelper.getQueueKey(filename, buffer.toString());
+          String key = ReplicationWorkAssignerHelper.getQueueKey(filename, ReplicationTarget.from(buffer));
 
           // And, we haven't already queued this file up for work already
           if (!queuedWork.contains(key)) {
             queueWork(key, file);
+          } else {
+            log.debug("Not re-queueing work for {}", key);
           }
+        } else {
+          log.debug("Not queueing work for {} because [{}] doesn't need replication", file, TextFormat.shortDebugString(status));
         }
       }
     } finally {
@@ -241,6 +250,7 @@ public class ReplicationWorkAssigner implements Runnable {
    */
   protected void queueWork(String key, String path) {
     try {
+      log.debug("Queued work for {} and {}", key, path);
       workQueue.addWork(key, path);
       queuedWork.add(key);
     } catch (KeeperException | InterruptedException e) {

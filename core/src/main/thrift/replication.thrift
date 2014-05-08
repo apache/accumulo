@@ -43,6 +43,6 @@ service ReplicationCoordinator {
 }
 
 service ReplicationServicer {
-    binary replicateLog(1:i32 remoteTableId, 2:WalEdits data) throws (1:RemoteReplicationException e),
-    binary replicateKeyValues(1:i32 remoteTableId, 2:KeyValues data) throws (1:RemoteReplicationException e)
+    i64 replicateLog(1:i32 remoteTableId, 2:WalEdits data) throws (1:RemoteReplicationException e),
+    i64 replicateKeyValues(1:i32 remoteTableId, 2:KeyValues data) throws (1:RemoteReplicationException e)
 }

@@ -116,6 +116,7 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.security.AuthorizationContainer;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SecurityUtil;
@@ -222,6 +223,7 @@ import org.apache.accumulo.tserver.metrics.TabletServerMBean;
 import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerUpdateMetrics;
+import org.apache.accumulo.tserver.replication.ReplicationServicerHandler;
 import org.apache.accumulo.tserver.replication.ReplicationWorker;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.fs.FSError;
@@ -3017,6 +3019,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   // used for stopping the server and MasterListener thread
   private volatile boolean serverStopRequested = false;
 
+  private HostAndPort replicationAddress;
   private HostAndPort clientAddress;
 
   private TabletServerResourceManager resourceManager;
@@ -3028,6 +3031,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   private ZooLock tabletServerLock;
 
   private TServer server;
+  private TServer replServer;
 
   private DistributedWorkQueue bulkFailedCopyQ;
 
@@ -3117,6 +3121,18 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     return address;
   }
 
+  private HostAndPort startReplicationService() throws UnknownHostException {
+    ReplicationServicer.Iface repl = TraceWrap.service(new ReplicationServicerHandler());
+    ReplicationServicer.Processor<ReplicationServicer.Iface> processor = new ReplicationServicer.Processor<ReplicationServicer.Iface>(repl);
+    AccumuloConfiguration conf = getSystemConfiguration();
+    Property maxMessageSizeProperty = (conf.get(Property.TSERV_MAX_MESSAGE_SIZE) != null ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
+    ServerAddress sp = TServerUtils.startServer(conf, clientAddress.getHostText(), Property.REPLICATION_RECEIPT_SERVICE_PORT, processor,
+        "ReplicationServicerHandler", "Replication Servicer", null, Property.REPLICATION_MIN_THREADS, Property.REPLICATION_THREADCHECK, maxMessageSizeProperty);
+    this.replServer = sp.server;
+    log.info("Started replication service on " + sp.address);
+    return sp.address;
+  }
+
   ZooLock getLock() {
     return tabletServerLock;
   }
@@ -3180,7 +3196,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   // main loop listens for client requests
   public void run() {
     SecurityUtil.serverLogin(ServerConfiguration.getSiteConfiguration());
-
+    
     try {
       clientAddress = startTabletClientService();
     } catch (UnknownHostException e1) {
@@ -3204,6 +3220,14 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       throw new RuntimeException(ex);
     }
 
+    // Start the thrift service listening for incoming replication requests
+    try {
+      replicationAddress = startReplicationService();
+    } catch (UnknownHostException e) {
+      throw new RuntimeException("Failed to start replication service", e);
+    }
+
+    // Start the pool to handle outgoing replications
     ThreadPoolExecutor replicationThreadPool = new SimpleThreadPool(getSystemConfiguration().getCount(Property.REPLICATION_WORKER_THREADS), "replication task");
     replWorker.setExecutor(replicationThreadPool);
     replWorker.run();
@@ -3296,6 +3320,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         }
       }
     }
+    log.debug("Stopping Replication Server");
+    TServerUtils.stopTServer(this.replServer);
     log.debug("Stopping Thrift Servers");
     TServerUtils.stopTServer(server);
 

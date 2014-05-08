@@ -43,6 +43,7 @@ import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.replication.ReplicationTable;
+import org.apache.accumulo.server.replication.ReplicationWorkAssignerHelper;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.hadoop.fs.Path;
@@ -74,7 +75,7 @@ public class ReplicationWorkAssignerTest {
 
   @Test
   public void workQueuedUsingFileName() throws Exception {
-    ReplicationTarget target = new ReplicationTarget("cluster1", "table1"); 
+    ReplicationTarget target = new ReplicationTarget("cluster1", "table1");
     Text serializedTarget = target.toText();
 
     DistributedWorkQueue workQueue = createMock(DistributedWorkQueue.class);
@@ -83,7 +84,7 @@ public class ReplicationWorkAssignerTest {
     assigner.setWorkQueue(workQueue);
 
     Path p = new Path("/accumulo/wal/tserver+port/" + UUID.randomUUID());
-    
+
     workQueue.addWork(p.getName() + "|" + serializedTarget.toString(), p.toString());
     expectLastCall().once();
 
@@ -116,8 +117,10 @@ public class ReplicationWorkAssignerTest {
 
   @Test
   public void createWorkForFilesNeedingIt() throws Exception {
-    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1"), target2 = new ReplicationTarget("cluster1", "table2"); 
+    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1"), target2 = new ReplicationTarget("cluster1", "table2");
     Text serializedTarget1 = target1.toText(), serializedTarget2 = target2.toText();
+    String keyTarget1 = target1.getPeerName() + ReplicationWorkAssignerHelper.KEY_SEPARATOR + target1.getRemoteIdentifier(), keyTarget2 = target2
+        .getPeerName() + ReplicationWorkAssignerHelper.KEY_SEPARATOR + target2.getRemoteIdentifier();
 
     MockInstance inst = new MockInstance(test.getMethodName());
     Credentials creds = new Credentials("root", new PasswordToken(""));
@@ -155,25 +158,25 @@ public class ReplicationWorkAssignerTest {
 
     // Make sure we expect the invocations in the correct order (accumulo is sorted)
     if (file1.compareTo(file2) <= 0) {
-      String key = filename1 + "|" + serializedTarget1;
+      String key = filename1 + "|" + keyTarget1;
       expect(queuedWork.contains(key)).andReturn(false);
       workQueue.addWork(key, file1);
       expectLastCall().once();
       expect(queuedWork.add(key)).andReturn(true).once();
-      
-      key = filename2 + "|" + serializedTarget2;
+
+      key = filename2 + "|" + keyTarget2;
       expect(queuedWork.contains(key)).andReturn(false);
       workQueue.addWork(key, file2);
       expectLastCall().once();
       expect(queuedWork.add(key)).andReturn(true).once();
     } else {
-      String key = filename2 + "|" + serializedTarget2;
+      String key = filename2 + "|" + keyTarget2;
       expect(queuedWork.contains(key)).andReturn(false);
       workQueue.addWork(key, file2);
       expectLastCall().once();
       expect(queuedWork.add(key)).andReturn(true).once();
 
-      key = filename1 + "|" + serializedTarget1;
+      key = filename1 + "|" + keyTarget1;
       expect(queuedWork.contains(key)).andReturn(false);
       workQueue.addWork(key, file1);
       expectLastCall().once();
@@ -189,7 +192,7 @@ public class ReplicationWorkAssignerTest {
 
   @Test
   public void doNotCreateWorkForFilesNotNeedingIt() throws Exception {
-    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1"), target2 = new ReplicationTarget("cluster1", "table2"); 
+    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1"), target2 = new ReplicationTarget("cluster1", "table2");
     Text serializedTarget1 = target1.toText(), serializedTarget2 = target2.toText();
 
     MockInstance inst = new MockInstance(test.getMethodName());
@@ -229,7 +232,7 @@ public class ReplicationWorkAssignerTest {
     replay(queuedWork, workQueue);
 
     assigner.createWork();
-    
+
     verify(queuedWork, workQueue);
   }
 
@@ -256,13 +259,13 @@ public class ReplicationWorkAssignerTest {
   }
 
   @Test
-  public void workNotReAdded() throws Exception  {
+  public void workNotReAdded() throws Exception {
     Set<String> queuedWork = new HashSet<>();
 
     assigner.setQueuedWork(queuedWork);
 
-    ReplicationTarget target = new ReplicationTarget("cluster1", "table1"); 
-    Text serializedTarget = target.toText();
+    ReplicationTarget target = new ReplicationTarget("cluster1", "table1");
+    String serializedTarget = target.getPeerName() + ReplicationWorkAssignerHelper.KEY_SEPARATOR + target.getRemoteIdentifier();
 
     queuedWork.add("wal1|" + serializedTarget.toString());
 
@@ -281,7 +284,7 @@ public class ReplicationWorkAssignerTest {
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     String file1 = "/accumulo/wal/tserver+port/wal1";
     Mutation m = new Mutation(file1);
-    WorkSection.add(m, serializedTarget, StatusUtil.openWithUnknownLengthValue());
+    WorkSection.add(m, target.toText(), StatusUtil.openWithUnknownLengthValue());
     bw.addMutation(m);
 
     bw.close();
@@ -291,7 +294,7 @@ public class ReplicationWorkAssignerTest {
     assigner.setMaxQueueSize(Integer.MAX_VALUE);
 
     replay(workQueue);
-    
+
     assigner.createWork();
 
     verify(workQueue);

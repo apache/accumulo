@@ -14,9 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.replication;
+package org.apache.accumulo.tserver.replication;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.EOFException;
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -28,34 +34,46 @@ import org.apache.accumulo.core.client.impl.ServerConfigurationUtil;
 import org.apache.accumulo.core.client.replication.ReplicaSystem;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
+import org.apache.accumulo.core.replication.thrift.KeyValues;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer.Client;
-import org.apache.accumulo.core.util.ByteBufferUtil;
+import org.apache.accumulo.core.replication.thrift.WalEdits;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.tserver.log.DfsLogger;
+import org.apache.accumulo.tserver.log.DfsLogger.DFSLoggerInputStreams;
+import org.apache.accumulo.tserver.logger.LogFileKey;
+import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.hadoop.fs.Path;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
  * 
  */
 public class AccumuloReplicaSystem implements ReplicaSystem {
   private static final Logger log = LoggerFactory.getLogger(AccumuloReplicaSystem.class);
-
+  private static final String RFILE_SUFFIX = "." + RFile.EXTENSION;
+  
   private String instanceName, zookeepers;
+  private AccumuloConfiguration conf;
+  private VolumeManager fs;
 
   @Override
   public void configure(String configuration) {
     Preconditions.checkNotNull(configuration);
 
+    // instance_name,zookeepers
     int index = configuration.indexOf(',');
     if (-1 == index) {
       throw new IllegalArgumentException("Expected comma in configuration string");
@@ -63,10 +81,19 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
     instanceName = configuration.substring(0, index);
     zookeepers = configuration.substring(index + 1);
+
+    conf = ServerConfiguration.getSiteConfiguration();
+
+    try {
+      fs = VolumeManagerImpl.get(conf);
+    } catch (IOException e) {
+      log.error("Could not connect to filesystem", e);
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
-  public Status replicate(Path p, Status status, ReplicationTarget target) {
+  public Status replicate(final Path p, final Status status, ReplicationTarget target) {
     Instance localInstance = HdfsZooInstance.getInstance();
     AccumuloConfiguration localConf = ServerConfigurationUtil.getConfiguration(localInstance);
     
@@ -101,26 +128,29 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       }
   
       // We have a tserver on the remote -- send the data its way.
-      ByteBuffer result;
+      Long entriesReplicated;
       //TODO should chunk up the given file into some configurable sizes instead of just sending the entire file all at once
       //     configuration should probably just be size based.
+      final long sizeLimit = Long.MAX_VALUE;
       try {
-        result = ReplicationClient.executeServicerWithReturn(peerInstance, peerTserver, new ClientExecReturn<ByteBuffer,ReplicationServicer.Client>() {
+        entriesReplicated = ReplicationClient.executeServicerWithReturn(peerInstance, peerTserver, new ClientExecReturn<Long,ReplicationServicer.Client>() {
           @Override
-          public ByteBuffer execute(Client client) throws Exception {
-            //TODO This needs to actually send the appropriate data, and choose replicateLog or replicateKeyValues
-            return client.replicateLog(remoteTableId, null);
+          public Long execute(Client client) throws Exception {
+            // RFiles have an extension, call everything else a WAL
+            if (p.getName().endsWith(RFILE_SUFFIX)) {
+              return client.replicateKeyValues(remoteTableId, getKeyValues(p, status, sizeLimit));
+            } else {
+              return client.replicateLog(remoteTableId, getWalEdits(p, status, sizeLimit));
+            }
           }
         });
 
-        // We need to be able to parse the returned Status,
-        // if we can't, we don't know what the server actually parsed.
-        try {
-          return Status.parseFrom(ByteBufferUtil.toBytes(result));
-        } catch (InvalidProtocolBufferException e) {
-          log.error("Could not parse return Status from {}", peerTserver, e);
-          throw new RuntimeException("Could not parse returned Status from " + peerTserver, e);
-        }
+        log.debug("Replicated {} entries from {} to {} which is a part of {}", entriesReplicated, p, peerTserver, peerInstance.getInstanceName());
+
+        // Update the begin to account for what we replicated
+        Status updatedStatus = Status.newBuilder(status).setBegin(status.getBegin() + entriesReplicated).build();
+
+        return updatedStatus;
       } catch (TTransportException | AccumuloException | AccumuloSecurityException e) {
         log.warn("Could not connect to remote server {}, will retry", peerTserver, e);
         UtilWaitThread.sleep(250);
@@ -131,7 +161,64 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     return status;
   }
 
-  public Instance getPeerInstance(ReplicationTarget target) {
+  protected Instance getPeerInstance(ReplicationTarget target) {
     return new ZooKeeperInstance(instanceName, zookeepers);
+  }
+
+  protected KeyValues getKeyValues(Path p, Status status, long sizeLimit) {
+    // TODO Implement me
+    throw new UnsupportedOperationException();
+  }
+
+  protected WalEdits getWalEdits(Path p, Status status, long sizeLimit) throws IOException {
+    DFSLoggerInputStreams streams = DfsLogger.readHeaderAndReturnStream(fs, p, conf);
+    DataInputStream wal = streams.getDecryptingInputStream();
+    LogFileKey key = new LogFileKey();
+    LogFileValue value = new LogFileValue();
+
+    // Read through the stuff we don't need to replicate
+    for (long i = 0; i < status.getBegin(); i++) {
+      try {
+        key.readFields(wal);
+        value.readFields(wal);
+      } catch (EOFException e) {
+        log.warn("Unexpectedly reached the end of file. Nothing more to replicate.");
+        return null;
+      }
+    }
+
+    WalEdits edits = new WalEdits();
+    edits.edits = new ArrayList<ByteBuffer>();
+    long size = 0l;
+    while (size < sizeLimit) {
+      try {
+        key.readFields(wal);
+        value.readFields(wal);
+      } catch (EOFException e) {
+        log.trace("Caught EOFException, no more data to replicate");
+        break;
+      }
+
+      switch (key.event) {
+        case MUTATION:
+        case MANY_MUTATIONS:
+          ByteArrayOutputStream baos = new ByteArrayOutputStream();
+          DataOutputStream out = new DataOutputStream(baos);
+          key.write(out);
+          value.write(out);
+          out.flush();
+          byte[] data = baos.toByteArray();
+          size += data.length;
+          edits.addToEdits(ByteBuffer.wrap(data));
+          break;
+        default:
+          log.trace("Ignorning WAL entry which doesn't contain mutations");
+          break;
+      }
+    }
+
+    log.debug("Returning {} bytes of WAL entries for replication for {}", size, p);
+
+    return edits;
   }
 }

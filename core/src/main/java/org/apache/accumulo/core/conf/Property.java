@@ -451,10 +451,6 @@ public enum Property {
   @Experimental
   REPLICATION_PEERS("replication.peer.", null, PropertyType.PREFIX, "Properties in this category control what systems data can be replicated to"),
   @Experimental
-  REPLICATION_BATCH_SIZE("replication.batch.size", "1000", PropertyType.COUNT, "Maximum number of updates (WAL) or key-value pairs (RFile) to send in one replication task"),
-  @Experimental
-  REPLICATION_SEND_THREAD_POOL_SIZE("replication.send.threads", "1", PropertyType.COUNT, "Size of threadpool used to start replication to slaves"),
-  @Experimental
   REPLICATION_MAX_WORK_QUEUE("replication.max.work.queue", "20000000", PropertyType.COUNT, "Upper bound of the number of files queued for replication"),
   @Experimental
   REPLICATION_WORK_ASSIGNMENT_SLEEP("replication.work.assignment.sleep", "30s", PropertyType.TIMEDURATION, "Amount of time to sleep between replication work assignment"),
@@ -464,6 +460,10 @@ public enum Property {
   REPLICATION_RECEIPT_SERVICE_PORT("replication.receipt.service.port", "10001", PropertyType.PORT, "Listen port used by thrift service in tserver listening for replication"),
   @Experimental
   REPLICATION_WORK_ATTEMPTS("replication.work.attempts", "10", PropertyType.COUNT, "Number of attempts to try to replicate some data before giving up and letting it naturally be retried later"),
+  @Experimental
+  REPLICATION_MIN_THREADS("replication.receiver.min.threads", "1", PropertyType.COUNT, "Minimum number of threads for replciation"),
+  @Experimental
+  REPLICATION_THREADCHECK("replication.receiver.threadcheck.time", "5s", PropertyType.TIMEDURATION, "The time between adjustments of the replication thread pool."),
 
   ;
 
@@ -713,7 +713,7 @@ public enum Property {
     return key.startsWith(Property.TABLE_PREFIX.getKey()) || key.startsWith(Property.TSERV_PREFIX.getKey()) || key.startsWith(Property.LOGGER_PREFIX.getKey())
         || key.startsWith(Property.MASTER_PREFIX.getKey()) || key.startsWith(Property.GC_PREFIX.getKey())
         || key.startsWith(Property.MONITOR_PREFIX.getKey() + "banner.") || key.startsWith(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey())
-        || key.startsWith(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey());
+        || key.startsWith(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey()) || key.startsWith(REPLICATION_PREFIX.getKey());
   }
 
   /**

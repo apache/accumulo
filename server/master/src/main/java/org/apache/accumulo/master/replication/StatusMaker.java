@@ -40,6 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.TextFormat;
 
 /**
  * Reads replication records from the metadata table and creates status records in the replication table
@@ -71,6 +72,7 @@ public class StatusMaker {
   public void run() {
     Span span = Trace.start("replicationStatusMaker");
     try {
+      // Read from a source table (typically accumulo.metadata)
       final Scanner s;
       try {
         s = conn.createScanner(sourceTableName, new Authorizations());
@@ -78,12 +80,13 @@ public class StatusMaker {
         throw new RuntimeException(e);
       }
 
-      // Only pull records about data that has been ingested and is ready for replication
+      // Only pull replication records
       s.fetchColumnFamily(ReplicationSection.COLF);
       s.setRange(ReplicationSection.getRange());
 
       Text row = new Text(), tableId = new Text();
       for (Entry<Key,Value> entry : s) {
+        // Get a writer to the replication table
         if (null == writer) {
           // Ensures table exists and is properly configured
           ReplicationTable.create(conn);
@@ -103,14 +106,15 @@ public class StatusMaker {
         rowStr = rowStr.substring(ReplicationSection.getRowPrefix().length());
 
         try {
-          log.debug("Creating replication status record for {} on table {} with {}.", rowStr, tableId, Status.parseFrom(entry.getValue().get()).toString().replace("\n", ", "));
+          log.debug("Creating replication status record for {} on table {} with {}.", rowStr, tableId, TextFormat.shortDebugString(Status.parseFrom(entry.getValue().get())));
         } catch (InvalidProtocolBufferException e) {
           // TODO Auto-generated catch block
           e.printStackTrace();
-          }
+        }
 
         Span workSpan = Trace.start("createStatusMutations");
         try {
+          // Create entries in the replication table from the metadata table
           addStatusRecord(rowStr, tableId, entry.getValue());
         } finally {
           workSpan.stop();
@@ -125,6 +129,12 @@ public class StatusMaker {
     this.writer = bw;
   }
 
+  /**
+   * Create a status record in the replication table
+   * @param file
+   * @param tableId
+   * @param v
+   */
   protected void addStatusRecord(String file, Text tableId, Value v) {
     // TODO come up with something that tries to avoid creating a new BatchWriter all the time
     try {
