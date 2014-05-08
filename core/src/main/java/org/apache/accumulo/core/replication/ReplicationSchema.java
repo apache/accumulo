@@ -31,6 +31,11 @@ import com.google.common.base.Preconditions;
  */
 public class ReplicationSchema {
 
+  /**
+   * Portion of a file that must be replication to the given target: peer and some identifying location on that peer, e.g. remote table ID
+   * <p>
+   * <code>hdfs://localhost:8020/accumulo/wal/tserver+port/WAL work:serialized_ReplicationTarget [] -> Protobuf</code>
+   */
   public static class WorkSection {
     public static final Text NAME = new Text("work");
     private static final ByteSequence BYTE_SEQ_NAME = new ArrayByteSequence("work");
@@ -69,6 +74,8 @@ public class ReplicationSchema {
 
   /**
    * Holds replication markers tracking status for files
+   * <p>
+   * <code>hdfs://localhost:8020/accumulo/wal/tserver+port/WAL repl:local_table_id [] -> Protobuf</code>
    */
   public static class StatusSection {
     public static final Text NAME = new Text("repl");
