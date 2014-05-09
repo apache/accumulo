@@ -58,4 +58,19 @@ public class ReplicaSystemFactory {
       throw new RuntimeException(e);
     }
   }
+
+  /**
+   * Generate the configuration value for a {@link ReplicaSystem} in the instance properties
+   * @param system The desired ReplicaSystem to use
+   * @param configuration Configuration string for the desired ReplicaSystem
+   * @return Value to set for peer configuration in the instance
+   */
+  public static String getPeerConfigurationValue(Class<? extends ReplicaSystem> system, String configuration) {
+    String systemName = system.getName() + ",";
+    if (null == configuration) {
+      return systemName;
+    }
+
+    return systemName + configuration;
+  }
 }

@@ -69,6 +69,13 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   private AccumuloConfiguration conf;
   private VolumeManager fs;
 
+  /**
+   * Generate the configuration string for this ReplicaSystem
+   */
+  public static String buildConfiguration(String instanceName, String zookeepers) {
+    return instanceName + "," + zookeepers;
+  }
+
   @Override
   public void configure(String configuration) {
     Preconditions.checkNotNull(configuration);
