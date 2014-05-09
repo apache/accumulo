@@ -17,12 +17,10 @@ Apache Accumulo User Manual Version 1.6
 =======================================
 :author: Apache Accumulo Project
 :email: dev@accumulo.apache.org
-//:theme: flask
 :toc2:
 :toclevels: 4
 :toc-title: Apache Accumulo 1.6
 :numbered:
-//:max-width: 50em
 :website: http://accumulo.apache.org/
 
 image::accumulo-logo.png[]
