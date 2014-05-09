@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.gc.replication;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -29,6 +30,7 @@ import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
@@ -87,7 +89,7 @@ public class RemoveCompleteReplicationRecordsTest {
 
     EasyMock.replay(bw);
 
-    rcrr.removeCompleteRecords(conn, bs, bw, bw);
+    rcrr.removeCompleteRecords(conn, ReplicationTable.NAME, bs, bw);
     bs.close();
 
     Assert.assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
@@ -120,7 +122,7 @@ public class RemoveCompleteReplicationRecordsTest {
     EasyMock.replay(bw);
 
     // We don't remove any records, so we can just pass in a fake BW for both
-    rcrr.removeCompleteRecords(conn, bs, bw, bw);
+    rcrr.removeCompleteRecords(conn, ReplicationTable.NAME, bs, bw);
     bs.close();
 
     Assert.assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
@@ -136,10 +138,13 @@ public class RemoveCompleteReplicationRecordsTest {
     ReplicationTable.create(conn);
     BatchWriter replBw = ReplicationTable.getBatchWriter(conn);
     int numRecords = 3;
+
     Status.Builder builder = Status.newBuilder();
     builder.setClosed(false);
     builder.setEnd(10000);
     builder.setInfiniteEnd(false);
+
+    // Write out numRecords entries to both replication and metadata tables, none of which are fully replicated
     for (int i = 0; i < numRecords; i++) {
       String file = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
       Mutation m = new Mutation(file);
@@ -154,7 +159,7 @@ public class RemoveCompleteReplicationRecordsTest {
     Set<String> filesToRemove = new HashSet<>();
     int finalNumRecords = numRecords;
 
-    // Add some records that we can delete
+    // Add two records that we can delete
     String fileToRemove = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
     filesToRemove.add(fileToRemove);
     Mutation m = new Mutation(fileToRemove);
@@ -162,7 +167,7 @@ public class RemoveCompleteReplicationRecordsTest {
     replBw.addMutation(m);
 
     m = new Mutation(ReplicationSection.getRowPrefix() + fileToRemove);
-    m.put(ReplicationSection.COLF, new Text("5"), StatusUtil.openWithUnknownLengthValue());
+    m.put(ReplicationSection.COLF, new Text("5"), ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(true).build()));
     metaBw.addMutation(m);
 
     numRecords++;
@@ -174,18 +179,22 @@ public class RemoveCompleteReplicationRecordsTest {
     replBw.addMutation(m);
 
     m = new Mutation(ReplicationSection.getRowPrefix() + fileToRemove);
-    m.put(ReplicationSection.COLF, new Text("6"), StatusUtil.openWithUnknownLengthValue());
+    m.put(ReplicationSection.COLF, new Text("6"), ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(true).build()));
     metaBw.addMutation(m);
 
     numRecords++;
 
-    replBw.close();
+    replBw.flush();
+    metaBw.flush();
 
+    // Make sure that we have the expected number of records in both tables
     Assert.assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
     Assert.assertEquals(numRecords, Iterables.size(conn.createScanner(fakeMeta, Authorizations.EMPTY)));
 
+    // We should remove the two fully completed records we inserted
     BatchScanner bs = ReplicationTable.getBatchScanner(conn, 1);
-    Assert.assertEquals(2l, rcrr.removeCompleteRecords(conn, bs, metaBw, replBw));
+    bs.setRanges(Collections.singleton(new Range()));
+    Assert.assertEquals(2l, rcrr.removeCompleteRecords(conn, ReplicationTable.NAME, bs, replBw));
     bs.close();
 
     int actualRecords = 0;
@@ -195,6 +204,12 @@ public class RemoveCompleteReplicationRecordsTest {
     }
 
     Assert.assertEquals(finalNumRecords, actualRecords);
+
+    // We should remove the two fully completed records we inserted
+    bs = conn.createBatchScanner(fakeMeta, Authorizations.EMPTY, 1);
+    bs.setRanges(Collections.singleton(ReplicationSection.getRange()));
+    Assert.assertEquals(2l, rcrr.removeCompleteRecords(conn, fakeMeta, bs, metaBw));
+    bs.close();
 
     actualRecords = 0;
     for (Entry<Key,Value> entry : conn.createScanner(fakeMeta, Authorizations.EMPTY)) {

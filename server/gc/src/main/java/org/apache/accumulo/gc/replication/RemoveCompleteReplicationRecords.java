@@ -71,45 +71,49 @@ public class RemoveCompleteReplicationRecords implements Runnable {
     }
 
     BatchScanner bs;
-    BatchWriter metaBw, replBw;
-    try {
-      bs = conn.createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
-      metaBw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-      replBw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
-    } catch (TableNotFoundException e) {
-      log.debug("Not attempting to remove complete replication records as the replication table doesn't yet exist");
-      return;
-    }
-
-    @SuppressWarnings("deprecation")
-    Stopwatch sw = new Stopwatch();
-    long recordsRemoved = 0;
-    try {
-      sw.start();
-      recordsRemoved = removeCompleteRecords(conn, bs, metaBw, replBw);
-    } finally {
-      if (null != bs) {
-        bs.close();
+    BatchWriter bw;
+    for (String table : new String[] {MetadataTable.NAME, ReplicationTable.NAME}) {
+      try {
+        bs = conn.createBatchScanner(table, Authorizations.EMPTY, 4);
+        bw = conn.createBatchWriter(table, new BatchWriterConfig());
+      } catch (TableNotFoundException e) {
+        log.debug("Not attempting to remove complete replication records as the {} doesn't yet exist", table);
+        return;
       }
-      if (null != metaBw) {
-        try {
-          metaBw.close();
-        } catch (MutationsRejectedException e) {
-          log.error("Error writing mutations to metadata, will retry", e);
+
+      // Set batchscanner options correctly for the table
+      if (table.equals(MetadataTable.NAME)) {
+        bs.setRanges(Collections.singleton(ReplicationSection.getRange()));
+        bs.fetchColumnFamily(ReplicationSection.COLF);
+      } else if (table.equals(ReplicationTable.NAME)) {
+        bs.setRanges(Collections.singleton(new Range()));
+      } else {
+        throw new RuntimeException();
+      }
+  
+      @SuppressWarnings("deprecation")
+      Stopwatch sw = new Stopwatch();
+      long recordsRemoved = 0;
+      try {
+        sw.start();
+        recordsRemoved = removeCompleteRecords(conn, table, bs, bw);
+      } finally {
+        if (null != bs) {
+          bs.close();
         }
-      }
-      if (null != replBw) {
-        try {
-          replBw.close();
-        } catch (MutationsRejectedException e) {
-          log.error("Error writing mutations to replication, will retry", e);
+        if (null != bw) {
+          try {
+            bw.close();
+          } catch (MutationsRejectedException e) {
+            log.error("Error writing mutations to {}, will retry", table, e);
+          }
         }
+  
+        sw.stop();
       }
-
-      sw.stop();
+  
+      log.info("Removed {} complete replication entries from the table {}", table, recordsRemoved);
     }
-
-    log.info("Removed {} replication entries from the replication table", recordsRemoved);
   }
 
   /**
@@ -117,18 +121,11 @@ public class RemoveCompleteReplicationRecords implements Runnable {
    * when that {@link Status} is fully replicated and closed, as defined by {@link StatusUtil#isSafeForRemoval(Status)}.
    * @param conn A Connector
    * @param bs A BatchScanner to read replication status records from
-   * @param metaBw A BatchWriter to write deletes to the metadata table
-   * @param replBw A BatchWriter to write deletes to the replication table
+   * @param bw A BatchWriter to write deletes to
    * @return Number of records removed
    */
-  protected long removeCompleteRecords(Connector conn, BatchScanner bs, BatchWriter metaBw, BatchWriter replBw) {
-    if (!ReplicationTable.exists(conn)) {
-      // Nothing to do
-      return 0;
-    }
-
-    bs.setRanges(Collections.singleton(new Range()));
-
+  protected long removeCompleteRecords(Connector conn, String table, BatchScanner bs, BatchWriter bw) {
+    // TODO Make a Status-not-safe-for-removal filter and just use the BatchDeleter
     Text row = new Text(), colf = new Text(), colq = new Text();
     long recordsRemoved = 0;
     for (Entry<Key,Value> entry : bs) {
@@ -146,30 +143,21 @@ public class RemoveCompleteReplicationRecords implements Runnable {
         k.getColumnFamily(colf);
         k.getColumnQualifier(colq);
 
-        log.debug("Issuing delete for {}", k.toStringNoTruncate());
+        log.debug("Issuing deletion to {} for {} ", table, row.toString());
 
         // *Must* delete from metadata table first, otherwise we risk re-creating the 
         // record in the replication table and double-replicating the data
-        Mutation metaMutation = new Mutation(ReplicationSection.getRowPrefix() + row.toString());
-        metaMutation.putDelete(ReplicationSection.COLF, colq);
+        Mutation mutation = new Mutation(row);
+        mutation.putDelete(colf, colq);
         try {
-          metaBw.addMutation(metaMutation);
-          metaBw.flush();
+          bw.addMutation(mutation);
+          bw.flush();
         } catch (MutationsRejectedException e) {
-          log.error("Error writing mutations to metadata, will retry", e);
+          log.error("Error writing mutations to {}, will retry", table, e);
           continue;
         }
 
-        // *only* write to the replication table after we successfully wrote to metadata
-        Mutation replMutation = new Mutation(row);
-        replMutation.putDelete(colf, colq);
-        try {
-          replBw.addMutation(replMutation);
-          replBw.flush();
-          recordsRemoved++;
-        } catch (MutationsRejectedException e) {
-          log.error("Error writing mutations to replication, will retry", e);
-        }
+        recordsRemoved++;
       }
     }
 
