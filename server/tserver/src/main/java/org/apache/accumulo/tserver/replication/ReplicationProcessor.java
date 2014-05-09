@@ -49,6 +49,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.TextFormat;
 
 /**
  * Transmit the given data to a peer
@@ -122,9 +123,11 @@ public class ReplicationProcessor implements Processor {
     if (!replicatedStatus.equals(status)) {
       // We actually did some work!
       recordNewStatus(filePath, replicatedStatus, target);
+      return;
     }
 
-    log.debug("Did not replicate any new data for {} to {}", filePath, target);
+    log.debug("Did not replicate any new data for {} to {}, (was [{}], now is [{}])", filePath, target, TextFormat.shortDebugString(status),
+        TextFormat.shortDebugString(replicatedStatus));
 
     // otherwise, we didn't actually replicate because there was error sending the data
     // we can just not record any updates, and it will be picked up again by the work assigner
@@ -161,6 +164,7 @@ public class ReplicationProcessor implements Processor {
     try {
       Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
       BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+      log.debug("Recording new status for {}, [{}]", filePath.toString(), TextFormat.shortDebugString(status));
       Mutation m = new Mutation(filePath.toString());
       WorkSection.add(m, target.toText(), ProtobufUtil.toValue(status));
       bw.addMutation(m);
