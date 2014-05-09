@@ -47,7 +47,8 @@ import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.cache.CacheBuilder;
@@ -56,16 +57,16 @@ import com.google.common.cache.LoadingCache;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
- * It's presently impossible to know when all references to a WAL have been removed from the metadata table as the references are potentially spread across the
- * entire tablets row-space.
+ * It's impossible to know when all references to a WAL have been removed from the metadata table as the references are potentially spread across the entire
+ * tablets row-space.
  * <p>
- * This tool scans the metadata table to collect a set of WALs that are still referenced. Then, each {@link Status} record from the replication table that is
- * otherwise ready for deletion (determined by {@link StatusUtil#isSafeForRemoval(Status)}), is checked against the aforementioned set of WALs. If the
- * referenced WAL in the replication table is no longer referenced in the metadata table, it is safe to delete the reference to that WAL in the replication
- * table (which will let the WAL be deleted by the GC).
+ * This tool scans the metadata table to collect a set of WALs that are still referenced. Then, each {@link Status} record from the metadata and replication
+ * tables that point to that WAL can be "closed", by writing a new Status to the same key with the closed member true.
+ * <p>
+ * This will signal to the {@link RemoveCompleteReplicationRecords} class that when replication for this WAL is complete, we can safely delete it.
  */
 public class CloseWriteAheadLogReferences implements Runnable {
-  private static final Logger log = Logger.getLogger(CloseWriteAheadLogReferences.class);
+  private static final Logger log = LoggerFactory.getLogger(CloseWriteAheadLogReferences.class);
 
   private static final String RFILE_SUFFIX = "." + RFile.EXTENSION;
 
@@ -114,7 +115,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
     long recordsClosed = 0;
     try {
       sw.start();
-      recordsClosed = updateReplicationTable(conn, referencedWals);
+      recordsClosed = updateReplicationEntries(conn, referencedWals);
     } finally {
       sw.stop();
       updateReplicationSpan.stop();
@@ -183,7 +184,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
    * @param referencedWals
    *          {@link Set} of paths to WALs that are referenced in the tablets section of the metadata table
    */
-  protected long updateReplicationTable(Connector conn, Set<String> referencedWals) {
+  protected long updateReplicationEntries(Connector conn, Set<String> referencedWals) {
     BatchScanner bs = null;
     BatchWriter bw = null;
     long recordsClosed = 0;
@@ -199,7 +200,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
         try {
           status = Status.parseFrom(entry.getValue().get());
         } catch (InvalidProtocolBufferException e) {
-          log.error("Could not parse Status protobuf for " + entry.getKey(), e);
+          log.error("Could not parse Status protobuf for {}", entry.getKey(), e);
           continue;
         }
 

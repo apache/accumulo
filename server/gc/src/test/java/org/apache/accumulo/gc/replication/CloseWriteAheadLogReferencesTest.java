@@ -315,7 +315,7 @@ public class CloseWriteAheadLogReferencesTest {
     bw.addMutation(m);
     bw.close();
 
-    refs.updateReplicationTable(conn, wals);
+    refs.updateReplicationEntries(conn, wals);
 
     Scanner s = ReplicationTable.getScanner(conn);
     Entry<Key,Value> entry = Iterables.getOnlyElement(s);
@@ -337,7 +337,7 @@ public class CloseWriteAheadLogReferencesTest {
     bw.addMutation(m);
     bw.close();
 
-    refs.updateReplicationTable(conn, wals);
+    refs.updateReplicationEntries(conn, wals);
 
     Scanner s = ReplicationTable.getScanner(conn);
     Entry<Key,Value> entry = Iterables.getOnlyElement(s);
@@ -359,7 +359,7 @@ public class CloseWriteAheadLogReferencesTest {
     bw.addMutation(m);
     bw.close();
 
-    refs.updateReplicationTable(conn, wals);
+    refs.updateReplicationEntries(conn, wals);
 
     Scanner s = ReplicationTable.getScanner(conn);
     Entry<Key,Value> entry = Iterables.getOnlyElement(s);
