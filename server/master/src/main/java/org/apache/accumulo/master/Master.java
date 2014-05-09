@@ -60,6 +60,7 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.NamespacePermission;
@@ -76,6 +77,7 @@ import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.master.recovery.RecoveryManager;
+import org.apache.accumulo.master.replication.MasterReplicationCoordinator;
 import org.apache.accumulo.master.replication.ReplicationDriver;
 import org.apache.accumulo.master.replication.ReplicationWorkAssigner;
 import org.apache.accumulo.master.state.TableCounts;
@@ -977,8 +979,6 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       throw new IOException(e);
     }
 
-    
-
     Processor<Iface> processor = new Processor<Iface>(TraceWrap.service(new MasterClientServiceHandler(this)));
     ServerAddress sa = TServerUtils.startServer(getSystemConfiguration(), hostname, Property.MASTER_CLIENTPORT, processor, "Master",
         "Master Client Service Handler", null, Property.MASTER_MINTHREADS, Property.MASTER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
@@ -990,6 +990,17 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     while (!clientService.isServing()) {
       UtilWaitThread.sleep(100);
     }
+
+    // Start the replication coordinator which assigns tservers to service replication requests
+    ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor = new ReplicationCoordinator.Processor<ReplicationCoordinator.Iface>(
+        TraceWrap.service(new MasterReplicationCoordinator(this, getSystemConfiguration())));
+    ServerAddress replAddress = TServerUtils.startServer(getSystemConfiguration(), hostname, Property.MASTER_REPLICATION_COORDINATOR_PORT, replicationCoordinatorProcessor, "Master Replication Coordinator",
+        "Replication Coordinator", null, Property.MASTER_REPLICATION_COORDINATOR_MINTHREADS, Property.MASTER_REPLICATION_COORDINATOR_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
+
+    // Advertise that port we used so peers don't have to be told what it is
+    ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instance) + Constants.ZMASTER_REPLICATION_COORDINATOR_PORT,
+        Integer.toString(replAddress.address.getPort()).getBytes(StandardCharsets.UTF_8), NodeExistsPolicy.OVERWRITE);
+    
     while (clientService.isServing()) {
       UtilWaitThread.sleep(500);
     }
@@ -1000,6 +1011,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     statusThread.join(remaining(deadline));
     replicationWorkAssigner.join(remaining(deadline));
     replicationWorkDriver.join(remaining(deadline));
+    replAddress.server.stop();
 
     // quit, even if the tablet servers somehow jam up and the watchers
     // don't stop

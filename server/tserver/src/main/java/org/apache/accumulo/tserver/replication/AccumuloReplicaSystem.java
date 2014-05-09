@@ -131,21 +131,29 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       Long entriesReplicated;
       //TODO should chunk up the given file into some configurable sizes instead of just sending the entire file all at once
       //     configuration should probably just be size based.
-      final long sizeLimit = Long.MAX_VALUE;
+      final long sizeLimit = conf.getMemoryInBytes(Property.REPLICATION_MAX_UNIT_SIZE);
       try {
         entriesReplicated = ReplicationClient.executeServicerWithReturn(peerInstance, peerTserver, new ClientExecReturn<Long,ReplicationServicer.Client>() {
           @Override
           public Long execute(Client client) throws Exception {
             // RFiles have an extension, call everything else a WAL
             if (p.getName().endsWith(RFILE_SUFFIX)) {
-              return client.replicateKeyValues(remoteTableId, getKeyValues(p, status, sizeLimit));
+              KeyValues kvs = getKeyValues(p, status, sizeLimit);
+              if (0 < kvs.getKeyValuesSize()) {
+                return client.replicateKeyValues(remoteTableId, kvs);
+              }
             } else {
-              return client.replicateLog(remoteTableId, getWalEdits(p, status, sizeLimit));
+              WalEdits edits = getWalEdits(p, status, sizeLimit);
+              if (0 < edits.getEditsSize()) {
+                return client.replicateLog(remoteTableId, edits);
+              }
             }
+
+            return 0l;
           }
         });
 
-        log.debug("Replicated {} entries from {} to {} which is a part of {}", entriesReplicated, p, peerTserver, peerInstance.getInstanceName());
+        log.debug("Replicated {} entries from {} to {} which is a member of the peer '{}'", entriesReplicated, p, peerTserver, peerInstance.getInstanceName());
 
         // Update the begin to account for what we replicated
         Status updatedStatus = Status.newBuilder(status).setBegin(status.getBegin() + entriesReplicated).build();
@@ -195,7 +203,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         key.readFields(wal);
         value.readFields(wal);
       } catch (EOFException e) {
-        log.trace("Caught EOFException, no more data to replicate");
+        log.debug("Caught EOFException, no more data to replicate");
         break;
       }
 
@@ -217,7 +225,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       }
     }
 
-    log.debug("Returning {} bytes of WAL entries for replication for {}", size, p);
+    log.debug("Binned {} bytes of WAL entries for replication to peer '{}'", size, p);
 
     return edits;
   }

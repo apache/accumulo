@@ -152,6 +152,8 @@ public class ReplicationWorkAssigner extends Daemon {
 
   @Override
   public void run() {
+    log.info("Starting replication work assignment thread");
+
     while (master.stillMaster()) {
       if (null == conf) {
         conf = master.getConfiguration().getConfiguration();
@@ -178,7 +180,9 @@ public class ReplicationWorkAssigner extends Daemon {
       // Keep the state of the work we queued correct
       cleanupFinishedWork();
 
-      UtilWaitThread.sleep(conf.getTimeInMillis(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP));
+      long sleepTime = conf.getTimeInMillis(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP);
+      log.debug("Sleeping {} ms", sleepTime);
+      UtilWaitThread.sleep(sleepTime);
     }
   }
 
@@ -205,6 +209,7 @@ public class ReplicationWorkAssigner extends Daemon {
         // to add more work entries
         if (queuedWork.size() > maxQueueSize) {
           log.warn("Queued replication work exceeds configured maximum ({}), sleeping to allow work to occur", maxQueueSize);
+          UtilWaitThread.sleep(5000);
           return;
         }
 

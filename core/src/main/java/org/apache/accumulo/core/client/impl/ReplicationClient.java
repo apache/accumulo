@@ -20,21 +20,28 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.net.HostAndPort;
 
 public class ReplicationClient {
   private static final Logger log = LoggerFactory.getLogger(ReplicationClient.class);
@@ -65,21 +72,41 @@ public class ReplicationClient {
       return null;
     }
 
-    String master = locations.get(0);
-    if (master.endsWith(":0"))
+    // This is the master thrift service, we just want the hostname, not the port
+    String masterThriftService = locations.get(0);
+    if (masterThriftService.endsWith(":0"))
       return null;
+
+    
+    AccumuloConfiguration conf = ServerConfigurationUtil.getConfiguration(instance);
+
+    HostAndPort masterAddr = HostAndPort.fromString(masterThriftService);
+    String zkPath = ZooUtil.getRoot(instance) + Constants.ZMASTER_REPLICATION_COORDINATOR_PORT;
+    String replCoordinatorPort;
+
+    // Get the coordinator port for the master we're trying to connect to
+    try {
+      ZooReader reader = new ZooReader(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
+      replCoordinatorPort = new String(reader.getData(zkPath, null), StandardCharsets.UTF_8);
+    } catch (KeeperException | InterruptedException e) {
+      log.debug("Could not fetch remote coordinator port");
+      return null;
+    }
+
+    // Throw the hostname and port through HostAndPort to get some normalization
+    HostAndPort coordinatorAddr = HostAndPort.fromParts(masterAddr.getHostText(), Integer.parseInt(replCoordinatorPort));
 
     try {
       // Master requests can take a long time: don't ever time out
-      ReplicationCoordinator.Client client = ThriftUtil.getClientNoTimeout(new ReplicationCoordinator.Client.Factory(), master,
-          ServerConfigurationUtil.getConfiguration(instance));
+      ReplicationCoordinator.Client client = ThriftUtil.getClientNoTimeout(new ReplicationCoordinator.Client.Factory(), coordinatorAddr.toString(),
+          conf);
       return client;
     } catch (TTransportException tte) {
       if (tte.getCause().getClass().equals(UnknownHostException.class)) {
         // do not expect to recover from this
         throw new RuntimeException(tte);
       }
-      log.debug("Failed to connect to master={}, will retry... ", master, tte);
+      log.debug("Failed to connect to master coordinator service ({}), will retry... ", coordinatorAddr.toString(), tte);
       return null;
     }
   }

@@ -43,6 +43,7 @@ public class Constants {
   public static final String ZMASTERS = "/masters";
   public static final String ZMASTER_LOCK = ZMASTERS + "/lock";
   public static final String ZMASTER_GOAL_STATE = ZMASTERS + "/goal_state";
+  public static final String ZMASTER_REPLICATION_COORDINATOR_PORT = ZMASTERS + "/repl_coord_port";
 
   public static final String ZGC = "/gc";
   public static final String ZGC_LOCK = ZGC + "/lock";

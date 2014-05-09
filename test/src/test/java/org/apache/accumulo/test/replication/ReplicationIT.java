@@ -33,9 +33,12 @@ import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.protobuf.TextFormat;
 
@@ -43,13 +46,16 @@ import com.google.protobuf.TextFormat;
  * 
  */
 public class ReplicationIT extends ConfigurableMacIT {
+  private static final Logger log = LoggerFactory.getLogger(ReplicationIT.class);
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
-    cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "1M");
+    cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "32M");
     cfg.setProperty(Property.GC_CYCLE_START, "1s");
-    cfg.setProperty(Property.GC_CYCLE_DELAY, "1s");
+    cfg.setProperty(Property.GC_CYCLE_DELAY, "5s");
+    cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "5s");
+    cfg.setProperty(Property.REPLICATION_MAX_UNIT_SIZE, "8M");
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
@@ -59,7 +65,8 @@ public class ReplicationIT extends ConfigurableMacIT {
         ROOT_PASSWORD);
     peerCfg.setNumTservers(1);
     peerCfg.setInstanceName("peer");
-    peerCfg.setProperty(Property.REPLICATION_RECEIPT_SERVICE_PORT, "10002");
+    peerCfg.setProperty(Property.MASTER_REPLICATION_COORDINATOR_PORT, "10003");
+    peerCfg.setProperty(Property.REPLICATION_RECEIPT_SERVICE_PORT, "10004");
     MiniAccumuloClusterImpl peerCluster = peerCfg.build();
 
     peerCluster.start();
@@ -89,13 +96,15 @@ public class ReplicationIT extends ConfigurableMacIT {
 
     // Write some data to table1
     BatchWriter bw = connMaster.createBatchWriter(masterTable, new BatchWriterConfig());
-    for (int rows = 0; rows < 250; rows++) {
-      Mutation m = new Mutation(Integer.toString(rows));
-      for (int cols = 0; cols < 500; cols++) {
-        String value = Integer.toString(cols);
-        m.put(value, "", value);
+    for (int i = 0; i < 100; i++) {
+      for (int rows = 0; rows < 1000; rows++) {
+        Mutation m = new Mutation(i + "_" + Integer.toString(rows));
+        for (int cols = 0; cols < 400; cols++) {
+          String value = Integer.toString(cols);
+          m.put(value, "", value);
+        }
+        bw.addMutation(m);
       }
-      bw.addMutation(m);
     }
 
     bw.close();
@@ -104,17 +113,18 @@ public class ReplicationIT extends ConfigurableMacIT {
       Thread.sleep(500);
     }
 
+    connMaster.tableOperations().compact(masterTable, null, null, true, false);
     for (int i = 0; i < 10; i++) {
-      
       Scanner s = ReplicationTable.getScanner(connMaster);
       for (Entry<Key,Value> e : s) {
-        log.info(e.getKey().toStringNoTruncate() + " " + TextFormat.shortDebugString(Status.parseFrom(e.getValue().get())));
+        Path p = new Path(e.getKey().getRow().toString());
+        log.info(p.getName() + " " + e.getKey().getColumnFamily() + " " + e.getKey().getColumnQualifier() + " " + TextFormat.shortDebugString(Status.parseFrom(e.getValue().get())));
       }
 
       log.info("");
       log.info("");
 
-      Thread.sleep(1000);
+      Thread.sleep(3000);
     }
 
     peerCluster.stop();
