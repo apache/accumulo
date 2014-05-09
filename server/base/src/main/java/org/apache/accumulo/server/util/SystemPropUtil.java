@@ -35,13 +35,12 @@ public class SystemPropUtil {
   public static boolean setSystemProperty(String property, String value) throws KeeperException, InterruptedException {
     Property p = Property.getPropertyByKey(property);
     if ((p != null && !p.getType().isValidFormat(value)) || !Property.isValidZooPropertyKey(property)) {
-      log.warn("Ignoring property {}", property);
+      log.warn("Ignoring property {} it is null, an invalid format, or not capable of being changed in zookeeper", property);
       return false;
     }
     
     // create the zk node for this property and set it's data to the specified value
     String zPath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZCONFIG + "/" + property;
-    log.warn("Setting {}={}", zPath, value);
     ZooReaderWriter.getInstance().putPersistentData(zPath, value.getBytes(StandardCharsets.UTF_8), NodeExistsPolicy.OVERWRITE);
     
     return true;
