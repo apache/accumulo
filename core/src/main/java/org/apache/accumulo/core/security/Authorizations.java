@@ -31,8 +31,8 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.util.ArgumentChecker;
+import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.commons.codec.binary.Base64;
 
 /**
  * A collection of authorization strings.
@@ -340,7 +340,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
     for (byte[] auth : authsList) {
       sb.append(sep);
       sep = ",";
-      sb.append(new String(Base64.encodeBase64(auth), Constants.UTF8));
+      sb.append(Base64.encodeBase64String(auth));
     }
 
     return sb.toString();

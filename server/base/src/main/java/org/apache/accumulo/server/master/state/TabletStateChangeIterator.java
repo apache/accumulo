@@ -35,9 +35,9 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SkippingIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.util.AddressUtil;
+import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
@@ -182,7 +182,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
-    String encoded = new String(Base64.encodeBase64(Arrays.copyOf(buffer.getData(), buffer.getLength())), Constants.UTF8);
+    String encoded = Base64.encodeBase64String(Arrays.copyOf(buffer.getData(), buffer.getLength()));
     cfg.addOption(MERGES_OPTION, encoded);
   }
   

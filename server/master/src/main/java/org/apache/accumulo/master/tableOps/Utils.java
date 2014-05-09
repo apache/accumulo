@@ -27,6 +27,7 @@ import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.DistributedReadWriteLock;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
@@ -35,7 +36,6 @@ import org.apache.accumulo.fate.zookeeper.ZooReservation;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.zookeeper.ZooQueueLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 
@@ -117,7 +117,7 @@ public class Utils {
     Instance instance = HdfsZooInstance.getInstance();
 
     String resvPath = ZooUtil.getRoot(instance) + Constants.ZHDFS_RESERVATIONS + "/"
-        + new String(Base64.encodeBase64(directory.getBytes(Constants.UTF8)), Constants.UTF8);
+        + Base64.encodeBase64String(directory.getBytes(Constants.UTF8));
 
     IZooReaderWriter zk = ZooReaderWriter.getRetryingInstance();
 
@@ -130,7 +130,7 @@ public class Utils {
   public static void unreserveHdfsDirectory(String directory, long tid) throws KeeperException, InterruptedException {
     Instance instance = HdfsZooInstance.getInstance();
     String resvPath = ZooUtil.getRoot(instance) + Constants.ZHDFS_RESERVATIONS + "/"
-        + new String(Base64.encodeBase64(directory.getBytes(Constants.UTF8)), Constants.UTF8);
+        + Base64.encodeBase64String(directory.getBytes(Constants.UTF8));
     ZooReservation.release(ZooReaderWriter.getRetryingInstance(), resvPath, String.format("%016x", tid));
   }
 

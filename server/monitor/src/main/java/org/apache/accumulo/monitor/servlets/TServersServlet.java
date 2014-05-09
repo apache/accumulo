@@ -35,6 +35,7 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.tabletserver.thrift.ActionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
+import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.Duration;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.monitor.Monitor;
@@ -53,7 +54,6 @@ import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.ActionStatsUpdator;
 import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.accumulo.trace.instrument.Tracer;
-import org.apache.commons.codec.binary.Base64;
 
 import com.google.common.net.HostAndPort;
 
@@ -169,7 +169,7 @@ public class TServersServlet extends BasicServlet {
       if (extent.getEndRow() != null && extent.getEndRow().getLength() > 0) {
         digester.update(extent.getEndRow().getBytes(), 0, extent.getEndRow().getLength());
       }
-      String obscuredExtent = new String(Base64.encodeBase64(digester.digest()), Constants.UTF8);
+      String obscuredExtent = Base64.encodeBase64String(digester.digest());
       String displayExtent = String.format("<code>[%s]</code>", obscuredExtent);
       
       TableRow row = perTabletResults.prepareRow();

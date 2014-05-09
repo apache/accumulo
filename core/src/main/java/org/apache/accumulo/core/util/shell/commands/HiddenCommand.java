@@ -20,12 +20,12 @@ import java.security.SecureRandom;
 import java.util.Random;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.accumulo.core.util.shell.ShellCommandException;
 import org.apache.accumulo.core.util.shell.ShellCommandException.ErrorCode;
 import org.apache.commons.cli.CommandLine;
-import org.apache.commons.codec.binary.Base64;
 
 public class HiddenCommand extends Command {
   private static Random rand = new SecureRandom();

@@ -21,9 +21,9 @@ import java.io.UnsupportedEncodingException;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
+import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
@@ -108,7 +108,7 @@ public class DumpZookeeper {
     for (int i = 0; i < data.length; i++) {
       // does this look like simple ascii?
       if (data[i] < ' ' || data[i] > '~')
-        return new Encoded("base64", new String(Base64.encodeBase64(data), Constants.UTF8));
+        return new Encoded("base64", Base64.encodeBase64String(data));
     }
     return new Encoded(Constants.UTF8.name(), new String(data, Constants.UTF8));
   }

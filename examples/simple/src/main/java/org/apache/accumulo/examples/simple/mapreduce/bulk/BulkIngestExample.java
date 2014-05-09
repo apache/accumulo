@@ -27,9 +27,9 @@ import org.apache.accumulo.core.client.mapreduce.AccumuloFileOutputFormat;
 import org.apache.accumulo.core.client.mapreduce.lib.partition.RangePartitioner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.examples.simple.mapreduce.JobUtil;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
@@ -133,7 +133,7 @@ public class BulkIngestExample extends Configured implements Tool {
 
       Collection<Text> splits = connector.tableOperations().listSplits(opts.tableName, 100);
       for (Text split : splits)
-        out.println(new String(Base64.encodeBase64(TextUtil.getBytes(split))));
+        out.println(Base64.encodeBase64String(TextUtil.getBytes(split)));
 
       job.setNumReduceTasks(splits.size() + 1);
       out.close();
