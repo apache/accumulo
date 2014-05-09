@@ -50,7 +50,7 @@ import org.slf4j.LoggerFactory;
 
   public interface Iface {
 
-    public String getServicerAddress(int remoteTableId) throws NoServersAvailableException, org.apache.thrift.TException;
+    public String getServicerAddress(int remoteTableId) throws RemoteCoordinationException, org.apache.thrift.TException;
 
   }
 
@@ -80,7 +80,7 @@ import org.slf4j.LoggerFactory;
       super(iprot, oprot);
     }
 
-    public String getServicerAddress(int remoteTableId) throws NoServersAvailableException, org.apache.thrift.TException
+    public String getServicerAddress(int remoteTableId) throws RemoteCoordinationException, org.apache.thrift.TException
     {
       send_getServicerAddress(remoteTableId);
       return recv_getServicerAddress();
@@ -93,7 +93,7 @@ import org.slf4j.LoggerFactory;
       sendBase("getServicerAddress", args);
     }
 
-    public String recv_getServicerAddress() throws NoServersAvailableException, org.apache.thrift.TException
+    public String recv_getServicerAddress() throws RemoteCoordinationException, org.apache.thrift.TException
     {
       getServicerAddress_result result = new getServicerAddress_result();
       receiveBase(result, "getServicerAddress");
@@ -146,7 +146,7 @@ import org.slf4j.LoggerFactory;
         prot.writeMessageEnd();
       }
 
-      public String getResult() throws NoServersAvailableException, org.apache.thrift.TException {
+      public String getResult() throws RemoteCoordinationException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
@@ -190,7 +190,7 @@ import org.slf4j.LoggerFactory;
         getServicerAddress_result result = new getServicerAddress_result();
         try {
           result.success = iface.getServicerAddress(args.remoteTableId);
-        } catch (NoServersAvailableException e) {
+        } catch (RemoteCoordinationException e) {
           result.e = e;
         }
         return result;
@@ -564,7 +564,7 @@ import org.slf4j.LoggerFactory;
     }
 
     public String success; // required
-    public NoServersAvailableException e; // required
+    public RemoteCoordinationException e; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -644,7 +644,7 @@ import org.slf4j.LoggerFactory;
 
     public getServicerAddress_result(
       String success,
-      NoServersAvailableException e)
+      RemoteCoordinationException e)
     {
       this();
       this.success = success;
@@ -659,7 +659,7 @@ import org.slf4j.LoggerFactory;
         this.success = other.success;
       }
       if (other.isSetE()) {
-        this.e = new NoServersAvailableException(other.e);
+        this.e = new RemoteCoordinationException(other.e);
       }
     }
 
@@ -697,11 +697,11 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public NoServersAvailableException getE() {
+    public RemoteCoordinationException getE() {
       return this.e;
     }
 
-    public getServicerAddress_result setE(NoServersAvailableException e) {
+    public getServicerAddress_result setE(RemoteCoordinationException e) {
       this.e = e;
       return this;
     }
@@ -735,7 +735,7 @@ import org.slf4j.LoggerFactory;
         if (value == null) {
           unsetE();
         } else {
-          setE((NoServersAvailableException)value);
+          setE((RemoteCoordinationException)value);
         }
         break;
 
@@ -924,7 +924,7 @@ import org.slf4j.LoggerFactory;
               break;
             case 1: // E
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.e = new NoServersAvailableException();
+                struct.e = new RemoteCoordinationException();
                 struct.e.read(iprot);
                 struct.setEIsSet(true);
               } else { 
@@ -998,7 +998,7 @@ import org.slf4j.LoggerFactory;
           struct.setSuccessIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.e = new NoServersAvailableException();
+          struct.e = new RemoteCoordinationException();
           struct.e.read(iprot);
           struct.setEIsSet(true);
         }

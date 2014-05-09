@@ -81,20 +81,20 @@ public class ReplicationClient {
     AccumuloConfiguration conf = ServerConfigurationUtil.getConfiguration(instance);
 
     HostAndPort masterAddr = HostAndPort.fromString(masterThriftService);
-    String zkPath = ZooUtil.getRoot(instance) + Constants.ZMASTER_REPLICATION_COORDINATOR_PORT;
-    String replCoordinatorPort;
+    String zkPath = ZooUtil.getRoot(instance) + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR;
+    String replCoordinatorAddr;
 
     // Get the coordinator port for the master we're trying to connect to
     try {
       ZooReader reader = new ZooReader(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
-      replCoordinatorPort = new String(reader.getData(zkPath, null), StandardCharsets.UTF_8);
+      replCoordinatorAddr = new String(reader.getData(zkPath, null), StandardCharsets.UTF_8);
     } catch (KeeperException | InterruptedException e) {
       log.debug("Could not fetch remote coordinator port");
       return null;
     }
 
     // Throw the hostname and port through HostAndPort to get some normalization
-    HostAndPort coordinatorAddr = HostAndPort.fromParts(masterAddr.getHostText(), Integer.parseInt(replCoordinatorPort));
+    HostAndPort coordinatorAddr = HostAndPort.fromString(replCoordinatorAddr);
 
     try {
       // Master requests can take a long time: don't ever time out

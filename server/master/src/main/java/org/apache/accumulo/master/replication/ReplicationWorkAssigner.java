@@ -134,7 +134,7 @@ public class ReplicationWorkAssigner extends Daemon {
    * @param conf
    */
   protected void initializeWorkQueue(AccumuloConfiguration conf) {
-    workQueue = new DistributedWorkQueue(ZooUtil.getRoot(master.getInstance()) + Constants.ZREPLICATION, conf);
+    workQueue = new DistributedWorkQueue(ZooUtil.getRoot(master.getInstance()) + Constants.ZREPLICATION_WORK_QUEUE, conf);
   }
 
   /**
@@ -274,7 +274,7 @@ public class ReplicationWorkAssigner extends Daemon {
     while (work.hasNext()) {
       String filename = work.next();
       // Null equates to the work was finished
-      if (null == zooCache.get(ZooUtil.getRoot(instanceId) + Constants.ZREPLICATION + "/" + filename)) {
+      if (null == zooCache.get(ZooUtil.getRoot(instanceId) + Constants.ZREPLICATION_WORK_QUEUE + "/" + filename)) {
         work.remove();
       }
     }

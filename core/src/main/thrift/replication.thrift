@@ -28,9 +28,9 @@ struct KeyValues {
     1:list<data.TKeyValue> keyValues
 }
 
-exception NoServersAvailableException {
-	1:i32 code,
-	2:string reason
+exception RemoteCoordinationException {
+    1:i32 code,
+    2:string reason
 }
 
 exception RemoteReplicationException {
@@ -39,7 +39,7 @@ exception RemoteReplicationException {
 }
 
 service ReplicationCoordinator {
-	string getServicerAddress(1:i32 remoteTableId) throws (1:NoServersAvailableException e),
+	string getServicerAddress(1:i32 remoteTableId) throws (1:RemoteCoordinationException e),
 }
 
 service ReplicationServicer {

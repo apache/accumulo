@@ -16,17 +16,25 @@
  */
 package org.apache.accumulo.master.replication;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Random;
 import java.util.Set;
 
+import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.replication.thrift.NoServersAvailableException;
+import org.apache.accumulo.core.replication.ReplicationCoordinatorErrorCode;
+import org.apache.accumulo.core.replication.thrift.RemoteCoordinationException;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
+import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.thrift.TException;
+import org.apache.zookeeper.KeeperException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
@@ -34,32 +42,40 @@ import com.google.common.base.Preconditions;
  * Choose a tserver to service a replication task
  */
 public class MasterReplicationCoordinator implements ReplicationCoordinator.Iface {
-
-  public static enum NoServersAvailable {
-    NO_ONLINE_SERVERS
-  }
+  private static final Logger log = LoggerFactory.getLogger(MasterReplicationCoordinator.class);
 
   private final Master master;
+  private final Instance inst;
   private final AccumuloConfiguration conf;
   private final Random rand;
-  private final int port;
+  private final ZooReader reader;
 
   public MasterReplicationCoordinator(Master master, AccumuloConfiguration conf) {
     this.master = master;
     this.conf = conf;
-    this.port = conf.getPort(Property.REPLICATION_RECEIPT_SERVICE_PORT);
     this.rand = new Random(358923462l);
+    this.inst = master.getInstance();
+    this.reader = new ZooReader(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut());
   }
 
   @Override
-  public String getServicerAddress(int remoteTableId) throws NoServersAvailableException, TException {
+  public String getServicerAddress(int remoteTableId) throws RemoteCoordinationException, TException {
     Set<TServerInstance> tservers = master.onlineTabletServers();
     if (tservers.isEmpty()) {
-      throw new NoServersAvailableException(NoServersAvailable.NO_ONLINE_SERVERS.ordinal(), "No tservers are online");
+      throw new RemoteCoordinationException(ReplicationCoordinatorErrorCode.NO_AVAILABLE_SERVERS.ordinal(), "No tservers are available for replication");
     }
 
     TServerInstance tserver = getRandomTServer(tservers, rand.nextInt(tservers.size()));
-    return tserver.host() + ":" + port;
+    String replServiceAddr;
+    try {
+      replServiceAddr = new String(reader.getData(ZooUtil.getRoot(inst) + Constants.ZREPLICATION_TSERVERS + "/" + tserver.hostPort(), null), StandardCharsets.UTF_8);
+    } catch (KeeperException | InterruptedException e) {
+      log.error("Could not fetch repliation service port for tserver", e);
+      throw new RemoteCoordinationException(ReplicationCoordinatorErrorCode.SERVICE_CONFIGURATION_UNAVAILABLE.ordinal(),
+          "Could not determine port for replication service running at " + tserver.hostPort());
+    }
+
+    return replServiceAddr;
   }
 
   protected TServerInstance getRandomTServer(Set<TServerInstance> tservers, int offset) {

@@ -46,16 +46,16 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class NoServersAvailableException extends TException implements org.apache.thrift.TBase<NoServersAvailableException, NoServersAvailableException._Fields>, java.io.Serializable, Cloneable {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("NoServersAvailableException");
+@SuppressWarnings("all") public class RemoteCoordinationException extends TException implements org.apache.thrift.TBase<RemoteCoordinationException, RemoteCoordinationException._Fields>, java.io.Serializable, Cloneable {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("RemoteCoordinationException");
 
   private static final org.apache.thrift.protocol.TField CODE_FIELD_DESC = new org.apache.thrift.protocol.TField("code", org.apache.thrift.protocol.TType.I32, (short)1);
   private static final org.apache.thrift.protocol.TField REASON_FIELD_DESC = new org.apache.thrift.protocol.TField("reason", org.apache.thrift.protocol.TType.STRING, (short)2);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
-    schemes.put(StandardScheme.class, new NoServersAvailableExceptionStandardSchemeFactory());
-    schemes.put(TupleScheme.class, new NoServersAvailableExceptionTupleSchemeFactory());
+    schemes.put(StandardScheme.class, new RemoteCoordinationExceptionStandardSchemeFactory());
+    schemes.put(TupleScheme.class, new RemoteCoordinationExceptionTupleSchemeFactory());
   }
 
   public int code; // required
@@ -133,13 +133,13 @@ import org.slf4j.LoggerFactory;
     tmpMap.put(_Fields.REASON, new org.apache.thrift.meta_data.FieldMetaData("reason", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(NoServersAvailableException.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(RemoteCoordinationException.class, metaDataMap);
   }
 
-  public NoServersAvailableException() {
+  public RemoteCoordinationException() {
   }
 
-  public NoServersAvailableException(
+  public RemoteCoordinationException(
     int code,
     String reason)
   {
@@ -152,7 +152,7 @@ import org.slf4j.LoggerFactory;
   /**
    * Performs a deep copy on <i>other</i>.
    */
-  public NoServersAvailableException(NoServersAvailableException other) {
+  public RemoteCoordinationException(RemoteCoordinationException other) {
     __isset_bitfield = other.__isset_bitfield;
     this.code = other.code;
     if (other.isSetReason()) {
@@ -160,8 +160,8 @@ import org.slf4j.LoggerFactory;
     }
   }
 
-  public NoServersAvailableException deepCopy() {
-    return new NoServersAvailableException(this);
+  public RemoteCoordinationException deepCopy() {
+    return new RemoteCoordinationException(this);
   }
 
   @Override
@@ -175,7 +175,7 @@ import org.slf4j.LoggerFactory;
     return this.code;
   }
 
-  public NoServersAvailableException setCode(int code) {
+  public RemoteCoordinationException setCode(int code) {
     this.code = code;
     setCodeIsSet(true);
     return this;
@@ -198,7 +198,7 @@ import org.slf4j.LoggerFactory;
     return this.reason;
   }
 
-  public NoServersAvailableException setReason(String reason) {
+  public RemoteCoordinationException setReason(String reason) {
     this.reason = reason;
     return this;
   }
@@ -270,12 +270,12 @@ import org.slf4j.LoggerFactory;
   public boolean equals(Object that) {
     if (that == null)
       return false;
-    if (that instanceof NoServersAvailableException)
-      return this.equals((NoServersAvailableException)that);
+    if (that instanceof RemoteCoordinationException)
+      return this.equals((RemoteCoordinationException)that);
     return false;
   }
 
-  public boolean equals(NoServersAvailableException that) {
+  public boolean equals(RemoteCoordinationException that) {
     if (that == null)
       return false;
 
@@ -305,13 +305,13 @@ import org.slf4j.LoggerFactory;
     return 0;
   }
 
-  public int compareTo(NoServersAvailableException other) {
+  public int compareTo(RemoteCoordinationException other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
 
     int lastComparison = 0;
-    NoServersAvailableException typedOther = (NoServersAvailableException)other;
+    RemoteCoordinationException typedOther = (RemoteCoordinationException)other;
 
     lastComparison = Boolean.valueOf(isSetCode()).compareTo(typedOther.isSetCode());
     if (lastComparison != 0) {
@@ -350,7 +350,7 @@ import org.slf4j.LoggerFactory;
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder("NoServersAvailableException(");
+    StringBuilder sb = new StringBuilder("RemoteCoordinationException(");
     boolean first = true;
 
     sb.append("code:");
@@ -391,15 +391,15 @@ import org.slf4j.LoggerFactory;
     }
   }
 
-  private static class NoServersAvailableExceptionStandardSchemeFactory implements SchemeFactory {
-    public NoServersAvailableExceptionStandardScheme getScheme() {
-      return new NoServersAvailableExceptionStandardScheme();
+  private static class RemoteCoordinationExceptionStandardSchemeFactory implements SchemeFactory {
+    public RemoteCoordinationExceptionStandardScheme getScheme() {
+      return new RemoteCoordinationExceptionStandardScheme();
     }
   }
 
-  private static class NoServersAvailableExceptionStandardScheme extends StandardScheme<NoServersAvailableException> {
+  private static class RemoteCoordinationExceptionStandardScheme extends StandardScheme<RemoteCoordinationException> {
 
-    public void read(org.apache.thrift.protocol.TProtocol iprot, NoServersAvailableException struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol iprot, RemoteCoordinationException struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TField schemeField;
       iprot.readStructBegin();
       while (true)
@@ -436,7 +436,7 @@ import org.slf4j.LoggerFactory;
       struct.validate();
     }
 
-    public void write(org.apache.thrift.protocol.TProtocol oprot, NoServersAvailableException struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot, RemoteCoordinationException struct) throws org.apache.thrift.TException {
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
@@ -454,16 +454,16 @@ import org.slf4j.LoggerFactory;
 
   }
 
-  private static class NoServersAvailableExceptionTupleSchemeFactory implements SchemeFactory {
-    public NoServersAvailableExceptionTupleScheme getScheme() {
-      return new NoServersAvailableExceptionTupleScheme();
+  private static class RemoteCoordinationExceptionTupleSchemeFactory implements SchemeFactory {
+    public RemoteCoordinationExceptionTupleScheme getScheme() {
+      return new RemoteCoordinationExceptionTupleScheme();
     }
   }
 
-  private static class NoServersAvailableExceptionTupleScheme extends TupleScheme<NoServersAvailableException> {
+  private static class RemoteCoordinationExceptionTupleScheme extends TupleScheme<RemoteCoordinationException> {
 
     @Override
-    public void write(org.apache.thrift.protocol.TProtocol prot, NoServersAvailableException struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol prot, RemoteCoordinationException struct) throws org.apache.thrift.TException {
       TTupleProtocol oprot = (TTupleProtocol) prot;
       BitSet optionals = new BitSet();
       if (struct.isSetCode()) {
@@ -482,7 +482,7 @@ import org.slf4j.LoggerFactory;
     }
 
     @Override
-    public void read(org.apache.thrift.protocol.TProtocol prot, NoServersAvailableException struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol prot, RemoteCoordinationException struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
       BitSet incoming = iprot.readBitSet(2);
       if (incoming.get(0)) {

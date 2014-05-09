@@ -3130,6 +3130,17 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         "ReplicationServicerHandler", "Replication Servicer", null, Property.REPLICATION_MIN_THREADS, Property.REPLICATION_THREADCHECK, maxMessageSizeProperty);
     this.replServer = sp.server;
     log.info("Started replication service on " + sp.address);
+
+    try {
+      // The replication service is unique to the thrift service for a tserver, not just a host.
+      // Advertise the host and port for replication service given the host and port for the tserver.
+      ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instance) + Constants.ZREPLICATION_TSERVERS + "/" + clientAddress.toString(),
+          sp.address.toString().getBytes(StandardCharsets.UTF_8), NodeExistsPolicy.OVERWRITE);
+    } catch (Exception e) {
+      log.error("Could not advertise replication service port", e);
+      throw new RuntimeException(e);
+    }
+
     return sp.address;
   }
 

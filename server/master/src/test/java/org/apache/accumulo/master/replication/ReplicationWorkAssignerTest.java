@@ -247,8 +247,8 @@ public class ReplicationWorkAssignerTest {
 
     expect(master.getInstance()).andReturn(inst);
     expect(inst.getInstanceID()).andReturn("id");
-    expect(cache.get(Constants.ZROOT + "/id" + Constants.ZREPLICATION + "/wal1")).andReturn(null);
-    expect(cache.get(Constants.ZROOT + "/id" + Constants.ZREPLICATION + "/wal2")).andReturn(null);
+    expect(cache.get(Constants.ZROOT + "/id" + Constants.ZREPLICATION_WORK_QUEUE + "/wal1")).andReturn(null);
+    expect(cache.get(Constants.ZROOT + "/id" + Constants.ZREPLICATION_WORK_QUEUE + "/wal2")).andReturn(null);
 
     replay(cache, inst, master);
 

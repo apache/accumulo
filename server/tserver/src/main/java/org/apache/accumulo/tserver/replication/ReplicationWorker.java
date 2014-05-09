@@ -50,7 +50,7 @@ public class ReplicationWorker implements Runnable {
   @Override
   public void run() {
     try {
-      new DistributedWorkQueue(ZooUtil.getRoot(inst) + Constants.ZREPLICATION, conf).startProcessing(new ReplicationProcessor(inst, conf, fs, SystemCredentials.get()), executor);
+      new DistributedWorkQueue(ZooUtil.getRoot(inst) + Constants.ZREPLICATION_WORK_QUEUE, conf).startProcessing(new ReplicationProcessor(inst, conf, fs, SystemCredentials.get()), executor);
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
     }
