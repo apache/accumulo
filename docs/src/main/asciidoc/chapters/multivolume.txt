@@ -1,20 +1,19 @@
+// Licensed to the Apache Software Foundation (ASF) under one or more
+// contributor license agreements.  See the NOTICE file distributed with
+// this work for additional information regarding copyright ownership.
+// The ASF licenses this file to You under the Apache License, Version 2.0
+// (the "License"); you may not use this file except in compliance with
+// the License.  You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-% Licensed to the Apache Software Foundation (ASF) under one or more
-% contributor license agreements. See the NOTICE file distributed with
-% this work for additional information regarding copyright ownership.
-% The ASF licenses this file to You under the Apache License, Version 2.0
-% (the "License"); you may not use this file except in compliance with
-% the License. You may obtain a copy of the License at
-%
-%     http://www.apache.org/licenses/LICENSE-2.0
-%
-% Unless required by applicable law or agreed to in writing, software
-% distributed under the License is distributed on an "AS IS" BASIS,
-% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-% See the License for the specific language governing permissions and
-% limitations under the License.
-
-\chapter{Multi-Volume Installations}
+== Multi-Volume Installations
 
 This is an advanced configuration setting for very large clusters
 under a lot of write pressure.
@@ -40,19 +39,18 @@ servers.  The configuration ``instance.volumes'' should be set to a
 comma-separated list, using full URI references to different NameNode
 servers:
 
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
-  <property>
+[source,xml]
+<property>
     <name>instance.volumes</name>
     <value>hdfs://ns1:9001,hdfs://ns2:9001</value>
-  </property>
-\end{verbatim}\endgroup
+</property>
 
 The introduction of multiple volume support in 1.6 changed the way Accumulo
 stores pointers to files.  It now stores fully qualified URI references to
 files.  Before 1.6, Accumulo stored paths that were relative to a table
 directory.   After an upgrade these relative paths will still exist and are
 resolved using instance.dfs.dir, instance.dfs.uri, and Hadoop configuration in
-the same way they were before 1.6. 
+the same way they were before 1.6.
 
 If the URI for a namenode changes (e.g. namenode was running on host1 and its
 moved to host2), then Accumulo will no longer function.  Even if Hadoop and
@@ -63,12 +61,11 @@ example configuration below will replace ns1 with nsA and ns2 with nsB in
 Accumulo metadata.  For this property to take affect, Accumulo will need to be
 restarted.
 
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
-  <property>
+[source,xml]
+<property>
     <name>instance.volumes.replacements</name>
     <value>hdfs://ns1:9001 hdfs://nsA:9001, hdfs://ns2:9001 hdfs://nsB:9001</value>
-  </property>
-\end{verbatim}\endgroup
+</property>
 
 Using viewfs or HA namenode, introduced in Hadoop 2, offers another option for
 managing the fully qualified URIs stored in Accumulo.  Viewfs and HA namenode

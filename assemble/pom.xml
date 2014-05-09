@@ -227,7 +227,7 @@
           <groupId>org.apache.accumulo</groupId>
           <artifactId>accumulo-docs</artifactId>
           <classifier>user-manual</classifier>
-          <type>pdf</type>
+          <type>html</type>
         </dependency>
       </dependencies>
     </profile>

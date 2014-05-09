@@ -1,31 +1,28 @@
+// Licensed to the Apache Software Foundation (ASF) under one or more
+// contributor license agreements.  See the NOTICE file distributed with
+// this work for additional information regarding copyright ownership.
+// The ASF licenses this file to You under the Apache License, Version 2.0
+// (the "License"); you may not use this file except in compliance with
+// the License.  You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-% Licensed to the Apache Software Foundation (ASF) under one or more
-% contributor license agreements. See the NOTICE file distributed with
-% this work for additional information regarding copyright ownership.
-% The ASF licenses this file to You under the Apache License, Version 2.0
-% (the "License"); you may not use this file except in compliance with
-% the License. You may obtain a copy of the License at
-%
-%     http://www.apache.org/licenses/LICENSE-2.0
-%
-% Unless required by applicable law or agreed to in writing, software
-% distributed under the License is distributed on an "AS IS" BASIS,
-% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-% See the License for the specific language governing permissions and
-% limitations under the License.
+== Writing Accumulo Clients
 
-\chapter{Writing Accumulo Clients}
-
-\section{Running Client Code}
+=== Running Client Code
 
 There are multiple ways to run Java code that uses Accumulo. Below is a list
 of the different ways to execute client code.
 
-\begin{itemize} 
-  \item using java executable 
-  \item using the accumulo script
-  \item using the tool script 
-\end{itemize}
+* using java executable
+* using the accumulo script
+* using the tool script
 
 In order to run client code written to run against Accumulo, you will need to
 include the jars that Accumulo depends on in your classpath. Accumulo client
@@ -35,33 +32,32 @@ classpath. For Zookeeper 3.3 you only need to add the Zookeeper jar, and not
 what is in the Zookeeper lib directory. You can run the following command on a
 configured Accumulo system to see what its using for its classpath.
 
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
-$ACCUMULO_HOME/bin/accumulo classpath
-\end{verbatim}\endgroup
+  $ACCUMULO_HOME/bin/accumulo classpath
 
 Another option for running your code is to put a jar file in
-\texttt{\$ACCUMULO\_HOME/lib/ext}. After doing this you can use the accumulo
++$ACCUMULO_HOME/lib/ext+. After doing this you can use the accumulo
 script to execute your code. For example if you create a jar containing the
-class com.foo.Client and placed that in lib/ext, then you could use the command
-\texttt{\$ACCUMULO\_HOME/bin/accumulo com.foo.Client} to execute your code.
+class +com.foo.Client+ and placed that in +lib/ext+, then you could use the command
++$ACCUMULO_HOME/bin/accumulo com.foo.Client+ to execute your code.
 
 If you are writing map reduce job that access Accumulo, then you can use the
 bin/tool.sh script to run those jobs. See the map reduce example.
 
-\section{Connecting}
+=== Connecting
 
 All clients must first identify the Accumulo instance to which they will be
 communicating. Code to do this is as follows:
 
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+[source,java]
+----
 String instanceName = "myinstance";
 String zooServers = "zooserver-one,zooserver-two"
 Instance inst = new ZooKeeperInstance(instanceName, zooServers);
 
 Connector conn = inst.getConnector("user", new PasswordToken("passwd"));
-\end{verbatim}\endgroup
+----
 
-\section{Writing Data}
+=== Writing Data
 
 Data are written to Accumulo by creating Mutation objects that represent all the
 changes to the columns of a single row. The changes are made atomically in the
@@ -70,7 +66,8 @@ the appropriate TabletServers.
 
 Mutations can be created thus:
 
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+[source,java]
+----
 Text rowID = new Text("row1");
 Text colFam = new Text("myColFam");
 Text colQual = new Text("myColQual");
@@ -81,9 +78,9 @@ Value value = new Value("myValue".getBytes());
 
 Mutation mutation = new Mutation(rowID);
 mutation.put(colFam, colQual, colVis, timestamp, value);
-\end{verbatim}\endgroup
+----
 
-\subsection{BatchWriter}
+==== BatchWriter
 The BatchWriter is highly optimized to send Mutations to multiple TabletServers
 and automatically batches Mutations destined for the same TabletServer to
 amortize network overhead. Care must be taken to avoid changing the contents of
@@ -92,8 +89,9 @@ batching.
 
 Mutations are added to a BatchWriter thus:
 
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
-//BatchWriterConfig has reasonable defaults
+[source,java]
+----
+// BatchWriterConfig has reasonable defaults
 BatchWriterConfig config = new BatchWriterConfig();
 config.setMaxMemory(10000000L); // bytes available to batchwriter for buffering mutations
 
@@ -102,12 +100,12 @@ BatchWriter writer = conn.createBatchWriter("table", config)
 writer.add(mutation);
 
 writer.close();
-\end{verbatim}\endgroup
+----
 
-An example of using the batch writer can be found at\\
-accumulo/docs/examples/README.batch
+An example of using the batch writer can be found at
++accumulo/docs/examples/README.batch+.
 
-\subsection{ConditionalWriter} 
+==== ConditionalWriter
 The ConditionalWriter enables efficient, atomic read-modify-write operations on
 rows.  The ConditionalWriter writes special Mutations which have a list of per
 column conditions that must all be met before the mutation is applied.  The
@@ -128,22 +126,23 @@ In many cases this situation can be dealt with by simply reading the row again
 and possibly sending another conditional mutation.  If this is not sufficient,
 then a higher level of abstraction can be built by storing transactional
 information within a row.
- 
-An example of using the batch writer can be found at\\
-accumulo/docs/examples/README.reservations
 
-\section{Reading Data}
+An example of using the batch writer can be found at
++accumulo/docs/examples/README.reservations+.
+
+=== Reading Data
 
 Accumulo is optimized to quickly retrieve the value associated with a given key, and
 to efficiently return ranges of consecutive keys and their associated values.
 
-\subsection{Scanner}
+==== Scanner
 
 To retrieve data, Clients use a Scanner, which acts like an Iterator over
 keys and values. Scanners can be configured to start and stop at particular keys, and
 to return a subset of the columns available.
 
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+[source,java]
+----
 // specify which visibilities we are allowed to see
 Authorizations auths = new Authorizations("public");
 
@@ -157,18 +156,16 @@ for(Entry<Key,Value> entry : scan) {
     String row = entry.getKey().getRow();
     Value value = entry.getValue();
 }
-\end{verbatim}\endgroup
+----
 
-\subsection{Isolated Scanner}
+==== Isolated Scanner
 
 Accumulo supports the ability to present an isolated view of rows when
 scanning. There are three possible ways that a row could change in Accumulo :
 
-\begin{itemize}
- \item a mutation applied to a table
- \item iterators executed as part of a minor or major compaction
- \item bulk import of new files
-\end{itemize}
+* a mutation applied to a table
+* iterators executed as part of a minor or major compaction
+* bulk import of new files
 
 Isolation guarantees that either all or none of the changes made by these
 operations on a row are seen. Use the IsolatedScanner to obtain an isolated
@@ -184,11 +181,9 @@ large.
 
 For an example, look at the following
 
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
-examples/simple/src/main/java/org/apache/accumulo/examples/simple/isolation/InterferenceTest.java
-\end{verbatim}\endgroup
+  examples/simple/src/main/java/org/apache/accumulo/examples/simple/isolation/InterferenceTest.java
 
-\subsection{BatchScanner}
+==== BatchScanner
 
 For some types of access, it is more efficient to retrieve several ranges
 simultaneously. This arises when accessing a set of rows that are not consecutive
@@ -200,83 +195,77 @@ BatchScanners accept a set of Ranges. It is important to note that the keys retu
 by a BatchScanner are not in sorted order since the keys streamed are from multiple
 TabletServers in parallel.
 
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+[source,java]
+----
 ArrayList<Range> ranges = new ArrayList<Range>();
 // populate list of ranges ...
 
 BatchScanner bscan =
     conn.createBatchScanner("table", auths, 10);
-
 bscan.setRanges(ranges);
 bscan.fetchFamily("attributes");
-for(Entry<Key,Value> entry : scan)
+
+for(Entry<Key,Value> entry : scan) {
     System.out.println(entry.getValue());
-\end{verbatim}\endgroup
+}
+----
 
-An example of the BatchScanner can be found at\\
-accumulo/docs/examples/README.batch
+An example of the BatchScanner can be found at
++accumulo/docs/examples/README.batch+.
 
-\section{Proxy}
+=== Proxy
 
 The proxy API allows the interaction with Accumulo with languages other than Java.
 A proxy server is provided in the codebase and a client can further be generated.
 
-\subsection{Prequisites}
+==== Prequisites
 
 The proxy server can live on any node in which the basic client API would work. That
 means it must be able to communicate with the Master, ZooKeepers, NameNode, and the
-Data nodes. A proxy client only needs the ability to communicate with the proxy server.
+DataNodes. A proxy client only needs the ability to communicate with the proxy server.
 
 
-\subsection{Configuration}
+==== Configuration
 
 The configuration options for the proxy server live inside of a properties file. At
 the very least, you need to supply the following properties:
 
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
-protocolFactory=org.apache.thrift.protocol.TCompactProtocol$Factory
-tokenClass=org.apache.accumulo.core.client.security.tokens.PasswordToken
-port=42424
-instance=test
-zookeepers=localhost:2181
-\end{verbatim}\endgroup
+  protocolFactory=org.apache.thrift.protocol.TCompactProtocol$Factory
+  tokenClass=org.apache.accumulo.core.client.security.tokens.PasswordToken
+  port=42424
+  instance=test
+  zookeepers=localhost:2181
 
 You can find a sample configuration file in your distribution:
 
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
-$ACCUMULO_HOME/proxy/proxy.properties.
-\end{verbatim}\endgroup
+  $ACCUMULO_HOME/proxy/proxy.properties.
 
-This sample configuration file further demonstrates an abilty to back the proxy server
+This sample configuration file further demonstrates an ability to back the proxy server
 by MockAccumulo or the MiniAccumuloCluster.
 
-\subsection{Running the Proxy Server}
+==== Running the Proxy Server
 
 After the properties file holding the configuration is created, the proxy server
 can be started using the following command in the Accumulo distribution (assuming
-you your properties file is named config.properties):
+your properties file is named +config.properties+):
 
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
-$ACCUMULO_HOME/bin/accumulo proxy -p config.properties
-\end{verbatim}\endgroup
+  $ACCUMULO_HOME/bin/accumulo proxy -p config.properties
 
-\subsection{Creating a Proxy Client}
+==== Creating a Proxy Client
 
 Aside from installing the Thrift compiler, you will also need the language-specific library
 for Thrift installed to generate client code in that language. Typically, your operating
 system's package manager will be able to automatically install these for you in an expected
-location such as /usr/lib/python/site-packages/thrift.
+location such as +/usr/lib/python/site-packages/thrift+.
 
 You can find the thrift file for generating the client:
 
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
-$ACCUMULO_HOME/proxy/proxy.thrift.
-\end{verbatim}\endgroup
+  $ACCUMULO_HOME/proxy/proxy.thrift.
 
 After a client is generated, the port specified in the configuration properties above will be
 used to connect to the server.
 
-\subsection{Using a Proxy Client}
+==== Using a Proxy Client
 
 The following examples have been written in Java and the method signatures may be
 slightly different depending on the language specified when generating client with
@@ -284,11 +273,10 @@ the Thrift compiler. After initiating a connection to the Proxy (see Apache Thri
 documentation for examples of connecting to a Thrift service), the methods on the
 proxy client will be available. The first thing to do is log in:
 
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+[source,java]
 Map password = new HashMap<String,String>();
 password.put("password", "secret");
 ByteBuffer token = client.login("root", password);
-\end{verbatim}\endgroup
 
 Once logged in, the token returned will be used for most subsequent calls to the client.
 Let's create a table, add some data, scan the table, and delete it.
@@ -296,14 +284,14 @@ Let's create a table, add some data, scan the table, and delete it.
 
 First, create a table.
 
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+[source,java]
 client.createTable(token, "myTable", true, TimeType.MILLIS);
-\end{verbatim}\endgroup
 
 
 Next, add some data:
 
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+[source,java]
+----
 // first, create a writer on the server
 String writer = client.createWriter(token, "myTable", new WriterOptions());
 
@@ -314,12 +302,13 @@ Map<ByteBuffer, List<ColumnUpdate> cells> cellsToUpdate = //...
 client.updateAndFlush(writer, "myTable", cellsToUpdate);
 
 client.closeWriter(writer);
-\end{verbatim}\endgroup
+----
 
 
 Scan for the data and batch the return of the results on the server:
 
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+[source,java]
+----
 String scanner = client.createScanner(token, "myTable", new ScanOptions());
 ScanResult results = client.nextK(scanner, 100);
 
@@ -328,4 +317,4 @@ for(KeyValue keyValue : results.getResultsIterator()) {
 }
 
 client.closeScanner(scanner);
-\end{verbatim}\endgroup
+----

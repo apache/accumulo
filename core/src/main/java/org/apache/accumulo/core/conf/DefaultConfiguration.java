@@ -79,8 +79,8 @@ public class DefaultConfiguration extends AccumuloConfiguration {
   public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException {
     if (args.length == 2 && args[0].equals("--generate-html")) {
       new ConfigurationDocGen(new PrintStream(args[1], StandardCharsets.UTF_8.name())).generateHtml();
-    } else if (args.length == 2 && args[0].equals("--generate-latex")) {
-      new ConfigurationDocGen(new PrintStream(args[1], StandardCharsets.UTF_8.name())).generateLaTeX();
+    } else if (args.length == 2 && args[0].equals("--generate-asciidoc")) {
+      new ConfigurationDocGen(new PrintStream(args[1], StandardCharsets.UTF_8.name())).generateAsciidoc();
     } else {
       throw new IllegalArgumentException("Usage: " + DefaultConfiguration.class.getName() + " --generate-html <filename> | --generate-latex <filename>");
     }

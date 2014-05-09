@@ -39,6 +39,7 @@ class ConfigurationDocGen {
       pageHeader();
 
       beginSection("Available Properties");
+      propertyQuickLinks();
       for (Property prefix : prefixes) {
         if (!prefix.isExperimental()) {
           prefixSection(prefix);
@@ -74,6 +75,8 @@ class ConfigurationDocGen {
     abstract void property(Property prefix, Property prop);
 
     abstract void propertyTypeDescriptions();
+
+    abstract void propertyQuickLinks();
 
     abstract String sanitize(String str);
 
@@ -130,8 +133,7 @@ class ConfigurationDocGen {
     }
 
     @Override
-    void pageHeader() {
-      super.pageHeader();
+    void propertyQuickLinks() {
       doc.println("<p>Jump to: ");
       String delimiter = "";
       for (Property prefix : prefixes) {
@@ -210,22 +212,37 @@ class ConfigurationDocGen {
 
   }
 
-  private class LaTeX extends Format {
+  private class Asciidoc extends Format {
     @Override
     void beginSection(String section) {
-      doc.println("\\section{" + section + "}");
+      doc.println("=== " + section);
     }
 
     @Override
     String getExt() {
-      return "tex";
+      return "txt";
+    }
+
+    @Override
+    void propertyQuickLinks() {
+      doc.println("Jump to: ");
+      String delimiter = "";
+      for (Property prefix : prefixes) {
+        if (!prefix.isExperimental()) {
+          doc.print(delimiter + "<<" + prefix.name() + ">>");
+          delimiter = " | ";
+        }
+      }
+      doc.println();
+      doc.println();
     }
 
     @Override
     void prefixSection(Property prefix) {
       boolean depr = prefix.isDeprecated();
-      doc.println("\\subsection{" + prefix.getKey() + "*}" + (depr ? " (Deprecated)" : ""));
-      doc.println((depr ? "\\sout{\\textit{Deprecated.} " : "") + sanitize(prefix.getDescription()) + (depr ? "}" : ""));
+      doc.println("[[" + prefix.name() + "]]");
+      doc.println("==== " + prefix.getKey() + "*" + (depr ? " (Deprecated)" : ""));
+      doc.println(strike((depr ? "_Deprecated._ " : "") + sanitize(prefix.getDescription()), depr));
       doc.println();
     }
 
@@ -233,18 +250,28 @@ class ConfigurationDocGen {
     void property(Property prefix, Property prop) {
       boolean depr = prefix.isDeprecated() || prop.isDeprecated();
       if (prop.getKey().startsWith(prefix.getKey())) {
-        doc.println("\\subsubsection{" + prop.getKey() + "}");
-        doc.println(strike((depr ? "\\textit{Deprecated.} " : "") + sanitize(prop.getDescription()), depr));
+        doc.println("===== " + prop.getKey());
+        doc.println(strike((depr ? "_Deprecated._ " : "") + sanitize(prop.getDescription()), depr));
         doc.println();
-        doc.println(strike("\\textit{Type:} " + prop.getType().name() + "\\\\", depr));
-        doc.println(strike("\\textit{ZooKeeper Mutable:} " + isZooKeeperMutable(prop) + "\\\\", depr));
-        doc.println(strike("\\textit{Default Value:} " + sanitize(prop.getRawDefaultValue()), depr));
+        doc.println(strike("_Type:_ " + prop.getType().name(), depr) + " +");
+        doc.println(strike("_Zookeeper Mutable:_ " + isZooKeeperMutable(prop), depr) + " +");
+        String defaultValue = sanitize(prop.getRawDefaultValue()).trim();
+        if (defaultValue.length() == 0) {
+          // need a placeholder or the asciidoc line break won't work
+          defaultValue = strike("_Default Value:_ _empty_", depr);
+        } else if (defaultValue.contains("\n")) {
+          // deal with multi-line values, skip strikethrough of value
+          defaultValue = strike("_Default Value:_ ", depr) + "\n----\n" + defaultValue + "\n----\n";
+        } else {
+          defaultValue = strike("_Default Value:_ " + "`" + defaultValue + "`", depr);
+        }
+        doc.println(defaultValue);
         doc.println();
       }
     }
 
     private String strike(String s, boolean isDeprecated) {
-      return (isDeprecated ? "\\sout{" : "") + s + (isDeprecated ? "}" : "");
+      return (isDeprecated ? "[line-through]#" : "") + s + (isDeprecated ? "#" : "");
     }
 
     @Override
@@ -252,7 +279,7 @@ class ConfigurationDocGen {
       for (PropertyType type : PropertyType.values()) {
         if (type == PropertyType.PREFIX)
           continue;
-        doc.println("\\subsection{" + sanitize(type.toString()) + "}");
+        doc.println("==== " + sanitize(type.toString()));
         doc.println(sanitize(type.getFormatDescription()));
         doc.println();
       }
@@ -260,19 +287,6 @@ class ConfigurationDocGen {
 
     @Override
     String sanitize(String str) {
-      str = str.replace("\\", "\\textbackslash{}");
-      str = str.replace("~", "\\textasciitilde{}");
-      str = str.replace("^", "\\textasciicircum");
-
-      str = str.replace("&", "\\&");
-      str = str.replace("%", "\\%");
-      str = str.replace("$", "\\$");
-      str = str.replace("#", "\\#");
-      str = str.replace("_", "\\_");
-      str = str.replace("{", "\\{");
-      str = str.replace("}", "\\}");
-
-      str = str.replaceAll("(?:\r\n|\r|\n)", "\\\\\\\\\n");
       return str;
     }
   }
@@ -334,8 +348,8 @@ class ConfigurationDocGen {
     new HTML().generate();
   }
 
-  void generateLaTeX() {
-    new LaTeX().generate();
+  void generateAsciidoc() {
+    new Asciidoc().generate();
   }
 
 }
