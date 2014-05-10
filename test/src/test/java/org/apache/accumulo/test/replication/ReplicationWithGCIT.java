@@ -30,6 +30,8 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.replication.ReplicaSystem;
+import org.apache.accumulo.core.client.replication.ReplicaSystemFactory;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -37,7 +39,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
-import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTarget;
@@ -61,6 +62,8 @@ import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 import com.google.protobuf.TextFormat;
@@ -70,13 +73,41 @@ import com.google.protobuf.TextFormat;
  */
 public class ReplicationWithGCIT extends ConfigurableMacIT {
 
+  /**
+   * Fake ReplicaSystem which immediately returns that the data was fully replicated
+   */
+  public static class MockReplicaSystem implements ReplicaSystem {
+    private static final Logger log = LoggerFactory.getLogger(MockReplicaSystem.class);
+
+    public MockReplicaSystem() {}
+
+    @Override
+    public Status replicate(Path p, Status status, ReplicationTarget target) {
+      Status.Builder builder = Status.newBuilder(status);
+      if (status.getInfiniteEnd()) {
+        builder.setBegin(Long.MAX_VALUE);
+      } else {
+        builder.setBegin(status.getEnd());
+      }
+
+      Status newStatus = builder.build();
+      log.info("Received {} returned {}", TextFormat.shortDebugString(status), TextFormat.shortDebugString(newStatus));
+      return newStatus;
+    }
+
+    @Override
+    public void configure(String configuration) {}
+
+  }
+
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
     cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "1M");
     cfg.setProperty(Property.GC_CYCLE_START, "1s");
     cfg.setProperty(Property.GC_CYCLE_DELAY, "0");
-    cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "0");
+    cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
+    cfg.setNumTservers(1);
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
@@ -135,6 +166,8 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
     conn.tableOperations().create(table1);
     conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION.getKey(), "true");
     conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION_TARGETS.getKey() + "cluster1", "1");
+    conn.instanceOperations().setProperty(Property.REPLICATION_PEERS.getKey() + "cluster1",
+        ReplicaSystemFactory.getPeerConfigurationValue(MockReplicaSystem.class, null));
 
     // Write some data to table1
     BatchWriter bw = conn.createBatchWriter(table1, new BatchWriterConfig());
@@ -298,6 +331,8 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
         conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION.getKey(), "true");
         // Replicate table1 to cluster1 in the table with id of '4'
         conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION_TARGETS.getKey() + "cluster1", "4");
+        conn.instanceOperations().setProperty(Property.REPLICATION_PEERS.getKey() + "cluster1",
+            ReplicaSystemFactory.getPeerConfigurationValue(MockReplicaSystem.class, null));
         attempts = 0;
       } catch (Exception e) {
         attempts--;
@@ -336,6 +371,7 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
     // Grant ourselves the write permission for later
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
 
+    // Find the WorkSection record that will be created for that data we ingested
     boolean notFound = true;
     Scanner s;
     for (int i = 0; i < 10 && notFound; i++) {
@@ -349,12 +385,14 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
       } catch (NoSuchElementException e) {
 
       } catch (IllegalArgumentException e) {
+        // Somehow we got more than one element. Log what they were
         s = ReplicationTable.getScanner(conn);
         for (Entry<Key,Value> content : s) {
           log.info(content.getKey().toStringNoTruncate() + " => " + content.getValue());
         }
         Assert.fail("Found more than one work section entry");
       } catch (RuntimeException e) {
+        // Catch a propagation issue, fail if it's not what we expect
         Throwable cause = e.getCause();
         if (cause instanceof AccumuloSecurityException) {
           AccumuloSecurityException sec = (AccumuloSecurityException) cause;
@@ -373,7 +411,7 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
         }
       }
 
-      Thread.sleep(500);
+      Thread.sleep(1000);
     }
 
     if (notFound) {
@@ -397,12 +435,11 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
     cluster.exec(TabletServer.class);
 
     // Make sure we can read all the tables (recovery complete)
-    s = conn.createScanner(table1, new Authorizations());
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : s) {}
-
-    // Wait for a bit since the GC has to run (should be running after a one second delay)
-    Thread.sleep(5000);
+    for (String table : new String[] {MetadataTable.NAME, table1}) {
+      s = conn.createScanner(table, new Authorizations());
+      for (@SuppressWarnings("unused")
+      Entry<Key,Value> entry : s) {}
+    }
 
     // Need to make sure we get the entries in metadata
     boolean foundResults = false;
@@ -439,28 +476,30 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
 
     /**
      * After recovery completes, we should have unreplicated, closed Status messages. The close happens at the beginning of log recovery.
+     * The MockReplicaSystem we configured will just automatically say the data has been replicated, so this should then created replicated
+     * and closed Status messages.
      */
 
-    s = ReplicationTable.getScanner(conn);
-    bw = ReplicationTable.getBatchWriter(conn);
-    Status.Builder builder = Status.newBuilder();
-    for (Entry<Key,Value> entry : s) {
-      Key k = entry.getKey();
-      Value v = entry.getValue();
-      Status status = Status.parseFrom(v.get());
-
-      // Sanity check -- no way to get stuff replicated yet.
-      Assert.assertEquals(0, status.getBegin());
-
-      builder.setBegin(Long.MAX_VALUE).setEnd(status.getEnd()).setClosed(status.getClosed()).setInfiniteEnd(status.getInfiniteEnd());
-
-      log.info("Writing update to replication to " + k);
-      Mutation m = new Mutation(k.getRow());
-      m.put(k.getColumnFamily(), k.getColumnQualifier(), ProtobufUtil.toValue(builder.build()));
-      bw.addMutation(m);
-    }
-
-    bw.close();
+//    s = ReplicationTable.getScanner(conn);
+//    bw = ReplicationTable.getBatchWriter(conn);
+//    Status.Builder builder = Status.newBuilder();
+//    for (Entry<Key,Value> entry : s) {
+//      Key k = entry.getKey();
+//      Value v = entry.getValue();
+//      Status status = Status.parseFrom(v.get());
+//
+//      // Sanity check -- no way to get stuff replicated yet.
+//      Assert.assertEquals(0, status.getBegin());
+//
+//      builder.setBegin(Long.MAX_VALUE).setEnd(status.getEnd()).setClosed(status.getClosed()).setInfiniteEnd(status.getInfiniteEnd());
+//
+//      log.info("Writing update to replication to " + k);
+//      Mutation m = new Mutation(k.getRow());
+//      m.put(k.getColumnFamily(), k.getColumnQualifier(), ProtobufUtil.toValue(builder.build()));
+//      bw.addMutation(m);
+//    }
+//
+//    bw.close();
 
     /**
      * After we set the begin to Long.MAX_VALUE, the RemoveCompleteReplicationRecords class will start deleting the records which have been closed by

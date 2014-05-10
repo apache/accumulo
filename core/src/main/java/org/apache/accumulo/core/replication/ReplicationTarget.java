@@ -33,12 +33,14 @@ public class ReplicationTarget implements Writable {
 
   private String peerName;
   private String remoteIdentifier;
+  private String sourceTableId;
 
   public ReplicationTarget() { }
 
-  public ReplicationTarget(String peerName, String remoteIdentifier) {
+  public ReplicationTarget(String peerName, String remoteIdentifier, String sourceTableId) {
     this.peerName = peerName;
     this.remoteIdentifier = remoteIdentifier;
+    this.sourceTableId = sourceTableId;
   }
 
   public String getPeerName() {
@@ -57,6 +59,14 @@ public class ReplicationTarget implements Writable {
     this.remoteIdentifier = remoteIdentifier;
   }
 
+  public String getSourceTableId() {
+    return sourceTableId;
+  }
+
+  public void setSourceTableId(String sourceTableId) {
+    this.sourceTableId = sourceTableId;
+  }
+
   @Override
   public void write(DataOutput out) throws IOException {
     if (null == peerName) {
@@ -72,6 +82,13 @@ public class ReplicationTarget implements Writable {
       out.writeBoolean(true);
       WritableUtils.writeString(out, remoteIdentifier);
     }
+
+    if (null == sourceTableId) {
+      out.writeBoolean(false);
+    } else {
+      out.writeBoolean(true);
+      WritableUtils.writeString(out, sourceTableId);
+    }
   }
 
   @Override
@@ -82,18 +99,21 @@ public class ReplicationTarget implements Writable {
     if (in.readBoolean()) {
       this.remoteIdentifier = WritableUtils.readString(in);
     }
+    if (in.readBoolean()) {
+      this.sourceTableId = WritableUtils.readString(in);
+    }
   }
 
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder(64);
-    sb.append("Remote Name: ").append(peerName).append(" Remote identifier: ").append(remoteIdentifier);
+    sb.append("Remote Name: ").append(peerName).append(" Remote identifier: ").append(remoteIdentifier).append(" Source Table ID: ").append(sourceTableId);
     return sb.toString();
   }
 
   @Override
   public int hashCode() {
-    return peerName.hashCode() ^ remoteIdentifier.hashCode();
+    return peerName.hashCode() ^ remoteIdentifier.hashCode() ^ sourceTableId.hashCode();
   }
 
   @Override
@@ -101,7 +121,7 @@ public class ReplicationTarget implements Writable {
     if (o instanceof ReplicationTarget) {
       ReplicationTarget other = (ReplicationTarget) o;
 
-      return peerName.equals(other.peerName) && remoteIdentifier.equals(other.remoteIdentifier);
+      return peerName.equals(other.peerName) && remoteIdentifier.equals(other.remoteIdentifier) && sourceTableId.equals(other.sourceTableId);
     }
 
     return false;

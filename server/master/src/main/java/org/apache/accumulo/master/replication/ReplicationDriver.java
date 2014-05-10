@@ -38,6 +38,7 @@ public class ReplicationDriver extends Daemon {
 
   private WorkMaker workMaker;
   private StatusMaker statusMaker;
+  private FinishedWorkUpdater finishedWorkUpdater;
   private Connector conn;
 
   public ReplicationDriver(Master master) {
@@ -62,6 +63,7 @@ public class ReplicationDriver extends Daemon {
 
         statusMaker = new StatusMaker(conn);
         workMaker = new WorkMaker(conn);
+        finishedWorkUpdater = new FinishedWorkUpdater(conn);
       }
 
       // Make status markers from replication records in metadata
@@ -70,6 +72,9 @@ public class ReplicationDriver extends Daemon {
 
       // Tell the work maker to make work
       workMaker.run();
+
+      // Update the status records from the work records
+      finishedWorkUpdater.run();
 
       // Sleep for a bit
       UtilWaitThread.sleep(conf.getTimeInMillis(Property.MASTER_REPLICATION_SCAN_INTERVAL));
