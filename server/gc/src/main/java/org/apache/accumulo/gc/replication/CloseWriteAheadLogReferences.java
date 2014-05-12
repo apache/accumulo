@@ -24,6 +24,7 @@ import java.util.concurrent.ExecutionException;
 
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -34,9 +35,9 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
-import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
@@ -177,7 +178,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
   }
 
   /**
-   * Given the set of WALs which have references in the metadata table, delete any {@link Status} entries in the replication table which are fully replicated.
+   * Given the set of WALs which have references in the metadata table, close any status messages with reference that WAL.
    * 
    * @param conn
    *          Connector
@@ -189,10 +190,10 @@ public class CloseWriteAheadLogReferences implements Runnable {
     BatchWriter bw = null;
     long recordsClosed = 0;
     try {
-      bw = ReplicationTable.getBatchWriter(conn);
-      bs = conn.createBatchScanner(ReplicationTable.NAME, new Authorizations(), 4);
-      bs.setRanges(Collections.singleton(new Range()));
-      StatusSection.limit(bs);
+      bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+      bs = conn.createBatchScanner(MetadataTable.NAME, new Authorizations(), 4);
+      bs.setRanges(Collections.singleton(Range.prefix(ReplicationSection.getRowPrefix())));
+      bs.fetchColumnFamily(ReplicationSection.COLF);
 
       Text replFileText = new Text();
       for (Entry<Key,Value> entry : bs) {
@@ -206,7 +207,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
 
         // Ignore things that aren't completely replicated as we can't delete those anyways
         entry.getKey().getRow(replFileText);
-        String replFile = replFileText.toString();
+        String replFile = replFileText.toString().substring(ReplicationSection.getRowPrefix().length());
 
         // We only want to clean up WALs (which is everything but rfiles) and only when
         // metadata doesn't have a reference to the given WAL
@@ -249,7 +250,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
    * @throws MutationsRejectedException
    */
   protected void closeWal(BatchWriter bw, Key k) throws MutationsRejectedException {
-    log.debug("Closing unreferenced WAL: " + k.toStringNoTruncate());
+    log.debug("Closing unreferenced WAL ({}) in metadata table", k.toStringNoTruncate());
     Mutation m = new Mutation(k.getRow());
     m.put(k.getColumnFamily(), k.getColumnQualifier(), StatusUtil.fileClosedValue());
     bw.addMutation(m);

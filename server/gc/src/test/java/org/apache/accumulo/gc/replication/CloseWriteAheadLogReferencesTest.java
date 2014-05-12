@@ -42,6 +42,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
@@ -309,15 +310,15 @@ public class CloseWriteAheadLogReferencesTest {
     Connector conn = inst.getConnector("root", new PasswordToken(""));
 
     ReplicationTable.create(conn);
-    BatchWriter bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
-    Mutation m = new Mutation("file:/accumulo/wal/tserver+port/12345");
-    StatusSection.add(m, new Text("1"), StatusUtil.newFileValue());
+    BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    Mutation m = new Mutation(ReplicationSection.getRowPrefix() + "file:/accumulo/wal/tserver+port/12345");
+    m.put(ReplicationSection.COLF, new Text("1"), StatusUtil.newFileValue());
     bw.addMutation(m);
     bw.close();
 
     refs.updateReplicationEntries(conn, wals);
 
-    Scanner s = ReplicationTable.getScanner(conn);
+    Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     Entry<Key,Value> entry = Iterables.getOnlyElement(s);
     Status status = Status.parseFrom(entry.getValue().get());
     Assert.assertTrue(status.getClosed());
@@ -331,15 +332,15 @@ public class CloseWriteAheadLogReferencesTest {
     Connector conn = inst.getConnector("root", new PasswordToken(""));
 
     ReplicationTable.create(conn);
-    BatchWriter bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
-    Mutation m = new Mutation(file);
-    StatusSection.add(m, new Text("1"), StatusUtil.newFileValue());
+    BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    Mutation m = new Mutation(ReplicationSection.getRowPrefix() + file);
+    m.put(ReplicationSection.COLF, new Text("1"), StatusUtil.newFileValue());
     bw.addMutation(m);
     bw.close();
 
     refs.updateReplicationEntries(conn, wals);
 
-    Scanner s = ReplicationTable.getScanner(conn);
+    Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     Entry<Key,Value> entry = Iterables.getOnlyElement(s);
     Status status = Status.parseFrom(entry.getValue().get());
     Assert.assertFalse(status.getClosed());
