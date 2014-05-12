@@ -134,6 +134,7 @@ public class RemoveCompleteReplicationRecords implements Runnable {
 
   protected long removeRowIfNecessary(BatchWriter bw, SortedMap<Key,Value> columns, Text row, Text colf, Text colq) {
     long recordsRemoved = 0;
+    log.info("Removing {} from the replication table", row);
     Mutation m = new Mutation(row);
     for (Entry<Key,Value> entry : columns.entrySet()) {
       Status status;
