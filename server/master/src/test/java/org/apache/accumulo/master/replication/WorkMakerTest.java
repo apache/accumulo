@@ -36,6 +36,7 @@ import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
+import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.hadoop.fs.Path;
@@ -200,5 +201,14 @@ public class WorkMakerTest {
     WorkSection.limit(s);
 
     Assert.assertEquals(0, Iterables.size(s));
+  }
+
+  @Test
+  public void closedStatusRecordsStillMakeWork() throws Exception {
+    WorkMaker workMaker = new WorkMaker(conn);
+
+    Assert.assertFalse(workMaker.shouldCreateWork(StatusUtil.newFile()));
+    Assert.assertTrue(workMaker.shouldCreateWork(StatusUtil.ingestedUntil(1000)));
+    Assert.assertTrue(workMaker.shouldCreateWork(Status.newBuilder().setBegin(Long.MAX_VALUE).setEnd(0).setInfiniteEnd(true).setClosed(true).build()));
   }
 }

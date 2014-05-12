@@ -104,7 +104,7 @@ public class WorkMaker {
 
         // Don't create the record if we have nothing to do
         // TODO put this into a filter on serverside
-        if (!StatusUtil.isWorkRequired(status)) {
+        if (!shouldCreateWork(status)) {
           continue;
         }
   
@@ -146,6 +146,13 @@ public class WorkMaker {
     }
 
     return targets;
+  }
+
+  /**
+   * @return Should a Work entry be created for this status
+   */
+  protected boolean shouldCreateWork(Status status) {
+    return status.getClosed() || StatusUtil.isWorkRequired(status);
   }
 
   protected void addWorkRecord(Text file, Value v, Map<String,String> targets, String sourceTableId) {
