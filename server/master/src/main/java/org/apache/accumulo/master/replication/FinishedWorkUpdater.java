@@ -65,6 +65,8 @@ public class FinishedWorkUpdater implements Runnable {
 
   @Override
   public void run() {
+    log.debug("Looking for finished replication work");
+
     if (!conn.tableOperations().exists(ReplicationTable.NAME)) {
       log.debug("Replication table doesn't yet exist, will retry");
       return;
@@ -95,6 +97,8 @@ public class FinishedWorkUpdater implements Runnable {
           log.warn("Could not deserialize whole row with key {}", serializedRow.getKey().toStringNoTruncate(), e);
           continue;
         }
+
+        log.debug("Processing work progress from {}", serializedRow.getKey().getRow());
 
         Map<String,Long> tableIdToProgress = new HashMap<>();
         boolean error = false;
@@ -153,6 +157,9 @@ public class FinishedWorkUpdater implements Runnable {
 
           try {
             metaBw.addMutation(metaMutation);
+            // We want to flush metadata immediately so we reduce the likelihood of re-creating
+            // replication table mutations that we'll just update in the next pass
+            metaBw.flush();
           } catch (MutationsRejectedException e) {
             log.error("Error writing mutations to update metadata Status messages, will retry", e);
             return;
@@ -169,10 +176,15 @@ public class FinishedWorkUpdater implements Runnable {
     } finally {
       bs.close();
       try {
+        metaBw.close();
+      } catch (MutationsRejectedException e) {
+        log.error("Error writing mutations to update replication Status messages in ReplicationSection, will retry", e);
+      }
+
+      try {
         replBw.close();
       } catch (MutationsRejectedException e) {
         log.error("Error writing mutations to update replication Status messages in StatusSection, will retry", e);
-        return;
       }
     }
   }

@@ -91,12 +91,14 @@ public class ReplicationProcessor implements Processor {
     try {
       status = getStatus(file, target);
     } catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
-      log.error("Could not look for necessary replication record", e);
+      log.error("Could not look for replication record", e);
       throw new IllegalStateException("Could not look for replication record", e);
     } catch (InvalidProtocolBufferException e) {
       log.error("Could not deserialize Status from Work section for {} and ", file, target);
       throw new RuntimeException("Could not parse Status for work record", e);
     }
+
+    log.debug("Current status for {} replicating to {}: {}", file, target, ProtobufUtil.toString(status));
 
     // We don't need to do anything (shouldn't have gotten this work record in the first place)
     if (!StatusUtil.isWorkRequired(status)) {
