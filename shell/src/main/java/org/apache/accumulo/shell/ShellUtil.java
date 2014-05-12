@@ -22,7 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Scanner;
 
-import org.apache.commons.codec.binary.Base64;
+import org.apache.accumulo.core.util.Base64;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.collect.Lists;

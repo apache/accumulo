@@ -60,9 +60,9 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.Text;
@@ -176,7 +176,7 @@ public class InputConfigurator extends ConfiguratorBase {
       for (Range r : ranges) {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         r.write(new DataOutputStream(baos));
-        rangeStrings.add(new String(Base64.encodeBase64(baos.toByteArray())));
+        rangeStrings.add(Base64.encodeBase64String(baos.toByteArray()));
       }
       conf.setStrings(enumToConfKey(implementingClass, ScanOpts.RANGES), rangeStrings.toArray(new String[0]));
     } catch (IOException ex) {
@@ -202,7 +202,7 @@ public class InputConfigurator extends ConfiguratorBase {
     Collection<String> encodedRanges = conf.getStringCollection(enumToConfKey(implementingClass, ScanOpts.RANGES));
     List<Range> ranges = new ArrayList<Range>();
     for (String rangeString : encodedRanges) {
-      ByteArrayInputStream bais = new ByteArrayInputStream(Base64.decodeBase64(rangeString.getBytes()));
+      ByteArrayInputStream bais = new ByteArrayInputStream(Base64.decodeBase64(rangeString.getBytes(StandardCharsets.UTF_8)));
       Range range = new Range();
       range.readFields(new DataInputStream(bais));
       ranges.add(range);
@@ -234,7 +234,7 @@ public class InputConfigurator extends ConfiguratorBase {
     try {
       while (tokens.hasMoreTokens()) {
         String itstring = tokens.nextToken();
-        ByteArrayInputStream bais = new ByteArrayInputStream(Base64.decodeBase64(itstring.getBytes()));
+        ByteArrayInputStream bais = new ByteArrayInputStream(Base64.decodeBase64(itstring.getBytes(StandardCharsets.UTF_8)));
         list.add(new IteratorSetting(new DataInputStream(bais)));
         bais.close();
       }
@@ -272,9 +272,9 @@ public class InputConfigurator extends ConfiguratorBase {
       if (column.getFirst() == null)
         throw new IllegalArgumentException("Column family can not be null");
 
-      String col = new String(Base64.encodeBase64(TextUtil.getBytes(column.getFirst())), StandardCharsets.UTF_8);
+      String col = Base64.encodeBase64String(TextUtil.getBytes(column.getFirst()));
       if (column.getSecond() != null)
-        col += ":" + new String(Base64.encodeBase64(TextUtil.getBytes(column.getSecond())), StandardCharsets.UTF_8);
+        col += ":" + Base64.encodeBase64String(TextUtil.getBytes(column.getSecond()));
       columnStrings.add(col);
     }
 
@@ -340,7 +340,7 @@ public class InputConfigurator extends ConfiguratorBase {
     String newIter;
     try {
       cfg.write(new DataOutputStream(baos));
-      newIter = new String(Base64.encodeBase64(baos.toByteArray()), StandardCharsets.UTF_8);
+      newIter = Base64.encodeBase64String(baos.toByteArray());
       baos.close();
     } catch (IOException e) {
       throw new IllegalArgumentException("unable to serialize IteratorSetting");
@@ -537,7 +537,7 @@ public class InputConfigurator extends ConfiguratorBase {
     }
 
     String confKey = enumToConfKey(implementingClass, ScanOpts.TABLE_CONFIGS);
-    conf.set(confKey, new String(Base64.encodeBase64(baos.toByteArray())));
+    conf.set(confKey, Base64.encodeBase64String(baos.toByteArray()));
   }
 
   /**
@@ -559,7 +559,7 @@ public class InputConfigurator extends ConfiguratorBase {
     MapWritable mapWritable = new MapWritable();
     if (configString != null) {
       try {
-        byte[] bytes = Base64.decodeBase64(configString.getBytes());
+        byte[] bytes = Base64.decodeBase64(configString.getBytes(StandardCharsets.UTF_8));
         ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
         mapWritable.readFields(new DataInputStream(bais));
         bais.close();

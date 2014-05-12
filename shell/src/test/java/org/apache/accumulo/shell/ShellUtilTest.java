@@ -24,8 +24,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.shell.ShellUtil;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.io.Text;
 import org.junit.Rule;

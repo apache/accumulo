@@ -36,7 +36,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.commons.codec.binary.Base64;
+import org.apache.accumulo.core.util.Base64;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

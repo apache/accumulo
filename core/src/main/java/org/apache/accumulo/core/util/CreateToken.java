@@ -32,7 +32,7 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Authe
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.TokenProperty;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.commons.codec.binary.Base64;
+import org.apache.accumulo.core.util.Base64;
 
 import com.beust.jcommander.Parameter;
 

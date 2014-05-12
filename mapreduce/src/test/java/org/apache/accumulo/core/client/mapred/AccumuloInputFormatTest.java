@@ -36,7 +36,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
-import org.apache.commons.codec.binary.Base64;
+import org.apache.accumulo.core.util.Base64;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.Text;
@@ -80,7 +80,7 @@ public class AccumuloInputFormatTest {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     is.write(new DataOutputStream(baos));
     String iterators = job.get("AccumuloInputFormat.ScanOpts.Iterators");
-    assertEquals(new String(Base64.encodeBase64(baos.toByteArray())), iterators);
+    assertEquals(Base64.encodeBase64String(baos.toByteArray()), iterators);
   }
 
   @Test
