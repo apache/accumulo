@@ -25,7 +25,6 @@ import java.util.SortedMap;
 
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -35,8 +34,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
@@ -51,7 +48,7 @@ import org.slf4j.LoggerFactory;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
- * Update the status record in metadata and the replication table with work
+ * Update the status record in the replication table with work
  * that has been replicated to each configured peer.
  */
 public class FinishedWorkUpdater implements Runnable {
@@ -73,11 +70,10 @@ public class FinishedWorkUpdater implements Runnable {
     }
 
     BatchScanner bs;
-    BatchWriter replBw, metaBw;
+    BatchWriter replBw;
     try {
       bs = ReplicationTable.getBatchScanner(conn, 4);
       replBw = ReplicationTable.getBatchWriter(conn);
-      metaBw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     } catch (TableNotFoundException e) {
       log.debug("Table did exist, but was deleted, will retry");
       return;
@@ -132,7 +128,7 @@ public class FinishedWorkUpdater implements Runnable {
           continue;
         }
 
-        // Update the metadata and replication table for each source table we found work records for
+        // Update the replication table for each source table we found work records for
         for (Entry<String,Long> entry : tableIdToProgress.entrySet()) {
           // If the progress is 0, then no one has replicated anything, and we don't need to update anything
           if (0 == entry.getValue()) {
@@ -141,7 +137,6 @@ public class FinishedWorkUpdater implements Runnable {
 
           serializedRow.getKey().getRow(buffer);
 
-          Mutation metaMutation = new Mutation(ReplicationSection.getRowPrefix() + buffer);
           Mutation replMutation = new Mutation(buffer);
 
           // Set that we replicated at least this much data, ignoring the other fields
@@ -153,17 +148,6 @@ public class FinishedWorkUpdater implements Runnable {
 
           // Make the mutation
           StatusSection.add(replMutation, buffer, serializedUpdatedStatus);
-          metaMutation.put(ReplicationSection.COLF, buffer, serializedUpdatedStatus);
-
-          try {
-            metaBw.addMutation(metaMutation);
-            // We want to flush metadata immediately so we reduce the likelihood of re-creating
-            // replication table mutations that we'll just update in the next pass
-            metaBw.flush();
-          } catch (MutationsRejectedException e) {
-            log.error("Error writing mutations to update metadata Status messages, will retry", e);
-            return;
-          }
 
           try {
             replBw.addMutation(replMutation);
@@ -175,11 +159,6 @@ public class FinishedWorkUpdater implements Runnable {
       }
     } finally {
       bs.close();
-      try {
-        metaBw.close();
-      } catch (MutationsRejectedException e) {
-        log.error("Error writing mutations to update replication Status messages in ReplicationSection, will retry", e);
-      }
 
       try {
         replBw.close();

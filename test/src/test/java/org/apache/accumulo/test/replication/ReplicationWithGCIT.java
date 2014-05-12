@@ -484,27 +484,6 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
      * and closed Status messages.
      */
 
-//    s = ReplicationTable.getScanner(conn);
-//    bw = ReplicationTable.getBatchWriter(conn);
-//    Status.Builder builder = Status.newBuilder();
-//    for (Entry<Key,Value> entry : s) {
-//      Key k = entry.getKey();
-//      Value v = entry.getValue();
-//      Status status = Status.parseFrom(v.get());
-//
-//      // Sanity check -- no way to get stuff replicated yet.
-//      Assert.assertEquals(0, status.getBegin());
-//
-//      builder.setBegin(Long.MAX_VALUE).setEnd(status.getEnd()).setClosed(status.getClosed()).setInfiniteEnd(status.getInfiniteEnd());
-//
-//      log.info("Writing update to replication to " + k);
-//      Mutation m = new Mutation(k.getRow());
-//      m.put(k.getColumnFamily(), k.getColumnQualifier(), ProtobufUtil.toValue(builder.build()));
-//      bw.addMutation(m);
-//    }
-//
-//    bw.close();
-
     /**
      * After we set the begin to Long.MAX_VALUE, the RemoveCompleteReplicationRecords class will start deleting the records which have been closed by
      * CloseWriteAheadLogReferences (which will have been working since we restarted the tserver(s))

@@ -76,7 +76,6 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences;
-import org.apache.accumulo.gc.replication.RemoveCompleteReplicationRecords;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerOpts;
@@ -628,18 +627,6 @@ public class SimpleGarbageCollector implements Iface {
       } catch (Exception e) {
         log.warn(e, e);
       }
-
-      Span replCleanup = Trace.start("replicationCleanup");
-      try {
-        RemoveCompleteReplicationRecords replRemove = new RemoveCompleteReplicationRecords(instance);
-        log.info("Beginning cleanup of complete replication records");
-        replRemove.run();
-      } catch (Exception e) {
-        log.error("Error encountered trying to clean up replication records", e);
-      } finally {
-        replCleanup.stop();
-      }
-      
 
       Trace.offNoFlush();
       try {

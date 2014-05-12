@@ -39,6 +39,7 @@ public class ReplicationDriver extends Daemon {
   private WorkMaker workMaker;
   private StatusMaker statusMaker;
   private FinishedWorkUpdater finishedWorkUpdater;
+  private RemoveCompleteReplicationRecords rcrr;
   private Connector conn;
 
   public ReplicationDriver(Master master) {
@@ -64,9 +65,11 @@ public class ReplicationDriver extends Daemon {
         statusMaker = new StatusMaker(conn);
         workMaker = new WorkMaker(conn);
         finishedWorkUpdater = new FinishedWorkUpdater(conn);
+        rcrr = new RemoveCompleteReplicationRecords(conn);
       }
 
-      // Make status markers from replication records in metadata
+      // Make status markers from replication records in metadata, removing entries in
+      // metadata which are no longer needed (closed records)
       // This will end up creating the replication table too
       statusMaker.run();
 
@@ -75,6 +78,11 @@ public class ReplicationDriver extends Daemon {
 
       // Update the status records from the work records
       finishedWorkUpdater.run();
+
+      // Clean up records we no longer need.
+      // It must be running at the same time as the StatusMaker or WorkMaker
+      // So it's important that we run these sequentially and not concurrently
+      rcrr.run();
 
       // Sleep for a bit
       UtilWaitThread.sleep(conf.getTimeInMillis(Property.MASTER_REPLICATION_SCAN_INTERVAL));

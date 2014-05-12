@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.gc.replication;
+package org.apache.accumulo.master.replication;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -24,20 +24,21 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
+import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
+import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
+import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
@@ -65,7 +66,7 @@ public class RemoveCompleteReplicationRecordsTest {
   public void initialize() throws Exception {
     inst = new MockInstance(test.getMethodName());
     conn = inst.getConnector("root", new PasswordToken(""));
-    rcrr = new RemoveCompleteReplicationRecords(inst);
+    rcrr = new RemoveCompleteReplicationRecords(conn);
   }
 
   @Test
@@ -86,6 +87,8 @@ public class RemoveCompleteReplicationRecordsTest {
 
     BatchScanner bs = ReplicationTable.getBatchScanner(conn, 1);
     bs.setRanges(Collections.singleton(new Range()));
+    IteratorSetting cfg = new IteratorSetting(50, WholeRowIterator.class);
+    bs.addScanIterator(cfg);
     bw = EasyMock.createMock(BatchWriter.class);
 
     EasyMock.replay(bw);
@@ -119,6 +122,8 @@ public class RemoveCompleteReplicationRecordsTest {
 
     BatchScanner bs = ReplicationTable.getBatchScanner(conn, 1);
     bs.setRanges(Collections.singleton(new Range()));
+    IteratorSetting cfg = new IteratorSetting(50, WholeRowIterator.class);
+    bs.addScanIterator(cfg);
     bw = EasyMock.createMock(BatchWriter.class);
 
     EasyMock.replay(bw);
@@ -131,12 +136,7 @@ public class RemoveCompleteReplicationRecordsTest {
   }
 
   @Test
-  public void replicatedClosedRecordsRemoved() throws Exception {
-    // Fake out the metadata
-    String fakeMeta = "fakeMetadata";
-    conn.tableOperations().create(fakeMeta);
-    BatchWriter metaBw = conn.createBatchWriter(fakeMeta, new BatchWriterConfig());
-    
+  public void replicatedClosedWorkRecordsAreNotRemovedWithoutClosedStatusRecords() throws Exception {
     ReplicationTable.create(conn);
     BatchWriter replBw = ReplicationTable.getBatchWriter(conn);
     int numRecords = 3;
@@ -152,10 +152,59 @@ public class RemoveCompleteReplicationRecordsTest {
       Mutation m = new Mutation(file);
       StatusSection.add(m, new Text(Integer.toString(i)), ProtobufUtil.toValue(builder.setBegin(1000*(i+1)).build()));
       replBw.addMutation(m);
+    }
 
-      m = new Mutation(ReplicationSection.getRowPrefix() + file);
-      m.put(ReplicationSection.COLF, new Text(Integer.toString(i)), StatusUtil.openWithUnknownLengthValue());
-      metaBw.addMutation(m);
+    // Add two records that we can delete
+    String fileToRemove = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
+    Mutation m = new Mutation(fileToRemove);
+    StatusSection.add(m, new Text("5"), ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(false).build()));
+    replBw.addMutation(m);
+
+    numRecords++;
+
+    fileToRemove = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
+    m = new Mutation(fileToRemove);
+    StatusSection.add(m, new Text("6"), ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(false).build()));
+    replBw.addMutation(m);
+
+    numRecords++;
+
+    replBw.flush();
+
+    // Make sure that we have the expected number of records in both tables
+    Assert.assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
+
+    // We should not remove any records because they're missing closed status
+    BatchScanner bs = ReplicationTable.getBatchScanner(conn, 1);
+    bs.setRanges(Collections.singleton(new Range()));
+    IteratorSetting cfg = new IteratorSetting(50, WholeRowIterator.class);
+    bs.addScanIterator(cfg);
+
+    try {
+      Assert.assertEquals(0l, rcrr.removeCompleteRecords(conn, ReplicationTable.NAME, bs, replBw));
+    } finally {
+      bs.close();
+      replBw.close();
+    }
+  }
+
+  @Test
+  public void replicatedClosedRowsAreRemoved() throws Exception {
+    ReplicationTable.create(conn);
+    BatchWriter replBw = ReplicationTable.getBatchWriter(conn);
+    int numRecords = 3;
+
+    Status.Builder builder = Status.newBuilder();
+    builder.setClosed(false);
+    builder.setEnd(10000);
+    builder.setInfiniteEnd(false);
+
+    // Write out numRecords entries to both replication and metadata tables, none of which are fully replicated
+    for (int i = 0; i < numRecords; i++) {
+      String file = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
+      Mutation m = new Mutation(file);
+      StatusSection.add(m, new Text(Integer.toString(i)), ProtobufUtil.toValue(builder.setBegin(1000*(i+1)).build()));
+      replBw.addMutation(m);
     }
 
     Set<String> filesToRemove = new HashSet<>();
@@ -165,39 +214,42 @@ public class RemoveCompleteReplicationRecordsTest {
     String fileToRemove = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
     filesToRemove.add(fileToRemove);
     Mutation m = new Mutation(fileToRemove);
-    StatusSection.add(m, new Text("5"), ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(true).build()));
+    ReplicationTarget target = new ReplicationTarget("peer1", "5", "5");
+    Value value = ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(true).build());
+    StatusSection.add(m, new Text("5"), value);
+    WorkSection.add(m, target.toText(), value);
     replBw.addMutation(m);
 
-    m = new Mutation(ReplicationSection.getRowPrefix() + fileToRemove);
-    m.put(ReplicationSection.COLF, new Text("5"), ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(true).build()));
-    metaBw.addMutation(m);
+    numRecords += 2;
 
-    numRecords++;
-
+    // Add a record with some stuff we replicated
     fileToRemove = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
     filesToRemove.add(fileToRemove);
     m = new Mutation(fileToRemove);
-    StatusSection.add(m, new Text("6"), ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(true).build()));
+    target = new ReplicationTarget("peer1", "6", "6");
+    StatusSection.add(m, new Text("6"), value);
+    WorkSection.add(m, target.toText(), value);
     replBw.addMutation(m);
 
-    m = new Mutation(ReplicationSection.getRowPrefix() + fileToRemove);
-    m.put(ReplicationSection.COLF, new Text("6"), ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(true).build()));
-    metaBw.addMutation(m);
-
-    numRecords++;
+    numRecords += 2;
 
     replBw.flush();
-    metaBw.flush();
 
     // Make sure that we have the expected number of records in both tables
     Assert.assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
-    Assert.assertEquals(numRecords, Iterables.size(conn.createScanner(fakeMeta, Authorizations.EMPTY)));
 
     // We should remove the two fully completed records we inserted
     BatchScanner bs = ReplicationTable.getBatchScanner(conn, 1);
     bs.setRanges(Collections.singleton(new Range()));
-    Assert.assertEquals(2l, rcrr.removeCompleteRecords(conn, ReplicationTable.NAME, bs, replBw));
-    bs.close();
+    IteratorSetting cfg = new IteratorSetting(50, WholeRowIterator.class);
+    bs.addScanIterator(cfg);
+
+    try {
+      Assert.assertEquals(4l, rcrr.removeCompleteRecords(conn, ReplicationTable.NAME, bs, replBw));
+    } finally {
+      bs.close();
+      replBw.close();
+    }
 
     int actualRecords = 0;
     for (Entry<Key,Value> entry : ReplicationTable.getScanner(conn)) {
@@ -206,20 +258,58 @@ public class RemoveCompleteReplicationRecordsTest {
     }
 
     Assert.assertEquals(finalNumRecords, actualRecords);
+  }
 
-    // We should remove the two fully completed records we inserted
-    bs = conn.createBatchScanner(fakeMeta, Authorizations.EMPTY, 1);
-    bs.setRanges(Collections.singleton(ReplicationSection.getRange()));
-    Assert.assertEquals(2l, rcrr.removeCompleteRecords(conn, fakeMeta, bs, metaBw));
-    bs.close();
+  @Test
+  public void partiallyReplicatedEntriesPrecludeRowDeletion() throws Exception {
+    ReplicationTable.create(conn);
+    BatchWriter replBw = ReplicationTable.getBatchWriter(conn);
+    int numRecords = 3;
 
-    actualRecords = 0;
-    for (Entry<Key,Value> entry : conn.createScanner(fakeMeta, Authorizations.EMPTY)) {
-      String fileOnly = entry.getKey().getRow().toString().substring(ReplicationSection.getRowPrefix().length());
-      Assert.assertFalse(filesToRemove.contains(fileOnly));
-      actualRecords++;
+    Status.Builder builder = Status.newBuilder();
+    builder.setClosed(false);
+    builder.setEnd(10000);
+    builder.setInfiniteEnd(false);
+
+    // Write out numRecords entries to both replication and metadata tables, none of which are fully replicated
+    for (int i = 0; i < numRecords; i++) {
+      String file = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
+      Mutation m = new Mutation(file);
+      StatusSection.add(m, new Text(Integer.toString(i)), ProtobufUtil.toValue(builder.setBegin(1000*(i+1)).build()));
+      replBw.addMutation(m);
     }
 
-    Assert.assertEquals(finalNumRecords, actualRecords);
+    // Add two records that we can delete
+    String fileToRemove = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
+    Mutation m = new Mutation(fileToRemove);
+    ReplicationTarget target = new ReplicationTarget("peer1", "5", "5");
+    Value value = ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(true).build());
+    StatusSection.add(m, new Text("5"), value);
+    WorkSection.add(m, target.toText(), value);
+    target = new ReplicationTarget("peer2", "5", "5");
+    WorkSection.add(m, target.toText(), value);
+    target = new ReplicationTarget("peer3", "5", "5");
+    WorkSection.add(m, target.toText(), ProtobufUtil.toValue(builder.setClosed(false).build()));
+    replBw.addMutation(m);
+
+    numRecords += 4;
+
+    replBw.flush();
+
+    // Make sure that we have the expected number of records in both tables
+    Assert.assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
+
+    // We should remove the two fully completed records we inserted
+    BatchScanner bs = ReplicationTable.getBatchScanner(conn, 1);
+    bs.setRanges(Collections.singleton(new Range()));
+    IteratorSetting cfg = new IteratorSetting(50, WholeRowIterator.class);
+    bs.addScanIterator(cfg);
+
+    try {
+      Assert.assertEquals(0l, rcrr.removeCompleteRecords(conn, ReplicationTable.NAME, bs, replBw));
+    } finally {
+      bs.close();
+      replBw.close();
+    }
   }
 }

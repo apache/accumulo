@@ -63,8 +63,6 @@ import com.google.protobuf.InvalidProtocolBufferException;
  * <p>
  * This tool scans the metadata table to collect a set of WALs that are still referenced. Then, each {@link Status} record from the metadata and replication
  * tables that point to that WAL can be "closed", by writing a new Status to the same key with the closed member true.
- * <p>
- * This will signal to the {@link RemoveCompleteReplicationRecords} class that when replication for this WAL is complete, we can safely delete it.
  */
 public class CloseWriteAheadLogReferences implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(CloseWriteAheadLogReferences.class);
