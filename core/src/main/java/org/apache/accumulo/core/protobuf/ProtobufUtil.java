@@ -19,6 +19,7 @@ package org.apache.accumulo.core.protobuf;
 import org.apache.accumulo.core.data.Value;
 
 import com.google.protobuf.GeneratedMessage;
+import com.google.protobuf.TextFormat;
 
 /**
  * Helper methods for interacting with Protocol Buffers and Accumulo
@@ -29,4 +30,8 @@ public class ProtobufUtil {
     return new Value(msg.toByteArray());
   }
 
+  public static String toString(GeneratedMessage msg) {
+    // Too much typing
+    return TextFormat.shortDebugString(msg);
+  }
 }
