@@ -28,14 +28,11 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.replication.ReplicationTable;
 import org.junit.Assert;
 import org.junit.Before;
@@ -85,27 +82,16 @@ public class FinishedWorkUpdaterTest {
 
     updater.run();
 
-    Scanner s = conn.createScanner(MetadataTable.NAME, new Authorizations());
-    s.setRange(Range.exact(ReplicationSection.getRowPrefix() + file));
-    Entry<Key,Value> entry = Iterables.getOnlyElement(s);
-
-    Assert.assertEquals(entry.getKey().getColumnFamily(), ReplicationSection.COLF);
-    Assert.assertEquals(entry.getKey().getColumnQualifier().toString(), target.getSourceTableId());
-
-    // We should only rely on the correct begin attribute being returned
-    Status actual = Status.parseFrom(entry.getValue().get());
-    Assert.assertEquals(stat.getBegin(), actual.getBegin());
-
-    s = ReplicationTable.getScanner(conn);
+    Scanner s = ReplicationTable.getScanner(conn);
     s.setRange(Range.exact(file));
     StatusSection.limit(s);
-    entry = Iterables.getOnlyElement(s);
+    Entry<Key,Value> entry = Iterables.getOnlyElement(s);
 
     Assert.assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
     Assert.assertEquals(entry.getKey().getColumnQualifier().toString(), target.getSourceTableId());
 
     // We should only rely on the correct begin attribute being returned
-    actual = Status.parseFrom(entry.getValue().get());
+    Status actual = Status.parseFrom(entry.getValue().get());
     Assert.assertEquals(stat.getBegin(), actual.getBegin());
   }
 
@@ -132,27 +118,16 @@ public class FinishedWorkUpdaterTest {
 
     updater.run();
 
-    Scanner s = conn.createScanner(MetadataTable.NAME, new Authorizations());
-    s.setRange(Range.exact(ReplicationSection.getRowPrefix() + file));
-    Entry<Key,Value> entry = Iterables.getOnlyElement(s);
-
-    Assert.assertEquals(entry.getKey().getColumnFamily(), ReplicationSection.COLF);
-    Assert.assertEquals(entry.getKey().getColumnQualifier().toString(), target1.getSourceTableId());
-
-    // We should only rely on the correct begin attribute being returned
-    Status actual = Status.parseFrom(entry.getValue().get());
-    Assert.assertEquals(1, actual.getBegin());
-
-    s = ReplicationTable.getScanner(conn);
+    Scanner s = ReplicationTable.getScanner(conn);
     s.setRange(Range.exact(file));
     StatusSection.limit(s);
-    entry = Iterables.getOnlyElement(s);
+    Entry<Key,Value> entry = Iterables.getOnlyElement(s);
 
     Assert.assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
     Assert.assertEquals(entry.getKey().getColumnQualifier().toString(), target1.getSourceTableId());
 
     // We should only rely on the correct begin attribute being returned
-    actual = Status.parseFrom(entry.getValue().get());
+    Status actual = Status.parseFrom(entry.getValue().get());
     Assert.assertEquals(1, actual.getBegin());
   }
 
@@ -179,27 +154,16 @@ public class FinishedWorkUpdaterTest {
 
     updater.run();
 
-    Scanner s = conn.createScanner(MetadataTable.NAME, new Authorizations());
-    s.setRange(Range.exact(ReplicationSection.getRowPrefix() + file));
-    Entry<Key,Value> entry = Iterables.getOnlyElement(s);
-
-    Assert.assertEquals(entry.getKey().getColumnFamily(), ReplicationSection.COLF);
-    Assert.assertEquals(entry.getKey().getColumnQualifier().toString(), target1.getSourceTableId());
-
-    // We should only rely on the correct begin attribute being returned
-    Status actual = Status.parseFrom(entry.getValue().get());
-    Assert.assertEquals(1, actual.getBegin());
-
-    s = ReplicationTable.getScanner(conn);
+    Scanner s = ReplicationTable.getScanner(conn);
     s.setRange(Range.exact(file));
     StatusSection.limit(s);
-    entry = Iterables.getOnlyElement(s);
+    Entry<Key,Value> entry = Iterables.getOnlyElement(s);
 
     Assert.assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
     Assert.assertEquals(entry.getKey().getColumnQualifier().toString(), target1.getSourceTableId());
 
     // We should only rely on the correct begin attribute being returned
-    actual = Status.parseFrom(entry.getValue().get());
+    Status actual = Status.parseFrom(entry.getValue().get());
     Assert.assertEquals(1, actual.getBegin());
   }
 

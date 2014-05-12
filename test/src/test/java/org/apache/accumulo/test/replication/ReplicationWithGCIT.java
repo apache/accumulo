@@ -35,10 +35,12 @@ import org.apache.accumulo.core.client.replication.ReplicaSystemFactory;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTarget;
@@ -72,6 +74,7 @@ import com.google.protobuf.TextFormat;
  * 
  */
 public class ReplicationWithGCIT extends ConfigurableMacIT {
+  private static final Logger log = LoggerFactory.getLogger(ReplicationWithGCIT.class);
 
   /**
    * Fake ReplicaSystem which immediately returns that the data was fully replicated
@@ -262,6 +265,9 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
     }
 
     cluster.exec(TabletServer.class);
+
+    // Starting the gc will run CloseWriteAheadLogReferences which will first close Statuses
+    // in the metadata table, and then in the replication table
     Process gc = cluster.exec(SimpleGarbageCollector.class);
 
     // Make sure we can read all the tables (recovery complete)
@@ -273,44 +279,82 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
 
     try {
       boolean allClosed = true;
-      for (int i = 0; i < 10; i++) {
-        // System.out.println();
-        allClosed = true;
 
-        s = ReplicationTable.getScanner(conn);
-        StatusSection.limit(s);
+      // We should either find all closed records or no records
+      // After they're closed, they are candidates for deletion
+      for (int i = 0; i < 10; i++) {
+        s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+        s.setRange(Range.prefix(ReplicationSection.getRowPrefix()));
         Iterator<Entry<Key,Value>> iter = s.iterator();
 
+        long recordsFound = 0l;
         while (allClosed && iter.hasNext()) {
           Entry<Key,Value> entry = iter.next();
           String wal = entry.getKey().getRow().toString();
-          // System.out.println(entry.getKey().toStringNoTruncate() + " " + Status.parseFrom(entry.getValue().get()).toString().replace("\n", ", "));
           if (metadataWals.contains(wal)) {
-            // System.out.println("Checked");
             Status status = Status.parseFrom(entry.getValue().get());
+            log.info("{}={}", entry.getKey().toStringNoTruncate(), ProtobufUtil.toString(status));
             allClosed &= status.getClosed();
-          } else {
-            // System.out.println("Ignored");
+            recordsFound++;
           }
         }
 
+        log.info("Found {} records from the metadata table", recordsFound);
         if (allClosed) {
-          return;
+          break;
+        }
+      }
+
+      if (!allClosed) {
+        s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+        s.setRange(Range.prefix(ReplicationSection.getRowPrefix()));
+        for (Entry<Key,Value> entry : s) {
+          log.info(entry.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(entry.getValue().get())));
+        }
+        Assert.fail("Expected all replication records in the metadata table to be closed");
+      }
+      
+      for (int i = 0; i < 10; i++) {
+        allClosed = true;
+
+        s = ReplicationTable.getScanner(conn);
+        Iterator<Entry<Key,Value>> iter = s.iterator();
+
+        long recordsFound = 0l;
+        while (allClosed && iter.hasNext()) {
+          Entry<Key,Value> entry = iter.next();
+          String wal = entry.getKey().getRow().toString();
+          if (metadataWals.contains(wal)) {
+            Status status = Status.parseFrom(entry.getValue().get());
+            log.info("{}={}", entry.getKey().toStringNoTruncate(), ProtobufUtil.toString(status));
+            allClosed &= status.getClosed();
+            recordsFound++;
+          }
+        }
+
+        log.info("Found {} records from the replication table", recordsFound);
+        if (allClosed) {
+          break;
         }
 
         UtilWaitThread.sleep(1000);
       }
+
+      if (!allClosed) {
+        s = ReplicationTable.getScanner(conn);
+        StatusSection.limit(s);
+        for (Entry<Key,Value> entry : s) {
+          log.info(entry.getKey().toStringNoTruncate() + " " + TextFormat.shortDebugString(Status.parseFrom(entry.getValue().get())));
+        }
+        Assert.fail("Expected all replication records in the replication table to be closed");
+      }
+
     } finally {
       gc.destroy();
       gc.waitFor();
     }
 
-    s = ReplicationTable.getScanner(conn);
-    StatusSection.limit(s);
-    for (Entry<Key,Value> entry : s) {
-      log.info(entry.getKey().toStringNoTruncate() + " " + TextFormat.shortDebugString(Status.parseFrom(entry.getValue().get())));
-    }
-    Assert.fail("Expected all replication records to be closed");
+
   }
 
   @Test
