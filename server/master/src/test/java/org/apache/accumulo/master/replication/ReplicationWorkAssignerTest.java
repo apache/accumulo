@@ -75,7 +75,7 @@ public class ReplicationWorkAssignerTest {
 
   @Test
   public void workQueuedUsingFileName() throws Exception {
-    ReplicationTarget target = new ReplicationTarget("cluster1", "table1");
+    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", "1");
     Text serializedTarget = target.toText();
 
     DistributedWorkQueue workQueue = createMock(DistributedWorkQueue.class);
@@ -117,10 +117,12 @@ public class ReplicationWorkAssignerTest {
 
   @Test
   public void createWorkForFilesNeedingIt() throws Exception {
-    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1"), target2 = new ReplicationTarget("cluster1", "table2");
+    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", "1"), target2 = new ReplicationTarget("cluster1", "table2", "2");
     Text serializedTarget1 = target1.toText(), serializedTarget2 = target2.toText();
-    String keyTarget1 = target1.getPeerName() + ReplicationWorkAssignerHelper.KEY_SEPARATOR + target1.getRemoteIdentifier(), keyTarget2 = target2
-        .getPeerName() + ReplicationWorkAssignerHelper.KEY_SEPARATOR + target2.getRemoteIdentifier();
+    String keyTarget1 = target1.getPeerName() + ReplicationWorkAssignerHelper.KEY_SEPARATOR + target1.getRemoteIdentifier()
+        + ReplicationWorkAssignerHelper.KEY_SEPARATOR + target1.getSourceTableId(), keyTarget2 = target2.getPeerName()
+        + ReplicationWorkAssignerHelper.KEY_SEPARATOR + target2.getRemoteIdentifier() + ReplicationWorkAssignerHelper.KEY_SEPARATOR
+        + target2.getSourceTableId();
 
     MockInstance inst = new MockInstance(test.getMethodName());
     Credentials creds = new Credentials("root", new PasswordToken(""));
@@ -192,7 +194,7 @@ public class ReplicationWorkAssignerTest {
 
   @Test
   public void doNotCreateWorkForFilesNotNeedingIt() throws Exception {
-    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1"), target2 = new ReplicationTarget("cluster1", "table2");
+    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", "1"), target2 = new ReplicationTarget("cluster1", "table2", "2");
     Text serializedTarget1 = target1.toText(), serializedTarget2 = target2.toText();
 
     MockInstance inst = new MockInstance(test.getMethodName());
@@ -264,8 +266,9 @@ public class ReplicationWorkAssignerTest {
 
     assigner.setQueuedWork(queuedWork);
 
-    ReplicationTarget target = new ReplicationTarget("cluster1", "table1");
-    String serializedTarget = target.getPeerName() + ReplicationWorkAssignerHelper.KEY_SEPARATOR + target.getRemoteIdentifier();
+    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", "1");
+    String serializedTarget = target.getPeerName() + ReplicationWorkAssignerHelper.KEY_SEPARATOR + target.getRemoteIdentifier()
+        + ReplicationWorkAssignerHelper.KEY_SEPARATOR + target.getSourceTableId();
 
     queuedWork.add("wal1|" + serializedTarget.toString());
 

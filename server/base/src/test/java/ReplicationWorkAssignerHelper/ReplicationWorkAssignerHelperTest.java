@@ -34,7 +34,7 @@ public class ReplicationWorkAssignerHelperTest {
   @Test
   public void createsValidZKNodeName() {
     Path p = new Path ("/accumulo/wals/tserver+port/" + UUID.randomUUID().toString());
-    ReplicationTarget target = new ReplicationTarget("cluster1", "table1");
+    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", "1");
 
     String key = ReplicationWorkAssignerHelper.getQueueKey(p.toString(), target);
     
@@ -44,7 +44,7 @@ public class ReplicationWorkAssignerHelperTest {
   @Test
   public void queueKeySerialization() {
     Path p = new Path("/accumulo/wals/tserver+port/" + UUID.randomUUID().toString());
-    ReplicationTarget target = new ReplicationTarget("cluster1", "1");
+    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", "1");
 
     String key = ReplicationWorkAssignerHelper.getQueueKey(p.toString(), target);
 

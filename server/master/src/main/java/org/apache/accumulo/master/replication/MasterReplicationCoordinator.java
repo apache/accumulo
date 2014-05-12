@@ -51,12 +51,18 @@ public class MasterReplicationCoordinator implements ReplicationCoordinator.Ifac
   private final ZooReader reader;
 
   public MasterReplicationCoordinator(Master master, AccumuloConfiguration conf) {
+    this(master, conf, new ZooReader(master.getInstance().getZooKeepers(), master.getInstance().getZooKeepersSessionTimeOut()));
+  }
+
+  protected MasterReplicationCoordinator(Master master, AccumuloConfiguration conf, ZooReader reader) {
     this.master = master;
     this.conf = conf;
     this.rand = new Random(358923462l);
     this.inst = master.getInstance();
-    this.reader = new ZooReader(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut());
+    this.reader = reader;
+    
   }
+
 
   @Override
   public String getServicerAddress(int remoteTableId) throws RemoteCoordinationException, TException {

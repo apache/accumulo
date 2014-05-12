@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.easymock.EasyMock;
@@ -36,8 +37,9 @@ public class MasterReplicationCoordinatorTest {
   @Test
   public void randomServer() {
     Master master = EasyMock.createMock(Master.class);
+    ZooReader reader = EasyMock.createMock(ZooReader.class);
     AccumuloConfiguration conf = EasyMock.createMock(AccumuloConfiguration.class); 
-    MasterReplicationCoordinator coordinator = new MasterReplicationCoordinator(master, conf);
+    MasterReplicationCoordinator coordinator = new MasterReplicationCoordinator(master, conf, reader);
     TServerInstance inst1 = new TServerInstance(HostAndPort.fromParts("host1", 1234), "session");
 
     Assert.assertEquals(inst1, coordinator.getRandomTServer(Collections.singleton(inst1), 0));
@@ -46,8 +48,9 @@ public class MasterReplicationCoordinatorTest {
   @Test(expected = IllegalArgumentException.class)
   public void invalidOffset() {
     Master master = EasyMock.createMock(Master.class);
+    ZooReader reader = EasyMock.createMock(ZooReader.class);
     AccumuloConfiguration conf = EasyMock.createMock(AccumuloConfiguration.class); 
-    MasterReplicationCoordinator coordinator = new MasterReplicationCoordinator(master, conf);
+    MasterReplicationCoordinator coordinator = new MasterReplicationCoordinator(master, conf, reader);
     TServerInstance inst1 = new TServerInstance(HostAndPort.fromParts("host1", 1234), "session");
 
     Assert.assertEquals(inst1, coordinator.getRandomTServer(Collections.singleton(inst1), 1));
@@ -56,8 +59,10 @@ public class MasterReplicationCoordinatorTest {
   @Test
   public void randomServerFromMany() {
     Master master = EasyMock.createMock(Master.class);
+    ZooReader reader = EasyMock.createMock(ZooReader.class);
     AccumuloConfiguration conf = EasyMock.createMock(AccumuloConfiguration.class); 
-    MasterReplicationCoordinator coordinator = new MasterReplicationCoordinator(master, conf);
+    MasterReplicationCoordinator coordinator = new MasterReplicationCoordinator(master, conf, reader);
+    
     TreeSet<TServerInstance> instances = new TreeSet<>();
     TServerInstance inst1 = new TServerInstance(HostAndPort.fromParts("host1", 1234), "session");
     instances.add(inst1);

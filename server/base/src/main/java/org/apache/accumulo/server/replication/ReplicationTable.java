@@ -117,7 +117,7 @@ public class ReplicationTable {
 
     if (!iterators.containsKey(COMBINER_NAME)) {
       // Set our combiner and combine all columns
-      IteratorSetting setting = new IteratorSetting(50, COMBINER_NAME, StatusCombiner.class);
+      IteratorSetting setting = new IteratorSetting(30, COMBINER_NAME, StatusCombiner.class);
       Combiner.setCombineAllColumns(setting, true);
       try {
         tops.attachIterator(NAME, setting);

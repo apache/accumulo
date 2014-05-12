@@ -121,7 +121,7 @@ public class WorkMaker {
         if (!replicationTargets.isEmpty()) {
           Span workSpan = Trace.start("createWorkMutations");
           try {
-            addWorkRecord(file, entry.getValue(), replicationTargets);
+            addWorkRecord(file, entry.getValue(), replicationTargets, tableId.toString());
           } finally {
             workSpan.stop();
           }
@@ -148,7 +148,7 @@ public class WorkMaker {
     return targets;
   }
 
-  protected void addWorkRecord(Text file, Value v, Map<String,String> targets) {
+  protected void addWorkRecord(Text file, Value v, Map<String,String> targets, String sourceTableId) {
     // TODO come up with something that tries to avoid creating a new BatchWriter all the time
     log.info("Adding work records for " + file + " to targets " + targets);
     try {
@@ -163,6 +163,7 @@ public class WorkMaker {
         // Set up the writable
         target.setPeerName(entry.getKey());
         target.setRemoteIdentifier(entry.getValue());
+        target.setSourceTableId(sourceTableId);
         target.write(buffer);
 
         // Throw it in a text for the mutation

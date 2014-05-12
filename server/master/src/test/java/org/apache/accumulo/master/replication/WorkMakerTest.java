@@ -96,9 +96,9 @@ public class WorkMakerTest {
 
     WorkMaker workMaker = new WorkMaker(conn);
 
-    ReplicationTarget expected = new ReplicationTarget("remote_cluster_1", "4");
+    ReplicationTarget expected = new ReplicationTarget("remote_cluster_1", "4", tableId);
     workMaker.setBatchWriter(bw);
-    workMaker.addWorkRecord(new Text(file), StatusUtil.fileClosedValue(), ImmutableMap.of("remote_cluster_1", "4"));
+    workMaker.addWorkRecord(new Text(file), StatusUtil.fileClosedValue(), ImmutableMap.of("remote_cluster_1", "4"), tableId);
 
     s = ReplicationTable.getScanner(conn);
     WorkSection.limit(s);
@@ -122,7 +122,9 @@ public class WorkMakerTest {
   public void singleUnitMultipleTargets() throws Exception {
     String table = name.getMethodName();
     conn.tableOperations().create(name.getMethodName());
+
     String tableId = conn.tableOperations().tableIdMap().get(table);
+
     String file = "hdfs://localhost:8020/accumulo/wal/123456-1234-1234-12345678";
 
     Mutation m = new Mutation(new Path(file).toString());
@@ -141,10 +143,10 @@ public class WorkMakerTest {
     Map<String,String> targetClusters = ImmutableMap.of("remote_cluster_1", "4", "remote_cluster_2", "6", "remote_cluster_3", "8");
     Set<ReplicationTarget> expectedTargets = new HashSet<>();
     for (Entry<String,String> cluster : targetClusters.entrySet()) {
-      expectedTargets.add(new ReplicationTarget(cluster.getKey(), cluster.getValue()));
+      expectedTargets.add(new ReplicationTarget(cluster.getKey(), cluster.getValue(), tableId));
     }
     workMaker.setBatchWriter(bw);
-    workMaker.addWorkRecord(new Text(file), StatusUtil.fileClosedValue(), targetClusters);
+    workMaker.addWorkRecord(new Text(file), StatusUtil.fileClosedValue(), targetClusters, tableId);
 
     s = ReplicationTable.getScanner(conn);
     WorkSection.limit(s);

@@ -29,18 +29,18 @@ public class ReplicationTargetTest {
 
   @Test
   public void properEquality() {
-    ReplicationTarget expected1 = new ReplicationTarget("foo", "bar");
+    ReplicationTarget expected1 = new ReplicationTarget("foo", "bar", "1");
 
-    Assert.assertEquals(expected1, new ReplicationTarget("foo", "bar"));
-    Assert.assertNotEquals(expected1, new ReplicationTarget("foo", "foo"));
-    Assert.assertNotEquals(expected1, new ReplicationTarget("bar", "bar"));
-    Assert.assertNotEquals(expected1, new ReplicationTarget(null, "bar"));
-    Assert.assertNotEquals(expected1, new ReplicationTarget("foo", null));
+    Assert.assertEquals(expected1, new ReplicationTarget("foo", "bar", "1"));
+    Assert.assertNotEquals(expected1, new ReplicationTarget("foo", "foo", "1"));
+    Assert.assertNotEquals(expected1, new ReplicationTarget("bar", "bar", "1"));
+    Assert.assertNotEquals(expected1, new ReplicationTarget(null, "bar", "1"));
+    Assert.assertNotEquals(expected1, new ReplicationTarget("foo", null, "1"));
   }
 
   @Test
   public void writableOut() throws Exception {
-    ReplicationTarget expected = new ReplicationTarget("foo", "bar");
+    ReplicationTarget expected = new ReplicationTarget("foo", "bar", "1");
     DataOutputBuffer buffer = new DataOutputBuffer();
     expected.write(buffer);
 
@@ -52,7 +52,7 @@ public class ReplicationTargetTest {
 
   @Test
   public void writableOutWithNulls() throws Exception {
-    ReplicationTarget expected = new ReplicationTarget(null, null);
+    ReplicationTarget expected = new ReplicationTarget(null, null, null);
     DataOutputBuffer buffer = new DataOutputBuffer();
     expected.write(buffer);
 
@@ -64,7 +64,7 @@ public class ReplicationTargetTest {
 
   @Test
   public void staticFromTextHelper() throws Exception {
-    ReplicationTarget expected = new ReplicationTarget("foo", "bar");
+    ReplicationTarget expected = new ReplicationTarget("foo", "bar", "1");
     DataOutputBuffer buffer = new DataOutputBuffer();
     expected.write(buffer);
     Text t = new Text();
@@ -75,7 +75,7 @@ public class ReplicationTargetTest {
 
   @Test
   public void staticToTextHelper() throws Exception {
-    ReplicationTarget expected = new ReplicationTarget("foo", "bar");
+    ReplicationTarget expected = new ReplicationTarget("foo", "bar", "1");
     DataOutputBuffer buffer = new DataOutputBuffer();
     expected.write(buffer);
     Text t = new Text();
@@ -86,7 +86,7 @@ public class ReplicationTargetTest {
 
   @Test
   public void staticFromStringHelper() throws Exception {
-    ReplicationTarget expected = new ReplicationTarget("foo", "bar");
+    ReplicationTarget expected = new ReplicationTarget("foo", "bar", "1");
     DataOutputBuffer buffer = new DataOutputBuffer();
     expected.write(buffer);
     Text t = new Text();

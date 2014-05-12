@@ -16,18 +16,191 @@
  */
 package org.apache.accumulo.master.replication;
 
-import static org.junit.Assert.*;
+import java.util.Map.Entry;
+import java.util.UUID;
 
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.mock.MockInstance;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
+import org.apache.accumulo.core.protobuf.ProtobufUtil;
+import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
+import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
+import org.apache.accumulo.core.replication.ReplicationTarget;
+import org.apache.accumulo.core.replication.proto.Replication.Status;
+import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.server.replication.ReplicationTable;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
+
+import com.google.common.collect.Iterables;
 
 /**
  * 
  */
 public class FinishedWorkUpdaterTest {
 
+  @Rule
+  public TestName test = new TestName();
+
+  private Connector conn;
+  private FinishedWorkUpdater updater;
+
+  @Before
+  public void setup() throws Exception {
+    MockInstance inst = new MockInstance(test.getMethodName());
+    conn = inst.getConnector("root", new PasswordToken(""));
+    updater = new FinishedWorkUpdater(conn);
+  }
+
   @Test
-  public void recordsWithProgressUpdateBothTables() {
-    fail("Not yet implemented");
+  public void noReplicationTableFailsGracefully() {
+    updater.run();
+  }
+
+  @Test
+  public void recordsWithProgressUpdateBothTables() throws Exception {
+    ReplicationTable.create(conn);
+
+    String file = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
+    Status stat = Status.newBuilder().setBegin(100).setEnd(200).setClosed(true).setInfiniteEnd(false).build();
+    ReplicationTarget target = new ReplicationTarget("peer", "table1", "1");
+
+    // Create a single work record for a file to some peer
+    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    Mutation m = new Mutation(file);
+    WorkSection.add(m, target.toText(), ProtobufUtil.toValue(stat));
+    bw.addMutation(m);
+    bw.close();
+
+    updater.run();
+
+    Scanner s = conn.createScanner(MetadataTable.NAME, new Authorizations());
+    s.setRange(Range.exact(ReplicationSection.getRowPrefix() + file));
+    Entry<Key,Value> entry = Iterables.getOnlyElement(s);
+
+    Assert.assertEquals(entry.getKey().getColumnFamily(), ReplicationSection.COLF);
+    Assert.assertEquals(entry.getKey().getColumnQualifier().toString(), target.getSourceTableId());
+
+    // We should only rely on the correct begin attribute being returned
+    Status actual = Status.parseFrom(entry.getValue().get());
+    Assert.assertEquals(stat.getBegin(), actual.getBegin());
+
+    s = ReplicationTable.getScanner(conn);
+    s.setRange(Range.exact(file));
+    StatusSection.limit(s);
+    entry = Iterables.getOnlyElement(s);
+
+    Assert.assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
+    Assert.assertEquals(entry.getKey().getColumnQualifier().toString(), target.getSourceTableId());
+
+    // We should only rely on the correct begin attribute being returned
+    actual = Status.parseFrom(entry.getValue().get());
+    Assert.assertEquals(stat.getBegin(), actual.getBegin());
+  }
+
+  @Test
+  public void chooseMinimumBeginOffset() throws Exception {
+    ReplicationTable.create(conn);
+
+    String file = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
+    Status stat1 = Status.newBuilder().setBegin(100).setEnd(1000).setClosed(true).setInfiniteEnd(false).build(),
+        stat2 = Status.newBuilder().setBegin(500).setEnd(1000).setClosed(true).setInfiniteEnd(false).build(),
+        stat3 = Status.newBuilder().setBegin(1).setEnd(1000).setClosed(true).setInfiniteEnd(false).build();
+    ReplicationTarget target1 = new ReplicationTarget("peer1", "table1", "1"),
+        target2 = new ReplicationTarget("peer2", "table2", "1"),
+        target3 = new ReplicationTarget("peer3", "table3", "1");
+
+    // Create a single work record for a file to some peer
+    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    Mutation m = new Mutation(file);
+    WorkSection.add(m, target1.toText(), ProtobufUtil.toValue(stat1));
+    WorkSection.add(m, target2.toText(), ProtobufUtil.toValue(stat2));
+    WorkSection.add(m, target3.toText(), ProtobufUtil.toValue(stat3));
+    bw.addMutation(m);
+    bw.close();
+
+    updater.run();
+
+    Scanner s = conn.createScanner(MetadataTable.NAME, new Authorizations());
+    s.setRange(Range.exact(ReplicationSection.getRowPrefix() + file));
+    Entry<Key,Value> entry = Iterables.getOnlyElement(s);
+
+    Assert.assertEquals(entry.getKey().getColumnFamily(), ReplicationSection.COLF);
+    Assert.assertEquals(entry.getKey().getColumnQualifier().toString(), target1.getSourceTableId());
+
+    // We should only rely on the correct begin attribute being returned
+    Status actual = Status.parseFrom(entry.getValue().get());
+    Assert.assertEquals(1, actual.getBegin());
+
+    s = ReplicationTable.getScanner(conn);
+    s.setRange(Range.exact(file));
+    StatusSection.limit(s);
+    entry = Iterables.getOnlyElement(s);
+
+    Assert.assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
+    Assert.assertEquals(entry.getKey().getColumnQualifier().toString(), target1.getSourceTableId());
+
+    // We should only rely on the correct begin attribute being returned
+    actual = Status.parseFrom(entry.getValue().get());
+    Assert.assertEquals(1, actual.getBegin());
+  }
+
+  @Test
+  public void chooseMinimumBeginOffsetInfiniteEnd() throws Exception {
+    ReplicationTable.create(conn);
+
+    String file = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
+    Status stat1 = Status.newBuilder().setBegin(100).setEnd(1000).setClosed(true).setInfiniteEnd(true).build(),
+        stat2 = Status.newBuilder().setBegin(1).setEnd(1000).setClosed(true).setInfiniteEnd(true).build(),
+        stat3 = Status.newBuilder().setBegin(500).setEnd(1000).setClosed(true).setInfiniteEnd(true).build();
+    ReplicationTarget target1 = new ReplicationTarget("peer1", "table1", "1"),
+        target2 = new ReplicationTarget("peer2", "table2", "1"),
+        target3 = new ReplicationTarget("peer3", "table3", "1");
+
+    // Create a single work record for a file to some peer
+    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    Mutation m = new Mutation(file);
+    WorkSection.add(m, target1.toText(), ProtobufUtil.toValue(stat1));
+    WorkSection.add(m, target2.toText(), ProtobufUtil.toValue(stat2));
+    WorkSection.add(m, target3.toText(), ProtobufUtil.toValue(stat3));
+    bw.addMutation(m);
+    bw.close();
+
+    updater.run();
+
+    Scanner s = conn.createScanner(MetadataTable.NAME, new Authorizations());
+    s.setRange(Range.exact(ReplicationSection.getRowPrefix() + file));
+    Entry<Key,Value> entry = Iterables.getOnlyElement(s);
+
+    Assert.assertEquals(entry.getKey().getColumnFamily(), ReplicationSection.COLF);
+    Assert.assertEquals(entry.getKey().getColumnQualifier().toString(), target1.getSourceTableId());
+
+    // We should only rely on the correct begin attribute being returned
+    Status actual = Status.parseFrom(entry.getValue().get());
+    Assert.assertEquals(1, actual.getBegin());
+
+    s = ReplicationTable.getScanner(conn);
+    s.setRange(Range.exact(file));
+    StatusSection.limit(s);
+    entry = Iterables.getOnlyElement(s);
+
+    Assert.assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
+    Assert.assertEquals(entry.getKey().getColumnQualifier().toString(), target1.getSourceTableId());
+
+    // We should only rely on the correct begin attribute being returned
+    actual = Status.parseFrom(entry.getValue().get());
+    Assert.assertEquals(1, actual.getBegin());
   }
 
 }

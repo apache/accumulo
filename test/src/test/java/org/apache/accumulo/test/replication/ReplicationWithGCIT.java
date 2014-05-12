@@ -343,6 +343,9 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
       }
     }
 
+    String tableId = conn.tableOperations().tableIdMap().get(table1);
+    Assert.assertNotNull("Could not determine table id for " + table1, tableId);
+
     // Write some data to table1
     BatchWriter bw = conn.createBatchWriter(table1, new BatchWriterConfig());
     for (int rows = 0; rows < 2000; rows++) {
@@ -379,7 +382,7 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
         s = ReplicationTable.getScanner(conn);
         WorkSection.limit(s);
         Entry<Key,Value> e = Iterables.getOnlyElement(s);
-        Text expectedColqual = new ReplicationTarget("cluster1", "4").toText();
+        Text expectedColqual = new ReplicationTarget("cluster1", "4", tableId).toText();
         Assert.assertEquals(expectedColqual, e.getKey().getColumnQualifier());
         notFound = false;
       } catch (NoSuchElementException e) {
