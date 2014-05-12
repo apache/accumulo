@@ -72,6 +72,8 @@ public class RemoveCompleteReplicationRecords implements Runnable {
 
     BatchScanner bs;
     BatchWriter bw;
+    // Run over the metadata table first to reduce the likelihood of the master re-creating 
+    // status records that we are in the middle of cleaning up (does not imply double-duplication though)
     for (String table : new String[] {MetadataTable.NAME, ReplicationTable.NAME}) {
       try {
         bs = conn.createBatchScanner(table, Authorizations.EMPTY, 4);
@@ -112,7 +114,7 @@ public class RemoveCompleteReplicationRecords implements Runnable {
         sw.stop();
       }
   
-      log.info("Removed {} complete replication entries from the table {}", table, recordsRemoved);
+      log.info("Removed {} complete replication entries from the table {}", recordsRemoved, table);
     }
   }
 
@@ -149,8 +151,6 @@ public class RemoveCompleteReplicationRecords implements Runnable {
 
         log.debug("Issuing deletion to {} for {} ", table, row.toString());
 
-        // *Must* delete from metadata table first, otherwise we risk re-creating the 
-        // record in the replication table and double-replicating the data
         Mutation mutation = new Mutation(row);
         mutation.putDelete(colf, colq);
         try {
