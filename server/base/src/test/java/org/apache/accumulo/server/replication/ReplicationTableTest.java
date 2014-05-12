@@ -99,7 +99,7 @@ public class ReplicationTableTest {
     Assert.assertTrue(iterators.containsKey(ReplicationTable.COMBINER_NAME));
 
     // Needs to be set below versioning
-    IteratorSetting expected = new IteratorSetting(50, ReplicationTable.COMBINER_NAME, StatusCombiner.class);
+    IteratorSetting expected = new IteratorSetting(30, ReplicationTable.COMBINER_NAME, StatusCombiner.class);
     Combiner.setCombineAllColumns(expected, true);
     IteratorSetting setting = tops.getIteratorSetting(ReplicationTable.NAME, ReplicationTable.COMBINER_NAME, IteratorScope.scan);
 

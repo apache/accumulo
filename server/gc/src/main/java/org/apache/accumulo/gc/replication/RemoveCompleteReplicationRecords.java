@@ -117,11 +117,15 @@ public class RemoveCompleteReplicationRecords implements Runnable {
   }
 
   /**
-   * Removes {@link Status} records read from the given {@code bs} and writes a delete, using the given {@code bw}
-   * when that {@link Status} is fully replicated and closed, as defined by {@link StatusUtil#isSafeForRemoval(Status)}.
-   * @param conn A Connector
-   * @param bs A BatchScanner to read replication status records from
-   * @param bw A BatchWriter to write deletes to
+   * Removes {@link Status} records read from the given {@code bs} and writes a delete, using the given {@code bw}, when that {@link Status} is fully replicated
+   * and closed, as defined by {@link StatusUtil#isSafeForRemoval(Status)}.
+   * 
+   * @param conn
+   *          A Connector
+   * @param bs
+   *          A BatchScanner to read replication status records from
+   * @param bw
+   *          A BatchWriter to write deletes to
    * @return Number of records removed
    */
   protected long removeCompleteRecords(Connector conn, String table, BatchScanner bs, BatchWriter bw) {

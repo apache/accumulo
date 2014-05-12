@@ -278,6 +278,9 @@ public class ReplicationWithMakerTest extends ConfigurableMacIT {
 
     bw.close();
 
+    String tableId = conn.tableOperations().tableIdMap().get(table1);
+    Assert.assertNotNull("Table ID was null", tableId);
+
     // Make sure the replication table exists at this point
     boolean exists = conn.tableOperations().exists(ReplicationTable.NAME);
     attempts = 5;
@@ -303,7 +306,7 @@ public class ReplicationWithMakerTest extends ConfigurableMacIT {
       WorkSection.limit(s);
       try {
         Entry<Key,Value> e = Iterables.getOnlyElement(s);
-        Text expectedColqual = new ReplicationTarget("cluster1", "4").toText();
+        Text expectedColqual = new ReplicationTarget("cluster1", "4", tableId).toText();
         Assert.assertEquals(expectedColqual, e.getKey().getColumnQualifier());
         notFound = false;
       } catch (NoSuchElementException e) {} catch (IllegalArgumentException e) {

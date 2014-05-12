@@ -85,6 +85,7 @@ public class RemoveCompleteReplicationRecordsTest {
     Assert.assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
 
     BatchScanner bs = ReplicationTable.getBatchScanner(conn, 1);
+    bs.setRanges(Collections.singleton(new Range()));
     bw = EasyMock.createMock(BatchWriter.class);
 
     EasyMock.replay(bw);
@@ -117,6 +118,7 @@ public class RemoveCompleteReplicationRecordsTest {
     
 
     BatchScanner bs = ReplicationTable.getBatchScanner(conn, 1);
+    bs.setRanges(Collections.singleton(new Range()));
     bw = EasyMock.createMock(BatchWriter.class);
 
     EasyMock.replay(bw);
