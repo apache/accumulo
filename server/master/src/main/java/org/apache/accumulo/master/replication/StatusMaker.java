@@ -19,6 +19,7 @@ package org.apache.accumulo.master.replication;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
@@ -29,6 +30,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
+import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
@@ -40,17 +42,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.TextFormat;
 
 /**
- * Reads replication records from the metadata table and creates status records in the replication table
+ * Reads replication records from the metadata table and creates status records in the replication table. Deletes the record
+ * from the metadata table when it's closed.
  */
 public class StatusMaker {
   private static final Logger log = LoggerFactory.getLogger(StatusMaker.class);
 
   private final Connector conn;
 
-  private BatchWriter writer;
+  private BatchWriter replicationWriter, metadataWriter;
   private String sourceTableName = MetadataTable.NAME;
 
   public StatusMaker(Connector conn) {
@@ -87,14 +89,14 @@ public class StatusMaker {
       Text row = new Text(), tableId = new Text();
       for (Entry<Key,Value> entry : s) {
         // Get a writer to the replication table
-        if (null == writer) {
+        if (null == replicationWriter) {
           // Ensures table exists and is properly configured
           ReplicationTable.create(conn);
           try {
             setBatchWriter(ReplicationTable.getBatchWriter(conn));
           } catch (TableNotFoundException e) {
             log.warn("Replication table did exist, but does not anymore");
-            writer = null;
+            replicationWriter = null;
             return;
           }
         }
@@ -105,12 +107,15 @@ public class StatusMaker {
         String rowStr = row.toString();
         rowStr = rowStr.substring(ReplicationSection.getRowPrefix().length());
 
+        Status status;
         try {
-          log.debug("Creating replication status record for {} on table {} with {}.", rowStr, tableId, TextFormat.shortDebugString(Status.parseFrom(entry.getValue().get())));
+          status = Status.parseFrom(entry.getValue().get());
         } catch (InvalidProtocolBufferException e) {
-          // TODO Auto-generated catch block
-          e.printStackTrace();
+          log.warn("Could not deserialize protobuf for {}", rowStr);
+          continue;
         }
+
+        log.debug("Creating replication status record for {} on table {} with {}.", rowStr, tableId, ProtobufUtil.toString(status));
 
         Span workSpan = Trace.start("createStatusMutations");
         try {
@@ -119,6 +124,15 @@ public class StatusMaker {
         } finally {
           workSpan.stop();
         }
+
+        if (status.getClosed()) {
+          Span deleteSpan = Trace.start("deleteClosedStatus");
+          try {
+            deleteStatusRecord(entry.getKey());
+          } finally {
+            deleteSpan.stop();
+          }
+        }
       }
     } finally {
       span.stop();
@@ -126,7 +140,7 @@ public class StatusMaker {
   }
 
   protected void setBatchWriter(BatchWriter bw) {
-    this.writer = bw;
+    this.replicationWriter = bw;
   }
 
   /**
@@ -142,16 +156,47 @@ public class StatusMaker {
       m.put(StatusSection.NAME, tableId, v);
 
       try {
-        writer.addMutation(m);
+        replicationWriter.addMutation(m);
       } catch (MutationsRejectedException e) {
         log.warn("Failed to write work mutations for replication, will retry", e);
       }
     } finally {
       try {
-        writer.flush();
+        replicationWriter.flush();
       } catch (MutationsRejectedException e) {
         log.warn("Failed to write work mutations for replication, will retry", e);
       }
+    }
+  }
+
+  /**
+   * Because there is only one active Master, and thus one active StatusMaker, the only
+   * safe time that we can issue the delete for a Status which is closed is immediately
+   * after writing it to the replication table.
+   * <p>
+   * If we try to defer and delete these entries in another thread/process, we will have
+   * no assurance that the Status message was propagated to the replication table. It is
+   * easiest, in terms of concurrency, to do this all in one step.
+   * 
+   * @param k The Key to delete
+   */
+  protected void deleteStatusRecord(Key k) {
+    log.debug("Deleting {} from metadata table as it's no longer needed", k.toStringNoTruncate());
+    if (null == metadataWriter) {
+      try {
+        metadataWriter = conn.createBatchWriter(sourceTableName, new BatchWriterConfig());
+      } catch (TableNotFoundException e) {
+        throw new RuntimeException("Metadata table doesn't exist");
+      }
+    }
+
+    try {
+      Mutation m = new Mutation(k.getRow());
+      m.putDelete(k.getColumnFamily(), k.getColumnQualifier());
+      metadataWriter.addMutation(m);
+      metadataWriter.flush();
+    } catch (MutationsRejectedException e) {
+      log.warn("Failed to delete status mutations for metadata table, will retry", e);
     }
   }
 }
