@@ -78,8 +78,6 @@ public class ReplicationIT extends ConfigurableMacIT {
 
     peerCluster.start();
 
-    Process monitor = peerCluster.exec(Monitor.class);
-
     Connector connMaster = getConnector();
     Connector connPeer = peerCluster.getConnector("root", ROOT_PASSWORD);
 
@@ -146,8 +144,133 @@ public class ReplicationIT extends ConfigurableMacIT {
     // Once we fully replicated some file, we are guaranteed to have data on the remote
     Assert.assertTrue(0 < Iterables.size(connPeer.createScanner(peerTable, Authorizations.EMPTY)));
 
-    monitor.destroy();
     peerCluster.stop();
   }
 
+
+  @Test(timeout = 60 * 5000)
+  public void dataReplicatedToCorrectTable() throws Exception {
+    MiniAccumuloConfigImpl peer1Cfg = new MiniAccumuloConfigImpl(createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName() + "_peer"),
+        ROOT_PASSWORD);
+    peer1Cfg.setNumTservers(1);
+    peer1Cfg.setInstanceName("peer");
+    peer1Cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
+    peer1Cfg.setProperty(Property.MASTER_REPLICATION_COORDINATOR_PORT, "10003");
+    peer1Cfg.setProperty(Property.REPLICATION_RECEIPT_SERVICE_PORT, "10004");
+    peer1Cfg.setProperty(Property.REPLICATION_THREADCHECK, "5m");
+    MiniAccumuloClusterImpl peer1Cluster = peer1Cfg.build();
+
+    peer1Cluster.start();
+
+    try {
+      Connector connMaster = getConnector();
+      Connector connPeer = peer1Cluster.getConnector("root", ROOT_PASSWORD);
+  
+      String peerClusterName = "peer";
+  
+      // ...peer = AccumuloReplicaSystem,instanceName,zookeepers
+      connMaster.instanceOperations().setProperty(
+          Property.REPLICATION_PEERS.getKey() + peerClusterName,
+          ReplicaSystemFactory.getPeerConfigurationValue(AccumuloReplicaSystem.class,
+              AccumuloReplicaSystem.buildConfiguration(peer1Cluster.getInstanceName(), peer1Cluster.getZooKeepers())));
+  
+      String masterTable1 = "master1", peerTable1 = "peer1", masterTable2 = "master2", peerTable2 = "peer2";
+  
+      connMaster.tableOperations().create(masterTable1);
+      String masterTableId1 = connMaster.tableOperations().tableIdMap().get(masterTable1);
+      Assert.assertNotNull(masterTableId1);
+  
+      connMaster.tableOperations().create(masterTable2);
+      String masterTableId2 = connMaster.tableOperations().tableIdMap().get(masterTable2);
+      Assert.assertNotNull(masterTableId2);
+  
+      connPeer.tableOperations().create(peerTable1);
+      String peerTableId1 = connPeer.tableOperations().tableIdMap().get(peerTable1);
+      Assert.assertNotNull(peerTableId1);
+  
+      connPeer.tableOperations().create(peerTable2);
+      String peerTableId2 = connPeer.tableOperations().tableIdMap().get(peerTable2);
+      Assert.assertNotNull(peerTableId2);
+  
+      // Replicate this table to the peerClusterName in a table with the peerTableId table id
+      connMaster.tableOperations().setProperty(masterTable1, Property.TABLE_REPLICATION.getKey(), "true");
+      connMaster.tableOperations().setProperty(masterTable1, Property.TABLE_REPLICATION_TARGETS.getKey() + peerClusterName, peerTableId1);
+  
+      connMaster.tableOperations().setProperty(masterTable2, Property.TABLE_REPLICATION.getKey(), "true");
+      connMaster.tableOperations().setProperty(masterTable2, Property.TABLE_REPLICATION_TARGETS.getKey() + peerClusterName, peerTableId2);
+  
+      // Write some data to table1
+      BatchWriter bw = connMaster.createBatchWriter(masterTable1, new BatchWriterConfig());
+      for (int rows = 0; rows < 2500; rows++) {
+        Mutation m = new Mutation(masterTable1 + rows);
+        for (int cols = 0; cols < 100; cols++) {
+          String value = Integer.toString(cols);
+          m.put(value, "", value);
+        }
+        bw.addMutation(m);
+      }
+  
+      bw.close();
+  
+      // Write some data to table2
+      bw = connMaster.createBatchWriter(masterTable2, new BatchWriterConfig());
+      for (int rows = 0; rows < 2500; rows++) {
+        Mutation m = new Mutation(masterTable2 + rows);
+        for (int cols = 0; cols < 100; cols++) {
+          String value = Integer.toString(cols);
+          m.put(value, "", value);
+        }
+        bw.addMutation(m);
+      }
+  
+      bw.close();
+  
+      log.info("Wrote all data to master cluster");
+  
+      while (!connMaster.tableOperations().exists(ReplicationTable.NAME)) {
+        Thread.sleep(500);
+      }
+  
+      connMaster.tableOperations().compact(masterTable1, null, null, true, false);
+      connMaster.tableOperations().compact(masterTable2, null, null, true, false);
+  
+      // Wait until we fully replicated something
+      boolean fullyReplicated = false;
+      for (int i = 0; i < 10 && !fullyReplicated; i++) {
+        UtilWaitThread.sleep(2000);
+  
+        Scanner s = ReplicationTable.getScanner(connMaster);
+        WorkSection.limit(s);
+        for (Entry<Key,Value> entry : s) {
+          Status status = Status.parseFrom(entry.getValue().get());
+          if (StatusUtil.isFullyReplicated(status)) {
+            fullyReplicated |= true;
+          }
+        }
+      }
+  
+      Assert.assertNotEquals(0, fullyReplicated);
+  
+      long countTable = 0l;
+      for (Entry<Key,Value> entry : connPeer.createScanner(peerTable1, Authorizations.EMPTY)) {
+        countTable++;
+        Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " " + entry.getValue(), entry.getKey().getRow().toString().startsWith(masterTable1));
+      }
+
+      log.info("Found {} records in {}", countTable, peerTable1);
+      Assert.assertTrue(countTable > 0);
+  
+      countTable = 0l;
+      for (Entry<Key,Value> entry : connPeer.createScanner(peerTable2, Authorizations.EMPTY)) {
+        countTable++;
+        Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " " + entry.getValue(), entry.getKey().getRow().toString().startsWith(masterTable2));
+      }
+
+      log.info("Found {} records in {}", countTable, peerTable2);
+      Assert.assertTrue(countTable > 0);
+  
+    } finally {
+      peer1Cluster.stop();
+    }
+  }
 }

@@ -23,6 +23,9 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -57,6 +60,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 
 /**
  * 
@@ -100,7 +104,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   }
 
   @Override
-  public Status replicate(final Path p, final Status status, ReplicationTarget target) {
+  public Status replicate(final Path p, final Status status, final ReplicationTarget target) {
     Instance localInstance = HdfsZooInstance.getInstance();
     AccumuloConfiguration localConf = ServerConfigurationUtil.getConfiguration(localInstance);
     
@@ -145,12 +149,12 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
           public Long execute(Client client) throws Exception {
             // RFiles have an extension, call everything else a WAL
             if (p.getName().endsWith(RFILE_SUFFIX)) {
-              KeyValues kvs = getKeyValues(p, status, sizeLimit);
+              KeyValues kvs = getKeyValues(target, p, status, sizeLimit);
               if (0 < kvs.getKeyValuesSize()) {
                 return client.replicateKeyValues(remoteTableId, kvs);
               }
             } else {
-              WalEdits edits = getWalEdits(p, status, sizeLimit);
+              WalEdits edits = getWalEdits(target, p, status, sizeLimit);
               if (0 < edits.getEditsSize()) {
                 return client.replicateLog(remoteTableId, edits);
               }
@@ -180,12 +184,12 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     return new ZooKeeperInstance(instanceName, zookeepers);
   }
 
-  protected KeyValues getKeyValues(Path p, Status status, long sizeLimit) {
+  protected KeyValues getKeyValues(ReplicationTarget target, Path p, Status status, long sizeLimit) {
     // TODO Implement me
     throw new UnsupportedOperationException();
   }
 
-  protected WalEdits getWalEdits(Path p, Status status, long sizeLimit) throws IOException {
+  protected WalEdits getWalEdits(ReplicationTarget target, Path p, Status status, long sizeLimit) throws IOException {
     DFSLoggerInputStreams streams = DfsLogger.readHeaderAndReturnStream(fs, p, conf);
     DataInputStream wal = streams.getDecryptingInputStream();
     LogFileKey key = new LogFileKey();
@@ -202,9 +206,23 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       }
     }
 
+    Entry<Long,WalEdits> pair = getEdits(wal, sizeLimit, target);
+
+    log.debug("Binned {} bytes of WAL entries for replication to peer '{}'", pair.getKey(), p);
+
+    return pair.getValue();
+  }
+
+  protected Entry<Long,WalEdits> getEdits(DataInputStream wal, long sizeLimit, ReplicationTarget target) throws IOException {
     WalEdits edits = new WalEdits();
     edits.edits = new ArrayList<ByteBuffer>();
     long size = 0l;
+    LogFileKey key = new LogFileKey();
+    LogFileValue value = new LogFileValue();
+
+    // TODO do we need to track *all* possible tids when the wal is not sorted?
+    Set<Integer> desiredTids = new HashSet<>();
+
     while (size < sizeLimit) {
       try {
         key.readFields(wal);
@@ -215,16 +233,26 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       }
 
       switch (key.event) {
+        case DEFINE_TABLET:
+          if (target.getSourceTableId().equals(key.tablet.getTableId().toString())) {
+            desiredTids.add(key.tid);
+          }
+          break;
         case MUTATION:
         case MANY_MUTATIONS:
-          ByteArrayOutputStream baos = new ByteArrayOutputStream();
-          DataOutputStream out = new DataOutputStream(baos);
-          key.write(out);
-          value.write(out);
-          out.flush();
-          byte[] data = baos.toByteArray();
-          size += data.length;
-          edits.addToEdits(ByteBuffer.wrap(data));
+          // Only write out mutations for tids that are for the desired tablet
+          if (desiredTids.contains(key.tid)) {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            DataOutputStream out = new DataOutputStream(baos);
+  
+            key.write(out);
+            value.write(out);
+  
+            out.flush();
+            byte[] data = baos.toByteArray();
+            size += data.length;
+            edits.addToEdits(ByteBuffer.wrap(data));
+          }
           break;
         default:
           log.trace("Ignorning WAL entry which doesn't contain mutations");
@@ -232,8 +260,6 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       }
     }
 
-    log.debug("Binned {} bytes of WAL entries for replication to peer '{}'", size, p);
-
-    return edits;
+    return Maps.immutableEntry(size, edits);
   }
 }
