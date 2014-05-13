@@ -16,13 +16,17 @@
  */
 package org.apache.accumulo.core.replication;
 
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.replication.thrift.KeyValues;
+import org.apache.accumulo.core.replication.thrift.RemoteReplicationException;
+import org.apache.accumulo.core.replication.thrift.WalEdits;
+
 /**
  * 
  */
-public enum RemoteReplicationErrorCode {
-  COULD_NOT_DESERIALIZE,
-  COULD_NOT_APPLY,
-  TABLE_DOES_NOT_EXIST,
-  CANNOT_AUTHENTICATE,
-  CANNOT_INSTANTIATE_REPLAYER,
+public interface AccumuloReplicationReplayer {
+
+  public long replicateLog(Connector conn, String tableName, WalEdits data) throws RemoteReplicationException;
+  public long replicateKeyValues(Connector conn, String tableName, KeyValues kvs) throws RemoteReplicationException;
+
 }
