@@ -18,6 +18,7 @@ package org.apache.accumulo.core.client.admin;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.replication.PeerExistsException;
 import org.apache.accumulo.core.client.replication.PeerNotFoundException;
 import org.apache.accumulo.core.client.replication.ReplicaSystem;
@@ -49,4 +50,12 @@ public interface ReplicationOperations {
    * @throws PeerNotFoundException
    */
   public void removePeer(String name) throws AccumuloException, AccumuloSecurityException, PeerNotFoundException;
+
+  /**
+   * Wait for a table to be fully replicated
+   * @param tableName The table to wait for
+   * @throws AccumuloException
+   * @throws AccumuloSecurityException
+   */
+  public void drain(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 }

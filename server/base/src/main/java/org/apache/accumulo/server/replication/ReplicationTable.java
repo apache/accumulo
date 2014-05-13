@@ -44,10 +44,9 @@ import org.apache.log4j.Logger;
 
 import com.google.common.collect.ImmutableMap;
 
-public class ReplicationTable {
+public class ReplicationTable extends org.apache.accumulo.core.client.replication.ReplicationTable {
   private static final Logger log = Logger.getLogger(ReplicationTable.class);
 
-  public static final String NAME = "replication";
   public static final String COMBINER_NAME = "statuscombiner";
 
   public static final String STATUS_LG_NAME = StatusSection.NAME.toString();
