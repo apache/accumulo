@@ -151,6 +151,7 @@ public class ReplicationOperationsImplTest {
 
     // After both metadata and replication 
     Assert.assertTrue(done.get());
+    Assert.assertFalse(exception.get());
   }
 
   @Test
@@ -234,6 +235,80 @@ public class ReplicationOperationsImplTest {
 
     // After both metadata and replication 
     Assert.assertTrue(done.get());
+    Assert.assertFalse(exception.get());
+  }
+
+  @Test
+  public void inprogressReplicationRecordsBlockExecution() throws Exception {
+    Connector conn = inst.getConnector("root", new PasswordToken(""));
+    conn.tableOperations().create(ReplicationTable.NAME);
+    conn.tableOperations().create("foo");
+
+    Text tableId1 = new Text(conn.tableOperations().tableIdMap().get("foo"));
+
+    String file1 = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
+    Status stat = Status.newBuilder().setBegin(0).setEnd(10000).setInfiniteEnd(false).setClosed(false).build();
+
+    BatchWriter bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
+
+    Mutation m = new Mutation(file1);
+    StatusSection.add(m, tableId1, ProtobufUtil.toValue(stat));
+    bw.addMutation(m);
+    bw.close();
+
+    bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    m = new Mutation(ReplicationSection.getRowPrefix() + file1);
+    m.put(ReplicationSection.COLF, tableId1, ProtobufUtil.toValue(stat));
+    bw.addMutation(m);
+    bw.close();
+
+    final AtomicBoolean done = new AtomicBoolean(false);
+    final AtomicBoolean exception = new AtomicBoolean(false);
+    final ReplicationOperationsImpl roi = new ReplicationOperationsImpl(inst, new Credentials("root", new PasswordToken("")));
+    Thread t = new Thread(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          roi.drain("foo");
+        } catch (Exception e) {
+          log.error("Got error", e);
+          exception.set(true);
+        }
+        done.set(true);
+      }
+    });
+
+    t.start();
+
+    // With the records, we shouldn't be drained
+    Assert.assertFalse(done.get());
+
+    Status newStatus = Status.newBuilder().setBegin(1000).setEnd(2000).setInfiniteEnd(false).setClosed(true).build();
+    bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    m = new Mutation(ReplicationSection.getRowPrefix() + file1);
+    m.put(ReplicationSection.COLF, tableId1, ProtobufUtil.toValue(newStatus));
+    bw.addMutation(m);
+    bw.flush();
+
+    // Removing metadata entries doesn't change anything
+    Assert.assertFalse(done.get());
+
+    // Remove the replication entries too
+    bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
+    m = new Mutation(file1);
+    m.put(StatusSection.NAME, tableId1, ProtobufUtil.toValue(newStatus));
+    bw.addMutation(m);
+    bw.flush();
+
+    try {
+      t.join(5000);
+    } catch (InterruptedException e) {
+      Assert.fail("ReplicationOperations.drain did not complete");
+    }
+
+    // New records, but not fully replicated ones don't cause it to complete
+    Assert.assertFalse(done.get());
+    Assert.assertFalse(exception.get());
   }
 
 }

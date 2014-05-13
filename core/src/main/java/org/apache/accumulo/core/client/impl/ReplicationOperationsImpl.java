@@ -147,6 +147,9 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
     }
   }
 
+  /**
+   * @return return true records are only in place which are fully replicated
+   */
   protected boolean allReferencesReplicated(BatchScanner bs, Text tableId) {
     Text holder = new Text();
     for (Entry<Key,Value> entry : bs) {
