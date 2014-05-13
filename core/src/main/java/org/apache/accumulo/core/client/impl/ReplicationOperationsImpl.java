@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ReplicationOperations;
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.replication.PeerExistsException;
 import org.apache.accumulo.core.client.replication.PeerNotFoundException;
 import org.apache.accumulo.core.client.replication.ReplicaSystem;
@@ -106,17 +107,21 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
   public void drain(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     checkNotNull(tableName);
 
-    String replicationTableId = null;
-    Text tableId = new Text(Tables.getTableId(inst, tableName));
-    while (null == replicationTableId) {
-      try {
-        replicationTableId = Tables.getTableId(inst, ReplicationTable.NAME);
-      } catch (TableNotFoundException e) {
+    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
+    TableOperations tops = conn.tableOperations();
+    while (!tops.exists(ReplicationTable.NAME)) {
+      UtilWaitThread.sleep(200);
+    }
+
+    String strTableId = null;
+    while (null == strTableId) {
+      strTableId = tops.tableIdMap().get(tableName);
+      if (null == strTableId) {
         UtilWaitThread.sleep(200);
       }
     }
 
-    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
+    Text tableId = new Text(strTableId);
 
     boolean allMetadataRefsReplicated = false;
     while (!allMetadataRefsReplicated) {
@@ -146,7 +151,7 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
     Text holder = new Text();
     for (Entry<Key,Value> entry : bs) {
       entry.getKey().getColumnQualifier(holder);
-      if (tableId.equals(holder.toString())) {
+      if (tableId.equals(holder)) {
         try {
           Status stat = Status.parseFrom(entry.getValue().get());
           if (!StatusUtil.isFullyReplicated(stat)) {
