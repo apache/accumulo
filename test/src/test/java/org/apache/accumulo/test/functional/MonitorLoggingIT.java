@@ -50,7 +50,12 @@ public class MonitorLoggingIT extends ConfigurableMacIT {
   }
 
   private static final int NUM_LOCATION_PASSES = 5;
-  private static final long LOCATION_DELAY = 5000L;
+  private static final int LOCATION_DELAY = 5000;
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return (NUM_LOCATION_PASSES + 2) * LOCATION_DELAY;
+  }
 
   @Test
   public void logToMonitor() throws Exception {
@@ -82,12 +87,21 @@ public class MonitorLoggingIT extends ConfigurableMacIT {
     } catch (Exception e) {
       // expected, the iterator was bad
     }
-    Thread.sleep(5000L);  // extra precaution to ensure monitor has opportunity to log
 
-    // Verify messages were received at the monitor.
-    URL url = new URL("http://" + monitorLocation + "/log");
-    log.debug("Fetching web page " + url);
-    String result = FunctionalTestUtils.readAll(url.openStream());
+    String result = "";
+    while(true) {
+      Thread.sleep(LOCATION_DELAY);  // extra precaution to ensure monitor has opportunity to log
+
+      // Verify messages were received at the monitor.
+      URL url = new URL("http://" + monitorLocation + "/log");
+      log.debug("Fetching web page " + url);
+      result = FunctionalTestUtils.readAll(url.openStream());
+      if (result.contains("<pre class='logevent'>")) {
+        break;
+      }
+      log.debug("No messages found, waiting a little longer...");
+    }
+
     assertTrue("No log messages found", result.contains("<pre class='logevent'>"));
 
     // Shutdown cleanly.
