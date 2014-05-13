@@ -448,12 +448,9 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
             case PERMISSION_DENIED:
               // retry -- the grant didn't happen yet
               log.warn("Sleeping because permission was denied");
-              Thread.sleep(500);
-              break;
             default:
               throw e;
           }
-
         } else {
           throw e;
         }
@@ -537,7 +534,7 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
     Thread.sleep(5000);
 
     int recordsFound = 0;
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 10; i++) {
       s = ReplicationTable.getScanner(conn);
       recordsFound = 0;
       for (Entry<Key,Value> entry : s) {
