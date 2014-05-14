@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.replication;
 
+import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -26,13 +27,16 @@ import org.apache.accumulo.core.client.impl.ReplicationOperationsImpl;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.replication.ReplicationTable;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Before;
@@ -256,10 +260,23 @@ public class ReplicationOperationsImplTest {
     bw.addMutation(m);
     bw.close();
 
+    LogEntry logEntry = new LogEntry();
+    logEntry.extent = new KeyExtent(new Text(tableId1), null, null);
+    logEntry.server = "tserver";
+    logEntry.filename = file1;
+    logEntry.tabletId = 1;
+    logEntry.logSet = Arrays.asList(file1);
+    logEntry.timestamp = System.currentTimeMillis();
+
     bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);
     m.put(ReplicationSection.COLF, tableId1, ProtobufUtil.toValue(stat));
     bw.addMutation(m);
+
+    m = new Mutation(logEntry.getRow());
+    m.put(logEntry.getColumnFamily(), logEntry.getColumnQualifier(), logEntry.getValue());
+    bw.addMutation(m);
+
     bw.close();
 
     final AtomicBoolean done = new AtomicBoolean(false);
@@ -309,6 +326,61 @@ public class ReplicationOperationsImplTest {
     // New records, but not fully replicated ones don't cause it to complete
     Assert.assertFalse(done.get());
     Assert.assertFalse(exception.get());
+  }
+
+  @Test
+  public void laterCreatedLogsDontBlockExecution() throws Exception {
+    Connector conn = inst.getConnector("root", new PasswordToken(""));
+    conn.tableOperations().create(ReplicationTable.NAME);
+    conn.tableOperations().create("foo");
+
+    Text tableId1 = new Text(conn.tableOperations().tableIdMap().get("foo"));
+
+    String file1 = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
+    Status stat = Status.newBuilder().setBegin(0).setEnd(10000).setInfiniteEnd(false).setClosed(false).build();
+
+    BatchWriter bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
+
+    Mutation m = new Mutation(file1);
+    StatusSection.add(m, tableId1, ProtobufUtil.toValue(stat));
+    bw.addMutation(m);
+    bw.close();
+
+    // We create a file which is only the replication record, but without a corresponding log entry
+    // We can do this to fake a WAL that was "added" after we first called drain()
+    bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    m = new Mutation(ReplicationSection.getRowPrefix() + file1);
+    m.put(ReplicationSection.COLF, tableId1, ProtobufUtil.toValue(stat));
+    bw.addMutation(m);
+
+    bw.close();
+
+    final AtomicBoolean done = new AtomicBoolean(false);
+    final AtomicBoolean exception = new AtomicBoolean(false);
+    final ReplicationOperationsImpl roi = new ReplicationOperationsImpl(inst, new Credentials("root", new PasswordToken("")));
+    Thread t = new Thread(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          roi.drain("foo");
+        } catch (Exception e) {
+          log.error("Got error", e);
+          exception.set(true);
+        }
+        done.set(true);
+      }
+    });
+
+    t.start();
+
+    try {
+      t.join(5000);
+    } catch (InterruptedException e) {
+      Assert.fail("ReplicationOperatiotns.drain did not complete");
+    }
+
+    // We should pass immediately
+    Assert.assertTrue(done.get());
   }
 
 }

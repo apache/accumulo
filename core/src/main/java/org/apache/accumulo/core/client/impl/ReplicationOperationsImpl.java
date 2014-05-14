@@ -19,7 +19,9 @@ package org.apache.accumulo.core.client.impl;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -39,11 +41,15 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.hadoop.io.Text;
@@ -113,6 +119,10 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
       UtilWaitThread.sleep(200);
     }
 
+    if (!conn.tableOperations().exists(tableName)) {
+      throw new IllegalArgumentException("Table does not exist: " + tableName);
+    }
+
     String strTableId = null;
     while (null == strTableId) {
       strTableId = tops.tableIdMap().get(tableName);
@@ -122,6 +132,18 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
     }
 
     Text tableId = new Text(strTableId);
+    BatchScanner metaBs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4); 
+    metaBs.setRanges(Collections.singleton(MetadataSchema.TabletsSection.getRange(strTableId)));
+    metaBs.fetchColumnFamily(LogColumnFamily.NAME);
+    Set<String> wals = new HashSet<>();
+    try {
+      for (Entry<Key,Value> entry : metaBs) {
+        LogEntry logEntry = LogEntry.fromKeyValue(entry.getKey(), entry.getValue());
+        wals.addAll(logEntry.logSet);
+      }
+    } finally {
+      metaBs.close();
+    }
 
     boolean allMetadataRefsReplicated = false;
     while (!allMetadataRefsReplicated) {
@@ -129,9 +151,13 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
       bs.setRanges(Collections.singleton(new Range(ReplicationSection.getRange())));
       bs.fetchColumnFamily(ReplicationSection.COLF);
       try {
-        allMetadataRefsReplicated = allReferencesReplicated(bs, tableId);
+        allMetadataRefsReplicated = allReferencesReplicated(bs, tableId, wals);
       } finally {
         bs.close();
+      }
+
+      if (!allMetadataRefsReplicated) {
+        UtilWaitThread.sleep(1000);
       }
     }
 
@@ -140,9 +166,13 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
       BatchScanner bs = conn.createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
       bs.setRanges(Collections.singleton(new Range()));
       try {
-        allReplicationRefsReplicated = allReferencesReplicated(bs, tableId);
+        allReplicationRefsReplicated = allReferencesReplicated(bs, tableId, wals);
       } finally {
         bs.close();
+      }
+
+      if (!allReplicationRefsReplicated) {
+        UtilWaitThread.sleep(1000);
       }
     }
   }
@@ -150,14 +180,26 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
   /**
    * @return return true records are only in place which are fully replicated
    */
-  protected boolean allReferencesReplicated(BatchScanner bs, Text tableId) {
+  protected boolean allReferencesReplicated(BatchScanner bs, Text tableId, Set<String> relevantLogs) {
     Text holder = new Text();
     for (Entry<Key,Value> entry : bs) {
       entry.getKey().getColumnQualifier(holder);
       if (tableId.equals(holder)) {
+        entry.getKey().getRow(holder);
+        String row = holder.toString();
+        if (row.startsWith(ReplicationSection.getRowPrefix())) {
+          row = row.substring(ReplicationSection.getRowPrefix().length());
+        }
+
+        // Skip files that we didn't observe when we started (new files/data)
+        if (!relevantLogs.contains(row)) {
+          continue;
+        }
+
         try {
           Status stat = Status.parseFrom(entry.getValue().get());
           if (!StatusUtil.isFullyReplicated(stat)) {
+            log.trace("{} and {} is not fully replicated", entry.getKey().getRow(), ProtobufUtil.toString(stat));
             return false;
           }
         } catch (InvalidProtocolBufferException e) {
