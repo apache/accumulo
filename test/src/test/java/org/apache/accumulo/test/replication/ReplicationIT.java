@@ -34,7 +34,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem;
@@ -60,7 +59,9 @@ public class ReplicationIT extends ConfigurableMacIT {
     cfg.setProperty(Property.GC_CYCLE_START, "1s");
     cfg.setProperty(Property.GC_CYCLE_DELAY, "5s");
     cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "5s");
+    cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
     cfg.setProperty(Property.REPLICATION_MAX_UNIT_SIZE, "8M");
+    cfg.setProperty(Property.REPLICATION_NAME, "master");
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
@@ -73,7 +74,9 @@ public class ReplicationIT extends ConfigurableMacIT {
     peerCfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
     peerCfg.setProperty(Property.MASTER_REPLICATION_COORDINATOR_PORT, "10003");
     peerCfg.setProperty(Property.REPLICATION_RECEIPT_SERVICE_PORT, "10004");
-    peerCfg.setProperty(Property.REPLICATION_THREADCHECK, "5m");
+    peerCfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
+    peerCfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
+    peerCfg.setProperty(Property.REPLICATION_NAME, "peer");
     MiniAccumuloClusterImpl peerCluster = peerCfg.build();
 
     peerCluster.start();
@@ -150,15 +153,17 @@ public class ReplicationIT extends ConfigurableMacIT {
 
   @Test(timeout = 60 * 5000)
   public void dataReplicatedToCorrectTable() throws Exception {
-    MiniAccumuloConfigImpl peer1Cfg = new MiniAccumuloConfigImpl(createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName() + "_peer"),
+    MiniAccumuloConfigImpl peerCfg = new MiniAccumuloConfigImpl(createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName() + "_peer"),
         ROOT_PASSWORD);
-    peer1Cfg.setNumTservers(1);
-    peer1Cfg.setInstanceName("peer");
-    peer1Cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
-    peer1Cfg.setProperty(Property.MASTER_REPLICATION_COORDINATOR_PORT, "10003");
-    peer1Cfg.setProperty(Property.REPLICATION_RECEIPT_SERVICE_PORT, "10004");
-    peer1Cfg.setProperty(Property.REPLICATION_THREADCHECK, "5m");
-    MiniAccumuloClusterImpl peer1Cluster = peer1Cfg.build();
+    peerCfg.setNumTservers(1);
+    peerCfg.setInstanceName("peer");
+    peerCfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
+    peerCfg.setProperty(Property.MASTER_REPLICATION_COORDINATOR_PORT, "10003");
+    peerCfg.setProperty(Property.REPLICATION_RECEIPT_SERVICE_PORT, "10004");
+    peerCfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
+    peerCfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
+    peerCfg.setProperty(Property.REPLICATION_NAME, "peer");
+    MiniAccumuloClusterImpl peer1Cluster = peerCfg.build();
 
     peer1Cluster.start();
 

@@ -111,6 +111,7 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
     cfg.setProperty(Property.GC_CYCLE_DELAY, "0");
     cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
     cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
+    cfg.setProperty(Property.REPLICATION_NAME, "master");
     cfg.setNumTservers(1);
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
