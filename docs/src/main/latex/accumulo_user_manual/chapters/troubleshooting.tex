@@ -764,6 +764,19 @@ A. The ``importdirectory`` shell command can be used to import RFiles from the o
 but extreme care should go into the decision to do this as it may result in reintroduction of stale data or the
 omission of new data.
 
+\subsection{Upgrade Issues}
+Q. I upgraded from 1.4 to 1.5 to 1.6 but still have some WAL files on local disk. Do I have any way to recover them?
+
+A. Yes, you can recover them by running the LocalWALRecovery utility on each node that needs recovery performed. The utility
+will default to using the directory specified by \begin{verbatim}logger.dir.walog\end{verbatim} in your configuration, or can be
+overriden by using the \begin{verbatim}--local-wal-directories\end{verbatim} option on the tool. It can be invoked as follows:
+
+\small
+\begin{verbatim}
+$ACCUMULO_HOME/bin/accumulo org.apache.accumulo.tserver.log.LocalWALRecovery
+\end{verbatim}
+\normalsize
+
 \section{File Naming Conventions}
 
 Q. Why are files named like they are? Why do some start with ``C'' and others with ``F''?

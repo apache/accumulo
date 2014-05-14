@@ -268,10 +268,10 @@ public enum Property {
 
   // properties that are specific to logger server behavior
   LOGGER_PREFIX("logger.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the write-ahead logger servers"),
-  LOGGER_DIR("logger.dir.walog", "walogs", PropertyType.PATH,
-      "The property only needs to be set if upgrading from 1.4 which used to store write-ahead logs on the local filesystem. In 1.5 write-ahead logs are "
-          + "stored in DFS. When 1.5 is started for the first time it will copy any 1.4 write ahead logs into DFS. It is possible to specify a "
-          + "comma-separated list of directories."),
+  LOGGER_DIR("logger.dir.walog", "walogs", PropertyType.PATH, "This property is only needed if Accumulo was upgraded from a 1.4 or earlier version. "
+      + "In the upgrade to 1.5 this property is used to copy any earlier write ahead logs into DFS. "
+      + "In 1.6+, this property is used by the LocalWALRecovery utility in the event that something went wrong with that earlier upgrade. "
+      + "It is possible to specify a comma-separated list of directories."),
 
   // accumulo garbage collector properties
   GC_PREFIX("gc.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the accumulo garbage collector."),
