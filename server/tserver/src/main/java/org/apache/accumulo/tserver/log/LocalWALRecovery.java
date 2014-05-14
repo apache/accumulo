@@ -145,7 +145,12 @@ public class LocalWALRecovery implements Runnable {
 
         log.info("Openning local log " + file.getAbsolutePath());
 
-        Reader reader = new SequenceFile.Reader(fs.getConf(), SequenceFile.Reader.file(new Path(file.toURI())));
+        Path localWal = new Path(file.toURI());
+        FileSystem localFs = FileSystem.getLocal(fs.getConf());
+        
+        @SuppressWarnings("deprecation")
+        Reader reader = new SequenceFile.Reader(localFs, localWal, localFs.getConf());
+        // Reader reader = new SequenceFile.Reader(localFs.getConf(), SequenceFile.Reader.file(localWal));
         Path tmp = new Path(options.destination + "/" + name + ".copy");
         FSDataOutputStream writer = fs.create(tmp);
         while (reader.next(key, value)) {
