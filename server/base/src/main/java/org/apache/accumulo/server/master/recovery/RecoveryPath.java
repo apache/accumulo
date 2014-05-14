@@ -34,8 +34,11 @@ public class RecoveryPath {
       String uuid = walPath.getName();
       // drop uuid
       walPath = walPath.getParent();
-      // drop server
-      walPath = walPath.getParent();
+      // recovered 1.4 WALs won't have a server component
+      if (!walPath.getName().equals(FileType.WAL.getDirectory())) {
+        // drop server
+        walPath = walPath.getParent();
+      }
   
       if (!walPath.getName().equals(FileType.WAL.getDirectory()))
         throw new IllegalArgumentException("Bad path " + walPath);

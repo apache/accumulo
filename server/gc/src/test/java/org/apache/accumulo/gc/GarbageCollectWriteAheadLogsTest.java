@@ -205,18 +205,25 @@ public class GarbageCollectWriteAheadLogsTest {
     Map<String,Path> nameToFileMap = new java.util.HashMap<String,Path>();
     int count = gcwal.scanServers(walDirs, fileToServerMap, nameToFileMap);
     /*
+     * Expect only a single server, the non-server entry for upgrade WALs
+     */
+    assertEquals(1, count);
+    /*
      * Expected fileToServerMap:
      * /dir1/uuid1 -> ""
      * /dir3/uuid3 -> ""
      */
-    assertEquals(2, count);
     assertEquals(2, fileToServerMap.size());
     assertEquals("", fileToServerMap.get(serverFile1Path));
     assertEquals("", fileToServerMap.get(serverFile3Path));
     /*
-     * Expected nameToFileMap: empty
+     * Expected nameToFileMap:
+     * uuid1 -> /dir1/uuid1
+     * uuid3 -> /dir3/uuid3
      */
-    assertEquals(0, nameToFileMap.size());
+    assertEquals(2, nameToFileMap.size());
+    assertEquals(serverFile1Path, nameToFileMap.get(UUID1));
+    assertEquals(serverFile3Path, nameToFileMap.get(UUID3));
   }
 
   @Test
