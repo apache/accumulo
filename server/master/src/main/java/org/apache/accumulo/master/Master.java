@@ -289,13 +289,18 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         final String zooRoot = ZooUtil.getRoot(instance);
 
         if (accumuloPersistentVersion == ServerConstants.TWO_VERSIONS_AGO) {
+          log.debug("Handling updates for version " + ServerConstants.TWO_VERSIONS_AGO);
+
+          log.debug("Cleaning out remnants of logger role.");
           zoo.recursiveDelete(zooRoot + "/loggers", NodeMissingPolicy.SKIP);
           zoo.recursiveDelete(zooRoot + "/dead/loggers", NodeMissingPolicy.SKIP);
 
           final byte[] zero = new byte[] {'0'};
+          log.debug("Initializing recovery area.");
           zoo.putPersistentData(zooRoot + Constants.ZRECOVERY, zero, NodeExistsPolicy.SKIP);
 
-          for (String id : Tables.getIdToNameMap(instance).keySet()) {
+          for (String id : zoo.getChildren(zooRoot + Constants.ZTABLES)) {
+            log.debug("Prepping table " + id + " for compaction cancellations.");
             zoo.putPersistentData(zooRoot + Constants.ZTABLES + "/" + id + Constants.ZTABLE_COMPACT_CANCEL_ID, zero, NodeExistsPolicy.SKIP);
           }
         }
@@ -379,8 +384,10 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
             try {
               log.info("Starting to upgrade !METADATA table.");
               if (accumuloPersistentVersion == ServerConstants.TWO_VERSIONS_AGO) {
+                log.info("Updating Delete Markers in !METADATA table for version 1.4");
                 MetadataTableUtil.moveMetaDeleteMarkersFrom14(instance, SystemCredentials.get());
               } else {
+                log.info("Updating Delete Markers in !METADATA table.");
                 MetadataTableUtil.moveMetaDeleteMarkers(instance, SystemCredentials.get());
               }
               log.info("Updating persistent data version.");
