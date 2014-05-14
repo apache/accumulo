@@ -432,14 +432,14 @@ import org.slf4j.LoggerFactory;
           case 1: // RESULTS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list8 = iprot.readListBegin();
-                struct.results = new ArrayList<TKeyValue>(_list8.size);
-                for (int _i9 = 0; _i9 < _list8.size; ++_i9)
+                org.apache.thrift.protocol.TList _list16 = iprot.readListBegin();
+                struct.results = new ArrayList<TKeyValue>(_list16.size);
+                for (int _i17 = 0; _i17 < _list16.size; ++_i17)
                 {
-                  TKeyValue _elem10; // required
-                  _elem10 = new TKeyValue();
-                  _elem10.read(iprot);
-                  struct.results.add(_elem10);
+                  TKeyValue _elem18; // required
+                  _elem18 = new TKeyValue();
+                  _elem18.read(iprot);
+                  struct.results.add(_elem18);
                 }
                 iprot.readListEnd();
               }
@@ -475,9 +475,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(RESULTS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.results.size()));
-          for (TKeyValue _iter11 : struct.results)
+          for (TKeyValue _iter19 : struct.results)
           {
-            _iter11.write(oprot);
+            _iter19.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -514,9 +514,9 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetResults()) {
         {
           oprot.writeI32(struct.results.size());
-          for (TKeyValue _iter12 : struct.results)
+          for (TKeyValue _iter20 : struct.results)
           {
-            _iter12.write(oprot);
+            _iter20.write(oprot);
           }
         }
       }
@@ -531,14 +531,14 @@ import org.slf4j.LoggerFactory;
       BitSet incoming = iprot.readBitSet(2);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TList _list13 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.results = new ArrayList<TKeyValue>(_list13.size);
-          for (int _i14 = 0; _i14 < _list13.size; ++_i14)
+          org.apache.thrift.protocol.TList _list21 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.results = new ArrayList<TKeyValue>(_list21.size);
+          for (int _i22 = 0; _i22 < _list21.size; ++_i22)
           {
-            TKeyValue _elem15; // required
-            _elem15 = new TKeyValue();
-            _elem15.read(iprot);
-            struct.results.add(_elem15);
+            TKeyValue _elem23; // required
+            _elem23 = new TKeyValue();
+            _elem23.read(iprot);
+            struct.results.add(_elem23);
           }
         }
         struct.setResultsIsSet(true);

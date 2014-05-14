@@ -512,14 +512,14 @@ import org.slf4j.LoggerFactory;
           case 1: // CONDITIONS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list78 = iprot.readListBegin();
-                struct.conditions = new ArrayList<TCondition>(_list78.size);
-                for (int _i79 = 0; _i79 < _list78.size; ++_i79)
+                org.apache.thrift.protocol.TList _list86 = iprot.readListBegin();
+                struct.conditions = new ArrayList<TCondition>(_list86.size);
+                for (int _i87 = 0; _i87 < _list86.size; ++_i87)
                 {
-                  TCondition _elem80; // required
-                  _elem80 = new TCondition();
-                  _elem80.read(iprot);
-                  struct.conditions.add(_elem80);
+                  TCondition _elem88; // required
+                  _elem88 = new TCondition();
+                  _elem88.read(iprot);
+                  struct.conditions.add(_elem88);
                 }
                 iprot.readListEnd();
               }
@@ -564,9 +564,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(CONDITIONS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.conditions.size()));
-          for (TCondition _iter81 : struct.conditions)
+          for (TCondition _iter89 : struct.conditions)
           {
-            _iter81.write(oprot);
+            _iter89.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -611,9 +611,9 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetConditions()) {
         {
           oprot.writeI32(struct.conditions.size());
-          for (TCondition _iter82 : struct.conditions)
+          for (TCondition _iter90 : struct.conditions)
           {
-            _iter82.write(oprot);
+            _iter90.write(oprot);
           }
         }
       }
@@ -631,14 +631,14 @@ import org.slf4j.LoggerFactory;
       BitSet incoming = iprot.readBitSet(3);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TList _list83 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.conditions = new ArrayList<TCondition>(_list83.size);
-          for (int _i84 = 0; _i84 < _list83.size; ++_i84)
+          org.apache.thrift.protocol.TList _list91 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.conditions = new ArrayList<TCondition>(_list91.size);
+          for (int _i92 = 0; _i92 < _list91.size; ++_i92)
           {
-            TCondition _elem85; // required
-            _elem85 = new TCondition();
-            _elem85.read(iprot);
-            struct.conditions.add(_elem85);
+            TCondition _elem93; // required
+            _elem93 = new TCondition();
+            _elem93.read(iprot);
+            struct.conditions.add(_elem93);
           }
         }
         struct.setConditionsIsSet(true);

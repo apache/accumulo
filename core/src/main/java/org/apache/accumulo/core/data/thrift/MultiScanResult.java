@@ -850,14 +850,14 @@ import org.slf4j.LoggerFactory;
           case 1: // RESULTS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list16 = iprot.readListBegin();
-                struct.results = new ArrayList<TKeyValue>(_list16.size);
-                for (int _i17 = 0; _i17 < _list16.size; ++_i17)
+                org.apache.thrift.protocol.TList _list24 = iprot.readListBegin();
+                struct.results = new ArrayList<TKeyValue>(_list24.size);
+                for (int _i25 = 0; _i25 < _list24.size; ++_i25)
                 {
-                  TKeyValue _elem18; // required
-                  _elem18 = new TKeyValue();
-                  _elem18.read(iprot);
-                  struct.results.add(_elem18);
+                  TKeyValue _elem26; // required
+                  _elem26 = new TKeyValue();
+                  _elem26.read(iprot);
+                  struct.results.add(_elem26);
                 }
                 iprot.readListEnd();
               }
@@ -869,27 +869,27 @@ import org.slf4j.LoggerFactory;
           case 2: // FAILURES
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map19 = iprot.readMapBegin();
-                struct.failures = new HashMap<TKeyExtent,List<TRange>>(2*_map19.size);
-                for (int _i20 = 0; _i20 < _map19.size; ++_i20)
+                org.apache.thrift.protocol.TMap _map27 = iprot.readMapBegin();
+                struct.failures = new HashMap<TKeyExtent,List<TRange>>(2*_map27.size);
+                for (int _i28 = 0; _i28 < _map27.size; ++_i28)
                 {
-                  TKeyExtent _key21; // required
-                  List<TRange> _val22; // required
-                  _key21 = new TKeyExtent();
-                  _key21.read(iprot);
+                  TKeyExtent _key29; // required
+                  List<TRange> _val30; // required
+                  _key29 = new TKeyExtent();
+                  _key29.read(iprot);
                   {
-                    org.apache.thrift.protocol.TList _list23 = iprot.readListBegin();
-                    _val22 = new ArrayList<TRange>(_list23.size);
-                    for (int _i24 = 0; _i24 < _list23.size; ++_i24)
+                    org.apache.thrift.protocol.TList _list31 = iprot.readListBegin();
+                    _val30 = new ArrayList<TRange>(_list31.size);
+                    for (int _i32 = 0; _i32 < _list31.size; ++_i32)
                     {
-                      TRange _elem25; // required
-                      _elem25 = new TRange();
-                      _elem25.read(iprot);
-                      _val22.add(_elem25);
+                      TRange _elem33; // required
+                      _elem33 = new TRange();
+                      _elem33.read(iprot);
+                      _val30.add(_elem33);
                     }
                     iprot.readListEnd();
                   }
-                  struct.failures.put(_key21, _val22);
+                  struct.failures.put(_key29, _val30);
                 }
                 iprot.readMapEnd();
               }
@@ -901,14 +901,14 @@ import org.slf4j.LoggerFactory;
           case 3: // FULL_SCANS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list26 = iprot.readListBegin();
-                struct.fullScans = new ArrayList<TKeyExtent>(_list26.size);
-                for (int _i27 = 0; _i27 < _list26.size; ++_i27)
+                org.apache.thrift.protocol.TList _list34 = iprot.readListBegin();
+                struct.fullScans = new ArrayList<TKeyExtent>(_list34.size);
+                for (int _i35 = 0; _i35 < _list34.size; ++_i35)
                 {
-                  TKeyExtent _elem28; // required
-                  _elem28 = new TKeyExtent();
-                  _elem28.read(iprot);
-                  struct.fullScans.add(_elem28);
+                  TKeyExtent _elem36; // required
+                  _elem36 = new TKeyExtent();
+                  _elem36.read(iprot);
+                  struct.fullScans.add(_elem36);
                 }
                 iprot.readListEnd();
               }
@@ -970,9 +970,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(RESULTS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.results.size()));
-          for (TKeyValue _iter29 : struct.results)
+          for (TKeyValue _iter37 : struct.results)
           {
-            _iter29.write(oprot);
+            _iter37.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -982,14 +982,14 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(FAILURES_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRUCT, org.apache.thrift.protocol.TType.LIST, struct.failures.size()));
-          for (Map.Entry<TKeyExtent, List<TRange>> _iter30 : struct.failures.entrySet())
+          for (Map.Entry<TKeyExtent, List<TRange>> _iter38 : struct.failures.entrySet())
           {
-            _iter30.getKey().write(oprot);
+            _iter38.getKey().write(oprot);
             {
-              oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, _iter30.getValue().size()));
-              for (TRange _iter31 : _iter30.getValue())
+              oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, _iter38.getValue().size()));
+              for (TRange _iter39 : _iter38.getValue())
               {
-                _iter31.write(oprot);
+                _iter39.write(oprot);
               }
               oprot.writeListEnd();
             }
@@ -1002,9 +1002,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(FULL_SCANS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.fullScans.size()));
-          for (TKeyExtent _iter32 : struct.fullScans)
+          for (TKeyExtent _iter40 : struct.fullScans)
           {
-            _iter32.write(oprot);
+            _iter40.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -1069,23 +1069,23 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetResults()) {
         {
           oprot.writeI32(struct.results.size());
-          for (TKeyValue _iter33 : struct.results)
+          for (TKeyValue _iter41 : struct.results)
           {
-            _iter33.write(oprot);
+            _iter41.write(oprot);
           }
         }
       }
       if (struct.isSetFailures()) {
         {
           oprot.writeI32(struct.failures.size());
-          for (Map.Entry<TKeyExtent, List<TRange>> _iter34 : struct.failures.entrySet())
+          for (Map.Entry<TKeyExtent, List<TRange>> _iter42 : struct.failures.entrySet())
           {
-            _iter34.getKey().write(oprot);
+            _iter42.getKey().write(oprot);
             {
-              oprot.writeI32(_iter34.getValue().size());
-              for (TRange _iter35 : _iter34.getValue())
+              oprot.writeI32(_iter42.getValue().size());
+              for (TRange _iter43 : _iter42.getValue())
               {
-                _iter35.write(oprot);
+                _iter43.write(oprot);
               }
             }
           }
@@ -1094,9 +1094,9 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetFullScans()) {
         {
           oprot.writeI32(struct.fullScans.size());
-          for (TKeyExtent _iter36 : struct.fullScans)
+          for (TKeyExtent _iter44 : struct.fullScans)
           {
-            _iter36.write(oprot);
+            _iter44.write(oprot);
           }
         }
       }
@@ -1120,54 +1120,54 @@ import org.slf4j.LoggerFactory;
       BitSet incoming = iprot.readBitSet(7);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TList _list37 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.results = new ArrayList<TKeyValue>(_list37.size);
-          for (int _i38 = 0; _i38 < _list37.size; ++_i38)
+          org.apache.thrift.protocol.TList _list45 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.results = new ArrayList<TKeyValue>(_list45.size);
+          for (int _i46 = 0; _i46 < _list45.size; ++_i46)
           {
-            TKeyValue _elem39; // required
-            _elem39 = new TKeyValue();
-            _elem39.read(iprot);
-            struct.results.add(_elem39);
+            TKeyValue _elem47; // required
+            _elem47 = new TKeyValue();
+            _elem47.read(iprot);
+            struct.results.add(_elem47);
           }
         }
         struct.setResultsIsSet(true);
       }
       if (incoming.get(1)) {
         {
-          org.apache.thrift.protocol.TMap _map40 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRUCT, org.apache.thrift.protocol.TType.LIST, iprot.readI32());
-          struct.failures = new HashMap<TKeyExtent,List<TRange>>(2*_map40.size);
-          for (int _i41 = 0; _i41 < _map40.size; ++_i41)
+          org.apache.thrift.protocol.TMap _map48 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRUCT, org.apache.thrift.protocol.TType.LIST, iprot.readI32());
+          struct.failures = new HashMap<TKeyExtent,List<TRange>>(2*_map48.size);
+          for (int _i49 = 0; _i49 < _map48.size; ++_i49)
           {
-            TKeyExtent _key42; // required
-            List<TRange> _val43; // required
-            _key42 = new TKeyExtent();
-            _key42.read(iprot);
+            TKeyExtent _key50; // required
+            List<TRange> _val51; // required
+            _key50 = new TKeyExtent();
+            _key50.read(iprot);
             {
-              org.apache.thrift.protocol.TList _list44 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-              _val43 = new ArrayList<TRange>(_list44.size);
-              for (int _i45 = 0; _i45 < _list44.size; ++_i45)
+              org.apache.thrift.protocol.TList _list52 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+              _val51 = new ArrayList<TRange>(_list52.size);
+              for (int _i53 = 0; _i53 < _list52.size; ++_i53)
               {
-                TRange _elem46; // required
-                _elem46 = new TRange();
-                _elem46.read(iprot);
-                _val43.add(_elem46);
+                TRange _elem54; // required
+                _elem54 = new TRange();
+                _elem54.read(iprot);
+                _val51.add(_elem54);
               }
             }
-            struct.failures.put(_key42, _val43);
+            struct.failures.put(_key50, _val51);
           }
         }
         struct.setFailuresIsSet(true);
       }
       if (incoming.get(2)) {
         {
-          org.apache.thrift.protocol.TList _list47 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.fullScans = new ArrayList<TKeyExtent>(_list47.size);
-          for (int _i48 = 0; _i48 < _list47.size; ++_i48)
+          org.apache.thrift.protocol.TList _list55 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.fullScans = new ArrayList<TKeyExtent>(_list55.size);
+          for (int _i56 = 0; _i56 < _list55.size; ++_i56)
           {
-            TKeyExtent _elem49; // required
-            _elem49 = new TKeyExtent();
-            _elem49.read(iprot);
-            struct.fullScans.add(_elem49);
+            TKeyExtent _elem57; // required
+            _elem57 = new TKeyExtent();
+            _elem57.read(iprot);
+            struct.fullScans.add(_elem57);
           }
         }
         struct.setFullScansIsSet(true);

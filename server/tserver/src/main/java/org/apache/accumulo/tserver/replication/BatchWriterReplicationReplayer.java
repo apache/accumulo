@@ -26,6 +26,7 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.replication.AccumuloReplicationReplayer;
 import org.apache.accumulo.core.replication.RemoteReplicationErrorCode;
 import org.apache.accumulo.core.replication.thrift.KeyValues;
@@ -68,6 +69,10 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
           } catch (TableNotFoundException e) {
             throw new RemoteReplicationException(RemoteReplicationErrorCode.TABLE_DOES_NOT_EXIST.ordinal(), "Table " + tableName + " does not exist");
           }
+        }
+
+        for (Mutation m : value.mutations) {
+          log.info("Mutation with for {} came from {}", new String(m.getRow()), m.getReplicationSources());
         }
 
         try {

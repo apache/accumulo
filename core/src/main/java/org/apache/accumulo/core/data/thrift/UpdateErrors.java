@@ -559,16 +559,16 @@ import org.slf4j.LoggerFactory;
           case 1: // FAILED_EXTENTS
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map50 = iprot.readMapBegin();
-                struct.failedExtents = new HashMap<TKeyExtent,Long>(2*_map50.size);
-                for (int _i51 = 0; _i51 < _map50.size; ++_i51)
+                org.apache.thrift.protocol.TMap _map58 = iprot.readMapBegin();
+                struct.failedExtents = new HashMap<TKeyExtent,Long>(2*_map58.size);
+                for (int _i59 = 0; _i59 < _map58.size; ++_i59)
                 {
-                  TKeyExtent _key52; // required
-                  long _val53; // required
-                  _key52 = new TKeyExtent();
-                  _key52.read(iprot);
-                  _val53 = iprot.readI64();
-                  struct.failedExtents.put(_key52, _val53);
+                  TKeyExtent _key60; // required
+                  long _val61; // required
+                  _key60 = new TKeyExtent();
+                  _key60.read(iprot);
+                  _val61 = iprot.readI64();
+                  struct.failedExtents.put(_key60, _val61);
                 }
                 iprot.readMapEnd();
               }
@@ -580,14 +580,14 @@ import org.slf4j.LoggerFactory;
           case 2: // VIOLATION_SUMMARIES
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list54 = iprot.readListBegin();
-                struct.violationSummaries = new ArrayList<TConstraintViolationSummary>(_list54.size);
-                for (int _i55 = 0; _i55 < _list54.size; ++_i55)
+                org.apache.thrift.protocol.TList _list62 = iprot.readListBegin();
+                struct.violationSummaries = new ArrayList<TConstraintViolationSummary>(_list62.size);
+                for (int _i63 = 0; _i63 < _list62.size; ++_i63)
                 {
-                  TConstraintViolationSummary _elem56; // required
-                  _elem56 = new TConstraintViolationSummary();
-                  _elem56.read(iprot);
-                  struct.violationSummaries.add(_elem56);
+                  TConstraintViolationSummary _elem64; // required
+                  _elem64 = new TConstraintViolationSummary();
+                  _elem64.read(iprot);
+                  struct.violationSummaries.add(_elem64);
                 }
                 iprot.readListEnd();
               }
@@ -599,16 +599,16 @@ import org.slf4j.LoggerFactory;
           case 3: // AUTHORIZATION_FAILURES
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map57 = iprot.readMapBegin();
-                struct.authorizationFailures = new HashMap<TKeyExtent,org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode>(2*_map57.size);
-                for (int _i58 = 0; _i58 < _map57.size; ++_i58)
+                org.apache.thrift.protocol.TMap _map65 = iprot.readMapBegin();
+                struct.authorizationFailures = new HashMap<TKeyExtent,org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode>(2*_map65.size);
+                for (int _i66 = 0; _i66 < _map65.size; ++_i66)
                 {
-                  TKeyExtent _key59; // required
-                  org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode _val60; // required
-                  _key59 = new TKeyExtent();
-                  _key59.read(iprot);
-                  _val60 = org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode.findByValue(iprot.readI32());
-                  struct.authorizationFailures.put(_key59, _val60);
+                  TKeyExtent _key67; // required
+                  org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode _val68; // required
+                  _key67 = new TKeyExtent();
+                  _key67.read(iprot);
+                  _val68 = org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode.findByValue(iprot.readI32());
+                  struct.authorizationFailures.put(_key67, _val68);
                 }
                 iprot.readMapEnd();
               }
@@ -636,10 +636,10 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(FAILED_EXTENTS_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRUCT, org.apache.thrift.protocol.TType.I64, struct.failedExtents.size()));
-          for (Map.Entry<TKeyExtent, Long> _iter61 : struct.failedExtents.entrySet())
+          for (Map.Entry<TKeyExtent, Long> _iter69 : struct.failedExtents.entrySet())
           {
-            _iter61.getKey().write(oprot);
-            oprot.writeI64(_iter61.getValue());
+            _iter69.getKey().write(oprot);
+            oprot.writeI64(_iter69.getValue());
           }
           oprot.writeMapEnd();
         }
@@ -649,9 +649,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(VIOLATION_SUMMARIES_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.violationSummaries.size()));
-          for (TConstraintViolationSummary _iter62 : struct.violationSummaries)
+          for (TConstraintViolationSummary _iter70 : struct.violationSummaries)
           {
-            _iter62.write(oprot);
+            _iter70.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -661,10 +661,10 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(AUTHORIZATION_FAILURES_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRUCT, org.apache.thrift.protocol.TType.I32, struct.authorizationFailures.size()));
-          for (Map.Entry<TKeyExtent, org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode> _iter63 : struct.authorizationFailures.entrySet())
+          for (Map.Entry<TKeyExtent, org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode> _iter71 : struct.authorizationFailures.entrySet())
           {
-            _iter63.getKey().write(oprot);
-            oprot.writeI32(_iter63.getValue().getValue());
+            _iter71.getKey().write(oprot);
+            oprot.writeI32(_iter71.getValue().getValue());
           }
           oprot.writeMapEnd();
         }
@@ -701,29 +701,29 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetFailedExtents()) {
         {
           oprot.writeI32(struct.failedExtents.size());
-          for (Map.Entry<TKeyExtent, Long> _iter64 : struct.failedExtents.entrySet())
+          for (Map.Entry<TKeyExtent, Long> _iter72 : struct.failedExtents.entrySet())
           {
-            _iter64.getKey().write(oprot);
-            oprot.writeI64(_iter64.getValue());
+            _iter72.getKey().write(oprot);
+            oprot.writeI64(_iter72.getValue());
           }
         }
       }
       if (struct.isSetViolationSummaries()) {
         {
           oprot.writeI32(struct.violationSummaries.size());
-          for (TConstraintViolationSummary _iter65 : struct.violationSummaries)
+          for (TConstraintViolationSummary _iter73 : struct.violationSummaries)
           {
-            _iter65.write(oprot);
+            _iter73.write(oprot);
           }
         }
       }
       if (struct.isSetAuthorizationFailures()) {
         {
           oprot.writeI32(struct.authorizationFailures.size());
-          for (Map.Entry<TKeyExtent, org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode> _iter66 : struct.authorizationFailures.entrySet())
+          for (Map.Entry<TKeyExtent, org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode> _iter74 : struct.authorizationFailures.entrySet())
           {
-            _iter66.getKey().write(oprot);
-            oprot.writeI32(_iter66.getValue().getValue());
+            _iter74.getKey().write(oprot);
+            oprot.writeI32(_iter74.getValue().getValue());
           }
         }
       }
@@ -735,46 +735,46 @@ import org.slf4j.LoggerFactory;
       BitSet incoming = iprot.readBitSet(3);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TMap _map67 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRUCT, org.apache.thrift.protocol.TType.I64, iprot.readI32());
-          struct.failedExtents = new HashMap<TKeyExtent,Long>(2*_map67.size);
-          for (int _i68 = 0; _i68 < _map67.size; ++_i68)
+          org.apache.thrift.protocol.TMap _map75 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRUCT, org.apache.thrift.protocol.TType.I64, iprot.readI32());
+          struct.failedExtents = new HashMap<TKeyExtent,Long>(2*_map75.size);
+          for (int _i76 = 0; _i76 < _map75.size; ++_i76)
           {
-            TKeyExtent _key69; // required
-            long _val70; // required
-            _key69 = new TKeyExtent();
-            _key69.read(iprot);
-            _val70 = iprot.readI64();
-            struct.failedExtents.put(_key69, _val70);
+            TKeyExtent _key77; // required
+            long _val78; // required
+            _key77 = new TKeyExtent();
+            _key77.read(iprot);
+            _val78 = iprot.readI64();
+            struct.failedExtents.put(_key77, _val78);
           }
         }
         struct.setFailedExtentsIsSet(true);
       }
       if (incoming.get(1)) {
         {
-          org.apache.thrift.protocol.TList _list71 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.violationSummaries = new ArrayList<TConstraintViolationSummary>(_list71.size);
-          for (int _i72 = 0; _i72 < _list71.size; ++_i72)
+          org.apache.thrift.protocol.TList _list79 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.violationSummaries = new ArrayList<TConstraintViolationSummary>(_list79.size);
+          for (int _i80 = 0; _i80 < _list79.size; ++_i80)
           {
-            TConstraintViolationSummary _elem73; // required
-            _elem73 = new TConstraintViolationSummary();
-            _elem73.read(iprot);
-            struct.violationSummaries.add(_elem73);
+            TConstraintViolationSummary _elem81; // required
+            _elem81 = new TConstraintViolationSummary();
+            _elem81.read(iprot);
+            struct.violationSummaries.add(_elem81);
           }
         }
         struct.setViolationSummariesIsSet(true);
       }
       if (incoming.get(2)) {
         {
-          org.apache.thrift.protocol.TMap _map74 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRUCT, org.apache.thrift.protocol.TType.I32, iprot.readI32());
-          struct.authorizationFailures = new HashMap<TKeyExtent,org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode>(2*_map74.size);
-          for (int _i75 = 0; _i75 < _map74.size; ++_i75)
+          org.apache.thrift.protocol.TMap _map82 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRUCT, org.apache.thrift.protocol.TType.I32, iprot.readI32());
+          struct.authorizationFailures = new HashMap<TKeyExtent,org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode>(2*_map82.size);
+          for (int _i83 = 0; _i83 < _map82.size; ++_i83)
           {
-            TKeyExtent _key76; // required
-            org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode _val77; // required
-            _key76 = new TKeyExtent();
-            _key76.read(iprot);
-            _val77 = org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode.findByValue(iprot.readI32());
-            struct.authorizationFailures.put(_key76, _val77);
+            TKeyExtent _key84; // required
+            org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode _val85; // required
+            _key84 = new TKeyExtent();
+            _key84.read(iprot);
+            _val85 = org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode.findByValue(iprot.readI32());
+            struct.authorizationFailures.put(_key84, _val85);
           }
         }
         struct.setAuthorizationFailuresIsSet(true);

@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -37,6 +36,7 @@ import org.apache.accumulo.core.client.impl.ServerConfigurationUtil;
 import org.apache.accumulo.core.client.replication.ReplicaSystem;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
@@ -54,13 +54,13 @@ import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.DfsLogger.DFSLoggerInputStreams;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
 
 /**
  * 
@@ -68,10 +68,42 @@ import com.google.common.collect.Maps;
 public class AccumuloReplicaSystem implements ReplicaSystem {
   private static final Logger log = LoggerFactory.getLogger(AccumuloReplicaSystem.class);
   private static final String RFILE_SUFFIX = "." + RFile.EXTENSION;
-  
+
   private String instanceName, zookeepers;
   private AccumuloConfiguration conf;
   private VolumeManager fs;
+
+  protected String getInstanceName() {
+    return instanceName;
+  }
+
+  protected void setInstanceName(String instanceName) {
+    this.instanceName = instanceName;
+  }
+
+  protected String getZookeepers() {
+    return zookeepers;
+  }
+
+  protected void setZookeepers(String zookeepers) {
+    this.zookeepers = zookeepers;
+  }
+
+  protected AccumuloConfiguration getConf() {
+    return conf;
+  }
+
+  protected void setConf(AccumuloConfiguration conf) {
+    this.conf = conf;
+  }
+
+  protected VolumeManager getFs() {
+    return fs;
+  }
+
+  protected void setFs(VolumeManager fs) {
+    this.fs = fs;
+  }
 
   /**
    * Generate the configuration string for this ReplicaSystem
@@ -107,7 +139,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   public Status replicate(final Path p, final Status status, final ReplicationTarget target) {
     Instance localInstance = HdfsZooInstance.getInstance();
     AccumuloConfiguration localConf = ServerConfigurationUtil.getConfiguration(localInstance);
-    
+
     Instance peerInstance = getPeerInstance(target);
     // Remote identifier is an integer (table id) in this case.
     final int remoteTableId = Integer.parseInt(target.getRemoteIdentifier());
@@ -119,55 +151,78 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       try {
         // Ask the master on the remote what TServer we should talk with to replicate the data
         peerTserver = ReplicationClient.executeCoordinatorWithReturn(peerInstance, new ClientExecReturn<String,ReplicationCoordinator.Client>() {
-  
+
           @Override
           public String execute(ReplicationCoordinator.Client client) throws Exception {
             return client.getServicerAddress(remoteTableId);
           }
-          
+
         });
       } catch (AccumuloException | AccumuloSecurityException e) {
         // No progress is made
         log.error("Could not connect to master at {}, cannot proceed with replication. Will retry", target, e);
         continue;
       }
-  
+
       if (null == peerTserver) {
         // Something went wrong, and we didn't get a valid tserver from the remote for some reason
         log.warn("Did not receive tserver from master at {}, cannot proceed with replication. Will retry.", target);
         continue;
       }
-  
+
       // We have a tserver on the remote -- send the data its way.
-      Long entriesReplicated;
-      //TODO should chunk up the given file into some configurable sizes instead of just sending the entire file all at once
-      //     configuration should probably just be size based.
+      ReplicationStats replResult;
+      // TODO should chunk up the given file into some configurable sizes instead of just sending the entire file all at once
+      // configuration should probably just be size based.
       final long sizeLimit = conf.getMemoryInBytes(Property.REPLICATION_MAX_UNIT_SIZE);
       try {
-        entriesReplicated = ReplicationClient.executeServicerWithReturn(peerInstance, peerTserver, new ClientExecReturn<Long,ReplicationServicer.Client>() {
-          @Override
-          public Long execute(Client client) throws Exception {
-            // RFiles have an extension, call everything else a WAL
-            if (p.getName().endsWith(RFILE_SUFFIX)) {
-              KeyValues kvs = getKeyValues(target, p, status, sizeLimit);
-              if (0 < kvs.getKeyValuesSize()) {
-                return client.replicateKeyValues(remoteTableId, kvs);
-              }
-            } else {
-              WalEdits edits = getWalEdits(target, p, status, sizeLimit);
-              if (0 < edits.getEditsSize()) {
-                return client.replicateLog(remoteTableId, edits);
-              }
-            }
+        replResult = ReplicationClient.executeServicerWithReturn(peerInstance, peerTserver,
+            new ClientExecReturn<ReplicationStats,ReplicationServicer.Client>() {
+              @Override
+              public ReplicationStats execute(Client client) throws Exception {
+                // RFiles have an extension, call everything else a WAL
+                if (p.getName().endsWith(RFILE_SUFFIX)) {
+                  RFileReplication kvs = getKeyValues(target, p, status, sizeLimit);
+                  if (0 < kvs.keyValues.getKeyValuesSize()) {
+                    long entriesReplicated = client.replicateKeyValues(remoteTableId, kvs.keyValues);
+                    if (entriesReplicated != kvs.keyValues.getKeyValuesSize()) {
+                      log.warn("Sent {} KeyValue entries for replication but only {} were reported as replicated", kvs.keyValues.getKeyValuesSize(),
+                          entriesReplicated);
+                    }
 
-            return 0l;
-          }
-        });
+                    // Not as important to track as WALs because we don't skip any KVs in an RFile
+                    return kvs;
+                  }
+                } else {
+                  WalReplication edits = getWalEdits(target, p, status, sizeLimit);
+                  if (0 < edits.walEdits.getEditsSize()) {
+                    long entriesReplicated = client.replicateLog(remoteTableId, edits.walEdits);
+                    if (entriesReplicated != edits.walEdits.getEditsSize()) {
+                      log.warn("Sent {} WAL entries for replication but only {} were reported as replicated", edits.walEdits.getEditsSize(), entriesReplicated);
+                    }
 
-        log.debug("Replicated {} entries from {} to {} which is a member of the peer '{}'", entriesReplicated, p, peerTserver, peerInstance.getInstanceName());
+                    // We don't have to replicate every LogEvent in the file (only Mutation LogEvents), but we
+                    // want to track progress in the file relative to all LogEvents (to avoid duplicative processing/replication)
+                    return edits;
+                  }
+                }
+
+                // No data sent (bytes nor records) and no progress made
+                return new ReplicationStats(0l, 0l, 0l);
+              }
+            });
+
+        log.debug("Replicated {} entries from {} to {} which is a member of the peer '{}'", replResult.sizeInRecords, p, peerTserver,
+            peerInstance.getInstanceName());
+
+        // Catch the overflow
+        long newBegin = status.getBegin() + replResult.entriesConsumed;
+        if (newBegin < 0) {
+          newBegin = Long.MAX_VALUE;
+        }
 
         // Update the begin to account for what we replicated
-        Status updatedStatus = Status.newBuilder(status).setBegin(status.getBegin() + entriesReplicated).build();
+        Status updatedStatus = Status.newBuilder(status).setBegin(newBegin).build();
 
         return updatedStatus;
       } catch (TTransportException | AccumuloException | AccumuloSecurityException e) {
@@ -184,12 +239,12 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     return new ZooKeeperInstance(instanceName, zookeepers);
   }
 
-  protected KeyValues getKeyValues(ReplicationTarget target, Path p, Status status, long sizeLimit) {
+  protected RFileReplication getKeyValues(ReplicationTarget target, Path p, Status status, long sizeLimit) {
     // TODO Implement me
     throw new UnsupportedOperationException();
   }
 
-  protected WalEdits getWalEdits(ReplicationTarget target, Path p, Status status, long sizeLimit) throws IOException {
+  protected WalReplication getWalEdits(ReplicationTarget target, Path p, Status status, long sizeLimit) throws IOException {
     DFSLoggerInputStreams streams = DfsLogger.readHeaderAndReturnStream(fs, p, conf);
     DataInputStream wal = streams.getDecryptingInputStream();
     LogFileKey key = new LogFileKey();
@@ -202,25 +257,27 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         value.readFields(wal);
       } catch (EOFException e) {
         log.warn("Unexpectedly reached the end of file. Nothing more to replicate.");
-        return null;
+        return new WalReplication(new WalEdits(), 0, Long.MAX_VALUE);
       }
     }
 
-    Entry<Long,WalEdits> pair = getEdits(wal, sizeLimit, target);
+    WalReplication repl = getEdits(wal, sizeLimit, target);
 
-    log.debug("Binned {} bytes of WAL entries for replication to peer '{}'", pair.getKey(), p);
+    log.debug("Read {} WAL entries and retained {} bytes of WAL entries for replication to peer '{}'", (Long.MAX_VALUE == repl.entriesConsumed) ? "all"
+        : repl.entriesConsumed, repl.sizeInBytes, p);
 
-    return pair.getValue();
+    return repl;
   }
 
-  protected Entry<Long,WalEdits> getEdits(DataInputStream wal, long sizeLimit, ReplicationTarget target) throws IOException {
+  protected WalReplication getEdits(DataInputStream wal, long sizeLimit, ReplicationTarget target) throws IOException {
     WalEdits edits = new WalEdits();
     edits.edits = new ArrayList<ByteBuffer>();
     long size = 0l;
+    long entriesConsumed = 0l;
     LogFileKey key = new LogFileKey();
     LogFileValue value = new LogFileValue();
 
-    // TODO do we need to track *all* possible tids when the wal is not sorted?
+    // Any tid for our table needs to be tracked
     Set<Integer> desiredTids = new HashSet<>();
 
     while (size < sizeLimit) {
@@ -229,8 +286,11 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         value.readFields(wal);
       } catch (EOFException e) {
         log.debug("Caught EOFException, no more data to replicate");
+        entriesConsumed = Long.MAX_VALUE;
         break;
       }
+
+      entriesConsumed++;
 
       switch (key.event) {
         case DEFINE_TABLET:
@@ -244,10 +304,13 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
           if (desiredTids.contains(key.tid)) {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             DataOutputStream out = new DataOutputStream(baos);
-  
+
             key.write(out);
-            value.write(out);
-  
+
+            // Only write out the mutations that don't have the given ReplicationTarget
+            // as a replicate source (this prevents infinite replication loops: a->b, b->a, repeat)
+            writeValueAvoidingReplicationCycles(out, value, target);
+
             out.flush();
             byte[] data = baos.toByteArray();
             size += data.length;
@@ -260,6 +323,90 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       }
     }
 
-    return Maps.immutableEntry(size, edits);
+    return new WalReplication(edits, size, entriesConsumed);
+  }
+
+  /**
+   * Wrapper around {@link LogFileValue#write(java.io.DataOutput)} which does not serialize {@link Mutation}s that do not need to be replicate to the given
+   * {@link ReplicationTarget}
+   * 
+   * @throws IOException
+   */
+  protected void writeValueAvoidingReplicationCycles(DataOutputStream out, LogFileValue value, ReplicationTarget target) throws IOException {
+    int mutationsToSend = 0;
+    for (Mutation m : value.mutations) {
+      log.info("Replication sources {} for mutation with row {}", m.getReplicationSources(), new String(m.getRow()));
+      if (!m.getReplicationSources().contains(target.getPeerName())) {
+        mutationsToSend++;
+      }
+    }
+
+    log.debug("Removing {} mutations from WAL entry as they have already been replicated to {}", value.mutations.size() - mutationsToSend, target.getPeerName());
+
+    out.writeInt(mutationsToSend);
+    for (Mutation m : value.mutations) {
+      // If we haven't yet replicated to this peer
+      if (!m.getReplicationSources().contains(target.getPeerName())) {
+        // Add our name, and send it
+        String name = conf.get(Property.REPLICATION_NAME);
+        if (StringUtils.isBlank(name)) {
+          throw new IllegalArgumentException("Local system has no replication name configured");
+        } else {
+          log.info("Adding replication source {} to {}", name, new String(m.getRow()));
+        }
+        m.addReplicationSource(name);
+        m.write(out);
+      }
+    }
+  }
+
+  public static class ReplicationStats {
+    /**
+     * The size, in bytes, of the data sent
+     */
+    public long sizeInBytes;
+
+    /**
+     * The number of records sent
+     */
+    public long sizeInRecords;
+
+    /**
+     * The number of entries consumed from the log (to increment {@link Status}'s begin)
+     */
+    public long entriesConsumed;
+
+    public ReplicationStats(long sizeInBytes, long sizeInRecords, long entriesConsumed) {
+      this.sizeInBytes = sizeInBytes;
+      this.sizeInRecords = sizeInRecords;
+      this.entriesConsumed = entriesConsumed;
+    }
+  }
+
+  public static class RFileReplication extends ReplicationStats {
+    /**
+     * The data to send
+     */
+    public KeyValues keyValues;
+
+    public RFileReplication(KeyValues kvs, long size) {
+      super(size, kvs.keyValues.size(), kvs.keyValues.size());
+      this.keyValues = kvs;
+    }
+  }
+
+  /**
+   * A "struct" to avoid a nested Entry. Contains the resultant information from collecting data for replication
+   */
+  public static class WalReplication extends ReplicationStats {
+    /**
+     * The data to send over the wire
+     */
+    public WalEdits walEdits;
+
+    public WalReplication(WalEdits edits, long size, long entriesConsumed) {
+      super(size, edits.getEditsSize(), entriesConsumed);
+      this.walEdits = edits;
+    }
   }
 }

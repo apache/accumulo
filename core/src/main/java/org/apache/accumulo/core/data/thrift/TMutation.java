@@ -53,6 +53,7 @@ import org.slf4j.LoggerFactory;
   private static final org.apache.thrift.protocol.TField DATA_FIELD_DESC = new org.apache.thrift.protocol.TField("data", org.apache.thrift.protocol.TType.STRING, (short)2);
   private static final org.apache.thrift.protocol.TField VALUES_FIELD_DESC = new org.apache.thrift.protocol.TField("values", org.apache.thrift.protocol.TType.LIST, (short)3);
   private static final org.apache.thrift.protocol.TField ENTRIES_FIELD_DESC = new org.apache.thrift.protocol.TField("entries", org.apache.thrift.protocol.TType.I32, (short)4);
+  private static final org.apache.thrift.protocol.TField SOURCES_FIELD_DESC = new org.apache.thrift.protocol.TField("sources", org.apache.thrift.protocol.TType.LIST, (short)5);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
@@ -64,13 +65,15 @@ import org.slf4j.LoggerFactory;
   public ByteBuffer data; // required
   public List<ByteBuffer> values; // required
   public int entries; // required
+  public List<String> sources; // optional
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     ROW((short)1, "row"),
     DATA((short)2, "data"),
     VALUES((short)3, "values"),
-    ENTRIES((short)4, "entries");
+    ENTRIES((short)4, "entries"),
+    SOURCES((short)5, "sources");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -93,6 +96,8 @@ import org.slf4j.LoggerFactory;
           return VALUES;
         case 4: // ENTRIES
           return ENTRIES;
+        case 5: // SOURCES
+          return SOURCES;
         default:
           return null;
       }
@@ -135,6 +140,7 @@ import org.slf4j.LoggerFactory;
   // isset id assignments
   private static final int __ENTRIES_ISSET_ID = 0;
   private byte __isset_bitfield = 0;
+  private _Fields optionals[] = {_Fields.SOURCES};
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
@@ -147,6 +153,9 @@ import org.slf4j.LoggerFactory;
             new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING            , true))));
     tmpMap.put(_Fields.ENTRIES, new org.apache.thrift.meta_data.FieldMetaData("entries", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
+    tmpMap.put(_Fields.SOURCES, new org.apache.thrift.meta_data.FieldMetaData("sources", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
+            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TMutation.class, metaDataMap);
   }
@@ -191,6 +200,13 @@ import org.slf4j.LoggerFactory;
       this.values = __this__values;
     }
     this.entries = other.entries;
+    if (other.isSetSources()) {
+      List<String> __this__sources = new ArrayList<String>();
+      for (String other_element : other.sources) {
+        __this__sources.add(other_element);
+      }
+      this.sources = __this__sources;
+    }
   }
 
   public TMutation deepCopy() {
@@ -204,6 +220,7 @@ import org.slf4j.LoggerFactory;
     this.values = null;
     setEntriesIsSet(false);
     this.entries = 0;
+    this.sources = null;
   }
 
   public byte[] getRow() {
@@ -336,6 +353,45 @@ import org.slf4j.LoggerFactory;
     __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __ENTRIES_ISSET_ID, value);
   }
 
+  public int getSourcesSize() {
+    return (this.sources == null) ? 0 : this.sources.size();
+  }
+
+  public java.util.Iterator<String> getSourcesIterator() {
+    return (this.sources == null) ? null : this.sources.iterator();
+  }
+
+  public void addToSources(String elem) {
+    if (this.sources == null) {
+      this.sources = new ArrayList<String>();
+    }
+    this.sources.add(elem);
+  }
+
+  public List<String> getSources() {
+    return this.sources;
+  }
+
+  public TMutation setSources(List<String> sources) {
+    this.sources = sources;
+    return this;
+  }
+
+  public void unsetSources() {
+    this.sources = null;
+  }
+
+  /** Returns true if field sources is set (has been assigned a value) and false otherwise */
+  public boolean isSetSources() {
+    return this.sources != null;
+  }
+
+  public void setSourcesIsSet(boolean value) {
+    if (!value) {
+      this.sources = null;
+    }
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case ROW:
@@ -370,6 +426,14 @@ import org.slf4j.LoggerFactory;
       }
       break;
 
+    case SOURCES:
+      if (value == null) {
+        unsetSources();
+      } else {
+        setSources((List<String>)value);
+      }
+      break;
+
     }
   }
 
@@ -386,6 +450,9 @@ import org.slf4j.LoggerFactory;
 
     case ENTRIES:
       return Integer.valueOf(getEntries());
+
+    case SOURCES:
+      return getSources();
 
     }
     throw new IllegalStateException();
@@ -406,6 +473,8 @@ import org.slf4j.LoggerFactory;
       return isSetValues();
     case ENTRIES:
       return isSetEntries();
+    case SOURCES:
+      return isSetSources();
     }
     throw new IllegalStateException();
   }
@@ -456,6 +525,15 @@ import org.slf4j.LoggerFactory;
       if (!(this_present_entries && that_present_entries))
         return false;
       if (this.entries != that.entries)
+        return false;
+    }
+
+    boolean this_present_sources = true && this.isSetSources();
+    boolean that_present_sources = true && that.isSetSources();
+    if (this_present_sources || that_present_sources) {
+      if (!(this_present_sources && that_present_sources))
+        return false;
+      if (!this.sources.equals(that.sources))
         return false;
     }
 
@@ -515,6 +593,16 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
     }
+    lastComparison = Boolean.valueOf(isSetSources()).compareTo(typedOther.isSetSources());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetSources()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sources, typedOther.sources);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -562,6 +650,16 @@ import org.slf4j.LoggerFactory;
     sb.append("entries:");
     sb.append(this.entries);
     first = false;
+    if (isSetSources()) {
+      if (!first) sb.append(", ");
+      sb.append("sources:");
+      if (this.sources == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.sources);
+      }
+      first = false;
+    }
     sb.append(")");
     return sb.toString();
   }
@@ -649,6 +747,24 @@ import org.slf4j.LoggerFactory;
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
+          case 5: // SOURCES
+            if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
+              {
+                org.apache.thrift.protocol.TList _list3 = iprot.readListBegin();
+                struct.sources = new ArrayList<String>(_list3.size);
+                for (int _i4 = 0; _i4 < _list3.size; ++_i4)
+                {
+                  String _elem5; // required
+                  _elem5 = iprot.readString();
+                  struct.sources.add(_elem5);
+                }
+                iprot.readListEnd();
+              }
+              struct.setSourcesIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -678,9 +794,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(VALUES_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.values.size()));
-          for (ByteBuffer _iter3 : struct.values)
+          for (ByteBuffer _iter6 : struct.values)
           {
-            oprot.writeBinary(_iter3);
+            oprot.writeBinary(_iter6);
           }
           oprot.writeListEnd();
         }
@@ -689,6 +805,20 @@ import org.slf4j.LoggerFactory;
       oprot.writeFieldBegin(ENTRIES_FIELD_DESC);
       oprot.writeI32(struct.entries);
       oprot.writeFieldEnd();
+      if (struct.sources != null) {
+        if (struct.isSetSources()) {
+          oprot.writeFieldBegin(SOURCES_FIELD_DESC);
+          {
+            oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.sources.size()));
+            for (String _iter7 : struct.sources)
+            {
+              oprot.writeString(_iter7);
+            }
+            oprot.writeListEnd();
+          }
+          oprot.writeFieldEnd();
+        }
+      }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
@@ -719,7 +849,10 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetEntries()) {
         optionals.set(3);
       }
-      oprot.writeBitSet(optionals, 4);
+      if (struct.isSetSources()) {
+        optionals.set(4);
+      }
+      oprot.writeBitSet(optionals, 5);
       if (struct.isSetRow()) {
         oprot.writeBinary(struct.row);
       }
@@ -729,21 +862,30 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetValues()) {
         {
           oprot.writeI32(struct.values.size());
-          for (ByteBuffer _iter4 : struct.values)
+          for (ByteBuffer _iter8 : struct.values)
           {
-            oprot.writeBinary(_iter4);
+            oprot.writeBinary(_iter8);
           }
         }
       }
       if (struct.isSetEntries()) {
         oprot.writeI32(struct.entries);
       }
+      if (struct.isSetSources()) {
+        {
+          oprot.writeI32(struct.sources.size());
+          for (String _iter9 : struct.sources)
+          {
+            oprot.writeString(_iter9);
+          }
+        }
+      }
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, TMutation struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
-      BitSet incoming = iprot.readBitSet(4);
+      BitSet incoming = iprot.readBitSet(5);
       if (incoming.get(0)) {
         struct.row = iprot.readBinary();
         struct.setRowIsSet(true);
@@ -754,13 +896,13 @@ import org.slf4j.LoggerFactory;
       }
       if (incoming.get(2)) {
         {
-          org.apache.thrift.protocol.TList _list5 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-          struct.values = new ArrayList<ByteBuffer>(_list5.size);
-          for (int _i6 = 0; _i6 < _list5.size; ++_i6)
+          org.apache.thrift.protocol.TList _list10 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+          struct.values = new ArrayList<ByteBuffer>(_list10.size);
+          for (int _i11 = 0; _i11 < _list10.size; ++_i11)
           {
-            ByteBuffer _elem7; // required
-            _elem7 = iprot.readBinary();
-            struct.values.add(_elem7);
+            ByteBuffer _elem12; // required
+            _elem12 = iprot.readBinary();
+            struct.values.add(_elem12);
           }
         }
         struct.setValuesIsSet(true);
@@ -768,6 +910,19 @@ import org.slf4j.LoggerFactory;
       if (incoming.get(3)) {
         struct.entries = iprot.readI32();
         struct.setEntriesIsSet(true);
+      }
+      if (incoming.get(4)) {
+        {
+          org.apache.thrift.protocol.TList _list13 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+          struct.sources = new ArrayList<String>(_list13.size);
+          for (int _i14 = 0; _i14 < _list13.size; ++_i14)
+          {
+            String _elem15; // required
+            _elem15 = iprot.readString();
+            struct.sources.add(_elem15);
+          }
+        }
+        struct.setSourcesIsSet(true);
       }
     }
   }
