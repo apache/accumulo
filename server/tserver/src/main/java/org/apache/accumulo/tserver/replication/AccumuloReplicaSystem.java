@@ -256,12 +256,12 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         key.readFields(wal);
         value.readFields(wal);
       } catch (EOFException e) {
-        log.warn("Unexpectedly reached the end of file. Nothing more to replicate.");
-        return new WalReplication(new WalEdits(), 0, Long.MAX_VALUE);
+        log.warn("Unexpectedly reached the end of file.");
+        return new WalReplication(new WalEdits(), 0, 0);
       }
     }
 
-    WalReplication repl = getEdits(wal, sizeLimit, target);
+    WalReplication repl = getEdits(wal, sizeLimit, target, status, p);
 
     log.debug("Read {} WAL entries and retained {} bytes of WAL entries for replication to peer '{}'", (Long.MAX_VALUE == repl.entriesConsumed) ? "all"
         : repl.entriesConsumed, repl.sizeInBytes, p);
@@ -269,7 +269,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     return repl;
   }
 
-  protected WalReplication getEdits(DataInputStream wal, long sizeLimit, ReplicationTarget target) throws IOException {
+  protected WalReplication getEdits(DataInputStream wal, long sizeLimit, ReplicationTarget target, Status status, Path p) throws IOException {
     WalEdits edits = new WalEdits();
     edits.edits = new ArrayList<ByteBuffer>();
     long size = 0l;
@@ -285,8 +285,11 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         key.readFields(wal);
         value.readFields(wal);
       } catch (EOFException e) {
-        log.debug("Caught EOFException, no more data to replicate");
-        entriesConsumed = Long.MAX_VALUE;
+        log.debug("Caught EOFException reading {}", p);
+        if (status.getInfiniteEnd() && status.getClosed()) {
+          log.debug("{} is closed and has unknown length, assuming entire file has been consumed", p);
+          entriesConsumed = Long.MAX_VALUE;
+        }
         break;
       }
 
@@ -335,7 +338,6 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   protected void writeValueAvoidingReplicationCycles(DataOutputStream out, LogFileValue value, ReplicationTarget target) throws IOException {
     int mutationsToSend = 0;
     for (Mutation m : value.mutations) {
-      log.info("Replication sources {} for mutation with row {}", m.getReplicationSources(), new String(m.getRow()));
       if (!m.getReplicationSources().contains(target.getPeerName())) {
         mutationsToSend++;
       }
@@ -351,10 +353,10 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         String name = conf.get(Property.REPLICATION_NAME);
         if (StringUtils.isBlank(name)) {
           throw new IllegalArgumentException("Local system has no replication name configured");
-        } else {
-          log.info("Adding replication source {} to {}", name, new String(m.getRow()));
         }
+
         m.addReplicationSource(name);
+
         m.write(out);
       }
     }
