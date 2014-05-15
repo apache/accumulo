@@ -26,7 +26,7 @@ import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.commons.codec.binary.Base64;
+import org.apache.accumulo.core.util.Base64;
 
 /**
  * A wrapper for internal use. This class carries the instance, principal, and authentication token for use in the public API, in a non-serialized form. This is

@@ -37,10 +37,10 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.examples.simple.mapreduce.RowHash;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.hadoop.io.Text;
-import org.codehaus.plexus.util.Base64;
 import org.junit.Test;
 
 public class MapReduceIT extends ConfigurableMacIT {

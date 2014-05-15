@@ -105,7 +105,7 @@ if ($minKill > $maxKill){
 while(1){
 
   $numToKill = int(rand($maxKill - $minKill + 1)) + $minKill;
-  %killed = {};
+  %killed = ();
   $server = "";
 
   for($i = 0; $i < $numToKill; $i++){
@@ -124,11 +124,15 @@ while(1){
 
   $nextsleep2 = int(rand($sleep2max - $sleep2)) + $sleep2;
   sleep($nextsleep2 * 60);
-  $t = strftime "%Y%m%d %H:%M:%S", localtime;
 
-  print STDERR "$t Starting datanode on $server\n";
-  # We can just start as we're the HDFS user
-  system("ssh $server '$HADOOP_PREFIX/sbin/hadoop-daemon.sh start datanode'");
+  foreach $restart (keys %killed) {
+
+    $t = strftime "%Y%m%d %H:%M:%S", localtime;
+
+    print STDERR "$t Starting datanode on $restart\n";
+    # We can just start as we're the HDFS user
+    system("ssh $restart '$HADOOP_PREFIX/sbin/hadoop-daemon.sh start datanode'");
+  }
 
   $nextsleep1 = int(rand($sleep1max - $sleep1)) + $sleep1;
   sleep($nextsleep1 * 60);

@@ -31,8 +31,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
@@ -391,7 +391,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
   protected static String encodeColumns(Text[] columns) {
     StringBuilder sb = new StringBuilder();
     for (int i = 0; i < columns.length; i++) {
-      sb.append(new String(Base64.encodeBase64(TextUtil.getBytes(columns[i])), StandardCharsets.UTF_8));
+      sb.append(Base64.encodeBase64String(TextUtil.getBytes(columns[i])));
       sb.append('\n');
     }
     return sb.toString();
@@ -408,7 +408,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
       else
         bytes[i] = 0;
     }
-    return new String(Base64.encodeBase64(bytes), StandardCharsets.UTF_8);
+    return Base64.encodeBase64String(bytes);
   }
   
   protected static Text[] decodeColumns(String columns) {
