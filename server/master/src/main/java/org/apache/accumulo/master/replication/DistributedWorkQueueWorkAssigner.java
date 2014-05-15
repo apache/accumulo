@@ -35,10 +35,8 @@ import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
-import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.accumulo.server.replication.ReplicationWorkAssignerHelper;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
@@ -58,23 +56,63 @@ import com.google.protobuf.TextFormat;
  * <p>
  * Uses the DistributedWorkQueue to make the work available for any tserver. This approach does not consider the locality of the tabletserver performing the
  * work in relation to the data being replicated (local HDFS blocks).
+ * <p>
+ * The implementation allows for multiple tservers to concurrently replicate data to peer(s), however it is possible that data for a table is replayed on the
+ * peer in a different order than the master. The {@link SequentialWorkAssigner} should be used if this must be guaranteed at the cost of replication
+ * throughput.
  */
-public class ReplicationWorkAssigner extends Daemon {
-  private static final Logger log = LoggerFactory.getLogger(ReplicationWorkAssigner.class);
+public class DistributedWorkQueueWorkAssigner extends AbsractWorkAssigner {
+  private static final Logger log = LoggerFactory.getLogger(DistributedWorkQueueWorkAssigner.class);
+  private static final String NAME = "DistributedWorkQueue Replication Work Assigner";
 
-  private Master master;
   private Connector conn;
-
   private AccumuloConfiguration conf;
+
   private DistributedWorkQueue workQueue;
   private Set<String> queuedWork;
   private int maxQueueSize;
   private ZooCache zooCache;
 
-  public ReplicationWorkAssigner(Master master, Connector conn) {
-    super("Replication Work Assigner");
-    this.master = master;
+  public DistributedWorkQueueWorkAssigner() {}
+
+  public DistributedWorkQueueWorkAssigner(AccumuloConfiguration conf, Connector conn) {
+    this.conf = conf;
     this.conn = conn;
+  }
+
+  @Override
+  public void configure(AccumuloConfiguration conf, Connector conn) {
+    this.conf = conf;
+    this.conn = conn;
+  }
+
+  @Override
+  public String getName() {
+    return NAME;
+  }
+
+  @Override
+  public void assignWork() {
+    if (null == workQueue) {
+      initializeWorkQueue(conf);
+    }
+
+    if (null == queuedWork) {
+      initializeQueuedWork();
+    }
+
+    if (null == zooCache) {
+      zooCache = new ZooCache();
+    }
+
+    // Get the maximum number of entries we want to queue work for (or the default)
+    this.maxQueueSize = conf.getCount(Property.REPLICATION_MAX_WORK_QUEUE);
+
+    // Scan over the work records, adding the work to the queue
+    createWork();
+
+    // Keep the state of the work we queued correct
+    cleanupFinishedWork();
   }
 
   /*
@@ -128,13 +166,14 @@ public class ReplicationWorkAssigner extends Daemon {
     this.zooCache = zooCache;
   }
 
+
   /**
    * Initialize the DistributedWorkQueue using the proper ZK location
    * 
    * @param conf
    */
   protected void initializeWorkQueue(AccumuloConfiguration conf) {
-    workQueue = new DistributedWorkQueue(ZooUtil.getRoot(master.getInstance()) + Constants.ZREPLICATION_WORK_QUEUE, conf);
+    workQueue = new DistributedWorkQueue(ZooUtil.getRoot(conn.getInstance()) + Constants.ZREPLICATION_WORK_QUEUE, conf);
   }
 
   /**
@@ -150,45 +189,8 @@ public class ReplicationWorkAssigner extends Daemon {
     }
   }
 
-  @Override
-  public void run() {
-    log.info("Starting replication work assignment thread");
-
-    while (master.stillMaster()) {
-      if (null == conf) {
-        conf = master.getConfiguration().getConfiguration();
-      }
-
-      // Get the maximum number of entries we want to queue work for (or the default)
-      maxQueueSize = conf.getCount(Property.REPLICATION_MAX_WORK_QUEUE);
-
-      if (null == workQueue) {
-        initializeWorkQueue(conf);
-      }
-
-      if (null == queuedWork) {
-        initializeQueuedWork();
-      }
-
-      if (null == zooCache) {
-        zooCache = new ZooCache();
-      }
-
-      // Scan over the work records, adding the work to the queue
-      createWork();
-
-      // Keep the state of the work we queued correct
-      cleanupFinishedWork();
-
-      long sleepTime = conf.getTimeInMillis(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP);
-      log.debug("Sleeping {} ms", sleepTime);
-      UtilWaitThread.sleep(sleepTime);
-    }
-  }
-
   /**
-   * Scan over the {@link WorkSection} of the replication table adding work for entries that
-   * have data to replicate and have not already been queued.
+   * Scan over the {@link WorkSection} of the replication table adding work for entries that have data to replicate and have not already been queued.
    */
   protected void createWork() {
     // Create a batchscanner over the replication table's work entries
@@ -224,7 +226,7 @@ public class ReplicationWorkAssigner extends Daemon {
         }
 
         // If there is work to do
-        if (StatusUtil.isWorkRequired(status)) {
+        if (isWorkRequired(status)) {
           Path p = new Path(file);
           String filename = p.getName();
           WorkSection.getTarget(entry.getKey(), buffer);
@@ -270,7 +272,7 @@ public class ReplicationWorkAssigner extends Daemon {
    */
   protected void cleanupFinishedWork() {
     final Iterator<String> work = queuedWork.iterator();
-    final String instanceId = master.getInstance().getInstanceID();
+    final String instanceId = conn.getInstance().getInstanceID();
     while (work.hasNext()) {
       String filename = work.next();
       // Null equates to the work was finished

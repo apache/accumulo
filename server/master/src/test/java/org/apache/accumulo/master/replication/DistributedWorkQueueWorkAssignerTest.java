@@ -35,13 +35,13 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.accumulo.server.replication.ReplicationWorkAssignerHelper;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
@@ -54,23 +54,20 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
-/**
- * 
- */
-public class ReplicationWorkAssignerTest {
+public class DistributedWorkQueueWorkAssignerTest {
 
   @Rule
   public TestName test = new TestName();
 
-  private Master master;
+  private AccumuloConfiguration conf;
   private Connector conn;
-  private ReplicationWorkAssigner assigner;
+  private DistributedWorkQueueWorkAssigner assigner;
 
   @Before
   public void init() {
-    master = createMock(Master.class);
+    conf = createMock(AccumuloConfiguration.class);
     conn = createMock(Connector.class);
-    assigner = new ReplicationWorkAssigner(master, conn);
+    assigner = new DistributedWorkQueueWorkAssigner(conf, conn);
   }
 
   @Test
@@ -247,16 +244,16 @@ public class ReplicationWorkAssignerTest {
     ZooCache cache = createMock(ZooCache.class);
     assigner.setZooCache(cache);
 
-    expect(master.getInstance()).andReturn(inst);
+    expect(conn.getInstance()).andReturn(inst);
     expect(inst.getInstanceID()).andReturn("id");
     expect(cache.get(Constants.ZROOT + "/id" + Constants.ZREPLICATION_WORK_QUEUE + "/wal1")).andReturn(null);
     expect(cache.get(Constants.ZROOT + "/id" + Constants.ZREPLICATION_WORK_QUEUE + "/wal2")).andReturn(null);
 
-    replay(cache, inst, master);
+    replay(cache, inst, conn);
 
     assigner.cleanupFinishedWork();
 
-    verify(cache, inst, master);
+    verify(cache, inst, conn);
     Assert.assertTrue("Queued work was not emptied", queuedWork.isEmpty());
   }
 

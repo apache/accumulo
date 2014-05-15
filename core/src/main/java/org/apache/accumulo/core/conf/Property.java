@@ -280,7 +280,7 @@ public enum Property {
   TSERV_REPLICATION_REPLAYERS("tserver.replication.replayer.", null, PropertyType.PREFIX, "Allows configuration of implementation used to apply replicated data"),
   @Experimental
   TSERV_REPLICATION_DEFAULT_HANDLER("tserver.replication.default.replayer", "org.apache.accumulo.tserver.replication.BatchWriterReplicationReplayer",
-      PropertyType.STRING, "Default AccumuloReplicationReplayer implementation"),
+      PropertyType.CLASSNAME, "Default AccumuloReplicationReplayer implementation"),
 
   // properties that are specific to logger server behavior
   LOGGER_PREFIX("logger.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the write-ahead logger servers"),
@@ -479,6 +479,9 @@ public enum Property {
   REPLICATION_THREADCHECK("replication.receiver.threadcheck.time", "5s", PropertyType.TIMEDURATION, "The time between adjustments of the replication thread pool."),
   @Experimental
   REPLICATION_MAX_UNIT_SIZE("replication.max.unit.size", "64M", PropertyType.MEMORY, "Maximum size of data to send in a replication message"),
+  @Experimental
+  REPLICATION_WORK_ASSIGNER("replication.work.assigner", "org.apache.accumulo.master.replication.DistributedWorkQueueWorkAssigner", PropertyType.CLASSNAME,
+      "Replication WorkAssigner implementation to use"),
 
   ;
 
