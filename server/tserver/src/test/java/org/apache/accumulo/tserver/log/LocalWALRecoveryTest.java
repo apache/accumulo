@@ -55,8 +55,10 @@ public class LocalWALRecoveryTest {
 
   @Before
   public void setUp() throws Exception {
+    File source = new File("src/test/resources", "walog-from-14");
+
     configuration = createMock(AccumuloConfiguration.class);
-    expect(configuration.get(Property.LOGGER_DIR)).andReturn("src/test/resources/walog-from-14").anyTimes();
+    expect(configuration.get(Property.LOGGER_DIR)).andReturn(source.getAbsolutePath()).anyTimes();
     replay(configuration);
 
     walTarget = folder.newFolder("wal");
