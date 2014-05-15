@@ -30,7 +30,7 @@ bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 #
 # Find the system context directory in HDFS
 #
-SYSTEM_CONTEXT_HDFS_DIR=$(grep -A1 "general.vfs.classpaths" "$ACCUMULO_CONF_DIR/accumulo-site.xml" | tail -1 | perl -pe 's/\s+<value>//; s/<\/value>//; print $ARGV[1]')
+SYSTEM_CONTEXT_HDFS_DIR=$(grep -A1 "general.vfs.classpaths" "$ACCUMULO_CONF_DIR/accumulo-site.xml" | tail -1 | perl -pe 's/\s+<value>//; s/<\/value>//; s|[^/]+$||; print $ARGV[1]')
 
 if [ -z "$SYSTEM_CONTEXT_HDFS_DIR" ]
 then
