@@ -308,7 +308,46 @@ public class AccumuloReplicaSystemTest {
   }
 
   @Test
-  public void endOfFileExceptionOnWalImpliesFullyReplicated() throws Exception {
-    Assert.fail("Not yet implemented...");
+  public void endOfFileExceptionOnClosedWalImpliesFullyReplicated() throws Exception {
+    Map<String,String> confMap = new HashMap<>();
+    confMap.put(Property.REPLICATION_NAME.getKey(), "source");
+    AccumuloConfiguration conf = new ConfigurationCopy(confMap);
+
+    AccumuloReplicaSystem ars = new AccumuloReplicaSystem();
+    ars.setConf(conf);
+
+    // Setting the file to be closed with the infinite end implies that we need to bump the begin up to Long.MAX_VALUE
+    // If it were still open, more data could be appended that we need to process
+    Status status = Status.newBuilder().setBegin(100).setEnd(0).setInfiniteEnd(true).setClosed(true).build();
+    DataInputStream dis = new DataInputStream(new ByteArrayInputStream(new byte[0]));
+    WalReplication repl = ars.getEdits(dis, Long.MAX_VALUE, new ReplicationTarget("peer", "1", "1"), status, new Path("/accumulo/wals/tserver+port/wal"));
+
+    // We stopped because we got to the end of the file
+    Assert.assertEquals(Long.MAX_VALUE, repl.entriesConsumed);
+    Assert.assertEquals(0, repl.walEdits.getEditsSize());
+    Assert.assertEquals(0, repl.sizeInRecords);
+    Assert.assertEquals(0, repl.sizeInBytes);
+  }
+
+  @Test
+  public void endOfFileExceptionOnOpenWalImpliesMoreReplication() throws Exception {
+    Map<String,String> confMap = new HashMap<>();
+    confMap.put(Property.REPLICATION_NAME.getKey(), "source");
+    AccumuloConfiguration conf = new ConfigurationCopy(confMap);
+
+    AccumuloReplicaSystem ars = new AccumuloReplicaSystem();
+    ars.setConf(conf);
+
+    // Setting the file to be closed with the infinite end implies that we need to bump the begin up to Long.MAX_VALUE
+    // If it were still open, more data could be appended that we need to process
+    Status status = Status.newBuilder().setBegin(100).setEnd(0).setInfiniteEnd(true).setClosed(false).build();
+    DataInputStream dis = new DataInputStream(new ByteArrayInputStream(new byte[0]));
+    WalReplication repl = ars.getEdits(dis, Long.MAX_VALUE, new ReplicationTarget("peer", "1", "1"), status, new Path("/accumulo/wals/tserver+port/wal"));
+
+    // We stopped because we got to the end of the file
+    Assert.assertEquals(0, repl.entriesConsumed);
+    Assert.assertEquals(0, repl.walEdits.getEditsSize());
+    Assert.assertEquals(0, repl.sizeInRecords);
+    Assert.assertEquals(0, repl.sizeInBytes);
   }
 }

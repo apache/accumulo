@@ -195,14 +195,19 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
                   }
                 } else {
                   WalReplication edits = getWalEdits(target, p, status, sizeLimit);
+
+                  // If we have some edits to send
                   if (0 < edits.walEdits.getEditsSize()) {
                     long entriesReplicated = client.replicateLog(remoteTableId, edits.walEdits);
-                    if (entriesReplicated != edits.walEdits.getEditsSize()) {
+                    if (entriesReplicated != edits.numUpdates) {
                       log.warn("Sent {} WAL entries for replication but only {} were reported as replicated", edits.walEdits.getEditsSize(), entriesReplicated);
                     }
 
                     // We don't have to replicate every LogEvent in the file (only Mutation LogEvents), but we
                     // want to track progress in the file relative to all LogEvents (to avoid duplicative processing/replication)
+                    return edits;
+                  } else if (edits.entriesConsumed == Long.MAX_VALUE) {
+                    // Even if we send no data, we must record the new begin value to account for the inf+ length
                     return edits;
                   }
                 }
@@ -250,14 +255,14 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     LogFileKey key = new LogFileKey();
     LogFileValue value = new LogFileValue();
 
-    // Read through the stuff we don't need to replicate
+    // Read through the stuff we've already processed in a previous replication attempt
     for (long i = 0; i < status.getBegin(); i++) {
       try {
         key.readFields(wal);
         value.readFields(wal);
       } catch (EOFException e) {
         log.warn("Unexpectedly reached the end of file.");
-        return new WalReplication(new WalEdits(), 0, 0);
+        return new WalReplication(new WalEdits(), 0, 0, 0);
       }
     }
 
@@ -274,6 +279,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     edits.edits = new ArrayList<ByteBuffer>();
     long size = 0l;
     long entriesConsumed = 0l;
+    long numUpdates = 0l;
     LogFileKey key = new LogFileKey();
     LogFileValue value = new LogFileValue();
 
@@ -312,7 +318,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
             // Only write out the mutations that don't have the given ReplicationTarget
             // as a replicate source (this prevents infinite replication loops: a->b, b->a, repeat)
-            writeValueAvoidingReplicationCycles(out, value, target);
+            numUpdates += writeValueAvoidingReplicationCycles(out, value, target);
 
             out.flush();
             byte[] data = baos.toByteArray();
@@ -326,7 +332,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       }
     }
 
-    return new WalReplication(edits, size, entriesConsumed);
+    return new WalReplication(edits, size, entriesConsumed, numUpdates);
   }
 
   /**
@@ -335,8 +341,9 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
    * 
    * @throws IOException
    */
-  protected void writeValueAvoidingReplicationCycles(DataOutputStream out, LogFileValue value, ReplicationTarget target) throws IOException {
+  protected long writeValueAvoidingReplicationCycles(DataOutputStream out, LogFileValue value, ReplicationTarget target) throws IOException {
     int mutationsToSend = 0;
+    long numUpdates = 0l;
     for (Mutation m : value.mutations) {
       if (!m.getReplicationSources().contains(target.getPeerName())) {
         mutationsToSend++;
@@ -349,6 +356,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     for (Mutation m : value.mutations) {
       // If we haven't yet replicated to this peer
       if (!m.getReplicationSources().contains(target.getPeerName())) {
+        numUpdates += m.size();
         // Add our name, and send it
         String name = conf.get(Property.REPLICATION_NAME);
         if (StringUtils.isBlank(name)) {
@@ -360,6 +368,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         m.write(out);
       }
     }
+
+    return numUpdates;
   }
 
   public static class ReplicationStats {
@@ -406,9 +416,15 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
      */
     public WalEdits walEdits;
 
-    public WalReplication(WalEdits edits, long size, long entriesConsumed) {
+    /**
+     * The number of updates contained in this batch
+     */
+    public long numUpdates;
+
+    public WalReplication(WalEdits edits, long size, long entriesConsumed, long numUpdates) {
       super(size, edits.getEditsSize(), entriesConsumed);
       this.walEdits = edits;
+      this.numUpdates = numUpdates;
     }
   }
 }
