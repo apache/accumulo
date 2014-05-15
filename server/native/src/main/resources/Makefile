@@ -18,14 +18,15 @@ HDRS=$(wildcard nativeMap/*.h) $(wildcard javah/*.h)
 TESTSRCS=$(wildcard testNativeMap/*.cc)
 CXX=g++
 MAVERICKFLAGS=
+USERFLAGS=$(shell env | grep "^USERFLAGS=" | cut -d= -f2)
 
 ifeq ($(shell uname),Linux)
-	JAVA_HOME=$(shell env | fgrep JAVA_HOME | cut -d= -f2)
+	JAVA_HOME=$(shell env | grep "^JAVA_HOME=" | cut -d= -f2)
 	ifeq ($(strip $(JAVA_HOME)),)
 		JAVA_HOME=$(shell dirname $$(dirname $$(readlink -ef $$(which javah))))
 	endif
 	NATIVE_LIB := libaccumulo.so
-	CXXFLAGS=-m64 -g -fPIC -shared -O3 -Wall -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux -Ijavah
+	CXXFLAGS=-g -fPIC -shared -O3 -Wall -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux -Ijavah $(USERFLAGS)
 endif
 
 ifeq ($(shell uname),Darwin)
@@ -34,7 +35,7 @@ ifeq ($(shell uname),Darwin)
 ifneq (,$(findstring 10.9,$(shell sw_vers -productVersion)))
 	MAVERICKFLAGS=-stdlib=libstdc++
 endif
-	CXXFLAGS=-m64 -dynamiclib -undefined dynamic_lookup -O3 -I/System/Library/Frameworks/JavaVM.framework/Headers -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/darwin -Ijavah $(MAVERICK_FLAGS)
+	CXXFLAGS=-dynamiclib -undefined dynamic_lookup -O3 -I/System/Library/Frameworks/JavaVM.framework/Headers -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/darwin -Ijavah $(USERFLAGS) $(MAVERICK_FLAGS)
 endif
 
 all : $(NATIVE_LIB)
