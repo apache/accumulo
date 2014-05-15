@@ -407,10 +407,10 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
 
     // Make sure the replication table exists at this point
     boolean exists = conn.tableOperations().exists(ReplicationTable.NAME);
-    attempts = 5;
+    attempts = 10;
     do {
       if (!exists) {
-        UtilWaitThread.sleep(200);
+        UtilWaitThread.sleep(1000);
         exists = conn.tableOperations().exists(ReplicationTable.NAME);
         attempts--;
       }
