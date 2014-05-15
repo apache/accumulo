@@ -32,6 +32,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
@@ -43,6 +50,7 @@ import org.apache.accumulo.server.util.Initialize;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.start.Main;
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
 
 /**
@@ -52,6 +60,7 @@ import org.apache.zookeeper.server.ZooKeeperServerMain;
  * @since 1.5.0
  */
 public class MiniAccumuloCluster {
+  private static final Logger log = Logger.getLogger(MiniAccumuloCluster.class);
   
   private static final String INSTANCE_SECRET = "DONTTELL";
   private static final String INSTANCE_NAME = "miniInstance";
@@ -357,17 +366,32 @@ public class MiniAccumuloCluster {
   
   public void stop() throws IOException, InterruptedException {
     if (zooKeeperProcess != null) {
-      zooKeeperProcess.destroy();
-      zooKeeperProcess.waitFor();
+      try {
+        stopProcessWithTimeout(zooKeeperProcess, 30, TimeUnit.SECONDS);
+      } catch (ExecutionException e) {
+        log.warn("ZooKeeper did not fully stop after 30 seconds", e);
+      } catch (TimeoutException e) {
+        log.warn("ZooKeeper did not fully stop after 30 seconds", e);
+      }
     }
     if (masterProcess != null) {
-      masterProcess.destroy();
-      masterProcess.waitFor();
+      try {
+        stopProcessWithTimeout(masterProcess, 30, TimeUnit.SECONDS);
+      } catch (ExecutionException e) {
+        log.warn("Master did not fully stop after 30 seconds", e);
+      } catch (TimeoutException e) {
+        log.warn("Master did not fully stop after 30 seconds", e);
+      }
     }
     if (tabletServerProcesses != null) {
       for (Process tserver : tabletServerProcesses) {
-        tserver.destroy();
-        tserver.waitFor();
+        try {
+          stopProcessWithTimeout(tserver, 30, TimeUnit.SECONDS);
+        } catch (ExecutionException e) {
+          log.warn("TabletServer did not fully stop after 30 seconds", e);
+        } catch (TimeoutException e) {
+          log.warn("TabletServer did not fully stop after 30 seconds", e);
+        }
       }
     }
     
@@ -375,8 +399,29 @@ public class MiniAccumuloCluster {
       lw.flush();
 
     if (gcProcess != null) {
-      gcProcess.destroy();
-      gcProcess.waitFor();
+      try {
+        stopProcessWithTimeout(gcProcess, 30, TimeUnit.SECONDS);
+      } catch (ExecutionException e) {
+        log.warn("GarbageCollector did not fully stop after 30 seconds", e);
+      } catch (TimeoutException e) {
+        log.warn("GarbageCollector did not fully stop after 30 seconds", e);
+      }
     }
+  }
+
+  private final ExecutorService executor = Executors.newSingleThreadExecutor();
+
+  private int stopProcessWithTimeout(final Process proc, long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+    FutureTask<Integer> future = new FutureTask<Integer>(new Callable<Integer>() {
+        @Override
+        public Integer call() throws InterruptedException {
+          proc.destroy();
+          return proc.waitFor();
+        }
+    });
+
+    executor.execute(future);
+
+    return future.get(timeout, unit);
   }
 }
