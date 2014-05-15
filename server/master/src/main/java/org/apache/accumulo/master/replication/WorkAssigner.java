@@ -30,11 +30,13 @@ public interface WorkAssigner {
    */
   public String getName();
 
+  /**
+   * Configure the WorkAssigner implementation
+   */
   public void configure(AccumuloConfiguration conf, Connector conn);
 
   /**
    * Assign work for replication
    */
   public void assignWork();
-
 }
