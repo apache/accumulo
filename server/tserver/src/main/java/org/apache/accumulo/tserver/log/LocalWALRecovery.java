@@ -32,7 +32,6 @@ import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.logger.LogFileKey;
 import org.apache.accumulo.server.logger.LogFileValue;
-import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -49,7 +48,7 @@ import com.google.common.annotations.VisibleForTesting;
  * This class will attempt to rewrite any local WALs to HDFS.
  */
 public class LocalWALRecovery implements Runnable {
-  private static final Logger log = Logger.getLogger(TabletServer.class);
+  private static final Logger log = Logger.getLogger(LocalWALRecovery.class);
 
   public static void main(String[] args) throws IOException {
     AccumuloConfiguration configuration = SiteConfiguration.getInstance(SiteConfiguration.getDefaultConfiguration());
