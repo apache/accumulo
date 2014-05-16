@@ -110,7 +110,7 @@ ${mvnProjBaseDir}
 
       <!-- Hadoop 2 requirements -->
       $HADOOP_PREFIX/share/hadoop/common/[^.].*.jar,
-      $HADOOP_PREFIX/share/hadoop/common/lib/[^.].*.jar,
+      $HADOOP_PREFIX/share/hadoop/common/lib/(?!slf4j)[^.].*.jar,
       $HADOOP_PREFIX/share/hadoop/hdfs/[^.].*.jar,
       $HADOOP_PREFIX/share/hadoop/mapreduce/[^.].*.jar,
       $HADOOP_PREFIX/share/hadoop/yarn/[^.].*.jar,
@@ -123,7 +123,7 @@ ${mvnProjBaseDir}
 
       <!-- Hadoop 1 requirements -->
       $HADOOP_PREFIX/[^.].*.jar,
-      $HADOOP_PREFIX/lib/[^.].*.jar,
+      $HADOOP_PREFIX/lib/(?!slf4j)[^.].*.jar,
       <!-- End Hadoop 1 requirements -->
 
     </value>
