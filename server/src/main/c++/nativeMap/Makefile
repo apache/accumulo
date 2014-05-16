@@ -39,7 +39,7 @@ ifeq ($(shell uname),Linux)
     LIBS := $(LIBS_$(DARCH))
   endif
   
-  CXXFLAGS=-g -fPIC -shared -O2 -fno-omit-frame-pointer -fno-strict-aliasing -Wall -I$(JAVA_HOME)/include/linux -I$(JAVA_HOME)/include
+  CXXFLAGS=-g -fPIC -shared -O3 -Wall -I$(JAVA_HOME)/include/linux -I$(JAVA_HOME)/include
 endif
 
 ifeq ($(shell uname),Darwin)
