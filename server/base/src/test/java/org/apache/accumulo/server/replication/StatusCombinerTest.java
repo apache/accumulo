@@ -222,4 +222,30 @@ public class StatusCombinerTest {
 
     Assert.assertEquals(order1, permutation);
   }
+
+  @Test
+  public void fileClosedTimePropagated() {
+    Status stat1 = Status.newBuilder().setBegin(10).setEnd(20).setClosed(true).setInfiniteEnd(false).setClosedTime(50).build();
+    Status stat2 = Status.newBuilder().setBegin(10).setEnd(20).setClosed(true).setInfiniteEnd(false).build();
+
+    Status combined = combiner.typedReduce(key, Arrays.asList(stat1, stat2).iterator());
+
+    Assert.assertEquals(stat1, combined);
+  }
+
+  @Test
+  public void fileClosedTimeChoosesEarliestIgnoringDefault() {
+    Status stat1 = Status.newBuilder().setBegin(10).setEnd(20).setClosed(true).setInfiniteEnd(false).setClosedTime(50).build();
+    Status stat2 = Status.newBuilder().setBegin(10).setEnd(20).setClosed(true).setInfiniteEnd(false).setClosedTime(100).build();
+
+    Status combined = combiner.typedReduce(key, Arrays.asList(stat1, stat2).iterator());
+
+    Assert.assertEquals(stat1, combined);
+
+    Status stat3 = Status.newBuilder().setBegin(10).setEnd(20).setClosed(true).setInfiniteEnd(false).setClosedTime(100).build();
+
+    Status combined2 = combiner.typedReduce(key, Arrays.asList(combined, stat3).iterator());
+
+    Assert.assertEquals(combined, combined2);
+  }
 }

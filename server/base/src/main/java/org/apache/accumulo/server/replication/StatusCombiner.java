@@ -134,6 +134,16 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
 
     // persist the infinite end
     combined.setInfiniteEnd(combined.getInfiniteEnd() | status.getInfiniteEnd());
+
+    // only set the closedTime if the new status has it defined
+    if (status.hasClosedTime()) {
+      // choose the minimum (earliest) closedTime seen
+      if (combined.hasClosedTime()) {
+        combined.setClosedTime(Math.min(combined.getClosedTime(), status.getClosedTime()));
+      } else {
+        combined.setClosedTime(status.getClosedTime());
+      }
+    }
   }
 
   private String builderToString(Builder builder) {
