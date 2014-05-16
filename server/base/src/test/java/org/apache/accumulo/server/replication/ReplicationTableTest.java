@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.replication;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Map;
@@ -23,11 +24,14 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
+import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Before;
@@ -100,7 +104,7 @@ public class ReplicationTableTest {
 
     // Needs to be set below versioning
     IteratorSetting expected = new IteratorSetting(30, ReplicationTable.COMBINER_NAME, StatusCombiner.class);
-    Combiner.setCombineAllColumns(expected, true);
+    Combiner.setColumns(expected, Arrays.asList(new Column(StatusSection.NAME), new Column(WorkSection.NAME)));
     IteratorSetting setting = tops.getIteratorSetting(ReplicationTable.NAME, ReplicationTable.COMBINER_NAME, IteratorScope.scan);
 
     Assert.assertEquals(expected, setting);
