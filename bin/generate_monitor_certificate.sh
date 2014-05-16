@@ -58,9 +58,9 @@ if [ -e "$CERTPATH" ]; then
   fi
 fi
 
-${JAVA_HOME}/bin/keytool -genkey -alias $ALIAS -keyalg RSA -keypass $KEYPASS -storepass $STOREPASS -keystore $KEYSTOREPATH
-${JAVA_HOME}/bin/keytool -export -alias $ALIAS -storepass $STOREPASS -file $CERTPATH -keystore $KEYSTOREPATH
-echo "yes" | ${JAVA_HOME}/bin/keytool -import -v -trustcacerts -alias $ALIAS -file $CERTPATH -keystore $TRUSTSTOREPATH -keypass $KEYPASS -storepass $STOREPASS
+${JAVA_HOME}/bin/keytool -genkey -alias $ALIAS -keyalg RSA -keypass $KEYPASS -storepass $KEYPASS -keystore $KEYSTOREPATH
+${JAVA_HOME}/bin/keytool -export -alias $ALIAS -storepass $KEYPASS -file $CERTPATH -keystore $KEYSTOREPATH
+echo "yes" | ${JAVA_HOME}/bin/keytool -import -v -trustcacerts -alias $ALIAS -file $CERTPATH -keystore $TRUSTSTOREPATH -storepass $STOREPASS
 
 echo
 echo "keystore and truststore generated.  now add the following to accumulo-site.xml:"
