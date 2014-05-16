@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.master.replication;
+package org.apache.accumulo.server.replication;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;

@@ -37,8 +37,8 @@ import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.server.replication.AbstractWorkAssigner;
 import org.apache.accumulo.server.replication.ReplicationTable;
-import org.apache.accumulo.server.replication.ReplicationWorkAssignerHelper;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.hadoop.fs.Path;
@@ -61,7 +61,7 @@ import com.google.protobuf.TextFormat;
  * peer in a different order than the master. The {@link SequentialWorkAssigner} should be used if this must be guaranteed at the cost of replication
  * throughput.
  */
-public class DistributedWorkQueueWorkAssigner extends AbsractWorkAssigner {
+public class DistributedWorkQueueWorkAssigner extends AbstractWorkAssigner {
   private static final Logger log = LoggerFactory.getLogger(DistributedWorkQueueWorkAssigner.class);
   private static final String NAME = "DistributedWorkQueue Replication Work Assigner";
 
@@ -230,7 +230,7 @@ public class DistributedWorkQueueWorkAssigner extends AbsractWorkAssigner {
           Path p = new Path(file);
           String filename = p.getName();
           WorkSection.getTarget(entry.getKey(), buffer);
-          String key = ReplicationWorkAssignerHelper.getQueueKey(filename, ReplicationTarget.from(buffer));
+          String key = getQueueKey(filename, ReplicationTarget.from(buffer));
 
           // And, we haven't already queued this file up for work already
           if (!queuedWork.contains(key)) {

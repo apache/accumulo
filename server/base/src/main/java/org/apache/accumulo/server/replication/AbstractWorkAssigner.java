@@ -19,15 +19,21 @@ package org.apache.accumulo.server.replication;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.replication.ReplicationTarget;
+import org.apache.accumulo.core.replication.StatusUtil;
+import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 /**
- * 
+ * Common methods for {@link WorkAssigner}s
  */
-public class ReplicationWorkAssignerHelper {
+public abstract class AbstractWorkAssigner implements WorkAssigner {
+
+  protected boolean isWorkRequired(Status status) {
+    return StatusUtil.isWorkRequired(status);
+  }
   public static final String KEY_SEPARATOR = "|";
 
   /**

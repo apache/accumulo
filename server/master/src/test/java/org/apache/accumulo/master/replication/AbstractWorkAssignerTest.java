@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.replication;
+package org.apache.accumulo.master.replication;
 
 import java.util.Map.Entry;
 import java.util.UUID;
 
 import org.apache.accumulo.core.replication.ReplicationTarget;
-import org.apache.accumulo.server.replication.ReplicationWorkAssignerHelper;
+import org.apache.accumulo.server.replication.AbstractWorkAssigner;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.common.PathUtils;
 import org.junit.Assert;
@@ -29,14 +29,14 @@ import org.junit.Test;
 /**
  * 
  */
-public class ReplicationWorkAssignerHelperTest {
+public class AbstractWorkAssignerTest {
 
   @Test
   public void createsValidZKNodeName() {
     Path p = new Path ("/accumulo/wals/tserver+port/" + UUID.randomUUID().toString());
     ReplicationTarget target = new ReplicationTarget("cluster1", "table1", "1");
 
-    String key = ReplicationWorkAssignerHelper.getQueueKey(p.toString(), target);
+    String key = AbstractWorkAssigner.getQueueKey(p.toString(), target);
     
     PathUtils.validatePath(key);
   }
@@ -46,9 +46,9 @@ public class ReplicationWorkAssignerHelperTest {
     Path p = new Path("/accumulo/wals/tserver+port/" + UUID.randomUUID().toString());
     ReplicationTarget target = new ReplicationTarget("cluster1", "table1", "1");
 
-    String key = ReplicationWorkAssignerHelper.getQueueKey(p.toString(), target);
+    String key = AbstractWorkAssigner.getQueueKey(p.toString(), target);
 
-    Entry<String,ReplicationTarget> result = ReplicationWorkAssignerHelper.fromQueueKey(key);
+    Entry<String,ReplicationTarget> result = AbstractWorkAssigner.fromQueueKey(key);
     Assert.assertEquals(p.toString(), result.getKey());
     Assert.assertEquals(target, result.getValue());
   }

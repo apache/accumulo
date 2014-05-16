@@ -22,6 +22,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.master.Master;
+import org.apache.accumulo.server.replication.WorkAssigner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
