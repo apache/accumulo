@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.replication;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Map;
@@ -28,6 +29,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -117,7 +119,7 @@ public class ReplicationTable extends org.apache.accumulo.core.client.replicatio
     if (!iterators.containsKey(COMBINER_NAME)) {
       // Set our combiner and combine all columns
       IteratorSetting setting = new IteratorSetting(30, COMBINER_NAME, StatusCombiner.class);
-      Combiner.setCombineAllColumns(setting, true);
+      Combiner.setColumns(setting, Arrays.asList(new Column(StatusSection.NAME), new Column(WorkSection.NAME)));
       try {
         tops.attachIterator(NAME, setting);
       } catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
