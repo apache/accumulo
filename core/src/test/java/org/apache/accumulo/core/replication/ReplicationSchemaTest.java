@@ -17,6 +17,8 @@
 package org.apache.accumulo.core.replication;
 
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.hadoop.io.Text;
@@ -97,5 +99,24 @@ public class ReplicationSchemaTest {
   public void failOnIncorrectWorkColfam() {
     Key k = new Key("file", StatusSection.NAME.toString(), "");
     WorkSection.getFile(k, new Text());
+  }
+
+  @Test
+  public void orderSerialization() {
+    long now = System.currentTimeMillis();
+    Mutation m = OrderSection.createMutation("/accumulo/file", now);
+    Key k = new Key(new Text(m.getRow()));
+    Assert.assertEquals("/accumulo/file", OrderSection.getFile(k));
+    Assert.assertEquals(now, OrderSection.getTimeClosed(k));
+  }
+
+  @Test
+  public void orderSerializationWithBuffer() {
+    Text buff = new Text();
+    long now = System.currentTimeMillis();
+    Mutation m = OrderSection.createMutation("/accumulo/file", now);
+    Key k = new Key(new Text(m.getRow()));
+    Assert.assertEquals("/accumulo/file", OrderSection.getFile(k, buff));
+    Assert.assertEquals(now, OrderSection.getTimeClosed(k, buff));
   }
 }

@@ -178,18 +178,14 @@ public class ReplicationSchema {
     }
 
     /**
-     * Creates the Mutation for the Order section for the given file and time, adding the column
-     * as well using {@link OrderSection#add(Mutation, Text, Value)}
+     * Creates the Mutation for the Order section for the given file and time
      * @param file Filename
      * @param timeInMillis Time in millis that the file was closed
-     * @param tableId Source table id
-     * @param v Serialized Status msg as a Value
      * @return Mutation for the Order section
      */
-    public static Mutation createMutation(String file, long timeInMillis, Text tableId, Value v) {
+    public static Mutation createMutation(String file, long timeInMillis) {
       Preconditions.checkNotNull(file);
       Preconditions.checkArgument(timeInMillis >= 0, "timeInMillis must be greater than zero");
-      Preconditions.checkNotNull(v);
 
       // Encode the time so it sorts properly
       byte[] rowPrefix = longEncoder.encode(timeInMillis);
@@ -198,8 +194,7 @@ public class ReplicationSchema {
       row.append((ROW_SEPARATOR+file).getBytes(), 0, file.length() + ROW_SEPARATOR.length());
 
       // Make the mutation and add the column update
-      Mutation m = new Mutation(row);
-      return add(m, tableId, v);
+      return new Mutation(row);
     }
 
     /**

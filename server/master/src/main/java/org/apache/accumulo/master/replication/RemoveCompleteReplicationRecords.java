@@ -17,6 +17,7 @@
 package org.apache.accumulo.master.replication;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map.Entry;
 import java.util.SortedMap;
@@ -32,6 +33,10 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
+import org.apache.accumulo.core.protobuf.ProtobufUtil;
+import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
+import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
+import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
@@ -71,6 +76,8 @@ public class RemoveCompleteReplicationRecords implements Runnable {
 
     bs.setRanges(Collections.singleton(new Range()));
     IteratorSetting cfg = new IteratorSetting(50, WholeRowIterator.class);
+    StatusSection.limit(bs);
+    WorkSection.limit(bs);
     bs.addScanIterator(cfg);
 
     @SuppressWarnings("deprecation")
@@ -78,7 +85,7 @@ public class RemoveCompleteReplicationRecords implements Runnable {
     long recordsRemoved = 0;
     try {
       sw.start();
-      recordsRemoved = removeCompleteRecords(conn, ReplicationTable.NAME, bs, bw);
+      recordsRemoved = removeCompleteRecords(conn, bs, bw);
     } finally {
       if (null != bs) {
         bs.close();
@@ -109,7 +116,7 @@ public class RemoveCompleteReplicationRecords implements Runnable {
    *          A BatchWriter to write deletes to
    * @return Number of records removed
    */
-  protected long removeCompleteRecords(Connector conn, String table, BatchScanner bs, BatchWriter bw) {
+  protected long removeCompleteRecords(Connector conn, BatchScanner bs, BatchWriter bw) {
     Text row = new Text(), colf = new Text(), colq = new Text();
     long recordsRemoved = 0;
 
@@ -134,10 +141,13 @@ public class RemoveCompleteReplicationRecords implements Runnable {
 
   protected long removeRowIfNecessary(BatchWriter bw, SortedMap<Key,Value> columns, Text row, Text colf, Text colq) {
     long recordsRemoved = 0;
-    log.info("Removing {} from the replication table", row);
+    if (columns.isEmpty()) {
+      return recordsRemoved;
+    }
+
     Mutation m = new Mutation(row);
+    Status status = null;
     for (Entry<Key,Value> entry : columns.entrySet()) {
-      Status status;
       try {
         status = Status.parseFrom(entry.getValue().get());
       } catch (InvalidProtocolBufferException e) {
@@ -159,12 +169,19 @@ public class RemoveCompleteReplicationRecords implements Runnable {
       recordsRemoved++;
     }
 
+    log.info("Removing {} from the replication table", row);
+
+    ReplicationTarget target = ReplicationTarget.from(colq);
+
+    Mutation orderMutation = OrderSection.createMutation(row.toString(), status.getClosedTime());
+    orderMutation.putDelete(OrderSection.NAME, new Text(target.getSourceTableId()));
+
     // Send the mutation deleting all the columns at once.
     // If we send them not as a single Mutation, we run the risk of having some of them be applied
     // which would mean that we might accidentally re-replicate data. We want to get rid of them all at once
     // or not at all.
     try {
-      bw.addMutation(m);
+      bw.addMutations(Arrays.asList(m, orderMutation));
       bw.flush();
     } catch (MutationsRejectedException e) {
       log.error("Could not submit mutation to remove columns for {} in replication table", row, e);
