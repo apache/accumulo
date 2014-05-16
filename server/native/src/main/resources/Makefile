@@ -25,7 +25,7 @@ ifeq ($(shell uname),Linux)
 		JAVA_HOME=$(shell dirname $$(dirname $$(readlink -ef $$(which javah))))
 	endif
 	NATIVE_LIB := libaccumulo.so
-	CXXFLAGS=-m64 -g -fPIC -shared -O2 -fno-omit-frame-pointer -fno-strict-aliasing -Wall -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux -Ijavah
+	CXXFLAGS=-m64 -g -fPIC -shared -O3 -Wall -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux -Ijavah
 endif
 
 ifeq ($(shell uname),Darwin)
