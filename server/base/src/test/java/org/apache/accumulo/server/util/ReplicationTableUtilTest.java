@@ -107,7 +107,7 @@ public class ReplicationTableUtilTest {
   @Test
   public void replEntryMutation() {
     // We stopped using a WAL -- we need a reference that this WAL needs to be replicated completely
-    Status stat = StatusUtil.fileClosed();
+    Status stat = StatusUtil.fileClosed(System.currentTimeMillis());
     String file = "file:///accumulo/wal/127.0.0.1+9997" + UUID.randomUUID();
     Path filePath = new Path(file);
     Text row = new Text(filePath.toString());

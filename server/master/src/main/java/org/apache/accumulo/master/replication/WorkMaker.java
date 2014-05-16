@@ -156,7 +156,6 @@ public class WorkMaker {
   }
 
   protected void addWorkRecord(Text file, Value v, Map<String,String> targets, String sourceTableId) {
-    // TODO come up with something that tries to avoid creating a new BatchWriter all the time
     log.info("Adding work records for " + file + " to targets " + targets);
     try {
       Mutation m = new Mutation(file);

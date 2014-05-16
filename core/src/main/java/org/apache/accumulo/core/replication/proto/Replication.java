@@ -30,42 +30,92 @@ package org.apache.accumulo.core.replication.proto;
     // optional int64 begin = 1 [default = 0];
     /**
      * <code>optional int64 begin = 1 [default = 0];</code>
+     *
+     * <pre>
+     * offset where replication should start
+     * </pre>
      */
     boolean hasBegin();
     /**
      * <code>optional int64 begin = 1 [default = 0];</code>
+     *
+     * <pre>
+     * offset where replication should start
+     * </pre>
      */
     long getBegin();
 
     // optional int64 end = 2 [default = 0];
     /**
      * <code>optional int64 end = 2 [default = 0];</code>
+     *
+     * <pre>
+     * offset where data is ready for replication
+     * </pre>
      */
     boolean hasEnd();
     /**
      * <code>optional int64 end = 2 [default = 0];</code>
+     *
+     * <pre>
+     * offset where data is ready for replication
+     * </pre>
      */
     long getEnd();
 
     // optional bool infiniteEnd = 3 [default = false];
     /**
      * <code>optional bool infiniteEnd = 3 [default = false];</code>
+     *
+     * <pre>
+     * do we have a discrete 'end'
+     * </pre>
      */
     boolean hasInfiniteEnd();
     /**
      * <code>optional bool infiniteEnd = 3 [default = false];</code>
+     *
+     * <pre>
+     * do we have a discrete 'end'
+     * </pre>
      */
     boolean getInfiniteEnd();
 
     // optional bool closed = 4 [default = false];
     /**
      * <code>optional bool closed = 4 [default = false];</code>
+     *
+     * <pre>
+     * will more data be appended to the file
+     * </pre>
      */
     boolean hasClosed();
     /**
      * <code>optional bool closed = 4 [default = false];</code>
+     *
+     * <pre>
+     * will more data be appended to the file
+     * </pre>
      */
     boolean getClosed();
+
+    // optional int64 closedTime = 5 [default = 0];
+    /**
+     * <code>optional int64 closedTime = 5 [default = 0];</code>
+     *
+     * <pre>
+     * when, in ms, was the file closed?
+     * </pre>
+     */
+    boolean hasClosedTime();
+    /**
+     * <code>optional int64 closedTime = 5 [default = 0];</code>
+     *
+     * <pre>
+     * when, in ms, was the file closed?
+     * </pre>
+     */
+    long getClosedTime();
   }
   /**
    * Protobuf type {@code Status}
@@ -138,6 +188,11 @@ package org.apache.accumulo.core.replication.proto;
               closed_ = input.readBool();
               break;
             }
+            case 40: {
+              bitField0_ |= 0x00000010;
+              closedTime_ = input.readInt64();
+              break;
+            }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
@@ -183,12 +238,20 @@ package org.apache.accumulo.core.replication.proto;
     private long begin_;
     /**
      * <code>optional int64 begin = 1 [default = 0];</code>
+     *
+     * <pre>
+     * offset where replication should start
+     * </pre>
      */
     public boolean hasBegin() {
       return ((bitField0_ & 0x00000001) == 0x00000001);
     }
     /**
      * <code>optional int64 begin = 1 [default = 0];</code>
+     *
+     * <pre>
+     * offset where replication should start
+     * </pre>
      */
     public long getBegin() {
       return begin_;
@@ -199,12 +262,20 @@ package org.apache.accumulo.core.replication.proto;
     private long end_;
     /**
      * <code>optional int64 end = 2 [default = 0];</code>
+     *
+     * <pre>
+     * offset where data is ready for replication
+     * </pre>
      */
     public boolean hasEnd() {
       return ((bitField0_ & 0x00000002) == 0x00000002);
     }
     /**
      * <code>optional int64 end = 2 [default = 0];</code>
+     *
+     * <pre>
+     * offset where data is ready for replication
+     * </pre>
      */
     public long getEnd() {
       return end_;
@@ -215,12 +286,20 @@ package org.apache.accumulo.core.replication.proto;
     private boolean infiniteEnd_;
     /**
      * <code>optional bool infiniteEnd = 3 [default = false];</code>
+     *
+     * <pre>
+     * do we have a discrete 'end'
+     * </pre>
      */
     public boolean hasInfiniteEnd() {
       return ((bitField0_ & 0x00000004) == 0x00000004);
     }
     /**
      * <code>optional bool infiniteEnd = 3 [default = false];</code>
+     *
+     * <pre>
+     * do we have a discrete 'end'
+     * </pre>
      */
     public boolean getInfiniteEnd() {
       return infiniteEnd_;
@@ -231,15 +310,47 @@ package org.apache.accumulo.core.replication.proto;
     private boolean closed_;
     /**
      * <code>optional bool closed = 4 [default = false];</code>
+     *
+     * <pre>
+     * will more data be appended to the file
+     * </pre>
      */
     public boolean hasClosed() {
       return ((bitField0_ & 0x00000008) == 0x00000008);
     }
     /**
      * <code>optional bool closed = 4 [default = false];</code>
+     *
+     * <pre>
+     * will more data be appended to the file
+     * </pre>
      */
     public boolean getClosed() {
       return closed_;
+    }
+
+    // optional int64 closedTime = 5 [default = 0];
+    public static final int CLOSEDTIME_FIELD_NUMBER = 5;
+    private long closedTime_;
+    /**
+     * <code>optional int64 closedTime = 5 [default = 0];</code>
+     *
+     * <pre>
+     * when, in ms, was the file closed?
+     * </pre>
+     */
+    public boolean hasClosedTime() {
+      return ((bitField0_ & 0x00000010) == 0x00000010);
+    }
+    /**
+     * <code>optional int64 closedTime = 5 [default = 0];</code>
+     *
+     * <pre>
+     * when, in ms, was the file closed?
+     * </pre>
+     */
+    public long getClosedTime() {
+      return closedTime_;
     }
 
     private void initFields() {
@@ -247,6 +358,7 @@ package org.apache.accumulo.core.replication.proto;
       end_ = 0L;
       infiniteEnd_ = false;
       closed_ = false;
+      closedTime_ = 0L;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -272,6 +384,9 @@ package org.apache.accumulo.core.replication.proto;
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
         output.writeBool(4, closed_);
       }
+      if (((bitField0_ & 0x00000010) == 0x00000010)) {
+        output.writeInt64(5, closedTime_);
+      }
       getUnknownFields().writeTo(output);
     }
 
@@ -296,6 +411,10 @@ package org.apache.accumulo.core.replication.proto;
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(4, closed_);
+      }
+      if (((bitField0_ & 0x00000010) == 0x00000010)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt64Size(5, closedTime_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -421,6 +540,8 @@ package org.apache.accumulo.core.replication.proto;
         bitField0_ = (bitField0_ & ~0x00000004);
         closed_ = false;
         bitField0_ = (bitField0_ & ~0x00000008);
+        closedTime_ = 0L;
+        bitField0_ = (bitField0_ & ~0x00000010);
         return this;
       }
 
@@ -465,6 +586,10 @@ package org.apache.accumulo.core.replication.proto;
           to_bitField0_ |= 0x00000008;
         }
         result.closed_ = closed_;
+        if (((from_bitField0_ & 0x00000010) == 0x00000010)) {
+          to_bitField0_ |= 0x00000010;
+        }
+        result.closedTime_ = closedTime_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -492,6 +617,9 @@ package org.apache.accumulo.core.replication.proto;
         }
         if (other.hasClosed()) {
           setClosed(other.getClosed());
+        }
+        if (other.hasClosedTime()) {
+          setClosedTime(other.getClosedTime());
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -524,18 +652,30 @@ package org.apache.accumulo.core.replication.proto;
       private long begin_ ;
       /**
        * <code>optional int64 begin = 1 [default = 0];</code>
+       *
+       * <pre>
+       * offset where replication should start
+       * </pre>
        */
       public boolean hasBegin() {
         return ((bitField0_ & 0x00000001) == 0x00000001);
       }
       /**
        * <code>optional int64 begin = 1 [default = 0];</code>
+       *
+       * <pre>
+       * offset where replication should start
+       * </pre>
        */
       public long getBegin() {
         return begin_;
       }
       /**
        * <code>optional int64 begin = 1 [default = 0];</code>
+       *
+       * <pre>
+       * offset where replication should start
+       * </pre>
        */
       public Builder setBegin(long value) {
         bitField0_ |= 0x00000001;
@@ -545,6 +685,10 @@ package org.apache.accumulo.core.replication.proto;
       }
       /**
        * <code>optional int64 begin = 1 [default = 0];</code>
+       *
+       * <pre>
+       * offset where replication should start
+       * </pre>
        */
       public Builder clearBegin() {
         bitField0_ = (bitField0_ & ~0x00000001);
@@ -557,18 +701,30 @@ package org.apache.accumulo.core.replication.proto;
       private long end_ ;
       /**
        * <code>optional int64 end = 2 [default = 0];</code>
+       *
+       * <pre>
+       * offset where data is ready for replication
+       * </pre>
        */
       public boolean hasEnd() {
         return ((bitField0_ & 0x00000002) == 0x00000002);
       }
       /**
        * <code>optional int64 end = 2 [default = 0];</code>
+       *
+       * <pre>
+       * offset where data is ready for replication
+       * </pre>
        */
       public long getEnd() {
         return end_;
       }
       /**
        * <code>optional int64 end = 2 [default = 0];</code>
+       *
+       * <pre>
+       * offset where data is ready for replication
+       * </pre>
        */
       public Builder setEnd(long value) {
         bitField0_ |= 0x00000002;
@@ -578,6 +734,10 @@ package org.apache.accumulo.core.replication.proto;
       }
       /**
        * <code>optional int64 end = 2 [default = 0];</code>
+       *
+       * <pre>
+       * offset where data is ready for replication
+       * </pre>
        */
       public Builder clearEnd() {
         bitField0_ = (bitField0_ & ~0x00000002);
@@ -590,18 +750,30 @@ package org.apache.accumulo.core.replication.proto;
       private boolean infiniteEnd_ ;
       /**
        * <code>optional bool infiniteEnd = 3 [default = false];</code>
+       *
+       * <pre>
+       * do we have a discrete 'end'
+       * </pre>
        */
       public boolean hasInfiniteEnd() {
         return ((bitField0_ & 0x00000004) == 0x00000004);
       }
       /**
        * <code>optional bool infiniteEnd = 3 [default = false];</code>
+       *
+       * <pre>
+       * do we have a discrete 'end'
+       * </pre>
        */
       public boolean getInfiniteEnd() {
         return infiniteEnd_;
       }
       /**
        * <code>optional bool infiniteEnd = 3 [default = false];</code>
+       *
+       * <pre>
+       * do we have a discrete 'end'
+       * </pre>
        */
       public Builder setInfiniteEnd(boolean value) {
         bitField0_ |= 0x00000004;
@@ -611,6 +783,10 @@ package org.apache.accumulo.core.replication.proto;
       }
       /**
        * <code>optional bool infiniteEnd = 3 [default = false];</code>
+       *
+       * <pre>
+       * do we have a discrete 'end'
+       * </pre>
        */
       public Builder clearInfiniteEnd() {
         bitField0_ = (bitField0_ & ~0x00000004);
@@ -623,18 +799,30 @@ package org.apache.accumulo.core.replication.proto;
       private boolean closed_ ;
       /**
        * <code>optional bool closed = 4 [default = false];</code>
+       *
+       * <pre>
+       * will more data be appended to the file
+       * </pre>
        */
       public boolean hasClosed() {
         return ((bitField0_ & 0x00000008) == 0x00000008);
       }
       /**
        * <code>optional bool closed = 4 [default = false];</code>
+       *
+       * <pre>
+       * will more data be appended to the file
+       * </pre>
        */
       public boolean getClosed() {
         return closed_;
       }
       /**
        * <code>optional bool closed = 4 [default = false];</code>
+       *
+       * <pre>
+       * will more data be appended to the file
+       * </pre>
        */
       public Builder setClosed(boolean value) {
         bitField0_ |= 0x00000008;
@@ -644,10 +832,63 @@ package org.apache.accumulo.core.replication.proto;
       }
       /**
        * <code>optional bool closed = 4 [default = false];</code>
+       *
+       * <pre>
+       * will more data be appended to the file
+       * </pre>
        */
       public Builder clearClosed() {
         bitField0_ = (bitField0_ & ~0x00000008);
         closed_ = false;
+        onChanged();
+        return this;
+      }
+
+      // optional int64 closedTime = 5 [default = 0];
+      private long closedTime_ ;
+      /**
+       * <code>optional int64 closedTime = 5 [default = 0];</code>
+       *
+       * <pre>
+       * when, in ms, was the file closed?
+       * </pre>
+       */
+      public boolean hasClosedTime() {
+        return ((bitField0_ & 0x00000010) == 0x00000010);
+      }
+      /**
+       * <code>optional int64 closedTime = 5 [default = 0];</code>
+       *
+       * <pre>
+       * when, in ms, was the file closed?
+       * </pre>
+       */
+      public long getClosedTime() {
+        return closedTime_;
+      }
+      /**
+       * <code>optional int64 closedTime = 5 [default = 0];</code>
+       *
+       * <pre>
+       * when, in ms, was the file closed?
+       * </pre>
+       */
+      public Builder setClosedTime(long value) {
+        bitField0_ |= 0x00000010;
+        closedTime_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional int64 closedTime = 5 [default = 0];</code>
+       *
+       * <pre>
+       * when, in ms, was the file closed?
+       * </pre>
+       */
+      public Builder clearClosedTime() {
+        bitField0_ = (bitField0_ & ~0x00000010);
+        closedTime_ = 0L;
         onChanged();
         return this;
       }
@@ -677,11 +918,12 @@ package org.apache.accumulo.core.replication.proto;
       descriptor;
   static {
     java.lang.String[] descriptorData = {
-      "\n#src/main/protobuf/replication.proto\"]\n" +
+      "\n#src/main/protobuf/replication.proto\"t\n" +
       "\006Status\022\020\n\005begin\030\001 \001(\003:\0010\022\016\n\003end\030\002 \001(\003:\001" +
       "0\022\032\n\013infiniteEnd\030\003 \001(\010:\005false\022\025\n\006closed\030" +
-      "\004 \001(\010:\005falseB.\n*org.apache.accumulo.core" +
-      ".replication.protoH\001"
+      "\004 \001(\010:\005false\022\025\n\nclosedTime\030\005 \001(\003:\0010B.\n*o" +
+      "rg.apache.accumulo.core.replication.prot" +
+      "oH\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -693,7 +935,7 @@ package org.apache.accumulo.core.replication.proto;
           internal_static_Status_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_Status_descriptor,
-              new java.lang.String[] { "Begin", "End", "InfiniteEnd", "Closed", });
+              new java.lang.String[] { "Begin", "End", "InfiniteEnd", "Closed", "ClosedTime", });
           return null;
         }
       };

@@ -146,7 +146,7 @@ public class StatusCombinerTest {
 
   @Test
   public void commutativeWithClose() {
-    Status newFile = StatusUtil.newFile(), closed = StatusUtil.fileClosed(), secondSync = StatusUtil.ingestedUntil(200);
+    Status newFile = StatusUtil.newFile(), closed = StatusUtil.fileClosed(System.currentTimeMillis()), secondSync = StatusUtil.ingestedUntil(200);
 
     Status order1 = combiner.typedReduce(key, Arrays.asList(newFile, closed, secondSync).iterator()), order2 = combiner.typedReduce(key,
         Arrays.asList(newFile, secondSync, closed).iterator());
@@ -156,7 +156,7 @@ public class StatusCombinerTest {
 
   @Test
   public void commutativeWithCloseSingleBuilder() {
-    Status newFile = StatusUtil.newFile(), closed = StatusUtil.fileClosed(), secondSync = StatusUtil.ingestedUntil(builder, 200);
+    Status newFile = StatusUtil.newFile(), closed = StatusUtil.fileClosed(System.currentTimeMillis()), secondSync = StatusUtil.ingestedUntil(builder, 200);
 
     Status order1 = combiner.typedReduce(key, Arrays.asList(newFile, closed, secondSync).iterator()), order2 = combiner.typedReduce(key,
         Arrays.asList(newFile, secondSync, closed).iterator());

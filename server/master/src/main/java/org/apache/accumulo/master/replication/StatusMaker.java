@@ -31,6 +31,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
+import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
@@ -104,28 +105,39 @@ public class StatusMaker {
         MetadataSchema.ReplicationSection.getFile(entry.getKey(), row);
         MetadataSchema.ReplicationSection.getTableId(entry.getKey(), tableId);
 
-        String rowStr = row.toString();
-        rowStr = rowStr.substring(ReplicationSection.getRowPrefix().length());
+        String file = row.toString();
+        file = file.substring(ReplicationSection.getRowPrefix().length());
 
         Status status;
         try {
           status = Status.parseFrom(entry.getValue().get());
         } catch (InvalidProtocolBufferException e) {
-          log.warn("Could not deserialize protobuf for {}", rowStr);
+          log.warn("Could not deserialize protobuf for {}", file);
           continue;
         }
 
-        log.debug("Creating replication status record for {} on table {} with {}.", rowStr, tableId, ProtobufUtil.toString(status));
+        log.debug("Creating replication status record for {} on table {} with {}.", file, tableId, ProtobufUtil.toString(status));
 
         Span workSpan = Trace.start("createStatusMutations");
         try {
           // Create entries in the replication table from the metadata table
-          addStatusRecord(rowStr, tableId, entry.getValue());
+          if (!addStatusRecord(file, tableId, entry.getValue())) {
+            continue;
+          }
         } finally {
           workSpan.stop();
         }
 
         if (status.getClosed()) {
+          Span orderSpan = Trace.start("recordStatusOrder");
+          try {
+            if (!addOrderRecord(file, tableId, status, entry.getValue())) {
+              continue;
+            }
+          } finally {
+            orderSpan.stop();
+          }
+
           Span deleteSpan = Trace.start("deleteClosedStatus");
           try {
             deleteStatusRecord(entry.getKey());
@@ -149,8 +161,7 @@ public class StatusMaker {
    * @param tableId
    * @param v
    */
-  protected void addStatusRecord(String file, Text tableId, Value v) {
-    // TODO come up with something that tries to avoid creating a new BatchWriter all the time
+  protected boolean addStatusRecord(String file, Text tableId, Value v) {
     try {
       Mutation m = new Mutation(file);
       m.put(StatusSection.NAME, tableId, v);
@@ -159,14 +170,53 @@ public class StatusMaker {
         replicationWriter.addMutation(m);
       } catch (MutationsRejectedException e) {
         log.warn("Failed to write work mutations for replication, will retry", e);
+        return false;
       }
     } finally {
       try {
         replicationWriter.flush();
       } catch (MutationsRejectedException e) {
         log.warn("Failed to write work mutations for replication, will retry", e);
+        return false;
       }
     }
+
+    return true;
+  }
+
+  /**
+   * Create a record to track when the file was closed to ensure that replication preference
+   * is given to files that have been closed the longest and allow the work assigner to try to
+   * replicate in order that data was ingested (avoid replay in different order)
+   * @param file File being replicated
+   * @param tableId Table ID the file was used by
+   * @param stat Status msg
+   * @param value Serialized version of the Status msg
+   */
+  protected boolean addOrderRecord(String file, Text tableId, Status stat, Value value) {
+    try {
+      if (!stat.hasClosedTime()) {
+        log.warn("Status record ({}) for {} in table {} was written to metadata table which was closed but lacked closedTime", ProtobufUtil.toString(stat), file, tableId);
+      }
+
+      Mutation m = OrderSection.createMutation(file, stat.getClosedTime(), tableId, value);
+
+      try {
+        replicationWriter.addMutation(m);
+      } catch (MutationsRejectedException e) {
+        log.warn("Failed to write order mutation for replication, will retry", e);
+        return false;
+      }
+    } finally {
+      try {
+        replicationWriter.flush();
+      } catch (MutationsRejectedException e) {
+        log.warn("Failed to write order mutation for replication, will retry", e);
+        return false;
+      }
+    }
+
+    return true;
   }
 
   /**

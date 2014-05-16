@@ -29,13 +29,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.UUID;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -341,7 +338,7 @@ public class GarbageCollectWriteAheadLogsTest {
     assertFalse(replGC.neededByReplication(conn, "/wals/" + file2));
 
     // The file is closed but not replicated, must be retained
-    replData.add(Maps.immutableEntry(new Key("/wals/" + file1, StatusSection.NAME.toString(), "1"), StatusUtil.fileClosedValue()));
+    replData.add(Maps.immutableEntry(new Key("/wals/" + file1, StatusSection.NAME.toString(), "1"), StatusUtil.fileClosedValue(System.currentTimeMillis())));
     assertTrue(replGC.neededByReplication(conn, "/wals/" + file1));
 
     // File is closed and fully replicated, can be deleted

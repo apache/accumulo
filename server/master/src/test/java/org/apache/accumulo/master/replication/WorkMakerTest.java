@@ -18,7 +18,6 @@ package org.apache.accumulo.master.replication;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -84,8 +83,10 @@ public class WorkMakerTest {
     String tableId = conn.tableOperations().tableIdMap().get(table);
     String file = "hdfs://localhost:8020/accumulo/wal/123456-1234-1234-12345678";
 
+    // Create a status record for a file
+    long timeClosed = System.currentTimeMillis();
     Mutation m = new Mutation(new Path(file).toString());
-    m.put(StatusSection.NAME, new Text(tableId), StatusUtil.fileClosedValue());
+    m.put(StatusSection.NAME, new Text(tableId), StatusUtil.fileClosedValue(timeClosed));
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     bw.addMutation(m);
     bw.flush();
@@ -97,26 +98,23 @@ public class WorkMakerTest {
 
     WorkMaker workMaker = new WorkMaker(conn);
 
+    // Invoke the addWorkRecord method to create a Work record from the Status record earlier
     ReplicationTarget expected = new ReplicationTarget("remote_cluster_1", "4", tableId);
     workMaker.setBatchWriter(bw);
-    workMaker.addWorkRecord(new Text(file), StatusUtil.fileClosedValue(), ImmutableMap.of("remote_cluster_1", "4"), tableId);
+    workMaker.addWorkRecord(new Text(file), StatusUtil.fileClosedValue(timeClosed), ImmutableMap.of("remote_cluster_1", "4"), tableId);
 
+    // Scan over just the WorkSection
     s = ReplicationTable.getScanner(conn);
     WorkSection.limit(s);
 
-    Iterator<Entry<Key,Value>> iter = s.iterator();
-    Assert.assertTrue(iter.hasNext());
-
-    Entry<Key,Value> workEntry = iter.next();
+    Entry<Key,Value> workEntry = Iterables.getOnlyElement(s);
     Key workKey = workEntry.getKey();
     ReplicationTarget actual = ReplicationTarget.from(workKey.getColumnQualifier());
 
     Assert.assertEquals(file, workKey.getRow().toString());
     Assert.assertEquals(WorkSection.NAME, workKey.getColumnFamily());
     Assert.assertEquals(expected, actual);
-    Assert.assertEquals(workEntry.getValue(), StatusUtil.fileClosedValue());
-
-    Assert.assertFalse(iter.hasNext());
+    Assert.assertEquals(workEntry.getValue(), StatusUtil.fileClosedValue(timeClosed));
   }
 
   @Test
@@ -129,7 +127,7 @@ public class WorkMakerTest {
     String file = "hdfs://localhost:8020/accumulo/wal/123456-1234-1234-12345678";
 
     Mutation m = new Mutation(new Path(file).toString());
-    m.put(StatusSection.NAME, new Text(tableId), StatusUtil.fileClosedValue());
+    m.put(StatusSection.NAME, new Text(tableId), StatusUtil.fileClosedValue(System.currentTimeMillis()));
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     bw.addMutation(m);
     bw.flush();
@@ -147,7 +145,7 @@ public class WorkMakerTest {
       expectedTargets.add(new ReplicationTarget(cluster.getKey(), cluster.getValue(), tableId));
     }
     workMaker.setBatchWriter(bw);
-    workMaker.addWorkRecord(new Text(file), StatusUtil.fileClosedValue(), targetClusters, tableId);
+    workMaker.addWorkRecord(new Text(file), StatusUtil.fileClosedValue(System.currentTimeMillis()), targetClusters, tableId);
 
     s = ReplicationTable.getScanner(conn);
     WorkSection.limit(s);

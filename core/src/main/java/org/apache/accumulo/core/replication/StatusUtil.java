@@ -28,8 +28,10 @@ import com.google.protobuf.InvalidProtocolBufferException;
  */
 public class StatusUtil {
 
-  private static final Status NEW_REPLICATION_STATUS, CLOSED_REPLICATION_STATUS, INF_END_REPLICATION_STATUS;
-  private static final Value NEW_REPLICATION_STATUS_VALUE, CLOSED_REPLICATION_STATUS_VALUE, INF_END_REPLICATION_STATUS_VALUE;
+  private static final Status NEW_REPLICATION_STATUS, INF_END_REPLICATION_STATUS;
+  private static final Value NEW_REPLICATION_STATUS_VALUE, INF_END_REPLICATION_STATUS_VALUE;
+
+  private static final Status.Builder CLOSED_STATUS_BUILDER;
 
   static {
     Status.Builder builder = Status.newBuilder();
@@ -40,13 +42,11 @@ public class StatusUtil {
     NEW_REPLICATION_STATUS = builder.build();
     NEW_REPLICATION_STATUS_VALUE = ProtobufUtil.toValue(NEW_REPLICATION_STATUS);
 
-    builder = Status.newBuilder();
-    builder.setBegin(0);
-    builder.setEnd(0);
-    builder.setInfiniteEnd(true);
-    builder.setClosed(true);
-    CLOSED_REPLICATION_STATUS = builder.build();
-    CLOSED_REPLICATION_STATUS_VALUE = ProtobufUtil.toValue(CLOSED_REPLICATION_STATUS);
+    CLOSED_STATUS_BUILDER = Status.newBuilder();
+    CLOSED_STATUS_BUILDER.setBegin(0);
+    CLOSED_STATUS_BUILDER.setEnd(0);
+    CLOSED_STATUS_BUILDER.setInfiniteEnd(true);
+    CLOSED_STATUS_BUILDER.setClosed(true);
 
     builder = Status.newBuilder();
     builder.setBegin(0);
@@ -137,15 +137,17 @@ public class StatusUtil {
   /**
    * @return A {@link Status} for a closed file of unspecified length, all of which needs replicating.
    */
-  public static Status fileClosed() {
-    return CLOSED_REPLICATION_STATUS;
+  public static synchronized Status fileClosed(long timeClosed) {
+    // We're using a shared builder, so we need to synchronize access on it until we make a Status (which is then immutable)
+    CLOSED_STATUS_BUILDER.setClosedTime(timeClosed);
+    return CLOSED_STATUS_BUILDER.build();
   }
 
   /**
    * @return A {@link Value} for a closed file of unspecified length, all of which needs replicating.
    */
-  public static Value fileClosedValue() {
-    return CLOSED_REPLICATION_STATUS_VALUE;
+  public static Value fileClosedValue(long timeClosed) {
+    return ProtobufUtil.toValue(fileClosed(timeClosed));
   }
 
   /**

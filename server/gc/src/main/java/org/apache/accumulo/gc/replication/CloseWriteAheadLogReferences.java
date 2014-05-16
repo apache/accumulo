@@ -250,7 +250,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
   protected void closeWal(BatchWriter bw, Key k) throws MutationsRejectedException {
     log.debug("Closing unreferenced WAL ({}) in metadata table", k.toStringNoTruncate());
     Mutation m = new Mutation(k.getRow());
-    m.put(k.getColumnFamily(), k.getColumnQualifier(), StatusUtil.fileClosedValue());
+    m.put(k.getColumnFamily(), k.getColumnQualifier(), StatusUtil.fileClosedValue(System.currentTimeMillis()));
     bw.addMutation(m);
   }
 

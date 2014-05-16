@@ -1378,13 +1378,6 @@ public class Tablet {
         for (FileRef ref : datafiles.keySet())
           absPaths.add(ref.path().toString());
 
-        // Ensure that we write a record marking each WAL as requiring replication to make sure we don't abandon the data
-        if (ReplicationConfigurationUtil.isEnabled(extent, tabletServer.getTableConfiguration(extent))) {
-          for (LogEntry logEntry : logEntries) {
-            ReplicationTableUtil.updateFiles(SystemCredentials.get(), extent, logEntry.logSet, StatusUtil.fileClosed());
-          }
-        }
-
         tabletServer.recover(this.tabletServer.getFileSystem(), extent, acuTableConf, logEntries, absPaths, new MutationReceiver() {
           @Override
           public void receive(Mutation m) {
@@ -1406,6 +1399,14 @@ public class Tablet {
           tabletTime.useMaxTimeFromWALog(count[1]);
         }
         commitSession.updateMaxCommittedTime(tabletTime.getTime());
+
+        // Ensure that we write a record marking each WAL as requiring replication to make sure we don't abandon the data
+        if (ReplicationConfigurationUtil.isEnabled(extent, tabletServer.getTableConfiguration(extent))) {
+          long timeClosed = System.currentTimeMillis();
+          for (LogEntry logEntry : logEntries) {
+            ReplicationTableUtil.updateFiles(SystemCredentials.get(), extent, logEntry.logSet, StatusUtil.fileClosed(timeClosed));
+          }
+        }
 
         if (count[0] == 0) {
           MetadataTableUtil.removeUnusedWALEntries(extent, logEntries, tabletServer.getLock());
