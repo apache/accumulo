@@ -46,6 +46,8 @@ public class UniqueFileReplicator implements VfsComponent, FileReplicator {
 
   public UniqueFileReplicator(File tempDir) {
     this.tempDir = tempDir;
+    if (!tempDir.exists() && !tempDir.mkdirs())
+      log.warn("Unexpected error creating directory " + tempDir);
   }
 
   @Override
@@ -53,8 +55,6 @@ public class UniqueFileReplicator implements VfsComponent, FileReplicator {
     String baseName = srcFile.getName().getBaseName();
 
     try {
-      if (!tempDir.mkdirs())
-        log.warn("Unexpected error creating directory " + tempDir);
       String safeBasename = UriParser.encode(baseName, TMP_RESERVED_CHARS).replace('%', '_');
       File file = File.createTempFile("vfsr_", "_" + safeBasename, tempDir);
       file.deleteOnExit();
