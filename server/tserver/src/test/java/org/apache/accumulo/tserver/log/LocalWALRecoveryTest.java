@@ -24,9 +24,7 @@ import static org.junit.Assert.assertEquals;
 import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
-import java.util.UUID;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -36,6 +34,7 @@ import org.apache.accumulo.tserver.log.DfsLogger.DFSLoggerInputStreams;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.Before;
@@ -69,23 +68,14 @@ public class LocalWALRecoveryTest {
 
   @Test
   public void testRecoverLocalWriteAheadLogs() throws IOException {
-    FileSystem fs = FileSystem.get(walTarget.toURI(), new Configuration());
+    Path targetPath = new Path(walTarget.toURI());
+    FileSystem fs = FileSystem.get(targetPath.toUri(), new Configuration());
     recovery.recoverLocalWriteAheadLogs(fs);
 
-    assertEquals("Wrong number of WAL files recovered.", 1, walTarget.list(new FilenameFilter() {
-      @Override
-      public boolean accept(File dir, String name) {
-        try {
-          // Filter out the CRC file
-          UUID.fromString(name);
-          return true;
-        } catch (IllegalArgumentException e) {
-          return false;
-        }
-      }
-    }).length);
+    FileStatus[] recovered = fs.listStatus(targetPath);
+    assertEquals("Wrong number of WAL files recovered.", 1, recovered.length);
 
-    final Path path = new Path(walTarget.listFiles()[0].getAbsolutePath());
+    final Path path = recovered[0].getPath();
     final VolumeManager volumeManager = VolumeManagerImpl.getLocal(folder.getRoot().getAbsolutePath());
 
     final DFSLoggerInputStreams streams = DfsLogger.readHeaderAndReturnStream(volumeManager, path, configuration);

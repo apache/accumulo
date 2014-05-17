@@ -41,6 +41,9 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
   @Override
   public void readFields(DataInput in) throws IOException {
     int value = in.readByte();
+    if (value >= LogEvents.values().length) {
+      throw new IOException("Invalid LogEvent type, got ordinal " + value + ", but only know about " + LogEvents.values().length + " possible types.");
+    }
     event = LogEvents.values()[value];
     switch (event) {
       case OPEN:
