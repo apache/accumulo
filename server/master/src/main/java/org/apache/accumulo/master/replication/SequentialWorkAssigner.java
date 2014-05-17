@@ -228,7 +228,7 @@ public class SequentialWorkAssigner extends AbstractWorkAssigner {
     OrderSection.limit(s);
 
     Text buffer = new Text();
-    for (Entry<Key,Value> entry : s) {
+    for (Entry<Key,Value> orderEntry : s) {
       // If we're not working off the entries, we need to not shoot ourselves in the foot by continuing
       // to add more work entries
       if (queuedWorkByPeerName.size() > maxQueueSize) {
@@ -237,8 +237,8 @@ public class SequentialWorkAssigner extends AbstractWorkAssigner {
         return;
       }
 
-      String file = OrderSection.getFile(entry.getKey(), buffer);
-      OrderSection.getTableId(entry.getKey(), buffer);
+      String file = OrderSection.getFile(orderEntry.getKey(), buffer);
+      OrderSection.getTableId(orderEntry.getKey(), buffer);
       String sourceTableId = buffer.toString();
 
       Scanner workScanner;
@@ -266,7 +266,7 @@ public class SequentialWorkAssigner extends AbstractWorkAssigner {
         }
 
         // Get the ReplicationTarget for this Work record
-        ReplicationTarget target = WorkSection.getTarget(entry.getKey(), buffer);
+        ReplicationTarget target = WorkSection.getTarget(workEntry.getKey(), buffer);
 
         Map<String,String> queuedWorkForPeer = queuedWorkByPeerName.get(target.getPeerName());
         if (null == queuedWorkForPeer) {
