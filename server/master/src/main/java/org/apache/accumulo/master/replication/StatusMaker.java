@@ -87,7 +87,7 @@ public class StatusMaker {
       s.fetchColumnFamily(ReplicationSection.COLF);
       s.setRange(ReplicationSection.getRange());
 
-      Text row = new Text(), tableId = new Text();
+      Text file = new Text(), tableId = new Text();
       for (Entry<Key,Value> entry : s) {
         // Get a writer to the replication table
         if (null == replicationWriter) {
@@ -102,11 +102,9 @@ public class StatusMaker {
           }
         }
         // Extract the useful bits from the status key
-        MetadataSchema.ReplicationSection.getFile(entry.getKey(), row);
+        MetadataSchema.ReplicationSection.getFile(entry.getKey(), file);
         MetadataSchema.ReplicationSection.getTableId(entry.getKey(), tableId);
 
-        String file = row.toString();
-        file = file.substring(ReplicationSection.getRowPrefix().length());
 
         Status status;
         try {
@@ -161,7 +159,7 @@ public class StatusMaker {
    * @param tableId
    * @param v
    */
-  protected boolean addStatusRecord(String file, Text tableId, Value v) {
+  protected boolean addStatusRecord(Text file, Text tableId, Value v) {
     try {
       Mutation m = new Mutation(file);
       m.put(StatusSection.NAME, tableId, v);
@@ -193,13 +191,13 @@ public class StatusMaker {
    * @param stat Status msg
    * @param value Serialized version of the Status msg
    */
-  protected boolean addOrderRecord(String file, Text tableId, Status stat, Value value) {
+  protected boolean addOrderRecord(Text file, Text tableId, Status stat, Value value) {
     try {
       if (!stat.hasClosedTime()) {
         log.warn("Status record ({}) for {} in table {} was written to metadata table which was closed but lacked closedTime", ProtobufUtil.toString(stat), file, tableId);
       }
 
-      Mutation m = OrderSection.createMutation(file, stat.getClosedTime());
+      Mutation m = OrderSection.createMutation(file.toString(), stat.getClosedTime());
       OrderSection.add(m, tableId, value);
 
       try {

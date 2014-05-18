@@ -28,7 +28,9 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.StatusUtil;
+import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.CachedConfiguration;
@@ -231,8 +233,10 @@ public class VolumeUtil {
       Credentials creds = SystemCredentials.get();
       MetadataTableUtil.updateTabletVolumes(extent, logsToRemove, logsToAdd, filesToRemove, filesToAdd, switchedDir, zooLock, creds);
       if (replicate) {
+        Status status = StatusUtil.fileClosed(System.currentTimeMillis());
+        log.debug("Tablet directory switched, need to record old log files " + logsToRemove + " " + ProtobufUtil.toString(status));
         // Before deleting these logs, we need to mark them for replication
-        ReplicationTableUtil.updateLogs(creds, extent, logsToRemove, StatusUtil.fileClosed(System.currentTimeMillis()));
+        ReplicationTableUtil.updateLogs(creds, extent, logsToRemove, status);
       }
     }
 

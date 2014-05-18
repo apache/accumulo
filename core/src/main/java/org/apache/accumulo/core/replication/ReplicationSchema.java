@@ -25,7 +25,10 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
@@ -33,6 +36,7 @@ import com.google.common.base.Preconditions;
  * 
  */
 public class ReplicationSchema {
+  private static final Logger log = LoggerFactory.getLogger(ReplicationSchema.class);
 
   /**
    * Portion of a file that must be replication to the given target: peer and some identifying location on that peer, e.g. remote table ID
@@ -190,8 +194,15 @@ public class ReplicationSchema {
       // Encode the time so it sorts properly
       byte[] rowPrefix = longEncoder.encode(timeInMillis);
       Text row = new Text(rowPrefix);
+
+      // Normalize the file using Path
+      Path p = new Path(file);
+      String pathString = p.toUri().toString();
+
+      log.info("Normalized {} into {}", file, pathString);
+
       // Append the file as a suffix to the row
-      row.append((ROW_SEPARATOR+file).getBytes(), 0, file.length() + ROW_SEPARATOR.length());
+      row.append((ROW_SEPARATOR+pathString).getBytes(), 0, pathString.length() + ROW_SEPARATOR.length());
 
       // Make the mutation and add the column update
       return new Mutation(row);

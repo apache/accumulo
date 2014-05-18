@@ -34,6 +34,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -273,6 +274,7 @@ public class TabletServerLogger {
                 for (DfsLogger logger : copy) {
                   logs.add(logger.getFileName());
                 }
+                log.debug("Writing " + ProtobufUtil.toString(StatusUtil.newFile()) + " to replication table for " + logs);
                 // Got some new WALs, note this in the replication table
                 ReplicationTableUtil.updateFiles(SystemCredentials.get(), commitSession.getExtent(), logs, StatusUtil.newFile());
               }

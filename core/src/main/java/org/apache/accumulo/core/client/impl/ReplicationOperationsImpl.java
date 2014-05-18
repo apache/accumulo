@@ -45,6 +45,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
+import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
@@ -52,6 +53,7 @@ import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.trace.instrument.Tracer;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,6 +115,8 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
   public void drain(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     checkNotNull(tableName);
 
+    log.debug("Waiting to drain {}", tableName);
+
     Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
     TableOperations tops = conn.tableOperations();
     while (!tops.exists(ReplicationTable.NAME)) {
@@ -132,6 +136,10 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
     }
 
     Text tableId = new Text(strTableId);
+
+    log.debug("Found {} id for {}", strTableId, tableName);
+
+    // Get the WALs currently referenced by the table
     BatchScanner metaBs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4); 
     metaBs.setRanges(Collections.singleton(MetadataSchema.TabletsSection.getRange(strTableId)));
     metaBs.fetchColumnFamily(LogColumnFamily.NAME);
@@ -139,12 +147,34 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
     try {
       for (Entry<Key,Value> entry : metaBs) {
         LogEntry logEntry = LogEntry.fromKeyValue(entry.getKey(), entry.getValue());
-        wals.addAll(logEntry.logSet);
+        for (String log : logEntry.logSet) {
+          wals.add(new Path(log).toString());
+        }
       }
     } finally {
       metaBs.close();
     }
 
+    // And the WALs that need to be replicated for this table
+    metaBs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
+    metaBs.setRanges(Collections.singleton(ReplicationSection.getRange()));
+    metaBs.fetchColumnFamily(ReplicationSection.COLF);
+    try {
+      Text buffer = new Text();
+      for (Entry<Key,Value> entry : metaBs) {
+        ReplicationSection.getTableId(entry.getKey(), buffer);
+        if (buffer.equals(tableId)) {
+          ReplicationSection.getFile(entry.getKey(), buffer);
+          wals.add(buffer.toString());
+        }
+      }
+    } finally {
+      metaBs.close();
+    }
+
+    log.info("Waiting for {} to be replicated for {}", wals, tableId);
+
+    log.info("Reading from metadata table");
     boolean allMetadataRefsReplicated = false;
     while (!allMetadataRefsReplicated) {
       BatchScanner bs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
@@ -161,6 +191,7 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
       }
     }
 
+    log.info("reading from replication table");
     boolean allReplicationRefsReplicated = false;
     while (!allReplicationRefsReplicated) {
       BatchScanner bs = conn.createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
@@ -181,18 +212,30 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
    * @return return true records are only in place which are fully replicated
    */
   protected boolean allReferencesReplicated(BatchScanner bs, Text tableId, Set<String> relevantLogs) {
-    Text holder = new Text();
+    Text rowHolder = new Text(), colfHolder = new Text();
     for (Entry<Key,Value> entry : bs) {
-      entry.getKey().getColumnQualifier(holder);
-      if (tableId.equals(holder)) {
-        entry.getKey().getRow(holder);
-        String row = holder.toString();
-        if (row.startsWith(ReplicationSection.getRowPrefix())) {
+      log.info("Got key {}", entry.getKey().toStringNoTruncate());
+
+      entry.getKey().getColumnQualifier(rowHolder);
+      if (tableId.equals(rowHolder)) {
+        entry.getKey().getRow(rowHolder);
+        entry.getKey().getColumnFamily(colfHolder);
+
+        String row;
+        if (colfHolder.equals(ReplicationSection.COLF)) {
+          row = rowHolder.toString();
           row = row.substring(ReplicationSection.getRowPrefix().length());
+        } else if (colfHolder.equals(OrderSection.NAME)) {
+          row = OrderSection.getFile(entry.getKey(), rowHolder);
+        } else {
+          row = rowHolder.toString();
         }
+
+        log.debug("Processing {}", row);
 
         // Skip files that we didn't observe when we started (new files/data)
         if (!relevantLogs.contains(row)) {
+          log.debug("Found file that we didn't care about {}", row);
           continue;
         }
 

@@ -87,8 +87,10 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
+import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
 import org.apache.accumulo.core.replication.StatusUtil;
+import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.Credentials;
@@ -891,7 +893,7 @@ public class Tablet {
             // Mark that we have data we want to replicate
             // This WAL could still be in use by other Tablets though
           if (replicate) {
-            ReplicationTableUtil.updateFiles(SystemCredentials.get(), extent, logFileOnly, StatusUtil.openWithUnknownLength());
+            ReplicationTableUtil.updateFiles(SystemCredentials.get(), extent, logFileOnly, StatusUtil.fileClosed(System.currentTimeMillis()));
           }
         }
 
@@ -1402,9 +1404,10 @@ public class Tablet {
 
         // Ensure that we write a record marking each WAL as requiring replication to make sure we don't abandon the data
         if (ReplicationConfigurationUtil.isEnabled(extent, tabletServer.getTableConfiguration(extent))) {
-          long timeClosed = System.currentTimeMillis();
+          Status status = StatusUtil.fileClosed(System.currentTimeMillis());
           for (LogEntry logEntry : logEntries) {
-            ReplicationTableUtil.updateFiles(SystemCredentials.get(), extent, logEntry.logSet, StatusUtil.fileClosed(timeClosed));
+            log.debug("Writing closed status to replication table for " + logEntry.logSet + " " + ProtobufUtil.toString(status));
+            ReplicationTableUtil.updateFiles(SystemCredentials.get(), extent, logEntry.logSet, status);
           }
         }
 
