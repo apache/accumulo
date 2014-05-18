@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.replication;
 
 import java.util.Arrays;
+import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -27,14 +28,16 @@ import org.apache.accumulo.core.client.impl.ReplicationOperationsImpl;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.replication.ReplicationTable;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.hadoop.io.Text;
@@ -340,14 +343,11 @@ public class ReplicationOperationsImplTest {
     Status stat = Status.newBuilder().setBegin(0).setEnd(10000).setInfiniteEnd(false).setClosed(false).build();
 
     BatchWriter bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
-
     Mutation m = new Mutation(file1);
     StatusSection.add(m, tableId1, ProtobufUtil.toValue(stat));
     bw.addMutation(m);
     bw.close();
 
-    // We create a file which is only the replication record, but without a corresponding log entry
-    // We can do this to fake a WAL that was "added" after we first called drain()
     bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);
     m.put(ReplicationSection.COLF, tableId1, ProtobufUtil.toValue(stat));
@@ -355,7 +355,12 @@ public class ReplicationOperationsImplTest {
 
     bw.close();
 
-    final AtomicBoolean done = new AtomicBoolean(false);
+    System.out.println("Reading metadata first time");
+    for (Entry<Key,Value> e : conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      System.out.println(e.getKey());
+    }
+
+    final AtomicBoolean done = new AtomicBoolean(false), firstRunComplete = new AtomicBoolean(false);
     final AtomicBoolean exception = new AtomicBoolean(false);
     final ReplicationOperationsImpl roi = new ReplicationOperationsImpl(inst, new Credentials("root", new PasswordToken("")));
     Thread t = new Thread(new Runnable() {
@@ -373,13 +378,37 @@ public class ReplicationOperationsImplTest {
 
     t.start();
 
+    // We need to wait long enough for the table to read once
+    Thread.sleep(2000);
+
+    // Write another file, but also delete the old files
+    bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    m = new Mutation(ReplicationSection.getRowPrefix() + "/accumulo/wals/tserver+port/" + UUID.randomUUID());
+    m.put(ReplicationSection.COLF, tableId1, ProtobufUtil.toValue(stat));
+    bw.addMutation(m);
+    m = new Mutation(ReplicationSection.getRowPrefix() + file1);
+    m.putDelete(ReplicationSection.COLF, tableId1);
+    bw.addMutation(m);
+    bw.close();
+
+    System.out.println("Reading metadata second time");
+    for (Entry<Key,Value> e : conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      System.out.println(e.getKey());
+    }
+
+    bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
+    m = new Mutation(file1);
+    m.putDelete(StatusSection.NAME, tableId1);
+    bw.addMutation(m);
+    bw.close();
+
     try {
       t.join(5000);
     } catch (InterruptedException e) {
       Assert.fail("ReplicationOperatiotns.drain did not complete");
     }
 
-    // We should pass immediately
+    // We should pass immediately because we aren't waiting on both files to be deleted (just the one that we did)
     Assert.assertTrue(done.get());
   }
 

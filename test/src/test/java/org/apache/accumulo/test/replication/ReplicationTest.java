@@ -63,7 +63,7 @@ public class ReplicationTest extends ConfigurableMacIT {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
-    // Run the master work maker infrequently
+    // Run the master replication loop run frequently
     cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "0");
     cfg.setNumTservers(1);
   }
@@ -240,6 +240,7 @@ public class ReplicationTest extends ConfigurableMacIT {
 
     // Verify that we found a single replication record that's for table1
     Scanner s = ReplicationTable.getScanner(conn, new Authorizations());
+    StatusSection.limit(s);
     Iterator<Entry<Key,Value>> iter = s.iterator();
     attempts = 5;
     while (attempts > 0) {
@@ -255,8 +256,8 @@ public class ReplicationTest extends ConfigurableMacIT {
     }
     Assert.assertTrue(iter.hasNext());
     Entry<Key,Value> entry = iter.next();
+    // We should at least find one status record for this table, we might find a second if another log was started from ingesting the data
     Assert.assertEquals("Expected to find replication entry for " + table1, conn.tableOperations().tableIdMap().get(table1), entry.getKey().getColumnQualifier().toString());
-    Assert.assertFalse(iter.hasNext());
     s.close();
 
     // Enable replication on table2
@@ -287,6 +288,7 @@ public class ReplicationTest extends ConfigurableMacIT {
 
     // Verify that we found two replication records: one for table1 and one for table2
     s = ReplicationTable.getScanner(conn, new Authorizations());
+    StatusSection.limit(s);
     iter = s.iterator();
     Assert.assertTrue("Found no records in replication table", iter.hasNext());
     entry = iter.next();
