@@ -71,9 +71,7 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
           }
         }
 
-        for (Mutation m : value.mutations) {
-          log.info("Mutation with for {} came from {}", new String(m.getRow()), m.getReplicationSources());
-        }
+        log.info("Applying {} updates to table {} as part of batch", value.mutations.size(), tableName);
 
         try {
           bw.addMutations(value.mutations);
@@ -94,6 +92,8 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
         }
       }
     }
+
+    log.info("Applied {} mutations in total to {}", mutationsApplied, tableName);
 
     return mutationsApplied;
   }

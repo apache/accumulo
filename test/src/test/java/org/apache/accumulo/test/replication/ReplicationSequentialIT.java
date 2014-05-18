@@ -152,9 +152,9 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
     log.debug("");
     for (Entry<Key,Value> kv : connMaster.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       if (ReplicationSection.COLF.equals(kv.getKey().getColumnFamily())) {
-        log.debug(kv.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+        log.info(kv.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
       } else {
-        log.debug(kv.getKey().toStringNoTruncate() + " " + kv.getValue());
+        log.info(kv.getKey().toStringNoTruncate() + " " + kv.getValue());
       }
     }
 
@@ -171,31 +171,28 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
 
     connMaster.tableOperations().compact(masterTable, null, null, true, true);
 
-    log.debug("");
+    log.info("");
     log.info("Compaction completed");
 
     log.debug("");
     for (Entry<Key,Value> kv : connMaster.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       if (ReplicationSection.COLF.equals(kv.getKey().getColumnFamily())) {
-        log.debug(kv.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+        log.info(kv.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
       } else {
-        log.debug(kv.getKey().toStringNoTruncate() + " " + kv.getValue());
+        log.info(kv.getKey().toStringNoTruncate() + " " + kv.getValue());
       }
     }
 
-    // We need to wait long enough for the records to make it from the metadata table to the replication table
-//    Thread.sleep(5000);
     try {
       future.get(15, TimeUnit.SECONDS);
     } catch (TimeoutException e) {
       Assert.fail("Drain did not finish within 5 seconds");
     }
 
-    log.debug("");
+    log.info("");
     for (Entry<Key,Value> kv : connMaster.createScanner(ReplicationTable.NAME, Authorizations.EMPTY)) {
-      log.debug(kv.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+      log.info(kv.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
     }
-
 
     Scanner master = connMaster.createScanner(masterTable, Authorizations.EMPTY), peer = connPeer.createScanner(peerTable, Authorizations.EMPTY);
     Iterator<Entry<Key,Value>> masterIter = master.iterator(), peerIter = peer.iterator();

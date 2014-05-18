@@ -200,7 +200,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
                   if (0 < edits.walEdits.getEditsSize()) {
                     long entriesReplicated = client.replicateLog(remoteTableId, edits.walEdits);
                     if (entriesReplicated != edits.numUpdates) {
-                      log.warn("Sent {} WAL entries for replication but only {} were reported as replicated", edits.walEdits.getEditsSize(), entriesReplicated);
+                      log.warn("Sent {} WAL entries for replication but {} were reported as replicated", edits.numUpdates, entriesReplicated);
                     }
 
                     // We don't have to replicate every LogEvent in the file (only Mutation LogEvents), but we
