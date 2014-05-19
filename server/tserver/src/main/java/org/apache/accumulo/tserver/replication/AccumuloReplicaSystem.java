@@ -343,7 +343,6 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
    */
   protected long writeValueAvoidingReplicationCycles(DataOutputStream out, LogFileValue value, ReplicationTarget target) throws IOException {
     int mutationsToSend = 0;
-    long numUpdates = 0l;
     for (Mutation m : value.mutations) {
       if (!m.getReplicationSources().contains(target.getPeerName())) {
         mutationsToSend++;
@@ -356,7 +355,6 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     for (Mutation m : value.mutations) {
       // If we haven't yet replicated to this peer
       if (!m.getReplicationSources().contains(target.getPeerName())) {
-        numUpdates += m.size();
         // Add our name, and send it
         String name = conf.get(Property.REPLICATION_NAME);
         if (StringUtils.isBlank(name)) {
@@ -369,7 +367,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       }
     }
 
-    return numUpdates;
+    return mutationsToSend;
   }
 
   public static class ReplicationStats {
@@ -421,10 +419,10 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
      */
     public long numUpdates;
 
-    public WalReplication(WalEdits edits, long size, long entriesConsumed, long numUpdates) {
+    public WalReplication(WalEdits edits, long size, long entriesConsumed, long numMutations) {
       super(size, edits.getEditsSize(), entriesConsumed);
       this.walEdits = edits;
-      this.numUpdates = numUpdates;
+      this.numUpdates = numMutations;
     }
   }
 }
