@@ -1407,7 +1407,7 @@ public class Tablet {
         if (ReplicationConfigurationUtil.isEnabled(extent, tabletServer.getTableConfiguration(extent))) {
           Status status = StatusUtil.fileClosed(System.currentTimeMillis());
           for (LogEntry logEntry : logEntries) {
-            log.debug("Writing closed status to replication table for " + logEntry.logSet + " " + ProtobufUtil.toString(status));
+            log.debug("Writing closed status to metadata table for " + logEntry.logSet + " " + ProtobufUtil.toString(status));
             ReplicationTableUtil.updateFiles(SystemCredentials.get(), extent, logEntry.logSet, status);
           }
         }

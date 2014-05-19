@@ -18,6 +18,7 @@ package org.apache.accumulo.test.replication;
 
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -160,6 +161,8 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
       }
     }
 
+    final Set<String> filesNeedingReplication = connMaster.replicationOperations().referencedFiles(masterTable);
+
     for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
       cluster.killProcess(ServerType.TABLET_SERVER, proc);
     }
@@ -189,7 +192,7 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
 
       @Override
       public Boolean call() throws Exception {
-        connMaster.replicationOperations().drain(masterTable);
+        connMaster.replicationOperations().drain(masterTable, filesNeedingReplication);
         log.info("Drain completed");
         return true;
       }
@@ -200,7 +203,7 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
       future.get(30, TimeUnit.SECONDS);
     } catch (TimeoutException e) {
       future.cancel(true);
-      Assert.fail("Drain did not finish within 5 seconds");
+      Assert.fail("Drain did not finish within 30 seconds");
     }
 
     log.info("drain completed");
@@ -297,11 +300,13 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
 
       // Write some data to table1
       BatchWriter bw = connMaster.createBatchWriter(masterTable1, new BatchWriterConfig());
+      long masterTable1Records = 0l; 
       for (int rows = 0; rows < 2500; rows++) {
         Mutation m = new Mutation(masterTable1 + rows);
         for (int cols = 0; cols < 100; cols++) {
           String value = Integer.toString(cols);
           m.put(value, "", value);
+          masterTable1Records++;
         }
         bw.addMutation(m);
       }
@@ -310,11 +315,13 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
 
       // Write some data to table2
       bw = connMaster.createBatchWriter(masterTable2, new BatchWriterConfig());
+      long masterTable2Records = 0l;
       for (int rows = 0; rows < 2500; rows++) {
         Mutation m = new Mutation(masterTable2 + rows);
         for (int cols = 0; cols < 100; cols++) {
           String value = Integer.toString(cols);
           m.put(value, "", value);
+          masterTable2Records++;
         }
         bw.addMutation(m);
       }
@@ -327,6 +334,9 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
         Thread.sleep(500);
       }
 
+      Set<String> filesFor1 = connMaster.replicationOperations().referencedFiles(masterTable1), filesFor2 = connMaster.replicationOperations().referencedFiles(
+          masterTable2);
+
       // Restart the tserver to force a close on the WAL
       for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
         cluster.killProcess(ServerType.TABLET_SERVER, proc);
@@ -335,22 +345,15 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
 
       log.info("Restarted the tserver");
 
-      // Wait until we fully replicated something
-      boolean fullyReplicated = false;
-      for (int i = 0; i < 10 && !fullyReplicated; i++) {
-        UtilWaitThread.sleep(2000);
+      // Read the data -- the tserver is back up and running
+      for (@SuppressWarnings("unused") Entry<Key,Value> entry : connMaster.createScanner(masterTable1, Authorizations.EMPTY)) {}
 
-        Scanner s = ReplicationTable.getScanner(connMaster);
-        WorkSection.limit(s);
-        for (Entry<Key,Value> entry : s) {
-          Status status = Status.parseFrom(entry.getValue().get());
-          if (StatusUtil.isFullyReplicated(status)) {
-            fullyReplicated |= true;
-          }
-        }
-      }
+      // Wait for both tables to be replicated
+      log.info("Waiting for {} for {}", filesFor1, masterTable1);
+      connMaster.replicationOperations().drain(masterTable1, filesFor1);
 
-      Assert.assertNotEquals(0, fullyReplicated);
+      log.info("Waiting for {} for {}", filesFor2, masterTable2);
+      connMaster.replicationOperations().drain(masterTable2, filesFor2);
 
       long countTable = 0l;
       for (Entry<Key,Value> entry : connPeer.createScanner(peerTable1, Authorizations.EMPTY)) {
@@ -360,7 +363,7 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
       }
 
       log.info("Found {} records in {}", countTable, peerTable1);
-      Assert.assertTrue(countTable > 0);
+      Assert.assertEquals(masterTable1Records, countTable);
 
       countTable = 0l;
       for (Entry<Key,Value> entry : connPeer.createScanner(peerTable2, Authorizations.EMPTY)) {
@@ -370,7 +373,7 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
       }
 
       log.info("Found {} records in {}", countTable, peerTable2);
-      Assert.assertTrue(countTable > 0);
+      Assert.assertEquals(masterTable2Records, countTable);
 
     } finally {
       peer1Cluster.stop();

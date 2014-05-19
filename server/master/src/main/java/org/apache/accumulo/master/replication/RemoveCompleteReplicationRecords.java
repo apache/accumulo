@@ -33,7 +33,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
-import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
@@ -145,6 +144,7 @@ public class RemoveCompleteReplicationRecords implements Runnable {
 
     Mutation m = new Mutation(row);
     Status status = null;
+    long closedTime = -1l;
     for (Entry<Key,Value> entry : columns.entrySet()) {
       try {
         status = Status.parseFrom(entry.getValue().get());
@@ -156,6 +156,14 @@ public class RemoveCompleteReplicationRecords implements Runnable {
       // If a column in the row isn't ready for removal, we keep the whole row
       if (!StatusUtil.isSafeForRemoval(status)) {
         return 0l;
+      }
+
+      if (status.hasClosedTime()) {
+        if (closedTime == -1) {
+          closedTime = status.getClosedTime();
+        } else if (closedTime != status.getClosedTime()) {
+          log.warn("Inconsistent closed time for {}, values seen: {} and {}", row, closedTime, status.getClosedTime());
+        }
       }
 
       Key k = entry.getKey();
@@ -172,6 +180,7 @@ public class RemoveCompleteReplicationRecords implements Runnable {
     ReplicationTarget target = ReplicationTarget.from(colq);
 
     Mutation orderMutation = OrderSection.createMutation(row.toString(), status.getClosedTime());
+    log.info("Deleting {} from order section with tableID {}", new Key(new Text(orderMutation.getRow())).toStringNoTruncate(), target.getSourceTableId());
     orderMutation.putDelete(OrderSection.NAME, new Text(target.getSourceTableId()));
 
     // Send the mutation deleting all the columns at once.

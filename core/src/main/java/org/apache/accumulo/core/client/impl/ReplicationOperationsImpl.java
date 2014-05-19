@@ -193,21 +193,23 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
         entry.getKey().getRow(rowHolder);
         entry.getKey().getColumnFamily(colfHolder);
 
-        String row;
+        String file;
         if (colfHolder.equals(ReplicationSection.COLF)) {
-          row = rowHolder.toString();
-          row = row.substring(ReplicationSection.getRowPrefix().length());
+          file = rowHolder.toString();
+          file = file.substring(ReplicationSection.getRowPrefix().length());
         } else if (colfHolder.equals(OrderSection.NAME)) {
-          row = OrderSection.getFile(entry.getKey(), rowHolder);
+          file = OrderSection.getFile(entry.getKey(), rowHolder);
+          long timeClosed = OrderSection.getTimeClosed(entry.getKey(), rowHolder);
+          log.debug("Order section: {} and {}", timeClosed, file);
         } else {
-          row = rowHolder.toString();
+          file = rowHolder.toString();
         }
 
-        log.debug("Processing {}", row);
+        log.debug("Evaluating if {} is still needed", file);
 
         // Skip files that we didn't observe when we started (new files/data)
-        if (!relevantLogs.contains(row)) {
-          log.debug("Found file that we didn't care about {}", row);
+        if (!relevantLogs.contains(file)) {
+          log.debug("Found file that we didn't care about {}", file);
           continue;
         }
 

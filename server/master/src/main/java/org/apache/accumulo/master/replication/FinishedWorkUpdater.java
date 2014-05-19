@@ -94,7 +94,7 @@ public class FinishedWorkUpdater implements Runnable {
           continue;
         }
 
-        log.debug("Processing work progress from {}", serializedRow.getKey().getRow());
+        log.debug("Processing work progress for {}", serializedRow.getKey().getRow());
 
         Map<String,Long> tableIdToProgress = new HashMap<>();
         boolean error = false;
@@ -122,6 +122,10 @@ public class FinishedWorkUpdater implements Runnable {
 
           // Find the minimum value for begin (everyone has replicated up to this offset in the file)
           tableIdToProgress.put(target.getSourceTableId(), Math.min(tableIdToProgress.get(target.getSourceTableId()), status.getBegin()));
+        }
+
+        for (Entry<String,Long> progressByTable : tableIdToProgress.entrySet()) {
+          log.debug("For {}, source table ID {} has replicated through {}", serializedRow.getKey().getRow(), progressByTable.getKey(), progressByTable.getValue());
         }
 
         if (error) {
