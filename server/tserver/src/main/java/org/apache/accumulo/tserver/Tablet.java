@@ -890,10 +890,11 @@ public class Tablet {
           MasterMetadataUtil.updateTabletDataFile(extent, newDatafile, absMergeFile, dfv, time, SystemCredentials.get(), filesInUseByScans,
               tabletServer.getClientAddressString(), tabletServer.getLock(), unusedWalLogs, lastLocation, flushId);
 
-            // Mark that we have data we want to replicate
-            // This WAL could still be in use by other Tablets though
+          // Mark that we have data we want to replicate
+          // This WAL could still be in use by other Tablets though, so we can mark that there is data to replicate,
+          // but it is *not* closed
           if (replicate) {
-            ReplicationTableUtil.updateFiles(SystemCredentials.get(), extent, logFileOnly, StatusUtil.fileClosed(System.currentTimeMillis()));
+            ReplicationTableUtil.updateFiles(SystemCredentials.get(), extent, logFileOnly, StatusUtil.openWithUnknownLength());
           }
         }
 
