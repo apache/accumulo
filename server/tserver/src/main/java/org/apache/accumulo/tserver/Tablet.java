@@ -1403,18 +1403,27 @@ public class Tablet {
         }
         commitSession.updateMaxCommittedTime(tabletTime.getTime());
 
-        // Ensure that we write a record marking each WAL as requiring replication to make sure we don't abandon the data
-        if (ReplicationConfigurationUtil.isEnabled(extent, tabletServer.getTableConfiguration(extent))) {
-          Status status = StatusUtil.fileClosed(System.currentTimeMillis());
-          for (LogEntry logEntry : logEntries) {
-            log.debug("Writing closed status to metadata table for " + logEntry.logSet + " " + ProtobufUtil.toString(status));
-            ReplicationTableUtil.updateFiles(SystemCredentials.get(), extent, logEntry.logSet, status);
-          }
-        }
-
         if (count[0] == 0) {
           MetadataTableUtil.removeUnusedWALEntries(extent, logEntries, tabletServer.getLock());
+
+          // Ensure that we write a record marking each WAL as requiring replication to make sure we don't abandon the data
+          if (ReplicationConfigurationUtil.isEnabled(extent, tabletServer.getTableConfiguration(extent))) {
+            Status status = StatusUtil.fileClosed(System.currentTimeMillis());
+            for (LogEntry logEntry : logEntries) {
+              log.debug("Writing closed status to metadata table for " + logEntry.logSet + " " + ProtobufUtil.toString(status));
+              ReplicationTableUtil.updateFiles(SystemCredentials.get(), extent, logEntry.logSet, status);
+            }
+          }
+
           logEntries.clear();
+        } else if (ReplicationConfigurationUtil.isEnabled(extent, tabletServer.getTableConfiguration(extent))) {
+          // The logs are about to be re-used, we need to record that they have data for this extent,
+          // but that they may get more data
+          Status status = StatusUtil.openWithUnknownLength();
+          for (LogEntry logEntry : logEntries) {
+            log.debug("Writing updated status to metadata table for " + logEntry.logSet + " " + ProtobufUtil.toString(status));
+            ReplicationTableUtil.updateFiles(SystemCredentials.get(), extent, logEntry.logSet, status);
+          }
         }
 
       } catch (Throwable t) {
