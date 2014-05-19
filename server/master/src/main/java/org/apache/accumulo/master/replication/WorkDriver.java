@@ -37,6 +37,7 @@ public class WorkDriver extends Daemon {
   private AccumuloConfiguration conf;
 
   private WorkAssigner assigner;
+  private String assignerImplName;
 
   public WorkDriver(Master master, Connector conn) {
     super();
@@ -55,6 +56,7 @@ public class WorkDriver extends Daemon {
     }
 
     this.assigner.configure(conf, conn);
+    this.assignerImplName = assigner.getClass().getName();
     this.setName(assigner.getName());
   }
 
@@ -79,14 +81,14 @@ public class WorkDriver extends Daemon {
 
   @Override
   public void run() {
-    log.info("Starting replication work assignment thread");
+    log.info("Starting replication work assignment thread using {}", assignerImplName);
 
     while (master.stillMaster()) {
       // Assign the work using the configured implementation
       assigner.assignWork();
 
       long sleepTime = conf.getTimeInMillis(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP);
-      log.debug("Sleeping {} ms", sleepTime);
+      log.debug("Sleeping {} ms before next work assignment", sleepTime);
       UtilWaitThread.sleep(sleepTime);
     }
   }
