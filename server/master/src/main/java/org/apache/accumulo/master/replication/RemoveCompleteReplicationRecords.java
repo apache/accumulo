@@ -64,8 +64,6 @@ public class RemoveCompleteReplicationRecords implements Runnable {
   public void run() {
     BatchScanner bs;
     BatchWriter bw;
-    // Run over the metadata table first to reduce the likelihood of the master re-creating 
-    // status records that we are in the middle of cleaning up (does not imply double-duplication though)
     try {
       bs = ReplicationTable.getBatchScanner(conn, 4);
       bw = ReplicationTable.getBatchWriter(conn);
