@@ -217,8 +217,6 @@ public class DistributedWorkQueueWorkAssigner extends AbstractWorkAssigner {
       return;
     }
 
-    log.info("Creating batchscanner to read Work records from the replication table");
-
     WorkSection.limit(bs);
     bs.setRanges(Collections.singleton(new Range()));
     Text buffer = new Text();
@@ -261,12 +259,12 @@ public class DistributedWorkQueueWorkAssigner extends AbstractWorkAssigner {
         }
       }
     } finally {
+      log.info("Created work entries for {} files", filesWorkWasCreatedFrom);
+
       if (null != bs) {
         bs.close();
       }
     }
-
-    log.info("Created work entries for {} files", filesWorkWasCreatedFrom);
   }
 
   /**

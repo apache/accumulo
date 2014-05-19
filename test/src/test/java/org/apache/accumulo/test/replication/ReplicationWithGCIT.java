@@ -30,7 +30,6 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.replication.ReplicaSystem;
 import org.apache.accumulo.core.client.replication.ReplicaSystemFactory;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -58,7 +57,6 @@ import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
@@ -75,33 +73,6 @@ import com.google.protobuf.TextFormat;
  */
 public class ReplicationWithGCIT extends ConfigurableMacIT {
   private static final Logger log = LoggerFactory.getLogger(ReplicationWithGCIT.class);
-
-  /**
-   * Fake ReplicaSystem which immediately returns that the data was fully replicated
-   */
-  public static class MockReplicaSystem implements ReplicaSystem {
-    private static final Logger log = LoggerFactory.getLogger(MockReplicaSystem.class);
-
-    public MockReplicaSystem() {}
-
-    @Override
-    public Status replicate(Path p, Status status, ReplicationTarget target) {
-      Status.Builder builder = Status.newBuilder(status);
-      if (status.getInfiniteEnd()) {
-        builder.setBegin(Long.MAX_VALUE);
-      } else {
-        builder.setBegin(status.getEnd());
-      }
-
-      Status newStatus = builder.build();
-      log.info("Received {} returned {}", TextFormat.shortDebugString(status), TextFormat.shortDebugString(newStatus));
-      return newStatus;
-    }
-
-    @Override
-    public void configure(String configuration) {}
-
-  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -358,10 +329,10 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
 
   }
 
-  @Test
+  @Test(timeout = 5 * 60 * 1000)
   public void replicatedStatusEntriesAreDeleted() throws Exception {
-    Connector conn = getConnector();
-    FileSystem fs = FileSystem.getLocal(new Configuration());
+    final Connector conn = getConnector();
+    log.info("Got connector to MAC");
     String table1 = "table1";
 
     // replication shouldn't exist when we begin
@@ -377,8 +348,9 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
         conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION.getKey(), "true");
         // Replicate table1 to cluster1 in the table with id of '4'
         conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION_TARGETS.getKey() + "cluster1", "4");
+        // Use the MockReplicaSystem impl and sleep for 5seconds
         conn.instanceOperations().setProperty(Property.REPLICATION_PEERS.getKey() + "cluster1",
-            ReplicaSystemFactory.getPeerConfigurationValue(MockReplicaSystem.class, null));
+            ReplicaSystemFactory.getPeerConfigurationValue(MockReplicaSystem.class, "5000"));
         attempts = 0;
       } catch (Exception e) {
         attempts--;
@@ -469,16 +441,22 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
     }
 
     /**
-     * By this point, we should have data ingested into a table, with at least one WAL as a candidate for replication. It may or may not yet be closed.
+     * By this point, we should have data ingested into a table, with at least one WAL as a candidate for replication. Compacting the table should close all
+     * open WALs, which should ensure all records we're going to replicate have entries in the replication table, and nothing will exist in the metadata table
+     * anymore
      */
 
+    log.info("Killing tserver");
     // Kill the tserver(s) and restart them
     // to ensure that the WALs we previously observed all move to closed.
     for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
       cluster.killProcess(ServerType.TABLET_SERVER, proc);
     }
 
+    log.info("Starting tserver");
     cluster.exec(TabletServer.class);
+
+    log.info("Waiting to read tables");
 
     // Make sure we can read all the tables (recovery complete)
     for (String table : new String[] {MetadataTable.NAME, table1}) {
@@ -487,48 +465,39 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
       Entry<Key,Value> entry : s) {}
     }
 
-    // Need to make sure we get the entries in metadata
-    boolean foundResults = false;
-    for (int i = 0; i < 5 && !foundResults; i++) {
-      s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-      s.setRange(ReplicationSection.getRange());
-      if (Iterables.size(s) > 0) {
-        foundResults = true;
-      }
-      Thread.sleep(1000);
-    }
-
-    Assert.assertTrue("Did not find any replication entries in the metadata table", foundResults);
-
+    log.info("Checking for replication entries in replication");
     // Then we need to get those records over to the replication table
-    foundResults = false;
-    for (int i = 0; i < 5 && !foundResults; i++) {
+    boolean foundResults = false;
+    for (int i = 0; i < 5; i++) {
       s = ReplicationTable.getScanner(conn);
       if (Iterables.size(s) > 0) {
         foundResults = true;
+        break;
       }
       Thread.sleep(1000);
     }
 
     Assert.assertTrue("Did not find any replication entries in the replication table", foundResults);
 
-    s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.setRange(ReplicationSection.getRange());
-    for (Entry<Key,Value> entry : s) {
-      String row = entry.getKey().getRow().toString();
-      Path file = new Path(row.substring(ReplicationSection.getRowPrefix().length()));
-      Assert.assertTrue(file + " did not exist when it should", fs.exists(file));
+    // We expect no records in the metadata table after compaction. We have to poll
+    // because we have to wait for the StatusMaker's next iteration which will clean
+    // up the dangling record after we create the record in the replication table
+    foundResults = true;
+    for (int i = 0; i < 5; i++) {
+      s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+      s.setRange(ReplicationSection.getRange());
+      if (Iterables.size(s) == 0) {
+        foundResults = false;
+        break;
+      }
+      Thread.sleep(1000);
     }
 
-    /**
-     * After recovery completes, we should have unreplicated, closed Status messages. The close happens at the beginning of log recovery.
-     * The MockReplicaSystem we configured will just automatically say the data has been replicated, so this should then created replicated
-     * and closed Status messages.
-     */
+    Assert.assertFalse("Replication status messages were not cleaned up from metadata table, check why the StatusMaker didn't delete them", foundResults);
 
     /**
      * After we set the begin to Long.MAX_VALUE, the RemoveCompleteReplicationRecords class will start deleting the records which have been closed by
-     * CloseWriteAheadLogReferences (which will have been working since we restarted the tserver(s))
+     * the minor compaction and replicated by the MockReplicaSystem
      */
 
     // Wait for a bit since the GC has to run (should be running after a one second delay)
@@ -552,16 +521,5 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
     }
 
     Assert.assertEquals("Found unexpected replication records in the replication table", 0, recordsFound);
-
-    // If the replication table entries were deleted, so should the metadata table replication entries
-    s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.setRange(ReplicationSection.getRange());
-    recordsFound = 0;
-    for (Entry<Key,Value> entry : s) {
-      recordsFound++;
-      log.info(entry.getKey().toStringNoTruncate() + " " + Status.parseFrom(entry.getValue().get()).toString().replace("\n", ", "));
-    }
-
-    Assert.assertEquals("Found unexpected replication records in the metadata table", 0, recordsFound);
   }
 }

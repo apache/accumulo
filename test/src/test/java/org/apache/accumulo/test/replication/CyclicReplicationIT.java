@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -48,6 +49,8 @@ import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 
@@ -55,6 +58,7 @@ import com.google.common.collect.Iterables;
  * 
  */
 public class CyclicReplicationIT {
+  private static final Logger log = LoggerFactory.getLogger(CyclicReplicationIT.class);
 
   @Rule
   public TestName testName = new TestName();
@@ -80,7 +84,7 @@ public class CyclicReplicationIT {
     out.close();
   }
 
-  @Test
+  @Test(timeout = 5 * 60 * 1000)
   public void dataIsNotOverReplicated() throws Exception {
     File master1Dir = createTestDir("master1"), master2Dir = createTestDir("master2");
     String password = "password";
@@ -155,8 +159,11 @@ public class CyclicReplicationIT {
       Mutation m = new Mutation("row");
       m.put("count", "", "1");
       bw.addMutation(m);
-      bw.flush();
       bw.close();
+
+      Set<String> files = connMaster1.replicationOperations().referencedFiles(master1Cluster.getInstanceName());
+
+      log.info("Found {} that need replication from master1", files);
 
       // Kill and restart the tserver to close the WAL on master1
       for (ProcessReference proc : master1Cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
@@ -165,20 +172,25 @@ public class CyclicReplicationIT {
 
       master1Cluster.exec(TabletServer.class);
 
+      log.info("Restarted tserver on master1");
+
       // Sanity check that the element is there on master1
       Scanner s = connMaster1.createScanner(master1Cluster.getInstanceName(), Authorizations.EMPTY);
       Entry<Key,Value> entry = Iterables.getOnlyElement(s);
       Assert.assertEquals("1", entry.getValue().toString());
 
-      Thread.sleep(5000);
-
       // Wait for this table to replicate
-      connMaster1.replicationOperations().drain(master1Cluster.getInstanceName());
+      connMaster1.replicationOperations().drain(master1Cluster.getInstanceName(), files);
+
+      Thread.sleep(5000);
 
       // Check that the element made it to master2 only once
       s = connMaster2.createScanner(master2Cluster.getInstanceName(), Authorizations.EMPTY);
       entry = Iterables.getOnlyElement(s);
       Assert.assertEquals("1", entry.getValue().toString());
+
+      // Wait for master2 to finish replicating it back
+      files = connMaster2.replicationOperations().referencedFiles(master2Cluster.getInstanceName());
 
       // Kill and restart the tserver to close the WAL on master2
       for (ProcessReference proc : master2Cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
@@ -192,10 +204,9 @@ public class CyclicReplicationIT {
       entry = Iterables.getOnlyElement(s);
       Assert.assertEquals("1", entry.getValue().toString());
 
-      Thread.sleep(5000);
+      connMaster2.replicationOperations().drain(master2Cluster.getInstanceName(), files);
 
-      // Wait for master2 to finish replicating it back
-      connMaster2.replicationOperations().drain(master2Cluster.getInstanceName());
+      Thread.sleep(5000);
 
       // Verify that the entry wasn't sent back to master1
       s = connMaster1.createScanner(master1Cluster.getInstanceName(), Authorizations.EMPTY);

@@ -44,10 +44,13 @@ import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.master.replication.SequentialWorkAssigner;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.minicluster.impl.ProcessReference;
 import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
+import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -86,8 +89,7 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
     cfg.setProperty(Property.REPLICATION_MAX_UNIT_SIZE, "8M");
     cfg.setProperty(Property.REPLICATION_NAME, "master");
     cfg.setProperty(Property.REPLICATION_WORK_ASSIGNER, SequentialWorkAssigner.class.getName());
-    cfg.useMiniDFS(true);
-//    hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
+    hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
   @Test(timeout = 60 * 5000)
@@ -158,6 +160,31 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
       }
     }
 
+    for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
+      cluster.killProcess(ServerType.TABLET_SERVER, proc);
+    }
+    cluster.exec(TabletServer.class);
+
+    log.info("TabletServer restarted");
+    for (@SuppressWarnings("unused") Entry<Key,Value> e : ReplicationTable.getScanner(connMaster)) {}
+    log.info("TabletServer is online");
+
+    log.info("");
+    log.info("Fetching metadata records:");
+    for (Entry<Key,Value> kv : connMaster.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      if (ReplicationSection.COLF.equals(kv.getKey().getColumnFamily())) {
+        log.info(kv.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+      } else {
+        log.info(kv.getKey().toStringNoTruncate() + " " + kv.getValue());
+      }
+    }
+
+    log.info("");
+    log.info("Fetching replication records:");
+    for (Entry<Key,Value> kv : connMaster.createScanner(ReplicationTable.NAME, Authorizations.EMPTY)) {
+      log.info(kv.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+    }
+
     Future<Boolean> future = executor.submit(new Callable<Boolean>() {
 
       @Override
@@ -169,12 +196,17 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
       
     });
 
-    connMaster.tableOperations().compact(masterTable, null, null, true, true);
+    try {
+      future.get(30, TimeUnit.SECONDS);
+    } catch (TimeoutException e) {
+      future.cancel(true);
+      Assert.fail("Drain did not finish within 5 seconds");
+    }
+
+    log.info("drain completed");
 
     log.info("");
-    log.info("Compaction completed");
-
-    log.debug("");
+    log.info("Fetching metadata records:");
     for (Entry<Key,Value> kv : connMaster.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       if (ReplicationSection.COLF.equals(kv.getKey().getColumnFamily())) {
         log.info(kv.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
@@ -183,13 +215,8 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
       }
     }
 
-    try {
-      future.get(15, TimeUnit.SECONDS);
-    } catch (TimeoutException e) {
-      Assert.fail("Drain did not finish within 5 seconds");
-    }
-
     log.info("");
+    log.info("Fetching replication records:");
     for (Entry<Key,Value> kv : connMaster.createScanner(ReplicationTable.NAME, Authorizations.EMPTY)) {
       log.info(kv.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
     }
@@ -300,8 +327,13 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
         Thread.sleep(500);
       }
 
-      connMaster.tableOperations().compact(masterTable1, null, null, true, false);
-      connMaster.tableOperations().compact(masterTable2, null, null, true, false);
+      // Restart the tserver to force a close on the WAL
+      for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
+        cluster.killProcess(ServerType.TABLET_SERVER, proc);
+      }
+      cluster.exec(TabletServer.class);
+
+      log.info("Restarted the tserver");
 
       // Wait until we fully replicated something
       boolean fullyReplicated = false;

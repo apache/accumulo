@@ -24,7 +24,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.log4j.Logger;
 
 /**
