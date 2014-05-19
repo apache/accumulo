@@ -942,18 +942,6 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       watcher.start();
     }
 
-    // Start the daemon to scan the replication table and make units of work
-    replicationWorkDriver = new ReplicationDriver(this);
-    replicationWorkDriver.start();
-
-    // Start the daemon to assign work to tservers to replicate to our peers
-    try {
-      replicationWorkAssigner = new WorkDriver(this, getConnector());
-    } catch (AccumuloException | AccumuloSecurityException e) {
-      throw new RuntimeException(e);
-    }
-    replicationWorkAssigner.start();
-
     // Once we are sure the upgrade is complete, we can safely allow fate use.
     waitForMetadataUpgrade.await();
 
@@ -990,6 +978,19 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     while (!clientService.isServing()) {
       UtilWaitThread.sleep(100);
     }
+
+    // Start the daemon to scan the replication table and make units of work
+    replicationWorkDriver = new ReplicationDriver(this);
+    replicationWorkDriver.start();
+
+    // Start the daemon to assign work to tservers to replicate to our peers
+    try {
+      replicationWorkAssigner = new WorkDriver(this, getConnector());
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      log.error("Caught exception trying to initialize replication WorkDriver", e);
+      throw new RuntimeException(e);
+    }
+    replicationWorkAssigner.start();
 
     // Start the replication coordinator which assigns tservers to service replication requests
     ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor = new ReplicationCoordinator.Processor<ReplicationCoordinator.Iface>(
