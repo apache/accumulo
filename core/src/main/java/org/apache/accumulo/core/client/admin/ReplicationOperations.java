@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import java.util.Set;
+
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -58,4 +60,19 @@ public interface ReplicationOperations {
    * @throws AccumuloSecurityException
    */
   public void drain(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+
+  /**
+   * Wait for a table to be fully replicated as determined by the provided tables
+   * @param tableName The table to wait for
+   * @throws AccumuloException
+   * @throws AccumuloSecurityException
+   */
+  public void drain(String tableName, Set<String> files) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+
+  /**
+   * Get all of the referenced files for a table
+   * @param tableName
+   * @throws TableNotFoundException
+   */
+  public Set<String> referencedFiles(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 }

@@ -115,7 +115,14 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
   public void drain(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     checkNotNull(tableName);
 
-    log.debug("Waiting to drain {}", tableName);
+    Set<String> wals = referencedFiles(tableName);
+
+    drain(tableName, wals);
+  }
+
+  @Override
+  public void drain(String tableName, Set<String> wals) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    checkNotNull(tableName);
 
     Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
     TableOperations tops = conn.tableOperations();
@@ -124,7 +131,7 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
     }
 
     if (!conn.tableOperations().exists(tableName)) {
-      throw new IllegalArgumentException("Table does not exist: " + tableName);
+      throw new TableNotFoundException(null, tableName, null);
     }
 
     String strTableId = null;
@@ -136,41 +143,6 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
     }
 
     Text tableId = new Text(strTableId);
-
-    log.debug("Found {} id for {}", strTableId, tableName);
-
-    // Get the WALs currently referenced by the table
-    BatchScanner metaBs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4); 
-    metaBs.setRanges(Collections.singleton(MetadataSchema.TabletsSection.getRange(strTableId)));
-    metaBs.fetchColumnFamily(LogColumnFamily.NAME);
-    Set<String> wals = new HashSet<>();
-    try {
-      for (Entry<Key,Value> entry : metaBs) {
-        LogEntry logEntry = LogEntry.fromKeyValue(entry.getKey(), entry.getValue());
-        for (String log : logEntry.logSet) {
-          wals.add(new Path(log).toString());
-        }
-      }
-    } finally {
-      metaBs.close();
-    }
-
-    // And the WALs that need to be replicated for this table
-    metaBs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
-    metaBs.setRanges(Collections.singleton(ReplicationSection.getRange()));
-    metaBs.fetchColumnFamily(ReplicationSection.COLF);
-    try {
-      Text buffer = new Text();
-      for (Entry<Key,Value> entry : metaBs) {
-        ReplicationSection.getTableId(entry.getKey(), buffer);
-        if (buffer.equals(tableId)) {
-          ReplicationSection.getFile(entry.getKey(), buffer);
-          wals.add(buffer.toString());
-        }
-      }
-    } finally {
-      metaBs.close();
-    }
 
     log.info("Waiting for {} to be replicated for {}", wals, tableId);
 
@@ -252,5 +224,69 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
     }
 
     return true;
+  }
+
+  @Override
+  public Set<String> referencedFiles(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    checkNotNull(tableName);
+
+    log.debug("Collecting referenced files for replication of table {}", tableName);
+
+    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
+    TableOperations tops = conn.tableOperations();
+    while (!tops.exists(ReplicationTable.NAME)) {
+      UtilWaitThread.sleep(200);
+    }
+
+    if (!conn.tableOperations().exists(tableName)) {
+      throw new TableNotFoundException(null, tableName, null);
+    }
+
+    String strTableId = null;
+    while (null == strTableId) {
+      strTableId = tops.tableIdMap().get(tableName);
+      if (null == strTableId) {
+        UtilWaitThread.sleep(200);
+      }
+    }
+
+    Text tableId = new Text(strTableId);
+
+    log.debug("Found id of {} for name {}", strTableId, tableName);
+
+    // Get the WALs currently referenced by the table
+    BatchScanner metaBs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4); 
+    metaBs.setRanges(Collections.singleton(MetadataSchema.TabletsSection.getRange(strTableId)));
+    metaBs.fetchColumnFamily(LogColumnFamily.NAME);
+    Set<String> wals = new HashSet<>();
+    try {
+      for (Entry<Key,Value> entry : metaBs) {
+        LogEntry logEntry = LogEntry.fromKeyValue(entry.getKey(), entry.getValue());
+        for (String log : logEntry.logSet) {
+          wals.add(new Path(log).toString());
+        }
+      }
+    } finally {
+      metaBs.close();
+    }
+
+    // And the WALs that need to be replicated for this table
+    metaBs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
+    metaBs.setRanges(Collections.singleton(ReplicationSection.getRange()));
+    metaBs.fetchColumnFamily(ReplicationSection.COLF);
+    try {
+      Text buffer = new Text();
+      for (Entry<Key,Value> entry : metaBs) {
+        ReplicationSection.getTableId(entry.getKey(), buffer);
+        if (buffer.equals(tableId)) {
+          ReplicationSection.getFile(entry.getKey(), buffer);
+          wals.add(buffer.toString());
+        }
+      }
+    } finally {
+      metaBs.close();
+    }
+
+    return wals;
   }
 }
