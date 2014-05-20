@@ -33,17 +33,22 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 /**
  * 
- * The WholeRowIterator is designed to provide row-isolation so that queries see mutations as atomic. It does so by encapsulating an entire row of key/value
- * pairs into a single key/value pair, which is returned through the client as an atomic operation.
+ * The WholeRowIterator is designed to provide row-isolation so that queries see mutations as atomic. 
+ * It does so by encapsulating an entire row of key/value pairs into a single key/value pair, which 
+ * is returned through the client as an atomic operation. 
  * 
  * <p>
- * One caveat is that when seeking in the WholeRowIterator using a range that starts at a non-inclusive first key in a row, (e.g. seek(new Range(new Key(new
- * Text("row")),false,...),...)) this iterator will skip to the next row. This is done in order to prevent repeated scanning of the same row when system
- * automatically creates ranges of that form, which happens in the case of the client calling continueScan, or in the case of the tablet server continuing a
- * scan after swapping out sources.
+ * This iterator extends the {@link RowEncodingIterator}, providing implementations for rowEncoder
+ * and rowDecoder which serializes all column and value information from a given row into a
+ * single ByteStream in a value.
  * 
  * <p>
- * To regain the original key/value pairs of the row, call the decodeRow function on the key/value pair that this iterator returned.
+ * As with the RowEncodingIterator, when seeking in the WholeRowIterator using a range that starts
+ * at a non-inclusive first key in a row, this iterator will skip to the next row.
+ * 
+ * <p>
+ * To regain the original key/value pairs of the row, call the decodeRow function on the key/value
+ * pair that this iterator returned.
  * 
  * @see RowFilter
  */
