@@ -83,6 +83,8 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
     cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
     cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
     cfg.setProperty(Property.REPLICATION_NAME, "master");
+    cfg.setProperty(Property.REPLICATION_WORK_PROCESSOR_DELAY, "1s");
+    cfg.setProperty(Property.REPLICATION_WORK_PROCESSOR_PERIOD, "1s");
     cfg.setNumTservers(1);
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
@@ -331,6 +333,11 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
 
   @Test(timeout = 5 * 60 * 1000)
   public void replicatedStatusEntriesAreDeleted() throws Exception {
+    // Just stop it now, we'll restart it after we restart the tserver
+    for (ProcessReference proc : getCluster().getProcesses().get(ServerType.GARBAGE_COLLECTOR)) {
+      getCluster().killProcess(ServerType.GARBAGE_COLLECTOR, proc);
+    }
+
     final Connector conn = getConnector();
     log.info("Got connector to MAC");
     String table1 = "table1";
@@ -470,7 +477,12 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
     boolean foundResults = false;
     for (int i = 0; i < 5; i++) {
       s = ReplicationTable.getScanner(conn);
-      if (Iterables.size(s) > 0) {
+      int count = 0;
+      for (Entry<Key,Value> entry : s) {
+        count++;
+        log.info("{}={}", entry.getKey().toStringNoTruncate(), entry.getValue());
+      }
+      if (count > 0) {
         foundResults = true;
         break;
       }
@@ -479,9 +491,16 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
 
     Assert.assertTrue("Did not find any replication entries in the replication table", foundResults);
 
+    getCluster().exec(SimpleGarbageCollector.class);
+
+    // Wait for a bit since the GC has to run (should be running after a one second delay)
+    Thread.sleep(5000);
+
     // We expect no records in the metadata table after compaction. We have to poll
     // because we have to wait for the StatusMaker's next iteration which will clean
-    // up the dangling record after we create the record in the replication table
+    // up the dangling *closed* records after we create the record in the replication table.
+    // We need the GC to close the file (CloseWriteAheadLogReferences) before we can remove the record
+    log.info("Checking metadata table for replication entries");
     foundResults = true;
     for (int i = 0; i < 5; i++) {
       s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
@@ -493,15 +512,12 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
       Thread.sleep(1000);
     }
 
-    Assert.assertFalse("Replication status messages were not cleaned up from metadata table, check why the StatusMaker didn't delete them", foundResults);
+    Assert.assertFalse("Replication status messages were not cleaned up from metadata table", foundResults);
 
     /**
-     * After we set the begin to Long.MAX_VALUE, the RemoveCompleteReplicationRecords class will start deleting the records which have been closed by
-     * the minor compaction and replicated by the MockReplicaSystem
+     * After we close out and subsequently delete the metadata record, this will propagate to the replication table,
+     * which will cause those records to be deleted after repliation occurs
      */
-
-    // Wait for a bit since the GC has to run (should be running after a one second delay)
-    Thread.sleep(5000);
 
     int recordsFound = 0;
     for (int i = 0; i < 10; i++) {

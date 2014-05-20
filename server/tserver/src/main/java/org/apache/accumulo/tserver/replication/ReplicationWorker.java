@@ -21,16 +21,21 @@ import java.util.concurrent.ThreadPoolExecutor;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.zookeeper.KeeperException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 
  */
 public class ReplicationWorker implements Runnable {
+  private static final Logger log = LoggerFactory.getLogger(ReplicationWorker.class);
 
   private Instance inst;
   private VolumeManager fs;
@@ -49,8 +54,22 @@ public class ReplicationWorker implements Runnable {
 
   @Override
   public void run() {
+    DefaultConfiguration defaultConf = DefaultConfiguration.getDefaultConfiguration();
+    long defaultDelay = defaultConf.getTimeInMillis(Property.REPLICATION_WORK_PROCESSOR_DELAY);
+    long defaultPeriod = defaultConf.getTimeInMillis(Property.REPLICATION_WORK_PROCESSOR_PERIOD);
+    long delay = conf.getTimeInMillis(Property.REPLICATION_WORK_PROCESSOR_DELAY);
+    long period = conf.getTimeInMillis(Property.REPLICATION_WORK_PROCESSOR_PERIOD);
     try {
-      new DistributedWorkQueue(ZooUtil.getRoot(inst) + Constants.ZREPLICATION_WORK_QUEUE, conf).startProcessing(new ReplicationProcessor(inst, conf, fs, SystemCredentials.get()), executor);
+      DistributedWorkQueue workQueue;
+      if (defaultDelay != delay && defaultPeriod != period) {
+        log.debug("Configuration DistributedWorkQueue with delay and period of {} and {}", delay, period);
+        workQueue = new DistributedWorkQueue(ZooUtil.getRoot(inst) + Constants.ZREPLICATION_WORK_QUEUE, conf, delay, period);
+      } else {
+        log.debug("Configuring DistributedWorkQueue with default delay and period");
+        workQueue = new DistributedWorkQueue(ZooUtil.getRoot(inst) + Constants.ZREPLICATION_WORK_QUEUE, conf);
+      }
+
+      workQueue.startProcessing(new ReplicationProcessor(inst, conf, fs, SystemCredentials.get()), executor);
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
     }

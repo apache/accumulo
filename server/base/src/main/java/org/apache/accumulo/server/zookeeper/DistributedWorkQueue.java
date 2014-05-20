@@ -50,6 +50,7 @@ public class DistributedWorkQueue {
   private ZooReaderWriter zoo = ZooReaderWriter.getInstance();
   private String path;
   private AccumuloConfiguration config;
+  private long timerInitialDelay, timerPeriod;
 
   private AtomicInteger numTask = new AtomicInteger(0);
 
@@ -151,8 +152,15 @@ public class DistributedWorkQueue {
   }
   
   public DistributedWorkQueue(String path, AccumuloConfiguration config) {
+    // Preserve the old delay and period
+    this(path, config, new Random().nextInt(60*1000), 60*1000);
+  }
+
+  public DistributedWorkQueue(String path, AccumuloConfiguration config, long timerInitialDelay, long timerPeriod) {
     this.path = path;
     this.config = config;
+    this.timerInitialDelay = timerInitialDelay;
+    this.timerPeriod = timerPeriod;
   }
   
   public void startProcessing(final Processor processor, ThreadPoolExecutor executorService) throws KeeperException, InterruptedException {
@@ -196,6 +204,7 @@ public class DistributedWorkQueue {
     SimpleTimer.getInstance(config).schedule(new Runnable() {
       @Override
       public void run() {
+        log.debug("Looking for work in " + path);
         try {
           lookForWork(processor, zoo.getChildren(path));
         } catch (KeeperException e) {
@@ -204,7 +213,7 @@ public class DistributedWorkQueue {
           log.info("Interrupted looking for work", e);
         }
       }
-    }, r.nextInt(60 * 1000), 60 * 1000);
+    }, timerInitialDelay, timerPeriod);
   }
 
   /**

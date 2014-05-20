@@ -123,6 +123,8 @@ public class ReplicationProcessor implements Processor {
     // Replicate that sucker
     Status replicatedStatus = replica.replicate(filePath, status, target);
 
+    log.debug("Completed replication of {} to {}, with new Status [{}]", filePath, target, ProtobufUtil.toString(replicatedStatus));
+
     // If we got a different status
     if (!replicatedStatus.equals(status)) {
       // We actually did some work!
