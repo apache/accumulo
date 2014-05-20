@@ -193,13 +193,14 @@ public class StatusMaker {
    */
   protected boolean addOrderRecord(Text file, Text tableId, Status stat, Value value) {
     try {
-      if (!stat.hasClosedTime()) {
-        log.warn("Status record ({}) for {} in table {} was written to metadata table which was closed but lacked closedTime", ProtobufUtil.toString(stat), file, tableId);
+      if (!stat.hasCreatedTime()) {
+        log.error("Status record ({}) for {} in table {} was written to metadata table which lacked createdTime", ProtobufUtil.toString(stat), file, tableId);
+        return false;
       }
 
       log.info("Creating order record for {} for {} with {}", file, tableId, ProtobufUtil.toString(stat));
 
-      Mutation m = OrderSection.createMutation(file.toString(), stat.getClosedTime());
+      Mutation m = OrderSection.createMutation(file.toString(), stat.getCreatedTime());
       OrderSection.add(m, tableId, value);
 
       try {

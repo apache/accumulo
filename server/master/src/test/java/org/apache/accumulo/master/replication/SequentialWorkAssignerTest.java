@@ -95,8 +95,8 @@ public class SequentialWorkAssignerTest {
     String file1 = "/accumulo/wal/tserver+port/" + filename1, file2 = "/accumulo/wal/tserver+port/" + filename2;
 
     // File1 was closed before file2, however
-    Status stat1 = Status.newBuilder().setBegin(0).setEnd(100).setClosed(true).setInfiniteEnd(false).setClosedTime(250).build();
-    Status stat2 = Status.newBuilder().setBegin(0).setEnd(100).setClosed(true).setInfiniteEnd(false).setClosedTime(500).build();
+    Status stat1 = Status.newBuilder().setBegin(0).setEnd(100).setClosed(true).setInfiniteEnd(false).setCreatedTime(250).build();
+    Status stat2 = Status.newBuilder().setBegin(0).setEnd(100).setClosed(true).setInfiniteEnd(false).setCreatedTime(500).build();
 
     Mutation m = new Mutation(file1);
     WorkSection.add(m, serializedTarget, ProtobufUtil.toValue(stat1));
@@ -106,11 +106,11 @@ public class SequentialWorkAssignerTest {
     WorkSection.add(m, serializedTarget, ProtobufUtil.toValue(stat2));
     bw.addMutation(m);
 
-    m = OrderSection.createMutation(file1, stat1.getClosedTime());
+    m = OrderSection.createMutation(file1, stat1.getCreatedTime());
     OrderSection.add(m, new Text(target.getSourceTableId()), ProtobufUtil.toValue(stat1));
     bw.addMutation(m);
 
-    m = OrderSection.createMutation(file2, stat2.getClosedTime());
+    m = OrderSection.createMutation(file2, stat2.getCreatedTime());
     OrderSection.add(m, new Text(target.getSourceTableId()), ProtobufUtil.toValue(stat2));
     bw.addMutation(m);
 
@@ -168,8 +168,8 @@ public class SequentialWorkAssignerTest {
     String file1 = "/accumulo/wal/tserver+port/" + filename1, file2 = "/accumulo/wal/tserver+port/" + filename2;
 
     // File1 was closed before file2, however
-    Status stat1 = Status.newBuilder().setBegin(0).setEnd(100).setClosed(true).setInfiniteEnd(false).setClosedTime(250).build();
-    Status stat2 = Status.newBuilder().setBegin(0).setEnd(100).setClosed(true).setInfiniteEnd(false).setClosedTime(500).build();
+    Status stat1 = Status.newBuilder().setBegin(0).setEnd(100).setClosed(true).setInfiniteEnd(false).setCreatedTime(250).build();
+    Status stat2 = Status.newBuilder().setBegin(0).setEnd(100).setClosed(true).setInfiniteEnd(false).setCreatedTime(500).build();
 
     Mutation m = new Mutation(file1);
     WorkSection.add(m, serializedTarget1, ProtobufUtil.toValue(stat1));
@@ -179,11 +179,11 @@ public class SequentialWorkAssignerTest {
     WorkSection.add(m, serializedTarget2, ProtobufUtil.toValue(stat2));
     bw.addMutation(m);
 
-    m = OrderSection.createMutation(file1, stat1.getClosedTime());
+    m = OrderSection.createMutation(file1, stat1.getCreatedTime());
     OrderSection.add(m, new Text(target1.getSourceTableId()), ProtobufUtil.toValue(stat1));
     bw.addMutation(m);
 
-    m = OrderSection.createMutation(file2, stat2.getClosedTime());
+    m = OrderSection.createMutation(file2, stat2.getCreatedTime());
     OrderSection.add(m, new Text(target2.getSourceTableId()), ProtobufUtil.toValue(stat2));
     bw.addMutation(m);
 
@@ -248,8 +248,8 @@ public class SequentialWorkAssignerTest {
     String file1 = "/accumulo/wal/tserver+port/" + filename1, file2 = "/accumulo/wal/tserver+port/" + filename2;
 
     // File1 was closed before file2, however
-    Status stat1 = Status.newBuilder().setBegin(0).setEnd(100).setClosed(true).setInfiniteEnd(false).setClosedTime(250).build();
-    Status stat2 = Status.newBuilder().setBegin(0).setEnd(100).setClosed(true).setInfiniteEnd(false).setClosedTime(500).build();
+    Status stat1 = Status.newBuilder().setBegin(0).setEnd(100).setClosed(true).setInfiniteEnd(false).setCreatedTime(250).build();
+    Status stat2 = Status.newBuilder().setBegin(0).setEnd(100).setClosed(true).setInfiniteEnd(false).setCreatedTime(500).build();
 
     Mutation m = new Mutation(file1);
     WorkSection.add(m, serializedTarget1, ProtobufUtil.toValue(stat1));
@@ -259,11 +259,11 @@ public class SequentialWorkAssignerTest {
     WorkSection.add(m, serializedTarget2, ProtobufUtil.toValue(stat2));
     bw.addMutation(m);
 
-    m = OrderSection.createMutation(file1, stat1.getClosedTime());
+    m = OrderSection.createMutation(file1, stat1.getCreatedTime());
     OrderSection.add(m, new Text(target1.getSourceTableId()), ProtobufUtil.toValue(stat1));
     bw.addMutation(m);
 
-    m = OrderSection.createMutation(file2, stat2.getClosedTime());
+    m = OrderSection.createMutation(file2, stat2.getCreatedTime());
     OrderSection.add(m, new Text(target2.getSourceTableId()), ProtobufUtil.toValue(stat2));
     bw.addMutation(m);
 
@@ -369,8 +369,8 @@ public class SequentialWorkAssignerTest {
     String file1 = "/accumulo/wal/tserver+port/" + filename1, file2 = "/accumulo/wal/tserver+port/" + filename2;
 
     // File1 was closed before file2, however
-    Status stat1 = Status.newBuilder().setBegin(100).setEnd(100).setClosed(true).setInfiniteEnd(false).setClosedTime(250).build();
-    Status stat2 = Status.newBuilder().setBegin(0).setEnd(100).setClosed(true).setInfiniteEnd(false).setClosedTime(500).build();
+    Status stat1 = Status.newBuilder().setBegin(100).setEnd(100).setClosed(true).setInfiniteEnd(false).setCreatedTime(250).build();
+    Status stat2 = Status.newBuilder().setBegin(0).setEnd(100).setClosed(true).setInfiniteEnd(false).setCreatedTime(500).build();
 
     Mutation m = new Mutation(file1);
     WorkSection.add(m, serializedTarget, ProtobufUtil.toValue(stat1));
@@ -380,11 +380,11 @@ public class SequentialWorkAssignerTest {
     WorkSection.add(m, serializedTarget, ProtobufUtil.toValue(stat2));
     bw.addMutation(m);
 
-    m = OrderSection.createMutation(file1, stat1.getClosedTime());
+    m = OrderSection.createMutation(file1, stat1.getCreatedTime());
     OrderSection.add(m, new Text(target.getSourceTableId()), ProtobufUtil.toValue(stat1));
     bw.addMutation(m);
 
-    m = OrderSection.createMutation(file2, stat2.getClosedTime());
+    m = OrderSection.createMutation(file2, stat2.getCreatedTime());
     OrderSection.add(m, new Text(target.getSourceTableId()), ProtobufUtil.toValue(stat2));
     bw.addMutation(m);
 

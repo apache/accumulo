@@ -37,6 +37,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
 import org.apache.accumulo.core.replication.StatusUtil;
+import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -274,9 +275,10 @@ public class TabletServerLogger {
                 for (DfsLogger logger : copy) {
                   logs.add(logger.getFileName());
                 }
-                log.debug("Writing " + ProtobufUtil.toString(StatusUtil.newFile()) + " to replication table for " + logs);
+                Status status = StatusUtil.fileCreated(System.currentTimeMillis());
+                log.debug("Writing " + ProtobufUtil.toString(status) + " to replication table for " + logs);
                 // Got some new WALs, note this in the replication table
-                ReplicationTableUtil.updateFiles(SystemCredentials.get(), commitSession.getExtent(), logs, StatusUtil.newFile());
+                ReplicationTableUtil.updateFiles(SystemCredentials.get(), commitSession.getExtent(), logs, status);
               }
             }
           }

@@ -18,7 +18,6 @@ package org.apache.accumulo.master.replication;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -147,7 +146,7 @@ public class RemoveCompleteReplicationRecords implements Runnable {
     }
 
     Mutation m = new Mutation(row);
-    Map<String,Long> tableToTimeClosed = new HashMap<>();
+    Map<String,Long> tableToTimeCreated = new HashMap<>();
     for (Entry<Key,Value> entry : columns.entrySet()) {
       Status status = null;
       try {
@@ -178,12 +177,12 @@ public class RemoveCompleteReplicationRecords implements Runnable {
         throw new RuntimeException("Got unexpected column");
       }
 
-      if (status.hasClosedTime()) {
-        Long timeClosed = tableToTimeClosed.get(tableId);
+      if (status.hasCreatedTime()) {
+        Long timeClosed = tableToTimeCreated.get(tableId);
         if (null == timeClosed) {
-          tableToTimeClosed.put(tableId, status.getClosedTime());
-        } else if (timeClosed != status.getClosedTime()){
-          log.warn("Found multiple values for timeClosed for {}: {} and {}", row, timeClosed, status.getClosedTime());
+          tableToTimeCreated.put(tableId, status.getCreatedTime());
+        } else if (timeClosed != status.getCreatedTime()){
+          log.warn("Found multiple values for timeClosed for {}: {} and {}", row, timeClosed, status.getCreatedTime());
         }
       }
 
@@ -194,7 +193,7 @@ public class RemoveCompleteReplicationRecords implements Runnable {
 
     List<Mutation> mutations = new ArrayList<>();
     mutations.add(m);
-    for (Entry<String,Long> entry : tableToTimeClosed.entrySet()) {
+    for (Entry<String,Long> entry : tableToTimeCreated.entrySet()) {
       log.info("Removing order mutation for table {} at {} for {}", entry.getKey(), entry.getValue(), row.toString());
       Mutation orderMutation = OrderSection.createMutation(row.toString(), entry.getValue());
       orderMutation.putDelete(OrderSection.NAME, new Text(entry.getKey()));

@@ -86,7 +86,8 @@ public class ReplicationTableUtilTest {
     UUID uuid = UUID.randomUUID();
     String myFile = "file:////home/user/accumulo/wal/server+port/" + uuid;
 
-    ReplicationTableUtil.updateFiles(creds, new KeyExtent(new Text("1"), null, null), Collections.singleton(myFile), StatusUtil.newFile());
+    long createdTime = System.currentTimeMillis();
+    ReplicationTableUtil.updateFiles(creds, new KeyExtent(new Text("1"), null, null), Collections.singleton(myFile), StatusUtil.fileCreated(createdTime));
 
     verify(writer);
 
@@ -101,13 +102,13 @@ public class ReplicationTableUtilTest {
 
     Assert.assertEquals(MetadataSchema.ReplicationSection.COLF, new Text(update.getColumnFamily()));
     Assert.assertEquals("1", new Text(update.getColumnQualifier()).toString());
-    Assert.assertEquals(StatusUtil.newFileValue(), new Value(update.getValue()));
+    Assert.assertEquals(StatusUtil.fileCreatedValue(createdTime), new Value(update.getValue()));
   }
 
   @Test
   public void replEntryMutation() {
     // We stopped using a WAL -- we need a reference that this WAL needs to be replicated completely
-    Status stat = StatusUtil.fileClosed(System.currentTimeMillis());
+    Status stat = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setCreatedTime(System.currentTimeMillis()).build();
     String file = "file:///accumulo/wal/127.0.0.1+9997" + UUID.randomUUID();
     Path filePath = new Path(file);
     Text row = new Text(filePath.toString());

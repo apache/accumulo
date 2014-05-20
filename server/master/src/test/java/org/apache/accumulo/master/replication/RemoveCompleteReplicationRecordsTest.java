@@ -203,7 +203,7 @@ public class RemoveCompleteReplicationRecordsTest {
     long time = System.currentTimeMillis();
     // Write out numRecords entries to both replication and metadata tables, none of which are fully replicated
     for (int i = 0; i < numRecords; i++) {
-      builder.setClosedTime(time++);
+      builder.setCreatedTime(time++);
       String file = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
       Mutation m = new Mutation(file);
       Value v = ProtobufUtil.toValue(builder.setBegin(1000*(i+1)).build()); 
@@ -224,7 +224,7 @@ public class RemoveCompleteReplicationRecordsTest {
     filesToRemove.add(fileToRemove);
     Mutation m = new Mutation(fileToRemove);
     ReplicationTarget target = new ReplicationTarget("peer1", "5", "5");
-    Value value = ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(true).setClosedTime(time).build());
+    Value value = ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(true).setCreatedTime(time).build());
     StatusSection.add(m, new Text("5"), value);
     WorkSection.add(m, target.toText(), value);
     replBw.addMutation(m);
@@ -239,7 +239,7 @@ public class RemoveCompleteReplicationRecordsTest {
     fileToRemove = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
     filesToRemove.add(fileToRemove);
     m = new Mutation(fileToRemove);
-    value = ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(true).setClosedTime(time).build());
+    value = ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(true).setCreatedTime(time).build());
     target = new ReplicationTarget("peer1", "6", "6");
     StatusSection.add(m, new Text("6"), value);
     WorkSection.add(m, target.toText(), value);

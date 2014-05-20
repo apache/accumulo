@@ -78,12 +78,16 @@ public class StatusMakerTest {
     Map<String,Integer> fileToTableId = new HashMap<>();
 
     int index = 1;
+    long timeCreated = 0;
+    Map<String,Long> fileToTimeCreated = new HashMap<>();
     for (String file : files) {
       Mutation m = new Mutation(ReplicationSection.getRowPrefix() + file);
-      m.put(ReplicationSection.COLF, new Text(Integer.toString(index)), StatusUtil.newFileValue());
+      m.put(ReplicationSection.COLF, new Text(Integer.toString(index)), StatusUtil.fileCreatedValue(timeCreated));
+      fileToTimeCreated.put(file, timeCreated);
       bw.addMutation(m);
       fileToTableId.put(file, index);
       index++;
+      timeCreated++;
     }
 
     bw.close();
@@ -102,7 +106,9 @@ public class StatusMakerTest {
 
       Assert.assertTrue("Found unexpected file: " + file, files.contains(file.toString()));
       Assert.assertEquals(fileToTableId.get(file.toString()), new Integer(tableId.toString()));
-      Assert.assertEquals(StatusUtil.newFile(), Status.parseFrom(entry.getValue().get()));
+      timeCreated = fileToTimeCreated.get(file.toString());
+      Assert.assertNotNull(timeCreated);
+      Assert.assertEquals(StatusUtil.fileCreated(timeCreated), Status.parseFrom(entry.getValue().get()));
     }
   }
 
@@ -123,12 +129,14 @@ public class StatusMakerTest {
     Map<String,Integer> fileToTableId = new HashMap<>();
 
     int index = 1;
+    long timeCreated = 0;
     for (String file : files) {
       Mutation m = new Mutation(ReplicationSection.getRowPrefix() + file);
-      m.put(ReplicationSection.COLF, new Text(Integer.toString(index)), StatusUtil.newFileValue());
+      m.put(ReplicationSection.COLF, new Text(Integer.toString(index)), StatusUtil.fileCreatedValue(timeCreated));
       bw.addMutation(m);
       fileToTableId.put(file, index);
       index++;
+      timeCreated++;
     }
 
     bw.close();
@@ -160,7 +168,7 @@ public class StatusMakerTest {
         walPrefix + UUID.randomUUID());
     Map<String,Integer> fileToTableId = new HashMap<>();
 
-    Status stat = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true).build();
+    Status stat = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true).setCreatedTime(System.currentTimeMillis()).build();
 
     int index = 1;
     for (String file : files) {
@@ -212,7 +220,7 @@ public class StatusMakerTest {
     int index = 1;
     long time = System.currentTimeMillis();
     for (String file : files) {
-      statBuilder.setClosedTime(time++);
+      statBuilder.setCreatedTime(time++);
       Mutation m = new Mutation(ReplicationSection.getRowPrefix() + file);
       m.put(ReplicationSection.COLF, new Text(Integer.toString(index)), ProtobufUtil.toValue(statBuilder.build()));
       bw.addMutation(m);

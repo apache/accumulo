@@ -86,27 +86,29 @@ public class StatusCombinerTest {
 
   @Test
   public void newStatusWithNewIngest() {
-    Status orig = StatusUtil.newFile();
+    Status orig = StatusUtil.fileCreated(100);
     Status status = StatusUtil.replicatedAndIngested(10, 20);
     Status ret = combiner.typedReduce(key, Arrays.asList(orig, status).iterator());
     Assert.assertEquals(10l, ret.getBegin());
     Assert.assertEquals(20l, ret.getEnd());
+    Assert.assertEquals(100l, ret.getCreatedTime());
     Assert.assertEquals(false, ret.getClosed());
   }
 
   @Test
   public void newStatusWithNewIngestSingleBuilder() {
-    Status orig = StatusUtil.newFile();
+    Status orig = StatusUtil.fileCreated(100);
     Status status = StatusUtil.replicatedAndIngested(builder, 10, 20);
     Status ret = combiner.typedReduce(key, Arrays.asList(orig, status).iterator());
     Assert.assertEquals(10l, ret.getBegin());
     Assert.assertEquals(20l, ret.getEnd());
+    Assert.assertEquals(100l, ret.getCreatedTime());
     Assert.assertEquals(false, ret.getClosed());
   }
 
   @Test
   public void commutativeNewFile() {
-    Status newFile = StatusUtil.newFile(), firstSync = StatusUtil.ingestedUntil(100), secondSync = StatusUtil.ingestedUntil(200);
+    Status newFile = StatusUtil.fileCreated(100), firstSync = StatusUtil.ingestedUntil(100), secondSync = StatusUtil.ingestedUntil(200);
 
     Status order1 = combiner.typedReduce(key, Arrays.asList(newFile, firstSync, secondSync).iterator()), order2 = combiner.typedReduce(key,
         Arrays.asList(secondSync, firstSync, newFile).iterator());
@@ -116,7 +118,7 @@ public class StatusCombinerTest {
 
   @Test
   public void commutativeNewFileSingleBuilder() {
-    Status newFile = StatusUtil.newFile(), firstSync = StatusUtil.ingestedUntil(builder, 100), secondSync = StatusUtil.ingestedUntil(builder, 200);
+    Status newFile = StatusUtil.fileCreated(100), firstSync = StatusUtil.ingestedUntil(builder, 100), secondSync = StatusUtil.ingestedUntil(builder, 200);
 
     Status order1 = combiner.typedReduce(key, Arrays.asList(newFile, firstSync, secondSync).iterator()), order2 = combiner.typedReduce(key,
         Arrays.asList(secondSync, firstSync, newFile).iterator());
@@ -126,7 +128,7 @@ public class StatusCombinerTest {
 
   @Test
   public void commutativeNewUpdates() {
-    Status newFile = StatusUtil.newFile(), firstSync = StatusUtil.ingestedUntil(100), secondSync = StatusUtil.ingestedUntil(200);
+    Status newFile = StatusUtil.fileCreated(100), firstSync = StatusUtil.ingestedUntil(100), secondSync = StatusUtil.ingestedUntil(200);
 
     Status order1 = combiner.typedReduce(key, Arrays.asList(newFile, firstSync, secondSync).iterator()), order2 = combiner.typedReduce(key,
         Arrays.asList(newFile, secondSync, firstSync).iterator());
@@ -136,7 +138,7 @@ public class StatusCombinerTest {
 
   @Test
   public void commutativeNewUpdatesSingleBuilder() {
-    Status newFile = StatusUtil.newFile(), firstSync = StatusUtil.ingestedUntil(builder, 100), secondSync = StatusUtil.ingestedUntil(builder, 200);
+    Status newFile = StatusUtil.fileCreated(100), firstSync = StatusUtil.ingestedUntil(builder, 100), secondSync = StatusUtil.ingestedUntil(builder, 200);
 
     Status order1 = combiner.typedReduce(key, Arrays.asList(newFile, firstSync, secondSync).iterator()), order2 = combiner.typedReduce(key,
         Arrays.asList(newFile, secondSync, firstSync).iterator());
@@ -146,7 +148,7 @@ public class StatusCombinerTest {
 
   @Test
   public void commutativeWithClose() {
-    Status newFile = StatusUtil.newFile(), closed = StatusUtil.fileClosed(System.currentTimeMillis()), secondSync = StatusUtil.ingestedUntil(200);
+    Status newFile = StatusUtil.fileCreated(100), closed = StatusUtil.fileClosed(), secondSync = StatusUtil.ingestedUntil(200);
 
     Status order1 = combiner.typedReduce(key, Arrays.asList(newFile, closed, secondSync).iterator()), order2 = combiner.typedReduce(key,
         Arrays.asList(newFile, secondSync, closed).iterator());
@@ -156,7 +158,7 @@ public class StatusCombinerTest {
 
   @Test
   public void commutativeWithCloseSingleBuilder() {
-    Status newFile = StatusUtil.newFile(), closed = StatusUtil.fileClosed(System.currentTimeMillis()), secondSync = StatusUtil.ingestedUntil(builder, 200);
+    Status newFile = StatusUtil.fileCreated(100), closed = StatusUtil.fileClosed(), secondSync = StatusUtil.ingestedUntil(builder, 200);
 
     Status order1 = combiner.typedReduce(key, Arrays.asList(newFile, closed, secondSync).iterator()), order2 = combiner.typedReduce(key,
         Arrays.asList(newFile, secondSync, closed).iterator());
@@ -166,7 +168,7 @@ public class StatusCombinerTest {
 
   @Test
   public void commutativeWithMultipleUpdates() {
-    Status newFile = StatusUtil.newFile(), update1 = StatusUtil.ingestedUntil(100), update2 = StatusUtil.ingestedUntil(200), repl1 = StatusUtil.replicated(50), repl2 = StatusUtil
+    Status newFile = StatusUtil.fileCreated(100), update1 = StatusUtil.ingestedUntil(100), update2 = StatusUtil.ingestedUntil(200), repl1 = StatusUtil.replicated(50), repl2 = StatusUtil
         .replicated(150);
 
     Status order1 = combiner.typedReduce(key, Arrays.asList(newFile, update1, repl1, update2, repl2).iterator());
@@ -189,7 +191,7 @@ public class StatusCombinerTest {
 
   @Test
   public void commutativeWithMultipleUpdatesSingleBuilder() {
-    Status newFile = StatusUtil.newFile(), update1 = StatusUtil.ingestedUntil(builder, 100), update2 = StatusUtil.ingestedUntil(builder, 200), repl1 = StatusUtil
+    Status newFile = StatusUtil.fileCreated(100), update1 = StatusUtil.ingestedUntil(builder, 100), update2 = StatusUtil.ingestedUntil(builder, 200), repl1 = StatusUtil
         .replicated(builder, 50), repl2 = StatusUtil.replicated(builder, 150);
 
     Status order1 = combiner.typedReduce(key, Arrays.asList(newFile, update1, repl1, update2, repl2).iterator());
@@ -212,7 +214,7 @@ public class StatusCombinerTest {
 
   @Test
   public void duplicateStatuses() {
-    Status newFile = StatusUtil.newFile(), update1 = StatusUtil.ingestedUntil(builder, 100), update2 = StatusUtil.ingestedUntil(builder, 200), repl1 = StatusUtil
+    Status newFile = StatusUtil.fileCreated(100), update1 = StatusUtil.ingestedUntil(builder, 100), update2 = StatusUtil.ingestedUntil(builder, 200), repl1 = StatusUtil
         .replicated(builder, 50), repl2 = StatusUtil.replicated(builder, 150);
 
     Status order1 = combiner.typedReduce(key, Arrays.asList(newFile, update1, repl1, update2, repl2).iterator());
@@ -225,7 +227,7 @@ public class StatusCombinerTest {
 
   @Test
   public void fileClosedTimePropagated() {
-    Status stat1 = Status.newBuilder().setBegin(10).setEnd(20).setClosed(true).setInfiniteEnd(false).setClosedTime(50).build();
+    Status stat1 = Status.newBuilder().setBegin(10).setEnd(20).setClosed(true).setInfiniteEnd(false).setCreatedTime(50).build();
     Status stat2 = Status.newBuilder().setBegin(10).setEnd(20).setClosed(true).setInfiniteEnd(false).build();
 
     Status combined = combiner.typedReduce(key, Arrays.asList(stat1, stat2).iterator());
@@ -235,14 +237,14 @@ public class StatusCombinerTest {
 
   @Test
   public void fileClosedTimeChoosesEarliestIgnoringDefault() {
-    Status stat1 = Status.newBuilder().setBegin(10).setEnd(20).setClosed(true).setInfiniteEnd(false).setClosedTime(50).build();
-    Status stat2 = Status.newBuilder().setBegin(10).setEnd(20).setClosed(true).setInfiniteEnd(false).setClosedTime(100).build();
+    Status stat1 = Status.newBuilder().setBegin(10).setEnd(20).setClosed(true).setInfiniteEnd(false).setCreatedTime(50).build();
+    Status stat2 = Status.newBuilder().setBegin(10).setEnd(20).setClosed(true).setInfiniteEnd(false).setCreatedTime(100).build();
 
     Status combined = combiner.typedReduce(key, Arrays.asList(stat1, stat2).iterator());
 
     Assert.assertEquals(stat1, combined);
 
-    Status stat3 = Status.newBuilder().setBegin(10).setEnd(20).setClosed(true).setInfiniteEnd(false).setClosedTime(100).build();
+    Status stat3 = Status.newBuilder().setBegin(10).setEnd(20).setClosed(true).setInfiniteEnd(false).setCreatedTime(100).build();
 
     Status combined2 = combiner.typedReduce(key, Arrays.asList(combined, stat3).iterator());
 

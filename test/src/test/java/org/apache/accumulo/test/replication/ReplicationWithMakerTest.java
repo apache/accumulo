@@ -23,10 +23,12 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.replication.ReplicaSystemFactory;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTarget;
@@ -91,6 +93,8 @@ public class ReplicationWithMakerTest extends ConfigurableMacIT {
         conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION.getKey(), "true");
         // Replicate table1 to cluster1 in the table with id of '4'
         conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION_TARGETS.getKey() + "cluster1", "4");
+        conn.instanceOperations().setProperty(Property.REPLICATION_PEERS.getKey() + "cluster1",
+            ReplicaSystemFactory.getPeerConfigurationValue(MockReplicaSystem.class, "100000"));
         break;
       } catch (Exception e) {
         attempts--;
@@ -136,7 +140,7 @@ public class ReplicationWithMakerTest extends ConfigurableMacIT {
 
     // Trigger the minor compaction, waiting for it to finish.
     // This should write the entry to metadata that the file has data
-    conn.tableOperations().flush(ReplicationTable.NAME, null, null, true);
+    conn.tableOperations().flush(table1, null, null, true);
 
     // Make sure that we have one status element, should be a new file
     Scanner s = ReplicationTable.getScanner(conn);
@@ -148,7 +152,8 @@ public class ReplicationWithMakerTest extends ConfigurableMacIT {
     while (null == entry && attempts > 0) {
       try {
         entry = Iterables.getOnlyElement(s);
-        if (!expectedStatus.equals(Status.parseFrom(entry.getValue().get()))) {
+        Status actual = Status.parseFrom(entry.getValue().get());
+        if (actual.getInfiniteEnd() != expectedStatus.getInfiniteEnd()) {
           entry = null;
           // the master process didn't yet fire and write the new mutation, wait for it to do
           // so and try to read it again
@@ -171,7 +176,8 @@ public class ReplicationWithMakerTest extends ConfigurableMacIT {
     }
 
     Assert.assertNotNull("Could not find expected entry in replication table", entry);
-    Assert.assertEquals("Expected to find a replication entry that is open with infinite length", expectedStatus, Status.parseFrom(entry.getValue().get()));
+    Status actual = Status.parseFrom(entry.getValue().get());
+    Assert.assertTrue("Expected to find a replication entry that is open with infinite length: " + ProtobufUtil.toString(actual), !actual.getClosed() && actual.getInfiniteEnd());
 
     // Try a couple of times to watch for the work record to be created
     boolean notFound = true;

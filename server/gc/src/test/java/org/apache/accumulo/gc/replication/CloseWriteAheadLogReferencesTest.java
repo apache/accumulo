@@ -312,7 +312,7 @@ public class CloseWriteAheadLogReferencesTest {
     ReplicationTable.create(conn);
     BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     Mutation m = new Mutation(ReplicationSection.getRowPrefix() + "file:/accumulo/wal/tserver+port/12345");
-    m.put(ReplicationSection.COLF, new Text("1"), StatusUtil.newFileValue());
+    m.put(ReplicationSection.COLF, new Text("1"), StatusUtil.fileCreatedValue(System.currentTimeMillis()));
     bw.addMutation(m);
     bw.close();
 
@@ -334,7 +334,7 @@ public class CloseWriteAheadLogReferencesTest {
     ReplicationTable.create(conn);
     BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     Mutation m = new Mutation(ReplicationSection.getRowPrefix() + file);
-    m.put(ReplicationSection.COLF, new Text("1"), StatusUtil.newFileValue());
+    m.put(ReplicationSection.COLF, new Text("1"), StatusUtil.fileCreatedValue(System.currentTimeMillis()));
     bw.addMutation(m);
     bw.close();
 

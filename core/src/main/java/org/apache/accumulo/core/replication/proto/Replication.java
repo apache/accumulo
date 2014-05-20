@@ -99,23 +99,23 @@ package org.apache.accumulo.core.replication.proto;
      */
     boolean getClosed();
 
-    // optional int64 closedTime = 5 [default = 0];
+    // optional int64 createdTime = 5 [default = 0];
     /**
-     * <code>optional int64 closedTime = 5 [default = 0];</code>
+     * <code>optional int64 createdTime = 5 [default = 0];</code>
      *
      * <pre>
-     * when, in ms, was the file closed?
+     * when, in ms, was the file created?
      * </pre>
      */
-    boolean hasClosedTime();
+    boolean hasCreatedTime();
     /**
-     * <code>optional int64 closedTime = 5 [default = 0];</code>
+     * <code>optional int64 createdTime = 5 [default = 0];</code>
      *
      * <pre>
-     * when, in ms, was the file closed?
+     * when, in ms, was the file created?
      * </pre>
      */
-    long getClosedTime();
+    long getCreatedTime();
   }
   /**
    * Protobuf type {@code Status}
@@ -190,7 +190,7 @@ package org.apache.accumulo.core.replication.proto;
             }
             case 40: {
               bitField0_ |= 0x00000010;
-              closedTime_ = input.readInt64();
+              createdTime_ = input.readInt64();
               break;
             }
           }
@@ -329,28 +329,28 @@ package org.apache.accumulo.core.replication.proto;
       return closed_;
     }
 
-    // optional int64 closedTime = 5 [default = 0];
-    public static final int CLOSEDTIME_FIELD_NUMBER = 5;
-    private long closedTime_;
+    // optional int64 createdTime = 5 [default = 0];
+    public static final int CREATEDTIME_FIELD_NUMBER = 5;
+    private long createdTime_;
     /**
-     * <code>optional int64 closedTime = 5 [default = 0];</code>
+     * <code>optional int64 createdTime = 5 [default = 0];</code>
      *
      * <pre>
-     * when, in ms, was the file closed?
+     * when, in ms, was the file created?
      * </pre>
      */
-    public boolean hasClosedTime() {
+    public boolean hasCreatedTime() {
       return ((bitField0_ & 0x00000010) == 0x00000010);
     }
     /**
-     * <code>optional int64 closedTime = 5 [default = 0];</code>
+     * <code>optional int64 createdTime = 5 [default = 0];</code>
      *
      * <pre>
-     * when, in ms, was the file closed?
+     * when, in ms, was the file created?
      * </pre>
      */
-    public long getClosedTime() {
-      return closedTime_;
+    public long getCreatedTime() {
+      return createdTime_;
     }
 
     private void initFields() {
@@ -358,7 +358,7 @@ package org.apache.accumulo.core.replication.proto;
       end_ = 0L;
       infiniteEnd_ = false;
       closed_ = false;
-      closedTime_ = 0L;
+      createdTime_ = 0L;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -385,7 +385,7 @@ package org.apache.accumulo.core.replication.proto;
         output.writeBool(4, closed_);
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
-        output.writeInt64(5, closedTime_);
+        output.writeInt64(5, createdTime_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -414,7 +414,7 @@ package org.apache.accumulo.core.replication.proto;
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt64Size(5, closedTime_);
+          .computeInt64Size(5, createdTime_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -540,7 +540,7 @@ package org.apache.accumulo.core.replication.proto;
         bitField0_ = (bitField0_ & ~0x00000004);
         closed_ = false;
         bitField0_ = (bitField0_ & ~0x00000008);
-        closedTime_ = 0L;
+        createdTime_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000010);
         return this;
       }
@@ -589,7 +589,7 @@ package org.apache.accumulo.core.replication.proto;
         if (((from_bitField0_ & 0x00000010) == 0x00000010)) {
           to_bitField0_ |= 0x00000010;
         }
-        result.closedTime_ = closedTime_;
+        result.createdTime_ = createdTime_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -618,8 +618,8 @@ package org.apache.accumulo.core.replication.proto;
         if (other.hasClosed()) {
           setClosed(other.getClosed());
         }
-        if (other.hasClosedTime()) {
-          setClosedTime(other.getClosedTime());
+        if (other.hasCreatedTime()) {
+          setCreatedTime(other.getCreatedTime());
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -844,51 +844,51 @@ package org.apache.accumulo.core.replication.proto;
         return this;
       }
 
-      // optional int64 closedTime = 5 [default = 0];
-      private long closedTime_ ;
+      // optional int64 createdTime = 5 [default = 0];
+      private long createdTime_ ;
       /**
-       * <code>optional int64 closedTime = 5 [default = 0];</code>
+       * <code>optional int64 createdTime = 5 [default = 0];</code>
        *
        * <pre>
-       * when, in ms, was the file closed?
+       * when, in ms, was the file created?
        * </pre>
        */
-      public boolean hasClosedTime() {
+      public boolean hasCreatedTime() {
         return ((bitField0_ & 0x00000010) == 0x00000010);
       }
       /**
-       * <code>optional int64 closedTime = 5 [default = 0];</code>
+       * <code>optional int64 createdTime = 5 [default = 0];</code>
        *
        * <pre>
-       * when, in ms, was the file closed?
+       * when, in ms, was the file created?
        * </pre>
        */
-      public long getClosedTime() {
-        return closedTime_;
+      public long getCreatedTime() {
+        return createdTime_;
       }
       /**
-       * <code>optional int64 closedTime = 5 [default = 0];</code>
+       * <code>optional int64 createdTime = 5 [default = 0];</code>
        *
        * <pre>
-       * when, in ms, was the file closed?
+       * when, in ms, was the file created?
        * </pre>
        */
-      public Builder setClosedTime(long value) {
+      public Builder setCreatedTime(long value) {
         bitField0_ |= 0x00000010;
-        closedTime_ = value;
+        createdTime_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>optional int64 closedTime = 5 [default = 0];</code>
+       * <code>optional int64 createdTime = 5 [default = 0];</code>
        *
        * <pre>
-       * when, in ms, was the file closed?
+       * when, in ms, was the file created?
        * </pre>
        */
-      public Builder clearClosedTime() {
+      public Builder clearCreatedTime() {
         bitField0_ = (bitField0_ & ~0x00000010);
-        closedTime_ = 0L;
+        createdTime_ = 0L;
         onChanged();
         return this;
       }
@@ -918,12 +918,12 @@ package org.apache.accumulo.core.replication.proto;
       descriptor;
   static {
     java.lang.String[] descriptorData = {
-      "\n#src/main/protobuf/replication.proto\"t\n" +
+      "\n#src/main/protobuf/replication.proto\"u\n" +
       "\006Status\022\020\n\005begin\030\001 \001(\003:\0010\022\016\n\003end\030\002 \001(\003:\001" +
       "0\022\032\n\013infiniteEnd\030\003 \001(\010:\005false\022\025\n\006closed\030" +
-      "\004 \001(\010:\005false\022\025\n\nclosedTime\030\005 \001(\003:\0010B.\n*o" +
-      "rg.apache.accumulo.core.replication.prot" +
-      "oH\001"
+      "\004 \001(\010:\005false\022\026\n\013createdTime\030\005 \001(\003:\0010B.\n*" +
+      "org.apache.accumulo.core.replication.pro" +
+      "toH\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -935,7 +935,7 @@ package org.apache.accumulo.core.replication.proto;
           internal_static_Status_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_Status_descriptor,
-              new java.lang.String[] { "Begin", "End", "InfiniteEnd", "Closed", "ClosedTime", });
+              new java.lang.String[] { "Begin", "End", "InfiniteEnd", "Closed", "CreatedTime", });
           return null;
         }
       };

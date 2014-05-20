@@ -26,6 +26,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.TypedValueCombiner;
 import org.apache.accumulo.core.iterators.ValueFormatException;
+import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.replication.proto.Replication.Status.Builder;
 import org.apache.log4j.Logger;
@@ -91,7 +92,7 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
       if (null == combined) {
         if (!iter.hasNext()) {
           if (log.isTraceEnabled()) {
-            log.trace("Returned single value: " + key.toStringNoTruncate() + " " + status.toString().replace("\n", ", "));
+            log.trace("Returned single value: " + key.toStringNoTruncate() + " " + ProtobufUtil.toString(status));
           }
           return status;
         } else {
@@ -104,7 +105,7 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
     }
 
     if (log.isTraceEnabled()) {
-      log.trace("Combined: " + key.toStringNoTruncate() + " " + combined.build().toString().replace("\n", ", "));
+      log.trace("Combined: " + key.toStringNoTruncate() + " " + ProtobufUtil.toString(combined.build()));
     }
 
     return combined.build();
@@ -135,18 +136,19 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
     // persist the infinite end
     combined.setInfiniteEnd(combined.getInfiniteEnd() | status.getInfiniteEnd());
 
-    // only set the closedTime if the new status has it defined
-    if (status.hasClosedTime()) {
-      // choose the minimum (earliest) closedTime seen
-      if (combined.hasClosedTime()) {
-        combined.setClosedTime(Math.min(combined.getClosedTime(), status.getClosedTime()));
+    // only set the createdTime if the new status has it defined
+    if (status.hasCreatedTime()) {
+      // choose the minimum (earliest) createdTime seen
+      if (combined.hasCreatedTime()) {
+        combined.setCreatedTime(Math.min(combined.getCreatedTime(), status.getCreatedTime()));
       } else {
-        combined.setClosedTime(status.getClosedTime());
+        combined.setCreatedTime(status.getCreatedTime());
       }
     }
   }
 
   private String builderToString(Builder builder) {
-    return "begin: " + builder.getBegin() + ", end: " + builder.getEnd() + ", infiniteEnd: " + builder.getInfiniteEnd() + ", closed: "+ builder.getClosed(); 
+    return "begin: " + builder.getBegin() + ", end: " + builder.getEnd() + ", infiniteEnd: " + builder.getInfiniteEnd() + ", closed: " + builder.getClosed()
+        + ", createdTime: " + builder.getCreatedTime();
   }
 }

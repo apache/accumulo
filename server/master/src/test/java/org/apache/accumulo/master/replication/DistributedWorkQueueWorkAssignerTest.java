@@ -211,11 +211,11 @@ public class DistributedWorkQueueWorkAssignerTest {
     String file1 = "/accumulo/wal/tserver+port/" + filename1, file2 = "/accumulo/wal/tserver+port/" + filename2;
 
     Mutation m = new Mutation(file1);
-    WorkSection.add(m, serializedTarget1, StatusUtil.newFileValue());
+    WorkSection.add(m, serializedTarget1, StatusUtil.fileCreatedValue(5));
     bw.addMutation(m);
 
     m = new Mutation(file2);
-    WorkSection.add(m, serializedTarget2, StatusUtil.newFileValue());
+    WorkSection.add(m, serializedTarget2, StatusUtil.fileCreatedValue(10));
     bw.addMutation(m);
 
     bw.close();

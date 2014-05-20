@@ -27,7 +27,7 @@ public class StatusUtilTest {
 
   @Test
   public void newFileIsNotCompletelyReplicated() {
-    Assert.assertFalse(StatusUtil.isSafeForRemoval(StatusUtil.newFile()));
+    Assert.assertFalse(StatusUtil.isSafeForRemoval(StatusUtil.fileCreated(0l)));
   }
 
   @Test

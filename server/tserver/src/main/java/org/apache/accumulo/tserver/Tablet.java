@@ -1408,7 +1408,7 @@ public class Tablet {
 
           // Ensure that we write a record marking each WAL as requiring replication to make sure we don't abandon the data
           if (ReplicationConfigurationUtil.isEnabled(extent, tabletServer.getTableConfiguration(extent))) {
-            Status status = StatusUtil.fileClosed(System.currentTimeMillis());
+            Status status = StatusUtil.fileClosed();
             for (LogEntry logEntry : logEntries) {
               log.debug("Writing closed status to metadata table for " + logEntry.logSet + " " + ProtobufUtil.toString(status));
               ReplicationTableUtil.updateFiles(SystemCredentials.get(), extent, logEntry.logSet, status);

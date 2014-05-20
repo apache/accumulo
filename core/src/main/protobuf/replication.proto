@@ -22,5 +22,5 @@ message Status {
 	optional int64 end = 2 [default = 0]; // offset where data is ready for replication
 	optional bool infiniteEnd = 3 [default = false]; // do we have a discrete 'end'
 	optional bool closed = 4 [default = false]; // will more data be appended to the file
-	optional int64 closedTime = 5 [default = 0]; // when, in ms, was the file closed?
+	optional int64 createdTime = 5 [default = 0]; // when, in ms, was the file created?
 }

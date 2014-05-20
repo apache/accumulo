@@ -324,7 +324,7 @@ public class GarbageCollectWriteAheadLogsTest {
 
     // Write a Status record which should prevent file1 from being deleted
     LinkedList<Entry<Key,Value>> replData = new LinkedList<>();
-    replData.add(Maps.immutableEntry(new Key("/wals/" + file1, StatusSection.NAME.toString(), "1"), StatusUtil.newFileValue()));
+    replData.add(Maps.immutableEntry(new Key("/wals/" + file1, StatusSection.NAME.toString(), "1"), StatusUtil.fileCreatedValue(System.currentTimeMillis())));
 
     ReplicationGCWAL replGC = new ReplicationGCWAL(instance, volMgr, false, replData);
 
@@ -338,7 +338,7 @@ public class GarbageCollectWriteAheadLogsTest {
     assertFalse(replGC.neededByReplication(conn, "/wals/" + file2));
 
     // The file is closed but not replicated, must be retained
-    replData.add(Maps.immutableEntry(new Key("/wals/" + file1, StatusSection.NAME.toString(), "1"), StatusUtil.fileClosedValue(System.currentTimeMillis())));
+    replData.add(Maps.immutableEntry(new Key("/wals/" + file1, StatusSection.NAME.toString(), "1"), StatusUtil.fileClosedValue()));
     assertTrue(replGC.neededByReplication(conn, "/wals/" + file1));
 
     // File is closed and fully replicated, can be deleted
@@ -360,12 +360,14 @@ public class GarbageCollectWriteAheadLogsTest {
 
     ReplicationTable.create(conn);
 
+    long file1CreateTime = System.currentTimeMillis();
+    long file2CreateTime = file1CreateTime + 50;
     BatchWriter bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
     Mutation m = new Mutation("/wals/" + file1);
-    StatusSection.add(m, new Text("1"), StatusUtil.newFileValue());
+    StatusSection.add(m, new Text("1"), StatusUtil.fileCreatedValue(file1CreateTime));
     bw.addMutation(m);
     m = new Mutation("/wals/" + file2);
-    StatusSection.add(m, new Text("1"), StatusUtil.newFileValue());
+    StatusSection.add(m, new Text("1"), StatusUtil.fileCreatedValue(file2CreateTime));
     bw.addMutation(m);
 
     // These WALs are potential candidates for deletion from fs
@@ -402,14 +404,16 @@ public class GarbageCollectWriteAheadLogsTest {
 
     ReplicationTable.create(conn);
 
+    long file1CreateTime = System.currentTimeMillis();
+    long file2CreateTime = file1CreateTime + 50;
     // Write some records to the metadata table, we haven't yet written status records to the replication table
     BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     Mutation m = new Mutation(ReplicationSection.getRowPrefix() + "/wals/" + file1);
-    m.put(ReplicationSection.COLF, new Text("1"), StatusUtil.newFileValue());
+    m.put(ReplicationSection.COLF, new Text("1"), StatusUtil.fileCreatedValue(file1CreateTime));
     bw.addMutation(m);
     
     m = new Mutation(ReplicationSection.getRowPrefix() + "/wals/" + file2);
-    m.put(ReplicationSection.COLF, new Text("1"), StatusUtil.newFileValue());
+    m.put(ReplicationSection.COLF, new Text("1"), StatusUtil.fileCreatedValue(file2CreateTime));
     bw.addMutation(m);
 
     // These WALs are potential candidates for deletion from fs
@@ -442,7 +446,7 @@ public class GarbageCollectWriteAheadLogsTest {
     String wal = "hdfs://localhost:8020/accumulo/wal/tserver+port/123456-1234-1234-12345678";
     BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     Mutation m = new Mutation(ReplicationSection.getRowPrefix() + wal);
-    m.put(ReplicationSection.COLF, new Text("1"), StatusUtil.newFileValue());
+    m.put(ReplicationSection.COLF, new Text("1"), StatusUtil.fileCreatedValue(System.currentTimeMillis()));
     bw.addMutation(m);
     bw.close();
 
@@ -460,16 +464,17 @@ public class GarbageCollectWriteAheadLogsTest {
     Connector conn = inst.getConnector("root", new PasswordToken(""));
     ReplicationTable.create(conn);
 
+    long walCreateTime = System.currentTimeMillis();
     String wal = "hdfs://localhost:8020/accumulo/wal/tserver+port/123456-1234-1234-12345678";
     BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     Mutation m = new Mutation(ReplicationSection.getRowPrefix() + wal);
-    m.put(ReplicationSection.COLF, new Text("1"), StatusUtil.newFileValue());
+    m.put(ReplicationSection.COLF, new Text("1"), StatusUtil.fileCreatedValue(walCreateTime));
     bw.addMutation(m);
     bw.close();
 
     bw = ReplicationTable.getBatchWriter(conn);
     m = new Mutation(wal);
-    StatusSection.add(m, new Text("1"), StatusUtil.newFileValue());
+    StatusSection.add(m, new Text("1"), StatusUtil.fileCreatedValue(walCreateTime));
     bw.addMutation(m);
     bw.close();
 

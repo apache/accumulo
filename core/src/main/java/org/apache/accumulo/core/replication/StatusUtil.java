@@ -28,47 +28,33 @@ import com.google.protobuf.InvalidProtocolBufferException;
  */
 public class StatusUtil {
 
-  private static final Status NEW_REPLICATION_STATUS, INF_END_REPLICATION_STATUS;
-  private static final Value NEW_REPLICATION_STATUS_VALUE, INF_END_REPLICATION_STATUS_VALUE;
+  private static final Status INF_END_REPLICATION_STATUS, CLOSED_STATUS;
+  private static final Value INF_END_REPLICATION_STATUS_VALUE, CLOSED_STATUS_VALUE;
 
-  private static final Status.Builder CLOSED_STATUS_BUILDER;
+  private static final Status.Builder CREATED_STATUS_BUILDER;
 
   static {
-    Status.Builder builder = Status.newBuilder();
-    builder.setBegin(0);
-    builder.setEnd(0);
-    builder.setInfiniteEnd(false);
-    builder.setClosed(false);
-    NEW_REPLICATION_STATUS = builder.build();
-    NEW_REPLICATION_STATUS_VALUE = ProtobufUtil.toValue(NEW_REPLICATION_STATUS);
+    CREATED_STATUS_BUILDER = Status.newBuilder();
+    CREATED_STATUS_BUILDER.setBegin(0);
+    CREATED_STATUS_BUILDER.setEnd(0);
+    CREATED_STATUS_BUILDER.setInfiniteEnd(false);
+    CREATED_STATUS_BUILDER.setClosed(false);
 
-    CLOSED_STATUS_BUILDER = Status.newBuilder();
-    CLOSED_STATUS_BUILDER.setBegin(0);
-    CLOSED_STATUS_BUILDER.setEnd(0);
-    CLOSED_STATUS_BUILDER.setInfiniteEnd(true);
-    CLOSED_STATUS_BUILDER.setClosed(true);
-
-    builder = Status.newBuilder();
+    Builder builder = Status.newBuilder();
     builder.setBegin(0);
     builder.setEnd(0);
     builder.setInfiniteEnd(true);
     builder.setClosed(false);
     INF_END_REPLICATION_STATUS = builder.build();
     INF_END_REPLICATION_STATUS_VALUE = ProtobufUtil.toValue(INF_END_REPLICATION_STATUS);
-  }
 
-  /**
-   * @return A {@link Status} which represents a file with no data that is open for writes
-   */
-  public static Status newFile() {
-    return NEW_REPLICATION_STATUS;
-  }
-
-  /**
-   * @return A {@link Value} which represent a file with no data that is open for writes
-   */
-  public static Value newFileValue() {
-    return NEW_REPLICATION_STATUS_VALUE;
+    builder = Status.newBuilder();
+    builder.setBegin(0);
+    builder.setEnd(0);
+    builder.setInfiniteEnd(true);
+    builder.setClosed(true);
+    CLOSED_STATUS = builder.build();
+    CLOSED_STATUS_VALUE = ProtobufUtil.toValue(CLOSED_STATUS);
   }
 
   /**
@@ -135,19 +121,33 @@ public class StatusUtil {
   }
 
   /**
-   * @return A {@link Status} for a closed file of unspecified length, all of which needs replicating.
+   * @return A {@link Status} for a new file that was just created
    */
-  public static synchronized Status fileClosed(long timeClosed) {
+  public static synchronized Status fileCreated(long timeCreated) {
     // We're using a shared builder, so we need to synchronize access on it until we make a Status (which is then immutable)
-    CLOSED_STATUS_BUILDER.setClosedTime(timeClosed);
-    return CLOSED_STATUS_BUILDER.build();
+    CREATED_STATUS_BUILDER.setCreatedTime(timeCreated);
+    return CREATED_STATUS_BUILDER.build();
   }
 
   /**
-   * @return A {@link Value} for a closed file of unspecified length, all of which needs replicating.
+   * @return A {@link Value} for a new file that was just created
    */
-  public static Value fileClosedValue(long timeClosed) {
-    return ProtobufUtil.toValue(fileClosed(timeClosed));
+  public static Value fileCreatedValue(long timeCreated) {
+    return ProtobufUtil.toValue(fileCreated(timeCreated));
+  }
+
+  /**
+   * @return A Status representing a closed file
+   */
+  public static Status fileClosed() {
+    return CLOSED_STATUS;
+  }
+
+  /**
+   * @return A Value representing a closed file
+   */
+  public static Value fileClosedValue() {
+    return CLOSED_STATUS_VALUE;
   }
 
   /**

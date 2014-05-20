@@ -84,9 +84,9 @@ public class WorkMakerTest {
     String file = "hdfs://localhost:8020/accumulo/wal/123456-1234-1234-12345678";
 
     // Create a status record for a file
-    long timeClosed = System.currentTimeMillis();
+    long timeCreated = System.currentTimeMillis();
     Mutation m = new Mutation(new Path(file).toString());
-    m.put(StatusSection.NAME, new Text(tableId), StatusUtil.fileClosedValue(timeClosed));
+    m.put(StatusSection.NAME, new Text(tableId), StatusUtil.fileCreatedValue(timeCreated));
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     bw.addMutation(m);
     bw.flush();
@@ -101,7 +101,7 @@ public class WorkMakerTest {
     // Invoke the addWorkRecord method to create a Work record from the Status record earlier
     ReplicationTarget expected = new ReplicationTarget("remote_cluster_1", "4", tableId);
     workMaker.setBatchWriter(bw);
-    workMaker.addWorkRecord(new Text(file), StatusUtil.fileClosedValue(timeClosed), ImmutableMap.of("remote_cluster_1", "4"), tableId);
+    workMaker.addWorkRecord(new Text(file), StatusUtil.fileCreatedValue(timeCreated), ImmutableMap.of("remote_cluster_1", "4"), tableId);
 
     // Scan over just the WorkSection
     s = ReplicationTable.getScanner(conn);
@@ -114,7 +114,7 @@ public class WorkMakerTest {
     Assert.assertEquals(file, workKey.getRow().toString());
     Assert.assertEquals(WorkSection.NAME, workKey.getColumnFamily());
     Assert.assertEquals(expected, actual);
-    Assert.assertEquals(workEntry.getValue(), StatusUtil.fileClosedValue(timeClosed));
+    Assert.assertEquals(workEntry.getValue(), StatusUtil.fileCreatedValue(timeCreated));
   }
 
   @Test
@@ -127,7 +127,7 @@ public class WorkMakerTest {
     String file = "hdfs://localhost:8020/accumulo/wal/123456-1234-1234-12345678";
 
     Mutation m = new Mutation(new Path(file).toString());
-    m.put(StatusSection.NAME, new Text(tableId), StatusUtil.fileClosedValue(System.currentTimeMillis()));
+    m.put(StatusSection.NAME, new Text(tableId), StatusUtil.fileCreatedValue(System.currentTimeMillis()));
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     bw.addMutation(m);
     bw.flush();
@@ -145,7 +145,7 @@ public class WorkMakerTest {
       expectedTargets.add(new ReplicationTarget(cluster.getKey(), cluster.getValue(), tableId));
     }
     workMaker.setBatchWriter(bw);
-    workMaker.addWorkRecord(new Text(file), StatusUtil.fileClosedValue(System.currentTimeMillis()), targetClusters, tableId);
+    workMaker.addWorkRecord(new Text(file), StatusUtil.fileCreatedValue(System.currentTimeMillis()), targetClusters, tableId);
 
     s = ReplicationTable.getScanner(conn);
     WorkSection.limit(s);
@@ -175,7 +175,7 @@ public class WorkMakerTest {
     String file = "hdfs://localhost:8020/accumulo/wal/123456-1234-1234-12345678";
 
     Mutation m = new Mutation(new Path(file).toString());
-    m.put(StatusSection.NAME, new Text(tableId), StatusUtil.newFileValue());
+    m.put(StatusSection.NAME, new Text(tableId), StatusUtil.fileCreatedValue(System.currentTimeMillis()));
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     bw.addMutation(m);
     bw.flush();
@@ -205,7 +205,7 @@ public class WorkMakerTest {
   public void closedStatusRecordsStillMakeWork() throws Exception {
     WorkMaker workMaker = new WorkMaker(conn);
 
-    Assert.assertFalse(workMaker.shouldCreateWork(StatusUtil.newFile()));
+    Assert.assertFalse(workMaker.shouldCreateWork(StatusUtil.fileCreated(System.currentTimeMillis())));
     Assert.assertTrue(workMaker.shouldCreateWork(StatusUtil.ingestedUntil(1000)));
     Assert.assertTrue(workMaker.shouldCreateWork(Status.newBuilder().setBegin(Long.MAX_VALUE).setEnd(0).setInfiniteEnd(true).setClosed(true).build()));
   }

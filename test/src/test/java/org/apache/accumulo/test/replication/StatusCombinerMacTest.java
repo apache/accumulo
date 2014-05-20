@@ -53,9 +53,10 @@ public class StatusCombinerMacTest extends SimpleMacIT {
     ReplicationTable.create(conn);
 
     BatchWriter bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
+    long createTime = System.currentTimeMillis();
     try {
       Mutation m = new Mutation("file:/accumulo/wal/HW10447.local+56808/93cdc17e-7521-44fa-87b5-37f45bcb92d3");
-      StatusSection.add(m, new Text("1"), StatusUtil.newFileValue());
+      StatusSection.add(m, new Text("1"), StatusUtil.fileCreatedValue(createTime));
       bw.addMutation(m);
     } finally {
       bw.close();
@@ -63,7 +64,7 @@ public class StatusCombinerMacTest extends SimpleMacIT {
 
     Scanner s = conn.createScanner(ReplicationTable.NAME, new Authorizations());
     Entry<Key,Value> entry = Iterables.getOnlyElement(s);
-    Assert.assertEquals(entry.getValue(), StatusUtil.newFileValue());
+    Assert.assertEquals(StatusUtil.fileCreatedValue(createTime), entry.getValue());
 
     bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
     try {

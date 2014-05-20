@@ -233,7 +233,7 @@ public class VolumeUtil {
       Credentials creds = SystemCredentials.get();
       MetadataTableUtil.updateTabletVolumes(extent, logsToRemove, logsToAdd, filesToRemove, filesToAdd, switchedDir, zooLock, creds);
       if (replicate) {
-        Status status = StatusUtil.fileClosed(System.currentTimeMillis());
+        Status status = StatusUtil.fileClosed();
         log.debug("Tablet directory switched, need to record old log files " + logsToRemove + " " + ProtobufUtil.toString(status));
         // Before deleting these logs, we need to mark them for replication
         ReplicationTableUtil.updateLogs(creds, extent, logsToRemove, status);
