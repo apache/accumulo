@@ -108,7 +108,7 @@ public class ReplicationTableUtil {
     if (!iterators.containsKey(COMBINER_NAME)) {
       // Set our combiner and combine all columns
       // Need to set the combiner beneath versioning since we don't want to turn it off
-      IteratorSetting setting = new IteratorSetting(15, COMBINER_NAME, StatusCombiner.class);
+      IteratorSetting setting = new IteratorSetting(9, COMBINER_NAME, StatusCombiner.class);
       Combiner.setColumns(setting, Collections.singletonList(new Column(MetadataSchema.ReplicationSection.COLF)));
       try {
         tops.attachIterator(tableName, setting);

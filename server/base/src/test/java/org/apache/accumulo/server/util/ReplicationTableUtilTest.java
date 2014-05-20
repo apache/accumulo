@@ -133,7 +133,7 @@ public class ReplicationTableUtilTest {
     String myMetadataTable = "mymetadata";
     Map<String,EnumSet<IteratorScope>> iterators = new HashMap<>();
     iterators.put("vers", EnumSet.of(IteratorScope.majc, IteratorScope.minc, IteratorScope.scan));
-    IteratorSetting combiner = new IteratorSetting(15, "replcombiner", StatusCombiner.class);
+    IteratorSetting combiner = new IteratorSetting(9, "replcombiner", StatusCombiner.class);
     Combiner.setColumns(combiner, Collections.singletonList(new Column(ReplicationSection.COLF)));
 
     expect(conn.tableOperations()).andReturn(tops);
