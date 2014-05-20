@@ -56,6 +56,7 @@ native_dir=`find "${TMP_DIR}" -maxdepth 1 -mindepth 1 -type d`
 cd "${native_dir}"
 
 # Make the native library
+export USERFLAGS=$@
 make
 
 # Make sure it didn't fail

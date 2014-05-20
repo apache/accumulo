@@ -270,7 +270,7 @@ public class DfsLogger {
     } else {
       input.seek(0);
       byte[] magicV2 = DfsLogger.LOG_FILE_HEADER_V2.getBytes();
-      byte[] magicBufferV2 = new byte[magic.length];
+      byte[] magicBufferV2 = new byte[magicV2.length];
       input.readFully(magicBufferV2);
 
       if (Arrays.equals(magicBufferV2, magicV2)) {
@@ -300,7 +300,7 @@ public class DfsLogger {
           CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
 
           input.seek(0);
-          input.readFully(magicBuffer);
+          input.readFully(magicBufferV2);
           params.setEncryptedInputStream(input);
 
           params = cryptoModule.getDecryptingInputStream(params);

@@ -61,6 +61,13 @@ installed with the JAVA_HOME environment variable set.
 
   $ ./bin/build_native_library.sh
 
+If your system's default compiler options are insufficient, you can add
+additional compiler options to the command line, such as options for the
+architecture. These will be passed to the Makefile in the environment variable
+USERFLAGS:
+
+  $ ./bin/build_native_library.sh -m32
+
 Alternatively, you can manually unpack the accumulo-native tarball in the 
 $ACCUMULO_HOME/lib directory. Change to the accumulo-native directory in 
 the current directory and issue `make`. Then, copy the resulting 'libaccumulo' 

@@ -126,17 +126,24 @@ speed up performance by utilizing the memory space of the native operating syste
 native map also avoids the performance implications brought on by garbage collection
 in the JVM by causing it to pause much less frequently.
 
-32-bit and 64-bit Linux versions of the native map ship with the Accumulo dist package.
-For other operating systems, the native map can be built from the codebase in two ways-
-from maven or from the Makefile.
+32-bit and 64-bit Linux and Mac OS X versions of the native map can be built
+from the Accumulo bin package by executing
++$ACCUMULO_HOME/bin/build_native_library.sh+. If your system's
+default compiler options are insufficient, you can add additional compiler
+options to the command line, such as options for the architecture. These will be
+passed to the Makefile in the environment variable +USERFLAGS+.
 
-. Build from maven using the following command: +mvn clean package -Pnative+.
-. Build from the c++ source by running +make+ in the `$ACCUMULO_HOME/server/src/main/c++` directory.
+Examples:
+
+. +$ACCUMULO_HOME/bin/build_native_library.sh+
+. +$ACCUMULO_HOME/bin/build_native_library.sh -m32+
 
 After building the native map from the source, you will find the artifact in
 +$ACCUMULO_HOME/lib/native+. Upon starting up, the tablet server will look
 in this directory for the map library. If the file is renamed or moved from its
-target directory, the tablet server may not be able to find it.
+target directory, the tablet server may not be able to find it. The system can
+also locate the native maps shared library by setting +LD_LIBRARY_PATH+
+(or +DYLD_LIBRARY_PATH+ on Mac OS X) in +$ACCUMULO_HOME/conf/accumulo-env.sh+.
 
 ==== Cluster Specification
 
