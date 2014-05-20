@@ -65,12 +65,12 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
   private ExecutorService executor;
 
   @Before
-  public void setup() {
+  public void createExecutor() {
     executor = Executors.newSingleThreadExecutor();
   }
 
   @After
-  public void teardown() {
+  public void stopExecutor() {
     if (null != executor) {
       executor.shutdownNow();
     }
