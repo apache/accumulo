@@ -197,6 +197,8 @@ public class StatusMaker {
         log.warn("Status record ({}) for {} in table {} was written to metadata table which was closed but lacked closedTime", ProtobufUtil.toString(stat), file, tableId);
       }
 
+      log.info("Creating order record for {} for {} with {}", file, tableId, ProtobufUtil.toString(stat));
+
       Mutation m = OrderSection.createMutation(file.toString(), stat.getClosedTime());
       OrderSection.add(m, tableId, value);
 

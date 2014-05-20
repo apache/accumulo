@@ -39,11 +39,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
-import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
-import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.master.replication.SequentialWorkAssigner;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
@@ -66,7 +63,7 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
   private static final Logger log = LoggerFactory.getLogger(ReplicationSequentialIT.class);
 
   private ExecutorService executor;
-  
+
   @Before
   public void setup() {
     executor = Executors.newSingleThreadExecutor();
@@ -87,6 +84,8 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
     cfg.setProperty(Property.GC_CYCLE_DELAY, "5s");
     cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
     cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
+    cfg.setProperty(Property.MASTER_REPLICATION_COORDINATOR_PORT, "0");
+    cfg.setProperty(Property.REPLICATION_RECEIPT_SERVICE_PORT, "0");
     cfg.setProperty(Property.REPLICATION_MAX_UNIT_SIZE, "8M");
     cfg.setProperty(Property.REPLICATION_NAME, "master");
     cfg.setProperty(Property.REPLICATION_WORK_ASSIGNER, SequentialWorkAssigner.class.getName());
@@ -100,8 +99,8 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
     peerCfg.setNumTservers(1);
     peerCfg.setInstanceName("peer");
     peerCfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
-    peerCfg.setProperty(Property.MASTER_REPLICATION_COORDINATOR_PORT, "10003");
-    peerCfg.setProperty(Property.REPLICATION_RECEIPT_SERVICE_PORT, "10004");
+    peerCfg.setProperty(Property.MASTER_REPLICATION_COORDINATOR_PORT, "0");
+    peerCfg.setProperty(Property.REPLICATION_RECEIPT_SERVICE_PORT, "0");
     peerCfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
     peerCfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
     peerCfg.setProperty(Property.REPLICATION_NAME, "peer");
@@ -169,7 +168,8 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
     cluster.exec(TabletServer.class);
 
     log.info("TabletServer restarted");
-    for (@SuppressWarnings("unused") Entry<Key,Value> e : ReplicationTable.getScanner(connMaster)) {}
+    for (@SuppressWarnings("unused")
+    Entry<Key,Value> e : ReplicationTable.getScanner(connMaster)) {}
     log.info("TabletServer is online");
 
     log.info("");
@@ -196,7 +196,7 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
         log.info("Drain completed");
         return true;
       }
-      
+
     });
 
     try {
@@ -237,7 +237,7 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
 
     log.info("Last master entry: " + masterEntry);
     log.info("Last peer entry: " + peerEntry);
-    
+
     Assert.assertFalse("Had more data to read from the master", masterIter.hasNext());
     Assert.assertFalse("Had more data to read from the peer", peerIter.hasNext());
 
@@ -251,8 +251,8 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
     peerCfg.setNumTservers(1);
     peerCfg.setInstanceName("peer");
     peerCfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
-    peerCfg.setProperty(Property.MASTER_REPLICATION_COORDINATOR_PORT, "10003");
-    peerCfg.setProperty(Property.REPLICATION_RECEIPT_SERVICE_PORT, "10004");
+    peerCfg.setProperty(Property.MASTER_REPLICATION_COORDINATOR_PORT, "0");
+    peerCfg.setProperty(Property.REPLICATION_RECEIPT_SERVICE_PORT, "0");
     peerCfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
     peerCfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
     peerCfg.setProperty(Property.REPLICATION_NAME, "peer");
@@ -300,7 +300,7 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
 
       // Write some data to table1
       BatchWriter bw = connMaster.createBatchWriter(masterTable1, new BatchWriterConfig());
-      long masterTable1Records = 0l; 
+      long masterTable1Records = 0l;
       for (int rows = 0; rows < 2500; rows++) {
         Mutation m = new Mutation(masterTable1 + rows);
         for (int cols = 0; cols < 100; cols++) {
@@ -330,12 +330,12 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
 
       log.info("Wrote all data to master cluster");
 
+      Set<String> filesFor1 = connMaster.replicationOperations().referencedFiles(masterTable1), filesFor2 = connMaster.replicationOperations().referencedFiles(
+          masterTable2);
+
       while (!connMaster.tableOperations().exists(ReplicationTable.NAME)) {
         Thread.sleep(500);
       }
-
-      Set<String> filesFor1 = connMaster.replicationOperations().referencedFiles(masterTable1), filesFor2 = connMaster.replicationOperations().referencedFiles(
-          masterTable2);
 
       // Restart the tserver to force a close on the WAL
       for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
@@ -346,7 +346,8 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
       log.info("Restarted the tserver");
 
       // Read the data -- the tserver is back up and running
-      for (@SuppressWarnings("unused") Entry<Key,Value> entry : connMaster.createScanner(masterTable1, Authorizations.EMPTY)) {}
+      for (@SuppressWarnings("unused")
+      Entry<Key,Value> entry : connMaster.createScanner(masterTable1, Authorizations.EMPTY)) {}
 
       // Wait for both tables to be replicated
       log.info("Waiting for {} for {}", filesFor1, masterTable1);

@@ -18,6 +18,7 @@ package org.apache.accumulo.test.replication;
 
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -64,90 +65,6 @@ public class ReplicationIT extends ConfigurableMacIT {
     cfg.setProperty(Property.REPLICATION_MAX_UNIT_SIZE, "8M");
     cfg.setProperty(Property.REPLICATION_NAME, "master");
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
-  }
-
-  @Test
-  public void dataIsReplicatedAfterCompaction() throws Exception {
-
-    MiniAccumuloConfigImpl peerCfg = new MiniAccumuloConfigImpl(createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName() + "_peer"),
-        ROOT_PASSWORD);
-    peerCfg.setNumTservers(1);
-    peerCfg.setInstanceName("peer");
-    peerCfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
-    peerCfg.setProperty(Property.MASTER_REPLICATION_COORDINATOR_PORT, "10003");
-    peerCfg.setProperty(Property.REPLICATION_RECEIPT_SERVICE_PORT, "10004");
-    peerCfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
-    peerCfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
-    peerCfg.setProperty(Property.REPLICATION_NAME, "peer");
-    MiniAccumuloClusterImpl peerCluster = peerCfg.build();
-
-    peerCluster.start();
-
-    Connector connMaster = getConnector();
-    Connector connPeer = peerCluster.getConnector("root", ROOT_PASSWORD);
-
-    String peerClusterName = "peer";
-
-    // ...peer = AccumuloReplicaSystem,instanceName,zookeepers
-    connMaster.instanceOperations().setProperty(
-        Property.REPLICATION_PEERS.getKey() + peerClusterName,
-        ReplicaSystemFactory.getPeerConfigurationValue(AccumuloReplicaSystem.class,
-            AccumuloReplicaSystem.buildConfiguration(peerCluster.getInstanceName(), peerCluster.getZooKeepers())));
-
-    String masterTable = "master", peerTable = "peer";
-
-    connMaster.tableOperations().create(masterTable);
-    String masterTableId = connMaster.tableOperations().tableIdMap().get(masterTable);
-    Assert.assertNotNull(masterTableId);
-
-    connPeer.tableOperations().create(peerTable);
-    String peerTableId = connPeer.tableOperations().tableIdMap().get(peerTable);
-    Assert.assertNotNull(peerTableId);
-
-    // Replicate this table to the peerClusterName in a table with the peerTableId table id
-    connMaster.tableOperations().setProperty(masterTable, Property.TABLE_REPLICATION.getKey(), "true");
-    connMaster.tableOperations().setProperty(masterTable, Property.TABLE_REPLICATION_TARGETS.getKey() + peerClusterName, peerTableId);
-
-    // Write some data to table1
-    BatchWriter bw = connMaster.createBatchWriter(masterTable, new BatchWriterConfig());
-    for (int rows = 0; rows < 5000; rows++) {
-      Mutation m = new Mutation(Integer.toString(rows));
-      for (int cols = 0; cols < 100; cols++) {
-        String value = Integer.toString(cols);
-        m.put(value, "", value);
-      }
-      bw.addMutation(m);
-    }
-
-    bw.close();
-
-    log.info("Wrote all data to master cluster");
-
-    connMaster.tableOperations().compact(masterTable, null, null, true, true);
-
-    Thread.sleep(5000);
-
-    for (Entry<Key,Value> kv : connMaster.createScanner(ReplicationTable.NAME, Authorizations.EMPTY)) {
-      log.debug(kv.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
-    }
-
-    connMaster.replicationOperations().drain(masterTable);
-
-    try {
-      Scanner master = connMaster.createScanner(masterTable, Authorizations.EMPTY), peer = connPeer.createScanner(peerTable, Authorizations.EMPTY);
-      Iterator<Entry<Key,Value>> masterIter = master.iterator(), peerIter = peer.iterator();
-      while (masterIter.hasNext() && peerIter.hasNext()) {
-        Entry<Key,Value> masterEntry = masterIter.next(), peerEntry = peerIter.next();
-        Assert.assertEquals(peerEntry.getKey() + " was not equal to " + peerEntry.getKey(), 0,
-            masterEntry.getKey().compareTo(peerEntry.getKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS));
-        Assert.assertEquals(masterEntry.getValue(), peerEntry.getValue());
-      }
-  
-      Assert.assertFalse("Had more data to read from the master", masterIter.hasNext());
-      Assert.assertFalse("Had more data to read from the peer", peerIter.hasNext());
-    } finally {
-      peerCluster.stop();
-    }
   }
 
   @Test(timeout = 60 * 5000)
@@ -206,6 +123,8 @@ public class ReplicationIT extends ConfigurableMacIT {
 
     log.info("Wrote all data to master cluster");
 
+    Set<String> files = connMaster.replicationOperations().referencedFiles(masterTable);
+
     for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
       cluster.killProcess(ServerType.TABLET_SERVER, proc);
     }
@@ -219,7 +138,7 @@ public class ReplicationIT extends ConfigurableMacIT {
       log.debug(kv.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
     }
 
-    connMaster.replicationOperations().drain(masterTable);
+    connMaster.replicationOperations().drain(masterTable, files);
 
     Scanner master = connMaster.createScanner(masterTable, Authorizations.EMPTY), peer = connPeer.createScanner(peerTable, Authorizations.EMPTY);
     Iterator<Entry<Key,Value>> masterIter = master.iterator(), peerIter = peer.iterator();
@@ -321,8 +240,14 @@ public class ReplicationIT extends ConfigurableMacIT {
         Thread.sleep(500);
       }
 
-      connMaster.tableOperations().compact(masterTable1, null, null, true, false);
-      connMaster.tableOperations().compact(masterTable2, null, null, true, false);
+
+      for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
+        cluster.killProcess(ServerType.TABLET_SERVER, proc);
+      }
+
+      cluster.exec(TabletServer.class);
+      // connMaster.tableOperations().compact(masterTable1, null, null, true, false);
+      // connMaster.tableOperations().compact(masterTable2, null, null, true, false);
 
       // Wait until we fully replicated something
       boolean fullyReplicated = false;

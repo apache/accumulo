@@ -17,8 +17,12 @@
 package org.apache.accumulo.master.replication;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 
@@ -143,9 +147,9 @@ public class RemoveCompleteReplicationRecords implements Runnable {
     }
 
     Mutation m = new Mutation(row);
-    Status status = null;
-    long closedTime = -1l;
+    Map<String,Long> tableToTimeClosed = new HashMap<>();
     for (Entry<Key,Value> entry : columns.entrySet()) {
+      Status status = null;
       try {
         status = Status.parseFrom(entry.getValue().get());
       } catch (InvalidProtocolBufferException e) {
@@ -158,37 +162,51 @@ public class RemoveCompleteReplicationRecords implements Runnable {
         return 0l;
       }
 
-      if (status.hasClosedTime()) {
-        if (closedTime == -1) {
-          closedTime = status.getClosedTime();
-        } else if (closedTime != status.getClosedTime()) {
-          log.warn("Inconsistent closed time for {}, values seen: {} and {}", row, closedTime, status.getClosedTime());
-        }
-      }
-
       Key k = entry.getKey();
       k.getColumnFamily(colf);
       k.getColumnQualifier(colq);
 
       m.putDelete(colf, colq);
 
+      String tableId;
+      if (StatusSection.NAME.equals(colf)) {
+        tableId = colq.toString();
+      } else if (WorkSection.NAME.equals(colf)) {
+        ReplicationTarget target = ReplicationTarget.from(colq);
+        tableId = target.getSourceTableId();
+      } else {
+        throw new RuntimeException("Got unexpected column");
+      }
+
+      if (status.hasClosedTime()) {
+        Long timeClosed = tableToTimeClosed.get(tableId);
+        if (null == timeClosed) {
+          tableToTimeClosed.put(tableId, status.getClosedTime());
+        } else if (timeClosed != status.getClosedTime()){
+          log.warn("Found multiple values for timeClosed for {}: {} and {}", row, timeClosed, status.getClosedTime());
+        }
+      }
+
       recordsRemoved++;
     }
 
     log.info("Removing {} from the replication table", row);
 
-    ReplicationTarget target = ReplicationTarget.from(colq);
-
-    Mutation orderMutation = OrderSection.createMutation(row.toString(), status.getClosedTime());
-    log.info("Deleting {} from order section with tableID {}", new Key(new Text(orderMutation.getRow())).toStringNoTruncate(), target.getSourceTableId());
-    orderMutation.putDelete(OrderSection.NAME, new Text(target.getSourceTableId()));
+    List<Mutation> mutations = new ArrayList<>();
+    mutations.add(m);
+    for (Entry<String,Long> entry : tableToTimeClosed.entrySet()) {
+      log.info("Removing order mutation for table {} at {} for {}", entry.getKey(), entry.getValue(), row.toString());
+      Mutation orderMutation = OrderSection.createMutation(row.toString(), entry.getValue());
+      orderMutation.putDelete(OrderSection.NAME, new Text(entry.getKey()));
+      mutations.add(orderMutation);
+    }
 
     // Send the mutation deleting all the columns at once.
     // If we send them not as a single Mutation, we run the risk of having some of them be applied
     // which would mean that we might accidentally re-replicate data. We want to get rid of them all at once
     // or not at all.
     try {
-      bw.addMutations(Arrays.asList(m, orderMutation));
+      bw.addMutations(mutations);
       bw.flush();
     } catch (MutationsRejectedException e) {
       log.error("Could not submit mutation to remove columns for {} in replication table", row, e);

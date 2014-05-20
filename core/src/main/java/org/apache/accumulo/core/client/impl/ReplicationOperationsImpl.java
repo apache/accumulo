@@ -205,12 +205,12 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
           file = rowHolder.toString();
         }
 
-        log.debug("Evaluating if {} is still needed", file);
-
         // Skip files that we didn't observe when we started (new files/data)
         if (!relevantLogs.contains(file)) {
           log.debug("Found file that we didn't care about {}", file);
           continue;
+        } else {
+          log.debug("Found file that we *do* care about {}", file);
         }
 
         try {

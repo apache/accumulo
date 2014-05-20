@@ -112,6 +112,13 @@ public class SequentialWorkAssigner extends AbstractWorkAssigner {
     // Get the maximum number of entries we want to queue work for (or the default)
     this.maxQueueSize = conf.getCount(Property.REPLICATION_MAX_WORK_QUEUE);
 
+    for (Entry<String,Map<String,String>> peer : this.queuedWorkByPeerName.entrySet()) {
+      log.info("In progress replications for {}", peer.getKey());
+      for (Entry<String,String> tableRepl : peer.getValue().entrySet()) {
+        log.info("Replicating {} for table ID {}", tableRepl.getValue(), tableRepl.getKey());
+      }
+    }
+
     // Scan over the work records, adding the work to the queue
     createWork();
 
@@ -221,7 +228,6 @@ public class SequentialWorkAssigner extends AbstractWorkAssigner {
     try {
       s = ReplicationTable.getScanner(conn);
     } catch (TableNotFoundException e) {
-      UtilWaitThread.sleep(1000);
       return;
     }
 
@@ -233,13 +239,14 @@ public class SequentialWorkAssigner extends AbstractWorkAssigner {
       // to add more work entries
       if (queuedWorkByPeerName.size() > maxQueueSize) {
         log.warn("Queued replication work exceeds configured maximum ({}), sleeping to allow work to occur", maxQueueSize);
-        UtilWaitThread.sleep(5000);
         return;
       }
 
       String file = OrderSection.getFile(orderEntry.getKey(), buffer);
       OrderSection.getTableId(orderEntry.getKey(), buffer);
       String sourceTableId = buffer.toString();
+
+      log.info("Determining if {} from {} needs to be replicated", file, sourceTableId);
 
       Scanner workScanner;
       try {
@@ -274,23 +281,28 @@ public class SequentialWorkAssigner extends AbstractWorkAssigner {
           queuedWorkByPeerName.put(target.getPeerName(), queuedWorkForPeer);
         }
 
+        Path p = new Path(file);
+        String filename = p.getName();
+        String key = getQueueKey(filename, target);
+
+        // Get the file (if any) currently being replicated to the given peer for the given source table
+        String keyBeingReplicated = queuedWorkForPeer.get(sourceTableId);
+
         // If there is work to do
         if (isWorkRequired(status)) {
-          Path p = new Path(file);
-          String filename = p.getName();
-          String key = getQueueKey(filename, target);
-
-          // Get the file (if any) currently being replicated to the given peer for the given source table
-          String fileBeingReplicated = queuedWorkForPeer.get(sourceTableId);
-
-          if (null == fileBeingReplicated) {
+          if (null == keyBeingReplicated) {
             // If there is no file, submit this one for replication
             newReplicationTasksSubmitted += queueWork(key, file, sourceTableId, queuedWorkForPeer);
           } else {
-            log.debug("Not queueing {} for work as {} must be replicated to {} first", file, fileBeingReplicated, target.getPeerName());
+            log.debug("Not queueing {} for work as {} must be replicated to {} first", file, keyBeingReplicated, target.getPeerName());
           }
         } else {
           log.debug("Not queueing work for {} because [{}] doesn't need replication", file, ProtobufUtil.toString(status));
+          if (key.equals(keyBeingReplicated)) {
+            log.debug("Removing {} from replication state to {} because replication is complete", keyBeingReplicated, target.getPeerName());
+            queuedWorkForPeer.remove(sourceTableId);
+            log.debug("State after removing element: {}", this.queuedWorkByPeerName);
+          }
         }
       }
 
@@ -327,6 +339,7 @@ public class SequentialWorkAssigner extends AbstractWorkAssigner {
     final Iterator<Entry<String,Map<String,String>>> queuedWork = queuedWorkByPeerName.entrySet().iterator();
     final String instanceId = conn.getInstance().getInstanceID();
 
+    int elementsRemoved = 0;
     // Check the status of all the work we've queued up
     while (queuedWork.hasNext()) {
       // {peer -> {tableId -> workKey, tableId -> workKey, ... }, peer -> ...}
@@ -343,9 +356,13 @@ public class SequentialWorkAssigner extends AbstractWorkAssigner {
         Entry<String,String> entry = iter.next();
         // Null equates to the work for this target was finished
         if (null == zooCache.get(ZooUtil.getRoot(instanceId) + Constants.ZREPLICATION_WORK_QUEUE + "/" + entry.getValue())) {
+          log.debug("Removing {} from work assignment state", entry.getValue());
           iter.remove();
+          elementsRemoved++;
         }
       }
     }
+
+    log.info("Removed {} elements from internal workqueue state because the work was complete", elementsRemoved);
   }
 }

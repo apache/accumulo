@@ -118,6 +118,8 @@ public class ReplicationProcessor implements Processor {
       throw new RuntimeException(e);
     }
 
+    log.debug("Replicating {} to {} using {}", filePath, target, replica.getClass().getName());
+
     // Replicate that sucker
     Status replicatedStatus = replica.replicate(filePath, status, target);
 

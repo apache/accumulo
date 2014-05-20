@@ -891,7 +891,7 @@ public class Tablet {
               tabletServer.getClientAddressString(), tabletServer.getLock(), unusedWalLogs, lastLocation, flushId);
 
           // Mark that we have data we want to replicate
-          // This WAL could still be in use by other Tablets though, so we can mark that there is data to replicate,
+          // This WAL could still be in use by other Tablets *from the same table*, so we can only mark that there is data to replicate,
           // but it is *not* closed
           if (replicate) {
             ReplicationTableUtil.updateFiles(SystemCredentials.get(), extent, logFileOnly, StatusUtil.openWithUnknownLength());

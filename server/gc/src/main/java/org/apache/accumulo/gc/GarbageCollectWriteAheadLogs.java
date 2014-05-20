@@ -43,6 +43,7 @@ import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
+import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
@@ -74,7 +75,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Iterables;
 import com.google.common.net.HostAndPort;
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.TextFormat;
 
 public class GarbageCollectWriteAheadLogs {
   private static final Logger log = LoggerFactory.getLogger(GarbageCollectWriteAheadLogs.class);
@@ -400,7 +400,7 @@ public class GarbageCollectWriteAheadLogs {
     for (Entry<Key,Value> entry : iter) {
       try {
         Status status = Status.parseFrom(entry.getValue().get());
-        log.info("Checking if {} is safe for removal with {}", wal, TextFormat.shortDebugString(status));
+        log.info("Checking if {} is safe for removal with {}", wal, ProtobufUtil.toString(status));
         if (!StatusUtil.isSafeForRemoval(status)) {
           return true;
         }
