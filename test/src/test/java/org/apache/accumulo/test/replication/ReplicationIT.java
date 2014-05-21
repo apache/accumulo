@@ -74,8 +74,6 @@ public class ReplicationIT extends ConfigurableMacIT {
     peerCfg.setNumTservers(1);
     peerCfg.setInstanceName("peer");
     peerCfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
-    peerCfg.setProperty(Property.MASTER_REPLICATION_COORDINATOR_PORT, "10003");
-    peerCfg.setProperty(Property.REPLICATION_RECEIPT_SERVICE_PORT, "10004");
     peerCfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
     peerCfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
     peerCfg.setProperty(Property.REPLICATION_NAME, "peer");
@@ -162,8 +160,6 @@ public class ReplicationIT extends ConfigurableMacIT {
     peerCfg.setNumTservers(1);
     peerCfg.setInstanceName("peer");
     peerCfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
-    peerCfg.setProperty(Property.MASTER_REPLICATION_COORDINATOR_PORT, "10003");
-    peerCfg.setProperty(Property.REPLICATION_RECEIPT_SERVICE_PORT, "10004");
     peerCfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
     peerCfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
     peerCfg.setProperty(Property.REPLICATION_NAME, "peer");

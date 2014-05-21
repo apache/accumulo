@@ -105,8 +105,6 @@ public class CyclicReplicationIT {
     master2Cfg.setInstanceName("master2");
     master2Cfg.setProperty(Property.REPLICATION_NAME, master2Cfg.getInstanceName());
     master2Cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
-    master2Cfg.setProperty(Property.MASTER_REPLICATION_COORDINATOR_PORT, "10003");
-    master2Cfg.setProperty(Property.REPLICATION_RECEIPT_SERVICE_PORT, "10004");
     master2Cfg.setProperty(Property.REPLICATION_THREADCHECK, "5m");
     master2Cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
     master2Cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");

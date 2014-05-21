@@ -309,7 +309,6 @@ public class MasterMetadataUtil {
     }
     if (unusedWalLogs != null) {
       for (String entry : unusedWalLogs) {
-        log.info("Removed WAL " + entry + " from " + extent, new Exception());
         m.putDelete(LogColumnFamily.NAME, new Text(entry));
       }
     }

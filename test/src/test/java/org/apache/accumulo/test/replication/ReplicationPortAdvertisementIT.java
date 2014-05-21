@@ -48,8 +48,6 @@ public class ReplicationPortAdvertisementIT extends ConfigurableMacIT {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(2);
-    cfg.setProperty(Property.REPLICATION_RECEIPT_SERVICE_PORT, "0");
-    cfg.setProperty(Property.MASTER_REPLICATION_COORDINATOR_PORT, "0");
   }
   
   @Test
