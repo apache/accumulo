@@ -125,7 +125,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     instanceName = configuration.substring(0, index);
     zookeepers = configuration.substring(index + 1);
 
-    conf = ServerConfiguration.getSiteConfiguration();
+    conf = ServerConfiguration.getSystemConfiguration(HdfsZooInstance.getInstance());
 
     try {
       fs = VolumeManagerImpl.get(conf);
