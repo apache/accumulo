@@ -51,7 +51,7 @@ public class ReplicationTableTest {
 
   private MockInstance instance;
   private Connector conn;
-  
+
   @Before
   public void setupMockAccumulo() throws Exception {
     instance = new MockInstance(testName.getMethodName());

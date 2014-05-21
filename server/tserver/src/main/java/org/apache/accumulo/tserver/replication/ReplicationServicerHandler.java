@@ -46,11 +46,9 @@ public class ReplicationServicerHandler implements Iface {
   private static final Logger log = LoggerFactory.getLogger(ReplicationServicerHandler.class);
 
   private Instance inst;
-  private AccumuloConfiguration conf;
 
-  public ReplicationServicerHandler(Instance inst, AccumuloConfiguration conf) {
+  public ReplicationServicerHandler(Instance inst) {
     this.inst = inst;
-    this.conf = conf;
   }
 
   @Override
@@ -63,7 +61,7 @@ public class ReplicationServicerHandler implements Iface {
     String tableName;
 
     try {
-      conn = inst.getConnector(creds.getPrincipal(), creds.getToken()); 
+      conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
     } catch (AccumuloException | AccumuloSecurityException e) {
       log.error("Could not get connection", e);
       throw new RemoteReplicationException(RemoteReplicationErrorCode.CANNOT_AUTHENTICATE.ordinal(), "Cannot get connector");
@@ -98,7 +96,8 @@ public class ReplicationServicerHandler implements Iface {
       clz = untypedClz.asSubclass(AccumuloReplicationReplayer.class);
     } catch (ClassNotFoundException e) {
       log.error("Could not instantiate replayer class {}", handlerClassForTable, e);
-      throw new RemoteReplicationException(RemoteReplicationErrorCode.CANNOT_INSTANTIATE_REPLAYER.ordinal(), "Could not instantiate replayer class " + handlerClassForTable);
+      throw new RemoteReplicationException(RemoteReplicationErrorCode.CANNOT_INSTANTIATE_REPLAYER.ordinal(), "Could not instantiate replayer class "
+          + handlerClassForTable);
     }
 
     // Create an instance
@@ -107,7 +106,8 @@ public class ReplicationServicerHandler implements Iface {
       replayer = clz.newInstance();
     } catch (InstantiationException | IllegalAccessException e1) {
       log.error("Could not instantiate replayer class {}", clz.getName());
-      throw new RemoteReplicationException(RemoteReplicationErrorCode.CANNOT_INSTANTIATE_REPLAYER.ordinal(), "Could not instantiate replayer class" + clz.getName());
+      throw new RemoteReplicationException(RemoteReplicationErrorCode.CANNOT_INSTANTIATE_REPLAYER.ordinal(), "Could not instantiate replayer class"
+          + clz.getName());
     }
 
     long entriesReplicated = replayer.replicateLog(conn, tableName, data);

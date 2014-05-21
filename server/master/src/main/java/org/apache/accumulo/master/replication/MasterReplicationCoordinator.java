@@ -23,7 +23,6 @@ import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.replication.ReplicationCoordinatorErrorCode;
 import org.apache.accumulo.core.replication.thrift.RemoteCoordinationException;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
@@ -46,17 +45,15 @@ public class MasterReplicationCoordinator implements ReplicationCoordinator.Ifac
 
   private final Master master;
   private final Instance inst;
-  private final AccumuloConfiguration conf;
   private final Random rand;
   private final ZooReader reader;
 
-  public MasterReplicationCoordinator(Master master, AccumuloConfiguration conf) {
-    this(master, conf, new ZooReader(master.getInstance().getZooKeepers(), master.getInstance().getZooKeepersSessionTimeOut()));
+  public MasterReplicationCoordinator(Master master) {
+    this(master, new ZooReader(master.getInstance().getZooKeepers(), master.getInstance().getZooKeepersSessionTimeOut()));
   }
 
-  protected MasterReplicationCoordinator(Master master, AccumuloConfiguration conf, ZooReader reader) {
+  protected MasterReplicationCoordinator(Master master, ZooReader reader) {
     this.master = master;
-    this.conf = conf;
     this.rand = new Random(358923462l);
     this.inst = master.getInstance();
     this.reader = reader;

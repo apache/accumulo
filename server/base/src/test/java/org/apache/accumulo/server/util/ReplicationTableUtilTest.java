@@ -130,7 +130,7 @@ public class ReplicationTableUtilTest {
   public void setsCombinerOnMetadataCorrectly() throws Exception {
     Connector conn = createMock(Connector.class);
     TableOperations tops = createMock(TableOperations.class);
-    
+
     String myMetadataTable = "mymetadata";
     Map<String,EnumSet<IteratorScope>> iterators = new HashMap<>();
     iterators.put("vers", EnumSet.of(IteratorScope.majc, IteratorScope.minc, IteratorScope.scan));
@@ -141,7 +141,7 @@ public class ReplicationTableUtilTest {
     expect(tops.listIterators(myMetadataTable)).andReturn(iterators);
     tops.attachIterator(myMetadataTable, combiner);
     expectLastCall().once();
-    
+
     replay(conn, tops);
 
     ReplicationTableUtil.configureMetadataTable(conn, myMetadataTable);

@@ -38,8 +38,7 @@ public class MasterReplicationCoordinatorTest {
   public void randomServer() {
     Master master = EasyMock.createMock(Master.class);
     ZooReader reader = EasyMock.createMock(ZooReader.class);
-    AccumuloConfiguration conf = EasyMock.createMock(AccumuloConfiguration.class); 
-    MasterReplicationCoordinator coordinator = new MasterReplicationCoordinator(master, conf, reader);
+    MasterReplicationCoordinator coordinator = new MasterReplicationCoordinator(master, reader);
     TServerInstance inst1 = new TServerInstance(HostAndPort.fromParts("host1", 1234), "session");
 
     Assert.assertEquals(inst1, coordinator.getRandomTServer(Collections.singleton(inst1), 0));
@@ -49,8 +48,7 @@ public class MasterReplicationCoordinatorTest {
   public void invalidOffset() {
     Master master = EasyMock.createMock(Master.class);
     ZooReader reader = EasyMock.createMock(ZooReader.class);
-    AccumuloConfiguration conf = EasyMock.createMock(AccumuloConfiguration.class); 
-    MasterReplicationCoordinator coordinator = new MasterReplicationCoordinator(master, conf, reader);
+    MasterReplicationCoordinator coordinator = new MasterReplicationCoordinator(master, reader);
     TServerInstance inst1 = new TServerInstance(HostAndPort.fromParts("host1", 1234), "session");
 
     Assert.assertEquals(inst1, coordinator.getRandomTServer(Collections.singleton(inst1), 1));
@@ -60,9 +58,8 @@ public class MasterReplicationCoordinatorTest {
   public void randomServerFromMany() {
     Master master = EasyMock.createMock(Master.class);
     ZooReader reader = EasyMock.createMock(ZooReader.class);
-    AccumuloConfiguration conf = EasyMock.createMock(AccumuloConfiguration.class); 
-    MasterReplicationCoordinator coordinator = new MasterReplicationCoordinator(master, conf, reader);
-    
+    MasterReplicationCoordinator coordinator = new MasterReplicationCoordinator(master, reader);
+
     TreeSet<TServerInstance> instances = new TreeSet<>();
     TServerInstance inst1 = new TServerInstance(HostAndPort.fromParts("host1", 1234), "session");
     instances.add(inst1);

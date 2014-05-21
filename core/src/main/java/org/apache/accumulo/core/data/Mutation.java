@@ -965,7 +965,7 @@ public class Mutation implements Writable {
     serialize();
     m.serialize();
     if (Arrays.equals(row, m.row) && entries == m.entries && Arrays.equals(data, m.data)) {
-      // If two mutations don't have the same 
+      // If two mutations don't have the same
       if (!replicationSources.equals(m.replicationSources)) {
         return false;
       }

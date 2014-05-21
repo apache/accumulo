@@ -66,7 +66,7 @@ public class LocalWALRecoveryTest {
     recovery.parseArgs("--dfs-wal-directory", walTarget.getAbsolutePath());
   }
 
-  //@Test
+  @Test
   public void testRecoverLocalWriteAheadLogs() throws IOException {
     Path targetPath = new Path(walTarget.toURI());
     FileSystem fs = FileSystem.get(targetPath.toUri(), new Configuration());

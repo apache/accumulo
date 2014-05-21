@@ -26,7 +26,6 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.replication.AccumuloReplicationReplayer;
 import org.apache.accumulo.core.replication.RemoteReplicationErrorCode;
 import org.apache.accumulo.core.replication.thrift.KeyValues;
@@ -38,8 +37,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Use a BatchWriter to replay WAL entries to an Accumulo table. This assumes that all
- * WAL entries are for this table. Pruning out undesired entries is expected to be done by the sender.
+ * Use a BatchWriter to replay WAL entries to an Accumulo table. This assumes that all WAL entries are for this table. Pruning out undesired entries is expected
+ * to be done by the sender.
  */
 public class BatchWriterReplicationReplayer implements AccumuloReplicationReplayer {
   private static final Logger log = LoggerFactory.getLogger(BatchWriterReplicationReplayer.class);
@@ -61,7 +60,7 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
           log.error("Could not deserialize edit from stream", e);
           throw new RemoteReplicationException(RemoteReplicationErrorCode.COULD_NOT_DESERIALIZE.ordinal(), "Could not deserialize edit from stream");
         }
-    
+
         // Create the batchScanner if we don't already have one.
         if (null == bw) {
           try {

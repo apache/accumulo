@@ -28,7 +28,8 @@ public class ReplicaSystemFactory {
   private static final Logger log = LoggerFactory.getLogger(ReplicaSystemFactory.class);
 
   /**
-   * @param value {@link ReplicaSystem} implementation class name
+   * @param value
+   *          {@link ReplicaSystem} implementation class name
    * @return A {@link ReplicaSystem} object from the given name
    */
   public static ReplicaSystem get(String value) {
@@ -41,7 +42,7 @@ public class ReplicaSystemFactory {
 
     String name = value.substring(0, index);
     String configuration = value.substring(index + 1);
-    
+
     try {
       Class<?> clz = Class.forName(name);
       Object o = clz.newInstance();
@@ -61,8 +62,11 @@ public class ReplicaSystemFactory {
 
   /**
    * Generate the configuration value for a {@link ReplicaSystem} in the instance properties
-   * @param system The desired ReplicaSystem to use
-   * @param configuration Configuration string for the desired ReplicaSystem
+   * 
+   * @param system
+   *          The desired ReplicaSystem to use
+   * @param configuration
+   *          Configuration string for the desired ReplicaSystem
    * @return Value to set for peer configuration in the instance
    */
   public static String getPeerConfigurationValue(Class<? extends ReplicaSystem> system, String configuration) {

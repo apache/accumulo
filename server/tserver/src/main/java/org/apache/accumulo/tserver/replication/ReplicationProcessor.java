@@ -144,7 +144,7 @@ public class ReplicationProcessor implements Processor {
     Map<String,String> configuredPeers = conf.getAllPropertiesWithPrefix(Property.REPLICATION_PEERS);
     String peerType = configuredPeers.get(Property.REPLICATION_PEERS.getKey() + peerName);
     if (null == peerType) {
-      String msg = "Cannot process replication for unknown peer: " +  peerName;
+      String msg = "Cannot process replication for unknown peer: " + peerName;
       log.warn(msg);
       throw new IllegalArgumentException(msg);
     }
@@ -152,19 +152,24 @@ public class ReplicationProcessor implements Processor {
     return peerType;
   }
 
-  public Status getStatus(String file, ReplicationTarget target) throws TableNotFoundException, AccumuloException, AccumuloSecurityException, InvalidProtocolBufferException {
+  public Status getStatus(String file, ReplicationTarget target) throws TableNotFoundException, AccumuloException, AccumuloSecurityException,
+      InvalidProtocolBufferException {
     Scanner s = ReplicationTable.getScanner(inst.getConnector(creds.getPrincipal(), creds.getToken()));
     s.setRange(Range.exact(file));
     s.fetchColumn(WorkSection.NAME, target.toText());
-    
+
     return Status.parseFrom(Iterables.getOnlyElement(s).getValue().get());
   }
 
   /**
    * Record the updated Status for this file and target
-   * @param filePath Path to file being replicated
-   * @param status Updated Status after replication
-   * @param target Peer that was replicated to
+   * 
+   * @param filePath
+   *          Path to file being replicated
+   * @param status
+   *          Updated Status after replication
+   * @param target
+   *          Peer that was replicated to
    */
   public void recordNewStatus(Path filePath, Status status, ReplicationTarget target) {
     try {
@@ -179,6 +184,6 @@ public class ReplicationProcessor implements Processor {
       log.error("Error recording updated Status for {}", filePath, e);
       throw new RuntimeException(e);
     }
-    
+
   }
 }

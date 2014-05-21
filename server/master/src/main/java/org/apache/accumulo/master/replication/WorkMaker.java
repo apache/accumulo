@@ -81,18 +81,18 @@ public class WorkMaker {
         writer = null;
         return;
       }
-  
+
       // Only pull records about data that has been ingested and is ready for replication
       StatusSection.limit(s);
-  
+
       TableConfiguration tableConf;
-  
+
       Text file = new Text(), tableId = new Text();
       for (Entry<Key,Value> entry : s) {
         // Extract the useful bits from the status key
         ReplicationSchema.StatusSection.getFile(entry.getKey(), file);
         ReplicationSchema.StatusSection.getTableId(entry.getKey(), tableId);
-        log.info("Processing replication status record for " + file + " on table "+ tableId);
+        log.info("Processing replication status record for " + file + " on table " + tableId);
 
         Status status;
         try {
@@ -107,17 +107,17 @@ public class WorkMaker {
         if (!shouldCreateWork(status)) {
           continue;
         }
-  
+
         // Get the table configuration for the table specified by the status record
         tableConf = ServerConfiguration.getTableConfiguration(conn.getInstance(), tableId.toString());
-  
+
         // Pull the relevant replication targets
         // TODO Cache this instead of pulling it every time
         Map<String,String> replicationTargets = getReplicationTargets(tableConf);
-  
+
         // If we have targets, we need to make a work record
         // TODO Don't replicate if it's a only a newFile entry (nothing to replicate yet)
-        //   -- Another scanner over the WorkSection can make this relatively cheap
+        // -- Another scanner over the WorkSection can make this relatively cheap
         if (!replicationTargets.isEmpty()) {
           Span workSpan = Trace.start("createWorkMutations");
           try {

@@ -99,7 +99,7 @@ public class CyclicReplicationIT {
     master1Cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
     MiniAccumuloClusterImpl master1Cluster = master1Cfg.build();
     setCoreSite(master1Cluster);
-    
+
     MiniAccumuloConfigImpl master2Cfg = new MiniAccumuloConfigImpl(master2Dir, password);
     master2Cfg.setNumTservers(1);
     master2Cfg.setInstanceName("master2");
@@ -126,7 +126,7 @@ public class CyclicReplicationIT {
           Property.REPLICATION_PEERS.getKey() + master1Cluster.getInstanceName(),
           ReplicaSystemFactory.getPeerConfigurationValue(AccumuloReplicaSystem.class,
               AccumuloReplicaSystem.buildConfiguration(master1Cluster.getInstanceName(), master1Cluster.getZooKeepers())));
-      
+
       connMaster1.tableOperations().create(master1Cluster.getInstanceName(), false);
       String master1TableId = connMaster1.tableOperations().tableIdMap().get(master1Cluster.getInstanceName());
       Assert.assertNotNull(master1TableId);
@@ -137,11 +137,13 @@ public class CyclicReplicationIT {
 
       // Replicate master1 in the master1 cluster to master2 in the master2 cluster
       connMaster1.tableOperations().setProperty(master1Cluster.getInstanceName(), Property.TABLE_REPLICATION.getKey(), "true");
-      connMaster1.tableOperations().setProperty(master1Cluster.getInstanceName(), Property.TABLE_REPLICATION_TARGETS.getKey() + master2Cluster.getInstanceName(), master2TableId);
+      connMaster1.tableOperations().setProperty(master1Cluster.getInstanceName(),
+          Property.TABLE_REPLICATION_TARGETS.getKey() + master2Cluster.getInstanceName(), master2TableId);
 
       // Replicate master2 in the master2 cluster to master1 in the master2 cluster
       connMaster2.tableOperations().setProperty(master2Cluster.getInstanceName(), Property.TABLE_REPLICATION.getKey(), "true");
-      connMaster2.tableOperations().setProperty(master2Cluster.getInstanceName(), Property.TABLE_REPLICATION_TARGETS.getKey() + master1Cluster.getInstanceName(), master1TableId);
+      connMaster2.tableOperations().setProperty(master2Cluster.getInstanceName(),
+          Property.TABLE_REPLICATION_TARGETS.getKey() + master1Cluster.getInstanceName(), master1TableId);
 
       IteratorSetting summingCombiner = new IteratorSetting(50, SummingCombiner.class);
       SummingCombiner.setEncodingType(summingCombiner, Type.STRING);

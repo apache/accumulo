@@ -51,7 +51,6 @@ public class MockReplicaSystem implements ReplicaSystem {
       Thread.currentThread().interrupt();
       return status;
     }
-    
 
     Status newStatus = builder.build();
     log.info("Received {} returned {}", TextFormat.shortDebugString(status), TextFormat.shortDebugString(newStatus));

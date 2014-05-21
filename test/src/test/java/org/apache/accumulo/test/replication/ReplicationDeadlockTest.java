@@ -97,7 +97,7 @@ public class ReplicationDeadlockTest extends ConfigurableMacIT {
           }
         }
       }
-    
+
     });
 
     t.start();
@@ -160,10 +160,11 @@ public class ReplicationDeadlockTest extends ConfigurableMacIT {
 
     keepRunning.set(false);
     t.join(5000);
-    
+
     for (String table : Arrays.asList(MetadataTable.NAME, table1, table2, table3)) {
       Scanner s = conn.createScanner(table, new Authorizations());
-      for (@SuppressWarnings("unused") Entry<Key,Value> entry : s) {}
+      for (@SuppressWarnings("unused")
+      Entry<Key,Value> entry : s) {}
     }
   }
 }

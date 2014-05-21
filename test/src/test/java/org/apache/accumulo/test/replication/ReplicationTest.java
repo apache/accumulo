@@ -105,14 +105,14 @@ public class ReplicationTest extends ConfigurableMacIT {
       StatusSection.limit(scanner);
       for (Entry<Key,Value> entry : scanner) {
         Key k = entry.getKey();
-  
+
         String fileUri = k.getRow().toString();
         try {
           new URI(fileUri);
         } catch (URISyntaxException e) {
           Assert.fail("Expected a valid URI: " + fileUri);
         }
-  
+
         replRows.add(fileUri);
       }
     }
@@ -257,7 +257,8 @@ public class ReplicationTest extends ConfigurableMacIT {
     Assert.assertTrue(iter.hasNext());
     Entry<Key,Value> entry = iter.next();
     // We should at least find one status record for this table, we might find a second if another log was started from ingesting the data
-    Assert.assertEquals("Expected to find replication entry for " + table1, conn.tableOperations().tableIdMap().get(table1), entry.getKey().getColumnQualifier().toString());
+    Assert.assertEquals("Expected to find replication entry for " + table1, conn.tableOperations().tableIdMap().get(table1), entry.getKey()
+        .getColumnQualifier().toString());
     s.close();
 
     // Enable replication on table2

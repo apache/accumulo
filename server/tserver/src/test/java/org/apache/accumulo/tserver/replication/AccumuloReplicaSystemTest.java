@@ -62,9 +62,8 @@ public class AccumuloReplicaSystemTest {
     key.seq = 1l;
 
     /*
-     * Disclaimer: the following series of LogFileKey and LogFileValue pairs have *no* bearing
-     * whatsoever in reality regarding what these entries would actually look like in a WAL.
-     * They are solely for testing that each LogEvents is handled, order is not important. 
+     * Disclaimer: the following series of LogFileKey and LogFileValue pairs have *no* bearing whatsoever in reality regarding what these entries would actually
+     * look like in a WAL. They are solely for testing that each LogEvents is handled, order is not important.
      */
     key.event = LogEvents.DEFINE_TABLET;
     key.tablet = new KeyExtent(new Text("1"), null, null);
@@ -168,9 +167,8 @@ public class AccumuloReplicaSystemTest {
     key.seq = 1l;
 
     /*
-     * Disclaimer: the following series of LogFileKey and LogFileValue pairs have *no* bearing
-     * whatsoever in reality regarding what these entries would actually look like in a WAL.
-     * They are solely for testing that each LogEvents is handled, order is not important. 
+     * Disclaimer: the following series of LogFileKey and LogFileValue pairs have *no* bearing whatsoever in reality regarding what these entries would actually
+     * look like in a WAL. They are solely for testing that each LogEvents is handled, order is not important.
      */
     key.event = LogEvents.DEFINE_TABLET;
     key.tablet = new KeyExtent(new Text("1"), null, null);
@@ -275,7 +273,7 @@ public class AccumuloReplicaSystemTest {
 
     LogFileValue value = new LogFileValue();
     value.mutations = new ArrayList<>();
-    
+
     Mutation m = new Mutation("row");
     m.put("", "", new Value(new byte[0]));
     value.mutations.add(m);

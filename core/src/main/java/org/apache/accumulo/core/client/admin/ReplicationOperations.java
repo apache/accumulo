@@ -41,7 +41,7 @@ public interface ReplicationOperations {
   /**
    * Define a cluster with the given name and the given name system
    * @param name Unique name for the cluster
-   * @param replicaType {@link ReplicaSystem} class name to use to replicate the data 
+   * @param replicaType {@link ReplicaSystem} class name to use to replicate the data
    * @throws PeerExistsException
    */
   public void addPeer(String name, String replicaType) throws AccumuloException, AccumuloSecurityException, PeerExistsException;

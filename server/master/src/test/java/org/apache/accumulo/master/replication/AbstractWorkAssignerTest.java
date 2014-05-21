@@ -33,11 +33,11 @@ public class AbstractWorkAssignerTest {
 
   @Test
   public void createsValidZKNodeName() {
-    Path p = new Path ("/accumulo/wals/tserver+port/" + UUID.randomUUID().toString());
+    Path p = new Path("/accumulo/wals/tserver+port/" + UUID.randomUUID().toString());
     ReplicationTarget target = new ReplicationTarget("cluster1", "table1", "1");
 
     String key = AbstractWorkAssigner.getQueueKey(p.toString(), target);
-    
+
     PathUtils.validatePath(key);
   }
 

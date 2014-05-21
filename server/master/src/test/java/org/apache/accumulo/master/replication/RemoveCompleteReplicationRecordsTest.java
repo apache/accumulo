@@ -62,7 +62,7 @@ public class RemoveCompleteReplicationRecordsTest {
 
   @Rule
   public TestName test = new TestName();
-  
+
   @Before
   public void initialize() throws Exception {
     inst = new MockInstance(test.getMethodName());
@@ -112,14 +112,13 @@ public class RemoveCompleteReplicationRecordsTest {
     for (int i = 0; i < numRecords; i++) {
       String file = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
       Mutation m = new Mutation(file);
-      StatusSection.add(m, new Text(Integer.toString(i)), ProtobufUtil.toValue(builder.setBegin(1000*(i+1)).build()));
+      StatusSection.add(m, new Text(Integer.toString(i)), ProtobufUtil.toValue(builder.setBegin(1000 * (i + 1)).build()));
       bw.addMutation(m);
     }
 
     bw.close();
 
     Assert.assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
-    
 
     BatchScanner bs = ReplicationTable.getBatchScanner(conn, 1);
     bs.setRanges(Collections.singleton(new Range()));
@@ -151,7 +150,7 @@ public class RemoveCompleteReplicationRecordsTest {
     for (int i = 0; i < numRecords; i++) {
       String file = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
       Mutation m = new Mutation(file);
-      StatusSection.add(m, new Text(Integer.toString(i)), ProtobufUtil.toValue(builder.setBegin(1000*(i+1)).build()));
+      StatusSection.add(m, new Text(Integer.toString(i)), ProtobufUtil.toValue(builder.setBegin(1000 * (i + 1)).build()));
       replBw.addMutation(m);
     }
 
@@ -206,7 +205,7 @@ public class RemoveCompleteReplicationRecordsTest {
       builder.setCreatedTime(time++);
       String file = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
       Mutation m = new Mutation(file);
-      Value v = ProtobufUtil.toValue(builder.setBegin(1000*(i+1)).build()); 
+      Value v = ProtobufUtil.toValue(builder.setBegin(1000 * (i + 1)).build());
       StatusSection.add(m, new Text(Integer.toString(i)), v);
       replBw.addMutation(m);
       m = OrderSection.createMutation(file, time);
@@ -296,7 +295,7 @@ public class RemoveCompleteReplicationRecordsTest {
     for (int i = 0; i < numRecords; i++) {
       String file = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
       Mutation m = new Mutation(file);
-      StatusSection.add(m, new Text(Integer.toString(i)), ProtobufUtil.toValue(builder.setBegin(1000*(i+1)).build()));
+      StatusSection.add(m, new Text(Integer.toString(i)), ProtobufUtil.toValue(builder.setBegin(1000 * (i + 1)).build()));
       replBw.addMutation(m);
     }
 

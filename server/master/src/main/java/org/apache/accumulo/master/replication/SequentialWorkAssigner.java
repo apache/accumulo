@@ -62,7 +62,7 @@ public class SequentialWorkAssigner extends AbstractWorkAssigner {
   private Connector conn;
   private AccumuloConfiguration conf;
 
-  // @formatter.off
+  // @formatter:off
   /*
    * { 
    *    peer1 => {sourceTableId1 => work_queue_key1, sourceTableId2 => work_queue_key2, ...}
@@ -70,7 +70,7 @@ public class SequentialWorkAssigner extends AbstractWorkAssigner {
    *    ...
    * }
    */
-  // @formatter.on
+  // @formatter:on
   private Map<String,Map<String,String>> queuedWorkByPeerName;
 
   private DistributedWorkQueue workQueue;
@@ -322,7 +322,7 @@ public class SequentialWorkAssigner extends AbstractWorkAssigner {
     try {
       log.debug("Queued work for {} and {} from table ID {}", key, path, sourceTableId);
 
-      workQueue.addWork(key, path);      
+      workQueue.addWork(key, path);
       queuedWorkForPeer.put(sourceTableId, key);
 
       return 1;

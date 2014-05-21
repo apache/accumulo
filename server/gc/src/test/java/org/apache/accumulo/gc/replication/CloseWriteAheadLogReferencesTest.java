@@ -182,13 +182,13 @@ public class CloseWriteAheadLogReferencesTest {
     logEntry.tabletId = 1;
     logEntry.logSet = Collections.singleton(logEntry.filename);
     data.add(Maps.immutableEntry(new Key(logEntry.getRow(), logEntry.getColumnFamily(), logEntry.getColumnQualifier()), new Value(logEntry.getValue())));
-    
+
     logEntry.extent = new KeyExtent(new Text("1"), new Text("c"), new Text("b"));
     logEntry.server = "tserver1";
     logEntry.tabletId = 2;
     logEntry.logSet = Collections.singleton(logEntry.filename);
     data.add(Maps.immutableEntry(new Key(logEntry.getRow(), logEntry.getColumnFamily(), logEntry.getColumnQualifier()), new Value(logEntry.getValue())));
-    
+
     logEntry.extent = new KeyExtent(new Text("1"), null, new Text("c"));
     logEntry.server = "tserver1";
     logEntry.tabletId = 3;
@@ -227,9 +227,8 @@ public class CloseWriteAheadLogReferencesTest {
     Connector conn = createMock(Connector.class);
     BatchScanner bs = createMock(BatchScanner.class);
 
-    String file1 = "hdfs://localhost:8020/accumulo/wal/tserver1+port/" + UUID.randomUUID(),
-        file2 = "hdfs://localhost:8020/accumulo/wal/tserver2+port/" + UUID.randomUUID(),
-        file3 = "hdfs://localhost:8020/accumulo/wal/tserver3+port/" + UUID.randomUUID();
+    String file1 = "hdfs://localhost:8020/accumulo/wal/tserver1+port/" + UUID.randomUUID(), file2 = "hdfs://localhost:8020/accumulo/wal/tserver2+port/"
+        + UUID.randomUUID(), file3 = "hdfs://localhost:8020/accumulo/wal/tserver3+port/" + UUID.randomUUID();
 
     // Fake out some data
     final ArrayList<Entry<Key,Value>> data = new ArrayList<>();
@@ -244,32 +243,32 @@ public class CloseWriteAheadLogReferencesTest {
     logEntry.extent = new KeyExtent(new Text("5"), null, null);
     logEntry.tabletId = 2;
     data.add(Maps.immutableEntry(new Key(logEntry.getRow(), logEntry.getColumnFamily(), logEntry.getColumnQualifier()), new Value(logEntry.getValue())));
-    
+
     logEntry.extent = new KeyExtent(new Text("3"), new Text("b"), new Text("a"));
     logEntry.filename = file2;
     logEntry.server = "tserver2";
     logEntry.tabletId = 3;
     logEntry.logSet = Collections.singleton(logEntry.filename);
     data.add(Maps.immutableEntry(new Key(logEntry.getRow(), logEntry.getColumnFamily(), logEntry.getColumnQualifier()), new Value(logEntry.getValue())));
-    
+
     logEntry.extent = new KeyExtent(new Text("3"), new Text("c"), new Text("b"));
     logEntry.tabletId = 4;
     logEntry.logSet = Collections.singleton(logEntry.filename);
     data.add(Maps.immutableEntry(new Key(logEntry.getRow(), logEntry.getColumnFamily(), logEntry.getColumnQualifier()), new Value(logEntry.getValue())));
-    
+
     logEntry.extent = new KeyExtent(new Text("4"), new Text("5"), new Text("0"));
     logEntry.filename = file3;
     logEntry.server = "tserver3";
     logEntry.tabletId = 5;
     logEntry.logSet = Collections.singleton(logEntry.filename);
     data.add(Maps.immutableEntry(new Key(logEntry.getRow(), logEntry.getColumnFamily(), logEntry.getColumnQualifier()), new Value(logEntry.getValue())));
-    
+
     logEntry.extent = new KeyExtent(new Text("4"), new Text("8"), new Text("5"));
     logEntry.server = "tserver3";
     logEntry.tabletId = 7;
     logEntry.logSet = Collections.singleton(logEntry.filename);
     data.add(Maps.immutableEntry(new Key(logEntry.getRow(), logEntry.getColumnFamily(), logEntry.getColumnQualifier()), new Value(logEntry.getValue())));
-    
+
     logEntry.extent = new KeyExtent(new Text("4"), null, new Text("8"));
     logEntry.server = "tserver3";
     logEntry.tabletId = 15;

@@ -78,61 +78,66 @@ import com.google.protobuf.InvalidProtocolBufferException;
 
 public class GarbageCollectWriteAheadLogs {
   private static final Logger log = LoggerFactory.getLogger(GarbageCollectWriteAheadLogs.class);
-  
+
   private final Instance instance;
   private final VolumeManager fs;
-  
+
   private boolean useTrash;
-  
+
   /**
    * Creates a new GC WAL object.
-   *
-   * @param instance instance to use
-   * @param fs volume manager to use
-   * @param useTrash true to move files to trash rather than delete them
+   * 
+   * @param instance
+   *          instance to use
+   * @param fs
+   *          volume manager to use
+   * @param useTrash
+   *          true to move files to trash rather than delete them
    */
   GarbageCollectWriteAheadLogs(Instance instance, VolumeManager fs, boolean useTrash) throws IOException {
     this.instance = instance;
     this.fs = fs;
     this.useTrash = useTrash;
   }
-  
+
   /**
    * Gets the instance used by this object.
-   *
+   * 
    * @return instance
    */
   Instance getInstance() {
     return instance;
   }
+
   /**
    * Gets the volume manager used by this object.
-   *
+   * 
    * @return volume manager
    */
   VolumeManager getVolumeManager() {
     return fs;
   }
+
   /**
-   * Checks if the volume manager should move files to the trash rather than
-   * delete them.
-   *
+   * Checks if the volume manager should move files to the trash rather than delete them.
+   * 
    * @return true if trash is used
    */
   boolean isUsingTrash() {
     return useTrash;
   }
+
   public void collect(GCStatus status) {
-    
+
     Span span = Trace.start("scanServers");
     try {
-      
-      Map<String, Path> sortedWALogs = getSortedWALogs();
+
+      Map<String,Path> sortedWALogs = getSortedWALogs();
 
       status.currentLog.started = System.currentTimeMillis();
-      
+
       Map<Path,String> fileToServerMap = new HashMap<Path,String>();
-      Map<String,Path> nameToFileMap = new HashMap<String, Path>();
+      Map<String,Path> nameToFileMap = new HashMap<String,Path>();
       int count = scanServers(fileToServerMap, nameToFileMap);
       long fileScanStop = System.currentTimeMillis();
       log.info(String.format("Fetched %d files from %d servers in %.2f seconds", fileToServerMap.size(), count,
@@ -164,27 +169,27 @@ public class GarbageCollectWriteAheadLogs {
       }
 
       long replicationEntryScanStop = System.currentTimeMillis();
-      log.info(String.format("%d replication entries scanned in %.2f seconds",  count, (replicationEntryScanStop - logEntryScanStop) / 1000.));
-      
+      log.info(String.format("%d replication entries scanned in %.2f seconds", count, (replicationEntryScanStop - logEntryScanStop) / 1000.));
+
       span = Trace.start("removeFiles");
       Map<String,ArrayList<Path>> serverToFileMap = mapServersToFiles(fileToServerMap, nameToFileMap);
 
       count = removeFiles(nameToFileMap, serverToFileMap, sortedWALogs, status);
-      
+
       long removeStop = System.currentTimeMillis();
       log.info(String.format("%d total logs removed from %d servers in %.2f seconds", count, serverToFileMap.size(), (removeStop - logEntryScanStop) / 1000.));
       status.currentLog.finished = removeStop;
       status.lastLog = status.currentLog;
       status.currentLog = new GcCycleStats();
       span.stop();
-      
+
     } catch (Exception e) {
       log.error("exception occured while garbage collecting write ahead logs", e);
     } finally {
       span.stop();
     }
   }
-  
+
   boolean holdsLock(HostAndPort addr) {
     try {
       String zpath = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + addr.toString();
@@ -197,8 +202,8 @@ public class GarbageCollectWriteAheadLogs {
       return true;
     }
   }
-  
-  private int removeFiles(Map<String,Path> nameToFileMap, Map<String,ArrayList<Path>> serverToFileMap, Map<String, Path> sortedWALogs, final GCStatus status) {
+
+  private int removeFiles(Map<String,Path> nameToFileMap, Map<String,ArrayList<Path>> serverToFileMap, Map<String,Path> sortedWALogs, final GCStatus status) {
     AccumuloConfiguration conf = ServerConfiguration.getSystemConfiguration(instance);
     for (Entry<String,ArrayList<Path>> entry : serverToFileMap.entrySet()) {
       if (entry.getKey().isEmpty()) {
@@ -247,7 +252,7 @@ public class GarbageCollectWriteAheadLogs {
         }
       }
     }
-    
+
     for (Path swalog : sortedWALogs.values()) {
       log.debug("Removing sorted WAL " + swalog);
       try {
@@ -266,14 +271,15 @@ public class GarbageCollectWriteAheadLogs {
         }
       }
     }
-    
+
     return 0;
   }
-  
+
   /**
    * Converts a list of paths to their corresponding strings.
-   *
-   * @param paths list of paths
+   * 
+   * @param paths
+   *          list of paths
    * @return string forms of paths
    */
   static List<String> paths2strings(List<Path> paths) {
@@ -282,14 +288,15 @@ public class GarbageCollectWriteAheadLogs {
       result.add(path.toString());
     return result;
   }
-  
+
   /**
-   * Reverses the given mapping of file paths to servers. The returned map
-   * provides a list of file paths for each server. Any path whose name is not
-   * in the mapping of file names to paths is skipped.
-   *
-   * @param fileToServerMap map of file paths to servers
-   * @param nameToFileMap map of file names to paths
+   * Reverses the given mapping of file paths to servers. The returned map provides a list of file paths for each server. Any path whose name is not in the
+   * mapping of file names to paths is skipped.
+   * 
+   * @param fileToServerMap
+   *          map of file paths to servers
+   * @param nameToFileMap
+   *          map of file names to paths
    * @return map of servers to lists of file paths
    */
   static Map<String,ArrayList<Path>> mapServersToFiles(Map<Path,String> fileToServerMap, Map<String,Path> nameToFileMap) {
@@ -306,9 +313,9 @@ public class GarbageCollectWriteAheadLogs {
     }
     return result;
   }
-  
-  protected int removeMetadataEntries(Map<String,Path>  nameToFileMap, Map<String, Path> sortedWALogs, GCStatus status, Credentials creds) throws IOException, KeeperException,
-      InterruptedException {
+
+  protected int removeMetadataEntries(Map<String,Path> nameToFileMap, Map<String,Path> sortedWALogs, GCStatus status, Credentials creds) throws IOException,
+      KeeperException, InterruptedException {
     int count = 0;
     Iterator<LogEntry> iterator = MetadataTableUtil.getLogEntries(creds);
 
@@ -335,11 +342,12 @@ public class GarbageCollectWriteAheadLogs {
     return count;
   }
 
-  protected int removeReplicationEntries(Map<String,Path>  nameToFileMap, Map<String,Path> sortedWALogs, GCStatus status, Credentials creds) throws IOException, KeeperException, InterruptedException {
+  protected int removeReplicationEntries(Map<String,Path> nameToFileMap, Map<String,Path> sortedWALogs, GCStatus status, Credentials creds) throws IOException,
+      KeeperException, InterruptedException {
     Connector conn;
     try {
-      conn =  instance.getConnector(creds.getPrincipal(), creds.getToken());
-    } catch (AccumuloException|AccumuloSecurityException e) {
+      conn = instance.getConnector(creds.getPrincipal(), creds.getToken());
+    } catch (AccumuloException | AccumuloSecurityException e) {
       log.error("Failed to get connector", e);
       throw new IllegalArgumentException(e);
     }
@@ -369,7 +377,9 @@ public class GarbageCollectWriteAheadLogs {
 
   /**
    * Determine if the given WAL is needed for replication
-   * @param wal The full path (URI) 
+   * 
+   * @param wal
+   *          The full path (URI)
    * @return True if the WAL is still needed by replication (not a candidate for deletion)
    */
   protected boolean neededByReplication(Connector conn, String wal) {
@@ -391,7 +401,7 @@ public class GarbageCollectWriteAheadLogs {
     // } catch (Exception e) {
     // log.error("Could not read replication table");
     // }
-    
+
     Iterable<Entry<Key,Value>> iter = getReplicationStatusForFile(conn, wal);
 
     // TODO Push down this filter to the tserver to only return records
@@ -427,7 +437,7 @@ public class GarbageCollectWriteAheadLogs {
 
     try {
       Scanner replScanner = ReplicationTable.getScanner(conn);
-  
+
       // Scan only the Status records
       StatusSection.limit(replScanner);
 
@@ -445,7 +455,8 @@ public class GarbageCollectWriteAheadLogs {
   private int scanServers(Map<Path,String> fileToServerMap, Map<String,Path> nameToFileMap) throws Exception {
     return scanServers(ServerConstants.getWalDirs(), fileToServerMap, nameToFileMap);
   }
-  //TODO Remove deprecation warning suppression when Hadoop1 support is dropped
+
+  // TODO Remove deprecation warning suppression when Hadoop1 support is dropped
   @SuppressWarnings("deprecation")
   /**
    * Scans write-ahead log directories for logs. The maps passed in are
@@ -491,22 +502,24 @@ public class GarbageCollectWriteAheadLogs {
     }
     return servers.size();
   }
-  
-  private Map<String, Path> getSortedWALogs() throws IOException {
+
+  private Map<String,Path> getSortedWALogs() throws IOException {
     return getSortedWALogs(ServerConstants.getRecoveryDirs());
   }
+
   /**
    * Looks for write-ahead logs in recovery directories.
-   *
-   * @param recoveryDirs recovery directories
+   * 
+   * @param recoveryDirs
+   *          recovery directories
    * @return map of log file names to paths
    */
-  Map<String, Path> getSortedWALogs(String[] recoveryDirs) throws IOException {
-    Map<String, Path> result = new HashMap<String, Path>();
-    
+  Map<String,Path> getSortedWALogs(String[] recoveryDirs) throws IOException {
+    Map<String,Path> result = new HashMap<String,Path>();
+
     for (String dir : recoveryDirs) {
       Path recoveryDir = new Path(dir);
-      
+
       if (fs.exists(recoveryDir)) {
         for (FileStatus status : fs.listStatus(recoveryDir)) {
           String name = status.getPath().getName();
@@ -520,11 +533,12 @@ public class GarbageCollectWriteAheadLogs {
     }
     return result;
   }
-  
+
   /**
    * Checks if a string is a valid UUID.
-   *
-   * @param name string to check
+   * 
+   * @param name
+   *          string to check
    * @return true if string is a UUID
    */
   static boolean isUUID(String name) {
@@ -538,5 +552,5 @@ public class GarbageCollectWriteAheadLogs {
       return false;
     }
   }
-  
+
 }

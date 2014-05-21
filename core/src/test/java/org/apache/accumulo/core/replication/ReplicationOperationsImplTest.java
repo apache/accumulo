@@ -156,7 +156,7 @@ public class ReplicationOperationsImplTest {
       Assert.fail("ReplicationOperations.drain did not complete");
     }
 
-    // After both metadata and replication 
+    // After both metadata and replication
     Assert.assertTrue(done.get());
     Assert.assertFalse(exception.get());
   }
@@ -240,7 +240,7 @@ public class ReplicationOperationsImplTest {
       Assert.fail("ReplicationOperations.drain did not complete");
     }
 
-    // After both metadata and replication 
+    // After both metadata and replication
     Assert.assertTrue(done.get());
     Assert.assertFalse(exception.get());
   }
@@ -360,7 +360,7 @@ public class ReplicationOperationsImplTest {
       System.out.println(e.getKey());
     }
 
-    final AtomicBoolean done = new AtomicBoolean(false), firstRunComplete = new AtomicBoolean(false);
+    final AtomicBoolean done = new AtomicBoolean(false);
     final AtomicBoolean exception = new AtomicBoolean(false);
     final ReplicationOperationsImpl roi = new ReplicationOperationsImpl(inst, new Credentials("root", new PasswordToken("")));
     Thread t = new Thread(new Runnable() {

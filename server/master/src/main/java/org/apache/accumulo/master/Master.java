@@ -994,7 +994,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
     // Start the replication coordinator which assigns tservers to service replication requests
     ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor = new ReplicationCoordinator.Processor<ReplicationCoordinator.Iface>(
-        TraceWrap.service(new MasterReplicationCoordinator(this, getSystemConfiguration())));
+        TraceWrap.service(new MasterReplicationCoordinator(this)));
     ServerAddress replAddress = TServerUtils.startServer(getSystemConfiguration(), hostname, Property.MASTER_REPLICATION_COORDINATOR_PORT,
         replicationCoordinatorProcessor, "Master Replication Coordinator", "Replication Coordinator", null, Property.MASTER_REPLICATION_COORDINATOR_MINTHREADS,
         Property.MASTER_REPLICATION_COORDINATOR_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
@@ -1002,7 +1002,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     // Advertise that port we used so peers don't have to be told what it is
     ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instance) + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR,
         replAddress.address.toString().getBytes(StandardCharsets.UTF_8), NodeExistsPolicy.OVERWRITE);
-    
+
     while (clientService.isServing()) {
       UtilWaitThread.sleep(500);
     }

@@ -110,7 +110,7 @@ public class ReplicationSourceOnlyIT extends ConfigurableMacIT {
           }
         }
       }
-    
+
     });
 
     t.start();

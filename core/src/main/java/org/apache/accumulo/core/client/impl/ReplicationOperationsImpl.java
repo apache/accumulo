@@ -257,7 +257,7 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
     log.debug("Found id of {} for name {}", strTableId, tableName);
 
     // Get the WALs currently referenced by the table
-    BatchScanner metaBs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4); 
+    BatchScanner metaBs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
     metaBs.setRanges(Collections.singleton(MetadataSchema.TabletsSection.getRange(strTableId)));
     metaBs.fetchColumnFamily(LogColumnFamily.NAME);
     Set<String> wals = new HashSet<>();

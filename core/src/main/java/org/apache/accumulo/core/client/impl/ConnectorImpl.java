@@ -189,7 +189,7 @@ public class ConnectorImpl extends Connector {
   @Override
   public synchronized ReplicationOperations replicationOperations() {
     if (null == replicationops) {
-      replicationops = new ReplicationOperationsImpl(instance, credentials); 
+      replicationops = new ReplicationOperationsImpl(instance, credentials);
     }
 
     return replicationops;

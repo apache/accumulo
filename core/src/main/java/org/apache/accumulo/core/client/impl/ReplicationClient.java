@@ -77,10 +77,9 @@ public class ReplicationClient {
     if (masterThriftService.endsWith(":0"))
       return null;
 
-    
+
     AccumuloConfiguration conf = ServerConfigurationUtil.getConfiguration(instance);
 
-    HostAndPort masterAddr = HostAndPort.fromString(masterThriftService);
     String zkPath = ZooUtil.getRoot(instance) + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR;
     String replCoordinatorAddr;
 

@@ -34,6 +34,7 @@ public abstract class AbstractWorkAssigner implements WorkAssigner {
   protected boolean isWorkRequired(Status status) {
     return StatusUtil.isWorkRequired(status);
   }
+
   public static final String KEY_SEPARATOR = "|";
 
   /**

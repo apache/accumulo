@@ -47,7 +47,7 @@ public class PrintReplicationRecords implements Runnable {
   private PrintStream out;
   private SimpleDateFormat sdf;
 
-  public PrintReplicationRecords(Connector conn,PrintStream out) {
+  public PrintReplicationRecords(Connector conn, PrintStream out) {
     this.conn = conn;
     this.out = out;
     this.sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS");
@@ -93,6 +93,6 @@ public class PrintReplicationRecords implements Runnable {
       } catch (InvalidProtocolBufferException e) {
         out.println(entry.getKey().toStringNoTruncate() + "= Could not deserialize Status message");
       }
-    }    
+    }
   }
 }

@@ -49,7 +49,7 @@ public class ReplicationPortAdvertisementIT extends ConfigurableMacIT {
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(2);
   }
-  
+
   @Test
   public void tserverReplicationServicePortsAreAdvertised() throws Exception {
     // Wait for the cluster to be up
@@ -81,7 +81,7 @@ public class ReplicationPortAdvertisementIT extends ConfigurableMacIT {
     // Each tserver should also have equial replicaiton services running internally
     Assert.assertEquals("Expected an equal number of replication servicers and tservers", tserverHost.size(), replicationServices.size());
   }
-  
+
   @Test
   public void masterReplicationServicePortsAreAdvertised() throws Exception {
     // Wait for the cluster to be up

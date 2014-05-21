@@ -67,6 +67,7 @@ public class ReplicationSchema {
 
     /**
      * Limit the scanner to only pull replication work records
+     * 
      * @param scanner
      */
     public static void limit(ScannerBase scanner) {
@@ -86,13 +87,15 @@ public class ReplicationSchema {
    */
   public static class StatusSection {
     public static final Text NAME = new Text("repl");
-    private static final ByteSequence BYTE_SEQ_NAME = new ArrayByteSequence("repl"); 
+    private static final ByteSequence BYTE_SEQ_NAME = new ArrayByteSequence("repl");
 
     /**
      * Extract the table ID from the key (inefficiently if called repeatedly)
-     * @param k Key to extract from
+     * 
+     * @param k
+     *          Key to extract from
      * @return The table ID
-     * @see #getTableId(Key,Text) 
+     * @see #getTableId(Key,Text)
      */
     public static String getTableId(Key k) {
       Text buff = new Text();
@@ -102,8 +105,11 @@ public class ReplicationSchema {
 
     /**
      * Extract the table ID from the key into the given {@link Text}
-     * @param k Key to extract from
-     * @param buff Text to place table ID into
+     * 
+     * @param k
+     *          Key to extract from
+     * @param buff
+     *          Text to place table ID into
      */
     public static void getTableId(Key k, Text buff) {
       Preconditions.checkNotNull(k);
@@ -114,8 +120,11 @@ public class ReplicationSchema {
 
     /**
      * Extract the file name from the row suffix into the given {@link Text}
-     * @param k Key to extract from
-     * @param buff Text to place file name into
+     * 
+     * @param k
+     *          Key to extract from
+     * @param buff
+     *          Text to place file name into
      */
     public static void getFile(Key k, Text buff) {
       Preconditions.checkNotNull(k);
@@ -127,6 +136,7 @@ public class ReplicationSchema {
 
     /**
      * Limit the scanner to only return Status records
+     * 
      * @param scanner
      */
     public static void limit(ScannerBase scanner) {
@@ -140,8 +150,8 @@ public class ReplicationSchema {
   }
 
   /**
-   * Holds the order in which files needed for replication were closed. The intent is to be able to guarantee
-   * that files which were closed earlier were replicated first and we don't replay data in the wrong order on our peers
+   * Holds the order in which files needed for replication were closed. The intent is to be able to guarantee that files which were closed earlier were
+   * replicated first and we don't replay data in the wrong order on our peers
    * <p>
    * <code>encodedTimeOfClosure_hdfs://localhost:8020/accumulo/wal/tserver+port/WAL order:source_table_id [] -> Status Protobuf</code>
    */
@@ -152,7 +162,9 @@ public class ReplicationSchema {
 
     /**
      * Extract the table ID from the given key (inefficiently if called repeatedly)
-     * @param k OrderSection Key
+     * 
+     * @param k
+     *          OrderSection Key
      * @return source table id
      */
     public static String getTableId(Key k) {
@@ -163,8 +175,11 @@ public class ReplicationSchema {
 
     /**
      * Extract the table ID from the given key
-     * @param k OrderSection key
-     * @param buff Text to place table ID into
+     * 
+     * @param k
+     *          OrderSection key
+     * @param buff
+     *          Text to place table ID into
      */
     public static void getTableId(Key k, Text buff) {
       Preconditions.checkNotNull(k);
@@ -175,6 +190,7 @@ public class ReplicationSchema {
 
     /**
      * Limit the scanner to only return Order records
+     * 
      * @param scanner
      */
     public static void limit(ScannerBase scanner) {
@@ -183,8 +199,11 @@ public class ReplicationSchema {
 
     /**
      * Creates the Mutation for the Order section for the given file and time
-     * @param file Filename
-     * @param timeInMillis Time in millis that the file was closed
+     * 
+     * @param file
+     *          Filename
+     * @param timeInMillis
+     *          Time in millis that the file was closed
      * @return Mutation for the Order section
      */
     public static Mutation createMutation(String file, long timeInMillis) {
@@ -202,7 +221,7 @@ public class ReplicationSchema {
       log.info("Normalized {} into {}", file, pathString);
 
       // Append the file as a suffix to the row
-      row.append((ROW_SEPARATOR+pathString).getBytes(), 0, pathString.length() + ROW_SEPARATOR.length());
+      row.append((ROW_SEPARATOR + pathString).getBytes(), 0, pathString.length() + ROW_SEPARATOR.length());
 
       // Make the mutation and add the column update
       return new Mutation(row);
@@ -210,9 +229,13 @@ public class ReplicationSchema {
 
     /**
      * Add a column update to the given mutation with the provided tableId and value
-     * @param m Mutation for OrderSection
-     * @param tableId Source table id
-     * @param v Serialized Status msg
+     * 
+     * @param m
+     *          Mutation for OrderSection
+     * @param tableId
+     *          Source table id
+     * @param v
+     *          Serialized Status msg
      * @return The original Mutation
      */
     public static Mutation add(Mutation m, Text tableId, Value v) {

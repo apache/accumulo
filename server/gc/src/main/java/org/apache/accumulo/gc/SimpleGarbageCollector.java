@@ -526,12 +526,12 @@ public class SimpleGarbageCollector implements Iface {
             try {
               stat = Status.parseFrom(input.getValue().get());
             } catch (InvalidProtocolBufferException e) {
-              log.warn("Could not deserialize protobuf for: " +  input.getKey());
+              log.warn("Could not deserialize protobuf for: " + input.getKey());
               stat = null;
             }
             return Maps.immutableEntry(file, stat);
           }
-          
+
         });
       } catch (TableNotFoundException e) {
         // No elements that we need to preclude

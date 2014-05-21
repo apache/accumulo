@@ -196,7 +196,7 @@ public class StatusMakerTest {
     s.setRange(ReplicationSection.getRange());
     s.fetchColumnFamily(ReplicationSection.COLF);
     Assert.assertEquals(0, Iterables.size(s));
-    
+
   }
 
   @Test
@@ -249,7 +249,7 @@ public class StatusMakerTest {
     Text buff = new Text();
     while (expectedFiles.hasNext() && iter.hasNext()) {
       String file = expectedFiles.next();
-      Entry<Key,Value> entry  = iter.next();
+      Entry<Key,Value> entry = iter.next();
 
       Assert.assertEquals(file, OrderSection.getFile(entry.getKey(), buff));
       OrderSection.getTableId(entry.getKey(), buff);

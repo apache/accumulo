@@ -300,6 +300,7 @@ public class GarbageCollectWriteAheadLogsTest {
   private static class ReplicationGCWAL extends GarbageCollectWriteAheadLogs {
 
     private List<Entry<Key,Value>> replData;
+
     /**
      * @param instance
      * @param fs
@@ -355,7 +356,7 @@ public class GarbageCollectWriteAheadLogsTest {
     Instance inst = new MockInstance(testName.getMethodName());
     Credentials creds = new Credentials("root", new PasswordToken(""));
     Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
-    
+
     GarbageCollectWriteAheadLogs gcWALs = new GarbageCollectWriteAheadLogs(inst, volMgr, false);
 
     ReplicationTable.create(conn);
@@ -381,7 +382,7 @@ public class GarbageCollectWriteAheadLogsTest {
     GCStatus status = new GCStatus();
     GcCycleStats cycleStats = new GcCycleStats();
     status.currentLog = cycleStats;
-    
+
     // We should iterate over two entries
     Assert.assertEquals(2, gcWALs.removeReplicationEntries(nameToFileMap, sortedWALogs, status, creds));
 
@@ -399,7 +400,7 @@ public class GarbageCollectWriteAheadLogsTest {
     Instance inst = new MockInstance(testName.getMethodName());
     Credentials creds = new Credentials("root", new PasswordToken(""));
     Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
-    
+
     GarbageCollectWriteAheadLogs gcWALs = new GarbageCollectWriteAheadLogs(inst, volMgr, false);
 
     ReplicationTable.create(conn);
@@ -411,7 +412,7 @@ public class GarbageCollectWriteAheadLogsTest {
     Mutation m = new Mutation(ReplicationSection.getRowPrefix() + "/wals/" + file1);
     m.put(ReplicationSection.COLF, new Text("1"), StatusUtil.fileCreatedValue(file1CreateTime));
     bw.addMutation(m);
-    
+
     m = new Mutation(ReplicationSection.getRowPrefix() + "/wals/" + file2);
     m.put(ReplicationSection.COLF, new Text("1"), StatusUtil.fileCreatedValue(file2CreateTime));
     bw.addMutation(m);
@@ -427,7 +428,7 @@ public class GarbageCollectWriteAheadLogsTest {
     GCStatus status = new GCStatus();
     GcCycleStats cycleStats = new GcCycleStats();
     status.currentLog = cycleStats;
-    
+
     // We should iterate over two entries
     Assert.assertEquals(2, gcWALs.removeReplicationEntries(nameToFileMap, sortedWALogs, status, creds));
 
