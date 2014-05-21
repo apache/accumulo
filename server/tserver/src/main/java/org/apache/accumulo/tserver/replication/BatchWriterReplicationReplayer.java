@@ -26,11 +26,15 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.replication.AccumuloReplicationReplayer;
 import org.apache.accumulo.core.replication.RemoteReplicationErrorCode;
 import org.apache.accumulo.core.replication.thrift.KeyValues;
 import org.apache.accumulo.core.replication.thrift.RemoteReplicationException;
 import org.apache.accumulo.core.replication.thrift.WalEdits;
+import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.slf4j.Logger;
@@ -45,8 +49,10 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
 
   @Override
   public long replicateLog(Connector conn, String tableName, WalEdits data) throws RemoteReplicationException {
+    final AccumuloConfiguration conf = ServerConfiguration.getSystemConfiguration(HdfsZooInstance.getInstance());
     final LogFileKey key = new LogFileKey();
     final LogFileValue value = new LogFileValue();
+    final long memoryInBytes = conf.getMemoryInBytes(Property.TSERV_REPLICATION_BW_REPLAYER_MEMORY);
 
     BatchWriter bw = null;
     long mutationsApplied = 0l;
@@ -63,14 +69,16 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
 
         // Create the batchScanner if we don't already have one.
         if (null == bw) {
+          BatchWriterConfig bwConfig = new BatchWriterConfig();
+          bwConfig.setMaxMemory(memoryInBytes);
           try {
-            bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
+            bw = conn.createBatchWriter(tableName, bwConfig);
           } catch (TableNotFoundException e) {
             throw new RemoteReplicationException(RemoteReplicationErrorCode.TABLE_DOES_NOT_EXIST.ordinal(), "Table " + tableName + " does not exist");
           }
         }
 
-        log.info("Applying {} updates to table {} as part of batch", value.mutations.size(), tableName);
+        log.info("Applying {} mutations to table {} as part of batch", value.mutations.size(), tableName);
 
         try {
           bw.addMutations(value.mutations);
