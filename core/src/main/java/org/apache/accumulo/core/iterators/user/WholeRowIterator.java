@@ -33,22 +33,19 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 /**
  * 
- * The WholeRowIterator is designed to provide row-isolation so that queries see mutations as atomic. 
- * It does so by encapsulating an entire row of key/value pairs into a single key/value pair, which 
- * is returned through the client as an atomic operation. 
+ * The WholeRowIterator is designed to provide row-isolation so that queries see mutations as atomic. It does so by encapsulating an entire row of key/value
+ * pairs into a single key/value pair, which is returned through the client as an atomic operation.
  * 
  * <p>
- * This iterator extends the {@link RowEncodingIterator}, providing implementations for rowEncoder
- * and rowDecoder which serializes all column and value information from a given row into a
- * single ByteStream in a value.
+ * This iterator extends the {@link RowEncodingIterator}, providing implementations for rowEncoder and rowDecoder which serializes all column and value
+ * information from a given row into a single ByteStream in a value.
  * 
  * <p>
- * As with the RowEncodingIterator, when seeking in the WholeRowIterator using a range that starts
- * at a non-inclusive first key in a row, this iterator will skip to the next row.
+ * As with the RowEncodingIterator, when seeking in the WholeRowIterator using a range that starts at a non-inclusive first key in a row, this iterator will
+ * skip to the next row.
  * 
  * <p>
- * To regain the original key/value pairs of the row, call the decodeRow function on the key/value
- * pair that this iterator returned.
+ * To regain the original key/value pairs of the row, call the decodeRow function on the key/value pair that this iterator returned.
  * 
  * @see RowFilter
  */
@@ -58,7 +55,7 @@ public class WholeRowIterator extends RowEncodingIterator {
   WholeRowIterator(SortedKeyValueIterator<Key,Value> source) {
     this.sourceIter = source;
   }
-  
+
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     if (sourceIter != null)
@@ -67,13 +64,13 @@ public class WholeRowIterator extends RowEncodingIterator {
   }
 
   @Override
-  public SortedMap<Key, Value> rowDecoder(Key rowKey, Value rowValue) throws IOException {
-	return decodeRow(rowKey, rowValue);
+  public SortedMap<Key,Value> rowDecoder(Key rowKey, Value rowValue) throws IOException {
+    return decodeRow(rowKey, rowValue);
   }
 
   @Override
   public Value rowEncoder(List<Key> keys, List<Value> values) throws IOException {
-	return encodeRow(keys, values);
+    return encodeRow(keys, values);
   }
 
   /**
