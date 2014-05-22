@@ -102,7 +102,7 @@ public class ReplicationWithGCIT extends ConfigurableMacIT {
     return metadataWals;
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test(timeout = 6 * 60 * 1000)
   public void replicationRecordsAreClosedAfterGarbageCollection() throws Exception {
     Collection<ProcessReference> gcProcs = cluster.getProcesses().get(ServerType.GARBAGE_COLLECTOR);
     for (ProcessReference ref : gcProcs) {
