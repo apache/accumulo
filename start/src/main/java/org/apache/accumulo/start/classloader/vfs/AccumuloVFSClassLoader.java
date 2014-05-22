@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.classloader.vfs.providers.HdfsFileObject;
 import org.apache.accumulo.start.classloader.vfs.providers.HdfsFileProvider;
 import org.apache.commons.vfs2.CacheStrategy;
 import org.apache.commons.vfs2.FileObject;
@@ -37,6 +38,8 @@ import org.apache.commons.vfs2.cache.SoftRefFilesCache;
 import org.apache.commons.vfs2.impl.DefaultFileSystemManager;
 import org.apache.commons.vfs2.impl.FileContentInfoFilenameFactory;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.log4j.Logger;
 
 /**
@@ -213,6 +216,22 @@ public class AccumuloVFSClassLoader {
           // Create the Accumulo Context ClassLoader using the DEFAULT_CONTEXT
           localLoader = createDynamicClassloader(new VFSClassLoader(vfsCP, vfs, parent));
           loader = localLoader;
+
+          //An HDFS FileSystem and Configuration object were created for each unique HDFS namespace in the call to resolve above.
+          //The HDFS Client did us a favor and cached these objects so that the next time someone calls FileSystem.get(uri), they
+          //get the cached object. However, these objects were created not with the system VFS classloader, but the classloader above
+          //it. We need to override the classloader on the Configuration objects. Ran into an issue were log recovery was being attempted
+          //and SequenceFile$Reader was trying to instantiate the key class via WritableName.getClass(String, Configuration)
+          for (FileObject fo : vfsCP) {
+            if (fo instanceof HdfsFileObject) {
+              String uri = fo.getName().getRootURI();
+              Configuration c = new Configuration(true);
+              c.set(FileSystem.FS_DEFAULT_NAME_KEY, uri);
+              FileSystem fs = FileSystem.get(c);
+              fs.getConf().setClassLoader(loader.getClassLoader());
+            }
+          }
+
         }
       }
     }
