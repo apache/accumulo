@@ -119,6 +119,8 @@ public class ReplicationProcessor implements Processor {
     }
 
     log.debug("Replicating {} to {} using {}", filePath, target, replica.getClass().getName());
+
+    replicate(replica, filePath, status, target);
   }
 
   protected String getPeerType(String peerName) {
