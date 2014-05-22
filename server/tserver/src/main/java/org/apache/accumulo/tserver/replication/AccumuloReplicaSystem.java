@@ -194,7 +194,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
                     return kvs;
                   }
                 } else {
-                  WalReplication edits = getWalEdits(target, p, status, sizeLimit);
+                  WalReplication edits = getWalEdits(target, getWalStream(p), p, status, sizeLimit);
 
                   // If we have some edits to send
                   if (0 < edits.walEdits.getEditsSize()) {
@@ -206,8 +206,9 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
                     // We don't have to replicate every LogEvent in the file (only Mutation LogEvents), but we
                     // want to track progress in the file relative to all LogEvents (to avoid duplicative processing/replication)
                     return edits;
-                  } else if (edits.entriesConsumed == Long.MAX_VALUE) {
-                    // Even if we send no data, we must record the new begin value to account for the inf+ length
+                  } else if (edits.entriesConsumed > 0) {
+                    // Even if we send no data, we want to record a non-zero new begin value to avoid checking the same
+                    // log entries multiple times to determine if they should be sent
                     return edits;
                   }
                 }
@@ -249,13 +250,15 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     throw new UnsupportedOperationException();
   }
 
-  protected WalReplication getWalEdits(ReplicationTarget target, Path p, Status status, long sizeLimit) throws IOException {
-    DFSLoggerInputStreams streams = DfsLogger.readHeaderAndReturnStream(fs, p, conf);
-    DataInputStream wal = streams.getDecryptingInputStream();
+  protected WalReplication getWalEdits(ReplicationTarget target, DataInputStream wal, Path p, Status status, long sizeLimit) throws IOException {
     LogFileKey key = new LogFileKey();
     LogFileValue value = new LogFileValue();
 
+    Set<Integer> desiredTids = new HashSet<>();
+
     // Read through the stuff we've already processed in a previous replication attempt
+    // We also need to track the tids that occurred earlier in the file as mutations
+    // later on might use that tid
     for (long i = 0; i < status.getBegin(); i++) {
       try {
         key.readFields(wal);
@@ -264,9 +267,19 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         log.warn("Unexpectedly reached the end of file.");
         return new WalReplication(new WalEdits(), 0, 0, 0);
       }
+
+      switch (key.event) {
+        case DEFINE_TABLET:
+          if (target.getSourceTableId().equals(key.tablet.getTableId().toString())) {
+            desiredTids.add(key.tid);
+          }
+          break;
+        default:
+          break;
+      }
     }
 
-    WalReplication repl = getEdits(wal, sizeLimit, target, status, p);
+    WalReplication repl = getEdits(wal, sizeLimit, target, status, p, desiredTids);
 
     log.debug("Read {} WAL entries and retained {} bytes of WAL entries for replication to peer '{}'", (Long.MAX_VALUE == repl.entriesConsumed) ? "all"
         : repl.entriesConsumed, repl.sizeInBytes, p);
@@ -274,7 +287,12 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     return repl;
   }
 
-  protected WalReplication getEdits(DataInputStream wal, long sizeLimit, ReplicationTarget target, Status status, Path p) throws IOException {
+  protected DataInputStream getWalStream(Path p) throws IOException {
+    DFSLoggerInputStreams streams = DfsLogger.readHeaderAndReturnStream(fs, p, conf);
+    return streams.getDecryptingInputStream();
+  }
+
+  protected WalReplication getEdits(DataInputStream wal, long sizeLimit, ReplicationTarget target, Status status, Path p, Set<Integer> desiredTids) throws IOException {
     WalEdits edits = new WalEdits();
     edits.edits = new ArrayList<ByteBuffer>();
     long size = 0l;
@@ -282,9 +300,6 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     long numUpdates = 0l;
     LogFileKey key = new LogFileKey();
     LogFileValue value = new LogFileValue();
-
-    // Any tid for our table needs to be tracked
-    Set<Integer> desiredTids = new HashSet<>();
 
     while (size < sizeLimit) {
       try {
@@ -303,6 +318,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
       switch (key.event) {
         case DEFINE_TABLET:
+          // For new DEFINE_TABLETs, we also need to record the new tids we see
           if (target.getSourceTableId().equals(key.tablet.getTableId().toString())) {
             desiredTids.add(key.tid);
           }
@@ -349,7 +365,10 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       }
     }
 
-    log.debug("Removing {} mutations from WAL entry as they have already been replicated to {}", value.mutations.size() - mutationsToSend, target.getPeerName());
+    int mutationsRemoved = value.mutations.size() - mutationsToSend;
+    if (mutationsRemoved > 0) {
+      log.debug("Removing {} mutations from WAL entry as they have already been replicated to {}", mutationsRemoved, target.getPeerName());
+    }
 
     out.writeInt(mutationsToSend);
     for (Mutation m : value.mutations) {

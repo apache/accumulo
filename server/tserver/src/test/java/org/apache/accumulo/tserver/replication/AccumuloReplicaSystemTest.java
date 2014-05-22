@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.UUID;
 
@@ -146,7 +147,7 @@ public class AccumuloReplicaSystemTest {
 
     Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(false).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(baos.toByteArray()));
-    WalReplication repl = ars.getEdits(dis, Long.MAX_VALUE, new ReplicationTarget("peer", "1", "1"), status, new Path("/accumulo/wals/tserver+port/wal"));
+    WalReplication repl = ars.getEdits(dis, Long.MAX_VALUE, new ReplicationTarget("peer", "1", "1"), status, new Path("/accumulo/wals/tserver+port/wal"), new HashSet<Integer>());
 
     // We stopped because we got to the end of the file
     Assert.assertEquals(9, repl.entriesConsumed);
@@ -253,7 +254,7 @@ public class AccumuloReplicaSystemTest {
     // If it were still open, more data could be appended that we need to process
     Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(baos.toByteArray()));
-    WalReplication repl = ars.getEdits(dis, Long.MAX_VALUE, new ReplicationTarget("peer", "1", "1"), status, new Path("/accumulo/wals/tserver+port/wal"));
+    WalReplication repl = ars.getEdits(dis, Long.MAX_VALUE, new ReplicationTarget("peer", "1", "1"), status, new Path("/accumulo/wals/tserver+port/wal"), new HashSet<Integer>());
 
     // We stopped because we got to the end of the file
     Assert.assertEquals(Long.MAX_VALUE, repl.entriesConsumed);
@@ -318,7 +319,7 @@ public class AccumuloReplicaSystemTest {
     // If it were still open, more data could be appended that we need to process
     Status status = Status.newBuilder().setBegin(100).setEnd(0).setInfiniteEnd(true).setClosed(true).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(new byte[0]));
-    WalReplication repl = ars.getEdits(dis, Long.MAX_VALUE, new ReplicationTarget("peer", "1", "1"), status, new Path("/accumulo/wals/tserver+port/wal"));
+    WalReplication repl = ars.getEdits(dis, Long.MAX_VALUE, new ReplicationTarget("peer", "1", "1"), status, new Path("/accumulo/wals/tserver+port/wal"), new HashSet<Integer>());
 
     // We stopped because we got to the end of the file
     Assert.assertEquals(Long.MAX_VALUE, repl.entriesConsumed);
@@ -340,12 +341,85 @@ public class AccumuloReplicaSystemTest {
     // If it were still open, more data could be appended that we need to process
     Status status = Status.newBuilder().setBegin(100).setEnd(0).setInfiniteEnd(true).setClosed(false).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(new byte[0]));
-    WalReplication repl = ars.getEdits(dis, Long.MAX_VALUE, new ReplicationTarget("peer", "1", "1"), status, new Path("/accumulo/wals/tserver+port/wal"));
+    WalReplication repl = ars.getEdits(dis, Long.MAX_VALUE, new ReplicationTarget("peer", "1", "1"), status, new Path("/accumulo/wals/tserver+port/wal"), new HashSet<Integer>());
 
     // We stopped because we got to the end of the file
     Assert.assertEquals(0, repl.entriesConsumed);
     Assert.assertEquals(0, repl.walEdits.getEditsSize());
     Assert.assertEquals(0, repl.sizeInRecords);
     Assert.assertEquals(0, repl.sizeInBytes);
+  }
+
+  @Test
+  public void restartInFileKnowsAboutPreviousTableDefines() throws Exception {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    DataOutputStream dos = new DataOutputStream(baos);
+
+    LogFileKey key = new LogFileKey();
+    LogFileValue value = new LogFileValue();
+
+    // What is seq used for?
+    key.seq = 1l;
+
+    /*
+     * Disclaimer: the following series of LogFileKey and LogFileValue pairs have *no* bearing whatsoever in reality regarding what these entries would actually
+     * look like in a WAL. They are solely for testing that each LogEvents is handled, order is not important.
+     */
+    key.event = LogEvents.DEFINE_TABLET;
+    key.tablet = new KeyExtent(new Text("1"), null, null);
+    key.tid = 1;
+
+    key.write(dos);
+    value.write(dos);
+
+    key.tablet = null;
+    key.event = LogEvents.MUTATION;
+    key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
+    value.mutations = Arrays.<Mutation> asList(new ServerMutation(new Text("row")));
+
+    key.write(dos);
+    value.write(dos);
+
+    key.tablet = null;
+    key.event = LogEvents.MUTATION;
+    key.tid = 1;
+    key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
+    value.mutations = Arrays.<Mutation> asList(new ServerMutation(new Text("row")));
+
+    key.write(dos);
+    value.write(dos);
+
+    dos.close();
+
+    Map<String,String> confMap = new HashMap<>();
+    confMap.put(Property.REPLICATION_NAME.getKey(), "source");
+    AccumuloConfiguration conf = new ConfigurationCopy(confMap);
+
+    AccumuloReplicaSystem ars = new AccumuloReplicaSystem();
+    ars.setConf(conf);
+
+    Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(false).build();
+    DataInputStream dis = new DataInputStream(new ByteArrayInputStream(baos.toByteArray()));
+
+    // Only consume the first mutation, not the second
+    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis, new Path("/accumulo/wals/tserver+port/wal"), status, 1);
+
+    // We stopped because we got to the end of the file
+    Assert.assertEquals(2, repl.entriesConsumed);
+    Assert.assertEquals(1, repl.walEdits.getEditsSize());
+    Assert.assertEquals(1, repl.sizeInRecords);
+    Assert.assertNotEquals(0, repl.sizeInBytes);
+
+    status = Status.newBuilder(status).setBegin(2).build();
+    dis = new DataInputStream(new ByteArrayInputStream(baos.toByteArray()));
+
+    // Consume the rest of the mutations
+    repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis, new Path("/accumulo/wals/tserver+port/wal"), status, 1);
+
+    // We stopped because we got to the end of the file
+    Assert.assertEquals(1, repl.entriesConsumed);
+    Assert.assertEquals(1, repl.walEdits.getEditsSize());
+    Assert.assertEquals(1, repl.sizeInRecords);
+    Assert.assertNotEquals(0, repl.sizeInBytes);
   }
 }
