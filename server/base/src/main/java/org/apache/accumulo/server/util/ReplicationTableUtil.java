@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -31,6 +32,7 @@ import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.Writer;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -40,6 +42,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
+import org.apache.accumulo.core.replication.StatusFormatter;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -49,7 +52,8 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.replication.StatusCombiner;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * provides a reference to the replication table for updates by tablet servers
@@ -57,9 +61,10 @@ import org.apache.log4j.Logger;
 public class ReplicationTableUtil {
 
   private static Map<Credentials,Writer> writers = new HashMap<Credentials,Writer>();
-  private static final Logger log = Logger.getLogger(ReplicationTableUtil.class);
+  private static final Logger log = LoggerFactory.getLogger(ReplicationTableUtil.class);
 
   public static final String COMBINER_NAME = "replcombiner";
+  public static final String STATUS_FORMATTER_CLASS_NAME = StatusFormatter.class.getName();
 
   private ReplicationTableUtil() {}
 
@@ -116,6 +121,37 @@ public class ReplicationTableUtil {
         throw new RuntimeException(e);
       }
     }
+
+    // Make sure the StatusFormatter is set on the metadata table
+    Iterable<Entry<String,String>> properties;
+    try {
+      properties = tops.getProperties(tableName);
+    } catch (AccumuloException | TableNotFoundException e) {
+      throw new RuntimeException(e);
+    }
+
+    for (Entry<String,String> property : properties) {
+      if (Property.TABLE_FORMATTER_CLASS.getKey().equals(property.getKey())) {
+        if (!STATUS_FORMATTER_CLASS_NAME.equals(property.getValue())) {
+          log.info("Setting formatter for {} from {} to {}", tableName, property.getValue(), STATUS_FORMATTER_CLASS_NAME);
+          try {
+            tops.setProperty(tableName, Property.TABLE_FORMATTER_CLASS.getKey(), STATUS_FORMATTER_CLASS_NAME);
+          } catch (AccumuloException | AccumuloSecurityException e) {
+            throw new RuntimeException(e);
+          }
+        }
+
+        // Don't need to keep iterating over the properties after we found the one we were looking for
+        return;
+      }
+    }
+
+    // Set the formatter on the table because it wasn't already there
+    try {
+      tops.setProperty(tableName, Property.TABLE_FORMATTER_CLASS.getKey(), STATUS_FORMATTER_CLASS_NAME);
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /**
@@ -128,13 +164,13 @@ public class ReplicationTableUtil {
         t.update(m);
         return;
       } catch (AccumuloException e) {
-        log.error(e, e);
+        log.error(e.toString(), e);
       } catch (AccumuloSecurityException e) {
-        log.error(e, e);
+        log.error(e.toString(), e);
       } catch (ConstraintViolationException e) {
-        log.error(e, e);
+        log.error(e.toString(), e);
       } catch (TableNotFoundException e) {
-        log.error(e, e);
+        log.error(e.toString(), e);
       }
       UtilWaitThread.sleep(1000);
     }

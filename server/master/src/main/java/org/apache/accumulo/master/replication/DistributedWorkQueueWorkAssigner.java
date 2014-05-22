@@ -255,7 +255,7 @@ public class DistributedWorkQueueWorkAssigner extends AbstractWorkAssigner {
             log.trace("Not re-queueing work for {}", key);
           }
         } else {
-          log.debug("Not queueing work for {} because [{}] doesn't need replication", file, TextFormat.shortDebugString(status));
+          log.debug("Not queueing work for {} because {} doesn't need replication", file, TextFormat.shortDebugString(status));
         }
       }
     } finally {

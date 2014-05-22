@@ -28,6 +28,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.UUID;
 
 import org.apache.accumulo.core.client.Connector;
@@ -36,6 +37,7 @@ import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.Writer;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
@@ -140,6 +142,10 @@ public class ReplicationTableUtilTest {
     expect(conn.tableOperations()).andReturn(tops);
     expect(tops.listIterators(myMetadataTable)).andReturn(iterators);
     tops.attachIterator(myMetadataTable, combiner);
+    expectLastCall().once();
+
+    expect(tops.getProperties(myMetadataTable)).andReturn((Iterable<Entry<String,String>>) Collections.<Entry<String,String>> emptyList());
+    tops.setProperty(myMetadataTable, Property.TABLE_FORMATTER_CLASS.getKey(), ReplicationTableUtil.STATUS_FORMATTER_CLASS_NAME);
     expectLastCall().once();
 
     replay(conn, tops);

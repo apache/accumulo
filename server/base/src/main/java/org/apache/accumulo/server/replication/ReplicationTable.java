@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -34,20 +35,23 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
+import org.apache.accumulo.core.replication.StatusFormatter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableMap;
 
 public class ReplicationTable extends org.apache.accumulo.core.client.replication.ReplicationTable {
-  private static final Logger log = Logger.getLogger(ReplicationTable.class);
+  private static final Logger log = LoggerFactory.getLogger(ReplicationTable.class);
 
   public static final String COMBINER_NAME = "statuscombiner";
 
@@ -56,6 +60,7 @@ public class ReplicationTable extends org.apache.accumulo.core.client.replicatio
   public static final String WORK_LG_NAME = WorkSection.NAME.toString();
   public static final Set<Text> WORK_LG_COLFAMS = Collections.singleton(WorkSection.NAME);
   public static final Map<String,Set<Text>> LOCALITY_GROUPS = ImmutableMap.of(STATUS_LG_NAME, STATUS_LG_COLFAMS, WORK_LG_NAME, WORK_LG_COLFAMS);
+  public static final String STATUS_FORMATTER_CLASS_NAME = StatusFormatter.class.getName();
 
   public static synchronized void create(Connector conn) {
     TableOperations tops = conn.tableOperations();
@@ -142,6 +147,44 @@ public class ReplicationTable extends org.apache.accumulo.core.client.replicatio
         tops.setLocalityGroups(NAME, LOCALITY_GROUPS);
       } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
         log.error("Could not set locality groups on replication table", e);
+        return false;
+      }
+    }
+
+    // Make sure the StatusFormatter is set on the metadata table
+    Iterable<Entry<String,String>> properties;
+    try {
+      properties = tops.getProperties(NAME);
+    } catch (AccumuloException | TableNotFoundException e) {
+      log.error("Could not fetch table properties on replication table", e);
+      return false;
+    }
+
+    boolean formatterConfigured = false;
+    for (Entry<String,String> property : properties) {
+      if (Property.TABLE_FORMATTER_CLASS.getKey().equals(property.getKey())) {
+        if (!STATUS_FORMATTER_CLASS_NAME.equals(property.getValue())) {
+          log.info("Setting formatter for {} from {} to {}", NAME, property.getValue(), STATUS_FORMATTER_CLASS_NAME);
+          try {
+            tops.setProperty(NAME, Property.TABLE_FORMATTER_CLASS.getKey(), STATUS_FORMATTER_CLASS_NAME);
+          } catch (AccumuloException | AccumuloSecurityException e) {
+            log.error("Could not set formatter on replication table", e);
+            return false;
+          }
+        }
+
+        formatterConfigured = true;
+
+        // Don't need to keep iterating over the properties after we found the one we were looking for
+        break;
+      }
+    }
+
+    if (!formatterConfigured) {
+      try {
+        tops.setProperty(NAME, Property.TABLE_FORMATTER_CLASS.getKey(), STATUS_FORMATTER_CLASS_NAME);
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        log.error("Could not set formatter on replication table", e);
         return false;
       }
     }

@@ -123,7 +123,7 @@ public class ReplicationProcessor implements Processor {
     // Replicate that sucker
     Status replicatedStatus = replica.replicate(filePath, status, target);
 
-    log.debug("Completed replication of {} to {}, with new Status [{}]", filePath, target, ProtobufUtil.toString(replicatedStatus));
+    log.debug("Completed replication of {} to {}, with new Status {}", filePath, target, ProtobufUtil.toString(replicatedStatus));
 
     // If we got a different status
     if (!replicatedStatus.equals(status)) {
@@ -132,7 +132,7 @@ public class ReplicationProcessor implements Processor {
       return;
     }
 
-    log.debug("Did not replicate any new data for {} to {}, (was [{}], now is [{}])", filePath, target, TextFormat.shortDebugString(status),
+    log.debug("Did not replicate any new data for {} to {}, (was {}, now is {})", filePath, target, TextFormat.shortDebugString(status),
         TextFormat.shortDebugString(replicatedStatus));
 
     // otherwise, we didn't actually replicate because there was error sending the data
@@ -175,7 +175,7 @@ public class ReplicationProcessor implements Processor {
     try {
       Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
       BatchWriter bw = ReplicationTable.getBatchWriter(conn);
-      log.debug("Recording new status for {}, [{}]", filePath.toString(), TextFormat.shortDebugString(status));
+      log.debug("Recording new status for {}, {}", filePath.toString(), TextFormat.shortDebugString(status));
       Mutation m = new Mutation(filePath.toString());
       WorkSection.add(m, target.toText(), ProtobufUtil.toValue(status));
       bw.addMutation(m);

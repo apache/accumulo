@@ -25,6 +25,7 @@ import com.google.protobuf.TextFormat;
  * Helper methods for interacting with Protocol Buffers and Accumulo
  */
 public class ProtobufUtil {
+  private static final char LEFT_BRACKET = '[', RIGHT_BRACKET = ']'; 
 
   public static Value toValue(GeneratedMessage msg) {
     return new Value(msg.toByteArray());
@@ -32,6 +33,6 @@ public class ProtobufUtil {
 
   public static String toString(GeneratedMessage msg) {
     // Too much typing
-    return TextFormat.shortDebugString(msg);
+    return LEFT_BRACKET + TextFormat.shortDebugString(msg) + RIGHT_BRACKET;
   }
 }
