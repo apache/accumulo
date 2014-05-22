@@ -24,6 +24,9 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.master.Master;
+import org.apache.accumulo.trace.instrument.CountSampler;
+import org.apache.accumulo.trace.instrument.Sampler;
+import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.log4j.Logger;
 
 /**
@@ -50,6 +53,8 @@ public class ReplicationDriver extends Daemon {
 
   @Override
   public void run() {
+    Sampler sampler = new CountSampler(10);
+
     while (master.stillMaster()) {
       if (null == workMaker) {
         try {
@@ -67,6 +72,10 @@ public class ReplicationDriver extends Daemon {
         rcrr = new RemoveCompleteReplicationRecords(conn);
       }
 
+      if (sampler.next()) {
+        Trace.on("masterReplicationDriver");
+      }
+
       // Make status markers from replication records in metadata, removing entries in
       // metadata which are no longer needed (closed records)
       // This will end up creating the replication table too
@@ -82,6 +91,8 @@ public class ReplicationDriver extends Daemon {
       // It must be running at the same time as the StatusMaker or WorkMaker
       // So it's important that we run these sequentially and not concurrently
       rcrr.run();
+
+      Trace.offNoFlush();
 
       // Sleep for a bit
       UtilWaitThread.sleep(conf.getTimeInMillis(Property.MASTER_REPLICATION_SCAN_INTERVAL));
