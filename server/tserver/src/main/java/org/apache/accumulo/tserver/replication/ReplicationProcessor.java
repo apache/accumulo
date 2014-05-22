@@ -119,27 +119,9 @@ public class ReplicationProcessor implements Processor {
     }
 
     log.debug("Replicating {} to {} using {}", filePath, target, replica.getClass().getName());
-
-    // Replicate that sucker
-    Status replicatedStatus = replica.replicate(filePath, status, target);
-
-    log.debug("Completed replication of {} to {}, with new Status {}", filePath, target, ProtobufUtil.toString(replicatedStatus));
-
-    // If we got a different status
-    if (!replicatedStatus.equals(status)) {
-      // We actually did some work!
-      recordNewStatus(filePath, replicatedStatus, target);
-      return;
-    }
-
-    log.debug("Did not replicate any new data for {} to {}, (was {}, now is {})", filePath, target, TextFormat.shortDebugString(status),
-        TextFormat.shortDebugString(replicatedStatus));
-
-    // otherwise, we didn't actually replicate because there was error sending the data
-    // we can just not record any updates, and it will be picked up again by the work assigner
   }
 
-  public String getPeerType(String peerName) {
+  protected String getPeerType(String peerName) {
     // Find the configured replication peer so we know how to replicate to it
     Map<String,String> configuredPeers = conf.getAllPropertiesWithPrefix(Property.REPLICATION_PEERS);
     String peerType = configuredPeers.get(Property.REPLICATION_PEERS.getKey() + peerName);
@@ -152,13 +134,45 @@ public class ReplicationProcessor implements Processor {
     return peerType;
   }
 
-  public Status getStatus(String file, ReplicationTarget target) throws TableNotFoundException, AccumuloException, AccumuloSecurityException,
+  protected Status getStatus(String file, ReplicationTarget target) throws TableNotFoundException, AccumuloException, AccumuloSecurityException,
       InvalidProtocolBufferException {
     Scanner s = ReplicationTable.getScanner(inst.getConnector(creds.getPrincipal(), creds.getToken()));
     s.setRange(Range.exact(file));
     s.fetchColumn(WorkSection.NAME, target.toText());
 
     return Status.parseFrom(Iterables.getOnlyElement(s).getValue().get());
+  }
+
+  protected void replicate(ReplicaSystem replica, Path filePath, Status status, ReplicationTarget target) {
+    Status lastStatus = status;
+    while (true) {
+      // Replicate that sucker
+      Status replicatedStatus = replica.replicate(filePath, status, target);
+  
+      log.debug("Completed replication of {} to {}, with new Status {}", filePath, target, ProtobufUtil.toString(replicatedStatus));
+  
+      // If we got a different status
+      if (!replicatedStatus.equals(lastStatus)) {
+        // We actually did some work!
+        recordNewStatus(filePath, replicatedStatus, target);
+
+        // If we don't have any more work, just quit
+        if (!StatusUtil.isWorkRequired(replicatedStatus)) {
+          return;
+        } else {
+          // Otherwise, let it loop and replicate some more data
+          lastStatus = status;
+          status = replicatedStatus;
+        }
+      } else {
+        log.debug("Did not replicate any new data for {} to {}, (was {}, now is {})", filePath, target, TextFormat.shortDebugString(status),
+            TextFormat.shortDebugString(replicatedStatus));
+  
+        // otherwise, we didn't actually replicate because there was error sending the data
+        // we can just not record any updates, and it will be picked up again by the work assigner      
+        return;
+      }
+    }
   }
 
   /**
@@ -171,7 +185,7 @@ public class ReplicationProcessor implements Processor {
    * @param target
    *          Peer that was replicated to
    */
-  public void recordNewStatus(Path filePath, Status status, ReplicationTarget target) {
+  protected void recordNewStatus(Path filePath, Status status, ReplicationTarget target) {
     try {
       Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
       BatchWriter bw = ReplicationTable.getBatchWriter(conn);
