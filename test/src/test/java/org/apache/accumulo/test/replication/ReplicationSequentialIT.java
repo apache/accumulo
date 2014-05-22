@@ -105,139 +105,141 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
 
     peerCluster.start();
 
-    final Connector connMaster = getConnector();
-    final Connector connPeer = peerCluster.getConnector("root", ROOT_PASSWORD);
-
-    ReplicationTable.create(connMaster);
-
-    String peerClusterName = "peer";
-
-    // ...peer = AccumuloReplicaSystem,instanceName,zookeepers
-    connMaster.instanceOperations().setProperty(
-        Property.REPLICATION_PEERS.getKey() + peerClusterName,
-        ReplicaSystemFactory.getPeerConfigurationValue(AccumuloReplicaSystem.class,
-            AccumuloReplicaSystem.buildConfiguration(peerCluster.getInstanceName(), peerCluster.getZooKeepers())));
-
-    final String masterTable = "master", peerTable = "peer";
-
-    connMaster.tableOperations().create(masterTable);
-    String masterTableId = connMaster.tableOperations().tableIdMap().get(masterTable);
-    Assert.assertNotNull(masterTableId);
-
-    connPeer.tableOperations().create(peerTable);
-    String peerTableId = connPeer.tableOperations().tableIdMap().get(peerTable);
-    Assert.assertNotNull(peerTableId);
-
-    // Replicate this table to the peerClusterName in a table with the peerTableId table id
-    connMaster.tableOperations().setProperty(masterTable, Property.TABLE_REPLICATION.getKey(), "true");
-    connMaster.tableOperations().setProperty(masterTable, Property.TABLE_REPLICATION_TARGETS.getKey() + peerClusterName, peerTableId);
-
-    // Write some data to table1
-    BatchWriter bw = connMaster.createBatchWriter(masterTable, new BatchWriterConfig());
-    for (int rows = 0; rows < 5000; rows++) {
-      Mutation m = new Mutation(Integer.toString(rows));
-      for (int cols = 0; cols < 100; cols++) {
-        String value = Integer.toString(cols);
-        m.put(value, "", value);
-      }
-      bw.addMutation(m);
-    }
-
-    bw.close();
-
-    log.info("Wrote all data to master cluster");
-
-    log.debug("");
-    for (Entry<Key,Value> kv : connMaster.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      if (ReplicationSection.COLF.equals(kv.getKey().getColumnFamily())) {
-        log.info(kv.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
-      } else {
-        log.info(kv.getKey().toStringNoTruncate() + " " + kv.getValue());
-      }
-    }
-
-    final Set<String> filesNeedingReplication = connMaster.replicationOperations().referencedFiles(masterTable);
-
-    for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
-      cluster.killProcess(ServerType.TABLET_SERVER, proc);
-    }
-    cluster.exec(TabletServer.class);
-
-    log.info("TabletServer restarted");
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> e : ReplicationTable.getScanner(connMaster)) {}
-    log.info("TabletServer is online");
-
-    log.info("");
-    log.info("Fetching metadata records:");
-    for (Entry<Key,Value> kv : connMaster.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      if (ReplicationSection.COLF.equals(kv.getKey().getColumnFamily())) {
-        log.info(kv.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
-      } else {
-        log.info(kv.getKey().toStringNoTruncate() + " " + kv.getValue());
-      }
-    }
-
-    log.info("");
-    log.info("Fetching replication records:");
-    for (Entry<Key,Value> kv : connMaster.createScanner(ReplicationTable.NAME, Authorizations.EMPTY)) {
-      log.info(kv.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
-    }
-
-    Future<Boolean> future = executor.submit(new Callable<Boolean>() {
-
-      @Override
-      public Boolean call() throws Exception {
-        connMaster.replicationOperations().drain(masterTable, filesNeedingReplication);
-        log.info("Drain completed");
-        return true;
-      }
-
-    });
-
     try {
-      future.get(30, TimeUnit.SECONDS);
-    } catch (TimeoutException e) {
-      future.cancel(true);
-      Assert.fail("Drain did not finish within 30 seconds");
-    }
-
-    log.info("drain completed");
-
-    log.info("");
-    log.info("Fetching metadata records:");
-    for (Entry<Key,Value> kv : connMaster.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      if (ReplicationSection.COLF.equals(kv.getKey().getColumnFamily())) {
-        log.info(kv.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
-      } else {
-        log.info(kv.getKey().toStringNoTruncate() + " " + kv.getValue());
+      final Connector connMaster = getConnector();
+      final Connector connPeer = peerCluster.getConnector("root", ROOT_PASSWORD);
+  
+      ReplicationTable.create(connMaster);
+  
+      String peerClusterName = "peer";
+  
+      // ...peer = AccumuloReplicaSystem,instanceName,zookeepers
+      connMaster.instanceOperations().setProperty(
+          Property.REPLICATION_PEERS.getKey() + peerClusterName,
+          ReplicaSystemFactory.getPeerConfigurationValue(AccumuloReplicaSystem.class,
+              AccumuloReplicaSystem.buildConfiguration(peerCluster.getInstanceName(), peerCluster.getZooKeepers())));
+  
+      final String masterTable = "master", peerTable = "peer";
+  
+      connMaster.tableOperations().create(masterTable);
+      String masterTableId = connMaster.tableOperations().tableIdMap().get(masterTable);
+      Assert.assertNotNull(masterTableId);
+  
+      connPeer.tableOperations().create(peerTable);
+      String peerTableId = connPeer.tableOperations().tableIdMap().get(peerTable);
+      Assert.assertNotNull(peerTableId);
+  
+      // Replicate this table to the peerClusterName in a table with the peerTableId table id
+      connMaster.tableOperations().setProperty(masterTable, Property.TABLE_REPLICATION.getKey(), "true");
+      connMaster.tableOperations().setProperty(masterTable, Property.TABLE_REPLICATION_TARGETS.getKey() + peerClusterName, peerTableId);
+  
+      // Write some data to table1
+      BatchWriter bw = connMaster.createBatchWriter(masterTable, new BatchWriterConfig());
+      for (int rows = 0; rows < 5000; rows++) {
+        Mutation m = new Mutation(Integer.toString(rows));
+        for (int cols = 0; cols < 100; cols++) {
+          String value = Integer.toString(cols);
+          m.put(value, "", value);
+        }
+        bw.addMutation(m);
       }
+  
+      bw.close();
+  
+      log.info("Wrote all data to master cluster");
+  
+      log.debug("");
+      for (Entry<Key,Value> kv : connMaster.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+        if (ReplicationSection.COLF.equals(kv.getKey().getColumnFamily())) {
+          log.info(kv.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+        } else {
+          log.info(kv.getKey().toStringNoTruncate() + " " + kv.getValue());
+        }
+      }
+  
+      final Set<String> filesNeedingReplication = connMaster.replicationOperations().referencedFiles(masterTable);
+  
+      for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
+        cluster.killProcess(ServerType.TABLET_SERVER, proc);
+      }
+      cluster.exec(TabletServer.class);
+  
+      log.info("TabletServer restarted");
+      for (@SuppressWarnings("unused")
+      Entry<Key,Value> e : ReplicationTable.getScanner(connMaster)) {}
+      log.info("TabletServer is online");
+  
+      log.info("");
+      log.info("Fetching metadata records:");
+      for (Entry<Key,Value> kv : connMaster.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+        if (ReplicationSection.COLF.equals(kv.getKey().getColumnFamily())) {
+          log.info(kv.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+        } else {
+          log.info(kv.getKey().toStringNoTruncate() + " " + kv.getValue());
+        }
+      }
+  
+      log.info("");
+      log.info("Fetching replication records:");
+      for (Entry<Key,Value> kv : connMaster.createScanner(ReplicationTable.NAME, Authorizations.EMPTY)) {
+        log.info(kv.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+      }
+  
+      Future<Boolean> future = executor.submit(new Callable<Boolean>() {
+  
+        @Override
+        public Boolean call() throws Exception {
+          connMaster.replicationOperations().drain(masterTable, filesNeedingReplication);
+          log.info("Drain completed");
+          return true;
+        }
+  
+      });
+  
+      try {
+        future.get(30, TimeUnit.SECONDS);
+      } catch (TimeoutException e) {
+        future.cancel(true);
+        Assert.fail("Drain did not finish within 30 seconds");
+      }
+  
+      log.info("drain completed");
+  
+      log.info("");
+      log.info("Fetching metadata records:");
+      for (Entry<Key,Value> kv : connMaster.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+        if (ReplicationSection.COLF.equals(kv.getKey().getColumnFamily())) {
+          log.info(kv.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+        } else {
+          log.info(kv.getKey().toStringNoTruncate() + " " + kv.getValue());
+        }
+      }
+  
+      log.info("");
+      log.info("Fetching replication records:");
+      for (Entry<Key,Value> kv : connMaster.createScanner(ReplicationTable.NAME, Authorizations.EMPTY)) {
+        log.info(kv.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+      }
+  
+      Scanner master = connMaster.createScanner(masterTable, Authorizations.EMPTY), peer = connPeer.createScanner(peerTable, Authorizations.EMPTY);
+      Iterator<Entry<Key,Value>> masterIter = master.iterator(), peerIter = peer.iterator();
+      Entry<Key,Value> masterEntry = null, peerEntry = null;
+      while (masterIter.hasNext() && peerIter.hasNext()) {
+        masterEntry = masterIter.next();
+        peerEntry = peerIter.next();
+        Assert.assertEquals(masterEntry.getKey() + " was not equal to " + peerEntry.getKey(), 0,
+            masterEntry.getKey().compareTo(peerEntry.getKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS));
+        Assert.assertEquals(masterEntry.getValue(), peerEntry.getValue());
+      }
+  
+      log.info("Last master entry: " + masterEntry);
+      log.info("Last peer entry: " + peerEntry);
+  
+      Assert.assertFalse("Had more data to read from the master", masterIter.hasNext());
+      Assert.assertFalse("Had more data to read from the peer", peerIter.hasNext());
+    } finally {
+      peerCluster.stop();
     }
-
-    log.info("");
-    log.info("Fetching replication records:");
-    for (Entry<Key,Value> kv : connMaster.createScanner(ReplicationTable.NAME, Authorizations.EMPTY)) {
-      log.info(kv.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
-    }
-
-    Scanner master = connMaster.createScanner(masterTable, Authorizations.EMPTY), peer = connPeer.createScanner(peerTable, Authorizations.EMPTY);
-    Iterator<Entry<Key,Value>> masterIter = master.iterator(), peerIter = peer.iterator();
-    Entry<Key,Value> masterEntry = null, peerEntry = null;
-    while (masterIter.hasNext() && peerIter.hasNext()) {
-      masterEntry = masterIter.next();
-      peerEntry = peerIter.next();
-      Assert.assertEquals(masterEntry.getKey() + " was not equal to " + peerEntry.getKey(), 0,
-          masterEntry.getKey().compareTo(peerEntry.getKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS));
-      Assert.assertEquals(masterEntry.getValue(), peerEntry.getValue());
-    }
-
-    log.info("Last master entry: " + masterEntry);
-    log.info("Last peer entry: " + peerEntry);
-
-    Assert.assertFalse("Had more data to read from the master", masterIter.hasNext());
-    Assert.assertFalse("Had more data to read from the peer", peerIter.hasNext());
-
-    peerCluster.stop();
   }
 
   @Test(timeout = 60 * 5000)
