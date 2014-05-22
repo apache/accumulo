@@ -83,6 +83,8 @@ public class ReplicationClient {
     String zkPath = ZooUtil.getRoot(instance) + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR;
     String replCoordinatorAddr;
 
+    log.debug("Using ZooKeeper quorum at {} with path {} to find peer Master information", instance.getZooKeepers(), zkPath);
+
     // Get the coordinator port for the master we're trying to connect to
     try {
       ZooReader reader = new ZooReader(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
@@ -94,6 +96,8 @@ public class ReplicationClient {
 
     // Throw the hostname and port through HostAndPort to get some normalization
     HostAndPort coordinatorAddr = HostAndPort.fromString(replCoordinatorAddr);
+
+    log.debug("Connecting to master at {}", coordinatorAddr.toString());
 
     try {
       // Master requests can take a long time: don't ever time out
