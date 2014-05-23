@@ -74,6 +74,7 @@ import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.commons.configuration.MapConfiguration;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
 import org.apache.hadoop.conf.Configuration;
@@ -400,6 +401,13 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     zooCfg.store(fileWriter, null);
 
     fileWriter.close();
+
+    // disable audit logging for mini....
+    InputStream auditStream = this.getClass().getResourceAsStream("/auditLog.xml");
+
+    if (auditStream != null) {
+      FileUtils.copyInputStreamToFile(auditStream, new File(config.getConfDir(), "auditLog.xml"));
+    }
   }
 
   private void writeConfig(File file, Iterable<Map.Entry<String,String>> settings) throws IOException {
