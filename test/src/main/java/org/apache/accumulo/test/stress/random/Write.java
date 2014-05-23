@@ -52,24 +52,33 @@ public class Write {
         new RandomMutations(
             //rows
             new RandomByteArrays(
-                new RandomByteArrayMakerFunction(opts.row_seed),
-                opts.rowMin(),
-                opts.rowMax()),
+                new RandomWithinRange(
+                    opts.row_seed,
+                    opts.rowMin(),
+                    opts.rowMax())),
             //cfs
             new RandomByteArrays(
-                new RandomByteArrayMakerFunction(opts.cf_seed),
-                opts.cfMin(),
-                opts.cfMax()),
+                new RandomWithinRange(
+                    opts.cf_seed,
+                    opts.cfMin(),
+                    opts.cfMax())),
             //cqs
             new RandomByteArrays(
-                new RandomByteArrayMakerFunction(opts.cq_seed),
-                opts.cqMin(),
-                opts.cqMax()),
+                new RandomWithinRange(
+                    opts.cq_seed,
+                    opts.cqMin(),
+                    opts.cqMax())),
             //vals
             new RandomByteArrays(
-                new RandomByteArrayMakerFunction(opts.value_seed),
-                opts.valueMin(),
-                opts.valueMax())));
+                new RandomWithinRange(
+                    opts.value_seed,
+                    opts.valueMin(),
+                    opts.valueMax())),
+            //number of cells per row
+            new RandomWithinRange(
+                opts.row_width_seed,
+                opts.rowWidthMin(),
+                opts.rowWidthMax())));
     
     while(true) {
       dw.next();
