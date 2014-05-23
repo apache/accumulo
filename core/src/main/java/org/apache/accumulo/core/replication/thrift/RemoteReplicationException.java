@@ -58,11 +58,19 @@ import org.slf4j.LoggerFactory;
     schemes.put(TupleScheme.class, new RemoteReplicationExceptionTupleSchemeFactory());
   }
 
-  public int code; // required
+  /**
+   * 
+   * @see RemoteReplicationErrorCode
+   */
+  public RemoteReplicationErrorCode code; // required
   public String reason; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    /**
+     * 
+     * @see RemoteReplicationErrorCode
+     */
     CODE((short)1, "code"),
     REASON((short)2, "reason");
 
@@ -123,13 +131,11 @@ import org.slf4j.LoggerFactory;
   }
 
   // isset id assignments
-  private static final int __CODE_ISSET_ID = 0;
-  private byte __isset_bitfield = 0;
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.CODE, new org.apache.thrift.meta_data.FieldMetaData("code", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
+        new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, RemoteReplicationErrorCode.class)));
     tmpMap.put(_Fields.REASON, new org.apache.thrift.meta_data.FieldMetaData("reason", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
@@ -140,12 +146,11 @@ import org.slf4j.LoggerFactory;
   }
 
   public RemoteReplicationException(
-    int code,
+    RemoteReplicationErrorCode code,
     String reason)
   {
     this();
     this.code = code;
-    setCodeIsSet(true);
     this.reason = reason;
   }
 
@@ -153,8 +158,9 @@ import org.slf4j.LoggerFactory;
    * Performs a deep copy on <i>other</i>.
    */
   public RemoteReplicationException(RemoteReplicationException other) {
-    __isset_bitfield = other.__isset_bitfield;
-    this.code = other.code;
+    if (other.isSetCode()) {
+      this.code = other.code;
+    }
     if (other.isSetReason()) {
       this.reason = other.reason;
     }
@@ -166,32 +172,40 @@ import org.slf4j.LoggerFactory;
 
   @Override
   public void clear() {
-    setCodeIsSet(false);
-    this.code = 0;
+    this.code = null;
     this.reason = null;
   }
 
-  public int getCode() {
+  /**
+   * 
+   * @see RemoteReplicationErrorCode
+   */
+  public RemoteReplicationErrorCode getCode() {
     return this.code;
   }
 
-  public RemoteReplicationException setCode(int code) {
+  /**
+   * 
+   * @see RemoteReplicationErrorCode
+   */
+  public RemoteReplicationException setCode(RemoteReplicationErrorCode code) {
     this.code = code;
-    setCodeIsSet(true);
     return this;
   }
 
   public void unsetCode() {
-    __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __CODE_ISSET_ID);
+    this.code = null;
   }
 
   /** Returns true if field code is set (has been assigned a value) and false otherwise */
   public boolean isSetCode() {
-    return EncodingUtils.testBit(__isset_bitfield, __CODE_ISSET_ID);
+    return this.code != null;
   }
 
   public void setCodeIsSet(boolean value) {
-    __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __CODE_ISSET_ID, value);
+    if (!value) {
+      this.code = null;
+    }
   }
 
   public String getReason() {
@@ -224,7 +238,7 @@ import org.slf4j.LoggerFactory;
       if (value == null) {
         unsetCode();
       } else {
-        setCode((Integer)value);
+        setCode((RemoteReplicationErrorCode)value);
       }
       break;
 
@@ -242,7 +256,7 @@ import org.slf4j.LoggerFactory;
   public Object getFieldValue(_Fields field) {
     switch (field) {
     case CODE:
-      return Integer.valueOf(getCode());
+      return getCode();
 
     case REASON:
       return getReason();
@@ -279,12 +293,12 @@ import org.slf4j.LoggerFactory;
     if (that == null)
       return false;
 
-    boolean this_present_code = true;
-    boolean that_present_code = true;
+    boolean this_present_code = true && this.isSetCode();
+    boolean that_present_code = true && that.isSetCode();
     if (this_present_code || that_present_code) {
       if (!(this_present_code && that_present_code))
         return false;
-      if (this.code != that.code)
+      if (!this.code.equals(that.code))
         return false;
     }
 
@@ -354,7 +368,11 @@ import org.slf4j.LoggerFactory;
     boolean first = true;
 
     sb.append("code:");
-    sb.append(this.code);
+    if (this.code == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.code);
+    }
     first = false;
     if (!first) sb.append(", ");
     sb.append("reason:");
@@ -383,8 +401,6 @@ import org.slf4j.LoggerFactory;
 
   private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
     try {
-      // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
-      __isset_bitfield = 0;
       read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
     } catch (org.apache.thrift.TException te) {
       throw new java.io.IOException(te);
@@ -411,7 +427,7 @@ import org.slf4j.LoggerFactory;
         switch (schemeField.id) {
           case 1: // CODE
             if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
-              struct.code = iprot.readI32();
+              struct.code = RemoteReplicationErrorCode.findByValue(iprot.readI32());
               struct.setCodeIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -440,9 +456,11 @@ import org.slf4j.LoggerFactory;
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
-      oprot.writeFieldBegin(CODE_FIELD_DESC);
-      oprot.writeI32(struct.code);
-      oprot.writeFieldEnd();
+      if (struct.code != null) {
+        oprot.writeFieldBegin(CODE_FIELD_DESC);
+        oprot.writeI32(struct.code.getValue());
+        oprot.writeFieldEnd();
+      }
       if (struct.reason != null) {
         oprot.writeFieldBegin(REASON_FIELD_DESC);
         oprot.writeString(struct.reason);
@@ -474,7 +492,7 @@ import org.slf4j.LoggerFactory;
       }
       oprot.writeBitSet(optionals, 2);
       if (struct.isSetCode()) {
-        oprot.writeI32(struct.code);
+        oprot.writeI32(struct.code.getValue());
       }
       if (struct.isSetReason()) {
         oprot.writeString(struct.reason);
@@ -486,7 +504,7 @@ import org.slf4j.LoggerFactory;
       TTupleProtocol iprot = (TTupleProtocol) prot;
       BitSet incoming = iprot.readBitSet(2);
       if (incoming.get(0)) {
-        struct.code = iprot.readI32();
+        struct.code = RemoteReplicationErrorCode.findByValue(iprot.readI32());
         struct.setCodeIsSet(true);
       }
       if (incoming.get(1)) {

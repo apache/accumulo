@@ -29,8 +29,8 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.replication.AccumuloReplicationReplayer;
-import org.apache.accumulo.core.replication.RemoteReplicationErrorCode;
 import org.apache.accumulo.core.replication.thrift.KeyValues;
+import org.apache.accumulo.core.replication.thrift.RemoteReplicationErrorCode;
 import org.apache.accumulo.core.replication.thrift.RemoteReplicationException;
 import org.apache.accumulo.core.replication.thrift.WalEdits;
 import org.apache.accumulo.server.client.HdfsZooInstance;
@@ -64,7 +64,7 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
           value.readFields(dis);
         } catch (IOException e) {
           log.error("Could not deserialize edit from stream", e);
-          throw new RemoteReplicationException(RemoteReplicationErrorCode.COULD_NOT_DESERIALIZE.ordinal(), "Could not deserialize edit from stream");
+          throw new RemoteReplicationException(RemoteReplicationErrorCode.COULD_NOT_DESERIALIZE, "Could not deserialize edit from stream");
         }
 
         // Create the batchScanner if we don't already have one.
@@ -74,7 +74,7 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
           try {
             bw = conn.createBatchWriter(tableName, bwConfig);
           } catch (TableNotFoundException e) {
-            throw new RemoteReplicationException(RemoteReplicationErrorCode.TABLE_DOES_NOT_EXIST.ordinal(), "Table " + tableName + " does not exist");
+            throw new RemoteReplicationException(RemoteReplicationErrorCode.TABLE_DOES_NOT_EXIST, "Table " + tableName + " does not exist");
           }
         }
 
@@ -84,7 +84,7 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
           bw.addMutations(value.mutations);
         } catch (MutationsRejectedException e) {
           log.error("Could not apply mutations to {}", tableName);
-          throw new RemoteReplicationException(RemoteReplicationErrorCode.COULD_NOT_APPLY.ordinal(), "Could not apply mutations to " + tableName);
+          throw new RemoteReplicationException(RemoteReplicationErrorCode.COULD_NOT_APPLY, "Could not apply mutations to " + tableName);
         }
 
         mutationsApplied += value.mutations.size();
@@ -95,7 +95,7 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
           bw.close();
         } catch (MutationsRejectedException e) {
           log.error("Could not apply mutations to {}", tableName);
-          throw new RemoteReplicationException(RemoteReplicationErrorCode.COULD_NOT_APPLY.ordinal(), "Could not apply mutations to " + tableName);
+          throw new RemoteReplicationException(RemoteReplicationErrorCode.COULD_NOT_APPLY, "Could not apply mutations to " + tableName);
         }
       }
     }

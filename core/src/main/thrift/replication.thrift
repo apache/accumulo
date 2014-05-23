@@ -19,6 +19,7 @@ namespace java org.apache.accumulo.core.replication.thrift
 namespace cpp org.apache.accumulo.core.replication.thrift
 
 include "data.thrift"
+include "security.thrift"
 
 struct WalEdits {
     1:list<binary> edits
@@ -28,21 +29,35 @@ struct KeyValues {
     1:list<data.TKeyValue> keyValues
 }
 
-exception RemoteCoordinationException {
-    1:i32 code,
+enum RemoteReplicationErrorCode {
+  COULD_NOT_DESERIALIZE
+  COULD_NOT_APPLY
+  TABLE_DOES_NOT_EXIST
+  CANNOT_AUTHENTICATE
+  CANNOT_INSTANTIATE_REPLAYER
+}
+
+enum ReplicationCoordinatorErrorCode {
+  NO_AVAILABLE_SERVERS
+  SERVICE_CONFIGURATION_UNAVAILABLE
+  CANNOT_AUTHENTICATE
+}
+
+exception ReplicationCoordinatorException {
+    1:ReplicationCoordinatorErrorCode code,
     2:string reason
 }
 
 exception RemoteReplicationException {
-    1:i32 code,
+    1:RemoteReplicationErrorCode code,
     2:string reason
 }
 
 service ReplicationCoordinator {
-	string getServicerAddress(1:i32 remoteTableId) throws (1:RemoteCoordinationException e),
+	string getServicerAddress(1:i32 remoteTableId, 2:security.TCredentials credentials) throws (1:ReplicationCoordinatorException e),
 }
 
 service ReplicationServicer {
-    i64 replicateLog(1:i32 remoteTableId, 2:WalEdits data) throws (1:RemoteReplicationException e),
-    i64 replicateKeyValues(1:i32 remoteTableId, 2:KeyValues data) throws (1:RemoteReplicationException e)
+    i64 replicateLog(1:i32 remoteTableId, 2:WalEdits data, 3:security.TCredentials credentials) throws (1:RemoteReplicationException e),
+    i64 replicateKeyValues(1:i32 remoteTableId, 2:KeyValues data, 3:security.TCredentials credentials) throws (1:RemoteReplicationException e)
 }

@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -34,6 +35,7 @@ import org.apache.accumulo.core.client.impl.ClientExecReturn;
 import org.apache.accumulo.core.client.impl.ReplicationClient;
 import org.apache.accumulo.core.client.impl.ServerConfigurationUtil;
 import org.apache.accumulo.core.client.replication.ReplicaSystem;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -45,6 +47,8 @@ import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer.Client;
 import org.apache.accumulo.core.replication.thrift.WalEdits;
+import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
@@ -137,8 +141,10 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
   @Override
   public Status replicate(final Path p, final Status status, final ReplicationTarget target) {
-    Instance localInstance = HdfsZooInstance.getInstance();
-    AccumuloConfiguration localConf = ServerConfigurationUtil.getConfiguration(localInstance);
+    final Instance localInstance = HdfsZooInstance.getInstance();
+    final AccumuloConfiguration localConf = ServerConfigurationUtil.getConfiguration(localInstance);
+    Credentials credentialsForPeer = getCredentialsForPeer(localConf, target);
+    final TCredentials tCredsForPeer = credentialsForPeer.toThrift(localInstance);
 
     Instance peerInstance = getPeerInstance(target);
     // Remote identifier is an integer (table id) in this case.
@@ -154,7 +160,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
           @Override
           public String execute(ReplicationCoordinator.Client client) throws Exception {
-            return client.getServicerAddress(remoteTableId);
+            return client.getServicerAddress(remoteTableId, tCredsForPeer);
           }
 
         });
@@ -184,7 +190,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
                 if (p.getName().endsWith(RFILE_SUFFIX)) {
                   RFileReplication kvs = getKeyValues(target, p, status, sizeLimit);
                   if (0 < kvs.keyValues.getKeyValuesSize()) {
-                    long entriesReplicated = client.replicateKeyValues(remoteTableId, kvs.keyValues);
+                    long entriesReplicated = client.replicateKeyValues(remoteTableId, kvs.keyValues, tCredsForPeer);
                     if (entriesReplicated != kvs.keyValues.getKeyValuesSize()) {
                       log.warn("Sent {} KeyValue entries for replication but only {} were reported as replicated", kvs.keyValues.getKeyValuesSize(),
                           entriesReplicated);
@@ -198,7 +204,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
                   // If we have some edits to send
                   if (0 < edits.walEdits.getEditsSize()) {
-                    long entriesReplicated = client.replicateLog(remoteTableId, edits.walEdits);
+                    long entriesReplicated = client.replicateLog(remoteTableId, edits.walEdits, tCredsForPeer);
                     if (entriesReplicated != edits.numUpdates) {
                       log.warn("Sent {} WAL entries for replication but {} were reported as replicated", edits.numUpdates, entriesReplicated);
                     }
@@ -239,6 +245,24 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
     // We made no status, punt on it for now, and let it re-queue itself for work
     return status;
+  }
+
+  protected Credentials getCredentialsForPeer(AccumuloConfiguration conf, ReplicationTarget target) {
+    Preconditions.checkNotNull(conf);
+    Preconditions.checkNotNull(target);
+
+    String peerName = target.getPeerName();
+    String userKey = Property.REPLICATION_PEER_USER.getKey() + peerName, passwordKey = Property.REPLICATION_PEER_PASSWORD.getKey() + peerName;
+    Map<String,String> peerUsers = conf.getAllPropertiesWithPrefix(Property.REPLICATION_PEER_USER);
+    Map<String,String> peerPasswords = conf.getAllPropertiesWithPrefix(Property.REPLICATION_PEER_PASSWORD);
+
+    String user = peerUsers.get(userKey);
+    String password = peerPasswords.get(passwordKey);
+    if (null == user || null == password) {
+      throw new IllegalArgumentException(userKey + " and " + passwordKey + " not configured, cannot replicate");
+    }
+
+    return new Credentials(user, new PasswordToken(password));
   }
 
   protected Instance getPeerInstance(ReplicationTarget target) {

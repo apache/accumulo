@@ -50,13 +50,13 @@ import org.slf4j.LoggerFactory;
 
   public interface Iface {
 
-    public String getServicerAddress(int remoteTableId) throws RemoteCoordinationException, org.apache.thrift.TException;
+    public String getServicerAddress(int remoteTableId, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws ReplicationCoordinatorException, org.apache.thrift.TException;
 
   }
 
   public interface AsyncIface {
 
-    public void getServicerAddress(int remoteTableId, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getServicerAddress_call> resultHandler) throws org.apache.thrift.TException;
+    public void getServicerAddress(int remoteTableId, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getServicerAddress_call> resultHandler) throws org.apache.thrift.TException;
 
   }
 
@@ -80,20 +80,21 @@ import org.slf4j.LoggerFactory;
       super(iprot, oprot);
     }
 
-    public String getServicerAddress(int remoteTableId) throws RemoteCoordinationException, org.apache.thrift.TException
+    public String getServicerAddress(int remoteTableId, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws ReplicationCoordinatorException, org.apache.thrift.TException
     {
-      send_getServicerAddress(remoteTableId);
+      send_getServicerAddress(remoteTableId, credentials);
       return recv_getServicerAddress();
     }
 
-    public void send_getServicerAddress(int remoteTableId) throws org.apache.thrift.TException
+    public void send_getServicerAddress(int remoteTableId, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.thrift.TException
     {
       getServicerAddress_args args = new getServicerAddress_args();
       args.setRemoteTableId(remoteTableId);
+      args.setCredentials(credentials);
       sendBase("getServicerAddress", args);
     }
 
-    public String recv_getServicerAddress() throws RemoteCoordinationException, org.apache.thrift.TException
+    public String recv_getServicerAddress() throws ReplicationCoordinatorException, org.apache.thrift.TException
     {
       getServicerAddress_result result = new getServicerAddress_result();
       receiveBase(result, "getServicerAddress");
@@ -124,29 +125,32 @@ import org.slf4j.LoggerFactory;
       super(protocolFactory, clientManager, transport);
     }
 
-    public void getServicerAddress(int remoteTableId, org.apache.thrift.async.AsyncMethodCallback<getServicerAddress_call> resultHandler) throws org.apache.thrift.TException {
+    public void getServicerAddress(int remoteTableId, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<getServicerAddress_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      getServicerAddress_call method_call = new getServicerAddress_call(remoteTableId, resultHandler, this, ___protocolFactory, ___transport);
+      getServicerAddress_call method_call = new getServicerAddress_call(remoteTableId, credentials, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class getServicerAddress_call extends org.apache.thrift.async.TAsyncMethodCall {
       private int remoteTableId;
-      public getServicerAddress_call(int remoteTableId, org.apache.thrift.async.AsyncMethodCallback<getServicerAddress_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private org.apache.accumulo.core.security.thrift.TCredentials credentials;
+      public getServicerAddress_call(int remoteTableId, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<getServicerAddress_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.remoteTableId = remoteTableId;
+        this.credentials = credentials;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getServicerAddress", org.apache.thrift.protocol.TMessageType.CALL, 0));
         getServicerAddress_args args = new getServicerAddress_args();
         args.setRemoteTableId(remoteTableId);
+        args.setCredentials(credentials);
         args.write(prot);
         prot.writeMessageEnd();
       }
 
-      public String getResult() throws RemoteCoordinationException, org.apache.thrift.TException {
+      public String getResult() throws ReplicationCoordinatorException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
@@ -189,8 +193,8 @@ import org.slf4j.LoggerFactory;
       public getServicerAddress_result getResult(I iface, getServicerAddress_args args) throws org.apache.thrift.TException {
         getServicerAddress_result result = new getServicerAddress_result();
         try {
-          result.success = iface.getServicerAddress(args.remoteTableId);
-        } catch (RemoteCoordinationException e) {
+          result.success = iface.getServicerAddress(args.remoteTableId, args.credentials);
+        } catch (ReplicationCoordinatorException e) {
           result.e = e;
         }
         return result;
@@ -203,6 +207,7 @@ import org.slf4j.LoggerFactory;
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getServicerAddress_args");
 
     private static final org.apache.thrift.protocol.TField REMOTE_TABLE_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("remoteTableId", org.apache.thrift.protocol.TType.I32, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -211,10 +216,12 @@ import org.slf4j.LoggerFactory;
     }
 
     public int remoteTableId; // required
+    public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      REMOTE_TABLE_ID((short)1, "remoteTableId");
+      REMOTE_TABLE_ID((short)1, "remoteTableId"),
+      CREDENTIALS((short)2, "credentials");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -231,6 +238,8 @@ import org.slf4j.LoggerFactory;
         switch(fieldId) {
           case 1: // REMOTE_TABLE_ID
             return REMOTE_TABLE_ID;
+          case 2: // CREDENTIALS
+            return CREDENTIALS;
           default:
             return null;
         }
@@ -278,6 +287,8 @@ import org.slf4j.LoggerFactory;
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.REMOTE_TABLE_ID, new org.apache.thrift.meta_data.FieldMetaData("remoteTableId", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getServicerAddress_args.class, metaDataMap);
     }
@@ -286,11 +297,13 @@ import org.slf4j.LoggerFactory;
     }
 
     public getServicerAddress_args(
-      int remoteTableId)
+      int remoteTableId,
+      org.apache.accumulo.core.security.thrift.TCredentials credentials)
     {
       this();
       this.remoteTableId = remoteTableId;
       setRemoteTableIdIsSet(true);
+      this.credentials = credentials;
     }
 
     /**
@@ -299,6 +312,9 @@ import org.slf4j.LoggerFactory;
     public getServicerAddress_args(getServicerAddress_args other) {
       __isset_bitfield = other.__isset_bitfield;
       this.remoteTableId = other.remoteTableId;
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
+      }
     }
 
     public getServicerAddress_args deepCopy() {
@@ -309,6 +325,7 @@ import org.slf4j.LoggerFactory;
     public void clear() {
       setRemoteTableIdIsSet(false);
       this.remoteTableId = 0;
+      this.credentials = null;
     }
 
     public int getRemoteTableId() {
@@ -334,6 +351,30 @@ import org.slf4j.LoggerFactory;
       __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __REMOTETABLEID_ISSET_ID, value);
     }
 
+    public org.apache.accumulo.core.security.thrift.TCredentials getCredentials() {
+      return this.credentials;
+    }
+
+    public getServicerAddress_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+      this.credentials = credentials;
+      return this;
+    }
+
+    public void unsetCredentials() {
+      this.credentials = null;
+    }
+
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
+    }
+
+    public void setCredentialsIsSet(boolean value) {
+      if (!value) {
+        this.credentials = null;
+      }
+    }
+
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case REMOTE_TABLE_ID:
@@ -344,6 +385,14 @@ import org.slf4j.LoggerFactory;
         }
         break;
 
+      case CREDENTIALS:
+        if (value == null) {
+          unsetCredentials();
+        } else {
+          setCredentials((org.apache.accumulo.core.security.thrift.TCredentials)value);
+        }
+        break;
+
       }
     }
 
@@ -351,6 +400,9 @@ import org.slf4j.LoggerFactory;
       switch (field) {
       case REMOTE_TABLE_ID:
         return Integer.valueOf(getRemoteTableId());
+
+      case CREDENTIALS:
+        return getCredentials();
 
       }
       throw new IllegalStateException();
@@ -365,6 +417,8 @@ import org.slf4j.LoggerFactory;
       switch (field) {
       case REMOTE_TABLE_ID:
         return isSetRemoteTableId();
+      case CREDENTIALS:
+        return isSetCredentials();
       }
       throw new IllegalStateException();
     }
@@ -388,6 +442,15 @@ import org.slf4j.LoggerFactory;
         if (!(this_present_remoteTableId && that_present_remoteTableId))
           return false;
         if (this.remoteTableId != that.remoteTableId)
+          return false;
+      }
+
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
+          return false;
+        if (!this.credentials.equals(that.credentials))
           return false;
       }
 
@@ -417,6 +480,16 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
+      lastComparison = Boolean.valueOf(isSetCredentials()).compareTo(typedOther.isSetCredentials());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, typedOther.credentials);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
       return 0;
     }
 
@@ -440,6 +513,14 @@ import org.slf4j.LoggerFactory;
       sb.append("remoteTableId:");
       sb.append(this.remoteTableId);
       first = false;
+      if (!first) sb.append(", ");
+      sb.append("credentials:");
+      if (this.credentials == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.credentials);
+      }
+      first = false;
       sb.append(")");
       return sb.toString();
     }
@@ -447,6 +528,9 @@ import org.slf4j.LoggerFactory;
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
+      if (credentials != null) {
+        credentials.validate();
+      }
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
@@ -493,6 +577,15 @@ import org.slf4j.LoggerFactory;
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
+            case 2: // CREDENTIALS
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -511,6 +604,11 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(REMOTE_TABLE_ID_FIELD_DESC);
         oprot.writeI32(struct.remoteTableId);
         oprot.writeFieldEnd();
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
+          oprot.writeFieldEnd();
+        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -532,19 +630,30 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetRemoteTableId()) {
           optionals.set(0);
         }
-        oprot.writeBitSet(optionals, 1);
+        if (struct.isSetCredentials()) {
+          optionals.set(1);
+        }
+        oprot.writeBitSet(optionals, 2);
         if (struct.isSetRemoteTableId()) {
           oprot.writeI32(struct.remoteTableId);
+        }
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
         }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, getServicerAddress_args struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(1);
+        BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           struct.remoteTableId = iprot.readI32();
           struct.setRemoteTableIdIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
         }
       }
     }
@@ -564,7 +673,7 @@ import org.slf4j.LoggerFactory;
     }
 
     public String success; // required
-    public RemoteCoordinationException e; // required
+    public ReplicationCoordinatorException e; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -644,7 +753,7 @@ import org.slf4j.LoggerFactory;
 
     public getServicerAddress_result(
       String success,
-      RemoteCoordinationException e)
+      ReplicationCoordinatorException e)
     {
       this();
       this.success = success;
@@ -659,7 +768,7 @@ import org.slf4j.LoggerFactory;
         this.success = other.success;
       }
       if (other.isSetE()) {
-        this.e = new RemoteCoordinationException(other.e);
+        this.e = new ReplicationCoordinatorException(other.e);
       }
     }
 
@@ -697,11 +806,11 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public RemoteCoordinationException getE() {
+    public ReplicationCoordinatorException getE() {
       return this.e;
     }
 
-    public getServicerAddress_result setE(RemoteCoordinationException e) {
+    public getServicerAddress_result setE(ReplicationCoordinatorException e) {
       this.e = e;
       return this;
     }
@@ -735,7 +844,7 @@ import org.slf4j.LoggerFactory;
         if (value == null) {
           unsetE();
         } else {
-          setE((RemoteCoordinationException)value);
+          setE((ReplicationCoordinatorException)value);
         }
         break;
 
@@ -924,7 +1033,7 @@ import org.slf4j.LoggerFactory;
               break;
             case 1: // E
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.e = new RemoteCoordinationException();
+                struct.e = new ReplicationCoordinatorException();
                 struct.e.read(iprot);
                 struct.setEIsSet(true);
               } else { 
@@ -998,7 +1107,7 @@ import org.slf4j.LoggerFactory;
           struct.setSuccessIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.e = new RemoteCoordinationException();
+          struct.e = new ReplicationCoordinatorException();
           struct.e.read(iprot);
           struct.setEIsSet(true);
         }

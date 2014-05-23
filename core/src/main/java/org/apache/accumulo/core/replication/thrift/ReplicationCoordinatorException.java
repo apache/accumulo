@@ -46,23 +46,31 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("all") public class RemoteCoordinationException extends TException implements org.apache.thrift.TBase<RemoteCoordinationException, RemoteCoordinationException._Fields>, java.io.Serializable, Cloneable {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("RemoteCoordinationException");
+@SuppressWarnings("all") public class ReplicationCoordinatorException extends TException implements org.apache.thrift.TBase<ReplicationCoordinatorException, ReplicationCoordinatorException._Fields>, java.io.Serializable, Cloneable {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ReplicationCoordinatorException");
 
   private static final org.apache.thrift.protocol.TField CODE_FIELD_DESC = new org.apache.thrift.protocol.TField("code", org.apache.thrift.protocol.TType.I32, (short)1);
   private static final org.apache.thrift.protocol.TField REASON_FIELD_DESC = new org.apache.thrift.protocol.TField("reason", org.apache.thrift.protocol.TType.STRING, (short)2);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
-    schemes.put(StandardScheme.class, new RemoteCoordinationExceptionStandardSchemeFactory());
-    schemes.put(TupleScheme.class, new RemoteCoordinationExceptionTupleSchemeFactory());
+    schemes.put(StandardScheme.class, new ReplicationCoordinatorExceptionStandardSchemeFactory());
+    schemes.put(TupleScheme.class, new ReplicationCoordinatorExceptionTupleSchemeFactory());
   }
 
-  public int code; // required
+  /**
+   * 
+   * @see ReplicationCoordinatorErrorCode
+   */
+  public ReplicationCoordinatorErrorCode code; // required
   public String reason; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+    /**
+     * 
+     * @see ReplicationCoordinatorErrorCode
+     */
     CODE((short)1, "code"),
     REASON((short)2, "reason");
 
@@ -123,82 +131,88 @@ import org.slf4j.LoggerFactory;
   }
 
   // isset id assignments
-  private static final int __CODE_ISSET_ID = 0;
-  private byte __isset_bitfield = 0;
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.CODE, new org.apache.thrift.meta_data.FieldMetaData("code", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
+        new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, ReplicationCoordinatorErrorCode.class)));
     tmpMap.put(_Fields.REASON, new org.apache.thrift.meta_data.FieldMetaData("reason", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(RemoteCoordinationException.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ReplicationCoordinatorException.class, metaDataMap);
   }
 
-  public RemoteCoordinationException() {
+  public ReplicationCoordinatorException() {
   }
 
-  public RemoteCoordinationException(
-    int code,
+  public ReplicationCoordinatorException(
+    ReplicationCoordinatorErrorCode code,
     String reason)
   {
     this();
     this.code = code;
-    setCodeIsSet(true);
     this.reason = reason;
   }
 
   /**
    * Performs a deep copy on <i>other</i>.
    */
-  public RemoteCoordinationException(RemoteCoordinationException other) {
-    __isset_bitfield = other.__isset_bitfield;
-    this.code = other.code;
+  public ReplicationCoordinatorException(ReplicationCoordinatorException other) {
+    if (other.isSetCode()) {
+      this.code = other.code;
+    }
     if (other.isSetReason()) {
       this.reason = other.reason;
     }
   }
 
-  public RemoteCoordinationException deepCopy() {
-    return new RemoteCoordinationException(this);
+  public ReplicationCoordinatorException deepCopy() {
+    return new ReplicationCoordinatorException(this);
   }
 
   @Override
   public void clear() {
-    setCodeIsSet(false);
-    this.code = 0;
+    this.code = null;
     this.reason = null;
   }
 
-  public int getCode() {
+  /**
+   * 
+   * @see ReplicationCoordinatorErrorCode
+   */
+  public ReplicationCoordinatorErrorCode getCode() {
     return this.code;
   }
 
-  public RemoteCoordinationException setCode(int code) {
+  /**
+   * 
+   * @see ReplicationCoordinatorErrorCode
+   */
+  public ReplicationCoordinatorException setCode(ReplicationCoordinatorErrorCode code) {
     this.code = code;
-    setCodeIsSet(true);
     return this;
   }
 
   public void unsetCode() {
-    __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __CODE_ISSET_ID);
+    this.code = null;
   }
 
   /** Returns true if field code is set (has been assigned a value) and false otherwise */
   public boolean isSetCode() {
-    return EncodingUtils.testBit(__isset_bitfield, __CODE_ISSET_ID);
+    return this.code != null;
   }
 
   public void setCodeIsSet(boolean value) {
-    __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __CODE_ISSET_ID, value);
+    if (!value) {
+      this.code = null;
+    }
   }
 
   public String getReason() {
     return this.reason;
   }
 
-  public RemoteCoordinationException setReason(String reason) {
+  public ReplicationCoordinatorException setReason(String reason) {
     this.reason = reason;
     return this;
   }
@@ -224,7 +238,7 @@ import org.slf4j.LoggerFactory;
       if (value == null) {
         unsetCode();
       } else {
-        setCode((Integer)value);
+        setCode((ReplicationCoordinatorErrorCode)value);
       }
       break;
 
@@ -242,7 +256,7 @@ import org.slf4j.LoggerFactory;
   public Object getFieldValue(_Fields field) {
     switch (field) {
     case CODE:
-      return Integer.valueOf(getCode());
+      return getCode();
 
     case REASON:
       return getReason();
@@ -270,21 +284,21 @@ import org.slf4j.LoggerFactory;
   public boolean equals(Object that) {
     if (that == null)
       return false;
-    if (that instanceof RemoteCoordinationException)
-      return this.equals((RemoteCoordinationException)that);
+    if (that instanceof ReplicationCoordinatorException)
+      return this.equals((ReplicationCoordinatorException)that);
     return false;
   }
 
-  public boolean equals(RemoteCoordinationException that) {
+  public boolean equals(ReplicationCoordinatorException that) {
     if (that == null)
       return false;
 
-    boolean this_present_code = true;
-    boolean that_present_code = true;
+    boolean this_present_code = true && this.isSetCode();
+    boolean that_present_code = true && that.isSetCode();
     if (this_present_code || that_present_code) {
       if (!(this_present_code && that_present_code))
         return false;
-      if (this.code != that.code)
+      if (!this.code.equals(that.code))
         return false;
     }
 
@@ -305,13 +319,13 @@ import org.slf4j.LoggerFactory;
     return 0;
   }
 
-  public int compareTo(RemoteCoordinationException other) {
+  public int compareTo(ReplicationCoordinatorException other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
 
     int lastComparison = 0;
-    RemoteCoordinationException typedOther = (RemoteCoordinationException)other;
+    ReplicationCoordinatorException typedOther = (ReplicationCoordinatorException)other;
 
     lastComparison = Boolean.valueOf(isSetCode()).compareTo(typedOther.isSetCode());
     if (lastComparison != 0) {
@@ -350,11 +364,15 @@ import org.slf4j.LoggerFactory;
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder("RemoteCoordinationException(");
+    StringBuilder sb = new StringBuilder("ReplicationCoordinatorException(");
     boolean first = true;
 
     sb.append("code:");
-    sb.append(this.code);
+    if (this.code == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.code);
+    }
     first = false;
     if (!first) sb.append(", ");
     sb.append("reason:");
@@ -383,23 +401,21 @@ import org.slf4j.LoggerFactory;
 
   private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
     try {
-      // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
-      __isset_bitfield = 0;
       read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
     } catch (org.apache.thrift.TException te) {
       throw new java.io.IOException(te);
     }
   }
 
-  private static class RemoteCoordinationExceptionStandardSchemeFactory implements SchemeFactory {
-    public RemoteCoordinationExceptionStandardScheme getScheme() {
-      return new RemoteCoordinationExceptionStandardScheme();
+  private static class ReplicationCoordinatorExceptionStandardSchemeFactory implements SchemeFactory {
+    public ReplicationCoordinatorExceptionStandardScheme getScheme() {
+      return new ReplicationCoordinatorExceptionStandardScheme();
     }
   }
 
-  private static class RemoteCoordinationExceptionStandardScheme extends StandardScheme<RemoteCoordinationException> {
+  private static class ReplicationCoordinatorExceptionStandardScheme extends StandardScheme<ReplicationCoordinatorException> {
 
-    public void read(org.apache.thrift.protocol.TProtocol iprot, RemoteCoordinationException struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol iprot, ReplicationCoordinatorException struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TField schemeField;
       iprot.readStructBegin();
       while (true)
@@ -411,7 +427,7 @@ import org.slf4j.LoggerFactory;
         switch (schemeField.id) {
           case 1: // CODE
             if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
-              struct.code = iprot.readI32();
+              struct.code = ReplicationCoordinatorErrorCode.findByValue(iprot.readI32());
               struct.setCodeIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -436,13 +452,15 @@ import org.slf4j.LoggerFactory;
       struct.validate();
     }
 
-    public void write(org.apache.thrift.protocol.TProtocol oprot, RemoteCoordinationException struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot, ReplicationCoordinatorException struct) throws org.apache.thrift.TException {
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
-      oprot.writeFieldBegin(CODE_FIELD_DESC);
-      oprot.writeI32(struct.code);
-      oprot.writeFieldEnd();
+      if (struct.code != null) {
+        oprot.writeFieldBegin(CODE_FIELD_DESC);
+        oprot.writeI32(struct.code.getValue());
+        oprot.writeFieldEnd();
+      }
       if (struct.reason != null) {
         oprot.writeFieldBegin(REASON_FIELD_DESC);
         oprot.writeString(struct.reason);
@@ -454,16 +472,16 @@ import org.slf4j.LoggerFactory;
 
   }
 
-  private static class RemoteCoordinationExceptionTupleSchemeFactory implements SchemeFactory {
-    public RemoteCoordinationExceptionTupleScheme getScheme() {
-      return new RemoteCoordinationExceptionTupleScheme();
+  private static class ReplicationCoordinatorExceptionTupleSchemeFactory implements SchemeFactory {
+    public ReplicationCoordinatorExceptionTupleScheme getScheme() {
+      return new ReplicationCoordinatorExceptionTupleScheme();
     }
   }
 
-  private static class RemoteCoordinationExceptionTupleScheme extends TupleScheme<RemoteCoordinationException> {
+  private static class ReplicationCoordinatorExceptionTupleScheme extends TupleScheme<ReplicationCoordinatorException> {
 
     @Override
-    public void write(org.apache.thrift.protocol.TProtocol prot, RemoteCoordinationException struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol prot, ReplicationCoordinatorException struct) throws org.apache.thrift.TException {
       TTupleProtocol oprot = (TTupleProtocol) prot;
       BitSet optionals = new BitSet();
       if (struct.isSetCode()) {
@@ -474,7 +492,7 @@ import org.slf4j.LoggerFactory;
       }
       oprot.writeBitSet(optionals, 2);
       if (struct.isSetCode()) {
-        oprot.writeI32(struct.code);
+        oprot.writeI32(struct.code.getValue());
       }
       if (struct.isSetReason()) {
         oprot.writeString(struct.reason);
@@ -482,11 +500,11 @@ import org.slf4j.LoggerFactory;
     }
 
     @Override
-    public void read(org.apache.thrift.protocol.TProtocol prot, RemoteCoordinationException struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol prot, ReplicationCoordinatorException struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
       BitSet incoming = iprot.readBitSet(2);
       if (incoming.get(0)) {
-        struct.code = iprot.readI32();
+        struct.code = ReplicationCoordinatorErrorCode.findByValue(iprot.readI32());
         struct.setCodeIsSet(true);
       }
       if (incoming.get(1)) {

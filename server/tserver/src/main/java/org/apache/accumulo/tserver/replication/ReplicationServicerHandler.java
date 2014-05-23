@@ -28,13 +28,13 @@ import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.replication.AccumuloReplicationReplayer;
-import org.apache.accumulo.core.replication.RemoteReplicationErrorCode;
 import org.apache.accumulo.core.replication.thrift.KeyValues;
+import org.apache.accumulo.core.replication.thrift.RemoteReplicationErrorCode;
 import org.apache.accumulo.core.replication.thrift.RemoteReplicationException;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer.Iface;
 import org.apache.accumulo.core.replication.thrift.WalEdits;
 import org.apache.accumulo.core.security.Credentials;
-import org.apache.accumulo.server.security.SystemCredentials;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,11 +52,11 @@ public class ReplicationServicerHandler implements Iface {
   }
 
   @Override
-  public long replicateLog(int remoteTableId, WalEdits data) throws RemoteReplicationException, TException {
+  public long replicateLog(int remoteTableId, WalEdits data, TCredentials tcreds) throws RemoteReplicationException, TException {
     log.debug("Got replication request to tableID {} with {} edits", remoteTableId, data.getEditsSize());
 
     String tableId = Integer.toString(remoteTableId);
-    Credentials creds = SystemCredentials.get();
+    Credentials creds = Credentials.fromThrift(tcreds);
     Connector conn;
     String tableName;
 
@@ -64,14 +64,14 @@ public class ReplicationServicerHandler implements Iface {
       conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
     } catch (AccumuloException | AccumuloSecurityException e) {
       log.error("Could not get connection", e);
-      throw new RemoteReplicationException(RemoteReplicationErrorCode.CANNOT_AUTHENTICATE.ordinal(), "Cannot get connector");
+      throw new RemoteReplicationException(RemoteReplicationErrorCode.CANNOT_AUTHENTICATE, "Cannot get connector as " + creds.getPrincipal());
     }
 
     try {
       tableName = Tables.getTableName(inst, tableId);
     } catch (TableNotFoundException e) {
       log.error("Could not find table with id {}", tableId);
-      throw new RemoteReplicationException(RemoteReplicationErrorCode.TABLE_DOES_NOT_EXIST.ordinal(), "Table with id " + tableId + " does not exist");
+      throw new RemoteReplicationException(RemoteReplicationErrorCode.TABLE_DOES_NOT_EXIST, "Table with id " + tableId + " does not exist");
     }
 
     AccumuloConfiguration conf = ServerConfigurationUtil.getConfiguration(inst);
@@ -96,7 +96,7 @@ public class ReplicationServicerHandler implements Iface {
       clz = untypedClz.asSubclass(AccumuloReplicationReplayer.class);
     } catch (ClassNotFoundException e) {
       log.error("Could not instantiate replayer class {}", handlerClassForTable, e);
-      throw new RemoteReplicationException(RemoteReplicationErrorCode.CANNOT_INSTANTIATE_REPLAYER.ordinal(), "Could not instantiate replayer class "
+      throw new RemoteReplicationException(RemoteReplicationErrorCode.CANNOT_INSTANTIATE_REPLAYER, "Could not instantiate replayer class "
           + handlerClassForTable);
     }
 
@@ -106,7 +106,7 @@ public class ReplicationServicerHandler implements Iface {
       replayer = clz.newInstance();
     } catch (InstantiationException | IllegalAccessException e1) {
       log.error("Could not instantiate replayer class {}", clz.getName());
-      throw new RemoteReplicationException(RemoteReplicationErrorCode.CANNOT_INSTANTIATE_REPLAYER.ordinal(), "Could not instantiate replayer class"
+      throw new RemoteReplicationException(RemoteReplicationErrorCode.CANNOT_INSTANTIATE_REPLAYER, "Could not instantiate replayer class"
           + clz.getName());
     }
 
@@ -116,7 +116,7 @@ public class ReplicationServicerHandler implements Iface {
   }
 
   @Override
-  public long replicateKeyValues(int remoteTableId, KeyValues data) throws RemoteReplicationException, TException {
+  public long replicateKeyValues(int remoteTableId, KeyValues data, TCredentials creds) throws RemoteReplicationException, TException {
     throw new UnsupportedOperationException();
   }
 

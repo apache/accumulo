@@ -23,13 +23,17 @@ import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.replication.ReplicationCoordinatorErrorCode;
-import org.apache.accumulo.core.replication.thrift.RemoteCoordinationException;
+import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
+import org.apache.accumulo.core.replication.thrift.ReplicationCoordinatorErrorCode;
+import org.apache.accumulo.core.replication.thrift.ReplicationCoordinatorException;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.master.state.TServerInstance;
+import org.apache.accumulo.server.security.SecurityOperation;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -47,6 +51,7 @@ public class MasterReplicationCoordinator implements ReplicationCoordinator.Ifac
   private final Instance inst;
   private final Random rand;
   private final ZooReader reader;
+  private final SecurityOperation security;
 
   public MasterReplicationCoordinator(Master master) {
     this(master, new ZooReader(master.getInstance().getZooKeepers(), master.getInstance().getZooKeepersSessionTimeOut()));
@@ -57,15 +62,22 @@ public class MasterReplicationCoordinator implements ReplicationCoordinator.Ifac
     this.rand = new Random(358923462l);
     this.inst = master.getInstance();
     this.reader = reader;
-    
+    this.security = SecurityOperation.getInstance(inst.getInstanceID(), false);
   }
 
 
   @Override
-  public String getServicerAddress(int remoteTableId) throws RemoteCoordinationException, TException {
+  public String getServicerAddress(int remoteTableId, TCredentials creds) throws ReplicationCoordinatorException, TException {
+    try { 
+      security.authenticateUser(SystemCredentials.get().toThrift(inst), creds);
+    } catch (ThriftSecurityException e) {
+      log.error("{} failed to authenticate for replication to {}", creds.getPrincipal(), remoteTableId);
+      throw new ReplicationCoordinatorException(ReplicationCoordinatorErrorCode.CANNOT_AUTHENTICATE, "Could not authenticate " + creds.getPrincipal());
+    }
+
     Set<TServerInstance> tservers = master.onlineTabletServers();
     if (tservers.isEmpty()) {
-      throw new RemoteCoordinationException(ReplicationCoordinatorErrorCode.NO_AVAILABLE_SERVERS.ordinal(), "No tservers are available for replication");
+      throw new ReplicationCoordinatorException(ReplicationCoordinatorErrorCode.NO_AVAILABLE_SERVERS, "No tservers are available for replication");
     }
 
     TServerInstance tserver = getRandomTServer(tservers, rand.nextInt(tservers.size()));
@@ -74,7 +86,7 @@ public class MasterReplicationCoordinator implements ReplicationCoordinator.Ifac
       replServiceAddr = new String(reader.getData(ZooUtil.getRoot(inst) + Constants.ZREPLICATION_TSERVERS + "/" + tserver.hostPort(), null), StandardCharsets.UTF_8);
     } catch (KeeperException | InterruptedException e) {
       log.error("Could not fetch repliation service port for tserver", e);
-      throw new RemoteCoordinationException(ReplicationCoordinatorErrorCode.SERVICE_CONFIGURATION_UNAVAILABLE.ordinal(),
+      throw new ReplicationCoordinatorException(ReplicationCoordinatorErrorCode.SERVICE_CONFIGURATION_UNAVAILABLE,
           "Could not determine port for replication service running at " + tserver.hostPort());
     }
 

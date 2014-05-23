@@ -464,6 +464,11 @@ public enum Property {
   @Experimental
   REPLICATION_PEERS("replication.peer.", null, PropertyType.PREFIX, "Properties in this category control what systems data can be replicated to"),
   @Experimental
+  REPLICATION_PEER_USER("replication.peer.user.", null, PropertyType.PREFIX, "The username to provide when authenticating with the given peer"),
+  @Experimental
+  @Sensitive
+  REPLICATION_PEER_PASSWORD("replication.peer.password", null, PropertyType.PREFIX, "The password to provide when authenticating with the given peer"),
+  @Experimental
   REPLICATION_NAME("replication.name", "", PropertyType.STRING, "Name of this cluster with respect to replication. Used to identify this instance from other peers"),
   @Experimental
   REPLICATION_MAX_WORK_QUEUE("replication.max.work.queue", "20000000", PropertyType.COUNT, "Upper bound of the number of files queued for replication"),
