@@ -48,6 +48,12 @@ class WriteOptions extends ClientOnDefaultTable {
   @Parameter(validateValueWith = IntArgValidator.class, names = "--max-value-size", description = "maximum value size")
   Integer value_max;
   
+  @Parameter(validateValueWith = IntArgValidator.class, names = "--min-row-width", description = "minimum row width")
+  Integer row_width_min;
+  
+  @Parameter(validateValueWith = IntArgValidator.class, names = "--max-row-width", description = "maximum row width")
+  Integer row_width_max;
+  
   @Parameter(names = "--clear-table", description = "clears the table before ingesting")
   boolean clear_table;
   
@@ -62,6 +68,9 @@ class WriteOptions extends ClientOnDefaultTable {
   
   @Parameter(names = "--value-seed", description = "seed for generating values")
   int value_seed = 99;
+  
+  @Parameter(names = "--row-width-seed", description = "seed for generating the number of cells within a row (a row's \"width\")")
+  int row_width_seed = 444;
   
   public WriteOptions(String table) {
     super(table);
@@ -148,5 +157,13 @@ class WriteOptions extends ClientOnDefaultTable {
   
   public int valueMax() {
     return calculateMax(value_min, value_max);
+  }
+  
+  public int rowWidthMin() {
+    return minOrDefault(row_width_min);
+  }
+  
+  public int rowWidthMax() {
+    return calculateMax(row_width_min, row_width_max);
   }
 }

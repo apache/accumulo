@@ -20,20 +20,25 @@ import org.apache.accumulo.core.data.Mutation;
 
 public class RandomMutations extends Stream<Mutation> {
   private final RandomByteArrays rows, column_families, column_qualifiers, values;
+  private final RandomWithinRange row_widths;
   
   public RandomMutations(RandomByteArrays rows, RandomByteArrays column_families,
-      RandomByteArrays column_qualifiers, RandomByteArrays values) {
+      RandomByteArrays column_qualifiers, RandomByteArrays values, RandomWithinRange row_widths) {
     this.rows = rows;
     this.column_families = column_families;
     this.column_qualifiers = column_qualifiers;
     this.values = values;
+    this.row_widths = row_widths;
   }
-  
+
   // TODO should we care about timestamps?
   @Override
   public Mutation next() {
     Mutation m = new Mutation(rows.next());
-    m.put(column_families.next(), column_qualifiers.next(), values.next());
+    final int cells = row_widths.next();
+    for(int i = 0; i < cells; ++i) {
+      m.put(column_families.next(), column_qualifiers.next(), values.next());
+    }
     return m;
   }
 }
