@@ -189,6 +189,7 @@ abstract public class BasicServlet extends HttpServlet {
     sb.append("<a href='/gc'>Garbage&nbsp;Collector</a><br />\n");
     sb.append("<a href='/tables'>Tables</a><br />\n");
     sb.append("<a href='/trace/summary?minutes=10'>Recent&nbsp;Traces</a><br />\n");
+    sb.append("<a href='/replication'>Replication</a><br />\n");
     List<DedupedLogEvent> dedupedLogEvents = LogService.getInstance().getEvents();
     int numLogs = dedupedLogEvents.size();
     boolean logsHaveError = false;

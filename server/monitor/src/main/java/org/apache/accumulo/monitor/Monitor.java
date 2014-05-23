@@ -58,6 +58,7 @@ import org.apache.accumulo.monitor.servlets.LogServlet;
 import org.apache.accumulo.monitor.servlets.MasterServlet;
 import org.apache.accumulo.monitor.servlets.OperationServlet;
 import org.apache.accumulo.monitor.servlets.ProblemServlet;
+import org.apache.accumulo.monitor.servlets.ReplicationServlet;
 import org.apache.accumulo.monitor.servlets.ShellServlet;
 import org.apache.accumulo.monitor.servlets.TServersServlet;
 import org.apache.accumulo.monitor.servlets.TablesServlet;
@@ -440,6 +441,7 @@ public class Monitor {
     server.addServlet(Summary.class, "/trace/summary");
     server.addServlet(ListType.class, "/trace/listType");
     server.addServlet(ShowTrace.class, "/trace/show");
+    server.addServlet(ReplicationServlet.class, "/replication");
     if (server.isUsingSsl())
       server.addServlet(ShellServlet.class, "/shell");
     server.start();
