@@ -48,6 +48,7 @@ import org.apache.accumulo.server.security.handler.Authenticator;
 import org.apache.accumulo.server.security.handler.Authorizor;
 import org.apache.accumulo.server.security.handler.PermissionHandler;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 /**
@@ -92,7 +93,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
 
   private static boolean shouldAudit(TCredentials credentials, String tableId) {
-    return !tableId.equals(MetadataTable.ID) && shouldAudit(credentials);
+    return (audit.isInfoEnabled() || audit.isEnabledFor(Level.WARN)) && !tableId.equals(MetadataTable.ID) && shouldAudit(credentials);
   }
 
   // Is INFO the right level to check? Do we even need that check?
