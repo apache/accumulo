@@ -269,8 +269,9 @@ public enum Property {
       "Use the SYNC_BLOCK create flag to sync WAL writes to disk. Prevents problems recovering from sudden system resets."),
   TSERV_WAL_SYNC_METHOD("tserver.wal.sync.method", "hsync", PropertyType.STRING, "The method to invoke when sync'ing WALs. HSync will provide " +
       "resiliency in the face of unexpected power outages, at the cost of speed. If method is not available, the legacy 'sync' method " +
-      "will be used to ensure backwards compatibility with older Hadoop versions"),
- 
+      "will be used to ensure backwards compatibility with older Hadoop versions. A value of 'hflush' is the alternative to the default value " +
+      "of 'hsync' which will result in faster writes, but with less durability"),
+
   // properties that are specific to logger server behavior
   LOGGER_PREFIX("logger.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the write-ahead logger servers"),
   LOGGER_DIR("logger.dir.walog", "walogs", PropertyType.PATH, "This property is only needed if Accumulo was upgraded from a 1.4 or earlier version. "
