@@ -139,7 +139,7 @@ class WriteOptions extends ClientOnDefaultTable {
   }
   
   public int cqMax() {
-    return calculateMax(cf_min, cf_max);
+    return calculateMax(cq_min, cq_max);
   }
   
   public int valueMin() {
