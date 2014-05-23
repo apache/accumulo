@@ -39,7 +39,7 @@ public class DefaultConfiguration extends AccumuloConfiguration {
 
   @Override
   public String get(Property property) {
-    return property.getDefaultValue();
+    return getResolvedProps().get(property.getKey());
   }
 
   private synchronized Map<String,String> getResolvedProps() {
