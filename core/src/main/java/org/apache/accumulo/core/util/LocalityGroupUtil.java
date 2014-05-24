@@ -161,6 +161,9 @@ public class LocalityGroupUtil {
   }
   
   public static String encodeColumnFamily(ByteSequence bs) {
+    if (bs.offset() != 0) {
+      throw new IllegalArgumentException("The offset cannot be non-zero.");
+    }
     return encodeColumnFamily(new StringBuilder(), bs.getBackingArray(), bs.length());
   }
   
