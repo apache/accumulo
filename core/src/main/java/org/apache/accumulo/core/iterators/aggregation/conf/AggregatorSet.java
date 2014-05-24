@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.iterators.aggregation.conf;
 
+import java.io.IOException;
 import java.util.Map;
 
 import org.apache.accumulo.core.data.Key;
@@ -27,7 +28,7 @@ import org.apache.accumulo.core.iterators.conf.ColumnToClassMapping;
  */
 @Deprecated
 public class AggregatorSet extends ColumnToClassMapping<Aggregator> {
-  public AggregatorSet(Map<String,String> opts) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+  public AggregatorSet(Map<String,String> opts) throws InstantiationException, IllegalAccessException, ClassNotFoundException, IOException {
     super(opts, Aggregator.class);
   }
   

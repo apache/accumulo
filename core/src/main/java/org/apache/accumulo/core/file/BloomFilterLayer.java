@@ -114,7 +114,14 @@ public class BloomFilterLayer {
        * load KeyFunctor
        */
       try {
-        Class<? extends KeyFunctor> clazz = AccumuloVFSClassLoader.loadClass(acuconf.get(Property.TABLE_BLOOM_KEY_FUNCTOR), KeyFunctor.class);
+        String context = acuconf.get(Property.TABLE_CLASSPATH);
+        String classname = acuconf.get(Property.TABLE_BLOOM_KEY_FUNCTOR);
+        Class<? extends KeyFunctor> clazz;
+        if (context != null && !context.equals(""))
+          clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, classname, KeyFunctor.class);
+        else
+          clazz = AccumuloVFSClassLoader.loadClass(classname, KeyFunctor.class);
+
         transformer = clazz.newInstance();
         
       } catch (Exception e) {
@@ -186,6 +193,8 @@ public class BloomFilterLayer {
       
       loadThreshold = acuconf.getCount(Property.TABLE_BLOOM_LOAD_THRESHOLD);
       
+      final String context = acuconf.get(Property.TABLE_CLASSPATH);
+
       loadTask = new Runnable() {
         @Override
         public void run() {
@@ -208,8 +217,12 @@ public class BloomFilterLayer {
              * Load classname for keyFunctor
              */
             ClassName = in.readUTF();
-            
-            Class<? extends KeyFunctor> clazz = AccumuloVFSClassLoader.loadClass(ClassName, KeyFunctor.class);
+
+            Class<? extends KeyFunctor> clazz;
+            if (context != null && !context.equals(""))
+              clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, ClassName, KeyFunctor.class);
+            else
+              clazz = AccumuloVFSClassLoader.loadClass(ClassName, KeyFunctor.class);
             transformer = clazz.newInstance();
             
             /**

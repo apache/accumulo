@@ -46,7 +46,14 @@ public class TableLoadBalancer extends TabletBalancer {
   Map<String,TabletBalancer> perTableBalancers = new HashMap<String,TabletBalancer>();
 
   private TabletBalancer constructNewBalancerForTable(String clazzName, String table) throws Exception {
-    Class<? extends TabletBalancer> clazz = AccumuloVFSClassLoader.loadClass(clazzName, TabletBalancer.class);
+    String context = null;
+    if (null != configuration)
+      context = configuration.getTableConfiguration(table).get(Property.TABLE_CLASSPATH);
+    Class<? extends TabletBalancer> clazz;
+    if (context != null && !context.equals(""))
+      clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, clazzName, TabletBalancer.class);
+    else
+      clazz = AccumuloVFSClassLoader.loadClass(clazzName, TabletBalancer.class);
     Constructor<? extends TabletBalancer> constructor = clazz.getConstructor(String.class);
     return constructor.newInstance(table);
   }
