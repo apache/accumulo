@@ -24,15 +24,17 @@ ROW_RANGE='--min-row-size 128 --max-row-size 128'
 CF_RANGE='--min-cf-size 128 --max-cf-size 128'
 CQ_RANGE='--min-cq-size 128 --max-cq-size 128'
 VALUE_RANGE='--min-value-size 1024 --max-value-size 2048'
+ROW_WIDTH='--min-row-width 1 --max-row-width 10'
 
 # These are the seeds for the random number generates used to generate each cell component.
 ROW_SEED='--row-seed 1'
 CF_SEED='--cf-seed 2'
 CQ_SEED='--cq-seed 3'
 VALUE_SEED='--value-seed 4'
+ROW_WIDTH_SEED='--row-width-seed 5'
 
 # Let's reset the table, for good measure
 ../../../bin/accumulo shell $USERPASS -e 'deletetable -f stress_test'
 ../../../bin/accumulo shell $USERPASS -e 'createtable stress_test'
 
-../../../bin/accumulo org.apache.accumulo.test.stress.random.Write $INSTANCE $USERPASS $ROW_RANGE $CF_RANGE $CQ_RANGE $VALUE_RANGE $ROW_SEED $CF_SEED $CQ_SEED $VALUE_SEED
+../../../bin/accumulo org.apache.accumulo.test.stress.random.Write $INSTANCE $USERPASS $ROW_RANGE $CF_RANGE $CQ_RANGE $VALUE_RANGE $ROW_SEED $CF_SEED $CQ_SEED $VALUE_SEED $ROW_WIDTH $ROW_WIDTH_SEED

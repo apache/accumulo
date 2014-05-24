@@ -21,40 +21,39 @@ import java.util.Random;
 import com.google.common.base.Preconditions;
 
 /**
- * This class is one RBAMF. Don't mess with it, or it'll mess with you.
+ * Class that returns positive integers between some minimum
+ * and maximum.
+ *
  */
-public class RandomByteArrayMakerFunction {
+public class RandomWithinRange {
   private final Random random;
+  private final int min, max;
   
-  public RandomByteArrayMakerFunction() {
-    this(0);
+  public RandomWithinRange(int seed, int min, int max) {
+    this(new Random(seed), min, max);
   }
   
-  public RandomByteArrayMakerFunction(int seed) {
-    random = new Random(seed);
-  }
-  
-  public byte[] make(int size) {
-    byte[] b = new byte[size];
-    random.nextBytes(b);
-    return b;
-  }
-  
-  public byte[] makeWithRandomSize(int max) {
-    return makeWithRandomSize(1, random.nextInt(max));
-  }
-  
-  public byte[] makeWithRandomSize(int min, int max) {
+  public RandomWithinRange(Random random, int min, int max) {
     Preconditions.checkArgument(min > 0, "Min must be positive.");
     Preconditions.checkArgument(max >= min, "Max must be greater than or equal to min.");
+    this.random = random;
+    this.min = min;
+    this.max = max;
+  }
+  
+  public int next() {
     if (min == max) {
-      return make(min);
+      return min;
     } else {
-      final int spread = max - min;
-      final int random_value = random.nextInt(spread);
       // we pick a random number that's between 0 and (max - min), then add
       // min as an offset to get a random number that's [min, max)
-      return make(random_value + min);
+      return random.nextInt(max - min) + min;
     }
+  }
+  
+  public byte[] next_bytes() {
+    byte[] b = new byte[next()];
+    random.nextBytes(b);
+    return b;
   }
 }

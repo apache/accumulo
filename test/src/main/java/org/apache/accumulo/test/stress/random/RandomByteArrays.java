@@ -17,20 +17,16 @@
 package org.apache.accumulo.test.stress.random;
 
 /**
- * An iterator that will create random byte arrays as it is looped over.
+ * A stream that will create random byte arrays as it is looped over.
  */
 public class RandomByteArrays extends Stream<byte[]> {
-  private final RandomByteArrayMakerFunction rbamf;
-  private final int min_array_size, max_array_size;
+  private final RandomWithinRange random_arrays;
   
-  public RandomByteArrays(RandomByteArrayMakerFunction rbamf, int min_array_size,
-      int max_array_size) {
-    this.rbamf = rbamf;
-    this.min_array_size = min_array_size;
-    this.max_array_size = max_array_size;
+  public RandomByteArrays(RandomWithinRange random_arrays) {
+    this.random_arrays = random_arrays;
   }
   
   public byte[] next() {
-    return rbamf.makeWithRandomSize(min_array_size, max_array_size);
+    return random_arrays.next_bytes();
   }
 }
