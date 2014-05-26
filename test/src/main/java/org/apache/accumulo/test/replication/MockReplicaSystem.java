@@ -19,6 +19,7 @@ package org.apache.accumulo.test.replication;
 import org.apache.accumulo.core.client.replication.ReplicaSystem;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,11 +38,18 @@ public class MockReplicaSystem implements ReplicaSystem {
 
   @Override
   public Status replicate(Path p, Status status, ReplicationTarget target) {
-    Status.Builder builder = Status.newBuilder(status);
-    if (status.getInfiniteEnd()) {
-      builder.setBegin(Long.MAX_VALUE);
+    Status newStatus;
+    if (status.getClosed() && status.getInfiniteEnd()) {
+      Status.Builder builder = Status.newBuilder(status);
+      if (status.getInfiniteEnd()) {
+        builder.setBegin(Long.MAX_VALUE);
+      } else {
+        builder.setBegin(status.getEnd());
+      }
+      newStatus = builder.build();
     } else {
-      builder.setBegin(status.getEnd());
+      log.info("{} with status {} is not closed and with infinite length, ignoring");
+      newStatus = status;
     }
 
     try {
@@ -52,13 +60,18 @@ public class MockReplicaSystem implements ReplicaSystem {
       return status;
     }
 
-    Status newStatus = builder.build();
-    log.info("Received {} returned {}", TextFormat.shortDebugString(status), TextFormat.shortDebugString(newStatus));
+    log.info("Received {}, returned {}", TextFormat.shortDebugString(status), TextFormat.shortDebugString(newStatus));
+
     return newStatus;
   }
 
   @Override
   public void configure(String configuration) {
+    if (StringUtils.isBlank(configuration)) {
+      log.debug("No configuration, using default sleep of {}", sleep);
+      return;
+    }
+
     try {
       sleep = Long.parseLong(configuration);
     } catch (NumberFormatException e) {
