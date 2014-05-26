@@ -18,6 +18,7 @@ package org.apache.accumulo.tserver.replication;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -96,6 +97,9 @@ public class ReplicationProcessor implements Processor {
     } catch (InvalidProtocolBufferException e) {
       log.error("Could not deserialize Status from Work section for {} and ", file, target);
       throw new RuntimeException("Could not parse Status for work record", e);
+    } catch (NoSuchElementException e) {
+      log.error("Assigned work for {} to {} but could not find work record", file, target);
+      return;
     }
 
     log.debug("Current status for {} replicating to {}: {}", file, target, ProtobufUtil.toString(status));

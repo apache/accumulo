@@ -41,8 +41,8 @@ import com.google.common.net.HostAndPort;
 /**
  * 
  */
-public class ReplicationPortAdvertisementIT extends ConfigurableMacIT {
-  private static final Logger log = LoggerFactory.getLogger(ReplicationPortAdvertisementIT.class);
+public class MultiTserverReplicationIT extends ConfigurableMacIT {
+  private static final Logger log = LoggerFactory.getLogger(MultiTserverReplicationIT.class);
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

@@ -297,7 +297,7 @@ public class SequentialWorkAssigner extends AbstractWorkAssigner {
             log.debug("Not queueing {} for work as {} must be replicated to {} first", file, keyBeingReplicated, target.getPeerName());
           }
         } else {
-          log.debug("Not queueing work for {} because {} doesn't need replication", file, ProtobufUtil.toString(status));
+          log.debug("Not queueing work for {} to {} because {} doesn't need replication", file, target, ProtobufUtil.toString(status));
           if (key.equals(keyBeingReplicated)) {
             log.debug("Removing {} from replication state to {} because replication is complete", keyBeingReplicated, target.getPeerName());
             queuedWorkForPeer.remove(sourceTableId);
