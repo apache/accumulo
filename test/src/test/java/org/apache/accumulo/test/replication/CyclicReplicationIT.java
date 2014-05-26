@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.replication.ReplicaSystemFactory;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -36,6 +37,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.LongCombiner.Type;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
@@ -117,6 +119,19 @@ public class CyclicReplicationIT {
     try {
       Connector connMaster1 = master1Cluster.getConnector("root", password), connMaster2 = master2Cluster.getConnector("root", password);
 
+      String master1UserName = "master1", master1Password = "foo";
+      String master2UserName = "master2", master2Password = "bar";
+
+      connMaster1.securityOperations().createLocalUser(master1UserName, new PasswordToken(master1Password));
+      connMaster2.securityOperations().createLocalUser(master2UserName, new PasswordToken(master2Password));
+
+      // Configure the credentials we should use to authenticate ourselves to the peer for replication
+      connMaster1.instanceOperations().setProperty(Property.REPLICATION_PEER_USER.getKey() + master2Cluster.getInstanceName(), master2UserName);
+      connMaster1.instanceOperations().setProperty(Property.REPLICATION_PEER_PASSWORD.getKey() + master2Cluster.getInstanceName(), master2Password);
+      
+      connMaster2.instanceOperations().setProperty(Property.REPLICATION_PEER_USER.getKey() + master1Cluster.getInstanceName(), master1UserName);
+      connMaster2.instanceOperations().setProperty(Property.REPLICATION_PEER_PASSWORD.getKey() + master1Cluster.getInstanceName(), master1Password);
+
       connMaster1.instanceOperations().setProperty(
           Property.REPLICATION_PEERS.getKey() + master2Cluster.getInstanceName(),
           ReplicaSystemFactory.getPeerConfigurationValue(AccumuloReplicaSystem.class,
@@ -144,6 +159,10 @@ public class CyclicReplicationIT {
       connMaster2.tableOperations().setProperty(master2Cluster.getInstanceName(), Property.TABLE_REPLICATION.getKey(), "true");
       connMaster2.tableOperations().setProperty(master2Cluster.getInstanceName(),
           Property.TABLE_REPLICATION_TARGETS.getKey() + master1Cluster.getInstanceName(), master1TableId);
+
+      // Give our replication user the ability to write to the respective table
+      connMaster1.securityOperations().grantTablePermission(master1UserName, master1Cluster.getInstanceName(), TablePermission.WRITE);
+      connMaster2.securityOperations().grantTablePermission(master2UserName, master2Cluster.getInstanceName(), TablePermission.WRITE);
 
       IteratorSetting summingCombiner = new IteratorSetting(50, SummingCombiner.class);
       SummingCombiner.setEncodingType(summingCombiner, Type.STRING);

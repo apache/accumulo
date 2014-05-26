@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.replication.ReplicaSystemFactory;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -41,6 +42,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSectio
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.master.replication.SequentialWorkAssigner;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
@@ -110,8 +112,15 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
       final Connector connPeer = peerCluster.getConnector("root", ROOT_PASSWORD);
   
       ReplicationTable.create(connMaster);
+
+      String peerUserName = "peer", peerPassword = "foo";
   
       String peerClusterName = "peer";
+
+      connPeer.securityOperations().createLocalUser(peerUserName, new PasswordToken(peerPassword));
+      
+      connMaster.instanceOperations().setProperty(Property.REPLICATION_PEER_USER.getKey() + peerClusterName, peerUserName);
+      connMaster.instanceOperations().setProperty(Property.REPLICATION_PEER_PASSWORD.getKey() + peerClusterName, peerPassword);
   
       // ...peer = AccumuloReplicaSystem,instanceName,zookeepers
       connMaster.instanceOperations().setProperty(
@@ -128,6 +137,8 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
       connPeer.tableOperations().create(peerTable);
       String peerTableId = connPeer.tableOperations().tableIdMap().get(peerTable);
       Assert.assertNotNull(peerTableId);
+
+      connPeer.securityOperations().grantTablePermission(peerUserName, peerTable, TablePermission.WRITE);
   
       // Replicate this table to the peerClusterName in a table with the peerTableId table id
       connMaster.tableOperations().setProperty(masterTable, Property.TABLE_REPLICATION.getKey(), "true");
@@ -262,6 +273,13 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
       Connector connPeer = peer1Cluster.getConnector("root", ROOT_PASSWORD);
 
       String peerClusterName = "peer";
+      String peerUserName = "peer", peerPassword = "foo";
+
+      // Create local user
+      connPeer.securityOperations().createLocalUser(peerUserName, new PasswordToken(peerPassword));
+
+      connMaster.instanceOperations().setProperty(Property.REPLICATION_PEER_USER.getKey() + peerClusterName, peerUserName);
+      connMaster.instanceOperations().setProperty(Property.REPLICATION_PEER_PASSWORD.getKey() + peerClusterName, peerPassword);
 
       // ...peer = AccumuloReplicaSystem,instanceName,zookeepers
       connMaster.instanceOperations().setProperty(
@@ -271,6 +289,7 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
 
       String masterTable1 = "master1", peerTable1 = "peer1", masterTable2 = "master2", peerTable2 = "peer2";
 
+      // Create tables
       connMaster.tableOperations().create(masterTable1);
       String masterTableId1 = connMaster.tableOperations().tableIdMap().get(masterTable1);
       Assert.assertNotNull(masterTableId1);
@@ -286,6 +305,10 @@ public class ReplicationSequentialIT extends ConfigurableMacIT {
       connPeer.tableOperations().create(peerTable2);
       String peerTableId2 = connPeer.tableOperations().tableIdMap().get(peerTable2);
       Assert.assertNotNull(peerTableId2);
+
+      // Grant write permission
+      connPeer.securityOperations().grantTablePermission(peerUserName, peerTable1, TablePermission.WRITE);
+      connPeer.securityOperations().grantTablePermission(peerUserName, peerTable2, TablePermission.WRITE);
 
       // Replicate this table to the peerClusterName in a table with the peerTableId table id
       connMaster.tableOperations().setProperty(masterTable1, Property.TABLE_REPLICATION.getKey(), "true");
