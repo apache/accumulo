@@ -209,9 +209,9 @@ public class ReplicationServlet extends BasicServlet {
     DistributedWorkQueue workQueue = new DistributedWorkQueue(workQueuePath, ServerConfiguration.getSystemConfiguration(inst));
 
     for (String queueKey : workQueue.getWorkQueued()) {
-      Entry<String,ReplicationTarget> entry = AbstractWorkAssigner.fromQueueKey(queueKey);
-      String filename = entry.getKey();
-      ReplicationTarget target = entry.getValue();
+      Entry<String,ReplicationTarget> queueKeyPair = AbstractWorkAssigner.fromQueueKey(queueKey);
+      String filename = queueKeyPair.getKey();
+      ReplicationTarget target = queueKeyPair.getValue();
 
       byte[] data = zooCache.get(workQueuePath + "/" + queueKey);
 
@@ -233,7 +233,7 @@ public class ReplicationServlet extends BasicServlet {
         }
 
         // If we found the work entry for it, try to compute some progress
-        if (null != entry) {
+        if (null != kv) {
           try {
             Status stat = Status.parseFrom(kv.getValue().get());
             if (stat.getInfiniteEnd()) {
