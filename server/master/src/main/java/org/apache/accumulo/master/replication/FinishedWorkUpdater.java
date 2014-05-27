@@ -124,10 +124,6 @@ public class FinishedWorkUpdater implements Runnable {
           tableIdToProgress.put(target.getSourceTableId(), Math.min(tableIdToProgress.get(target.getSourceTableId()), status.getBegin()));
         } 
 
-        for (Entry<String,Long> progressByTable : tableIdToProgress.entrySet()) {
-          log.debug("For {}, source table ID {} has replicated through {}", serializedRow.getKey().getRow(), progressByTable.getKey(), progressByTable.getValue());
-        }
-
         if (error) {
           continue;
         }
@@ -140,6 +136,8 @@ public class FinishedWorkUpdater implements Runnable {
           }
 
           serializedRow.getKey().getRow(buffer);
+
+          log.debug("For {}, source table ID {} has replicated through {}", serializedRow.getKey().getRow(), entry.getKey(), entry.getValue());
 
           Mutation replMutation = new Mutation(buffer);
 
