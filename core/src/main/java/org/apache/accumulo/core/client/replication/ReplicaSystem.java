@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.replication;
 
+import org.apache.accumulo.core.replication.ReplicaSystemHelper;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.hadoop.fs.Path;
@@ -32,7 +33,7 @@ public interface ReplicaSystem {
    * @param target The peer
    * @return A new Status for the progress that was made
    */
-  public Status replicate(Path p, Status status, ReplicationTarget target);
+  public Status replicate(Path p, Status status, ReplicationTarget target, ReplicaSystemHelper helper);
 
   /**
    * Configure the implementation with necessary information from the system configuration

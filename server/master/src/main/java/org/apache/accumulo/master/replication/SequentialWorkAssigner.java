@@ -293,6 +293,8 @@ public class SequentialWorkAssigner extends AbstractWorkAssigner {
           if (null == keyBeingReplicated) {
             // If there is no file, submit this one for replication
             newReplicationTasksSubmitted += queueWork(key, file, sourceTableId, queuedWorkForPeer);
+          } else if (keyBeingReplicated.startsWith(p.getName())) {
+            log.debug("Not re-queueing work for {} as it has already been queued fore replication to {}", file, target);
           } else {
             log.debug("Not queueing {} for work as {} must be replicated to {} first", file, keyBeingReplicated, target.getPeerName());
           }

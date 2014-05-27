@@ -77,7 +77,7 @@ public class PrintReplicationRecords implements Runnable {
     }
 
     out.println();
-    out.println(sdf.format(new Date()) + "Replication entries from replication table");
+    out.println(sdf.format(new Date()) + " Replication entries from replication table");
     out.println("--------------------------------------------------------------------");
 
     try {

@@ -30,6 +30,7 @@ import java.util.Set;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.ClientExecReturn;
 import org.apache.accumulo.core.client.impl.ReplicationClient;
@@ -40,7 +41,10 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.file.rfile.RFile;
+import org.apache.accumulo.core.protobuf.ProtobufUtil;
+import org.apache.accumulo.core.replication.ReplicaSystemHelper;
 import org.apache.accumulo.core.replication.ReplicationTarget;
+import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.replication.thrift.KeyValues;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
@@ -140,7 +144,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   }
 
   @Override
-  public Status replicate(final Path p, final Status status, final ReplicationTarget target) {
+  public Status replicate(final Path p, final Status status, final ReplicationTarget target, final ReplicaSystemHelper helper) {
     final Instance localInstance = HdfsZooInstance.getInstance();
     final AccumuloConfiguration localConf = ServerConfigurationUtil.getConfiguration(localInstance);
     Credentials credentialsForPeer = getCredentialsForPeer(localConf, target);
@@ -152,7 +156,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
     // Attempt the replication of this status a number of times before giving up and
     // trying to replicate it again later some other time.
-    for (int i = 0; i < localConf.getCount(Property.REPLICATION_WORK_ATTEMPTS); i++) {
+    int numAttempts = localConf.getCount(Property.REPLICATION_WORK_ATTEMPTS);
+    for (int i = 0; i < numAttempts; i++) {
       String peerTserver;
       try {
         // Ask the master on the remote what TServer we should talk with to replicate the data
@@ -177,74 +182,227 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       }
 
       // We have a tserver on the remote -- send the data its way.
-      ReplicationStats replResult;
-      // TODO should chunk up the given file into some configurable sizes instead of just sending the entire file all at once
-      // configuration should probably just be size based.
+      Status finalStatus;
       final long sizeLimit = conf.getMemoryInBytes(Property.REPLICATION_MAX_UNIT_SIZE);
       try {
-        replResult = ReplicationClient.executeServicerWithReturn(peerInstance, peerTserver,
-            new ClientExecReturn<ReplicationStats,ReplicationServicer.Client>() {
-              @Override
-              public ReplicationStats execute(Client client) throws Exception {
-                // RFiles have an extension, call everything else a WAL
-                if (p.getName().endsWith(RFILE_SUFFIX)) {
-                  RFileReplication kvs = getKeyValues(target, p, status, sizeLimit);
-                  if (0 < kvs.keyValues.getKeyValuesSize()) {
-                    long entriesReplicated = client.replicateKeyValues(remoteTableId, kvs.keyValues, tCredsForPeer);
-                    if (entriesReplicated != kvs.keyValues.getKeyValuesSize()) {
-                      log.warn("Sent {} KeyValue entries for replication but only {} were reported as replicated", kvs.keyValues.getKeyValuesSize(),
-                          entriesReplicated);
-                    }
-
-                    // Not as important to track as WALs because we don't skip any KVs in an RFile
-                    return kvs;
-                  }
-                } else {
-                  WalReplication edits = getWalEdits(target, getWalStream(p), p, status, sizeLimit);
-
-                  // If we have some edits to send
-                  if (0 < edits.walEdits.getEditsSize()) {
-                    long entriesReplicated = client.replicateLog(remoteTableId, edits.walEdits, tCredsForPeer);
-                    if (entriesReplicated != edits.numUpdates) {
-                      log.warn("Sent {} WAL entries for replication but {} were reported as replicated", edits.numUpdates, entriesReplicated);
-                    }
-
-                    // We don't have to replicate every LogEvent in the file (only Mutation LogEvents), but we
-                    // want to track progress in the file relative to all LogEvents (to avoid duplicative processing/replication)
-                    return edits;
-                  } else if (edits.entriesConsumed > 0) {
-                    // Even if we send no data, we want to record a non-zero new begin value to avoid checking the same
-                    // log entries multiple times to determine if they should be sent
-                    return edits;
-                  }
-                }
-
-                // No data sent (bytes nor records) and no progress made
-                return new ReplicationStats(0l, 0l, 0l);
-              }
-            });
-
-        log.debug("Replicated {} entries from {} to {} which is a member of the peer '{}'", replResult.sizeInRecords, p, peerTserver,
-            peerInstance.getInstanceName());
-
-        // Catch the overflow
-        long newBegin = status.getBegin() + replResult.entriesConsumed;
-        if (newBegin < 0) {
-          newBegin = Long.MAX_VALUE;
+        if (p.getName().endsWith(RFILE_SUFFIX)) {
+          finalStatus = replicateRFiles(peerInstance, peerTserver, target, p, status, sizeLimit, remoteTableId, tCredsForPeer, helper);
+        } else {
+          finalStatus = replicateLogs(peerInstance, peerTserver, target, p, status, sizeLimit, remoteTableId, tCredsForPeer, helper);
         }
 
-        // Update the begin to account for what we replicated
-        Status updatedStatus = Status.newBuilder(status).setBegin(newBegin).build();
+        log.debug("New status for {} after replicating to {} is {}", p, peerInstance, ProtobufUtil.toString(finalStatus));
 
-        return updatedStatus;
+        return finalStatus;
       } catch (TTransportException | AccumuloException | AccumuloSecurityException e) {
         log.warn("Could not connect to remote server {}, will retry", peerTserver, e);
-        UtilWaitThread.sleep(250);
+        UtilWaitThread.sleep(1000);
       }
     }
 
+    log.info("No progress was made after {} attempts to replicate {}, returning so file can be re-queued", numAttempts, p);
+
     // We made no status, punt on it for now, and let it re-queue itself for work
     return status;
+  }
+
+  protected Status replicateRFiles(final Instance peerInstance, final String peerTserver, final ReplicationTarget target, final Path p,
+      final Status status, final long sizeLimit, final int remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper) throws TTransportException, AccumuloException,
+      AccumuloSecurityException {
+    DataInputStream input;
+    try {
+      input = getRFileInputStream(p);
+    } catch (IOException e) {
+      log.error("Could not create input stream from RFile, will retry", e);
+      return status;
+    }
+
+    Status lastStatus = status, currentStatus = status;
+    while (true) {
+      // Read and send a batch of mutations
+      ReplicationStats replResult = ReplicationClient.executeServicerWithReturn(peerInstance, peerTserver,
+          new RFileClientExecReturn(target, input, p, currentStatus, sizeLimit, remoteTableId, tcreds));
+
+      // Catch the overflow
+      long newBegin = currentStatus.getBegin() + replResult.entriesConsumed;
+      if (newBegin < 0) {
+        newBegin = Long.MAX_VALUE;
+      }
+
+      currentStatus = Status.newBuilder(currentStatus).setBegin(newBegin).build();
+
+      log.debug("Sent batch for replication of {} to {}, with new Status {}", p, target, ProtobufUtil.toString(currentStatus));
+
+      // If we got a different status
+      if (!currentStatus.equals(lastStatus)) {
+        // If we don't have any more work, just quit
+        if (!StatusUtil.isWorkRequired(currentStatus)) {
+          return currentStatus;
+        } else {
+          // Otherwise, let it loop and replicate some more data
+          lastStatus = currentStatus;
+        }
+      } else {
+        log.debug("Did not replicate any new data for {} to {}, (state was {})", p, target, ProtobufUtil.toString(lastStatus));
+
+        // otherwise, we didn't actually replicate (likely because there was error sending the data)
+        // we can just not record any updates, and it will be picked up again by the work assigner
+        return status;
+      }
+    }
+  }
+
+  protected Status replicateLogs(final Instance peerInstance, final String peerTserver, final ReplicationTarget target, final Path p,
+      final Status status, final long sizeLimit, final int remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper) throws TTransportException, AccumuloException,
+      AccumuloSecurityException {
+
+    final Set<Integer> tids;
+    final DataInputStream input;
+    try {
+      input = getWalStream(p);
+    } catch (IOException e) {
+      log.error("Could not create stream for WAL", e);
+      // No data sent (bytes nor records) and no progress made
+      return status;
+    }
+
+    try {
+      // We want to read all records in the WAL up to the "begin" offset contained in the Status message,
+      // building a Set of tids from DEFINE_TABLET events which correspond to table ids for future mutations
+      tids = consumeWalPrefix(target, input, p, status, sizeLimit);
+    } catch (IOException e) {
+      log.warn("Unexpected error consuming file.");
+      return status;
+    }
+
+    Status lastStatus = status, currentStatus = status;
+    while (true) {
+      // Read and send a batch of mutations
+      ReplicationStats replResult = ReplicationClient.executeServicerWithReturn(peerInstance, peerTserver,
+          new WalClientExecReturn(target, input, p, currentStatus, sizeLimit, remoteTableId, tcreds, tids));
+
+      // Catch the overflow
+      long newBegin = currentStatus.getBegin() + replResult.entriesConsumed;
+      if (newBegin < 0) {
+        newBegin = Long.MAX_VALUE;
+      }
+
+      currentStatus = Status.newBuilder(currentStatus).setBegin(newBegin).build();
+
+      log.debug("Sent batch for replication of {} to {}, with new Status {}", p, target, ProtobufUtil.toString(currentStatus));
+
+      // If we got a different status
+      if (!currentStatus.equals(lastStatus)) {
+        try {
+          helper.recordNewStatus(p, currentStatus, target);
+        } catch (TableNotFoundException e) {
+          log.error("Tried to update status in replication table for {} as {}, but the table did not exist", p, ProtobufUtil.toString(currentStatus), e);
+          throw new RuntimeException("Replication table did not exist, will retry", e);
+        }
+
+        // If we don't have any more work, just quit
+        if (!StatusUtil.isWorkRequired(currentStatus)) {
+          return currentStatus;
+        } else {
+          // Otherwise, let it loop and replicate some more data
+          lastStatus = currentStatus;
+        }
+      } else {
+        log.debug("Did not replicate any new data for {} to {}, (state was {})", p, target, ProtobufUtil.toString(lastStatus));
+
+        // otherwise, we didn't actually replicate (likely because there was error sending the data)
+        // we can just not record any updates, and it will be picked up again by the work assigner
+        return status;
+      }
+    }
+  }
+
+  protected class WalClientExecReturn implements ClientExecReturn<ReplicationStats,ReplicationServicer.Client> {
+
+    private ReplicationTarget target;
+    private DataInputStream input;
+    private Path p;
+    private Status status;
+    private long sizeLimit;
+    private int remoteTableId;
+    private TCredentials tcreds;
+    private Set<Integer> tids;
+
+    public WalClientExecReturn(ReplicationTarget target, DataInputStream input, Path p, Status status, long sizeLimit, int remoteTableId, TCredentials tcreds, Set<Integer> tids) {
+      this.target = target;
+      this.input = input;
+      this.p = p;
+      this.status = status;
+      this.sizeLimit = sizeLimit;
+      this.remoteTableId = remoteTableId;
+      this.tcreds = tcreds;
+      this.tids = tids;
+    }
+
+    @Override
+    public ReplicationStats execute(Client client) throws Exception {
+      WalReplication edits = getWalEdits(target, input, p, status, sizeLimit, tids);
+
+      log.debug("Read {} WAL entries and retained {} bytes of WAL entries for replication to peer '{}'",
+          (Long.MAX_VALUE == edits.entriesConsumed) ? "all" : edits.entriesConsumed, edits.sizeInBytes, p);
+
+      // If we have some edits to send
+      if (0 < edits.walEdits.getEditsSize()) {
+        long entriesReplicated = client.replicateLog(remoteTableId, edits.walEdits, tcreds);
+        if (entriesReplicated != edits.numUpdates) {
+          log.warn("Sent {} WAL entries for replication but {} were reported as replicated", edits.numUpdates, entriesReplicated);
+        }
+
+        // We don't have to replicate every LogEvent in the file (only Mutation LogEvents), but we
+        // want to track progress in the file relative to all LogEvents (to avoid duplicative processing/replication)
+        return edits;
+      } else if (edits.entriesConsumed > 0) {
+        // Even if we send no data, we want to record a non-zero new begin value to avoid checking the same
+        // log entries multiple times to determine if they should be sent
+        return edits;
+      }
+
+      // No data sent (bytes nor records) and no progress made
+      return new ReplicationStats(0l, 0l, 0l);
+    }
+  }
+
+  protected class RFileClientExecReturn implements ClientExecReturn<ReplicationStats,ReplicationServicer.Client> {
+
+    private ReplicationTarget target;
+    private DataInputStream input;
+    private Path p;
+    private Status status;
+    private long sizeLimit;
+    private int remoteTableId;
+    private TCredentials tcreds;
+
+    public RFileClientExecReturn(ReplicationTarget target, DataInputStream input, Path p, Status status, long sizeLimit, int remoteTableId, TCredentials tcreds) {
+      this.target = target;
+      this.input = input;
+      this.p = p;
+      this.status = status;
+      this.sizeLimit = sizeLimit;
+      this.remoteTableId = remoteTableId;
+      this.tcreds = tcreds;
+    }
+
+    @Override
+    public ReplicationStats execute(Client client) throws Exception {
+      RFileReplication kvs = getKeyValues(target, input, p, status, sizeLimit);
+      if (0 < kvs.keyValues.getKeyValuesSize()) {
+        long entriesReplicated = client.replicateKeyValues(remoteTableId, kvs.keyValues, tcreds);
+        if (entriesReplicated != kvs.keyValues.getKeyValuesSize()) {
+          log.warn("Sent {} KeyValue entries for replication but only {} were reported as replicated", kvs.keyValues.getKeyValuesSize(), entriesReplicated);
+        }
+
+        // Not as important to track as WALs because we don't skip any KVs in an RFile
+        return kvs;
+      }
+
+      // No data sent (bytes nor records) and no progress made
+      return new ReplicationStats(0l, 0l, 0l);
+    }
   }
 
   protected Credentials getCredentialsForPeer(AccumuloConfiguration conf, ReplicationTarget target) {
@@ -269,12 +427,13 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     return new ZooKeeperInstance(instanceName, zookeepers);
   }
 
-  protected RFileReplication getKeyValues(ReplicationTarget target, Path p, Status status, long sizeLimit) {
-    // TODO Implement me
+  protected RFileReplication getKeyValues(ReplicationTarget target, DataInputStream input, Path p, Status status, long sizeLimit) {
+    // TODO ACCUMULO-2580 Implement me
     throw new UnsupportedOperationException();
   }
 
-  protected WalReplication getWalEdits(ReplicationTarget target, DataInputStream wal, Path p, Status status, long sizeLimit) throws IOException {
+  protected Set<Integer> consumeWalPrefix(ReplicationTarget target, DataInputStream wal, Path p, Status status, long sizeLimit) throws IOException {
+    Set<Integer> tids = new HashSet<>();
     LogFileKey key = new LogFileKey();
     LogFileValue value = new LogFileValue();
 
@@ -284,13 +443,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     // We also need to track the tids that occurred earlier in the file as mutations
     // later on might use that tid
     for (long i = 0; i < status.getBegin(); i++) {
-      try {
-        key.readFields(wal);
-        value.readFields(wal);
-      } catch (EOFException e) {
-        log.warn("Unexpectedly reached the end of file.");
-        return new WalReplication(new WalEdits(), 0, 0, 0);
-      }
+      key.readFields(wal);
+      value.readFields(wal);
 
       switch (key.event) {
         case DEFINE_TABLET:
@@ -303,20 +457,16 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       }
     }
 
-    WalReplication repl = getEdits(wal, sizeLimit, target, status, p, desiredTids);
-
-    log.debug("Read {} WAL entries and retained {} bytes of WAL entries for replication to peer '{}'", (Long.MAX_VALUE == repl.entriesConsumed) ? "all"
-        : repl.entriesConsumed, repl.sizeInBytes, p);
-
-    return repl;
+    return tids;
   }
 
-  protected DataInputStream getWalStream(Path p) throws IOException {
+  public DataInputStream getWalStream(Path p) throws IOException {
     DFSLoggerInputStreams streams = DfsLogger.readHeaderAndReturnStream(fs, p, conf);
     return streams.getDecryptingInputStream();
   }
 
-  protected WalReplication getEdits(DataInputStream wal, long sizeLimit, ReplicationTarget target, Status status, Path p, Set<Integer> desiredTids) throws IOException {
+  protected WalReplication getWalEdits(ReplicationTarget target, DataInputStream wal, Path p, Status status, long sizeLimit, Set<Integer> desiredTids)
+      throws IOException {
     WalEdits edits = new WalEdits();
     edits.edits = new ArrayList<ByteBuffer>();
     long size = 0l;
@@ -413,6 +563,10 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     return mutationsToSend;
   }
 
+  protected DataInputStream getRFileInputStream(Path p) throws IOException {
+    throw new UnsupportedOperationException("Not yet implemented");
+  }
+
   public static class ReplicationStats {
     /**
      * The size, in bytes, of the data sent
@@ -433,6 +587,15 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       this.sizeInBytes = sizeInBytes;
       this.sizeInRecords = sizeInRecords;
       this.entriesConsumed = entriesConsumed;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (ReplicationStats.class.isAssignableFrom(o.getClass())) {
+        ReplicationStats other = (ReplicationStats) o;
+        return sizeInBytes == other.sizeInBytes && sizeInRecords == other.sizeInRecords && entriesConsumed == other.entriesConsumed;
+      }
+      return false;
     }
   }
 
@@ -466,6 +629,17 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       super(size, edits.getEditsSize(), entriesConsumed);
       this.walEdits = edits;
       this.numUpdates = numMutations;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (o instanceof WalReplication) {
+        WalReplication other = (WalReplication) o;
+
+        return super.equals(other) && walEdits.equals(other.walEdits) && numUpdates == other.numUpdates;
+      }
+
+      return false;
     }
   }
 }

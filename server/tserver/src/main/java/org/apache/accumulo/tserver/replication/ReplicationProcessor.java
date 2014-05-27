@@ -22,8 +22,6 @@ import java.util.NoSuchElementException;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -31,9 +29,9 @@ import org.apache.accumulo.core.client.replication.ReplicaSystem;
 import org.apache.accumulo.core.client.replication.ReplicaSystemFactory;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
+import org.apache.accumulo.core.replication.ReplicaSystemHelper;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
@@ -50,7 +48,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.TextFormat;
 
 /**
  * Transmit the given data to a peer
@@ -62,12 +59,14 @@ public class ReplicationProcessor implements Processor {
   private final AccumuloConfiguration conf;
   private final VolumeManager fs;
   private final Credentials creds;
+  private final ReplicaSystemHelper helper;
 
   public ReplicationProcessor(Instance inst, AccumuloConfiguration conf, VolumeManager fs, Credentials creds) {
     this.inst = inst;
     this.conf = conf;
     this.fs = fs;
     this.creds = creds;
+    this.helper = new ReplicaSystemHelper(inst, creds);
   }
 
   @Override
@@ -82,12 +81,8 @@ public class ReplicationProcessor implements Processor {
 
     log.debug("Received replication work for {} to {}", file, target);
 
-    // Find the configured replication peer so we know how to replicate to it
-    // Classname,Configuration
-    String peerType = getPeerType(target.getPeerName());
+    ReplicaSystem replica = getReplicaSystem(target);
 
-    // Get the peer that we're replicating to
-    ReplicaSystem replica = ReplicaSystemFactory.get(peerType);
     Status status;
     try {
       status = getStatus(file, target);
@@ -113,8 +108,7 @@ public class ReplicationProcessor implements Processor {
     // Sanity check that nothing bad happened and our replication source still exists
     Path filePath = new Path(file);
     try {
-      if (!fs.exists(filePath)) {
-        log.warn("Received work request for {} and {}, but the file doesn't exist", filePath, target);
+      if (!doesFileExist(filePath, target)) {
         return;
       }
     } catch (IOException e) {
@@ -124,7 +118,20 @@ public class ReplicationProcessor implements Processor {
 
     log.debug("Replicating {} to {} using {}", filePath, target, replica.getClass().getName());
 
-    replicate(replica, filePath, status, target);
+    replica.replicate(filePath, status, target, getHelper());
+  }
+
+  protected ReplicaSystemHelper getHelper() {
+    return helper;
+  }
+
+  protected ReplicaSystem getReplicaSystem(ReplicationTarget target) {
+    // Find the configured replication peer so we know how to replicate to it
+    // Classname,Configuration
+    String peerType = getPeerType(target.getPeerName());
+
+    // Get the peer that we're replicating to
+    return ReplicaSystemFactory.get(peerType);
   }
 
   protected String getPeerType(String peerName) {
@@ -140,6 +147,15 @@ public class ReplicationProcessor implements Processor {
     return peerType;
   }
 
+  protected boolean doesFileExist(Path filePath, ReplicationTarget target) throws IOException {
+    if (!fs.exists(filePath)) {
+      log.warn("Received work request for {} and {}, but the file doesn't exist", filePath, target);
+      return false;
+    }
+
+    return true;
+  }
+
   protected Status getStatus(String file, ReplicationTarget target) throws TableNotFoundException, AccumuloException, AccumuloSecurityException,
       InvalidProtocolBufferException {
     Scanner s = ReplicationTable.getScanner(inst.getConnector(creds.getPrincipal(), creds.getToken()));
@@ -147,63 +163,5 @@ public class ReplicationProcessor implements Processor {
     s.fetchColumn(WorkSection.NAME, target.toText());
 
     return Status.parseFrom(Iterables.getOnlyElement(s).getValue().get());
-  }
-
-  protected void replicate(ReplicaSystem replica, Path filePath, Status status, ReplicationTarget target) {
-    Status lastStatus = status;
-    while (true) {
-      // Replicate that sucker
-      Status replicatedStatus = replica.replicate(filePath, status, target);
-  
-      log.debug("Completed replication of {} to {}, with new Status {}", filePath, target, ProtobufUtil.toString(replicatedStatus));
-  
-      // If we got a different status
-      if (!replicatedStatus.equals(lastStatus)) {
-        // We actually did some work!
-        recordNewStatus(filePath, replicatedStatus, target);
-
-        // If we don't have any more work, just quit
-        if (!StatusUtil.isWorkRequired(replicatedStatus)) {
-          return;
-        } else {
-          // Otherwise, let it loop and replicate some more data
-          lastStatus = status;
-          status = replicatedStatus;
-        }
-      } else {
-        log.debug("Did not replicate any new data for {} to {}, (was {}, now is {})", filePath, target, TextFormat.shortDebugString(status),
-            TextFormat.shortDebugString(replicatedStatus));
-  
-        // otherwise, we didn't actually replicate because there was error sending the data
-        // we can just not record any updates, and it will be picked up again by the work assigner      
-        return;
-      }
-    }
-  }
-
-  /**
-   * Record the updated Status for this file and target
-   * 
-   * @param filePath
-   *          Path to file being replicated
-   * @param status
-   *          Updated Status after replication
-   * @param target
-   *          Peer that was replicated to
-   */
-  protected void recordNewStatus(Path filePath, Status status, ReplicationTarget target) {
-    try {
-      Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
-      BatchWriter bw = ReplicationTable.getBatchWriter(conn);
-      log.debug("Recording new status for {}, {}", filePath.toString(), TextFormat.shortDebugString(status));
-      Mutation m = new Mutation(filePath.toString());
-      WorkSection.add(m, target.toText(), ProtobufUtil.toValue(status));
-      bw.addMutation(m);
-      bw.close();
-    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
-      log.error("Error recording updated Status for {}", filePath, e);
-      throw new RuntimeException(e);
-    }
-
   }
 }

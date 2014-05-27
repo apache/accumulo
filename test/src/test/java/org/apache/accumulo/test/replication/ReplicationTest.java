@@ -24,8 +24,8 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -148,7 +148,7 @@ public class ReplicationTest extends ConfigurableMacIT {
     int attempts = 5;
     do {
       if (!exists) {
-        UtilWaitThread.sleep(200);
+        UtilWaitThread.sleep(500);
         exists = conn.tableOperations().exists(ReplicationTable.NAME);
         attempts--;
       }
@@ -1079,41 +1079,6 @@ public class ReplicationTest extends ConfigurableMacIT {
       Assert.assertFalse(t.isAlive());
     }
 
-    // write a Long.MAX_VALUE into each repl entry
-    Scanner s = ReplicationTable.getScanner(conn);
-    StatusSection.limit(s);
-    bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
-    Status finishedReplStatus = StatusUtil.replicated(Long.MAX_VALUE);
-    Set<String> filesToWatch = new HashSet<>();
-    Text buff = new Text();
-    for (Entry<Key,Value> entry : s) {
-      StatusSection.getFile(entry.getKey(), buff);
-      filesToWatch.add(buff.toString());
-      Status status = Status.parseFrom(entry.getValue().get());
-      Assert.assertFalse(status.getClosed());
-
-      // Fake that each one is fully replicated
-      Mutation m = new Mutation(entry.getKey().getRow());
-      m.put(entry.getKey().getColumnFamily().toString(), entry.getKey().getColumnQualifier().toString(), new Value(finishedReplStatus.toByteArray()));
-      bw.addMutation(m);
-    }
-    bw.close();
-
-    s = ReplicationTable.getScanner(conn);
-    StatusSection.limit(s);
-    bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
-    for (Entry<Key,Value> entry : s) {
-      Status status = Status.parseFrom(entry.getValue().get());
-      Assert.assertFalse(status.getClosed());
-
-      // Fake that each one is fully replicated
-      Mutation m = new Mutation(entry.getKey().getRow());
-      m.put(entry.getKey().getColumnFamily().toString(), entry.getKey().getColumnQualifier().toString(),
-          StatusUtil.fileCreatedValue(System.currentTimeMillis()));
-      bw.addMutation(m);
-    }
-    bw.close();
-
     // Kill the tserver(s) and restart them
     // to ensure that the WALs we previously observed all move to closed.
     for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
@@ -1124,7 +1089,7 @@ public class ReplicationTest extends ConfigurableMacIT {
 
     // Make sure we can read all the tables (recovery complete)
     for (String table : Arrays.asList(table1, table2, table3)) {
-      s = conn.createScanner(table, new Authorizations());
+      Scanner s = conn.createScanner(table, new Authorizations());
       for (@SuppressWarnings("unused")
       Entry<Key,Value> entry : s) {}
     }
@@ -1139,7 +1104,7 @@ public class ReplicationTest extends ConfigurableMacIT {
       // We should either find all closed records or no records
       // After they're closed, they are candidates for deletion
       for (int i = 0; i < 10; i++) {
-        s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+        Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
         s.setRange(Range.prefix(ReplicationSection.getRowPrefix()));
         Iterator<Entry<Key,Value>> iter = s.iterator();
 
@@ -1162,7 +1127,7 @@ public class ReplicationTest extends ConfigurableMacIT {
       }
 
       if (!allClosed) {
-        s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+        Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
         s.setRange(Range.prefix(ReplicationSection.getRowPrefix()));
         for (Entry<Key,Value> entry : s) {
           log.info(entry.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(entry.getValue().get())));
@@ -1173,7 +1138,7 @@ public class ReplicationTest extends ConfigurableMacIT {
       for (int i = 0; i < 10; i++) {
         allClosed = true;
 
-        s = ReplicationTable.getScanner(conn);
+        Scanner s = ReplicationTable.getScanner(conn);
         Iterator<Entry<Key,Value>> iter = s.iterator();
 
         long recordsFound = 0l;
@@ -1197,7 +1162,7 @@ public class ReplicationTest extends ConfigurableMacIT {
       }
 
       if (!allClosed) {
-        s = ReplicationTable.getScanner(conn);
+        Scanner s = ReplicationTable.getScanner(conn);
         StatusSection.limit(s);
         for (Entry<Key,Value> entry : s) {
           log.info(entry.getKey().toStringNoTruncate() + " " + TextFormat.shortDebugString(Status.parseFrom(entry.getValue().get())));
@@ -1226,8 +1191,8 @@ public class ReplicationTest extends ConfigurableMacIT {
     // replication shouldn't exist when we begin
     Assert.assertFalse(conn.tableOperations().exists(ReplicationTable.NAME));
 
-    ReplicationTablesPrinterThread thread = new ReplicationTablesPrinterThread(conn, System.out);
-    thread.start();
+//    ReplicationTablesPrinterThread thread = new ReplicationTablesPrinterThread(conn, System.out);
+//    thread.start();
 
     try {
       // Create two tables
@@ -1242,7 +1207,7 @@ public class ReplicationTest extends ConfigurableMacIT {
           conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION_TARGETS.getKey() + "cluster1", "4");
           // Use the MockReplicaSystem impl and sleep for 5seconds
           conn.instanceOperations().setProperty(Property.REPLICATION_PEERS.getKey() + "cluster1",
-              ReplicaSystemFactory.getPeerConfigurationValue(MockReplicaSystem.class, "5000"));
+              ReplicaSystemFactory.getPeerConfigurationValue(MockReplicaSystem.class, "1000"));
           attempts = 0;
         } catch (Exception e) {
           attempts--;
@@ -1313,6 +1278,7 @@ public class ReplicationTest extends ConfigurableMacIT {
               case PERMISSION_DENIED:
                 // retry -- the grant didn't happen yet
                 log.warn("Sleeping because permission was denied");
+                break;
               default:
                 throw e;
             }
@@ -1416,7 +1382,7 @@ public class ReplicationTest extends ConfigurableMacIT {
         recordsFound = 0;
         for (Entry<Key,Value> entry : s) {
           recordsFound++;
-          log.info(entry.getKey().toStringNoTruncate() + " " + Status.parseFrom(entry.getValue().get()).toString().replace("\n", ", "));
+          log.info(entry.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(entry.getValue().get())));
         }
 
         if (0 == recordsFound) {
@@ -1429,8 +1395,8 @@ public class ReplicationTest extends ConfigurableMacIT {
 
       Assert.assertEquals("Found unexpected replication records in the replication table", 0, recordsFound);
     } finally {
-      thread.interrupt();
-      thread.join(5000);
+//      thread.interrupt();
+//      thread.join(5000);
     }
   }
 }

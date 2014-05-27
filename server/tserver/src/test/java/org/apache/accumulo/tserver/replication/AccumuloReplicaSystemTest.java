@@ -16,16 +16,23 @@
  */
 package org.apache.accumulo.tserver.replication;
 
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -36,10 +43,15 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
+import org.apache.accumulo.core.replication.thrift.ReplicationServicer.Client;
+import org.apache.accumulo.core.replication.thrift.WalEdits;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
+import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem.ReplicationStats;
+import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem.WalClientExecReturn;
 import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem.WalReplication;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -147,7 +159,7 @@ public class AccumuloReplicaSystemTest {
 
     Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(false).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(baos.toByteArray()));
-    WalReplication repl = ars.getEdits(dis, Long.MAX_VALUE, new ReplicationTarget("peer", "1", "1"), status, new Path("/accumulo/wals/tserver+port/wal"), new HashSet<Integer>());
+    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis, new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE, new HashSet<Integer>());
 
     // We stopped because we got to the end of the file
     Assert.assertEquals(9, repl.entriesConsumed);
@@ -254,7 +266,7 @@ public class AccumuloReplicaSystemTest {
     // If it were still open, more data could be appended that we need to process
     Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(baos.toByteArray()));
-    WalReplication repl = ars.getEdits(dis, Long.MAX_VALUE, new ReplicationTarget("peer", "1", "1"), status, new Path("/accumulo/wals/tserver+port/wal"), new HashSet<Integer>());
+    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis, new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE, new HashSet<Integer>());
 
     // We stopped because we got to the end of the file
     Assert.assertEquals(Long.MAX_VALUE, repl.entriesConsumed);
@@ -319,7 +331,7 @@ public class AccumuloReplicaSystemTest {
     // If it were still open, more data could be appended that we need to process
     Status status = Status.newBuilder().setBegin(100).setEnd(0).setInfiniteEnd(true).setClosed(true).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(new byte[0]));
-    WalReplication repl = ars.getEdits(dis, Long.MAX_VALUE, new ReplicationTarget("peer", "1", "1"), status, new Path("/accumulo/wals/tserver+port/wal"), new HashSet<Integer>());
+    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis, new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE, new HashSet<Integer>());
 
     // We stopped because we got to the end of the file
     Assert.assertEquals(Long.MAX_VALUE, repl.entriesConsumed);
@@ -341,7 +353,7 @@ public class AccumuloReplicaSystemTest {
     // If it were still open, more data could be appended that we need to process
     Status status = Status.newBuilder().setBegin(100).setEnd(0).setInfiniteEnd(true).setClosed(false).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(new byte[0]));
-    WalReplication repl = ars.getEdits(dis, Long.MAX_VALUE, new ReplicationTarget("peer", "1", "1"), status, new Path("/accumulo/wals/tserver+port/wal"), new HashSet<Integer>());
+    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis, new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE, new HashSet<Integer>());
 
     // We stopped because we got to the end of the file
     Assert.assertEquals(0, repl.entriesConsumed);
@@ -401,8 +413,10 @@ public class AccumuloReplicaSystemTest {
     Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(false).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(baos.toByteArray()));
 
+    HashSet<Integer> tids = new HashSet<>();
+
     // Only consume the first mutation, not the second
-    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis, new Path("/accumulo/wals/tserver+port/wal"), status, 1);
+    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis, new Path("/accumulo/wals/tserver+port/wal"), status, 1l, tids);
 
     // We stopped because we got to the end of the file
     Assert.assertEquals(2, repl.entriesConsumed);
@@ -411,15 +425,72 @@ public class AccumuloReplicaSystemTest {
     Assert.assertNotEquals(0, repl.sizeInBytes);
 
     status = Status.newBuilder(status).setBegin(2).build();
-    dis = new DataInputStream(new ByteArrayInputStream(baos.toByteArray()));
 
     // Consume the rest of the mutations
-    repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis, new Path("/accumulo/wals/tserver+port/wal"), status, 1);
+    repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis, new Path("/accumulo/wals/tserver+port/wal"), status, 1l, tids);
 
     // We stopped because we got to the end of the file
     Assert.assertEquals(1, repl.entriesConsumed);
     Assert.assertEquals(1, repl.walEdits.getEditsSize());
     Assert.assertEquals(1, repl.sizeInRecords);
     Assert.assertNotEquals(0, repl.sizeInBytes);
+  }
+
+  @Test
+  public void dontSendEmptyDataToPeer() throws Exception {
+    Client replClient = createMock(Client.class);
+    AccumuloReplicaSystem ars = createMock(AccumuloReplicaSystem.class);
+    WalEdits edits = new WalEdits(Collections.<ByteBuffer> emptyList());
+    WalReplication walReplication = new WalReplication(edits, 0, 0, 0);
+
+    ReplicationTarget target = new ReplicationTarget("peer", "2", "1");
+    DataInputStream input = null;
+    Path p = new Path("/accumulo/wals/tserver+port/" + UUID.randomUUID().toString());
+    Status status = null;
+    long sizeLimit = Long.MAX_VALUE;
+    int remoteTableId = Integer.parseInt(target.getRemoteIdentifier());
+    TCredentials tcreds = null;
+    Set<Integer> tids = new HashSet<>();
+
+    WalClientExecReturn walClientExec = ars.new WalClientExecReturn(target, input, p, status, sizeLimit, remoteTableId, tcreds, tids);
+
+    expect(ars.getWalEdits(target, input, p, status, sizeLimit, tids)).andReturn(walReplication);
+
+    replay(replClient, ars);
+
+    ReplicationStats stats = walClientExec.execute(replClient);
+
+    verify(replClient, ars);
+
+    Assert.assertEquals(new ReplicationStats(0l, 0l, 0l), stats);
+  }
+
+  @Test
+  public void consumedButNotSentDataShouldBeRecorded() throws Exception {
+    Client replClient = createMock(Client.class);
+    AccumuloReplicaSystem ars = createMock(AccumuloReplicaSystem.class);
+    WalEdits edits = new WalEdits(Collections.<ByteBuffer> emptyList());
+    WalReplication walReplication = new WalReplication(edits, 0, 5, 0);
+
+    ReplicationTarget target = new ReplicationTarget("peer", "2", "1");
+    DataInputStream input = null;
+    Path p = new Path("/accumulo/wals/tserver+port/" + UUID.randomUUID().toString());
+    Status status = null;
+    long sizeLimit = Long.MAX_VALUE;
+    int remoteTableId = Integer.parseInt(target.getRemoteIdentifier());
+    TCredentials tcreds = null;
+    Set<Integer> tids = new HashSet<>();
+
+    WalClientExecReturn walClientExec = ars.new WalClientExecReturn(target, input, p, status, sizeLimit, remoteTableId, tcreds, tids);
+
+    expect(ars.getWalEdits(target, input, p, status, sizeLimit, tids)).andReturn(walReplication);
+
+    replay(replClient, ars);
+
+    ReplicationStats stats = walClientExec.execute(replClient);
+
+    verify(replClient, ars);
+
+    Assert.assertEquals(new ReplicationStats(0l, 0l, 5l), stats);
   }
 }

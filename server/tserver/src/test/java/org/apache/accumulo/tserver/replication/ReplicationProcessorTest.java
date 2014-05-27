@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.tserver.replication;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -24,10 +25,12 @@ import org.apache.accumulo.core.client.replication.ReplicaSystem;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.replication.ReplicaSystemHelper;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.replication.AbstractWorkAssigner;
 import org.apache.hadoop.fs.Path;
 import org.easymock.EasyMock;
 import org.junit.Assert;
@@ -71,46 +74,26 @@ public class ReplicationProcessorTest {
   }
 
   @Test
-  public void filesContinueReplicationWhenMoreDataIsPresent() throws Exception {
-    ReplicaSystem replica = EasyMock.createMock(ReplicaSystem.class);
-    ReplicationProcessor proc = EasyMock.createMockBuilder(ReplicationProcessor.class).addMockedMethod("recordNewStatus").createMock();
-
-    ReplicationTarget target = new ReplicationTarget("peer", "1", "1");
-    Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true).build();
-    Path path = new Path("/accumulo");
-
-    Status firstStatus = Status.newBuilder().setBegin(100).setEnd(0).setInfiniteEnd(true).setClosed(true).build();
-    Status secondStatus = Status.newBuilder().setBegin(Long.MAX_VALUE).setEnd(0).setInfiniteEnd(true).setClosed(true).build();
-    
-    EasyMock.expect(replica.replicate(path, status, target)).andReturn(firstStatus);
-    proc.recordNewStatus(path, firstStatus, target);
-    EasyMock.expectLastCall().once();
-
-    EasyMock.expect(replica.replicate(path, firstStatus, target)).andReturn(secondStatus);
-    proc.recordNewStatus(path, secondStatus, target);
-    EasyMock.expectLastCall().once();
-
-    EasyMock.replay(replica, proc);
-    
-    proc.replicate(replica, path, status, target);
-
-    EasyMock.verify(replica, proc);
-  }
-
-  @Test
   public void filesWhichMakeNoProgressArentReplicatedAgain() throws Exception {
     ReplicaSystem replica = EasyMock.createMock(ReplicaSystem.class);
-    ReplicationProcessor proc = EasyMock.createMockBuilder(ReplicationProcessor.class).addMockedMethod("recordNewStatus").createMock();
+    ReplicaSystemHelper helper = EasyMock.createMock(ReplicaSystemHelper.class);
+    ReplicationProcessor proc = EasyMock.createMockBuilder(ReplicationProcessor.class).addMockedMethods("getReplicaSystem", "doesFileExist", "getStatus", "getHelper").createMock();
 
     ReplicationTarget target = new ReplicationTarget("peer", "1", "1");
     Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true).build();
     Path path = new Path("/accumulo");
 
-    EasyMock.expect(replica.replicate(path, status, target)).andReturn(status);
+    String queueKey = AbstractWorkAssigner.getQueueKey(path.toString(), target);
+
+    EasyMock.expect(proc.getReplicaSystem(target)).andReturn(replica);
+    EasyMock.expect(proc.getStatus(path.toString(), target)).andReturn(status);
+    EasyMock.expect(proc.doesFileExist(path, target)).andReturn(true);
+    EasyMock.expect(proc.getHelper()).andReturn(helper);
+    EasyMock.expect(replica.replicate(path, status, target, helper)).andReturn(status);
 
     EasyMock.replay(replica, proc);
-    
-    proc.replicate(replica, path, status, target);
+
+    proc.process(queueKey, path.toString().getBytes(StandardCharsets.UTF_8));
 
     EasyMock.verify(replica, proc);
   }

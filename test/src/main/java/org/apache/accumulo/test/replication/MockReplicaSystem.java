@@ -16,15 +16,18 @@
  */
 package org.apache.accumulo.test.replication;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.replication.ReplicaSystem;
+import org.apache.accumulo.core.protobuf.ProtobufUtil;
+import org.apache.accumulo.core.replication.ReplicaSystemHelper;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.protobuf.TextFormat;
 
 /**
  * Fake ReplicaSystem which returns that the data was fully replicated after some sleep period (in milliseconds)
@@ -37,7 +40,7 @@ public class MockReplicaSystem implements ReplicaSystem {
   private long sleep = 0;
 
   @Override
-  public Status replicate(Path p, Status status, ReplicationTarget target) {
+  public Status replicate(Path p, Status status, ReplicationTarget target, ReplicaSystemHelper helper) {
     Status newStatus;
     if (status.getClosed() && status.getInfiniteEnd()) {
       Status.Builder builder = Status.newBuilder(status);
@@ -48,10 +51,11 @@ public class MockReplicaSystem implements ReplicaSystem {
       }
       newStatus = builder.build();
     } else {
-      log.info("{} with status {} is not closed and with infinite length, ignoring");
+      log.info("{} with status {} is not closed and with infinite length, ignoring", p, status);
       newStatus = status;
     }
 
+    log.debug("Sleeping for {}ms before finishing replication on {}", sleep, p);
     try {
       Thread.sleep(sleep);
     } catch (InterruptedException e) {
@@ -60,7 +64,16 @@ public class MockReplicaSystem implements ReplicaSystem {
       return status;
     }
 
-    log.info("Received {}, returned {}", TextFormat.shortDebugString(status), TextFormat.shortDebugString(newStatus));
+    log.info("For {}, received {}, returned {}", p, ProtobufUtil.toString(status), ProtobufUtil.toString(newStatus));
+    try {
+      helper.recordNewStatus(p, newStatus, target);
+    } catch (TableNotFoundException e) {
+      log.error("Tried to update status in replication table for {} as {}, but the table did not exist", p, ProtobufUtil.toString(newStatus), e);
+      return status;
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      log.error("Tried to record new status in replication table for {} as {}, but got an error", p, ProtobufUtil.toString(newStatus), e);
+      return status;
+    }
 
     return newStatus;
   }

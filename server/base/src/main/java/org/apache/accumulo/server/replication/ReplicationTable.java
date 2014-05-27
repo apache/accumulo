@@ -25,13 +25,9 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -41,7 +37,6 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.StatusFormatter;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
@@ -164,7 +159,7 @@ public class ReplicationTable extends org.apache.accumulo.core.client.replicatio
     for (Entry<String,String> property : properties) {
       if (Property.TABLE_FORMATTER_CLASS.getKey().equals(property.getKey())) {
         if (!STATUS_FORMATTER_CLASS_NAME.equals(property.getValue())) {
-          log.info("Setting formatter for {} from {} to {}", NAME, property.getValue(), STATUS_FORMATTER_CLASS_NAME);
+          log.info("Changing formatter for {} table from {} to {}", NAME, property.getValue(), STATUS_FORMATTER_CLASS_NAME);
           try {
             tops.setProperty(NAME, Property.TABLE_FORMATTER_CLASS.getKey(), STATUS_FORMATTER_CLASS_NAME);
           } catch (AccumuloException | AccumuloSecurityException e) {
@@ -192,33 +187,5 @@ public class ReplicationTable extends org.apache.accumulo.core.client.replicatio
     log.debug("Successfully configured replication table");
 
     return true;
-  }
-
-  public static Scanner getScanner(Connector conn, Authorizations auths) throws TableNotFoundException {
-    return conn.createScanner(NAME, auths);
-  }
-
-  public static Scanner getScanner(Connector conn) throws TableNotFoundException {
-    return getScanner(conn, new Authorizations());
-  }
-
-  public static BatchWriter getBatchWriter(Connector conn) throws TableNotFoundException {
-    return getBatchWriter(conn, new BatchWriterConfig());
-  }
-
-  public static BatchWriter getBatchWriter(Connector conn, BatchWriterConfig config) throws TableNotFoundException {
-    return conn.createBatchWriter(NAME, config);
-  }
-
-  public static BatchScanner getBatchScanner(Connector conn, int queryThreads) throws TableNotFoundException {
-    return conn.createBatchScanner(NAME, new Authorizations(), queryThreads);
-  }
-
-  public static boolean exists(Connector conn) {
-    return exists(conn.tableOperations());
-  }
-
-  public static boolean exists(TableOperations tops) {
-    return tops.exists(NAME);
   }
 }
