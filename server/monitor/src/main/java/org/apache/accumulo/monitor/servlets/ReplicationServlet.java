@@ -19,7 +19,6 @@ package org.apache.accumulo.monitor.servlets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
@@ -49,12 +48,13 @@ import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.monitor.util.Table;
 import org.apache.accumulo.monitor.util.celltypes.NumberType;
 import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.replication.AbstractWorkAssigner;
 import org.apache.accumulo.server.security.SystemCredentials;
+import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -202,13 +202,13 @@ public class ReplicationServlet extends BasicServlet {
     replicationInProgress.addSortableColumn("Peer Identifier");
     replicationInProgress.addUnsortableColumn("Status");
 
-    String zkRoot = ZooUtil.getRoot(inst);
-    ZooReader zreader = new ZooReader(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut());
-
     // Read the files from the workqueue in zk
+    String zkRoot = ZooUtil.getRoot(inst);
     final String workQueuePath = zkRoot + Constants.ZREPLICATION_WORK_QUEUE;
-    List<String> queuedReplication = zreader.getChildren(workQueuePath);
-    for (String queueKey : queuedReplication) {
+
+    DistributedWorkQueue workQueue = new DistributedWorkQueue(workQueuePath, ServerConfiguration.getSystemConfiguration(inst));
+
+    for (String queueKey : workQueue.getWorkQueued()) {
       Entry<String,ReplicationTarget> entry = AbstractWorkAssigner.fromQueueKey(queueKey);
       String filename = entry.getKey();
       ReplicationTarget target = entry.getValue();
