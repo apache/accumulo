@@ -219,8 +219,9 @@ public class ReplicationServlet extends BasicServlet {
       // We could try to grep over the table, but without knowing the full file path, we
       // can't find the status quickly
       String status = "Unknown";
+      String path = null;
       if (null != data) {
-        String path = new String(data);
+        path = new String(data);
         Scanner s = ReplicationTable.getScanner(conn);
         s.setRange(Range.exact(path));
         s.fetchColumn(WorkSection.NAME, target.toText());
@@ -257,7 +258,7 @@ public class ReplicationServlet extends BasicServlet {
       }
 
       // Add a row in the table
-      replicationInProgress.addRow(filename, target.getPeerName(), target.getSourceTableId(), target.getRemoteIdentifier(), status);
+      replicationInProgress.addRow(null == path ? ".../" + filename : path, target.getPeerName(), target.getSourceTableId(), target.getRemoteIdentifier(), status);
     }
 
     replicationInProgress.generate(req, sb);
