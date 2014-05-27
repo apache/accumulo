@@ -214,38 +214,45 @@ public class ReplicationServlet extends BasicServlet {
       String filename = queueKeyPair.getKey();
       ReplicationTarget target = queueKeyPair.getValue();
 
-      Scanner s = ReplicationTable.getScanner(conn);
-      s.setRange(Range.exact(filename));
-      s.fetchColumn(WorkSection.NAME, target.toText());
+      byte[] data = zooCache.get(workQueuePath + "/" + queueKey);
 
-      // Fetch the work entry for this item
+      // We could try to grep over the table, but without knowing the full file path, we
+      // can't find the status quickly
       String status = "Unknown";
-      Entry<Key,Value> kv = null;
-      try {
-        kv = Iterables.getOnlyElement(s);
-      } catch (NoSuchElementException e) {
-       log.trace("Could not find status of {} replicating to {}", filename, target);
-       status = "Unknown";
-      } finally {
-        s.close();
-      }
-
-      // If we found the work entry for it, try to compute some progress
-      if (null != kv) {
+      if (null != data) {
+        String path = new String(filename);
+        Scanner s = ReplicationTable.getScanner(conn);
+        s.setRange(Range.exact(path));
+        s.fetchColumn(WorkSection.NAME, target.toText());
+  
+        // Fetch the work entry for this item
+        Entry<Key,Value> kv = null;
         try {
-          Status stat = Status.parseFrom(kv.getValue().get());
-          if (StatusUtil.isFullyReplicated(stat)) {
-            status = "Finished";
-          } else {
-            if (stat.getInfiniteEnd()) {
-              status = stat.getBegin() + "/&infin;";
+          kv = Iterables.getOnlyElement(s);
+        } catch (NoSuchElementException e) {
+         log.trace("Could not find status of {} replicating to {}", filename, target);
+         status = "Unknown";
+        } finally {
+          s.close();
+        }
+  
+        // If we found the work entry for it, try to compute some progress
+        if (null != kv) {
+          try {
+            Status stat = Status.parseFrom(kv.getValue().get());
+            if (StatusUtil.isFullyReplicated(stat)) {
+              status = "Finished";
             } else {
-              status = stat.getBegin() + "/" + stat.getEnd();
+              if (stat.getInfiniteEnd()) {
+                status = stat.getBegin() + "/&infin;";
+              } else {
+                status = stat.getBegin() + "/" + stat.getEnd();
+              }
             }
+          } catch (InvalidProtocolBufferException e) {
+            log.warn("Could not deserialize protobuf for {}", kv.getKey(), e);
+            status = "Unknown";
           }
-        } catch (InvalidProtocolBufferException e) {
-          log.warn("Could not deserialize protobuf for {}", kv.getKey(), e);
-          status = "Unknown";
         }
       }
 
