@@ -44,6 +44,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTarget;
+import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
@@ -213,43 +214,43 @@ public class ReplicationServlet extends BasicServlet {
       String filename = queueKeyPair.getKey();
       ReplicationTarget target = queueKeyPair.getValue();
 
-      byte[] data = zooCache.get(workQueuePath + "/" + queueKey);
+      Scanner s = ReplicationTable.getScanner(conn);
+      s.setRange(Range.exact(filename));
+      s.fetchColumn(WorkSection.NAME, target.toText());
 
-      if (null != data) {
-        Scanner s = ReplicationTable.getScanner(conn);
-        s.setRange(Range.exact(filename));
-        s.fetchColumn(WorkSection.NAME, target.toText());
+      // Fetch the work entry for this item
+      String status = "Unknown";
+      Entry<Key,Value> kv = null;
+      try {
+        kv = Iterables.getOnlyElement(s);
+      } catch (NoSuchElementException e) {
+       log.trace("Could not find status of {} replicating to {}", filename, target);
+       status = "Unknown";
+      } finally {
+        s.close();
+      }
 
-        // Fetch the work entry for this item
-        String status = "Unknown";
-        Entry<Key,Value> kv = null;
+      // If we found the work entry for it, try to compute some progress
+      if (null != kv) {
         try {
-          kv = Iterables.getOnlyElement(s);
-        } catch (NoSuchElementException e) {
-         log.trace("Could not find status of {} replicating to {}", filename, target);
-         status = "Unknown";
-        } finally {
-          s.close();
-        }
-
-        // If we found the work entry for it, try to compute some progress
-        if (null != kv) {
-          try {
-            Status stat = Status.parseFrom(kv.getValue().get());
+          Status stat = Status.parseFrom(kv.getValue().get());
+          if (StatusUtil.isFullyReplicated(stat)) {
+            status = "Finished";
+          } else {
             if (stat.getInfiniteEnd()) {
               status = stat.getBegin() + "/&infin;";
             } else {
               status = stat.getBegin() + "/" + stat.getEnd();
             }
-          } catch (InvalidProtocolBufferException e) {
-            log.warn("Could not deserialize protobuf for {}", kv.getKey(), e);
-            status = "Unknown";
           }
+        } catch (InvalidProtocolBufferException e) {
+          log.warn("Could not deserialize protobuf for {}", kv.getKey(), e);
+          status = "Unknown";
         }
-
-        // Add a row in the table
-        replicationInProgress.addRow(filename, target.getPeerName(), target.getSourceTableId(), target.getRemoteIdentifier(), status);
       }
+
+      // Add a row in the table
+      replicationInProgress.addRow(filename, target.getPeerName(), target.getSourceTableId(), target.getRemoteIdentifier(), status);
     }
 
     replicationInProgress.generate(req, sb);
