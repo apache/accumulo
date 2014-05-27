@@ -220,7 +220,7 @@ public class ReplicationServlet extends BasicServlet {
       // can't find the status quickly
       String status = "Unknown";
       if (null != data) {
-        String path = new String(filename);
+        String path = new String(data);
         Scanner s = ReplicationTable.getScanner(conn);
         s.setRange(Range.exact(path));
         s.fetchColumn(WorkSection.NAME, target.toText());
@@ -244,9 +244,9 @@ public class ReplicationServlet extends BasicServlet {
               status = "Finished";
             } else {
               if (stat.getInfiniteEnd()) {
-                status = stat.getBegin() + "/&infin;";
+                status = stat.getBegin() + "/&infin; records";
               } else {
-                status = stat.getBegin() + "/" + stat.getEnd();
+                status = stat.getBegin() + "/" + stat.getEnd() + " records";
               }
             }
           } catch (InvalidProtocolBufferException e) {
