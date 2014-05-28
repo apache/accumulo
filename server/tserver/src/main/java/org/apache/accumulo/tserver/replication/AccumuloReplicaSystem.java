@@ -152,82 +152,84 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     Credentials credentialsForPeer = getCredentialsForPeer(localConf, target);
     final TCredentials tCredsForPeer = credentialsForPeer.toThrift(localInstance);
 
-    Trace.on("AccumuloReplicaSystem");
+    try {
+      Trace.on("AccumuloReplicaSystem");
 
-    Instance peerInstance = getPeerInstance(target);
-    // Remote identifier is an integer (table id) in this case.
-    final int remoteTableId = Integer.parseInt(target.getRemoteIdentifier());
+      Instance peerInstance = getPeerInstance(target);
+      // Remote identifier is an integer (table id) in this case.
+      final int remoteTableId = Integer.parseInt(target.getRemoteIdentifier());
 
-    // Attempt the replication of this status a number of times before giving up and
-    // trying to replicate it again later some other time.
-    int numAttempts = localConf.getCount(Property.REPLICATION_WORK_ATTEMPTS);
-    for (int i = 0; i < numAttempts; i++) {
-      String peerTserver;
-      Span span = Trace.start("Fetch peer tserver");
-      try {
-        // Ask the master on the remote what TServer we should talk with to replicate the data
-        peerTserver = ReplicationClient.executeCoordinatorWithReturn(peerInstance, new ClientExecReturn<String,ReplicationCoordinator.Client>() {
+      // Attempt the replication of this status a number of times before giving up and
+      // trying to replicate it again later some other time.
+      int numAttempts = localConf.getCount(Property.REPLICATION_WORK_ATTEMPTS);
+      for (int i = 0; i < numAttempts; i++) {
+        String peerTserver;
+        Span span = Trace.start("Fetch peer tserver");
+        try {
+          // Ask the master on the remote what TServer we should talk with to replicate the data
+          peerTserver = ReplicationClient.executeCoordinatorWithReturn(peerInstance, new ClientExecReturn<String,ReplicationCoordinator.Client>() {
 
-          @Override
-          public String execute(ReplicationCoordinator.Client client) throws Exception {
-            return client.getServicerAddress(remoteTableId, tCredsForPeer);
-          }
+            @Override
+            public String execute(ReplicationCoordinator.Client client) throws Exception {
+              return client.getServicerAddress(remoteTableId, tCredsForPeer);
+            }
 
-        });
-      } catch (AccumuloException | AccumuloSecurityException e) {
-        // No progress is made
-        log.error("Could not connect to master at {}, cannot proceed with replication. Will retry", target, e);
-        continue;
-      } finally {
-        span.stop();
-      }
-
-      if (null == peerTserver) {
-        // Something went wrong, and we didn't get a valid tserver from the remote for some reason
-        log.warn("Did not receive tserver from master at {}, cannot proceed with replication. Will retry.", target);
-        continue;
-      }
-
-      // We have a tserver on the remote -- send the data its way.
-      Status finalStatus;
-      final long sizeLimit = conf.getMemoryInBytes(Property.REPLICATION_MAX_UNIT_SIZE);
-      try {
-        if (p.getName().endsWith(RFILE_SUFFIX)) {
-          span = Trace.start("RFile replication");
-          try {
-            finalStatus = replicateRFiles(peerInstance, peerTserver, target, p, status, sizeLimit, remoteTableId, tCredsForPeer, helper);
-          } finally {
-            span.stop();
-          }
-        } else {
-          span = Trace.start("WAL replication");
-          try {
-            finalStatus = replicateLogs(peerInstance, peerTserver, target, p, status, sizeLimit, remoteTableId, tCredsForPeer, helper);
-          } finally {
-            span.stop();
-          }
+          });
+        } catch (AccumuloException | AccumuloSecurityException e) {
+          // No progress is made
+          log.error("Could not connect to master at {}, cannot proceed with replication. Will retry", target, e);
+          continue;
+        } finally {
+          span.stop();
         }
 
-        log.debug("New status for {} after replicating to {} is {}", p, peerInstance, ProtobufUtil.toString(finalStatus));
+        if (null == peerTserver) {
+          // Something went wrong, and we didn't get a valid tserver from the remote for some reason
+          log.warn("Did not receive tserver from master at {}, cannot proceed with replication. Will retry.", target);
+          continue;
+        }
 
-        return finalStatus;
-      } catch (TTransportException | AccumuloException | AccumuloSecurityException e) {
-        log.warn("Could not connect to remote server {}, will retry", peerTserver, e);
-        UtilWaitThread.sleep(1000);
+        // We have a tserver on the remote -- send the data its way.
+        Status finalStatus;
+        final long sizeLimit = conf.getMemoryInBytes(Property.REPLICATION_MAX_UNIT_SIZE);
+        try {
+          if (p.getName().endsWith(RFILE_SUFFIX)) {
+            span = Trace.start("RFile replication");
+            try {
+              finalStatus = replicateRFiles(peerInstance, peerTserver, target, p, status, sizeLimit, remoteTableId, tCredsForPeer, helper);
+            } finally {
+              span.stop();
+            }
+          } else {
+            span = Trace.start("WAL replication");
+            try {
+              finalStatus = replicateLogs(peerInstance, peerTserver, target, p, status, sizeLimit, remoteTableId, tCredsForPeer, helper);
+            } finally {
+              span.stop();
+            }
+          }
+
+          log.debug("New status for {} after replicating to {} is {}", p, peerInstance, ProtobufUtil.toString(finalStatus));
+
+          return finalStatus;
+        } catch (TTransportException | AccumuloException | AccumuloSecurityException e) {
+          log.warn("Could not connect to remote server {}, will retry", peerTserver, e);
+          UtilWaitThread.sleep(1000);
+        }
       }
+
+      log.info("No progress was made after {} attempts to replicate {}, returning so file can be re-queued", numAttempts, p);
+
+      // We made no status, punt on it for now, and let it re-queue itself for work
+      return status;
+    } finally {
+      Trace.offNoFlush();
     }
-
-    log.info("No progress was made after {} attempts to replicate {}, returning so file can be re-queued", numAttempts, p);
-
-    Trace.offNoFlush();
-
-    // We made no status, punt on it for now, and let it re-queue itself for work
-    return status;
   }
 
-  protected Status replicateRFiles(final Instance peerInstance, final String peerTserver, final ReplicationTarget target, final Path p,
-      final Status status, final long sizeLimit, final int remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper) throws TTransportException, AccumuloException,
-      AccumuloSecurityException {
+  protected Status replicateRFiles(final Instance peerInstance, final String peerTserver, final ReplicationTarget target, final Path p, final Status status,
+      final long sizeLimit, final int remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper) throws TTransportException,
+      AccumuloException, AccumuloSecurityException {
     DataInputStream input;
     try {
       input = getRFileInputStream(p);
@@ -239,8 +241,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     Status lastStatus = status, currentStatus = status;
     while (true) {
       // Read and send a batch of mutations
-      ReplicationStats replResult = ReplicationClient.executeServicerWithReturn(peerInstance, peerTserver,
-          new RFileClientExecReturn(target, input, p, currentStatus, sizeLimit, remoteTableId, tcreds));
+      ReplicationStats replResult = ReplicationClient.executeServicerWithReturn(peerInstance, peerTserver, new RFileClientExecReturn(target, input, p,
+          currentStatus, sizeLimit, remoteTableId, tcreds));
 
       // Catch the overflow
       long newBegin = currentStatus.getBegin() + replResult.entriesConsumed;
@@ -271,9 +273,9 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     }
   }
 
-  protected Status replicateLogs(final Instance peerInstance, final String peerTserver, final ReplicationTarget target, final Path p,
-      final Status status, final long sizeLimit, final int remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper) throws TTransportException, AccumuloException,
-      AccumuloSecurityException {
+  protected Status replicateLogs(final Instance peerInstance, final String peerTserver, final ReplicationTarget target, final Path p, final Status status,
+      final long sizeLimit, final int remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper) throws TTransportException,
+      AccumuloException, AccumuloSecurityException {
 
     final Set<Integer> tids;
     final DataInputStream input;
@@ -315,8 +317,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       ReplicationStats replResult;
       try {
         // Read and send a batch of mutations
-        replResult = ReplicationClient.executeServicerWithReturn(peerInstance, peerTserver,
-            new WalClientExecReturn(target, input, p, currentStatus, sizeLimit, remoteTableId, tcreds, tids));
+        replResult = ReplicationClient.executeServicerWithReturn(peerInstance, peerTserver, new WalClientExecReturn(target, input, p, currentStatus, sizeLimit,
+            remoteTableId, tcreds, tids));
       } finally {
         span.stop();
       }
@@ -371,7 +373,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     private TCredentials tcreds;
     private Set<Integer> tids;
 
-    public WalClientExecReturn(ReplicationTarget target, DataInputStream input, Path p, Status status, long sizeLimit, int remoteTableId, TCredentials tcreds, Set<Integer> tids) {
+    public WalClientExecReturn(ReplicationTarget target, DataInputStream input, Path p, Status status, long sizeLimit, int remoteTableId, TCredentials tcreds,
+        Set<Integer> tids) {
       this.target = target;
       this.input = input;
       this.p = p;
@@ -386,8 +389,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     public ReplicationStats execute(Client client) throws Exception {
       WalReplication edits = getWalEdits(target, input, p, status, sizeLimit, tids);
 
-      log.debug("Read {} WAL entries and retained {} bytes of WAL entries for replication to peer '{}'",
-          (Long.MAX_VALUE == edits.entriesConsumed) ? "all" : edits.entriesConsumed, edits.sizeInBytes, p);
+      log.debug("Read {} WAL entries and retained {} bytes of WAL entries for replication to peer '{}'", (Long.MAX_VALUE == edits.entriesConsumed) ? "all"
+          : edits.entriesConsumed, edits.sizeInBytes, p);
 
       // If we have some edits to send
       if (0 < edits.walEdits.getEditsSize()) {
