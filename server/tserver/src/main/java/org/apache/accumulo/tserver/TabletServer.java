@@ -3241,9 +3241,23 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     log.info("Started replication service at " + replicationAddress);
 
     // Start the pool to handle outgoing replications
-    ThreadPoolExecutor replicationThreadPool = new SimpleThreadPool(getSystemConfiguration().getCount(Property.REPLICATION_WORKER_THREADS), "replication task");
+    final ThreadPoolExecutor replicationThreadPool = new SimpleThreadPool(getSystemConfiguration().getCount(Property.REPLICATION_WORKER_THREADS), "replication task");
     replWorker.setExecutor(replicationThreadPool);
     replWorker.run();
+
+    // Check the configuration value for the size of the pool and, if changed, resize the pool, every 5 seconds);
+    final AccumuloConfiguration aconf = getSystemConfiguration();
+    Runnable replicationWorkThreadPoolResizer = new Runnable() {
+      @Override
+      public void run() {
+        int maxPoolSize = aconf.getCount(Property.REPLICATION_WORKER_THREADS);
+        if (replicationThreadPool.getMaximumPoolSize() != maxPoolSize) {
+          log.info("Resizing thread pool for sending replication work from " + replicationThreadPool.getMaximumPoolSize() + " to " + maxPoolSize);
+          replicationThreadPool.setMaximumPoolSize(maxPoolSize);
+        }
+      }
+    };
+    SimpleTimer.getInstance(aconf).schedule(replicationWorkThreadPoolResizer, 10000, 30000);
 
     try {
       OBJECT_NAME = new ObjectName("accumulo.server.metrics:service=TServerInfo,name=TabletServerMBean,instance=" + Thread.currentThread().getName());
