@@ -680,30 +680,44 @@ public class ReplicationTest extends ConfigurableMacIT {
         log.info(entry.getKey().toStringNoTruncate() + "=" + entry.getValue());
       }
 
-      s = ReplicationTable.getScanner(conn);
-      StatusSection.limit(s);
-      Text buff = new Text();
-      boolean allReferencedLogsClosed = true;
-      int recordsFound = 0;
-      for (Entry<Key,Value> e : s) {
-        recordsFound++;
-        allReferencedLogsClosed = true;
-        StatusSection.getFile(e.getKey(), buff);
-        String file = buff.toString();
-        if (wals.contains(file)) {
-          Status stat = Status.parseFrom(e.getValue().get());
-          if (!stat.getClosed()) {
-            log.info("{} wasn't closed", file);
-            allReferencedLogsClosed = false;
+      try {
+        s = ReplicationTable.getScanner(conn);
+        StatusSection.limit(s);
+        Text buff = new Text();
+        boolean allReferencedLogsClosed = true;
+        int recordsFound = 0;
+        for (Entry<Key,Value> e : s) {
+          recordsFound++;
+          allReferencedLogsClosed = true;
+          StatusSection.getFile(e.getKey(), buff);
+          String file = buff.toString();
+          if (wals.contains(file)) {
+            Status stat = Status.parseFrom(e.getValue().get());
+            if (!stat.getClosed()) {
+              log.info("{} wasn't closed", file);
+              allReferencedLogsClosed = false;
+            }
+          }
+        }
+
+        if (recordsFound > 0 && allReferencedLogsClosed) {
+          return;
+        }
+        Thread.sleep(1000);
+      } catch (RuntimeException e) {
+        Throwable cause = e.getCause();
+        if (cause instanceof AccumuloSecurityException) {
+          AccumuloSecurityException ase = (AccumuloSecurityException) cause;
+          switch (ase.getSecurityErrorCode()) {
+            case PERMISSION_DENIED:
+              // We tried to read the replication table before the GRANT went through
+              Thread.sleep(1000);
+              break;
+            default:
+              throw e;
           }
         }
       }
-
-      if (recordsFound > 0 && allReferencedLogsClosed) {
-        return;
-      }
-
-      Thread.sleep(1000);
     }
 
     Assert.fail("We had a file that was referenced but didn't get closed");
@@ -817,7 +831,8 @@ public class ReplicationTest extends ConfigurableMacIT {
 
     Assert.assertNotNull("Could not find expected entry in replication table", entry);
     Status actual = Status.parseFrom(entry.getValue().get());
-    Assert.assertTrue("Expected to find a replication entry that is open with infinite length: " + ProtobufUtil.toString(actual), !actual.getClosed() && actual.getInfiniteEnd());
+    Assert.assertTrue("Expected to find a replication entry that is open with infinite length: " + ProtobufUtil.toString(actual),
+        !actual.getClosed() && actual.getInfiniteEnd());
 
     // Try a couple of times to watch for the work record to be created
     boolean notFound = true;
@@ -1011,7 +1026,7 @@ public class ReplicationTest extends ConfigurableMacIT {
     });
 
     t.start();
-    
+
     String table1 = "table1", table2 = "table2", table3 = "table3";
 
     BatchWriter bw;
@@ -1021,7 +1036,7 @@ public class ReplicationTest extends ConfigurableMacIT {
       conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION_TARGETS.getKey() + "cluster1", "1");
       conn.instanceOperations().setProperty(Property.REPLICATION_PEERS.getKey() + "cluster1",
           ReplicaSystemFactory.getPeerConfigurationValue(MockReplicaSystem.class, null));
-  
+
       // Write some data to table1
       bw = conn.createBatchWriter(table1, new BatchWriterConfig());
       for (int rows = 0; rows < 200; rows++) {
@@ -1032,13 +1047,13 @@ public class ReplicationTest extends ConfigurableMacIT {
         }
         bw.addMutation(m);
       }
-  
+
       bw.close();
-  
+
       conn.tableOperations().create(table2);
       conn.tableOperations().setProperty(table2, Property.TABLE_REPLICATION.getKey(), "true");
       conn.tableOperations().setProperty(table2, Property.TABLE_REPLICATION_TARGETS.getKey() + "cluster1", "1");
-  
+
       // Write some data to table2
       bw = conn.createBatchWriter(table2, new BatchWriterConfig());
       for (int rows = 0; rows < 200; rows++) {
@@ -1049,13 +1064,13 @@ public class ReplicationTest extends ConfigurableMacIT {
         }
         bw.addMutation(m);
       }
-  
+
       bw.close();
-  
+
       conn.tableOperations().create(table3);
       conn.tableOperations().setProperty(table3, Property.TABLE_REPLICATION.getKey(), "true");
       conn.tableOperations().setProperty(table3, Property.TABLE_REPLICATION_TARGETS.getKey() + "cluster1", "1");
-  
+
       // Write some data to table3
       bw = conn.createBatchWriter(table3, new BatchWriterConfig());
       for (int rows = 0; rows < 200; rows++) {
@@ -1066,9 +1081,9 @@ public class ReplicationTest extends ConfigurableMacIT {
         }
         bw.addMutation(m);
       }
-  
+
       bw.close();
-  
+
       // Flush everything to try to make the replication records
       for (String table : Arrays.asList(table1, table2, table3)) {
         conn.tableOperations().compact(table, null, null, true, true);
@@ -1191,8 +1206,8 @@ public class ReplicationTest extends ConfigurableMacIT {
     // replication shouldn't exist when we begin
     Assert.assertFalse(conn.tableOperations().exists(ReplicationTable.NAME));
 
-//    ReplicationTablesPrinterThread thread = new ReplicationTablesPrinterThread(conn, System.out);
-//    thread.start();
+    // ReplicationTablesPrinterThread thread = new ReplicationTablesPrinterThread(conn, System.out);
+    // thread.start();
 
     try {
       // Create two tables
@@ -1395,8 +1410,8 @@ public class ReplicationTest extends ConfigurableMacIT {
 
       Assert.assertEquals("Found unexpected replication records in the replication table", 0, recordsFound);
     } finally {
-//      thread.interrupt();
-//      thread.join(5000);
+      // thread.interrupt();
+      // thread.join(5000);
     }
   }
 }
