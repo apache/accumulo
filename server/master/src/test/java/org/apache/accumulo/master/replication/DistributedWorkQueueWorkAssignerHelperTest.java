@@ -20,6 +20,7 @@ import java.util.Map.Entry;
 import java.util.UUID;
 
 import org.apache.accumulo.core.replication.ReplicationTarget;
+import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.common.PathUtils;
 import org.junit.Assert;
@@ -28,14 +29,14 @@ import org.junit.Test;
 /**
  * 
  */
-public class AbstractWorkAssignerTest {
+public class DistributedWorkQueueWorkAssignerHelperTest {
 
   @Test
   public void createsValidZKNodeName() {
     Path p = new Path("/accumulo/wals/tserver+port/" + UUID.randomUUID().toString());
     ReplicationTarget target = new ReplicationTarget("cluster1", "table1", "1");
 
-    String key = DistributedWorkQueueWorkAssigner.getQueueKey(p.toString(), target);
+    String key = DistributedWorkQueueWorkAssignerHelper.getQueueKey(p.toString(), target);
 
     PathUtils.validatePath(key);
   }
@@ -45,9 +46,9 @@ public class AbstractWorkAssignerTest {
     Path p = new Path("/accumulo/wals/tserver+port/" + UUID.randomUUID().toString());
     ReplicationTarget target = new ReplicationTarget("cluster1", "table1", "1");
 
-    String key = DistributedWorkQueueWorkAssigner.getQueueKey(p.toString(), target);
+    String key = DistributedWorkQueueWorkAssignerHelper.getQueueKey(p.toString(), target);
 
-    Entry<String,ReplicationTarget> result = DistributedWorkQueueWorkAssigner.fromQueueKey(key);
+    Entry<String,ReplicationTarget> result = DistributedWorkQueueWorkAssignerHelper.fromQueueKey(key);
     Assert.assertEquals(p.toString(), result.getKey());
     Assert.assertEquals(target, result.getValue());
   }

@@ -37,6 +37,7 @@ import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
 import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.accumulo.server.replication.WorkAssigner;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
@@ -46,8 +47,6 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
@@ -65,51 +64,6 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
   protected DistributedWorkQueue workQueue;
   protected int maxQueueSize;
   protected ZooCache zooCache;
-
-  public static final String KEY_SEPARATOR = "|";
-
-  /**
-   * Serialize a filename and a {@link ReplicationTarget} into the expected key format for use with the {@link DistributedWorkQueue}
-   * 
-   * @param filename
-   *          Filename for data to be replicated
-   * @param replTarget
-   *          Information about replication peer
-   * @return Key for identifying work in queue
-   */
-  public static String getQueueKey(String filename, ReplicationTarget replTarget) {
-    return filename + KEY_SEPARATOR + replTarget.getPeerName() + KEY_SEPARATOR + replTarget.getRemoteIdentifier() + KEY_SEPARATOR
-        + replTarget.getSourceTableId();
-  }
-
-  /**
-   * @param queueKey
-   *          Key from the work queue
-   * @return Components which created the queue key
-   */
-  public static Entry<String,ReplicationTarget> fromQueueKey(String queueKey) {
-    Preconditions.checkNotNull(queueKey);
-
-    int index = queueKey.indexOf(KEY_SEPARATOR);
-    if (-1 == index) {
-      throw new IllegalArgumentException("Could not find expected separator in queue key '" + queueKey + "'");
-    }
-
-    String filename = queueKey.substring(0, index);
-
-    int secondIndex = queueKey.indexOf(KEY_SEPARATOR, index + 1);
-    if (-1 == secondIndex) {
-      throw new IllegalArgumentException("Could not find expected separator in queue key '" + queueKey + "'");
-    }
-
-    int thirdIndex = queueKey.indexOf(KEY_SEPARATOR, secondIndex + 1);
-    if (-1 == thirdIndex) {
-      throw new IllegalArgumentException("Could not find expected seperator in queue key '" + queueKey + "'");
-    }
-
-    return Maps.immutableEntry(filename, new ReplicationTarget(queueKey.substring(index + 1, secondIndex), queueKey.substring(secondIndex + 1, thirdIndex),
-        queueKey.substring(thirdIndex + 1)));
-  }
 
   /*
    * Getters/setters for testing purposes
@@ -252,7 +206,7 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
 
         Path p = new Path(file);
         String filename = p.getName();
-        String key = getQueueKey(filename, target);
+        String key = DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename, target);
 
         if (!shouldQueueWork(target)) {
           if (!isWorkRequired(status) && keysBeingReplicated.contains(key)) {

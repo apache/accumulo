@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -95,7 +96,7 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
     log.info("Restoring replication work queue state from zookeeper");
 
     for (String work : existingWork) {
-      Entry<String,ReplicationTarget> entry = fromQueueKey(work);
+      Entry<String,ReplicationTarget> entry = DistributedWorkQueueWorkAssignerHelper.fromQueueKey(work);
       String filename = entry.getKey();
       String peerName = entry.getValue().getPeerName();
       String sourceTableId = entry.getValue().getSourceTableId();
@@ -167,7 +168,7 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
 
   @Override
   protected boolean queueWork(Path path, ReplicationTarget target) {
-    String queueKey = getQueueKey(path.getName(), target);
+    String queueKey = DistributedWorkQueueWorkAssignerHelper.getQueueKey(path.getName(), target);
     Map<String,String> workForPeer = this.queuedWorkByPeerName.get(target.getPeerName());
     if (null == workForPeer) {
       workForPeer = new HashMap<>();

@@ -26,6 +26,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -42,8 +43,8 @@ import org.slf4j.LoggerFactory;
  * throughput.
  */
 public class UnorderedWorkAssigner extends DistributedWorkQueueWorkAssigner {
-  private static final Logger log = LoggerFactory.getLogger(DistributedWorkQueueWorkAssigner.class);
-  private static final String NAME = "DistributedWorkQueue Replication Work Assigner";
+  private static final Logger log = LoggerFactory.getLogger(UnorderedWorkAssigner.class);
+  private static final String NAME = "Unordered Work Assigner";
 
   private Set<String> queuedWork;
 
@@ -105,7 +106,7 @@ public class UnorderedWorkAssigner extends DistributedWorkQueueWorkAssigner {
    */
   @Override
   protected boolean queueWork(Path path, ReplicationTarget target) {
-    String queueKey = getQueueKey(path.getName(), target);
+    String queueKey = DistributedWorkQueueWorkAssignerHelper.getQueueKey(path.getName(), target);
     if (queuedWork.contains(queueKey)) {
       return false;
     }
@@ -151,7 +152,8 @@ public class UnorderedWorkAssigner extends DistributedWorkQueueWorkAssigner {
 
   @Override
   protected Set<String> getQueuedWork(ReplicationTarget target) {
-    String desiredQueueKeySuffix = KEY_SEPARATOR + target.getPeerName() + KEY_SEPARATOR + target.getRemoteIdentifier() + KEY_SEPARATOR
+    String desiredQueueKeySuffix = DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getPeerName()
+        + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getRemoteIdentifier() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
         + target.getSourceTableId();
     Set<String> queuedWorkForTarget = new HashSet<>();
     for (String queuedWork : this.queuedWork) {

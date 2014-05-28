@@ -45,6 +45,7 @@ import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
 import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.ZooCache;
@@ -83,8 +84,8 @@ public class UnorderedWorkAssignerTest {
 
     Path p = new Path("/accumulo/wal/tserver+port/" + UUID.randomUUID());
 
-    String expectedQueueKey = p.getName() + DistributedWorkQueueWorkAssigner.KEY_SEPARATOR + target.getPeerName() + DistributedWorkQueueWorkAssigner.KEY_SEPARATOR
-        + target.getRemoteIdentifier() + DistributedWorkQueueWorkAssigner.KEY_SEPARATOR + target.getSourceTableId();
+    String expectedQueueKey = p.getName() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getPeerName() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
+        + target.getRemoteIdentifier() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getSourceTableId();
     
     workQueue.addWork(expectedQueueKey, p.toString());
     expectLastCall().once();
@@ -120,9 +121,9 @@ public class UnorderedWorkAssignerTest {
   public void createWorkForFilesNeedingIt() throws Exception {
     ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", "1"), target2 = new ReplicationTarget("cluster1", "table2", "2");
     Text serializedTarget1 = target1.toText(), serializedTarget2 = target2.toText();
-    String keyTarget1 = target1.getPeerName() + DistributedWorkQueueWorkAssigner.KEY_SEPARATOR + target1.getRemoteIdentifier()
-        + DistributedWorkQueueWorkAssigner.KEY_SEPARATOR + target1.getSourceTableId(), keyTarget2 = target2.getPeerName()
-        + DistributedWorkQueueWorkAssigner.KEY_SEPARATOR + target2.getRemoteIdentifier() + DistributedWorkQueueWorkAssigner.KEY_SEPARATOR
+    String keyTarget1 = target1.getPeerName() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target1.getRemoteIdentifier()
+        + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target1.getSourceTableId(), keyTarget2 = target2.getPeerName()
+        + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target2.getRemoteIdentifier() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
         + target2.getSourceTableId();
 
     MockInstance inst = new MockInstance(test.getMethodName());
@@ -255,8 +256,8 @@ public class UnorderedWorkAssignerTest {
     assigner.setQueuedWork(queuedWork);
 
     ReplicationTarget target = new ReplicationTarget("cluster1", "table1", "1");
-    String serializedTarget = target.getPeerName() + DistributedWorkQueueWorkAssigner.KEY_SEPARATOR + target.getRemoteIdentifier()
-        + DistributedWorkQueueWorkAssigner.KEY_SEPARATOR + target.getSourceTableId();
+    String serializedTarget = target.getPeerName() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getRemoteIdentifier()
+        + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getSourceTableId();
 
     queuedWork.add("wal1|" + serializedTarget.toString());
 
