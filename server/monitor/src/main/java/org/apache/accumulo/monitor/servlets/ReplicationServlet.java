@@ -105,7 +105,9 @@ public class ReplicationServlet extends BasicServlet {
 
     // Get the defined peers and what ReplicaSystem impl they're using
     for (Entry<String,String> property : properties.entrySet()) {
-      if (property.getKey().startsWith(definedPeersPrefix)) {
+      String key = property.getKey();
+      // Filter out cruft that we don't want
+      if (key.startsWith(definedPeersPrefix) && !key.startsWith(Property.REPLICATION_PEER_USER.getKey()) && !key.startsWith(Property.REPLICATION_PEER_PASSWORD.getKey())) {
         String peerName = property.getKey().substring(definedPeersPrefix.length());
         ReplicaSystem replica;
         try {
