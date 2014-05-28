@@ -51,17 +51,18 @@ public class ReplicationClient {
    *          Instance for the peer replicant
    * @return Client to the ReplicationCoordinator service
    */
-  public static ReplicationCoordinator.Client getCoordinatorConnectionWithRetry(Instance instance) {
+  public static ReplicationCoordinator.Client getCoordinatorConnectionWithRetry(Instance instance) throws AccumuloException {
     checkArgument(instance != null, "instance is null");
 
-    while (true) {
+    for (int attempts = 1; attempts <= 10; attempts++) {
 
       ReplicationCoordinator.Client result = getCoordinatorConnection(instance);
       if (result != null)
         return result;
-      UtilWaitThread.sleep(250);
+      UtilWaitThread.sleep(attempts * 250);
     }
 
+    throw new AccumuloException("Timed out trying to communicate with master from " + instance.getInstanceName());
   }
 
   public static ReplicationCoordinator.Client getCoordinatorConnection(Instance instance) {
