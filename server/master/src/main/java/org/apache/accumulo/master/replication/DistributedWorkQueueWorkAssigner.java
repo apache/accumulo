@@ -16,106 +16,99 @@
  */
 package org.apache.accumulo.master.replication;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
+import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.protobuf.ProtobufUtil;
+import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.server.replication.AbstractWorkAssigner;
 import org.apache.accumulo.server.replication.ReplicationTable;
+import org.apache.accumulo.server.replication.WorkAssigner;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.TextFormat;
 
 /**
- * Read work records from the replication table, create work entries for other nodes to complete.
- * <p>
- * Uses the DistributedWorkQueue to make the work available for any tserver. This approach does not consider the locality of the tabletserver performing the
- * work in relation to the data being replicated (local HDFS blocks).
- * <p>
- * The implementation allows for multiple tservers to concurrently replicate data to peer(s), however it is possible that data for a table is replayed on the
- * peer in a different order than the master. The {@link SequentialWorkAssigner} should be used if this must be guaranteed at the cost of replication
- * throughput.
+ * Common methods for {@link WorkAssigner}s
  */
-public class DistributedWorkQueueWorkAssigner extends AbstractWorkAssigner {
+public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
   private static final Logger log = LoggerFactory.getLogger(DistributedWorkQueueWorkAssigner.class);
-  private static final String NAME = "DistributedWorkQueue Replication Work Assigner";
 
-  private Connector conn;
-  private AccumuloConfiguration conf;
-
-  private DistributedWorkQueue workQueue;
-  private Set<String> queuedWork;
-  private int maxQueueSize;
-  private ZooCache zooCache;
-
-  public DistributedWorkQueueWorkAssigner() {}
-
-  public DistributedWorkQueueWorkAssigner(AccumuloConfiguration conf, Connector conn) {
-    this.conf = conf;
-    this.conn = conn;
+  protected boolean isWorkRequired(Status status) {
+    return StatusUtil.isWorkRequired(status);
   }
 
-  @Override
-  public void configure(AccumuloConfiguration conf, Connector conn) {
-    this.conf = conf;
-    this.conn = conn;
+  protected Connector conn;
+  protected AccumuloConfiguration conf;
+  protected DistributedWorkQueue workQueue;
+  protected int maxQueueSize;
+  protected ZooCache zooCache;
+
+  public static final String KEY_SEPARATOR = "|";
+
+  /**
+   * Serialize a filename and a {@link ReplicationTarget} into the expected key format for use with the {@link DistributedWorkQueue}
+   * 
+   * @param filename
+   *          Filename for data to be replicated
+   * @param replTarget
+   *          Information about replication peer
+   * @return Key for identifying work in queue
+   */
+  public static String getQueueKey(String filename, ReplicationTarget replTarget) {
+    return filename + KEY_SEPARATOR + replTarget.getPeerName() + KEY_SEPARATOR + replTarget.getRemoteIdentifier() + KEY_SEPARATOR
+        + replTarget.getSourceTableId();
   }
 
-  @Override
-  public String getName() {
-    return NAME;
-  }
+  /**
+   * @param queueKey
+   *          Key from the work queue
+   * @return Components which created the queue key
+   */
+  public static Entry<String,ReplicationTarget> fromQueueKey(String queueKey) {
+    Preconditions.checkNotNull(queueKey);
 
-  @Override
-  public void assignWork() {
-    if (null == workQueue) {
-      initializeWorkQueue(conf);
+    int index = queueKey.indexOf(KEY_SEPARATOR);
+    if (-1 == index) {
+      throw new IllegalArgumentException("Could not find expected separator in queue key '" + queueKey + "'");
     }
 
-    if (null == queuedWork) {
-      log.info("Reinitializing state from DistributedWorkQueue in ZooKeeper");
-      initializeQueuedWork();
+    String filename = queueKey.substring(0, index);
+
+    int secondIndex = queueKey.indexOf(KEY_SEPARATOR, index + 1);
+    if (-1 == secondIndex) {
+      throw new IllegalArgumentException("Could not find expected separator in queue key '" + queueKey + "'");
     }
 
-    if (null == zooCache) {
-      zooCache = new ZooCache();
+    int thirdIndex = queueKey.indexOf(KEY_SEPARATOR, secondIndex + 1);
+    if (-1 == thirdIndex) {
+      throw new IllegalArgumentException("Could not find expected seperator in queue key '" + queueKey + "'");
     }
 
-    // Get the maximum number of entries we want to queue work for (or the default)
-    this.maxQueueSize = conf.getCount(Property.REPLICATION_MAX_WORK_QUEUE);
-
-    log.info("Creating work entries from replication table");
-    // Scan over the work records, adding the work to the queue
-    createWork();
-
-    log.info("Cleaning up finished work entries from replication table");
-    // Keep the state of the work we queued correct
-    cleanupFinishedWork();
+    return Maps.immutableEntry(filename, new ReplicationTarget(queueKey.substring(index + 1, secondIndex), queueKey.substring(secondIndex + 1, thirdIndex),
+        queueKey.substring(thirdIndex + 1)));
   }
 
   /*
@@ -145,14 +138,6 @@ public class DistributedWorkQueueWorkAssigner extends AbstractWorkAssigner {
     this.workQueue = workQueue;
   }
 
-  protected Set<String> getQueuedWork() {
-    return queuedWork;
-  }
-
-  protected void setQueuedWork(Set<String> queuedWork) {
-    this.queuedWork = queuedWork;
-  }
-
   protected int getMaxQueueSize() {
     return maxQueueSize;
   }
@@ -169,7 +154,6 @@ public class DistributedWorkQueueWorkAssigner extends AbstractWorkAssigner {
     this.zooCache = zooCache;
   }
 
-
   /**
    * Initialize the DistributedWorkQueue using the proper ZK location
    * 
@@ -179,124 +163,162 @@ public class DistributedWorkQueueWorkAssigner extends AbstractWorkAssigner {
     workQueue = new DistributedWorkQueue(ZooUtil.getRoot(conn.getInstance()) + Constants.ZREPLICATION_WORK_QUEUE, conf);
   }
 
-  /**
-   * Initialize the queuedWork set with the work already sent out
-   */
-  protected void initializeQueuedWork() {
-    Preconditions.checkArgument(null == queuedWork, "Expected queuedWork to be null");
-    queuedWork = new HashSet<>();
-    while (true) {
-      try {
-        queuedWork.addAll(workQueue.getWorkQueued());
-        return;
-      } catch (KeeperException e) {
-        if (KeeperException.Code.NONODE.equals(e.code())) {
-          log.warn("Could not find ZK root for replication work queue, will retry", e);
-          UtilWaitThread.sleep(500);
-          continue;
-        }
+  @Override
+  public void configure(AccumuloConfiguration conf, Connector conn) {
+    this.conf = conf;
+    this.conn = conn;
+  }
 
-        log.error("Error reading existing queued replication work from ZooKeeper", e);
-        throw new RuntimeException("Error reading existing queued replication work from ZooKeeper", e);
-      } catch (InterruptedException e) {
-        log.error("Error reading existing queued replication work from ZooKeeper", e);
-        throw new RuntimeException("Error reading existing queued replication work from ZooKeeper", e);
-      }
+  @Override
+  public void assignWork() {
+    if (null == workQueue) {
+      initializeWorkQueue(conf);
     }
+
+    initializeQueuedWork();
+
+    if (null == zooCache) {
+      zooCache = new ZooCache();
+    }
+
+    // Get the maximum number of entries we want to queue work for (or the default)
+    this.maxQueueSize = conf.getCount(Property.REPLICATION_MAX_WORK_QUEUE);
+
+    // Scan over the work records, adding the work to the queue
+    createWork();
+
+    // Keep the state of the work we queued correct
+    cleanupFinishedWork();
   }
 
   /**
    * Scan over the {@link WorkSection} of the replication table adding work for entries that have data to replicate and have not already been queued.
    */
   protected void createWork() {
-    // Create a batchscanner over the replication table's work entries
-    BatchScanner bs;
+    // Create a scanner over the replication table's order entries
+    Scanner s;
     try {
-      bs = ReplicationTable.getBatchScanner(conn, 4);
+      s = ReplicationTable.getScanner(conn);
     } catch (TableNotFoundException e) {
       return;
     }
 
-    WorkSection.limit(bs);
-    bs.setRanges(Collections.singleton(new Range()));
-    Text buffer = new Text();
-    long filesWorkWasCreatedFrom = 0l;
-    try {
-      for (Entry<Key,Value> entry : bs) {
-        // If we're not working off the entries, we need to not shoot ourselves in the foot by continuing
-        // to add more work entries
-        if (queuedWork.size() > maxQueueSize) {
-          log.warn("Queued replication work exceeds configured maximum ({}), sleeping to allow work to occur", maxQueueSize);
-          return;
-        }
+    OrderSection.limit(s);
 
-        WorkSection.getFile(entry.getKey(), buffer);
-        String file = buffer.toString();
+    Text buffer = new Text();
+    for (Entry<Key,Value> orderEntry : s) {
+      // If we're not working off the entries, we need to not shoot ourselves in the foot by continuing
+      // to add more work entries
+      if (getQueueSize() > maxQueueSize) {
+        log.warn("Queued replication work exceeds configured maximum ({}), sleeping to allow work to occur", maxQueueSize);
+        return;
+      }
+
+      String file = OrderSection.getFile(orderEntry.getKey(), buffer);
+      OrderSection.getTableId(orderEntry.getKey(), buffer);
+      String sourceTableId = buffer.toString();
+
+      log.info("Determining if {} from {} needs to be replicated", file, sourceTableId);
+
+      Scanner workScanner;
+      try {
+        workScanner = ReplicationTable.getScanner(conn);
+      } catch (TableNotFoundException e) {
+        log.warn("Replication table was deleted. Will retry...");
+        UtilWaitThread.sleep(5000);
+        return;
+      }
+
+      WorkSection.limit(workScanner);
+      workScanner.setRange(Range.exact(file));
+
+      int newReplicationTasksSubmitted = 0;
+      // For a file, we can concurrently replicate it to multiple targets
+      for (Entry<Key,Value> workEntry : workScanner) {
         Status status;
         try {
-          status = StatusUtil.fromValue(entry.getValue());
+          status = StatusUtil.fromValue(workEntry.getValue());
         } catch (InvalidProtocolBufferException e) {
-          log.warn("Could not deserialize protobuf from work entry for {}", file, e);
+          log.warn("Could not deserialize protobuf from work entry for {} to {}, will retry", file,
+              ReplicationTarget.from(workEntry.getKey().getColumnQualifier()), e);
+          continue;
+        }
+
+        // Get the ReplicationTarget for this Work record
+        ReplicationTarget target = WorkSection.getTarget(workEntry.getKey(), buffer);
+
+        // Get the file (if any) currently being replicated to the given peer for the given source table
+        Collection<String> keysBeingReplicated = getQueuedWork(target);
+
+        Path p = new Path(file);
+        String filename = p.getName();
+        String key = getQueueKey(filename, target);
+
+        if (!shouldQueueWork(target)) {
+          if (!isWorkRequired(status) && keysBeingReplicated.contains(key)) {
+            log.debug("Removing {} from replication state to {} because replication is complete", key, target.getPeerName());
+            this.removeQueuedWork(target, key);
+          }
+
           continue;
         }
 
         // If there is work to do
         if (isWorkRequired(status)) {
-          Path p = new Path(file);
-          String filename = p.getName();
-          WorkSection.getTarget(entry.getKey(), buffer);
-          String key = getQueueKey(filename, ReplicationTarget.from(buffer));
-
-          // And, we haven't already queued this file up for work already
-          if (!queuedWork.contains(key)) {
-            queueWork(key, file);
-            filesWorkWasCreatedFrom++;
-          } else {
-            log.trace("Not re-queueing work for {}", key);
+          if (queueWork(p, target)) {
+            newReplicationTasksSubmitted++;
           }
         } else {
-          log.debug("Not queueing work for {} because {} doesn't need replication", file, TextFormat.shortDebugString(status));
+          log.debug("Not queueing work for {} to {} because {} doesn't need replication", file, target, ProtobufUtil.toString(status));
+          if (keysBeingReplicated.contains(key)) {
+            log.debug("Removing {} from replication state to {} because replication is complete", key, target.getPeerName());
+            this.removeQueuedWork(target, key);
+          }
         }
       }
-    } finally {
-      log.info("Created work entries for {} files", filesWorkWasCreatedFrom);
 
-      if (null != bs) {
-        bs.close();
-      }
+      log.info("Assigned {} replication work entries for {}", newReplicationTasksSubmitted, file);
     }
   }
 
   /**
-   * Distribute the work for the given path with filename
-   * 
-   * @param key
-   *          Unique key to identify this work in the queue
-   * @param path
-   *          Full path to a file
+   * @return Can replication work for the given {@link ReplicationTarget} be submitted to be worked on.
    */
-  protected void queueWork(String key, String path) {
-    try {
-      log.debug("Queued work for {} and {}", key, path);
-      workQueue.addWork(key, path);
-      queuedWork.add(key);
-    } catch (KeeperException | InterruptedException e) {
-      log.warn("Could not queue work for {}", path, e);
-    }
-  }
+  protected abstract boolean shouldQueueWork(ReplicationTarget target);
 
   /**
-   * Iterate over the queued work to remove entries that have been completed.
+   * @return the size of the queued work
    */
-  protected void cleanupFinishedWork() {
-    final Iterator<String> work = queuedWork.iterator();
-    final String instanceId = conn.getInstance().getInstanceID();
-    while (work.hasNext()) {
-      String filename = work.next();
-      // Null equates to the work was finished
-      if (null == zooCache.get(ZooUtil.getRoot(instanceId) + Constants.ZREPLICATION_WORK_QUEUE + "/" + filename)) {
-        work.remove();
-      }
-    }
-  }
+  protected abstract int getQueueSize();
+
+  /**
+   * Set up any internal state before using the WorkAssigner
+   */
+  protected abstract void initializeQueuedWork();
+
+  /**
+   * Queue the given work for the target
+   * @param path File to replicate
+   * @param target Target for the work
+   * @return True if the work was queued, false otherwise
+   */
+  protected abstract boolean queueWork(Path path, ReplicationTarget target);
+
+  /**
+   * @param target Target for the work
+   * @return Queued work for the given target
+   */
+  protected abstract Set<String> getQueuedWork(ReplicationTarget target);
+
+  /**
+   * Remove the given work from the internal state
+   * @param target 
+   * @param queueKey
+   */
+  protected abstract void removeQueuedWork(ReplicationTarget target, String queueKey);
+
+  /**
+   * Remove finished replication work from the internal state
+   */
+  protected abstract void cleanupFinishedWork();
 }

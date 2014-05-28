@@ -49,11 +49,11 @@ import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.master.replication.DistributedWorkQueueWorkAssigner;
 import org.apache.accumulo.monitor.util.Table;
 import org.apache.accumulo.monitor.util.celltypes.NumberType;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
-import org.apache.accumulo.server.replication.AbstractWorkAssigner;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.ZooCache;
@@ -212,7 +212,7 @@ public class ReplicationServlet extends BasicServlet {
     DistributedWorkQueue workQueue = new DistributedWorkQueue(workQueuePath, ServerConfiguration.getSystemConfiguration(inst));
 
     for (String queueKey : workQueue.getWorkQueued()) {
-      Entry<String,ReplicationTarget> queueKeyPair = AbstractWorkAssigner.fromQueueKey(queueKey);
+      Entry<String,ReplicationTarget> queueKeyPair = DistributedWorkQueueWorkAssigner.fromQueueKey(queueKey);
       String filename = queueKeyPair.getKey();
       ReplicationTarget target = queueKeyPair.getValue();
 

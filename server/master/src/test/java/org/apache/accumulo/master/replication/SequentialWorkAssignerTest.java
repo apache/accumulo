@@ -42,7 +42,6 @@ import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.server.replication.AbstractWorkAssigner;
 import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.ZooCache;
@@ -123,7 +122,7 @@ public class SequentialWorkAssignerTest {
     assigner.setMaxQueueSize(Integer.MAX_VALUE);
 
     // Make sure we expect the invocations in the correct order (accumulo is sorted)
-    workQueue.addWork(AbstractWorkAssigner.getQueueKey(filename1, target), file1);
+    workQueue.addWork(DistributedWorkQueueWorkAssigner.getQueueKey(filename1, target), file1);
     expectLastCall().once();
 
     // file2 is *not* queued because file1 must be replicated first
@@ -139,7 +138,7 @@ public class SequentialWorkAssignerTest {
     Map<String,String> cluster1Work = queuedWork.get("cluster1");
     Assert.assertEquals(1, cluster1Work.size());
     Assert.assertTrue(cluster1Work.containsKey(target.getSourceTableId()));
-    Assert.assertEquals(AbstractWorkAssigner.getQueueKey(filename1, target), cluster1Work.get(target.getSourceTableId()));
+    Assert.assertEquals(DistributedWorkQueueWorkAssigner.getQueueKey(filename1, target), cluster1Work.get(target.getSourceTableId()));
   }
 
   @Test
@@ -196,10 +195,10 @@ public class SequentialWorkAssignerTest {
     assigner.setMaxQueueSize(Integer.MAX_VALUE);
 
     // Make sure we expect the invocations in the correct order (accumulo is sorted)
-    workQueue.addWork(AbstractWorkAssigner.getQueueKey(filename1, target1), file1);
+    workQueue.addWork(DistributedWorkQueueWorkAssigner.getQueueKey(filename1, target1), file1);
     expectLastCall().once();
 
-    workQueue.addWork(AbstractWorkAssigner.getQueueKey(filename2, target2), file2);
+    workQueue.addWork(DistributedWorkQueueWorkAssigner.getQueueKey(filename2, target2), file2);
     expectLastCall().once();
 
     // file2 is *not* queued because file1 must be replicated first
@@ -216,10 +215,10 @@ public class SequentialWorkAssignerTest {
     Map<String,String> cluster1Work = queuedWork.get("cluster1");
     Assert.assertEquals(2, cluster1Work.size());
     Assert.assertTrue(cluster1Work.containsKey(target1.getSourceTableId()));
-    Assert.assertEquals(AbstractWorkAssigner.getQueueKey(filename1, target1), cluster1Work.get(target1.getSourceTableId()));
+    Assert.assertEquals(DistributedWorkQueueWorkAssigner.getQueueKey(filename1, target1), cluster1Work.get(target1.getSourceTableId()));
 
     Assert.assertTrue(cluster1Work.containsKey(target2.getSourceTableId()));
-    Assert.assertEquals(AbstractWorkAssigner.getQueueKey(filename2, target2), cluster1Work.get(target2.getSourceTableId()));
+    Assert.assertEquals(DistributedWorkQueueWorkAssigner.getQueueKey(filename2, target2), cluster1Work.get(target2.getSourceTableId()));
   }
 
   @Test
@@ -276,10 +275,10 @@ public class SequentialWorkAssignerTest {
     assigner.setMaxQueueSize(Integer.MAX_VALUE);
 
     // Make sure we expect the invocations in the correct order (accumulo is sorted)
-    workQueue.addWork(AbstractWorkAssigner.getQueueKey(filename1, target1), file1);
+    workQueue.addWork(DistributedWorkQueueWorkAssigner.getQueueKey(filename1, target1), file1);
     expectLastCall().once();
 
-    workQueue.addWork(AbstractWorkAssigner.getQueueKey(filename2, target2), file2);
+    workQueue.addWork(DistributedWorkQueueWorkAssigner.getQueueKey(filename2, target2), file2);
     expectLastCall().once();
 
     // file2 is *not* queued because file1 must be replicated first
@@ -296,12 +295,12 @@ public class SequentialWorkAssignerTest {
     Map<String,String> cluster1Work = queuedWork.get("cluster1");
     Assert.assertEquals(1, cluster1Work.size());
     Assert.assertTrue(cluster1Work.containsKey(target1.getSourceTableId()));
-    Assert.assertEquals(AbstractWorkAssigner.getQueueKey(filename1, target1), cluster1Work.get(target1.getSourceTableId()));
+    Assert.assertEquals(DistributedWorkQueueWorkAssigner.getQueueKey(filename1, target1), cluster1Work.get(target1.getSourceTableId()));
 
     Map<String,String> cluster2Work = queuedWork.get("cluster2");
     Assert.assertEquals(1, cluster2Work.size());
     Assert.assertTrue(cluster2Work.containsKey(target2.getSourceTableId()));
-    Assert.assertEquals(AbstractWorkAssigner.getQueueKey(filename2, target2), cluster2Work.get(target2.getSourceTableId()));
+    Assert.assertEquals(DistributedWorkQueueWorkAssigner.getQueueKey(filename2, target2), cluster2Work.get(target2.getSourceTableId()));
   }
 
   @Test
@@ -314,8 +313,8 @@ public class SequentialWorkAssignerTest {
     Map<String,String> cluster1Work = new TreeMap<>();
 
     // Two files for cluster1, one for table '1' and another for table '2' we havce assigned work for
-    cluster1Work.put("1", AbstractWorkAssigner.getQueueKey("file1", new ReplicationTarget("cluster1", "1", "1")));
-    cluster1Work.put("2", AbstractWorkAssigner.getQueueKey("file2", new ReplicationTarget("cluster1", "2", "2")));
+    cluster1Work.put("1", DistributedWorkQueueWorkAssigner.getQueueKey("file1", new ReplicationTarget("cluster1", "1", "1")));
+    cluster1Work.put("2", DistributedWorkQueueWorkAssigner.getQueueKey("file2", new ReplicationTarget("cluster1", "2", "2")));
 
     queuedWork.put("cluster1", cluster1Work);
 
@@ -330,11 +329,11 @@ public class SequentialWorkAssignerTest {
     // file1 replicated
     expect(
         zooCache.get(ZooUtil.getRoot("instance") + Constants.ZREPLICATION_WORK_QUEUE + "/"
-            + AbstractWorkAssigner.getQueueKey("file1", new ReplicationTarget("cluster1", "1", "1")))).andReturn(null);
+            + DistributedWorkQueueWorkAssigner.getQueueKey("file1", new ReplicationTarget("cluster1", "1", "1")))).andReturn(null);
     // file2 still needs to replicate
     expect(
         zooCache.get(ZooUtil.getRoot("instance") + Constants.ZREPLICATION_WORK_QUEUE + "/"
-            + AbstractWorkAssigner.getQueueKey("file2", new ReplicationTarget("cluster1", "2", "2")))).andReturn(new byte[0]);
+            + DistributedWorkQueueWorkAssigner.getQueueKey("file2", new ReplicationTarget("cluster1", "2", "2")))).andReturn(new byte[0]);
 
     replay(workQueue, zooCache, conn, inst);
 
@@ -343,7 +342,7 @@ public class SequentialWorkAssignerTest {
     verify(workQueue, zooCache, conn, inst);
 
     Assert.assertEquals(1, cluster1Work.size());
-    Assert.assertEquals(AbstractWorkAssigner.getQueueKey("file2", new ReplicationTarget("cluster1", "2", "2")), cluster1Work.get("2"));
+    Assert.assertEquals(DistributedWorkQueueWorkAssigner.getQueueKey("file2", new ReplicationTarget("cluster1", "2", "2")), cluster1Work.get("2"));
   }
 
   @Test
@@ -395,7 +394,7 @@ public class SequentialWorkAssignerTest {
     // Treat filename1 as we have already submitted it for replication
     Map<String,Map<String,String>> queuedWork = new HashMap<>();
     Map<String,String> queuedWorkForCluster = new HashMap<>();
-    queuedWorkForCluster.put(target.getSourceTableId(), AbstractWorkAssigner.getQueueKey(filename1, target));
+    queuedWorkForCluster.put(target.getSourceTableId(), DistributedWorkQueueWorkAssigner.getQueueKey(filename1, target));
     queuedWork.put("cluster1", queuedWorkForCluster);
 
     assigner.setQueuedWork(queuedWork);
@@ -403,10 +402,10 @@ public class SequentialWorkAssignerTest {
     assigner.setMaxQueueSize(Integer.MAX_VALUE);
 
     // Make sure we expect the invocations in the correct order (accumulo is sorted)
-    workQueue.addWork(AbstractWorkAssigner.getQueueKey(filename2, target), file2);
+    workQueue.addWork(DistributedWorkQueueWorkAssigner.getQueueKey(filename2, target), file2);
     expectLastCall().once();
 
-    // file2 is *not* queued because file1 must be replicated first
+    // file2 is queued because we remove file1 because it's fully replicated
 
     replay(workQueue);
 
@@ -419,6 +418,6 @@ public class SequentialWorkAssignerTest {
     Map<String,String> cluster1Work = queuedWork.get("cluster1");
     Assert.assertEquals(1, cluster1Work.size());
     Assert.assertTrue(cluster1Work.containsKey(target.getSourceTableId()));
-    Assert.assertEquals(AbstractWorkAssigner.getQueueKey(filename2, target), cluster1Work.get(target.getSourceTableId()));
+    Assert.assertEquals(DistributedWorkQueueWorkAssigner.getQueueKey(filename2, target), cluster1Work.get(target.getSourceTableId()));
   }
 }

@@ -37,12 +37,14 @@ import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.protobuf.ProtobufUtil;
+import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
+import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.server.replication.AbstractWorkAssigner;
 import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.ZooCache;
@@ -54,26 +56,25 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
-public class DistributedWorkQueueWorkAssignerTest {
+public class UnorderedWorkAssignerTest {
 
   @Rule
   public TestName test = new TestName();
 
   private AccumuloConfiguration conf;
   private Connector conn;
-  private DistributedWorkQueueWorkAssigner assigner;
+  private UnorderedWorkAssigner assigner;
 
   @Before
   public void init() {
     conf = createMock(AccumuloConfiguration.class);
     conn = createMock(Connector.class);
-    assigner = new DistributedWorkQueueWorkAssigner(conf, conn);
+    assigner = new UnorderedWorkAssigner(conf, conn);
   }
 
   @Test
   public void workQueuedUsingFileName() throws Exception {
     ReplicationTarget target = new ReplicationTarget("cluster1", "table1", "1");
-    Text serializedTarget = target.toText();
 
     DistributedWorkQueue workQueue = createMock(DistributedWorkQueue.class);
     Set<String> queuedWork = new HashSet<>();
@@ -82,15 +83,18 @@ public class DistributedWorkQueueWorkAssignerTest {
 
     Path p = new Path("/accumulo/wal/tserver+port/" + UUID.randomUUID());
 
-    workQueue.addWork(p.getName() + "|" + serializedTarget.toString(), p.toString());
+    String expectedQueueKey = p.getName() + DistributedWorkQueueWorkAssigner.KEY_SEPARATOR + target.getPeerName() + DistributedWorkQueueWorkAssigner.KEY_SEPARATOR
+        + target.getRemoteIdentifier() + DistributedWorkQueueWorkAssigner.KEY_SEPARATOR + target.getSourceTableId();
+    
+    workQueue.addWork(expectedQueueKey, p.toString());
     expectLastCall().once();
 
     replay(workQueue);
 
-    assigner.queueWork(p.getName() + "|" + serializedTarget, p.toString());
+    assigner.queueWork(p, target);
 
     Assert.assertEquals(1, queuedWork.size());
-    Assert.assertEquals(p.getName() + "|" + serializedTarget, queuedWork.iterator().next());
+    Assert.assertEquals(expectedQueueKey, queuedWork.iterator().next());
   }
 
   @Test
@@ -116,9 +120,9 @@ public class DistributedWorkQueueWorkAssignerTest {
   public void createWorkForFilesNeedingIt() throws Exception {
     ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", "1"), target2 = new ReplicationTarget("cluster1", "table2", "2");
     Text serializedTarget1 = target1.toText(), serializedTarget2 = target2.toText();
-    String keyTarget1 = target1.getPeerName() + AbstractWorkAssigner.KEY_SEPARATOR + target1.getRemoteIdentifier()
-        + AbstractWorkAssigner.KEY_SEPARATOR + target1.getSourceTableId(), keyTarget2 = target2.getPeerName()
-        + AbstractWorkAssigner.KEY_SEPARATOR + target2.getRemoteIdentifier() + AbstractWorkAssigner.KEY_SEPARATOR
+    String keyTarget1 = target1.getPeerName() + DistributedWorkQueueWorkAssigner.KEY_SEPARATOR + target1.getRemoteIdentifier()
+        + DistributedWorkQueueWorkAssigner.KEY_SEPARATOR + target1.getSourceTableId(), keyTarget2 = target2.getPeerName()
+        + DistributedWorkQueueWorkAssigner.KEY_SEPARATOR + target2.getRemoteIdentifier() + DistributedWorkQueueWorkAssigner.KEY_SEPARATOR
         + target2.getSourceTableId();
 
     MockInstance inst = new MockInstance(test.getMethodName());
@@ -132,61 +136,51 @@ public class DistributedWorkQueueWorkAssignerTest {
     ReplicationTable.create(conn);
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
 
+    Status.Builder builder = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(false).setCreatedTime(5l);
+    Status status1 = builder.build();
+    builder.setCreatedTime(10l);
+    Status status2 = builder.build();
+
     // Create two mutations, both of which need replication work done
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     String filename1 = UUID.randomUUID().toString(), filename2 = UUID.randomUUID().toString();
     String file1 = "/accumulo/wal/tserver+port/" + filename1, file2 = "/accumulo/wal/tserver+port/" + filename2;
     Mutation m = new Mutation(file1);
-    WorkSection.add(m, serializedTarget1, StatusUtil.openWithUnknownLengthValue());
+    WorkSection.add(m, serializedTarget1, ProtobufUtil.toValue(status1));
+    bw.addMutation(m);
+    m = OrderSection.createMutation(file1, status1.getCreatedTime());
+    OrderSection.add(m, new Text(target1.getSourceTableId()), ProtobufUtil.toValue(status1));
     bw.addMutation(m);
 
     m = new Mutation(file2);
-    WorkSection.add(m, serializedTarget2, StatusUtil.openWithUnknownLengthValue());
+    WorkSection.add(m, serializedTarget2, ProtobufUtil.toValue(status2));
+    bw.addMutation(m);
+    m = OrderSection.createMutation(file2, status2.getCreatedTime());
+    OrderSection.add(m, new Text(target2.getSourceTableId()), ProtobufUtil.toValue(status2));
     bw.addMutation(m);
 
     bw.close();
 
     DistributedWorkQueue workQueue = createMock(DistributedWorkQueue.class);
-    @SuppressWarnings("unchecked")
-    HashSet<String> queuedWork = createMock(HashSet.class);
+    HashSet<String> queuedWork = new HashSet<>();
     assigner.setQueuedWork(queuedWork);
     assigner.setWorkQueue(workQueue);
     assigner.setMaxQueueSize(Integer.MAX_VALUE);
 
-    expect(queuedWork.size()).andReturn(0).anyTimes();
+    // Make sure we expect the invocations in the order they were created
+    String key = filename1 + "|" + keyTarget1;
+    workQueue.addWork(key, file1);
+    expectLastCall().once();
 
-    // Make sure we expect the invocations in the correct order (accumulo is sorted)
-    if (file1.compareTo(file2) <= 0) {
-      String key = filename1 + "|" + keyTarget1;
-      expect(queuedWork.contains(key)).andReturn(false);
-      workQueue.addWork(key, file1);
-      expectLastCall().once();
-      expect(queuedWork.add(key)).andReturn(true).once();
+    key = filename2 + "|" + keyTarget2;
+    workQueue.addWork(key, file2);
+    expectLastCall().once();
 
-      key = filename2 + "|" + keyTarget2;
-      expect(queuedWork.contains(key)).andReturn(false);
-      workQueue.addWork(key, file2);
-      expectLastCall().once();
-      expect(queuedWork.add(key)).andReturn(true).once();
-    } else {
-      String key = filename2 + "|" + keyTarget2;
-      expect(queuedWork.contains(key)).andReturn(false);
-      workQueue.addWork(key, file2);
-      expectLastCall().once();
-      expect(queuedWork.add(key)).andReturn(true).once();
-
-      key = filename1 + "|" + keyTarget1;
-      expect(queuedWork.contains(key)).andReturn(false);
-      workQueue.addWork(key, file1);
-      expectLastCall().once();
-      expect(queuedWork.add(key)).andReturn(true).once();
-    }
-
-    replay(queuedWork, workQueue);
+    replay(workQueue);
 
     assigner.createWork();
 
-    verify(queuedWork, workQueue);
+    verify(workQueue);
   }
 
   @Test
@@ -221,18 +215,15 @@ public class DistributedWorkQueueWorkAssignerTest {
     bw.close();
 
     DistributedWorkQueue workQueue = createMock(DistributedWorkQueue.class);
-    @SuppressWarnings("unchecked")
-    HashSet<String> queuedWork = createMock(HashSet.class);
+    HashSet<String> queuedWork = new HashSet<>();
     assigner.setQueuedWork(queuedWork);
     assigner.setMaxQueueSize(Integer.MAX_VALUE);
 
-    expect(queuedWork.size()).andReturn(0).times(2);
-
-    replay(queuedWork, workQueue);
+    replay(workQueue);
 
     assigner.createWork();
 
-    verify(queuedWork, workQueue);
+    verify(workQueue);
   }
 
   @Test
@@ -264,8 +255,8 @@ public class DistributedWorkQueueWorkAssignerTest {
     assigner.setQueuedWork(queuedWork);
 
     ReplicationTarget target = new ReplicationTarget("cluster1", "table1", "1");
-    String serializedTarget = target.getPeerName() + AbstractWorkAssigner.KEY_SEPARATOR + target.getRemoteIdentifier()
-        + AbstractWorkAssigner.KEY_SEPARATOR + target.getSourceTableId();
+    String serializedTarget = target.getPeerName() + DistributedWorkQueueWorkAssigner.KEY_SEPARATOR + target.getRemoteIdentifier()
+        + DistributedWorkQueueWorkAssigner.KEY_SEPARATOR + target.getSourceTableId();
 
     queuedWork.add("wal1|" + serializedTarget.toString());
 

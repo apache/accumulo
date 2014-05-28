@@ -29,8 +29,8 @@ import org.apache.accumulo.core.replication.ReplicaSystemHelper;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.master.replication.DistributedWorkQueueWorkAssigner;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.replication.AbstractWorkAssigner;
 import org.apache.hadoop.fs.Path;
 import org.easymock.EasyMock;
 import org.junit.Assert;
@@ -83,7 +83,7 @@ public class ReplicationProcessorTest {
     Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true).build();
     Path path = new Path("/accumulo");
 
-    String queueKey = AbstractWorkAssigner.getQueueKey(path.toString(), target);
+    String queueKey = DistributedWorkQueueWorkAssigner.getQueueKey(path.toString(), target);
 
     EasyMock.expect(proc.getReplicaSystem(target)).andReturn(replica);
     EasyMock.expect(proc.getStatus(path.toString(), target)).andReturn(status);

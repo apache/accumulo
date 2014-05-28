@@ -37,9 +37,9 @@ import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.master.replication.DistributedWorkQueueWorkAssigner;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.replication.AbstractWorkAssigner;
 import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue.Processor;
 import org.apache.hadoop.fs.Path;
@@ -76,7 +76,7 @@ public class ReplicationProcessor implements Processor {
 
   @Override
   public void process(String workID, byte[] data) {
-    ReplicationTarget target = AbstractWorkAssigner.fromQueueKey(workID).getValue();
+    ReplicationTarget target = DistributedWorkQueueWorkAssigner.fromQueueKey(workID).getValue();
     String file = new String(data);
 
     log.debug("Received replication work for {} to {}", file, target);

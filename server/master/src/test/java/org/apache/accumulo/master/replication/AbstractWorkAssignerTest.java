@@ -20,7 +20,6 @@ import java.util.Map.Entry;
 import java.util.UUID;
 
 import org.apache.accumulo.core.replication.ReplicationTarget;
-import org.apache.accumulo.server.replication.AbstractWorkAssigner;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.common.PathUtils;
 import org.junit.Assert;
@@ -36,7 +35,7 @@ public class AbstractWorkAssignerTest {
     Path p = new Path("/accumulo/wals/tserver+port/" + UUID.randomUUID().toString());
     ReplicationTarget target = new ReplicationTarget("cluster1", "table1", "1");
 
-    String key = AbstractWorkAssigner.getQueueKey(p.toString(), target);
+    String key = DistributedWorkQueueWorkAssigner.getQueueKey(p.toString(), target);
 
     PathUtils.validatePath(key);
   }
@@ -46,9 +45,9 @@ public class AbstractWorkAssignerTest {
     Path p = new Path("/accumulo/wals/tserver+port/" + UUID.randomUUID().toString());
     ReplicationTarget target = new ReplicationTarget("cluster1", "table1", "1");
 
-    String key = AbstractWorkAssigner.getQueueKey(p.toString(), target);
+    String key = DistributedWorkQueueWorkAssigner.getQueueKey(p.toString(), target);
 
-    Entry<String,ReplicationTarget> result = AbstractWorkAssigner.fromQueueKey(key);
+    Entry<String,ReplicationTarget> result = DistributedWorkQueueWorkAssigner.fromQueueKey(key);
     Assert.assertEquals(p.toString(), result.getKey());
     Assert.assertEquals(target, result.getValue());
   }
