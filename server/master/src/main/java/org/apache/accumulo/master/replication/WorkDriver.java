@@ -44,20 +44,28 @@ public class WorkDriver extends Daemon {
     this.master = master;
     this.conn = conn;
     this.conf = master.getConfiguration().getConfiguration();
+    configureWorkAssigner();
+  }
 
+  protected void configureWorkAssigner() {
     String workAssignerClass = conf.get(Property.REPLICATION_WORK_ASSIGNER);
-    try {
-      Class<?> clz = Class.forName(workAssignerClass);
-      Class<? extends WorkAssigner> workAssignerClz = clz.asSubclass(WorkAssigner.class);
-      this.assigner = workAssignerClz.newInstance();
-    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
-      log.error("Could not instantiate configured work assigner {}", workAssignerClass, e);
-      throw new RuntimeException(e);
-    }
 
-    this.assigner.configure(conf, conn);
-    this.assignerImplName = assigner.getClass().getName();
-    this.setName(assigner.getName());
+    if (null == assigner || !assigner.getClass().getName().equals(workAssignerClass)) {
+      log.info("Initializing work assigner implementation of {}", workAssignerClass);
+
+      try {
+        Class<?> clz = Class.forName(workAssignerClass);
+        Class<? extends WorkAssigner> workAssignerClz = clz.asSubclass(WorkAssigner.class);
+        this.assigner = workAssignerClz.newInstance();
+      } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+        log.error("Could not instantiate configured work assigner {}", workAssignerClass, e);
+        throw new RuntimeException(e);
+      }
+  
+      this.assigner.configure(conf, conn);
+      this.assignerImplName = assigner.getClass().getName();
+      this.setName(assigner.getName());
+    }
   }
 
   /*
@@ -90,6 +98,9 @@ public class WorkDriver extends Daemon {
       long sleepTime = conf.getTimeInMillis(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP);
       log.debug("Sleeping {} ms before next work assignment", sleepTime);
       UtilWaitThread.sleep(sleepTime);
+
+      // After each loop, make sure that the WorkAssigner implementation didn't change
+      configureWorkAssigner();
     }
   }
 }
