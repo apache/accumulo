@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.iterators.conf;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -41,8 +42,13 @@ public class ColumnToClassMapping<K> {
   }
   
   public ColumnToClassMapping(Map<String,String> objectStrings, Class<? extends K> c) throws InstantiationException, IllegalAccessException,
-      ClassNotFoundException {
-    this();
+      ClassNotFoundException, IOException {
+	  this(objectStrings, c, null);
+  }
+
+  public ColumnToClassMapping(Map<String,String> objectStrings, Class<? extends K> c, String context) throws InstantiationException, IllegalAccessException,
+  ClassNotFoundException, IOException {
+	  this();
     
     for (Entry<String,String> entry : objectStrings.entrySet()) {
       String column = entry.getKey();
@@ -50,7 +56,11 @@ public class ColumnToClassMapping<K> {
       
       Pair<Text,Text> pcic = ColumnSet.decodeColumns(column);
       
-      Class<? extends K> clazz = AccumuloVFSClassLoader.loadClass(className, c);
+      Class<? extends K> clazz;
+      if (context != null && !context.equals(""))
+        clazz = (Class<? extends K>) AccumuloVFSClassLoader.getContextManager().getClassLoader(context).loadClass(className);
+      else
+        clazz = AccumuloVFSClassLoader.loadClass(className, c);
       
       if (pcic.getSecond() == null) {
         addObject(pcic.getFirst(), clazz.newInstance());

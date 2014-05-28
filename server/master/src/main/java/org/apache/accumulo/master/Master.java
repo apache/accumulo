@@ -120,6 +120,8 @@ import org.apache.accumulo.server.util.TServerUtils.ServerAddress;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
+import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.apache.accumulo.trace.instrument.thrift.TraceWrap;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
@@ -484,6 +486,18 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     tserverSet = new LiveTServerSet(instance, config.getConfiguration(), this);
     this.tabletBalancer = aconf.instantiateClassProperty(Property.MASTER_TABLET_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
     this.tabletBalancer.init(serverConfig);
+
+    try {
+      AccumuloVFSClassLoader.getContextManager().setContextConfig(new ContextManager.DefaultContextsConfig(new Iterable<Entry<String,String>>() {
+        @Override
+        public Iterator<Entry<String,String>> iterator() {
+          return getSystemConfiguration().iterator();
+        }
+      }));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+
   }
 
   public TServerConnection getConnection(TServerInstance server) {

@@ -14,29 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.iterators.aggregation.conf;
 
-import java.io.IOException;
-import java.util.Map;
+package org.apache.accumulo.test.stress.random;
 
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.iterators.aggregation.Aggregator;
-import org.apache.accumulo.core.iterators.conf.ColumnToClassMapping;
+import com.beust.jcommander.IValueValidator;
+import com.beust.jcommander.ParameterException;
+import com.google.common.base.Preconditions;
 
-/**
- * @deprecated since 1.4
- */
-@Deprecated
-public class AggregatorSet extends ColumnToClassMapping<Aggregator> {
-  public AggregatorSet(Map<String,String> opts) throws InstantiationException, IllegalAccessException, ClassNotFoundException, IOException {
-    super(opts, Aggregator.class);
+public class IntArgValidator implements IValueValidator<Integer> {
+  
+  @Override
+  public void validate(String name, Integer value) throws ParameterException {
+    Preconditions.checkNotNull(value);
+    Preconditions.checkArgument(value > 0);
   }
   
-  public AggregatorSet() {
-    super();
-  }
-  
-  public Aggregator getAggregator(Key k) {
-    return getObject(k);
-  }
 }

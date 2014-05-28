@@ -14,29 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.iterators.aggregation.conf;
-
-import java.io.IOException;
-import java.util.Map;
-
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.iterators.aggregation.Aggregator;
-import org.apache.accumulo.core.iterators.conf.ColumnToClassMapping;
+package org.apache.accumulo.test.stress.random;
 
 /**
- * @deprecated since 1.4
+ * A stream that will create random byte arrays as it is looped over.
  */
-@Deprecated
-public class AggregatorSet extends ColumnToClassMapping<Aggregator> {
-  public AggregatorSet(Map<String,String> opts) throws InstantiationException, IllegalAccessException, ClassNotFoundException, IOException {
-    super(opts, Aggregator.class);
+public class RandomByteArrays extends Stream<byte[]> {
+  private final RandomWithinRange random_arrays;
+  
+  public RandomByteArrays(RandomWithinRange random_arrays) {
+    this.random_arrays = random_arrays;
   }
   
-  public AggregatorSet() {
-    super();
-  }
-  
-  public Aggregator getAggregator(Key k) {
-    return getObject(k);
+  public byte[] next() {
+    return random_arrays.next_bytes();
   }
 }

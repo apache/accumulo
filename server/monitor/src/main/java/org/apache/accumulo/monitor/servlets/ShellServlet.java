@@ -24,6 +24,7 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -40,7 +41,9 @@ public class ShellServlet extends BasicServlet {
   private static final long serialVersionUID = 1L;
   private Map<String,ShellExecutionThread> userShells = new HashMap<String,ShellExecutionThread>();
   private ExecutorService service = Executors.newCachedThreadPool();
-  
+
+  public static final String CSRF_KEY = "csrf_token";
+
   @Override
   protected String getTitle(HttpServletRequest req) {
     return "Shell";
@@ -49,6 +52,19 @@ public class ShellServlet extends BasicServlet {
   @Override
   protected void pageBody(HttpServletRequest req, HttpServletResponse response, StringBuilder sb) throws IOException {
     HttpSession session = req.getSession(true);
+    final String CSRF_TOKEN;
+    if (null == session.getAttribute(CSRF_KEY)) {
+      // No token, make one
+      CSRF_TOKEN = UUID.randomUUID().toString();
+      session.setAttribute(CSRF_KEY, CSRF_TOKEN);
+    } else {
+      // Pull the token out of the session
+      CSRF_TOKEN = (String) session.getAttribute(CSRF_KEY);
+      if (null == CSRF_TOKEN) {
+        throw new RuntimeException("No valid CSRF token exists in session");
+      }
+    }
+
     String user = (String) session.getAttribute("user");
     if (user == null) {
       // user attribute is null, check to see if username and password are passed as parameters
@@ -57,7 +73,7 @@ public class ShellServlet extends BasicServlet {
       String mock = req.getParameter("mock");
       if (user == null || pass == null) {
         // username or password are null, re-authenticate
-        sb.append(authenticationForm(req.getRequestURI()));
+        sb.append(authenticationForm(req.getRequestURI(), CSRF_TOKEN));
         return;
       }
       try {
@@ -67,16 +83,17 @@ public class ShellServlet extends BasicServlet {
         userShells.put(session.getId(), shellThread);
       } catch (IOException e) {
         // error validating user, reauthenticate
-        sb.append("<div id='loginError'>Invalid user/password</div>" + authenticationForm(req.getRequestURI()));
+        sb.append("<div id='loginError'>Invalid user/password</div>" + authenticationForm(req.getRequestURI(), CSRF_TOKEN));
         return;
       }
       session.setAttribute("user", user);
     }
     if (!userShells.containsKey(session.getId())) {
       // no existing shell for this user, re-authenticate
-      sb.append(authenticationForm(req.getRequestURI()));
+      sb.append(authenticationForm(req.getRequestURI(), UUID.randomUUID().toString()));
       return;
     }
+
     ShellExecutionThread shellThread = userShells.get(session.getId());
     shellThread.getOutput();
     shellThread.printInfo();
@@ -121,7 +138,7 @@ public class ShellServlet extends BasicServlet {
     sb.append("    document.getElementById('shellResponse').innerHTML += history.join('\\n');\n");
     sb.append("    return\n");
     sb.append("  }\n");
-    sb.append("  xmlhttp.open('POST',url+'?cmd='+cmd,false);\n");
+    sb.append("  xmlhttp.open('POST',url+'?cmd='+cmd+'&'+'").append(CSRF_KEY).append("=").append(CSRF_TOKEN).append("',false);\n");
     sb.append("  xmlhttp.send();\n");
     sb.append("  var text = xmlhttp.responseText;\n");
     sb.append("  var index = text.lastIndexOf('\\n');\n");
@@ -148,15 +165,20 @@ public class ShellServlet extends BasicServlet {
     sb.append("</script>\n");
     sb.append("<script type='text/javascript'>window.onload = function() { document.getElementById('cmd').select(); }</script>\n");
   }
-  
+
   @Override
   protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-    HttpSession session = req.getSession(true);
+    final HttpSession session = req.getSession(true);
     String user = (String) session.getAttribute("user");
     if (user == null || !userShells.containsKey(session.getId())) {
       // no existing shell for user, re-authenticate
       doGet(req, resp);
       return;
+    }
+    final String CSRF_TOKEN = (String) session.getAttribute(CSRF_KEY);
+    if (null == CSRF_TOKEN) {
+      // no csrf token, need to re-auth
+      doGet(req, resp);
     }
     ShellExecutionThread shellThread = userShells.get(session.getId());
     String cmd = req.getParameter("cmd");
@@ -188,12 +210,13 @@ public class ShellServlet extends BasicServlet {
     resp.getWriter().append(sb.toString());
     resp.getWriter().flush();
   }
-  
-  private String authenticationForm(String requestURI) {
+
+  private String authenticationForm(String requestURI, String csrfToken) {
     return "<div id='login'><form method=POST action='" + requestURI + "'>"
         + "<table><tr><td>Mock:&nbsp</td><td><input type='checkbox' name='mock' value='mock'></td></tr>"
         + "<tr><td>Username:&nbsp;</td><td><input type='text' name='user'></td></tr>"
-        + "<tr><td>Password:&nbsp;</td><td><input type='password' name='pass'></td><td><input type='submit' value='Enter'></td></tr></table></form></div>";
+        + "<tr><td>Password:&nbsp;</td><td><input type='password' name='pass'></td><td>"
+        + "<input type='hidden' name='" + CSRF_KEY + "' value='" + csrfToken + "'/><input type='submit' value='Enter'></td></tr></table></form></div>";
   }
   
   private static class StringBuilderOutputStream extends OutputStream {

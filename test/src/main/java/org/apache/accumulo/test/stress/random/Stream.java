@@ -14,29 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.iterators.aggregation.conf;
+package org.apache.accumulo.test.stress.random;
 
-import java.io.IOException;
-import java.util.Map;
-
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.iterators.aggregation.Aggregator;
-import org.apache.accumulo.core.iterators.conf.ColumnToClassMapping;
+import java.util.Iterator;
 
 /**
- * @deprecated since 1.4
+ * Base class to model an infinite stream of data. A stream implements an iterator whose {{@link #hasNext()} method will always return true.
+ * 
+ * @param <T>
  */
-@Deprecated
-public class AggregatorSet extends ColumnToClassMapping<Aggregator> {
-  public AggregatorSet(Map<String,String> opts) throws InstantiationException, IllegalAccessException, ClassNotFoundException, IOException {
-    super(opts, Aggregator.class);
+public abstract class Stream<T> implements Iterator<T> {
+  
+  @Override
+  public final boolean hasNext() {
+    return true;
   }
   
-  public AggregatorSet() {
-    super();
+  @Override
+  public abstract T next();
+  
+  @Override
+  public final void remove() {
+    throw new UnsupportedOperationException();
   }
   
-  public Aggregator getAggregator(Key k) {
-    return getObject(k);
-  }
 }

@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
@@ -167,7 +168,10 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
     this.iterator = source;
     
     try {
-      this.aggregators = new ColumnToClassMapping<Aggregator>(options, Aggregator.class);
+      String context = null;
+      if (null != env)
+        context = env.getConfig().get(Property.TABLE_CLASSPATH);
+      this.aggregators = new ColumnToClassMapping<Aggregator>(options, Aggregator.class, context);
     } catch (ClassNotFoundException e) {
       log.error(e.toString());
       throw new IllegalArgumentException(e);
