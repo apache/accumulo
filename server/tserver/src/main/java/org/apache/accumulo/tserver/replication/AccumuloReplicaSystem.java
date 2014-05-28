@@ -308,7 +308,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     while (true) {
       // Set some trace info
       span = Trace.start("Replicate WAL batch");
-      span.data("Size limit", Long.toString(sizeLimit));
+      span.data("Batch size (bytes)", Long.toString(sizeLimit));
       span.data("File", p.toString());
       span.data("Peer instance name", peerInstance.getInstanceName());
       span.data("Peer tserver", peerTserver);
