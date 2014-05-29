@@ -160,3 +160,25 @@ it's possible that multiple versions of the same Key with different values are i
 In this case, parallel replication to a peer and target is possible without any downsides. In the case
 where this implementation is used were column updates are frequent, it is possible that there will be
 an inconsistency between the primary and the peer.
+
+=== ReplicaSystems
+
++ReplicaSystem+ is the interface which allows abstraction of replication of data
+to peers of various types. Presently, only an +AccumuloReplicaSystem+ is provided
+which will replicate data to another Accumulo instance. A +ReplicaSystem+ implementation
+is run inside of the TabletServer process, and can be configured as mentioned in the 
++Instance Configuration+ section of this document. Theoretically, an implementation
+of this interface could send data to other filesystems, databases, etc.
+
+==== AccumuloReplicaSystem
+
+The +AccumuloReplicaSystem+ uses Thrift to communicate with a peer Accumulo instance
+and replicate the necessary data. The TabletServer running on the primary will communicate
+with the Master on the peer to request the address of a TabletServer on the peer which
+this TabletServer will use to replicate the data.
+
+The TabletServer on the primary will then replicate data in batches of a configurable
+size (+replication.max.unit.size+). The TabletServer on the peer will report how many
+records were applied back to the primary, which will be used to record how many records
+were successfully replicated. The TabletServer on the primary will continue to replicate
+data in these batches until no more data can be read from the file.
