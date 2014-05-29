@@ -1,0 +1,162 @@
+// Licensed to the Apache Software Foundation (ASF) under one or more
+// contributor license agreements.  See the NOTICE file distributed with
+// this work for additional information regarding copyright ownership.
+// The ASF licenses this file to You under the Apache License, Version 2.0
+// (the "License"); you may not use this file except in compliance with
+// the License.  You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+== Replication
+
+=== Overview
+
+Replication is a feature of Accumulo which provides a mechanism to automatically
+copy data to other systems, typically for the purpose of disaster recovery,
+high availability, or geographic locality. It is best to consider this feature
+as a framework for automatic replication instead of the ability to copy data
+from to another Accumulo instance as copying to another Accumulo cluster is
+only an implementation detail. The local Accumulo cluster is hereby referred
+to as the +primary+ while systems being replicated to are known as
++peers+.
+
+This replication framework makes two Accumulo instances, where one instance
+replicates to another, eventually consistent between one another, as opposed
+to the strong consistency that each single Accumulo instance still holds. That
+is to say, attempts to read data from a table on a peer which has pending replication
+from the primary will not wait for that data to be replicated before running the scan.
+This is desirable for a number of reasons, the most important is that the replication
+framework is not limited by network outages or offline peers, but only by the HDFS
+space available on the primary system.
+
+Replication configurations can be considered as a directed graph which allows cycles.
+The systems in which data was replicated from is maintained in each Mutation which
+allow each system to determine if a peer has already has the data in which
+the system wants to send.
+
+Data is replicated by using the Write-Ahead logs (WAL) that each TabletServer is
+already maintaining. TabletServers records which WALs have data that need to be
+replicated to the +accumulo.metadata+ table. The Master uses these records,
+combined with the local Accumulo table that the WAL was used with, to create records
+in the +replication+ table which track which peers the given WAL should be
+replicated to. The Master latter uses these work entries to assign the actual
+replication task to a local TabletServer using ZooKeeper. A TabletServer will get
+a lock in ZooKeeper for the replication of this file to a peer, and proceed to
+replicate to the peer, recording progress in the +replication+ table as
+data is successfully replicated on the peer. Later, the Master and Garbage Collector
+will remove records from the +accumulo.metadata+ and +replication+ tables
+and files from HDFS, respectively, after replication to all peers is complete.
+
+=== Configuration
+
+Configuration of Accumulo to replicate data to another system can be categorized
+into the following sections.
+
+==== Site Configuration
+
+Each system involved in replication (even the primary) needs a name that uniquely
+identifies it across all peers in the replication graph. This should be considered
+fixed for an instance, and set in +accumulo-site.xml+.
+
+----
+<property>
+    <name>replication.name</name>
+    <value>primary</value>
+    <description>Unique name for this system used by replication</description>
+</property>
+----
+
+==== Instance Configuration
+
+For each peer of this system, Accumulo needs to know the name of that peer,
+the class used to replicate data to that system and some configuration information
+to connect to this remote peer. In the case of Accumulo, this additional data
+is the Accumulo instance name and ZooKeeper quorum; however, this varies on the
+replication implementation for the peer.
+
+These can be set in the site configuration to ease deployments; however, as they may
+change, it can be useful to set this information using the Accumulo shell.
+
+To configure a peer with the name +peer1+ which is an Accumulo system with an instance name of +accumulo_peer+
+and a ZooKeeper quorum of +10.0.0.1,10.0.2.1,10.0.3.1+, invoke the following
+command in the shell.
+
+----
+root@accumulo_primary> config -s
+replication.peer.peer1=org.apache.accumulo.tserver.replication.AccumuloReplicaSystem,accumulo_peer,10.0.0.1,10.0.2.1,10.0.3.1
+----
+
+Since this is an Accumulo system, we also want to set a username and password
+to use when authenticating with this peer. On our peer, we make a special user
+which has permission to write to the tables we want to replicate data into, "replication"
+with a password of "password". We then need to record this in the primary's configuration.
+
+----
+root@accumulo_primary> config -s replication.peer.user.peer1=replication
+root@accumulo_primary> config -s replication.peer.password.peer1=password
+----
+
+==== Table Configuration
+
+Now, we presently have a peer defined, so we just need to configure which tables will
+replicate to that peer. We also need to configure an identifier to determine where
+this data will be replicated on the peer. Since we're replicating to another Accumulo
+cluster, this is a table ID. In this example, we want to enable replication on
++my_table+ and configure our peer +accumulo_peer+ as a target, sending
+the data to the table with an ID of +2+ in +accumulo_peer+.
+
+\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+root@accumulo_primary> config -t my_table -s table.replication=true
+root@accumulo_primary> config -t my_table -s table.replication.target.acccumulo_peer=2
+\end{verbatim}\endgroup
+
+To replicate a single table on the primary to multiple peers, the second command
+in the above shell snippet can be issued, for each peer and remote identifier pair.
+
+=== Monitoring
+
+Basic information about replication status from a primary can be found on the Accumulo
+Monitor server, using the +Replication+ link the sidebar.
+
+On this page, information is broken down into the following sections:
+
+1. Files pending replication by peer and target
+2. Files queued for replication, with progress made
+
+=== Work Assignment
+
+Depending on the schema of a table, different implementations of the WorkAssigner used could
+be configured. The implementation is controlled via the property +replication.work.assigner+
+and the full class name for the implementation. This can be configured via the shell or
++accumulo-site.xml+.
+
+----
+<property>
+    <name>replication.work.assigner</name>
+    <value>org.apache.accumulo.master.replication.SequentialWorkAssigner</value>
+    <description>Implementation used to assign work for replication</description>
+</property>
+----
+
+----
+root@accumulo_primary> config -t my_table -s replication.work.assigner=org.apache.accumulo.master.replication.SequentialWorkAssigner
+----
+
+Two implementations are provided. By default, the +SequentialWorkAssigner+ is configured for an
+instance. The SequentialWorkAssigner ensures that, per peer and each remote identifier, each WAL is
+replicated in the order in which they were created. This is sufficient to ensure that updates to a table
+will be replayed in the correct order on the peer. This implementation has the downside of only replicating
+a single WAL at a time.
+
+The second implementation, the +UnorderedWorkAssigner+ can be used to overcome the limitation
+of only a single WAL being replicated to a target and peer at any time. Depending on the table schema,
+it's possible that multiple versions of the same Key with different values are infrequent or nonexistent.
+In this case, parallel replication to a peer and target is possible without any downsides. In the case
+where this implementation is used were column updates are frequent, it is possible that there will be
+an inconsistency between the primary and the peer.
