@@ -93,7 +93,11 @@ public class WorkDriver extends Daemon {
 
     while (master.stillMaster()) {
       // Assign the work using the configured implementation
-      assigner.assignWork();
+      try {
+        assigner.assignWork();
+      } catch (Exception e) {
+        log.error("Error while assigning work", e);
+      }
 
       long sleepTime = conf.getTimeInMillis(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP);
       log.debug("Sleeping {} ms before next work assignment", sleepTime);

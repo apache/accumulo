@@ -119,4 +119,16 @@ public class ReplicationSchemaTest {
     Assert.assertEquals("/accumulo/file", OrderSection.getFile(k, buff));
     Assert.assertEquals(now, OrderSection.getTimeClosed(k, buff));
   }
+
+  @Test
+  public void separatorDoesntInterferWithSplit() {
+    Text buff = new Text();
+    // Cycle through 2*128 values
+    for (long i = 1; i < 258; i++) {
+      Mutation m = OrderSection.createMutation("/accumulo/file", i);
+      Key k = new Key(new Text(m.getRow()));
+      Assert.assertEquals("/accumulo/file", OrderSection.getFile(k, buff));
+      Assert.assertEquals(i, OrderSection.getTimeClosed(k, buff));
+    }
+  }
 }

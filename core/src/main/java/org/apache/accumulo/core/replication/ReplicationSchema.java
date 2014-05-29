@@ -153,11 +153,11 @@ public class ReplicationSchema {
    * Holds the order in which files needed for replication were closed. The intent is to be able to guarantee that files which were closed earlier were
    * replicated first and we don't replay data in the wrong order on our peers
    * <p>
-   * <code>encodedTimeOfClosure_hdfs://localhost:8020/accumulo/wal/tserver+port/WAL order:source_table_id [] -> Status Protobuf</code>
+   * <code>encodedTimeOfClosure\x00hdfs://localhost:8020/accumulo/wal/tserver+port/WAL order:source_table_id [] -> Status Protobuf</code>
    */
   public static class OrderSection {
     public static final Text NAME = new Text("order");
-    public static final String ROW_SEPARATOR = "_";
+    public static final Text ROW_SEPARATOR = new Text(new byte[]{0});
     private static final ULongLexicoder longEncoder = new ULongLexicoder();
 
     /**
@@ -218,10 +218,10 @@ public class ReplicationSchema {
       Path p = new Path(file);
       String pathString = p.toUri().toString();
 
-      log.info("Normalized {} into {}", file, pathString);
+      log.trace("Normalized {} into {}", file, pathString);
 
       // Append the file as a suffix to the row
-      row.append((ROW_SEPARATOR + pathString).getBytes(), 0, pathString.length() + ROW_SEPARATOR.length());
+      row.append((ROW_SEPARATOR + pathString).getBytes(), 0, pathString.length() + ROW_SEPARATOR.getLength());
 
       // Make the mutation and add the column update
       return new Mutation(row);
@@ -249,7 +249,16 @@ public class ReplicationSchema {
 
     public static long getTimeClosed(Key k, Text buff) {
       k.getRow(buff);
-      int offset = buff.find(ROW_SEPARATOR);
+      int offset = 0;
+      // find the last offset
+      while (true) {
+        int nextOffset = buff.find(ROW_SEPARATOR.toString(), offset + 1);
+        if (-1 == nextOffset) {
+          break;
+        }
+        offset = nextOffset;
+      }
+
       if (-1 == offset) {
         throw new IllegalArgumentException("Row does not contain expected separator for OrderSection");
       }
@@ -266,7 +275,16 @@ public class ReplicationSchema {
 
     public static String getFile(Key k, Text buff) {
       k.getRow(buff);
-      int offset = buff.find(ROW_SEPARATOR);
+      int offset = 0;
+      // find the last offset
+      while (true) {
+        int nextOffset = buff.find(ROW_SEPARATOR.toString(), offset + 1);
+        if (-1 == nextOffset) {
+          break;
+        }
+        offset = nextOffset;
+      }
+
       if (-1 == offset) {
         throw new IllegalArgumentException("Row does not contain expected separator for OrderSection");
       }
