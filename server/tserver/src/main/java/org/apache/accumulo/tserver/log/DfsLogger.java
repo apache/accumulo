@@ -51,6 +51,7 @@ import org.apache.accumulo.core.security.crypto.CryptoModuleParameters;
 import org.apache.accumulo.core.security.crypto.DefaultCryptoModule;
 import org.apache.accumulo.core.security.crypto.NoFlushOutputStream;
 import org.apache.accumulo.core.util.Daemon;
+import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -134,7 +135,8 @@ public class DfsLogger {
     @Override
     public void run() {
       ArrayList<DfsLogger.LogWork> work = new ArrayList<DfsLogger.LogWork>();
-      while (true) {
+      boolean sawClosedMarker = false;
+      while (!sawClosedMarker) {
         work.clear();
 
         try {
@@ -144,36 +146,20 @@ public class DfsLogger {
         }
         workQueue.drainTo(work);
 
-        synchronized (closeLock) {
-          if (!closed) {
-            try {
-              sync.invoke(logFile);
-            } catch (Exception ex) {
-              log.warn("Exception syncing " + ex);
-              for (DfsLogger.LogWork logWork : work) {
-                logWork.exception = ex;
-              }
-            }
-          } else {
-            for (DfsLogger.LogWork logWork : work) {
-              logWork.exception = new LogClosedException();
-            }
+        try {
+          sync.invoke(logFile);
+        } catch (Exception ex) {
+          log.warn("Exception syncing " + ex);
+          for (DfsLogger.LogWork logWork : work) {
+            logWork.exception = ex;
           }
         }
 
-        boolean sawClosedMarker = false;
         for (DfsLogger.LogWork logWork : work)
           if (logWork == CLOSED_MARKER)
             sawClosedMarker = true;
           else
             logWork.latch.countDown();
-
-        if (sawClosedMarker) {
-          synchronized (closeLock) {
-            closeLock.notifyAll();
-          }
-          break;
-        }
       }
     }
   }
@@ -233,6 +219,7 @@ public class DfsLogger {
   private DataOutputStream encryptingLogFile = null;
   private Method sync;
   private String logPath;
+  private Daemon syncThread;
 
   public DfsLogger(ServerResources conf) throws IOException {
     this.conf = conf;
@@ -407,9 +394,9 @@ public class DfsLogger {
       throw new IOException(ex);
     }
 
-    Thread t = new Daemon(new LogSyncingTask());
-    t.setName("Accumulo WALog thread " + toString());
-    t.start();
+    syncThread = new Daemon(new LoggingRunnable(log, new LogSyncingTask()));
+    syncThread.setName("Accumulo WALog thread " + toString());
+    syncThread.start();
   }
 
   @Override
@@ -436,14 +423,23 @@ public class DfsLogger {
       // thread to do work
       closed = true;
       workQueue.add(CLOSED_MARKER);
-      while (!workQueue.isEmpty())
-        try {
-          closeLock.wait();
-        } catch (InterruptedException e) {
-          log.info("Interrupted");
-        }
     }
 
+    // wait for background thread to finish before closing log file
+    if(syncThread != null){
+      try {
+        syncThread.join();
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    //expect workq should be empty at this point
+    if(workQueue.size() != 0){
+      log.error("WAL work queue not empty after sync thread exited");
+      throw new IllegalStateException("WAL work queue not empty after sync thread exited");
+    }
+    
     if (encryptingLogFile != null)
       try {
         logFile.close();
