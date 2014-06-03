@@ -45,7 +45,6 @@ public abstract class TabletTime {
   
   public abstract String getMetadataValue();
   
-  // abstract long setUpdateTimes(Mutation mutation);
   public abstract long setUpdateTimes(List<Mutation> mutations);
   
   public abstract long getTime();

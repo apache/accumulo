@@ -22,6 +22,7 @@ import org.apache.accumulo.server.util.ActionStatsUpdator;
 
 public class TabletStatsKeeper {
   
+  // suspect we need more synchronization in this class
   private ActionStats major = new ActionStats();
   private ActionStats minor = new ActionStats();
   private ActionStats split = new ActionStats();
