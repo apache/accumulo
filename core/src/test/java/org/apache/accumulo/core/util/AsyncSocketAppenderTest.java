@@ -16,14 +16,14 @@
  */
 package org.apache.accumulo.core.util;
 
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.apache.log4j.Priority;
 import org.apache.log4j.net.SocketAppender;
 import org.apache.log4j.spi.LoggingEvent;
 import org.junit.Before;
 import org.junit.Test;
+
 import static org.junit.Assert.*;
-import org.easymock.Capture;
 import static org.easymock.EasyMock.*;
 
 public class AsyncSocketAppenderTest {
@@ -63,8 +63,8 @@ public class AsyncSocketAppenderTest {
   public void testAppend() {
     asa = new AsyncSocketAppender(sa);
     assertFalse(asa.isAttached(sa));
-    LoggingEvent event1 = new LoggingEvent("java.lang.String", Logger.getRootLogger(), Priority.INFO, "event1", null);
-    LoggingEvent event2 = new LoggingEvent("java.lang.Integer", Logger.getRootLogger(), Priority.WARN, "event2", null);
+    LoggingEvent event1 = new LoggingEvent("java.lang.String", Logger.getRootLogger(), Level.INFO, "event1", null);
+    LoggingEvent event2 = new LoggingEvent("java.lang.Integer", Logger.getRootLogger(), Level.WARN, "event2", null);
     sa.activateOptions();
     sa.doAppend(event1);
     sa.doAppend(event2);

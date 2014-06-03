@@ -46,6 +46,7 @@ public class ColumnToClassMapping<K> {
 	  this(objectStrings, c, null);
   }
 
+  @SuppressWarnings("unchecked")
   public ColumnToClassMapping(Map<String,String> objectStrings, Class<? extends K> c, String context) throws InstantiationException, IllegalAccessException,
   ClassNotFoundException, IOException {
 	  this();
