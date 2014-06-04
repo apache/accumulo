@@ -20,9 +20,7 @@ import static org.apache.accumulo.server.problems.ProblemType.TABLET_LOAD;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
-import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -78,9 +76,6 @@ import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.constraints.Constraint.Environment;
-import org.apache.accumulo.core.constraints.Violations;
-import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Key;
@@ -115,7 +110,6 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.security.AuthorizationContainer;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.security.thrift.TCredentials;
@@ -141,7 +135,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.SimpleThreadPool;
-import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -150,6 +143,7 @@ import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.Accumulo;
+import org.apache.accumulo.server.GarbageCollectionLogger;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -211,16 +205,21 @@ import org.apache.accumulo.tserver.metrics.TabletServerMBean;
 import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerUpdateMetrics;
+import org.apache.accumulo.tserver.session.ConditionalSession;
+import org.apache.accumulo.tserver.session.MultiScanSession;
+import org.apache.accumulo.tserver.session.ScanSession;
+import org.apache.accumulo.tserver.session.Session;
+import org.apache.accumulo.tserver.session.UpdateSession;
 import org.apache.accumulo.tserver.tablet.CommitSession;
 import org.apache.accumulo.tserver.tablet.CompactionInfo;
 import org.apache.accumulo.tserver.tablet.CompactionWatcher;
 import org.apache.accumulo.tserver.tablet.Compactor;
 import org.apache.accumulo.tserver.tablet.KVEntry;
-import org.apache.accumulo.tserver.tablet.Tablet.LookupResult;
 import org.apache.accumulo.tserver.tablet.ScanBatch;
 import org.apache.accumulo.tserver.tablet.Scanner;
 import org.apache.accumulo.tserver.tablet.SplitInfo;
 import org.apache.accumulo.tserver.tablet.Tablet;
+import org.apache.accumulo.tserver.tablet.Tablet.LookupResult;
 import org.apache.accumulo.tserver.tablet.TabletClosedException;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.fs.FSError;
@@ -237,37 +236,78 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
 
 import com.google.common.net.HostAndPort;
 
-enum ScanRunState {
-  QUEUED, RUNNING, FINISHED
-}
-
 public class TabletServer extends AbstractMetricsImpl implements org.apache.accumulo.tserver.metrics.TabletServerMBean {
+  static enum ScanRunState {
+    QUEUED, RUNNING, FINISHED
+  }
+
   private static final Logger log = Logger.getLogger(TabletServer.class);
-
-  private static HashMap<String,Long> prevGcTime = new HashMap<String,Long>();
-  private static long lastMemorySize = 0;
-  private static long gcTimeIncreasedCount;
-
+  private static final String METRICS_PREFIX = "tserver";
   private static final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = 1000;
   private static final long RECENTLY_SPLIT_MILLIES = 60 * 1000;
+  private static final Set<Column> EMPTY_COLUMNS = Collections.emptySet();
 
-  private TabletServerLogger logger;
+  private final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
+  private final TransactionWatcher watcher = new TransactionWatcher();
+  private final ZooCache masterLockCache = new ZooCache();
 
-  protected final TabletServerMinCMetrics mincMetrics = new TabletServerMinCMetrics();
+  private final TabletServerLogger logger;
+
+  private final TabletServerMinCMetrics mincMetrics = new TabletServerMinCMetrics();
   public TabletServerMinCMetrics getMinCMetrics() {
     return mincMetrics;
   }
 
-  private ServerConfiguration serverConfig;
-  private LogSorter logSorter = null;
+  private final ServerConfiguration serverConfig;
+  private final LogSorter logSorter;
+  private final TabletStatsKeeper statsKeeper;
+  private final AtomicInteger logIdGenerator = new AtomicInteger();
+  
+  private final VolumeManager fs;
+  public Instance getInstance() {
+    return serverConfig.getInstance();
+  }
+
+  private final SortedMap<KeyExtent,Tablet> onlineTablets = Collections.synchronizedSortedMap(new TreeMap<KeyExtent,Tablet>());
+  private final SortedSet<KeyExtent> unopenedTablets = Collections.synchronizedSortedSet(new TreeSet<KeyExtent>());
+  private final SortedSet<KeyExtent> openingTablets = Collections.synchronizedSortedSet(new TreeSet<KeyExtent>());
+  @SuppressWarnings("unchecked")
+  private final Map<KeyExtent,Long> recentlyUnloadedCache = Collections.synchronizedMap(new LRUMap(1000));
+
+  private final TabletServerResourceManager resourceManager;
+  private final SecurityOperation security;
+
+  private final BlockingDeque<MasterMessage> masterMessages = new LinkedBlockingDeque<MasterMessage>();
+
+  private Thread majorCompactorThread;
+
+  private HostAndPort clientAddress;
+
+  private volatile boolean serverStopRequested = false;
+  private volatile boolean majorCompactorDisabled = false;
+  private volatile boolean shutdownComplete = false;
+
+  private ZooLock tabletServerLock;
+
+  private TServer server;
+
+  private DistributedWorkQueue bulkFailedCopyQ;
+
+  private String lockID;
+
+  private static ObjectName OBJECT_NAME = null;
+
+  public static final AtomicLong seekCount = new AtomicLong(0);
+  
+  private final AtomicLong totalMinorCompactions = new AtomicLong(0);
 
   public TabletServer(ServerConfiguration conf, VolumeManager fs) {
     super();
     this.serverConfig = conf;
-    this.instance = conf.getInstance();
     this.fs = fs;
     AccumuloConfiguration aconf = getSystemConfiguration();
-    this.logSorter = new LogSorter(instance, fs, aconf);
+    this.logSorter = new LogSorter(getInstance(), fs, aconf);
+    this.statsKeeper = new TabletStatsKeeper();
     SimpleTimer.getInstance(aconf).schedule(new Runnable() {
       @Override
       public void run() {
@@ -282,94 +322,27 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         }
       }
     }, 5000, 5000);
+
+    security = AuditedSecurityOperation.getInstance();
+
+    long walogMaxSize = getSystemConfiguration().getMemoryInBytes(Property.TSERV_WALOG_MAX_SIZE);
+    long minBlockSize = CachedConfiguration.getInstance().getLong("dfs.namenode.fs-limits.min-block-size", 0);
+    if (minBlockSize != 0 && minBlockSize > walogMaxSize)
+      throw new RuntimeException("Unable to start TabletServer. Logger is set to use blocksize " + walogMaxSize + " but hdfs minimum block size is "
+          + minBlockSize + ". Either increase the " + Property.TSERV_WALOG_MAX_SIZE + " or decrease dfs.namenode.fs-limits.min-block-size in hdfs-site.xml.");
+    logger = new TabletServerLogger(this, walogMaxSize);
+    this.resourceManager = new TabletServerResourceManager(getInstance(), fs);
   }
 
-  private synchronized static void logGCInfo(AccumuloConfiguration conf) {
-    List<GarbageCollectorMXBean> gcmBeans = ManagementFactory.getGarbageCollectorMXBeans();
-    Runtime rt = Runtime.getRuntime();
+  public static class SessionManager {
 
-    StringBuilder sb = new StringBuilder("gc");
-
-    boolean sawChange = false;
-
-    long maxIncreaseInCollectionTime = 0;
-
-    for (GarbageCollectorMXBean gcBean : gcmBeans) {
-      Long prevTime = prevGcTime.get(gcBean.getName());
-      long pt = 0;
-      if (prevTime != null) {
-        pt = prevTime;
-      }
-
-      long time = gcBean.getCollectionTime();
-
-      if (time - pt != 0) {
-        sawChange = true;
-      }
-
-      long increaseInCollectionTime = time - pt;
-      sb.append(String.format(" %s=%,.2f(+%,.2f) secs", gcBean.getName(), time / 1000.0, increaseInCollectionTime / 1000.0));
-      maxIncreaseInCollectionTime = Math.max(increaseInCollectionTime, maxIncreaseInCollectionTime);
-      prevGcTime.put(gcBean.getName(), time);
-    }
-
-    long mem = rt.freeMemory();
-    if (maxIncreaseInCollectionTime == 0) {
-      gcTimeIncreasedCount = 0;
-    } else {
-      gcTimeIncreasedCount++;
-      if (gcTimeIncreasedCount > 3 && mem < rt.maxMemory() * 0.05) {
-        log.warn("Running low on memory");
-        gcTimeIncreasedCount = 0;
-      }
-    }
-
-    if (mem > lastMemorySize) {
-      sawChange = true;
-    }
-
-    String sign = "+";
-    if (mem - lastMemorySize <= 0) {
-      sign = "";
-    }
-
-    sb.append(String.format(" freemem=%,d(%s%,d) totalmem=%,d", mem, sign, (mem - lastMemorySize), rt.totalMemory()));
-
-    if (sawChange) {
-      log.debug(sb.toString());
-    }
-
-    final long keepAliveTimeout = conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
-    if (maxIncreaseInCollectionTime > keepAliveTimeout) {
-      Halt.halt("Garbage collection may be interfering with lock keep-alive.  Halting.", -1);
-    }
-
-    lastMemorySize = mem;
-  }
-
-  private TabletStatsKeeper statsKeeper;
-
-  private static class Session {
-    long lastAccessTime;
-    long startTime;
-    String user;
-    String client = TServerUtils.clientAddress.get();
-    public boolean reserved;
-
-    public void cleanup() {}
-  }
-
-  private static class SessionManager {
-
-    SecureRandom random;
-    Map<Long,Session> sessions;
-    long maxIdle;
-    AccumuloConfiguration aconf;
+    private final SecureRandom random = new SecureRandom();
+    private final Map<Long,Session> sessions = new HashMap<Long,Session>();
+    private final long maxIdle;
+    private final AccumuloConfiguration aconf;
 
     SessionManager(AccumuloConfiguration conf) {
-      random = new SecureRandom();
-      sessions = new HashMap<Long,Session>();
-
+      aconf = conf;
       maxIdle = conf.getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
 
       Runnable r = new Runnable() {
@@ -380,7 +353,6 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       };
 
       SimpleTimer.getInstance(conf).schedule(r, 0, Math.max(maxIdle / 2, 1000));
-      aconf = conf;
     }
 
     synchronized long createSession(Session session, boolean reserve) {
@@ -482,7 +454,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
 
     private void sweep(long maxIdle) {
-      ArrayList<Session> sessionsToCleanup = new ArrayList<Session>();
+      List<Session> sessionsToCleanup = new ArrayList<Session>();
       synchronized (this) {
         Iterator<Session> iter = sessions.values().iterator();
         while (iter.hasNext()) {
@@ -568,7 +540,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
     public synchronized List<ActiveScan> getActiveScans() {
 
-      ArrayList<ActiveScan> activeScans = new ArrayList<ActiveScan>();
+      List<ActiveScan> activeScans = new ArrayList<ActiveScan>();
 
       long ct = System.currentTimeMillis();
 
@@ -597,7 +569,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
             }
           }
 
-          activeScans.add(new ActiveScan(ss.client, ss.user, ss.extent.getTableId().toString(), ct - ss.startTime, ct - ss.lastAccessTime, ScanType.SINGLE,
+          activeScans.add(new ActiveScan(ss.client, ss.getUser(), ss.extent.getTableId().toString(), ct - ss.startTime, ct - ss.lastAccessTime, ScanType.SINGLE,
               state, ss.extent.toThrift(), Translator.translate(ss.columnSet, Translators.CT), ss.ssiList, ss.ssio, ss.auths.getAuthorizationsBB()));
 
         } else if (session instanceof MultiScanSession) {
@@ -623,7 +595,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
             }
           }
 
-          activeScans.add(new ActiveScan(mss.client, mss.user, mss.threadPoolExtent.getTableId().toString(), ct - mss.startTime, ct - mss.lastAccessTime,
+          activeScans.add(new ActiveScan(mss.client, mss.getUser(), mss.threadPoolExtent.getTableId().toString(), ct - mss.startTime, ct - mss.lastAccessTime,
               ScanType.BATCH, state, mss.threadPoolExtent.toThrift(), Translator.translate(mss.columnSet, Translators.CT), mss.ssiList, mss.ssio, mss.auths
                   .getAuthorizationsBB()));
         }
@@ -633,61 +605,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
   }
 
-  public static class TservConstraintEnv implements Environment {
-
-    private TCredentials credentials;
-    private SecurityOperation security;
-    private Authorizations auths;
-    private KeyExtent ke;
-
-    TservConstraintEnv(SecurityOperation secOp, TCredentials credentials) {
-      this.security = secOp;
-      this.credentials = credentials;
-    }
-
-    public void setExtent(KeyExtent ke) {
-      this.ke = ke;
-    }
-
-    @Override
-    public KeyExtent getExtent() {
-      return ke;
-    }
-
-    @Override
-    public String getUser() {
-      return credentials.getPrincipal();
-    }
-
-    @Override
-    @Deprecated
-    public Authorizations getAuthorizations() {
-      if (auths == null)
-        try {
-          this.auths = security.getUserAuthorizations(credentials);
-        } catch (ThriftSecurityException e) {
-          throw new RuntimeException(e);
-        }
-      return auths;
-    }
-
-    @Override
-    public AuthorizationContainer getAuthorizationsContainer() {
-      return new AuthorizationContainer() {
-        @Override
-        public boolean contains(ByteSequence auth) {
-          try {
-            return security.userHasAuthorizations(credentials,
-                Collections.<ByteBuffer> singletonList(ByteBuffer.wrap(auth.getBackingArray(), auth.offset(), auth.length())));
-          } catch (ThriftSecurityException e) {
-            throw new RuntimeException(e);
-          }
-        }
-      };
-    }
-  }
-
-  private abstract class ScanTask<T> implements RunnableFuture<T> {
+  public abstract class ScanTask<T> implements RunnableFuture<T> {
 
     protected AtomicBoolean interruptFlag;
     protected ArrayBlockingQueue<Object> resultQueue;
@@ -785,94 +703,14 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
   }
 
-  private static class ConditionalSession extends Session {
-    public TCredentials credentials;
-    public Authorizations auths;
-    public String tableId;
-    public AtomicBoolean interruptFlag;
-
-    @Override
-    public void cleanup() {
-      interruptFlag.set(true);
-    }
-  }
-
-  private static class UpdateSession extends Session {
-    public Tablet currentTablet;
-    public MapCounter<Tablet> successfulCommits = new MapCounter<Tablet>();
-    Map<KeyExtent,Long> failures = new HashMap<KeyExtent,Long>();
-    HashMap<KeyExtent,SecurityErrorCode> authFailures = new HashMap<KeyExtent,SecurityErrorCode>();
-    public Violations violations;
-    public TCredentials credentials;
-    public long totalUpdates = 0;
-    public long flushTime = 0;
-    Stat prepareTimes = new Stat();
-    Stat walogTimes = new Stat();
-    Stat commitTimes = new Stat();
-    Stat authTimes = new Stat();
-    public Map<Tablet,List<Mutation>> queuedMutations = new HashMap<Tablet,List<Mutation>>();
-    public long queuedMutationSize = 0;
-    TservConstraintEnv cenv = null;
-  }
-
-  private static class ScanSession extends Session {
-    public KeyExtent extent;
-    public HashSet<Column> columnSet;
-    public List<IterInfo> ssiList;
-    public Map<String,Map<String,String>> ssio;
-    public Authorizations auths;
-    public long entriesReturned = 0;
-    public Stat nbTimes = new Stat();
-    public long batchCount = 0;
-    public volatile ScanTask<ScanBatch> nextBatchTask;
-    public AtomicBoolean interruptFlag;
-    public Scanner scanner;
-    public long readaheadThreshold = Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD;
-
-    @Override
-    public void cleanup() {
-      try {
-        if (nextBatchTask != null)
-          nextBatchTask.cancel(true);
-      } finally {
-        if (scanner != null)
-          scanner.close();
-      }
-    }
-
-  }
-
-  private static class MultiScanSession extends Session {
-    HashSet<Column> columnSet;
-    Map<KeyExtent,List<Range>> queries;
-    public List<IterInfo> ssiList;
-    public Map<String,Map<String,String>> ssio;
-    public Authorizations auths;
-
-    // stats
-    int numRanges;
-    int numTablets;
-    int numEntries;
-    long totalLookupTime;
-
-    public volatile ScanTask<MultiScanResult> lookupTask;
-    public KeyExtent threadPoolExtent;
-
-    @Override
-    public void cleanup() {
-      if (lookupTask != null)
-        lookupTask.cancel(true);
-    }
-  }
-
   /**
    * This little class keeps track of writes in progress and allows readers to wait for writes that started before the read. It assumes that the operation ids
    * are monotonically increasing.
    *
    */
   static class WriteTracker {
-    private static AtomicLong operationCounter = new AtomicLong(1);
-    private Map<TabletType,TreeSet<Long>> inProgressWrites = new EnumMap<TabletType,TreeSet<Long>>(TabletType.class);
+    private static final AtomicLong operationCounter = new AtomicLong(1);
+    private final Map<TabletType,TreeSet<Long>> inProgressWrites = new EnumMap<TabletType,TreeSet<Long>>(TabletType.class);
 
     WriteTracker() {
       for (TabletType ttype : TabletType.values()) {
@@ -920,7 +758,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       if (keySet.size() == 0)
         return -1;
 
-      ArrayList<KeyExtent> extents = new ArrayList<KeyExtent>(keySet.size());
+      List<KeyExtent> extents = new ArrayList<KeyExtent>(keySet.size());
 
       for (Tablet tablet : keySet)
         extents.add(tablet.getExtent());
@@ -933,26 +771,23 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     return serverConfig.getConfiguration();
   }
 
-  TransactionWatcher watcher = new TransactionWatcher();
-
   private class ThriftClientHandler extends ClientServiceHandler implements TabletClientService.Iface {
 
-    SessionManager sessionManager;
+    private final SessionManager sessionManager = new SessionManager(getSystemConfiguration());
 
-    AccumuloConfiguration acuConf = getSystemConfiguration();
+    private final AccumuloConfiguration acuConf = getSystemConfiguration();
 
-    TabletServerUpdateMetrics updateMetrics = new TabletServerUpdateMetrics();
+    private final TabletServerUpdateMetrics updateMetrics = new TabletServerUpdateMetrics();
 
-    TabletServerScanMetrics scanMetrics = new TabletServerScanMetrics();
+    private final TabletServerScanMetrics scanMetrics = new TabletServerScanMetrics();
 
-    WriteTracker writeTracker = new WriteTracker();
+    private final WriteTracker writeTracker = new WriteTracker();
 
-    private RowLocks rowLocks = new RowLocks();
+    private final RowLocks rowLocks = new RowLocks();
 
     ThriftClientHandler() {
-      super(instance, watcher, fs);
+      super(getInstance(), watcher, fs);
       log.debug(ThriftClientHandler.class.getName() + " created");
-      sessionManager = new SessionManager(getSystemConfiguration());
       // Register the metrics MBean
       try {
         updateMetrics.register();
@@ -1023,7 +858,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           runState.set(ScanRunState.RUNNING);
 
           Thread.currentThread().setName(
-              "User: " + scanSession.user + " Start: " + scanSession.startTime + " Client: " + scanSession.client + " Tablet: " + scanSession.extent);
+              "User: " + scanSession.getUser() + " Start: " + scanSession.startTime + " Client: " + scanSession.client + " Tablet: " + scanSession.extent);
 
           Tablet tablet = onlineTablets.get(scanSession.extent);
 
@@ -1065,7 +900,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
     private class LookupTask extends ScanTask<MultiScanResult> {
 
-      private long scanID;
+      private final long scanID;
 
       LookupTask(long scanID) {
         this.scanID = scanID;
@@ -1080,20 +915,20 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           if (isCancelled() || session == null)
             return;
 
-          TableConfiguration acuTableConf = ServerConfiguration.getTableConfiguration(instance, session.threadPoolExtent.getTableId().toString());
+          TableConfiguration acuTableConf = ServerConfiguration.getTableConfiguration(getInstance(), session.threadPoolExtent.getTableId().toString());
           long maxResultsSize = acuTableConf.getMemoryInBytes(Property.TABLE_SCAN_MAXMEM);
 
           runState.set(ScanRunState.RUNNING);
-          Thread.currentThread().setName("Client: " + session.client + " User: " + session.user + " Start: " + session.startTime + " Table: ");
+          Thread.currentThread().setName("Client: " + session.client + " User: " + session.getUser() + " Start: " + session.startTime + " Table: ");
 
           long bytesAdded = 0;
           long maxScanTime = 4000;
 
           long startTime = System.currentTimeMillis();
 
-          ArrayList<KVEntry> results = new ArrayList<KVEntry>();
+          List<KVEntry> results = new ArrayList<KVEntry>();
           Map<KeyExtent,List<Range>> failures = new HashMap<KeyExtent,List<Range>>();
-          ArrayList<KeyExtent> fullScans = new ArrayList<KeyExtent>();
+          List<KeyExtent> fullScans = new ArrayList<KeyExtent>();
           KeyExtent partScan = null;
           Key partNextKey = null;
           boolean partNextKeyInclusive = false;
@@ -1113,7 +948,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
               continue;
             }
             Thread.currentThread().setName(
-                "Client: " + session.client + " User: " + session.user + " Start: " + session.startTime + " Tablet: " + entry.getKey().toString());
+                "Client: " + session.client + " User: " + session.getUser() + " Start: " + session.startTime + " Tablet: " + entry.getKey().toString());
 
             LookupResult lookupResult;
             try {
@@ -1193,13 +1028,13 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         long readaheadThreshold) throws NotServingTabletException, ThriftSecurityException, org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException {
 
       String tableId = new String(textent.getTable(), StandardCharsets.UTF_8);
-      if (!security.canScan(credentials, tableId, Tables.getNamespaceId(instance, tableId), range, columns, ssiList, ssio, authorizations))
+      if (!security.canScan(credentials, tableId, Tables.getNamespaceId(getInstance(), tableId), range, columns, ssiList, ssio, authorizations))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
       if (!security.userHasAuthorizations(credentials, authorizations))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.BAD_AUTHORIZATIONS);
 
-      KeyExtent extent = new KeyExtent(textent);
+      final KeyExtent extent = new KeyExtent(textent);
 
       // wait for any writes that are in flight.. this done to ensure
       // consistency across client restarts... assume a client writes
@@ -1218,20 +1053,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       if (tablet == null)
         throw new NotServingTabletException(textent);
 
-      ScanSession scanSession = new ScanSession();
-      scanSession.user = credentials.getPrincipal();
-      scanSession.extent = new KeyExtent(extent);
-      scanSession.columnSet = new HashSet<Column>();
-      scanSession.ssiList = ssiList;
-      scanSession.ssio = ssio;
-      scanSession.auths = new Authorizations(authorizations);
-      scanSession.interruptFlag = new AtomicBoolean();
-      scanSession.readaheadThreshold = readaheadThreshold;
-
+      Set<Column> columnSet = new HashSet<Column>();
       for (TColumn tcolumn : columns) {
-        scanSession.columnSet.add(new Column(tcolumn));
+        columnSet.add(new Column(tcolumn));
       }
-
+      final ScanSession scanSession = new ScanSession(credentials, extent, columnSet, ssiList, ssio, new Authorizations(authorizations), readaheadThreshold);
       scanSession.scanner = tablet.createScanner(new Range(range), batchSize, scanSession.columnSet, scanSession.auths, ssiList, ssio, isolated,
           scanSession.interruptFlag);
 
@@ -1324,7 +1150,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
     @Override
     public void closeScan(TInfo tinfo, long scanID) {
-      ScanSession ss = (ScanSession) sessionManager.removeSession(scanID);
+      final ScanSession ss = (ScanSession) sessionManager.removeSession(scanID);
       if (ss != null) {
         long t2 = System.currentTimeMillis();
 
@@ -1341,7 +1167,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     public InitialMultiScan startMultiScan(TInfo tinfo, TCredentials credentials, Map<TKeyExtent,List<TRange>> tbatch, List<TColumn> tcolumns,
         List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites) throws ThriftSecurityException {
       // find all of the tables that need to be scanned
-      HashSet<String> tables = new HashSet<String>();
+      final HashSet<String> tables = new HashSet<String>();
       for (TKeyExtent keyExtent : tbatch.keySet()) {
         tables.add(new String(keyExtent.getTable(), StandardCharsets.UTF_8));
       }
@@ -1351,7 +1177,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
       // check if user has permission to the tables
       for (String tableId : tables)
-        if (!security.canScan(credentials, tableId, Tables.getNamespaceId(instance, tableId), tbatch, tcolumns, ssiList, ssio, authorizations))
+        if (!security.canScan(credentials, tableId, Tables.getNamespaceId(getInstance(), tableId), tbatch, tcolumns, ssiList, ssio, authorizations))
           throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
       try {
@@ -1370,13 +1196,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       if (waitForWrites)
         writeTracker.waitForWrites(TabletType.type(batch.keySet()));
 
-      MultiScanSession mss = new MultiScanSession();
-      mss.user = credentials.getPrincipal();
-      mss.queries = batch;
-      mss.columnSet = new HashSet<Column>(tcolumns.size());
-      mss.ssiList = ssiList;
-      mss.ssio = ssio;
-      mss.auths = new Authorizations(authorizations);
+      final MultiScanSession mss = new MultiScanSession(credentials, threadPoolExtent, batch, ssiList, ssio, new Authorizations(authorizations));
 
       mss.numTablets = batch.size();
       for (List<Range> ranges : batch.values()) {
@@ -1385,8 +1205,6 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
       for (TColumn tcolumn : tcolumns)
         mss.columnSet.add(new Column(tcolumn));
-
-      mss.threadPoolExtent = threadPoolExtent;
 
       long sid = sessionManager.createSession(mss, true);
 
@@ -1464,13 +1282,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       if (updateMetrics.isEnabled())
         updateMetrics.add(TabletServerUpdateMetrics.permissionErrors, 0);
 
-      UpdateSession us = new UpdateSession();
-      us.violations = new Violations();
-      us.credentials = credentials;
-      us.cenv = new TservConstraintEnv(security, us.credentials);
-
+      UpdateSession us = new UpdateSession(new TservConstraintEnv(security, credentials), credentials);
       long sid = sessionManager.createSession(us, false);
-
       return sid;
     }
 
@@ -1488,7 +1301,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         // the failures list
         boolean sameTable = us.currentTablet != null && (us.currentTablet.getExtent().getTableId().equals(keyExtent.getTableId()));
         String tableId = keyExtent.getTableId().toString();
-        if (sameTable || security.canWrite(us.credentials, tableId, Tables.getNamespaceId(instance, tableId))) {
+        if (sameTable || security.canWrite(us.getCredentials(), tableId, Tables.getNamespaceId(getInstance(), tableId))) {
           long t2 = System.currentTimeMillis();
           us.authTimes.addStat(t2 - t1);
           us.currentTablet = onlineTablets.get(keyExtent);
@@ -1502,7 +1315,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
               updateMetrics.add(TabletServerUpdateMetrics.unknownTabletErrors, 0);
           }
         } else {
-          log.warn("Denying access to table " + keyExtent.getTableId() + " for user " + us.credentials.getPrincipal());
+          log.warn("Denying access to table " + keyExtent.getTableId() + " for user " + us.getUser());
           long t2 = System.currentTimeMillis();
           us.authTimes.addStat(t2 - t1);
           us.currentTablet = null;
@@ -1512,7 +1325,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           return;
         }
       } catch (ThriftSecurityException e) {
-        log.error("Denying permission to check user " + us.credentials.getPrincipal() + " with user " + e.getUser(), e);
+        log.error("Denying permission to check user " + us.getUser() + " with user " + e.getUser(), e);
         long t2 = System.currentTimeMillis();
         us.authTimes.addStat(t2 - t1);
         us.currentTablet = null;
@@ -1667,11 +1480,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
             if (extent == us.currentTablet.getExtent()) {
               // because constraint violations may filter out some
-              // mutations, for proper
-              // accounting with the client code, need to increment
-              // the count based
-              // on the original number of mutations from the client
-              // NOT the filtered number
+              // mutations, for proper accounting with the client code, 
+              // need to increment the count based on the original 
+              // number of mutations from the client NOT the filtered number
               us.successfulCommits.increment(us.currentTablet, us.queuedMutations.get(us.currentTablet).size());
             }
           }
@@ -1711,7 +1522,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
     @Override
     public UpdateErrors closeUpdate(TInfo tinfo, long updateID) throws NoSuchScanIDException {
-      UpdateSession us = (UpdateSession) sessionManager.removeSession(updateID);
+      final UpdateSession us = (UpdateSession) sessionManager.removeSession(updateID);
       if (us == null) {
         throw new NoSuchScanIDException();
       }
@@ -1752,11 +1563,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     public void update(TInfo tinfo, TCredentials credentials, TKeyExtent tkeyExtent, TMutation tmutation) throws NotServingTabletException,
         ConstraintViolationException, ThriftSecurityException {
 
-      String tableId = new String(tkeyExtent.getTable(), StandardCharsets.UTF_8);
-      if (!security.canWrite(credentials, tableId, Tables.getNamespaceId(instance, tableId)))
+      final String tableId = new String(tkeyExtent.getTable(), StandardCharsets.UTF_8);
+      if (!security.canWrite(credentials, tableId, Tables.getNamespaceId(getInstance(), tableId)))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
-      KeyExtent keyExtent = new KeyExtent(tkeyExtent);
-      Tablet tablet = onlineTablets.get(new KeyExtent(keyExtent));
+      final KeyExtent keyExtent = new KeyExtent(tkeyExtent);
+      final Tablet tablet = onlineTablets.get(new KeyExtent(keyExtent));
       if (tablet == null) {
         throw new NotServingTabletException(tkeyExtent);
       }
@@ -1764,13 +1575,13 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       if (!keyExtent.isMeta())
         TabletServer.this.resourceManager.waitUntilCommitsAreEnabled();
 
-      long opid = writeTracker.startWrite(TabletType.type(keyExtent));
+      final long opid = writeTracker.startWrite(TabletType.type(keyExtent));
 
       try {
-        Mutation mutation = new ServerMutation(tmutation);
-        List<Mutation> mutations = Collections.singletonList(mutation);
+        final Mutation mutation = new ServerMutation(tmutation);
+        final List<Mutation> mutations = Collections.singletonList(mutation);
 
-        Span prep = Trace.start("prep");
+        final Span prep = Trace.start("prep");
         CommitSession cs;
         try {
           cs = tablet.prepareMutationsForCommit(new TservConstraintEnv(security, credentials), mutations);
@@ -1783,7 +1594,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
         while (true) {
           try {
-            Span wal = Trace.start("wal");
+            final Span wal = Trace.start("wal");
             try {
               logger.log(cs, cs.getWALogSeq(), mutation);
             } finally {
@@ -1795,7 +1606,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           }
         }
 
-        Span commit = Trace.start("commit");
+        final Span commit = Trace.start("commit");
         try {
           cs.commit(mutations);
         } finally {
@@ -1812,18 +1623,18 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         List<String> symbols) throws IOException {
       Iterator<Entry<KeyExtent,List<ServerConditionalMutation>>> iter = updates.entrySet().iterator();
 
-      CompressedIterators compressedIters = new CompressedIterators(symbols);
+      final CompressedIterators compressedIters = new CompressedIterators(symbols);
 
       while (iter.hasNext()) {
-        Entry<KeyExtent,List<ServerConditionalMutation>> entry = iter.next();
-        Tablet tablet = onlineTablets.get(entry.getKey());
+        final Entry<KeyExtent,List<ServerConditionalMutation>> entry = iter.next();
+        final Tablet tablet = onlineTablets.get(entry.getKey());
 
         if (tablet == null || tablet.isClosed()) {
           for (ServerConditionalMutation scm : entry.getValue())
             results.add(new TCMResult(scm.getID(), TCMStatus.IGNORED));
           iter.remove();
         } else {
-          List<ServerConditionalMutation> okMutations = new ArrayList<ServerConditionalMutation>(entry.getValue().size());
+          final List<ServerConditionalMutation> okMutations = new ArrayList<ServerConditionalMutation>(entry.getValue().size());
 
           for (ServerConditionalMutation scm : entry.getValue()) {
             if (checkCondition(results, cs, compressedIters, tablet, scm))
@@ -1836,11 +1647,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       }
     }
 
-    boolean checkCondition(ArrayList<TCMResult> results, ConditionalSession cs, CompressedIterators compressedIters, Tablet tablet,
+    private boolean checkCondition(ArrayList<TCMResult> results, ConditionalSession cs, CompressedIterators compressedIters, Tablet tablet,
         ServerConditionalMutation scm) throws IOException {
       boolean add = true;
-
-      Set<Column> emptyCols = Collections.emptySet();
 
       for (TCondition tc : scm.getConditions()) {
 
@@ -1852,7 +1661,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
         IterConfig ic = compressedIters.decompress(tc.iterators);
 
-        Scanner scanner = tablet.createScanner(range, 1, emptyCols, cs.auths, ic.ssiList, ic.ssio, false, cs.interruptFlag);
+        Scanner scanner = tablet.createScanner(range, 1, EMPTY_COLUMNS, cs.auths, ic.ssiList, ic.ssio, false, cs.interruptFlag);
 
         try {
           ScanBatch batch = scanner.read();
@@ -2015,7 +1824,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         throws ThriftSecurityException, TException {
 
       Authorizations userauths = null;
-      if (!security.canConditionallyUpdate(credentials, tableId, Tables.getNamespaceId(instance, tableId), authorizations))
+      if (!security.canConditionallyUpdate(credentials, tableId, Tables.getNamespaceId(getInstance(), tableId), authorizations))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
       userauths = security.getUserAuthorizations(credentials);
@@ -2023,11 +1832,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         if (!userauths.contains(ByteBufferUtil.toBytes(auth)))
           throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.BAD_AUTHORIZATIONS);
 
-      ConditionalSession cs = new ConditionalSession();
-      cs.auths = new Authorizations(authorizations);
-      cs.credentials = credentials;
-      cs.tableId = tableId;
-      cs.interruptFlag = new AtomicBoolean();
+      ConditionalSession cs = new ConditionalSession(credentials, new Authorizations(authorizations), tableId);
 
       long sid = sessionManager.createSession(cs, false);
       return new TConditionalSession(sid, lockID, sessionManager.getMaxIdleTime());
@@ -2099,7 +1904,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       String tableId = new String(ByteBufferUtil.toBytes(tkeyExtent.table));
       String namespaceId;
       try {
-        namespaceId = Tables.getNamespaceId(instance, tableId);
+        namespaceId = Tables.getNamespaceId(getInstance(), tableId);
       } catch (IllegalArgumentException ex) {
         // table does not exist, try to educate the client
         throw new NotServingTabletException(tkeyExtent);
@@ -2157,8 +1962,6 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       return result;
     }
 
-    private ZooCache masterLockCache = new ZooCache();
-
     private void checkPermission(TCredentials credentials, String lock, final String request) throws ThriftSecurityException {
       boolean fatal = false;
       try {
@@ -2179,7 +1982,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           Halt.halt(1, new Runnable() {
             @Override
             public void run() {
-              logGCInfo(getSystemConfiguration());
+              gcLogger.logGCInfo(getSystemConfiguration());
             }
           });
         }
@@ -2195,13 +1998,13 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           @Override
           public void run() {
             log.info("Tablet server no longer holds lock during checkPermission() : " + request + ", exiting");
-            logGCInfo(getSystemConfiguration());
+            gcLogger.logGCInfo(getSystemConfiguration());
           }
         });
       }
 
       if (lock != null) {
-        ZooUtil.LockID lid = new ZooUtil.LockID(ZooUtil.getRoot(instance) + Constants.ZMASTER_LOCK, lock);
+        ZooUtil.LockID lid = new ZooUtil.LockID(ZooUtil.getRoot(getInstance()) + Constants.ZMASTER_LOCK, lock);
 
         try {
           if (!ZooLock.isLockHeld(masterLockCache, lid)) {
@@ -2380,7 +2183,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         @Override
         public void run() {
           log.info("Master requested tablet server halt");
-          logGCInfo(getSystemConfiguration());
+          gcLogger.logGCInfo(getSystemConfiguration());
           serverStopRequested = true;
           try {
             tabletServerLock.unlock();
@@ -2715,20 +2518,14 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     return tabletInfo;
   }
 
-  public long lastPingTime = System.currentTimeMillis();
-  public Socket currentMaster;
-
-  // a queue to hold messages that are to be sent back to the master
-  private BlockingDeque<MasterMessage> masterMessages = new LinkedBlockingDeque<MasterMessage>();
-
   // add a message for the main thread to send back to the master
   public void enqueueMasterMessage(MasterMessage m) {
     masterMessages.addLast(m);
   }
 
   private class UnloadTabletHandler implements Runnable {
-    private KeyExtent extent;
-    private boolean saveState;
+    private final KeyExtent extent;
+    private final boolean saveState;
 
     public UnloadTabletHandler(KeyExtent extent, boolean saveState) {
       this.extent = extent;
@@ -2818,15 +2615,15 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   }
 
   private class AssignmentHandler implements Runnable {
-    private KeyExtent extent;
-    private int retryAttempt = 0;
+    private final KeyExtent extent;
+    private final int retryAttempt;
 
     public AssignmentHandler(KeyExtent extent) {
-      this.extent = extent;
+      this(extent, 0);
     }
 
     public AssignmentHandler(KeyExtent extent, int retryAttempt) {
-      this(extent);
+      this.extent = extent;
       this.retryAttempt = retryAttempt;
     }
 
@@ -2985,46 +2782,6 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
   }
 
-  private VolumeManager fs;
-  private Instance instance;
-
-  private final SortedMap<KeyExtent,Tablet> onlineTablets = Collections.synchronizedSortedMap(new TreeMap<KeyExtent,Tablet>());
-  private final SortedSet<KeyExtent> unopenedTablets = Collections.synchronizedSortedSet(new TreeSet<KeyExtent>());
-  private final SortedSet<KeyExtent> openingTablets = Collections.synchronizedSortedSet(new TreeSet<KeyExtent>());
-  @SuppressWarnings("unchecked")
-  private final Map<KeyExtent,Long> recentlyUnloadedCache = Collections.synchronizedMap(new LRUMap(1000));
-
-  private Thread majorCompactorThread;
-
-  // used for stopping the server and MasterListener thread
-  private volatile boolean serverStopRequested = false;
-
-  private HostAndPort clientAddress;
-
-  private TabletServerResourceManager resourceManager;
-  private SecurityOperation security;
-  private volatile boolean majorCompactorDisabled = false;
-
-  private volatile boolean shutdownComplete = false;
-
-  private ZooLock tabletServerLock;
-
-  private TServer server;
-
-  private DistributedWorkQueue bulkFailedCopyQ;
-
-  private String lockID;
-
-  private static final String METRICS_PREFIX = "tserver";
-
-  private static ObjectName OBJECT_NAME = null;
-
-  public static final AtomicLong seekCount = new AtomicLong(0);
-
-  public TabletStatsKeeper getStatsKeeper() {
-    return statsKeeper;
-  }
-
   public void addLoggersToMetadata(List<DfsLogger> logs, KeyExtent extent, int id) {
     if (!this.onlineTablets.containsKey(extent)) {
       log.info("Not adding " + logs.size() + " logs for extent " + extent + " as alias " + id + " tablet is offline");
@@ -3059,7 +2816,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
   private String getMasterAddress() {
     try {
-      List<String> locations = instance.getMasterLocations();
+      List<String> locations = getInstance().getMasterLocations();
       if (locations.size() == 0)
         return null;
       return locations.get(0);
@@ -3106,7 +2863,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   private void announceExistence() {
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     try {
-      String zPath = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + getClientAddressString();
+      String zPath = ZooUtil.getRoot(getInstance()) + Constants.ZTSERVERS + "/" + getClientAddressString();
 
       zoo.putPersistentData(zPath, new byte[] {}, NodeExistsPolicy.SKIP);
 
@@ -3121,7 +2878,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
             public void run() {
               if (!serverStopRequested)
                 log.fatal("Lost tablet server lock (reason = " + reason + "), exiting.");
-              logGCInfo(getSystemConfiguration());
+              gcLogger.logGCInfo(getSystemConfiguration());
             }
           });
         }
@@ -3144,7 +2901,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
         if (tabletServerLock.tryLock(lw, lockContent)) {
           log.debug("Obtained tablet server lock " + tabletServerLock.getLockPath());
-          lockID = tabletServerLock.getLockID().serialize(ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/");
+          lockID = tabletServerLock.getLockID().serialize(ZooUtil.getRoot(getInstance()) + Constants.ZTSERVERS + "/");
           return;
         }
         log.info("Waiting for tablet server lock");
@@ -3172,7 +2929,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
     ThreadPoolExecutor distWorkQThreadPool = new SimpleThreadPool(getSystemConfiguration().getCount(Property.TSERV_WORKQ_THREADS), "distributed work queue");
 
-    bulkFailedCopyQ = new DistributedWorkQueue(ZooUtil.getRoot(instance) + Constants.ZBULK_FAILED_COPYQ, getSystemConfiguration());
+    bulkFailedCopyQ = new DistributedWorkQueue(ZooUtil.getRoot(getInstance()) + Constants.ZBULK_FAILED_COPYQ, getSystemConfiguration());
     try {
       bulkFailedCopyQ.startProcessing(new BulkFailedCopyProcessor(), distWorkQThreadPool);
     } catch (Exception e1) {
@@ -3217,12 +2974,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           TServiceClient client = iface;
 
           // if while loop does not execute at all and mm != null,
-          // then
-          // finally block should place mm back on queue
+          // then finally block should place mm back on queue
           while (!serverStopRequested && mm != null && client != null && client.getOutputProtocol() != null
               && client.getOutputProtocol().getTransport() != null && client.getOutputProtocol().getTransport().isOpen()) {
             try {
-              mm.send(SystemCredentials.get().toThrift(instance), getClientAddressString(), iface);
+              mm.send(SystemCredentials.get().toThrift(getInstance()), getClientAddressString(), iface);
               mm = null;
             } catch (TException ex) {
               log.warn("Error sending message: queuing message again");
@@ -3259,10 +3015,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
     // wait for shutdown
     // if the main thread exits oldServer the master listener, the JVM will
-    // kill the
-    // other threads and finalize objects. We want the shutdown that is
-    // running
-    // in the master listener thread to complete oldServer this happens.
+    // kill the other threads and finalize objects. We want the shutdown that is
+    // running in the master listener thread to complete oldServer this happens.
     // consider making other threads daemon threads so that objects don't
     // get prematurely finalized
     synchronized (this) {
@@ -3284,7 +3038,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       log.warn("Failed to close filesystem : " + e.getMessage(), e);
     }
 
-    logGCInfo(getSystemConfiguration());
+    gcLogger.logGCInfo(getSystemConfiguration());
 
     log.info("TServerInfo: stop requested. exiting ... ");
 
@@ -3294,8 +3048,6 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       log.warn("Failed to release tablet server lock", e);
     }
   }
-
-  private long totalMinorCompactions;
 
   private static Pair<Text,KeyExtent> verifyRootTablet(KeyExtent extent, TServerInstance instance) throws DistributedStoreException, AccumuloException {
     ZooTabletStateStore store = new ZooTabletStateStore();
@@ -3468,15 +3220,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
   public void config(String hostname) {
     log.info("Tablet server starting on " + hostname);
-    security = AuditedSecurityOperation.getInstance();
-    clientAddress = HostAndPort.fromParts(hostname, 0);
-    long walogMaxSize = getSystemConfiguration().getMemoryInBytes(Property.TSERV_WALOG_MAX_SIZE);
-    long minBlockSize = CachedConfiguration.getInstance().getLong("dfs.namenode.fs-limits.min-block-size", 0);
-    if (minBlockSize != 0 && minBlockSize > walogMaxSize)
-      throw new RuntimeException("Unable to start TabletServer. Logger is set to use blocksize " + walogMaxSize + " but hdfs minimum block size is "
-          + minBlockSize + ". Either increase the " + Property.TSERV_WALOG_MAX_SIZE + " or decrease dfs.namenode.fs-limits.min-block-size in hdfs-site.xml.");
-    logger = new TabletServerLogger(this, walogMaxSize);
+    majorCompactorThread = new Daemon(new LoggingRunnable(log, new MajorCompactor(getSystemConfiguration())));
+    majorCompactorThread.setName("Split/MajC initiator");
+    majorCompactorThread.start();
 
+    clientAddress = HostAndPort.fromParts(hostname, 0);
     try {
       AccumuloVFSClassLoader.getContextManager().setContextConfig(new ContextManager.DefaultContextsConfig(new Iterable<Entry<String,String>>() {
         @Override
@@ -3529,7 +3277,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     Runnable gcDebugTask = new Runnable() {
       @Override
       public void run() {
-        logGCInfo(getSystemConfiguration());
+        gcLogger.logGCInfo(getSystemConfiguration());
       }
     };
 
@@ -3552,19 +3300,6 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     };
 
     SimpleTimer.getInstance(aconf).schedule(constraintTask, 0, 1000);
-
-    this.resourceManager = new TabletServerResourceManager(instance, fs);
-
-    lastPingTime = System.currentTimeMillis();
-
-    currentMaster = null;
-
-    statsKeeper = new TabletStatsKeeper();
-
-    // start major compactor
-    majorCompactorThread = new Daemon(new LoggingRunnable(log, new MajorCompactor(getSystemConfiguration())));
-    majorCompactorThread.setName("Split/MajC initiator");
-    majorCompactorThread.start();
   }
 
   public TabletServerStatus getStats(Map<String,MapCounter<ScanRunState>> scanCounts) {
@@ -3674,7 +3409,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   }
 
   public void minorCompactionFinished(CommitSession tablet, String newDatafile, int walogSeq) throws IOException {
-    totalMinorCompactions++;
+    totalMinorCompactions.incrementAndGet();
     logger.minorCompactionFinished(tablet, newDatafile, walogSeq);
   }
 
@@ -3710,8 +3445,6 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     logger.recover(fs, extent, tconf, recoveryLogs, tabletFiles, mutationReceiver);
   }
 
-  private final AtomicInteger logIdGenerator = new AtomicInteger();
-
   public int createLogId(KeyExtent tablet) {
     AccumuloConfiguration acuTableConf = getTableConfiguration(tablet);
     if (acuTableConf.getBoolean(Property.TABLE_WALOG_ENABLED)) {
@@ -3720,7 +3453,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     return -1;
   }
 
-  // / JMX methods
+  // JMX methods
 
   @Override
   public long getEntries() {
@@ -3853,7 +3586,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   @Override
   public long getTotalMinorCompactions() {
     if (this.isEnabled())
-      return totalMinorCompactions;
+      return totalMinorCompactions.get();
     return 0;
   }
 
@@ -3891,7 +3624,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   }
 
   public TableConfiguration getTableConfiguration(KeyExtent extent) {
-    return ServerConfiguration.getTableConfiguration(instance, extent.getTableId().toString());
+    return ServerConfiguration.getTableConfiguration(getInstance(), extent.getTableId().toString());
   }
 
   public DfsLogger.ServerResources getServerConfig() {

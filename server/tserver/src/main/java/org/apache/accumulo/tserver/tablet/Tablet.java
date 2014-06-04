@@ -109,11 +109,11 @@ import org.apache.accumulo.tserver.MinorCompactionReason;
 import org.apache.accumulo.tserver.TConstraintViolationException;
 import org.apache.accumulo.tserver.TLevel;
 import org.apache.accumulo.tserver.TabletServer;
-import org.apache.accumulo.tserver.TabletServer.TservConstraintEnv;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
 import org.apache.accumulo.tserver.TabletStatsKeeper;
 import org.apache.accumulo.tserver.TabletStatsKeeper.Operation;
 import org.apache.accumulo.tserver.TooManyFilesException;
+import org.apache.accumulo.tserver.TservConstraintEnv;
 import org.apache.accumulo.tserver.compaction.CompactionPlan;
 import org.apache.accumulo.tserver.compaction.CompactionStrategy;
 import org.apache.accumulo.tserver.compaction.DefaultCompactionStrategy;
@@ -637,7 +637,7 @@ public class Tablet implements TabletCommitter {
     }
   }
 
-  private LookupResult lookup(SortedKeyValueIterator<Key,Value> mmfi, List<Range> ranges, HashSet<Column> columnSet, ArrayList<KVEntry> results,
+  private LookupResult lookup(SortedKeyValueIterator<Key,Value> mmfi, List<Range> ranges, HashSet<Column> columnSet, List<KVEntry> results,
       long maxResultsSize) throws IOException {
 
     LookupResult lookupResult = new LookupResult();
@@ -714,7 +714,7 @@ public class Tablet implements TabletCommitter {
     return lookupResult;
   }
 
-  private void handleTabletClosedDuringScan(ArrayList<KVEntry> results, LookupResult lookupResult, boolean exceededMemoryUsage, Range range, int entriesAdded) {
+  private void handleTabletClosedDuringScan(List<KVEntry> results, LookupResult lookupResult, boolean exceededMemoryUsage, Range range, int entriesAdded) {
     if (exceededMemoryUsage)
       throw new IllegalStateException("tablet should not exceed memory usage or close, not both");
 
@@ -737,7 +737,7 @@ public class Tablet implements TabletCommitter {
     void receive(List<KVEntry> matches) throws IOException;
   }
 
-  public LookupResult lookup(List<Range> ranges, HashSet<Column> columns, Authorizations authorizations, ArrayList<KVEntry> results, long maxResultSize,
+  public LookupResult lookup(List<Range> ranges, HashSet<Column> columns, Authorizations authorizations, List<KVEntry> results, long maxResultSize,
       List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, AtomicBoolean interruptFlag) throws IOException {
 
     if (ranges.size() == 0) {
@@ -1286,7 +1286,7 @@ public class Tablet implements TabletCommitter {
     MinorCompactionTask mct = null;
 
     synchronized (this) {
-      if (isClosed() || isClosing() || isCloseComplete()) {
+      if (isClosed() || isClosing()) {
         String msg = "Tablet " + getExtent() + " already " + closeState;
         throw new IllegalStateException(msg);
       }
@@ -2035,7 +2035,7 @@ public class Tablet implements TabletCommitter {
   }
 
   public synchronized boolean isClosed() {
-    return closeState == CloseState.CLOSED;
+    return closeState == CloseState.CLOSED || closeState == CloseState.COMPLETE;
   }
 
   public synchronized boolean isCloseComplete() {

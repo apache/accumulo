@@ -330,21 +330,14 @@ public class DfsLogger {
 
       String syncMethod = conf.getConfiguration().get(Property.TSERV_WAL_SYNC_METHOD);
       try {
-        NoSuchMethodException e = null;
+        // sync: send data to datanodes
+        sync = logFile.getClass().getMethod("sync");
         try {
-          // hsync: send data to datanodes and sync the data to disk
+          // hsych: send data to datanodes and sync the data to disk
           sync = logFile.getClass().getMethod(syncMethod);
         } catch (NoSuchMethodException ex) {
           log.warn("Could not find configured " + syncMethod + " method, trying to fall back to old Hadoop sync method", ex);
-          e = ex;
         }
-        try {
-          // sync: send data to datanodes
-          sync = logFile.getClass().getMethod("sync");
-          e = null;
-        } catch (NoSuchMethodException ex) {}
-        if (e != null)
-          throw new RuntimeException(e);
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
