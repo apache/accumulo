@@ -3239,8 +3239,6 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       throw new RuntimeException("Failed to start replication service", e);
     }
 
-    log.info("Started replication service at " + replicationAddress);
-
     // Start the pool to handle outgoing replications
     final ThreadPoolExecutor replicationThreadPool = new SimpleThreadPool(getSystemConfiguration().getCount(Property.REPLICATION_WORKER_THREADS), "replication task");
     replWorker.setExecutor(replicationThreadPool);
