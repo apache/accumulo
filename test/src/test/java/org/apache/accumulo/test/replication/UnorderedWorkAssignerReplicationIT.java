@@ -370,23 +370,38 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
       connMaster.replicationOperations().drain(masterTable2, filesFor2);
 
       long countTable = 0l;
-      for (Entry<Key,Value> entry : connPeer.createScanner(peerTable1, Authorizations.EMPTY)) {
-        countTable++;
-        Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " " + entry.getValue(), entry.getKey().getRow().toString()
-            .startsWith(masterTable1));
+      for (int i = 0; i < 5; i++) {
+        countTable = 0l;
+        for (Entry<Key,Value> entry : connPeer.createScanner(peerTable1, Authorizations.EMPTY)) {
+          countTable++;
+          Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " " + entry.getValue(), entry.getKey().getRow().toString()
+              .startsWith(masterTable1));
+        }
+  
+        log.info("Found {} records in {}", countTable, peerTable1);
+
+        if (masterTable1Records != countTable) {
+          log.warn("Did not find {} expected records in {}, only found {}", masterTable1Records, peerTable1, countTable);
+        }
       }
 
-      log.info("Found {} records in {}", countTable, peerTable1);
       Assert.assertEquals(masterTable1Records, countTable);
 
-      countTable = 0l;
-      for (Entry<Key,Value> entry : connPeer.createScanner(peerTable2, Authorizations.EMPTY)) {
-        countTable++;
-        Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " " + entry.getValue(), entry.getKey().getRow().toString()
-            .startsWith(masterTable2));
+      for (int i = 0; i < 5; i++) {
+        countTable = 0l;
+        for (Entry<Key,Value> entry : connPeer.createScanner(peerTable2, Authorizations.EMPTY)) {
+          countTable++;
+          Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " " + entry.getValue(), entry.getKey().getRow().toString()
+              .startsWith(masterTable2));
+        }
+  
+        log.info("Found {} records in {}", countTable, peerTable2);
+
+        if (masterTable2Records != countTable) {
+          log.warn("Did not find {} expected records in {}, only found {}", masterTable2Records, peerTable2, countTable);
+        }
       }
 
-      log.info("Found {} records in {}", countTable, peerTable2);
       Assert.assertEquals(masterTable2Records, countTable);
 
     } finally {

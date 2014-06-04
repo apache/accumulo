@@ -403,7 +403,7 @@ public class ReplicationIT extends ConfigurableMacIT {
     }
   }
 
-  @Test(timeout = 60 * 5000)
+  @Test(timeout = 10 * 60 * 1000)
   public void dataWasReplicatedToThePeerWithoutDrain() throws Exception {
     MiniAccumuloConfigImpl peerCfg = new MiniAccumuloConfigImpl(createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName() + "_peer"),
         ROOT_PASSWORD);
@@ -626,14 +626,23 @@ public class ReplicationIT extends ConfigurableMacIT {
       Assert.assertNotEquals(0, fullyReplicated);
 
       long countTable = 0l;
-      for (Entry<Key,Value> entry : connPeer.createScanner(peerTable1, Authorizations.EMPTY)) {
-        countTable++;
-        Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " " + entry.getValue(), entry.getKey().getRow().toString()
-            .startsWith(masterTable1));
+      for (int i = 0; i < 10; i++) {
+        for (Entry<Key,Value> entry : connPeer.createScanner(peerTable1, Authorizations.EMPTY)) {
+          countTable++;
+          Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " " + entry.getValue(), entry.getKey().getRow().toString()
+              .startsWith(masterTable1));
+        }
+  
+        log.info("Found {} records in {}", countTable, peerTable1);
+
+        if (0l == countTable) {
+          Thread.sleep(5000);
+        } else {
+          break;
+        }
       }
 
-      log.info("Found {} records in {}", countTable, peerTable1);
-      Assert.assertTrue(countTable > 0);
+      Assert.assertTrue("Found no records in " + peerTable1 + " in the peer cluster", countTable > 0);
 
       countTable = 0l;
       for (Entry<Key,Value> entry : connPeer.createScanner(peerTable2, Authorizations.EMPTY)) {

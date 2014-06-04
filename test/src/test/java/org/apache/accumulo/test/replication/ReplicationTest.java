@@ -94,8 +94,8 @@ public class ReplicationTest extends ConfigurableMacIT {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     // Run the master replication loop run frequently
-    cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "0");
-    cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "0s");
+    cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
+    cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
     cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "1M");
     cfg.setProperty(Property.GC_CYCLE_START, "1s");
     cfg.setProperty(Property.GC_CYCLE_DELAY, "0");
@@ -1302,7 +1302,7 @@ public class ReplicationTest extends ConfigurableMacIT {
           }
         }
 
-        Thread.sleep(1000);
+        Thread.sleep(2000);
       }
 
       if (notFound) {
