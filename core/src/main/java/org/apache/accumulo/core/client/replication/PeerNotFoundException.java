@@ -33,4 +33,8 @@ public class PeerNotFoundException extends Exception {
   public PeerNotFoundException(String message, Throwable cause) {
     super(message, cause);
   }
+
+  public PeerNotFoundException(String peer, String message, Throwable cause) {
+    super("Peer '" + peer + "' not found " + message, cause);
+  }
 }

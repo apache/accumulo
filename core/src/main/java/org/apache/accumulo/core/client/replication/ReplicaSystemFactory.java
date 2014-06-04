@@ -27,6 +27,8 @@ import com.google.common.base.Preconditions;
 public class ReplicaSystemFactory {
   private static final Logger log = LoggerFactory.getLogger(ReplicaSystemFactory.class);
 
+  private ReplicaSystemFactory() {}
+
   /**
    * @param value
    *          {@link ReplicaSystem} implementation class name
@@ -53,10 +55,10 @@ public class ReplicaSystemFactory {
         return rs;
       }
 
-      throw new RuntimeException("Class is not assignable to ReplicaSystem: " + name);
+      throw new IllegalArgumentException("Class is not assignable to ReplicaSystem: " + name);
     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
       log.error("Error creating ReplicaSystem object", e);
-      throw new RuntimeException(e);
+      throw new IllegalArgumentException(e);
     }
   }
 

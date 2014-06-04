@@ -121,6 +121,7 @@ public class CyclicReplicationIT {
 
       String master1UserName = "master1", master1Password = "foo";
       String master2UserName = "master2", master2Password = "bar";
+      String master1Table = master1Cluster.getInstanceName(), master2Table = master2Cluster.getInstanceName();
 
       connMaster1.securityOperations().createLocalUser(master1UserName, new PasswordToken(master1Password));
       connMaster2.securityOperations().createLocalUser(master2UserName, new PasswordToken(master2Password));
@@ -142,27 +143,27 @@ public class CyclicReplicationIT {
           ReplicaSystemFactory.getPeerConfigurationValue(AccumuloReplicaSystem.class,
               AccumuloReplicaSystem.buildConfiguration(master1Cluster.getInstanceName(), master1Cluster.getZooKeepers())));
 
-      connMaster1.tableOperations().create(master1Cluster.getInstanceName(), false);
-      String master1TableId = connMaster1.tableOperations().tableIdMap().get(master1Cluster.getInstanceName());
+      connMaster1.tableOperations().create(master1Table, false);
+      String master1TableId = connMaster1.tableOperations().tableIdMap().get(master1Table);
       Assert.assertNotNull(master1TableId);
 
-      connMaster2.tableOperations().create(master2Cluster.getInstanceName(), false);
-      String master2TableId = connMaster2.tableOperations().tableIdMap().get(master2Cluster.getInstanceName());
+      connMaster2.tableOperations().create(master2Table, false);
+      String master2TableId = connMaster2.tableOperations().tableIdMap().get(master2Table);
       Assert.assertNotNull(master2TableId);
 
       // Replicate master1 in the master1 cluster to master2 in the master2 cluster
-      connMaster1.tableOperations().setProperty(master1Cluster.getInstanceName(), Property.TABLE_REPLICATION.getKey(), "true");
-      connMaster1.tableOperations().setProperty(master1Cluster.getInstanceName(),
+      connMaster1.tableOperations().setProperty(master1Table, Property.TABLE_REPLICATION.getKey(), "true");
+      connMaster1.tableOperations().setProperty(master1Table,
           Property.TABLE_REPLICATION_TARGETS.getKey() + master2Cluster.getInstanceName(), master2TableId);
 
       // Replicate master2 in the master2 cluster to master1 in the master2 cluster
-      connMaster2.tableOperations().setProperty(master2Cluster.getInstanceName(), Property.TABLE_REPLICATION.getKey(), "true");
-      connMaster2.tableOperations().setProperty(master2Cluster.getInstanceName(),
+      connMaster2.tableOperations().setProperty(master2Table, Property.TABLE_REPLICATION.getKey(), "true");
+      connMaster2.tableOperations().setProperty(master2Table,
           Property.TABLE_REPLICATION_TARGETS.getKey() + master1Cluster.getInstanceName(), master1TableId);
 
       // Give our replication user the ability to write to the respective table
-      connMaster1.securityOperations().grantTablePermission(master1UserName, master1Cluster.getInstanceName(), TablePermission.WRITE);
-      connMaster2.securityOperations().grantTablePermission(master2UserName, master2Cluster.getInstanceName(), TablePermission.WRITE);
+      connMaster1.securityOperations().grantTablePermission(master1UserName, master1Table, TablePermission.WRITE);
+      connMaster2.securityOperations().grantTablePermission(master2UserName, master2Table, TablePermission.WRITE);
 
       IteratorSetting summingCombiner = new IteratorSetting(50, SummingCombiner.class);
       SummingCombiner.setEncodingType(summingCombiner, Type.STRING);
@@ -170,17 +171,17 @@ public class CyclicReplicationIT {
 
       // Set a combiner on both instances that will sum multiple values
       // We can use this to verify that the mutation was not sent multiple times
-      connMaster1.tableOperations().attachIterator(master1Cluster.getInstanceName(), summingCombiner);
-      connMaster2.tableOperations().attachIterator(master2Cluster.getInstanceName(), summingCombiner);
+      connMaster1.tableOperations().attachIterator(master1Table, summingCombiner);
+      connMaster2.tableOperations().attachIterator(master2Table, summingCombiner);
 
       // Write a single entry
-      BatchWriter bw = connMaster1.createBatchWriter(master1Cluster.getInstanceName(), new BatchWriterConfig());
+      BatchWriter bw = connMaster1.createBatchWriter(master1Table, new BatchWriterConfig());
       Mutation m = new Mutation("row");
       m.put("count", "", "1");
       bw.addMutation(m);
       bw.close();
 
-      Set<String> files = connMaster1.replicationOperations().referencedFiles(master1Cluster.getInstanceName());
+      Set<String> files = connMaster1.replicationOperations().referencedFiles(master1Table);
 
       log.info("Found {} that need replication from master1", files);
 
@@ -194,22 +195,22 @@ public class CyclicReplicationIT {
       log.info("Restarted tserver on master1");
 
       // Sanity check that the element is there on master1
-      Scanner s = connMaster1.createScanner(master1Cluster.getInstanceName(), Authorizations.EMPTY);
+      Scanner s = connMaster1.createScanner(master1Table, Authorizations.EMPTY);
       Entry<Key,Value> entry = Iterables.getOnlyElement(s);
       Assert.assertEquals("1", entry.getValue().toString());
 
       // Wait for this table to replicate
-      connMaster1.replicationOperations().drain(master1Cluster.getInstanceName(), files);
+      connMaster1.replicationOperations().drain(master1Table, files);
 
       Thread.sleep(5000);
 
       // Check that the element made it to master2 only once
-      s = connMaster2.createScanner(master2Cluster.getInstanceName(), Authorizations.EMPTY);
+      s = connMaster2.createScanner(master2Table, Authorizations.EMPTY);
       entry = Iterables.getOnlyElement(s);
       Assert.assertEquals("1", entry.getValue().toString());
 
       // Wait for master2 to finish replicating it back
-      files = connMaster2.replicationOperations().referencedFiles(master2Cluster.getInstanceName());
+      files = connMaster2.replicationOperations().referencedFiles(master2Table);
 
       // Kill and restart the tserver to close the WAL on master2
       for (ProcessReference proc : master2Cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
@@ -219,16 +220,16 @@ public class CyclicReplicationIT {
       master2Cluster.exec(TabletServer.class);
 
       // Check that the element made it to master2 only once
-      s = connMaster2.createScanner(master2Cluster.getInstanceName(), Authorizations.EMPTY);
+      s = connMaster2.createScanner(master2Table, Authorizations.EMPTY);
       entry = Iterables.getOnlyElement(s);
       Assert.assertEquals("1", entry.getValue().toString());
 
-      connMaster2.replicationOperations().drain(master2Cluster.getInstanceName(), files);
+      connMaster2.replicationOperations().drain(master2Table, files);
 
       Thread.sleep(5000);
 
       // Verify that the entry wasn't sent back to master1
-      s = connMaster1.createScanner(master1Cluster.getInstanceName(), Authorizations.EMPTY);
+      s = connMaster1.createScanner(master1Table, Authorizations.EMPTY);
       entry = Iterables.getOnlyElement(s);
       Assert.assertEquals("1", entry.getValue().toString());
     } finally {

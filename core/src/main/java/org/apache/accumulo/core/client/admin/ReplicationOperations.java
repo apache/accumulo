@@ -32,14 +32,14 @@ import org.apache.accumulo.core.client.replication.ReplicaSystem;
 public interface ReplicationOperations {
 
   /**
-   * Define a cluster with the given name using the given {@link ReplicaSystem}
+   * Defines a cluster with the given name using the given {@link ReplicaSystem}.
    * @param name Name of the cluster, used for configuring replication on tables
    * @param system Type of system to be replicated to
    */
   public void addPeer(String name, ReplicaSystem system) throws AccumuloException, AccumuloSecurityException, PeerExistsException;
 
   /**
-   * Define a cluster with the given name and the given name system
+   * Defines a cluster with the given name and the given name system.
    * @param name Unique name for the cluster
    * @param replicaType {@link ReplicaSystem} class name to use to replicate the data
    * @throws PeerExistsException
@@ -47,14 +47,14 @@ public interface ReplicationOperations {
   public void addPeer(String name, String replicaType) throws AccumuloException, AccumuloSecurityException, PeerExistsException;
 
   /**
-   * Remove a cluster with the given name
+   * Removes a cluster with the given name.
    * @param name Name of the cluster to remove
    * @throws PeerNotFoundException
    */
   public void removePeer(String name) throws AccumuloException, AccumuloSecurityException, PeerNotFoundException;
 
   /**
-   * Wait for a table to be fully replicated
+   * Waits for a table to be fully replicated.
    * @param tableName The table to wait for
    * @throws AccumuloException
    * @throws AccumuloSecurityException
@@ -62,7 +62,7 @@ public interface ReplicationOperations {
   public void drain(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
-   * Wait for a table to be fully replicated as determined by the provided tables
+   * Waits for a table to be fully replicated as determined by the provided tables.
    * @param tableName The table to wait for
    * @throws AccumuloException
    * @throws AccumuloSecurityException
@@ -70,7 +70,7 @@ public interface ReplicationOperations {
   public void drain(String tableName, Set<String> files) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
-   * Get all of the referenced files for a table
+   * Gets all of the referenced files for a table.
    * @param tableName
    * @throws TableNotFoundException
    */

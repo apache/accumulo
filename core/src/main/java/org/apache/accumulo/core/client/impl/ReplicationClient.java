@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.client.impl;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.net.UnknownHostException;
@@ -52,14 +51,19 @@ public class ReplicationClient {
    * @return Client to the ReplicationCoordinator service
    */
   public static ReplicationCoordinator.Client getCoordinatorConnectionWithRetry(Instance instance) throws AccumuloException {
-    checkArgument(instance != null, "instance is null");
+    checkNotNull(instance);
 
     for (int attempts = 1; attempts <= 10; attempts++) {
 
       ReplicationCoordinator.Client result = getCoordinatorConnection(instance);
       if (result != null)
         return result;
-      UtilWaitThread.sleep(attempts * 250);
+      log.debug("Could not get ReplicationCoordinator connection to {}, will retry", instance.getInstanceName());
+      try {
+        Thread.sleep(attempts * 250);
+      } catch (InterruptedException e) {
+        throw new AccumuloException(e);
+      }
     }
 
     throw new AccumuloException("Timed out trying to communicate with master from " + instance.getInstanceName());
@@ -69,14 +73,16 @@ public class ReplicationClient {
     List<String> locations = instance.getMasterLocations();
 
     if (locations.size() == 0) {
-      log.debug("No masters...");
+      log.debug("No masters for replication to instance {}", instance.getInstanceName());
       return null;
     }
 
     // This is the master thrift service, we just want the hostname, not the port
     String masterThriftService = locations.get(0);
-    if (masterThriftService.endsWith(":0"))
+    if (masterThriftService.endsWith(":0")) {
+      log.warn("Master found for {} did not have real location {}", instance.getInstanceName(), masterThriftService);
       return null;
+    }
 
 
     AccumuloConfiguration conf = ServerConfigurationUtil.getConfiguration(instance);
@@ -91,7 +97,7 @@ public class ReplicationClient {
       ZooReader reader = new ZooReader(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
       replCoordinatorAddr = new String(reader.getData(zkPath, null), StandardCharsets.UTF_8);
     } catch (KeeperException | InterruptedException e) {
-      log.error("Could not fetch remote coordinator port");
+      log.error("Could not fetch remote coordinator port", e);
       return null;
     }
 
@@ -106,11 +112,7 @@ public class ReplicationClient {
           conf);
       return client;
     } catch (TTransportException tte) {
-      if (tte.getCause().getClass().equals(UnknownHostException.class)) {
-        // do not expect to recover from this
-        throw new RuntimeException(tte);
-      }
-      log.debug("Failed to connect to master coordinator service ({}), will retry... ", coordinatorAddr.toString(), tte);
+      log.debug("Failed to connect to master coordinator service ({})", coordinatorAddr.toString(), tte);
       return null;
     }
   }
@@ -157,13 +159,17 @@ public class ReplicationClient {
   public static <T> T executeCoordinatorWithReturn(Instance instance, ClientExecReturn<T,ReplicationCoordinator.Client> exec) throws AccumuloException,
       AccumuloSecurityException {
     ReplicationCoordinator.Client client = null;
-    while (true) {
+    for (int i = 0; i < 10; i++) {
       try {
         client = getCoordinatorConnectionWithRetry(instance);
         return exec.execute(client);
       } catch (TTransportException tte) {
         log.debug("ReplicationClient coordinator request failed, retrying ... ", tte);
-        UtilWaitThread.sleep(100);
+        try {
+          Thread.sleep(100);
+        } catch (InterruptedException e) {
+          throw new AccumuloException(e);
+        }
       } catch (ThriftSecurityException e) {
         throw new AccumuloSecurityException(e.user, e.code, e);
       } catch (AccumuloException e) {
@@ -175,6 +181,8 @@ public class ReplicationClient {
           close(client);
       }
     }
+
+    throw new AccumuloException("Could not connect to ReplicationCoordinator at " + instance.getInstanceName());
   }
 
   public static void executeCoordinator(Instance instance, ClientExec<ReplicationCoordinator.Client> exec) throws AccumuloException, AccumuloSecurityException {

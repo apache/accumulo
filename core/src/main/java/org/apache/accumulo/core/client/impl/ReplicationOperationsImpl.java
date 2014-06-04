@@ -66,10 +66,12 @@ import com.google.protobuf.InvalidProtocolBufferException;
 public class ReplicationOperationsImpl implements ReplicationOperations {
   private static final Logger log = LoggerFactory.getLogger(ReplicationOperationsImpl.class);
 
-  private Instance inst;
-  private Credentials creds;
+  private final Instance inst;
+  private final Credentials creds;
 
   public ReplicationOperationsImpl(Instance inst, Credentials creds) {
+    checkNotNull(inst);
+    checkNotNull(creds);
     this.inst = inst;
     this.creds = creds;
   }
@@ -125,32 +127,16 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
     checkNotNull(tableName);
 
     Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
-    TableOperations tops = conn.tableOperations();
-    while (!tops.exists(ReplicationTable.NAME)) {
-      UtilWaitThread.sleep(200);
-    }
-
-    if (!conn.tableOperations().exists(tableName)) {
-      throw new TableNotFoundException(null, tableName, null);
-    }
-
-    String strTableId = null;
-    while (null == strTableId) {
-      strTableId = tops.tableIdMap().get(tableName);
-      if (null == strTableId) {
-        UtilWaitThread.sleep(200);
-      }
-    }
-
-    Text tableId = new Text(strTableId);
+    Text tableId = getTableId(conn, tableName);
 
     log.info("Waiting for {} to be replicated for {}", wals, tableId);
 
     log.info("Reading from metadata table");
     boolean allMetadataRefsReplicated = false;
+    final Set<Range> range = Collections.singleton(new Range(ReplicationSection.getRange()));
     while (!allMetadataRefsReplicated) {
       BatchScanner bs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
-      bs.setRanges(Collections.singleton(new Range(ReplicationSection.getRange())));
+      bs.setRanges(range);
       bs.fetchColumnFamily(ReplicationSection.COLF);
       try {
         allMetadataRefsReplicated = allReferencesReplicated(bs, tableId, wals);
@@ -228,13 +214,7 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
     return true;
   }
 
-  @Override
-  public Set<String> referencedFiles(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    checkNotNull(tableName);
-
-    log.debug("Collecting referenced files for replication of table {}", tableName);
-
-    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
+  protected Text getTableId(Connector conn, String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     TableOperations tops = conn.tableOperations();
     while (!tops.exists(ReplicationTable.NAME)) {
       UtilWaitThread.sleep(200);
@@ -252,13 +232,23 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
       }
     }
 
-    Text tableId = new Text(strTableId);
+    return new Text(strTableId);    
+  }
 
-    log.debug("Found id of {} for name {}", strTableId, tableName);
+  @Override
+  public Set<String> referencedFiles(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    checkNotNull(tableName);
+
+    log.debug("Collecting referenced files for replication of table {}", tableName);
+
+    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
+    Text tableId = getTableId(conn, tableName);
+
+    log.debug("Found id of {} for name {}", tableId, tableName);
 
     // Get the WALs currently referenced by the table
     BatchScanner metaBs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
-    metaBs.setRanges(Collections.singleton(MetadataSchema.TabletsSection.getRange(strTableId)));
+    metaBs.setRanges(Collections.singleton(MetadataSchema.TabletsSection.getRange(tableId.toString())));
     metaBs.fetchColumnFamily(LogColumnFamily.NAME);
     Set<String> wals = new HashSet<>();
     try {

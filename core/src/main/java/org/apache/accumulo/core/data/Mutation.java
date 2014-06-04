@@ -784,6 +784,9 @@ public class Mutation implements Writable {
    * @return An unmodifiable view of the replication sources
    */
   public Set<String> getReplicationSources() {
+    if (null == replicationSources) {
+      return EMPTY;
+    }
     return Collections.unmodifiableSet(replicationSources);
   }
   
@@ -926,9 +929,13 @@ public class Mutation implements Writable {
       }
     }
     if (0x02 == (0x02 & hasValues)) {
-      WritableUtils.writeVInt(out, replicationSources.size());
-      for (String source : replicationSources) {
-        WritableUtils.writeString(out, source);
+      if (null == replicationSources) {
+        WritableUtils.writeVInt(out, 0);
+      } else {
+        WritableUtils.writeVInt(out, replicationSources.size());
+        for (String source : replicationSources) {
+          WritableUtils.writeString(out, source);
+        }
       }
     }
   }

@@ -27,13 +27,14 @@ import org.apache.accumulo.master.Master;
 import org.apache.accumulo.trace.instrument.CountSampler;
 import org.apache.accumulo.trace.instrument.Sampler;
 import org.apache.accumulo.trace.instrument.Trace;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Daemon wrapper around the {@link WorkMaker} that separates it from the Master
  */
 public class ReplicationDriver extends Daemon {
-  private static final Logger log = Logger.getLogger(ReplicationDriver.class);
+  private static final Logger log = LoggerFactory.getLogger(ReplicationDriver.class);
 
   private final Master master;
   private final AccumuloConfiguration conf;
@@ -95,7 +96,13 @@ public class ReplicationDriver extends Daemon {
       Trace.offNoFlush();
 
       // Sleep for a bit
-      UtilWaitThread.sleep(conf.getTimeInMillis(Property.MASTER_REPLICATION_SCAN_INTERVAL));
+      long sleepMillis = conf.getTimeInMillis(Property.MASTER_REPLICATION_SCAN_INTERVAL);
+      log.debug("Sleeping for {}ms before re-running", sleepMillis);
+      try {
+        Thread.sleep(sleepMillis);
+      } catch (InterruptedException e) {
+        log.error("Interrupted while sleeping", e);
+      }
     }
   }
 }
