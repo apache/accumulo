@@ -161,7 +161,7 @@ public class FileManager {
    * @param indexCache
    *          : underlying file can and should be able to handle a null cache
    */
-  FileManager(ServerConfiguration conf, VolumeManager fs, int maxOpen, BlockCache dataCache, BlockCache indexCache) {
+  public FileManager(ServerConfiguration conf, VolumeManager fs, int maxOpen, BlockCache dataCache, BlockCache indexCache) {
     
     if (maxOpen <= 0)
       throw new IllegalArgumentException("maxOpen <= 0");
@@ -481,7 +481,7 @@ public class FileManager {
       return newlyReservedReaders;
     }
     
-    synchronized List<InterruptibleIterator> openFiles(Map<FileRef,DataFileValue> files, boolean detachable) throws IOException {
+    public synchronized List<InterruptibleIterator> openFiles(Map<FileRef,DataFileValue> files, boolean detachable) throws IOException {
       
       List<FileSKVIterator> newlyReservedReaders = openFileRefs(files.keySet());
       
@@ -509,7 +509,7 @@ public class FileManager {
       return iters;
     }
     
-    synchronized void detach() {
+    public synchronized void detach() {
       
       releaseReaders(tabletReservedReaders, false);
       tabletReservedReaders.clear();
@@ -518,7 +518,7 @@ public class FileManager {
         fds.unsetIterator();
     }
     
-    synchronized void reattach() throws IOException {
+    public synchronized void reattach() throws IOException {
       if (tabletReservedReaders.size() != 0)
         throw new IllegalStateException();
       
@@ -545,13 +545,13 @@ public class FileManager {
       }
     }
     
-    synchronized void releaseOpenFiles(boolean sawIOException) {
+    public synchronized void releaseOpenFiles(boolean sawIOException) {
       releaseReaders(tabletReservedReaders, sawIOException);
       tabletReservedReaders.clear();
       dataSources.clear();
     }
     
-    synchronized int getNumOpenFiles() {
+    public synchronized int getNumOpenFiles() {
       return tabletReservedReaders.size();
     }
   }

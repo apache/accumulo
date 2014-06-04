@@ -27,7 +27,6 @@ import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
@@ -297,16 +296,13 @@ public class ZooCache {
     }
   }
 
-  private static Map<String,ZooCache> instances = new HashMap<String,ZooCache>();
+  private static ZooCacheFactory zcf = new ZooCacheFactory();
 
+  /**
+   * @deprecated Use {@link ZooCacheFactory} instead.
+   */
+  @Deprecated
   public static synchronized ZooCache getInstance(String zooKeepers, int sessionTimeout) {
-    String key = zooKeepers + ":" + sessionTimeout;
-    ZooCache zc = instances.get(key);
-    if (zc == null) {
-      zc = new ZooCache(zooKeepers, sessionTimeout);
-      instances.put(key, zc);
-    }
-
-    return zc;
+    return zcf.getZooCache(zooKeepers, sessionTimeout);
   }
 }

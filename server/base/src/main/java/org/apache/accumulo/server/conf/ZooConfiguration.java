@@ -29,6 +29,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.client.HdfsZooInstance.AccumuloNotInitializedException;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -51,7 +52,7 @@ public class ZooConfiguration extends AccumuloConfiguration {
   
   synchronized public static ZooConfiguration getInstance(Instance inst, AccumuloConfiguration parent) {
     if (instance == null) {
-      propCache = new ZooCache(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut());
+      propCache = new ZooCacheFactory().getZooCache(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut());
       instance = new ZooConfiguration(parent);
       instanceId = inst.getInstanceID();
     }
@@ -60,7 +61,7 @@ public class ZooConfiguration extends AccumuloConfiguration {
   
   synchronized public static ZooConfiguration getInstance(AccumuloConfiguration parent) {
     if (instance == null) {
-      propCache = new ZooCache(parent.get(Property.INSTANCE_ZK_HOST), (int) parent.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT));
+      propCache = new ZooCacheFactory().getZooCache(parent.get(Property.INSTANCE_ZK_HOST), (int) parent.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT));
       instance = new ZooConfiguration(parent);
       // InstanceID should be the same across all volumes, so just choose one
       VolumeManager fs;

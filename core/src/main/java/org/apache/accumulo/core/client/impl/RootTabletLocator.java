@@ -36,18 +36,24 @@ import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 public class RootTabletLocator extends TabletLocator {
   
-  private Instance instance;
-  private TabletServerLockChecker lockChecker;
+  private final Instance instance;
+  private final TabletServerLockChecker lockChecker;
+  private final ZooCacheFactory zcf;
   
   RootTabletLocator(Instance instance, TabletServerLockChecker lockChecker) {
+    this(instance, lockChecker, new ZooCacheFactory());
+  }
+  RootTabletLocator(Instance instance, TabletServerLockChecker lockChecker, ZooCacheFactory zcf) {
     this.instance = instance;
     this.lockChecker = lockChecker;
+    this.zcf = zcf;
   }
   
   @Override
@@ -87,7 +93,7 @@ public class RootTabletLocator extends TabletLocator {
   
   @Override
   public void invalidateCache(String server) {
-    ZooCache zooCache = ZooCache.getInstance(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
+    ZooCache zooCache = zcf.getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
     String root = ZooUtil.getRoot(instance) + Constants.ZTSERVERS;
     zooCache.clear(root + "/" + server);
   }
@@ -97,7 +103,7 @@ public class RootTabletLocator extends TabletLocator {
   
   protected TabletLocation getRootTabletLocation() {
     String zRootLocPath = ZooUtil.getRoot(instance) + RootTable.ZROOT_TABLET_LOCATION;
-    ZooCache zooCache = ZooCache.getInstance(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
+    ZooCache zooCache = zcf.getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
     
     OpTimer opTimer = new OpTimer(Logger.getLogger(this.getClass()), Level.TRACE).start("Looking up root tablet location in zookeeper.");
     byte[] loc = zooCache.get(zRootLocPath);

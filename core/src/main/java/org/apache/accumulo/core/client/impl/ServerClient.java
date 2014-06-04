@@ -20,8 +20,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -40,22 +38,13 @@ import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.log4j.Logger;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
 public class ServerClient {
   private static final Logger log = Logger.getLogger(ServerClient.class);
-  private static final Map<String,ZooCache> zooCaches = new HashMap<String,ZooCache>();
-  
-  synchronized static ZooCache getZooCache(Instance instance) {
-    ZooCache result = zooCaches.get(instance.getZooKeepers());
-    if (result == null) {
-      result = new ZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), null);
-      zooCaches.put(instance.getZooKeepers(), result);
-    }
-    return result;
-  }
   
   public static <T> T execute(Instance instance, ClientExecReturn<T,ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
     try {
@@ -137,7 +126,7 @@ public class ServerClient {
     ArrayList<ThriftTransportKey> servers = new ArrayList<ThriftTransportKey>();
     
     // add tservers
-    ZooCache zc = getZooCache(instance);
+    ZooCache zc = new ZooCacheFactory().getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
     for (String tserver : zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTSERVERS)) {
       String path = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + tserver;
       byte[] data = ZooUtil.getLockData(zc, path);

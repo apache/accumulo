@@ -30,12 +30,13 @@ import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
-import org.apache.accumulo.server.logger.LogFileKey;
-import org.apache.accumulo.server.logger.LogFileValue;
+import org.apache.accumulo.tserver.logger.LogFileKey;
+import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.SequenceFile;
+import org.apache.hadoop.io.WritableName;
 import org.apache.hadoop.io.SequenceFile.Reader;
 import org.apache.log4j.Logger;
 
@@ -47,8 +48,14 @@ import com.google.common.annotations.VisibleForTesting;
 /**
  * This class will attempt to rewrite any local WALs to HDFS.
  */
+@SuppressWarnings("deprecation")
 public class LocalWALRecovery implements Runnable {
   private static final Logger log = Logger.getLogger(LocalWALRecovery.class);
+  
+  static { 
+    WritableName.addName(LogFileKey.class,  org.apache.accumulo.server.logger.LogFileKey.class.getName());
+    WritableName.addName(LogFileValue.class,  org.apache.accumulo.server.logger.LogFileValue.class.getName());
+  }
 
   public static void main(String[] args) throws IOException {
     AccumuloConfiguration configuration = SiteConfiguration.getInstance(SiteConfiguration.getDefaultConfiguration());
@@ -137,9 +144,7 @@ public class LocalWALRecovery implements Runnable {
           continue;
         }
 
-        @SuppressWarnings("deprecation")
         LogFileKey key = new LogFileKey();
-        @SuppressWarnings("deprecation")
         LogFileValue value = new LogFileValue();
 
         log.info("Openning local log " + file.getAbsolutePath());
@@ -147,7 +152,6 @@ public class LocalWALRecovery implements Runnable {
         Path localWal = new Path(file.toURI());
         FileSystem localFs = FileSystem.getLocal(fs.getConf());
         
-        @SuppressWarnings("deprecation")
         Reader reader = new SequenceFile.Reader(localFs, localWal, localFs.getConf());
         // Reader reader = new SequenceFile.Reader(localFs.getConf(), SequenceFile.Reader.file(localWal));
         Path tmp = new Path(options.destination + "/" + name + ".copy");

@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.tserver;
+package org.apache.accumulo.tserver.tablet;
 
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -37,23 +37,17 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
-import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.iterators.system.DeletingIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.iterators.system.TimeSettingIterator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
-import org.apache.accumulo.core.tabletserver.thrift.CompactionReason;
-import org.apache.accumulo.core.tabletserver.thrift.CompactionType;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.server.fs.FileRef;
@@ -64,107 +58,60 @@ import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
-import org.apache.accumulo.tserver.Tablet.MinorCompactionReason;
+import org.apache.accumulo.tserver.InMemoryMap;
+import org.apache.accumulo.tserver.MinorCompactionReason;
+import org.apache.accumulo.tserver.TabletIteratorEnvironment;
 import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.log4j.Logger;
 
 public class Compactor implements Callable<CompactionStats> {
-
-  public static class CountingIterator extends WrappingIterator {
-
-    private long count;
-    private ArrayList<CountingIterator> deepCopies;
-    private AtomicLong entriesRead;
-
-    @Override
-    public CountingIterator deepCopy(IteratorEnvironment env) {
-      return new CountingIterator(this, env);
-    }
-
-    private CountingIterator(CountingIterator other, IteratorEnvironment env) {
-      setSource(other.getSource().deepCopy(env));
-      count = 0;
-      this.deepCopies = other.deepCopies;
-      this.entriesRead = other.entriesRead;
-      deepCopies.add(this);
-    }
-
-    public CountingIterator(SortedKeyValueIterator<Key,Value> source, AtomicLong entriesRead) {
-      deepCopies = new ArrayList<Compactor.CountingIterator>();
-      this.setSource(source);
-      count = 0;
-      this.entriesRead = entriesRead;
-    }
-
-    @Override
-    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void next() throws IOException {
-      super.next();
-      count++;
-      if (count % 1024 == 0) {
-        entriesRead.addAndGet(1024);
-      }
-    }
-
-    public long getCount() {
-      long sum = 0;
-      for (CountingIterator dc : deepCopies) {
-        sum += dc.count;
-      }
-
-      return count + sum;
-    }
-  }
-
   private static final Logger log = Logger.getLogger(Compactor.class);
+  private static final AtomicLong nextCompactorID = new AtomicLong(0);
 
-  static class CompactionCanceledException extends Exception {
+  public static class CompactionCanceledException extends Exception {
     private static final long serialVersionUID = 1L;
   }
 
-  interface CompactionEnv {
+  public interface CompactionEnv {
+    
     boolean isCompactionEnabled();
 
     IteratorScope getIteratorScope();
   }
 
-  private Map<FileRef,DataFileValue> filesToCompact;
-  private InMemoryMap imm;
-  private FileRef outputFile;
-  private boolean propogateDeletes;
-  private AccumuloConfiguration acuTableConf;
-  private CompactionEnv env;
-  private Configuration conf;
-  private VolumeManager fs;
-  protected KeyExtent extent;
-  private List<IteratorSetting> iterators;
+  private final Map<FileRef,DataFileValue> filesToCompact;
+  private final InMemoryMap imm;
+  private final FileRef outputFile;
+  private final boolean propogateDeletes;
+  private final AccumuloConfiguration acuTableConf;
+  private final CompactionEnv env;
+  private final VolumeManager fs;
+  protected final KeyExtent extent;
+  private final List<IteratorSetting> iterators;
 
   // things to report
   private String currentLocalityGroup = "";
-  private long startTime;
+  private final long startTime;
 
-  private MajorCompactionReason reason;
-  protected MinorCompactionReason mincReason;
+  private int reason;
 
-  private AtomicLong entriesRead = new AtomicLong(0);
-  private AtomicLong entriesWritten = new AtomicLong(0);
-  private DateFormat dateFormatter = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
-
-  private static AtomicLong nextCompactorID = new AtomicLong(0);
+  private final AtomicLong entriesRead = new AtomicLong(0);
+  private final AtomicLong entriesWritten = new AtomicLong(0);
+  private final DateFormat dateFormatter = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
 
   // a unique id to identify a compactor
-  private long compactorID = nextCompactorID.getAndIncrement();
-
+  private final long compactorID = nextCompactorID.getAndIncrement();
   protected volatile Thread thread;
+
+  public long getCompactorID() { return compactorID; }
 
   private synchronized void setLocalityGroup(String name) {
     this.currentLocalityGroup = name;
+  }
+  
+  public synchronized String getCurrentLocalityGroup() {
+    return currentLocalityGroup;
   }
 
   private void clearStats() {
@@ -174,107 +121,8 @@ public class Compactor implements Callable<CompactionStats> {
 
   protected static final Set<Compactor> runningCompactions = Collections.synchronizedSet(new HashSet<Compactor>());
 
-  public static class CompactionInfo {
-
-    private Compactor compactor;
-    private String localityGroup;
-    private long entriesRead;
-    private long entriesWritten;
-
-    CompactionInfo(Compactor compactor) {
-      this.localityGroup = compactor.currentLocalityGroup;
-      this.entriesRead = compactor.entriesRead.get();
-      this.entriesWritten = compactor.entriesWritten.get();
-      this.compactor = compactor;
-    }
-
-    public long getID() {
-      return compactor.compactorID;
-    }
-
-    public KeyExtent getExtent() {
-      return compactor.getExtent();
-    }
-
-    public long getEntriesRead() {
-      return entriesRead;
-    }
-
-    public long getEntriesWritten() {
-      return entriesWritten;
-    }
-
-    public Thread getThread() {
-      return compactor.thread;
-    }
-
-    public String getOutputFile() {
-      return compactor.getOutputFile();
-    }
-
-    public ActiveCompaction toThrift() {
-
-      CompactionType type;
-
-      if (compactor.imm != null)
-        if (compactor.filesToCompact.size() > 0)
-          type = CompactionType.MERGE;
-        else
-          type = CompactionType.MINOR;
-      else if (!compactor.propogateDeletes)
-        type = CompactionType.FULL;
-      else
-        type = CompactionType.MAJOR;
-
-      CompactionReason reason;
-
-      if (compactor.imm != null)
-        switch (compactor.mincReason) {
-          case USER:
-            reason = CompactionReason.USER;
-            break;
-          case CLOSE:
-            reason = CompactionReason.CLOSE;
-            break;
-          case SYSTEM:
-          default:
-            reason = CompactionReason.SYSTEM;
-            break;
-        }
-      else
-        switch (compactor.reason) {
-          case USER:
-            reason = CompactionReason.USER;
-            break;
-          case CHOP:
-            reason = CompactionReason.CHOP;
-            break;
-          case IDLE:
-            reason = CompactionReason.IDLE;
-            break;
-          case NORMAL:
-          default:
-            reason = CompactionReason.SYSTEM;
-            break;
-        }
-
-      List<IterInfo> iiList = new ArrayList<IterInfo>();
-      Map<String,Map<String,String>> iterOptions = new HashMap<String,Map<String,String>>();
-
-      for (IteratorSetting iterSetting : compactor.iterators) {
-        iiList.add(new IterInfo(iterSetting.getPriority(), iterSetting.getIteratorClass(), iterSetting.getName()));
-        iterOptions.put(iterSetting.getName(), iterSetting.getOptions());
-      }
-      List<String> filesToCompact = new ArrayList<String>();
-      for (FileRef ref : compactor.filesToCompact.keySet())
-        filesToCompact.add(ref.toString());
-      return new ActiveCompaction(compactor.extent.toThrift(), System.currentTimeMillis() - compactor.startTime, filesToCompact,
-          compactor.outputFile.toString(), type, reason, localityGroup, entriesRead, entriesWritten, iiList, iterOptions);
-    }
-  }
-
   public static List<CompactionInfo> getRunningCompactions() {
-    ArrayList<CompactionInfo> compactions = new ArrayList<Compactor.CompactionInfo>();
+    ArrayList<CompactionInfo> compactions = new ArrayList<CompactionInfo>();
 
     synchronized (runningCompactions) {
       for (Compactor compactor : runningCompactions) {
@@ -285,26 +133,20 @@ public class Compactor implements Callable<CompactionStats> {
     return compactions;
   }
 
-  Compactor(Configuration conf, VolumeManager fs, Map<FileRef,DataFileValue> files, InMemoryMap imm, FileRef outputFile, boolean propogateDeletes,
-      AccumuloConfiguration acuTableConf, KeyExtent extent, CompactionEnv env, List<IteratorSetting> iterators, MajorCompactionReason reason) {
-    this.extent = extent;
-    this.conf = conf;
-    this.fs = fs;
+  public Compactor(Tablet tablet, Map<FileRef,DataFileValue> files, InMemoryMap imm, FileRef outputFile, boolean propogateDeletes,
+      CompactionEnv env, List<IteratorSetting> iterators, int reason, AccumuloConfiguration tableConfiguation) {
+    this.extent = tablet.getExtent();
+    this.fs = tablet.getTabletServer().getFileSystem();
+    this.acuTableConf = tableConfiguation;
     this.filesToCompact = files;
     this.imm = imm;
     this.outputFile = outputFile;
     this.propogateDeletes = propogateDeletes;
-    this.acuTableConf = acuTableConf;
     this.env = env;
     this.iterators = iterators;
     this.reason = reason;
 
     startTime = System.currentTimeMillis();
-  }
-
-  Compactor(Configuration conf, VolumeManager fs, Map<FileRef,DataFileValue> files, InMemoryMap imm, FileRef outputFile, boolean propogateDeletes,
-      AccumuloConfiguration acuTableConf, KeyExtent extent, CompactionEnv env) {
-    this(conf, fs, files, imm, outputFile, propogateDeletes, acuTableConf, extent, env, new ArrayList<IteratorSetting>(), null);
   }
 
   public VolumeManager getFileSystem() {
@@ -318,6 +160,8 @@ public class Compactor implements Callable<CompactionStats> {
   String getOutputFile() {
     return outputFile.toString();
   }
+
+  MajorCompactionReason getMajorCompactionReason() { return MajorCompactionReason.values()[reason]; }
 
   @Override
   public CompactionStats call() throws IOException, CompactionCanceledException {
@@ -424,7 +268,7 @@ public class Compactor implements Callable<CompactionStats> {
         FileSystem fs = this.fs.getVolumeByPath(mapFile.path()).getFileSystem();
         FileSKVIterator reader;
 
-        reader = fileFactory.openReader(mapFile.path().toString(), false, fs, conf, acuTableConf);
+        reader = fileFactory.openReader(mapFile.path().toString(), false, fs, fs.getConf(), acuTableConf);
 
         readers.add(reader);
 
@@ -543,6 +387,38 @@ public class Compactor implements Callable<CompactionStats> {
       }
       span.stop();
     }
+  }
+
+  Collection<FileRef> getFilesToCompact() {
+    return filesToCompact.keySet();
+  }
+
+  boolean hasIMM() {
+    return imm != null;
+  }
+
+  boolean willPropogateDeletes() {
+    return propogateDeletes;
+  }
+
+  long getEntriesRead() {
+    return entriesRead.get();
+  }
+  
+  long getEntriesWritten() {
+    return entriesWritten.get();
+  }
+
+  long getStartTime() {
+    return startTime;
+  }
+
+  Iterable<IteratorSetting> getIterators() {
+    return this.iterators;
+  }
+
+  MinorCompactionReason getMinCReason() {
+    return MinorCompactionReason.values()[reason];
   }
 
 }

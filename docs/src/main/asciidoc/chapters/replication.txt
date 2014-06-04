@@ -182,3 +182,24 @@ size (+replication.max.unit.size+). The TabletServer on the peer will report how
 records were applied back to the primary, which will be used to record how many records
 were successfully replicated. The TabletServer on the primary will continue to replicate
 data in these batches until no more data can be read from the file.
+
+=== Other Configuration
+
+There are a number of configuration values that can be used to control how
+the implementation of various components operate.
+
+[width="75%",cols=">,^2,^2"]
+[options="header"]
+|====
+|Property | Description | Default
+|replication.max.work.queue | Maximum number of files queued for replication at one time | 1000
+|replication.work.assignment.sleep | Time between invocations of the WorkAssigner | 30s
+|replication.worker.threads | Size of threadpool used to replicate data to peers | 4
+|replication.receipt.service.port | Thrift service port to listen for replication requests, can use '0' for a random port | 10002
+|replication.work.attempts | Number of attempts to replicate to a peer before aborting the attempt | 10
+|replication.receiver.min.threads | Minimum number of idle threads for handling incoming replication | 1
+|replication.receiver.threadcheck.time | Time between attempting adjustments of thread pool for incoming replications | 30s
+|replication.max.unit.size | Maximum amount of data to be replicated in one RPC | 64M
+|replication.work.assigner | Work Assigner implementation | org.apache.accumulo.master.replication.SequentialWorkAssigner
+|tserver.replication.batchwriter.replayer.memory| Size of BatchWriter cache to use in applying replication requests | 50M
+|====

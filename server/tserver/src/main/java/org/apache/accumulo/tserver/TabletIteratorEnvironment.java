@@ -42,7 +42,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
   private final ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators = new ArrayList<SortedKeyValueIterator<Key,Value>>();
   private Map<FileRef,DataFileValue> files;
   
-  TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config) {
+  public TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config) {
     if (scope == IteratorScope.majc)
       throw new IllegalArgumentException("must set if compaction is full");
     
@@ -52,7 +52,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
     this.fullMajorCompaction = false;
   }
   
-  TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config, ScanFileManager trm, Map<FileRef,DataFileValue> files) {
+  public TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config, ScanFileManager trm, Map<FileRef,DataFileValue> files) {
     if (scope == IteratorScope.majc)
       throw new IllegalArgumentException("must set if compaction is full");
     
@@ -63,7 +63,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
     this.files = files;
   }
   
-  TabletIteratorEnvironment(IteratorScope scope, boolean fullMajC, AccumuloConfiguration config) {
+  public TabletIteratorEnvironment(IteratorScope scope, boolean fullMajC, AccumuloConfiguration config) {
     if (scope != IteratorScope.majc)
       throw new IllegalArgumentException("Tried to set maj compaction type when scope was " + scope);
     
@@ -101,7 +101,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
     topLevelIterators.add(iter);
   }
   
-  SortedKeyValueIterator<Key,Value> getTopLevelIterator(SortedKeyValueIterator<Key,Value> iter) {
+  public SortedKeyValueIterator<Key,Value> getTopLevelIterator(SortedKeyValueIterator<Key,Value> iter) {
     if (topLevelIterators.isEmpty())
       return iter;
     ArrayList<SortedKeyValueIterator<Key,Value>> allIters = new ArrayList<SortedKeyValueIterator<Key,Value>>(topLevelIterators);

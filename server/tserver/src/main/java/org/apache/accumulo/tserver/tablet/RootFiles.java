@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.tserver;
+package org.apache.accumulo.tserver.tablet;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,23 +38,23 @@ public class RootFiles {
 
   private static Logger log = Logger.getLogger(RootFiles.class);
 
-  static void prepareReplacement(VolumeManager fs, Path location, Set<FileRef> oldDatafiles, String compactName) throws IOException {
+  public static void prepareReplacement(VolumeManager fs, Path location, Set<FileRef> oldDatafiles, String compactName) throws IOException {
     for (FileRef ref : oldDatafiles) {
       Path path = ref.path();
-      Tablet.rename(fs, path, new Path(location + "/delete+" + compactName + "+" + path.getName()));
+      DatafileManager.rename(fs, path, new Path(location + "/delete+" + compactName + "+" + path.getName()));
     }
   }
 
-  static void renameReplacement(VolumeManager fs, FileRef tmpDatafile, FileRef newDatafile) throws IOException {
+  public static void renameReplacement(VolumeManager fs, FileRef tmpDatafile, FileRef newDatafile) throws IOException {
     if (fs.exists(newDatafile.path())) {
       log.error("Target map file already exist " + newDatafile, new Exception());
       throw new IllegalStateException("Target map file already exist " + newDatafile);
     }
 
-    Tablet.rename(fs, tmpDatafile.path(), newDatafile.path());
+    DatafileManager.rename(fs, tmpDatafile.path(), newDatafile.path());
   }
 
-  static void finishReplacement(AccumuloConfiguration acuTableConf, VolumeManager fs, Path location, Set<FileRef> oldDatafiles, String compactName)
+  public static void finishReplacement(AccumuloConfiguration acuTableConf, VolumeManager fs, Path location, Set<FileRef> oldDatafiles, String compactName)
       throws IOException {
     // start deleting files, if we do not finish they will be cleaned
     // up later
@@ -107,7 +107,7 @@ public class RootFiles {
         filename = filename.split("\\+", 3)[2];
         path = path.substring(0, path.lastIndexOf("/delete+")) + "/" + filename;
 
-        Tablet.rename(fs, file.getPath(), new Path(path));
+        DatafileManager.rename(fs, file.getPath(), new Path(path));
       }
 
       if (filename.endsWith("_tmp")) {

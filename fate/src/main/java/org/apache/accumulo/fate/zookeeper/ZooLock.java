@@ -68,7 +68,7 @@ public class ZooLock implements Watcher {
   private String asyncLock;
   
   public ZooLock(String zookeepers, int timeInMillis, String scheme, byte[] auth, String path) {
-    this(new ZooCache(zookeepers, timeInMillis), ZooReaderWriter.getInstance(zookeepers, timeInMillis, scheme, auth), path);
+    this(new ZooCacheFactory().getZooCache(zookeepers, timeInMillis), ZooReaderWriter.getInstance(zookeepers, timeInMillis, scheme, auth), path);
   }
   
   protected ZooLock(ZooCache zc, IZooReaderWriter zrw, String path) {

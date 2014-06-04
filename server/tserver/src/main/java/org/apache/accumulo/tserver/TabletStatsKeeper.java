@@ -22,6 +22,7 @@ import org.apache.accumulo.server.util.ActionStatsUpdator;
 
 public class TabletStatsKeeper {
   
+  // suspect we need more synchronization in this class
   private ActionStats major = new ActionStats();
   private ActionStats minor = new ActionStats();
   private ActionStats split = new ActionStats();
@@ -79,6 +80,11 @@ public class TabletStatsKeeper {
       resetTimes();
     }
     
+  }
+  
+  public void saveMajorMinorTimes(TabletStats t) {
+    ActionStatsUpdator.update(minor, t.minors);
+    ActionStatsUpdator.update(major, t.majors);
   }
   
   public void saveMinorTimes(TabletStatsKeeper t) {

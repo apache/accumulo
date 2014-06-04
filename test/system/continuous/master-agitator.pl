@@ -17,9 +17,10 @@
 
 
 use POSIX qw(strftime);
+use Cwd qw();
 
 if(scalar(@ARGV) != 2){
-	print "Usage : magitator.pl <sleep before kill in minutes> <sleep before start-all in minutes>\n";
+	print "Usage : master-agitator.pl <sleep before kill in minutes> <sleep before start-all in minutes>\n";
 	exit(1);
 }
 

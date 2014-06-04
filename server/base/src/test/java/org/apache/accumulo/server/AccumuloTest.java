@@ -113,7 +113,6 @@ public class AccumuloTest {
     String confDirName = confDir.getAbsolutePath();
     assertTrue("Failed to make test configuration directory", confDir.mkdir());
     try {
-      File genericXml = new File(confDir, "generic_logger.xml");
       String genericXmlName = String.format("%s/generic_logger.xml", confDirName);
 
       assertEquals(genericXmlName, Accumulo.locateLogConfig(confDirName, "flogger"));

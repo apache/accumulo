@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.tserver;
+package org.apache.accumulo.tserver.tablet;
 
 public class CompactionStats {
   private long entriesRead;
