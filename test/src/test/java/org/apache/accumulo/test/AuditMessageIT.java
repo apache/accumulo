@@ -46,6 +46,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.commons.io.FileUtils;
@@ -69,6 +70,10 @@ public class AuditMessageIT extends ConfigurableMacIT {
   private static final String NEW_TEST_TABLE_NAME = "oranges";
   private static final String THIRD_TEST_TABLE_NAME = "pears";
   private static final Authorizations auths = new Authorizations("private", "public");
+  
+  public void beforeClusterStart(MiniAccumuloConfigImpl cfg) throws Exception {
+    new File(cfg.getConfDir(), "auditLog.xml").delete();
+  }
 
   // Must be static to survive Junit re-initialising the class every time.
   private static String lastAuditTimestamp;
