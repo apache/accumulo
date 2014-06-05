@@ -152,6 +152,9 @@ public class ZooSession {
   }
 
   public static synchronized void shutdown() {
+    if (sessions == null)
+      return;
+
     for (ZooSessionInfo zsi : sessions.values()) {
       try {
         zsi.zooKeeper.close();
