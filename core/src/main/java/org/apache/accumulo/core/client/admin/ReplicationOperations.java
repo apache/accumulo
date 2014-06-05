@@ -32,18 +32,11 @@ import org.apache.accumulo.core.client.replication.ReplicaSystem;
 public interface ReplicationOperations {
 
   /**
-   * Defines a cluster with the given name using the given {@link ReplicaSystem}.
+   * Defines a cluster with the given name using the given {@link ReplicaSystem} implementation.
    * @param name Name of the cluster, used for configuring replication on tables
    * @param system Type of system to be replicated to
    */
   public void addPeer(String name, Class<? extends ReplicaSystem> system) throws AccumuloException, AccumuloSecurityException, PeerExistsException;
-
-  /**
-   * Defines a cluster with the given name using the given {@link ReplicaSystem}.
-   * @param name Name of the cluster, used for configuring replication on tables
-   * @param system Type of system to be replicated to
-   */
-  public void addPeer(String name, ReplicaSystem system) throws AccumuloException, AccumuloSecurityException, PeerExistsException;
 
   /**
    * Defines a cluster with the given name and the given name system.

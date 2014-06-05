@@ -85,14 +85,6 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
   }
 
   @Override
-  public void addPeer(String name, ReplicaSystem system) throws AccumuloException, AccumuloSecurityException, PeerExistsException {
-    checkNotNull(name);
-    checkNotNull(system);
-
-    addPeer(name, system.getClass().getName());
-  }
-
-  @Override
   public void addPeer(final String name, final String replicaType) throws AccumuloException, AccumuloSecurityException, PeerExistsException {
     checkNotNull(name);
     checkNotNull(replicaType);
