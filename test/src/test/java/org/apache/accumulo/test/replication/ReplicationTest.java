@@ -344,6 +344,22 @@ public class ReplicationTest extends ConfigurableMacIT {
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.READ);
 
     Set<String> tableIds = Sets.newHashSet(conn.tableOperations().tableIdMap().get(table1), conn.tableOperations().tableIdMap().get(table2));
+    Set<String> tableIdsForMetadata = Sets.newHashSet(tableIds);
+
+    s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    s.setRange(MetadataSchema.ReplicationSection.getRange());
+    iter = s.iterator();
+
+    Assert.assertTrue("Found no records in metadata table", iter.hasNext());
+    entry = iter.next();
+    Assert.assertTrue("Expected to find element in metadata table", tableIdsForMetadata.remove(entry.getKey().getColumnQualifier().toString()));
+    Assert.assertTrue("Expected to find two elements in metadata table, only found one ", iter.hasNext());
+    entry = iter.next();
+    Assert.assertTrue("Expected to find element in metadata table", tableIdsForMetadata.remove(entry.getKey().getColumnQualifier().toString()));
+    Assert.assertFalse("Expected to only find two elements in metadata table", iter.hasNext());
+
+    // Should be creating these records in replication table from metadata table every second
+    Thread.sleep(5000);
 
     // Verify that we found two replication records: one for table1 and one for table2
     s = ReplicationTable.getScanner(conn, new Authorizations());
@@ -352,7 +368,7 @@ public class ReplicationTest extends ConfigurableMacIT {
     Assert.assertTrue("Found no records in replication table", iter.hasNext());
     entry = iter.next();
     Assert.assertTrue("Expected to find element in replication table", tableIds.remove(entry.getKey().getColumnQualifier().toString()));
-    Assert.assertTrue("Expected to find two elements in replication table, didn't find " + tableIds, iter.hasNext());
+    Assert.assertTrue("Expected to find two elements in replication table, only found one ", iter.hasNext());
     entry = iter.next();
     Assert.assertTrue("Expected to find element in replication table", tableIds.remove(entry.getKey().getColumnQualifier().toString()));
     Assert.assertFalse("Expected to only find two elements in replication table", iter.hasNext());

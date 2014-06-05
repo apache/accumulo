@@ -648,7 +648,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
       }
 
       log.info("Found {} records in {}", countTable, peerTable2);
-      Assert.assertTrue(countTable > 0);
+      Assert.assertTrue("Did not find any records in peer", countTable > 0);
 
     } finally {
       peer1Cluster.stop();
