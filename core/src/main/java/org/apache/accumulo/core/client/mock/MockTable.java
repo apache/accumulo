@@ -92,9 +92,11 @@ public class MockTable {
   Map<String,Set<Text>> localityGroups = new TreeMap<String,Set<Text>>();
   private MockNamespace namespace;
   private String namespaceName;
+  private String tableId;
   
-  MockTable(boolean limitVersion, TimeType timeType) {
+  MockTable(boolean limitVersion, TimeType timeType, String tableId) {
     this.timeType = timeType;
+    this.tableId = tableId;
     settings = IteratorUtil.generateInitialTableProperties(limitVersion);
     for (Entry<String,String> entry : AccumuloConfiguration.getDefaultConfiguration()) {
       String key = entry.getKey();
@@ -103,8 +105,8 @@ public class MockTable {
     }
   }
   
-  MockTable(MockNamespace namespace, boolean limitVersion, TimeType timeType) {
-    this(limitVersion, timeType);
+  MockTable(MockNamespace namespace, boolean limitVersion, TimeType timeType, String tableId) {
+    this(limitVersion, timeType, tableId);
     Set<Entry<String,String>> set = namespace.settings.entrySet();
     Iterator<Entry<String,String>> entries = set.iterator();
     while (entries.hasNext()) {
@@ -174,5 +176,9 @@ public class MockTable {
   
   public MockNamespace getNamespace() {
     return this.namespace;
+  }
+
+  public String getTableId() {
+    return this.tableId;
   }
 }

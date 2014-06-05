@@ -340,13 +340,14 @@ class MockTableOperations extends TableOperationsHelper {
   @Override
   public Map<String,String> tableIdMap() {
     Map<String,String> result = new HashMap<String,String>();
-    for (String table : acu.tables.keySet()) {
+    for (Entry<String,MockTable> entry : acu.tables.entrySet()) {
+      String table = entry.getKey();
       if (RootTable.NAME.equals(table))
         result.put(table, RootTable.ID);
       else if (MetadataTable.NAME.equals(table))
         result.put(table, MetadataTable.ID);
       else
-        result.put(table, table);
+        result.put(table, entry.getValue().getTableId());
     }
     return result;
   }
