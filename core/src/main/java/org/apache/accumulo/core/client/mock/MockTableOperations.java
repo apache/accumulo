@@ -296,8 +296,8 @@ public class MockTableOperations extends TableOperationsHelper {
   @Override
   public Map<String,String> tableIdMap() {
     Map<String,String> result = new HashMap<String,String>();
-    for (String table : acu.tables.keySet()) {
-      result.put(table, table);
+    for (Entry<String,MockTable> entry : acu.tables.entrySet()) {
+      result.put(entry.getKey(), entry.getValue().getTableId());
     }
     return result;
   }

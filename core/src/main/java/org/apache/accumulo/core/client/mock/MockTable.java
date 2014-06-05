@@ -89,9 +89,11 @@ public class MockTable {
   private TimeType timeType;
   SortedSet<Text> splits = new ConcurrentSkipListSet<Text>();
   Map<String,Set<Text>> localityGroups = new TreeMap<String, Set<Text>>();
+  private String tableId;
   
-  MockTable(boolean limitVersion, TimeType timeType) {
+  MockTable(boolean limitVersion, TimeType timeType, String tableId) {
     this.timeType = timeType;
+    this.tableId = tableId;
     settings = IteratorUtil.generateInitialTableProperties(limitVersion);
     for (Entry<String,String> entry : AccumuloConfiguration.getDefaultConfiguration()) {
       String key = entry.getKey();
@@ -142,5 +144,9 @@ public class MockTable {
     splits.removeAll(splits.subSet(start, end));
     if (reAdd)
       splits.add(start);
+  }
+
+  public String getTableId() {
+    return this.tableId;
   }
 }

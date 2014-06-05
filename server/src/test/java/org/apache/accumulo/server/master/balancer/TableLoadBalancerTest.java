@@ -128,12 +128,14 @@ public class TableLoadBalancerTest {
   @Test
   public void test() throws Exception {
     Connector c = instance.getConnector("user", new PasswordToken("pass"));
-    c.tableOperations().create("t1");
-    c.tableOperations().create("t2");
-    c.tableOperations().create("t3");
+    TableOperations tops = c.tableOperations();
+    tops.create("t1");
+    tops.create("t2");
+    tops.create("t3");
+    String t1Id = tops.tableIdMap().get("t1"), t2Id = tops.tableIdMap().get("t2"), t3Id = tops.tableIdMap().get("t3");
     state = new TreeMap<TServerInstance,TabletServerStatus>();
     TServerInstance svr = mkts("10.0.0.1:1234", "0x01020304");
-    state.put(svr, status("t1", 10, "t2", 10, "t3", 10));
+    state.put(svr, status(t1Id, 10, t2Id, 10, t3Id, 10));
     
     Set<KeyExtent> migrations = Collections.emptySet();
     List<TabletMigration> migrationsOut = new ArrayList<TabletMigration>();
@@ -146,9 +148,9 @@ public class TableLoadBalancerTest {
     tls.balance(state, migrations, migrationsOut);
     int count = 0;
     Map<String,Integer> movedByTable = new HashMap<String,Integer>();
-    movedByTable.put("t1", new Integer(0));
-    movedByTable.put("t2", new Integer(0));
-    movedByTable.put("t3", new Integer(0));
+    movedByTable.put(t1Id, new Integer(0));
+    movedByTable.put(t2Id, new Integer(0));
+    movedByTable.put(t3Id, new Integer(0));
     for (TabletMigration migration : migrationsOut) {
       if (migration.oldServer.equals(svr))
         count++;
