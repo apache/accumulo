@@ -1478,7 +1478,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
             KeyExtent extent = commitSession.getExtent();
 
-            if (extent == us.currentTablet.getExtent()) {
+            if (us.currentTablet != null && extent == us.currentTablet.getExtent()) {
               // because constraint violations may filter out some
               // mutations, for proper accounting with the client code, 
               // need to increment the count based on the original 
