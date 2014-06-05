@@ -333,4 +333,15 @@ public class MockTableOperationsTest {
 
   }
 
+
+  @Test
+  public void testTableIdMap() throws Exception {
+    Instance inst = new MockInstance("testTableIdMap");
+    Connector conn = inst.getConnector("root", new PasswordToken(""));
+    TableOperations tops = conn.tableOperations();
+    tops.create("foo");
+
+    // Should get a table ID, not the table name
+    Assert.assertNotEquals("foo", tops.tableIdMap().get("foo"));
+  }
 }
