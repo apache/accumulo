@@ -38,41 +38,15 @@ import org.apache.log4j.Logger;
 public class ZooConfiguration extends AccumuloConfiguration {
   private static final Logger log = Logger.getLogger(ZooConfiguration.class);
   
+  private final String instanceId;
+  private final ZooCache propCache;
   private final AccumuloConfiguration parent;
-  private static ZooConfiguration instance = null;
-  private static String instanceId = null;
-  private static ZooCache propCache = null;
   private final Map<String,String> fixedProps = Collections.synchronizedMap(new HashMap<String,String>());
   
-  private ZooConfiguration(AccumuloConfiguration parent) {
+  protected ZooConfiguration(String instanceId, ZooCache propCache, AccumuloConfiguration parent) {
+    this.instanceId = instanceId;
+    this.propCache = propCache;
     this.parent = parent;
-  }
-  
-  synchronized public static ZooConfiguration getInstance(Instance inst, AccumuloConfiguration parent) {
-    if (instance == null) {
-      propCache = new ZooCacheFactory().getZooCache(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut());
-      instance = new ZooConfiguration(parent);
-      instanceId = inst.getInstanceID();
-    }
-    return instance;
-  }
-  
-  synchronized public static ZooConfiguration getInstance(AccumuloConfiguration parent) {
-    if (instance == null) {
-      propCache = new ZooCacheFactory().getZooCache(parent.get(Property.INSTANCE_ZK_HOST), (int) parent.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT));
-      instance = new ZooConfiguration(parent);
-      // InstanceID should be the same across all volumes, so just choose one
-      VolumeManager fs;
-      try {
-        fs = VolumeManagerImpl.get();
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-      Path instanceIdPath = Accumulo.getAccumuloInstanceIdPath(fs);
-      String deprecatedInstanceIdFromHdfs = ZooUtil.getInstanceIDFromHdfs(instanceIdPath, parent);
-      instanceId = deprecatedInstanceIdFromHdfs;
-    }
-    return instance;
   }
   
   @Override
@@ -80,7 +54,16 @@ public class ZooConfiguration extends AccumuloConfiguration {
     if (propCache != null)
       propCache.clear();
   }
-  
+
+  /**
+   * Gets the parent configuration of this configuration.
+   *
+   * @return parent configuration
+   */
+  public AccumuloConfiguration getParentConfiguration() {
+    return parent;
+  }
+
   private String _get(Property property) {
     String key = property.getKey();
     String value = null;
