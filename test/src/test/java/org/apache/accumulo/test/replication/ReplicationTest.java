@@ -401,7 +401,7 @@ public class ReplicationTest extends ConfigurableMacIT {
 
     conn.tableOperations().create(table1);
     conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION.getKey(), "true");
-    conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION_TARGETS.getKey() + "cluster1", "1");
+    conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
     Thread.sleep(1000);
 
     // Write some data to table1
@@ -419,7 +419,7 @@ public class ReplicationTest extends ConfigurableMacIT {
 
     conn.tableOperations().create(table2);
     conn.tableOperations().setProperty(table2, Property.TABLE_REPLICATION.getKey(), "true");
-    conn.tableOperations().setProperty(table2, Property.TABLE_REPLICATION_TARGETS.getKey() + "cluster1", "1");
+    conn.tableOperations().setProperty(table2, Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
     Thread.sleep(1000);
 
     // Write some data to table2
@@ -437,7 +437,7 @@ public class ReplicationTest extends ConfigurableMacIT {
 
     conn.tableOperations().create(table3);
     conn.tableOperations().setProperty(table3, Property.TABLE_REPLICATION.getKey(), "true");
-    conn.tableOperations().setProperty(table3, Property.TABLE_REPLICATION_TARGETS.getKey() + "cluster1", "1");
+    conn.tableOperations().setProperty(table3, Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
     Thread.sleep(1000);
 
     // Write some data to table3
@@ -564,13 +564,13 @@ public class ReplicationTest extends ConfigurableMacIT {
 
     conn.tableOperations().create(table1);
     conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION.getKey(), "true");
-    conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION_TARGETS.getKey() + "cluster1", "1");
+    conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
     conn.tableOperations().create(table2);
     conn.tableOperations().setProperty(table2, Property.TABLE_REPLICATION.getKey(), "true");
-    conn.tableOperations().setProperty(table2, Property.TABLE_REPLICATION_TARGETS.getKey() + "cluster1", "1");
+    conn.tableOperations().setProperty(table2, Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
     conn.tableOperations().create(table3);
     conn.tableOperations().setProperty(table3, Property.TABLE_REPLICATION.getKey(), "true");
-    conn.tableOperations().setProperty(table3, Property.TABLE_REPLICATION_TARGETS.getKey() + "cluster1", "1");
+    conn.tableOperations().setProperty(table3, Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
 
     // Write some data to table1
     BatchWriter bw = conn.createBatchWriter(table1, new BatchWriterConfig());
@@ -637,7 +637,7 @@ public class ReplicationTest extends ConfigurableMacIT {
     Assert.assertNotNull(tableId);
 
     conn.tableOperations().setProperty(table, Property.TABLE_REPLICATION.getKey(), "true");
-    conn.tableOperations().setProperty(table, Property.TABLE_REPLICATION_TARGETS.getKey() + "cluster1", "1");
+    conn.tableOperations().setProperty(table, Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
     // just sleep
     conn.instanceOperations().setProperty(Property.REPLICATION_PEERS.getKey() + "cluster1",
         ReplicaSystemFactory.getPeerConfigurationValue(MockReplicaSystem.class, "50000"));
@@ -762,7 +762,7 @@ public class ReplicationTest extends ConfigurableMacIT {
         // Enable replication on table1
         conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION.getKey(), "true");
         // Replicate table1 to cluster1 in the table with id of '4'
-        conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION_TARGETS.getKey() + "cluster1", "4");
+        conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "4");
         conn.instanceOperations().setProperty(Property.REPLICATION_PEERS.getKey() + "cluster1",
             ReplicaSystemFactory.getPeerConfigurationValue(MockReplicaSystem.class, "100000"));
         break;
@@ -931,7 +931,7 @@ public class ReplicationTest extends ConfigurableMacIT {
         // Enable replication on table1
         conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION.getKey(), "true");
         // Replicate table1 to cluster1 in the table with id of '4'
-        conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION_TARGETS.getKey() + "cluster1", "4");
+        conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "4");
         attempts = 0;
       } catch (Exception e) {
         attempts--;
@@ -1049,7 +1049,7 @@ public class ReplicationTest extends ConfigurableMacIT {
     try {
       conn.tableOperations().create(table1);
       conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION.getKey(), "true");
-      conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION_TARGETS.getKey() + "cluster1", "1");
+      conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
       conn.instanceOperations().setProperty(Property.REPLICATION_PEERS.getKey() + "cluster1",
           ReplicaSystemFactory.getPeerConfigurationValue(MockReplicaSystem.class, null));
 
@@ -1068,7 +1068,7 @@ public class ReplicationTest extends ConfigurableMacIT {
 
       conn.tableOperations().create(table2);
       conn.tableOperations().setProperty(table2, Property.TABLE_REPLICATION.getKey(), "true");
-      conn.tableOperations().setProperty(table2, Property.TABLE_REPLICATION_TARGETS.getKey() + "cluster1", "1");
+      conn.tableOperations().setProperty(table2, Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
 
       // Write some data to table2
       bw = conn.createBatchWriter(table2, new BatchWriterConfig());
@@ -1085,7 +1085,7 @@ public class ReplicationTest extends ConfigurableMacIT {
 
       conn.tableOperations().create(table3);
       conn.tableOperations().setProperty(table3, Property.TABLE_REPLICATION.getKey(), "true");
-      conn.tableOperations().setProperty(table3, Property.TABLE_REPLICATION_TARGETS.getKey() + "cluster1", "1");
+      conn.tableOperations().setProperty(table3, Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
 
       // Write some data to table3
       bw = conn.createBatchWriter(table3, new BatchWriterConfig());
@@ -1235,7 +1235,7 @@ public class ReplicationTest extends ConfigurableMacIT {
           // Enable replication on table1
           conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION.getKey(), "true");
           // Replicate table1 to cluster1 in the table with id of '4'
-          conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION_TARGETS.getKey() + "cluster1", "4");
+          conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "4");
           // Use the MockReplicaSystem impl and sleep for 5seconds
           conn.instanceOperations().setProperty(Property.REPLICATION_PEERS.getKey() + "cluster1",
               ReplicaSystemFactory.getPeerConfigurationValue(MockReplicaSystem.class, "1000"));

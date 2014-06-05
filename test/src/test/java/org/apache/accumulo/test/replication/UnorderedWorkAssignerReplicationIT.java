@@ -145,7 +145,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
 
       // Replicate this table to the peerClusterName in a table with the peerTableId table id
       connMaster.tableOperations().setProperty(masterTable, Property.TABLE_REPLICATION.getKey(), "true");
-      connMaster.tableOperations().setProperty(masterTable, Property.TABLE_REPLICATION_TARGETS.getKey() + peerClusterName, peerTableId);
+      connMaster.tableOperations().setProperty(masterTable, Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId);
 
       // Write some data to table1
       BatchWriter bw = connMaster.createBatchWriter(masterTable, new BatchWriterConfig());
@@ -306,10 +306,10 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
 
       // Replicate this table to the peerClusterName in a table with the peerTableId table id
       connMaster.tableOperations().setProperty(masterTable1, Property.TABLE_REPLICATION.getKey(), "true");
-      connMaster.tableOperations().setProperty(masterTable1, Property.TABLE_REPLICATION_TARGETS.getKey() + peerClusterName, peerTableId1);
+      connMaster.tableOperations().setProperty(masterTable1, Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId1);
 
       connMaster.tableOperations().setProperty(masterTable2, Property.TABLE_REPLICATION.getKey(), "true");
-      connMaster.tableOperations().setProperty(masterTable2, Property.TABLE_REPLICATION_TARGETS.getKey() + peerClusterName, peerTableId2);
+      connMaster.tableOperations().setProperty(masterTable2, Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId2);
 
       // Write some data to table1
       BatchWriter bw = connMaster.createBatchWriter(masterTable1, new BatchWriterConfig());
@@ -459,7 +459,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
 
     // Replicate this table to the peerClusterName in a table with the peerTableId table id
     connMaster.tableOperations().setProperty(masterTable, Property.TABLE_REPLICATION.getKey(), "true");
-    connMaster.tableOperations().setProperty(masterTable, Property.TABLE_REPLICATION_TARGETS.getKey() + peerClusterName, peerTableId);
+    connMaster.tableOperations().setProperty(masterTable, Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId);
 
     // Write some data to table1
     BatchWriter bw = connMaster.createBatchWriter(masterTable, new BatchWriterConfig());
@@ -568,10 +568,10 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
 
       // Replicate this table to the peerClusterName in a table with the peerTableId table id
       connMaster.tableOperations().setProperty(masterTable1, Property.TABLE_REPLICATION.getKey(), "true");
-      connMaster.tableOperations().setProperty(masterTable1, Property.TABLE_REPLICATION_TARGETS.getKey() + peerClusterName, peerTableId1);
+      connMaster.tableOperations().setProperty(masterTable1, Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId1);
 
       connMaster.tableOperations().setProperty(masterTable2, Property.TABLE_REPLICATION.getKey(), "true");
-      connMaster.tableOperations().setProperty(masterTable2, Property.TABLE_REPLICATION_TARGETS.getKey() + peerClusterName, peerTableId2);
+      connMaster.tableOperations().setProperty(masterTable2, Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId2);
 
       // Write some data to table1
       BatchWriter bw = connMaster.createBatchWriter(masterTable1, new BatchWriterConfig());

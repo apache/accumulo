@@ -139,9 +139,9 @@ public class WorkMaker {
   }
 
   protected Map<String,String> getReplicationTargets(TableConfiguration tableConf) {
-    final Map<String,String> props = tableConf.getAllPropertiesWithPrefix(Property.TABLE_REPLICATION_TARGETS);
+    final Map<String,String> props = tableConf.getAllPropertiesWithPrefix(Property.TABLE_REPLICATION_TARGET);
     final Map<String,String> targets = new HashMap<>();
-    final int propKeyLength = Property.TABLE_REPLICATION_TARGETS.getKey().length();
+    final int propKeyLength = Property.TABLE_REPLICATION_TARGET.getKey().length();
 
     for (Entry<String,String> prop : props.entrySet()) {
       targets.put(prop.getKey().substring(propKeyLength), prop.getValue());

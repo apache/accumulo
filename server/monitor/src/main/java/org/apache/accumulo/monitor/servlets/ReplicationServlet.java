@@ -121,7 +121,7 @@ public class ReplicationServlet extends BasicServlet {
       }
     }
 
-    final String targetPrefix = Property.TABLE_REPLICATION_TARGETS.getKey();
+    final String targetPrefix = Property.TABLE_REPLICATION_TARGET.getKey();
 
     // The total set of configured targets
     Set<ReplicationTarget> allConfiguredTargets = new HashSet<>();

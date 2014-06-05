@@ -187,7 +187,7 @@ public class WorkMakerTest {
 
     WorkMaker workMaker = new WorkMaker(conn);
 
-    conn.tableOperations().setProperty(ReplicationTable.NAME, Property.TABLE_REPLICATION_TARGETS.getKey() + "remote_cluster_1", "4");
+    conn.tableOperations().setProperty(ReplicationTable.NAME, Property.TABLE_REPLICATION_TARGET.getKey() + "remote_cluster_1", "4");
 
     workMaker.setBatchWriter(bw);
 

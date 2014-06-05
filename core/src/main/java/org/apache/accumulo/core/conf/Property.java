@@ -430,7 +430,7 @@ public enum Property {
   TABLE_COMPACTION_STRATEGY_PREFIX("table.majc.compaction.strategy.opts.", null, PropertyType.PREFIX,
       "Properties in this category are used to configure the compaction strategy."),
   TABLE_REPLICATION("table.replication", "false", PropertyType.BOOLEAN, "Is replication enabled for the given table"),
-  TABLE_REPLICATION_TARGETS("table.replication.target.", null, PropertyType.PREFIX, "Enumerate a mapping of other systems which this table should " +
+  TABLE_REPLICATION_TARGET("table.replication.target.", null, PropertyType.PREFIX, "Enumerate a mapping of other systems which this table should " +
       "replicate their data to. The key suffix is the identifying cluster name and the value is an identifier for a location on the target system, " +
       "e.g. the ID of the table on the target to replicate to"),
 
@@ -683,7 +683,7 @@ public enum Property {
 
     return validTableProperties.contains(key) || key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())
         || key.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey()) || key.startsWith(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey())
-        || key.startsWith(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey()) || key.startsWith(Property.TABLE_REPLICATION_TARGETS.getKey());
+        || key.startsWith(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey()) || key.startsWith(Property.TABLE_REPLICATION_TARGET.getKey());
   }
 
   private static final EnumSet<Property> fixedProperties = EnumSet.of(Property.TSERV_CLIENTPORT, Property.TSERV_NATIVEMAP_ENABLED,
