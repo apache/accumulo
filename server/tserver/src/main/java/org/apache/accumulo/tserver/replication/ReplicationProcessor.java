@@ -81,7 +81,19 @@ public class ReplicationProcessor implements Processor {
 
     log.debug("Received replication work for {} to {}", file, target);
 
-    ReplicaSystem replica = getReplicaSystem(target);
+    ReplicaSystem replica;
+    try {
+      replica = getReplicaSystem(target);
+    } catch (Exception e) {
+      log.error("Could not instantiate ReplicaSystem for {}, waiting before returning the work", target, e);
+      try {
+        Thread.sleep(10000);
+      } catch (InterruptedException ie) {
+        Thread.currentThread().interrupt();
+      }
+
+      return;
+    }
 
     Status status;
     try {
