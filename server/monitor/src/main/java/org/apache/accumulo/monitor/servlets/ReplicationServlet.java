@@ -27,7 +27,6 @@ import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
@@ -42,6 +41,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
@@ -207,7 +207,7 @@ public class ReplicationServlet extends BasicServlet {
 
     // Read the files from the workqueue in zk
     String zkRoot = ZooUtil.getRoot(inst);
-    final String workQueuePath = zkRoot + Constants.ZREPLICATION_WORK_QUEUE;
+    final String workQueuePath = zkRoot + ReplicationConstants.ZOO_WORK_QUEUE;
 
     DistributedWorkQueue workQueue = new DistributedWorkQueue(workQueuePath, ServerConfiguration.getSystemConfiguration(inst));
 

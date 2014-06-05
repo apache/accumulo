@@ -18,7 +18,6 @@ package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 

@@ -24,6 +24,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
@@ -68,7 +69,7 @@ public class MultiTserverReplicationIT extends ConfigurableMacIT {
 
     for (String tserver : tserverHost) {
       try {
-        byte[] portData = zreader.getData(ZooUtil.getRoot(inst) + Constants.ZREPLICATION_TSERVERS + "/" + tserver, null);
+        byte[] portData = zreader.getData(ZooUtil.getRoot(inst) + ReplicationConstants.ZOO_TSERVERS + "/" + tserver, null);
         HostAndPort replAddress = HostAndPort.fromString(new String(portData, StandardCharsets.UTF_8));
         replicationServices.add(replAddress);
       } catch (Exception e) {

@@ -18,11 +18,11 @@ package org.apache.accumulo.tserver.replication;
 
 import java.util.concurrent.ThreadPoolExecutor;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.security.SystemCredentials;
@@ -63,10 +63,10 @@ public class ReplicationWorker implements Runnable {
       DistributedWorkQueue workQueue;
       if (defaultDelay != delay && defaultPeriod != period) {
         log.debug("Configuration DistributedWorkQueue with delay and period of {} and {}", delay, period);
-        workQueue = new DistributedWorkQueue(ZooUtil.getRoot(inst) + Constants.ZREPLICATION_WORK_QUEUE, conf, delay, period);
+        workQueue = new DistributedWorkQueue(ZooUtil.getRoot(inst) + ReplicationConstants.ZOO_WORK_QUEUE, conf, delay, period);
       } else {
         log.debug("Configuring DistributedWorkQueue with default delay and period");
-        workQueue = new DistributedWorkQueue(ZooUtil.getRoot(inst) + Constants.ZREPLICATION_WORK_QUEUE, conf);
+        workQueue = new DistributedWorkQueue(ZooUtil.getRoot(inst) + ReplicationConstants.ZOO_WORK_QUEUE, conf);
       }
 
       workQueue.startProcessing(new ReplicationProcessor(inst, conf, fs, SystemCredentials.get()), executor);

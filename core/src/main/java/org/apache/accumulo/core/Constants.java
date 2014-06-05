@@ -114,9 +114,4 @@ public class Constants {
   public static final String[] PATH_PROPERTY_ENV_VARS = new String[] {"ACCUMULO_HOME", "ACCUMULO_CONF_DIR"};
 
   public static final String HDFS_TABLES_DIR = "/tables";
-
-  // Constants for replication information in zookeeper
-  public static final String ZREPLICATION = "/replication";
-  public static final String ZREPLICATION_WORK_QUEUE = ZREPLICATION + "/workqueue";
-  public static final String ZREPLICATION_TSERVERS = ZREPLICATION + "/tservers";
 }
