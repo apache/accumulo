@@ -1729,7 +1729,7 @@ public class Tablet implements TabletCommitter {
 
       t2 = System.currentTimeMillis();
 
-      majorCompactionState = null;
+      majorCompactionState = CompactionState.IN_PROGRESS;
       notifyAll();
 
       VolumeManager fs = getTabletServer().getFileSystem();
