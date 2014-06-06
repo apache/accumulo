@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
+import com.google.common.annotations.VisibleForTesting;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -37,8 +38,8 @@ import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 
 /**
- * Caches values stored in zookeeper and keeps them up to date as they change in zookeeper.
- * 
+ * A cache for values stored in ZooKeeper. Values are kept up to date as they
+ * change.
  */
 public class ZooCache {
   private static final Logger log = Logger.getLogger(ZooCache.class);
@@ -99,14 +100,35 @@ public class ZooCache {
     }
   }
 
+  /**
+   * Creates a new cache.
+   *
+   * @param zooKeepers comma-separated list of ZooKeeper host[:port]s
+   * @param sessionTimeout ZooKeeper session timeout
+   */
   public ZooCache(String zooKeepers, int sessionTimeout) {
     this(zooKeepers, sessionTimeout, null);
   }
 
+  /**
+   * Creates a new cache. The given watcher is called whenever a watched node
+   * changes.
+   *
+   * @param zooKeepers comma-separated list of ZooKeeper host[:port]s
+   * @param sessionTimeout ZooKeeper session timeout
+   * @param watcher watcher object
+   */
   public ZooCache(String zooKeepers, int sessionTimeout, Watcher watcher) {
     this(new ZooReader(zooKeepers, sessionTimeout), watcher);
   }
 
+  /**
+   * Creates a new cache. The given watcher is called whenever a watched node
+   * changes.
+   *
+   * @param reader ZooKeeper reader
+   * @param watcher watcher object
+   */
   public ZooCache(ZooReader reader, Watcher watcher) {
     this.zReader = reader;
     this.cache = new HashMap<String,byte[]>();
@@ -133,7 +155,7 @@ public class ZooCache {
 
       } catch (KeeperException e) {
         if (e.code() == Code.NONODE) {
-          log.error("Looked up non existant node in cache " + e.getPath(), e);
+          log.error("Looked up non-existent node in cache " + e.getPath(), e);
         }
         log.warn("Zookeeper error, will retry", e);
       } catch (InterruptedException e) {
@@ -154,6 +176,12 @@ public class ZooCache {
     }
   }
 
+  /**
+   * Gets the children of the given node. A watch is established by this call.
+   *
+   * @param zPath path of node
+   * @return children list, or null if node has no children or does not exist
+   */
   public synchronized List<String> getChildren(final String zPath) {
 
     ZooRunnable zr = new ZooRunnable() {
@@ -185,10 +213,25 @@ public class ZooCache {
     return Collections.unmodifiableList(children);
   }
 
+  /**
+   * Gets data at the given path. Status information is not returned. A watch is
+   * established by this call.
+   *
+   * @param zPath path to get
+   * @return path data, or null if non-existent
+   */
   public synchronized byte[] get(final String zPath) {
     return get(zPath, null);
   }
 
+  /**
+   * Gets data at the given path, filling status information into the given
+   * <code>Stat</code> object. A watch is established by this call.
+   *
+   * @param zPath path to get
+   * @param stat status object to populate
+   * @return path data, or null if non-existent
+   */
   public synchronized byte[] get(final String zPath, Stat stat) {
     ZooRunnable zr = new ZooRunnable() {
 
@@ -199,11 +242,11 @@ public class ZooCache {
           return;
 
         /*
-         * The following call to exists() is important, since we are caching that a node does not exist. Once the node comes into existance, it will be added to
-         * the cache. But this notification of a node coming into existance will only be given if exists() was previously called.
+         * The following call to exists() is important, since we are caching that a node does not exist. Once the node comes into existence, it will be added to
+         * the cache. But this notification of a node coming into existence will only be given if exists() was previously called.
          * 
          * If the call to exists() is bypassed and only getData() is called with a special case that looks for Code.NONODE in the KeeperException, then
-         * non-existance can not be cached.
+         * non-existence can not be cached.
          */
 
         Stat stat = zooKeeper.exists(zPath, watcher);
@@ -269,12 +312,41 @@ public class ZooCache {
     statCache.remove(zPath);
   }
 
+  /**
+   * Clears this cache.
+   */
   public synchronized void clear() {
     cache.clear();
     childrenCache.clear();
     statCache.clear();
   }
 
+  /**
+   * Checks if a data value (or lack of one) is cached.
+   *
+   * @param zPath path of node
+   * @return true if data value is cached
+   */
+  @VisibleForTesting
+  synchronized boolean dataCached(String zPath) {
+    return cache.containsKey(zPath);
+  }
+  /**
+   * Checks if children of a node (or lack of them) are cached.
+   *
+   * @param zPath path of node
+   * @return true if children are cached
+   */
+  @VisibleForTesting
+  synchronized boolean childrenCached(String zPath) {
+    return childrenCache.containsKey(zPath);
+  }
+
+  /**
+   * Clears this cache of all information about nodes rooted at the given path.
+   *
+   * @param zPath path of top node
+   */
   public synchronized void clear(String zPath) {
 
     for (Iterator<String> i = cache.keySet().iterator(); i.hasNext();) {
