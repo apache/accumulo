@@ -19,10 +19,10 @@ package org.apache.accumulo.core.replication;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.replication.ReplicationTable;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
@@ -58,7 +58,7 @@ public class ReplicaSystemHelper {
    */
   public void recordNewStatus(Path filePath, Status status, ReplicationTarget target) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = conn.createBatchWriter(ReplicationConstants.TABLE_NAME, new BatchWriterConfig());
     try {
       log.debug("Recording new status for {}, {}", filePath.toString(), ProtobufUtil.toString (status));
       Mutation m = new Mutation(filePath.toString());

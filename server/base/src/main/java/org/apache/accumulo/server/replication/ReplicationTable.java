@@ -25,8 +25,12 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -36,7 +40,9 @@ import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
+import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.StatusFormatter;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
@@ -45,8 +51,10 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableMap;
 
-public class ReplicationTable extends org.apache.accumulo.core.client.replication.ReplicationTable {
+public class ReplicationTable {
   private static final Logger log = LoggerFactory.getLogger(ReplicationTable.class);
+
+  public static final String NAME = ReplicationConstants.TABLE_NAME;
 
   public static final String COMBINER_NAME = "statuscombiner";
 
@@ -187,5 +195,33 @@ public class ReplicationTable extends org.apache.accumulo.core.client.replicatio
     log.debug("Successfully configured replication table");
 
     return true;
+  }
+
+  public static Scanner getScanner(Connector conn, Authorizations auths) throws TableNotFoundException {
+    return conn.createScanner(NAME, auths);
+  }
+
+  public static Scanner getScanner(Connector conn) throws TableNotFoundException {
+    return getScanner(conn, new Authorizations());
+  }
+
+  public static BatchWriter getBatchWriter(Connector conn) throws TableNotFoundException {
+    return getBatchWriter(conn, new BatchWriterConfig());
+  }
+
+  public static BatchWriter getBatchWriter(Connector conn, BatchWriterConfig config) throws TableNotFoundException {
+    return conn.createBatchWriter(NAME, config);
+  }
+
+  public static BatchScanner getBatchScanner(Connector conn, int queryThreads) throws TableNotFoundException {
+    return conn.createBatchScanner(NAME, new Authorizations(), queryThreads);
+  }
+
+  public static boolean exists(Connector conn) {
+    return exists(conn.tableOperations());
+  }
+
+  public static boolean exists(TableOperations tops) {
+    return tops.exists(NAME);
   }
 }

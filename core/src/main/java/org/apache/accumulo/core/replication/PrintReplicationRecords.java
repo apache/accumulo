@@ -24,7 +24,6 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.replication.ReplicationTable;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -81,7 +80,7 @@ public class PrintReplicationRecords implements Runnable {
     out.println("--------------------------------------------------------------------");
 
     try {
-      s = conn.createScanner(ReplicationTable.NAME, Authorizations.EMPTY);
+      s = conn.createScanner(ReplicationConstants.TABLE_NAME, Authorizations.EMPTY);
     } catch (TableNotFoundException e) {
       log.error("Replication table does not exist");
       return;

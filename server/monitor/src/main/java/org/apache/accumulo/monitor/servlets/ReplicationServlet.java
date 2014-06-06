@@ -34,7 +34,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.replication.ReplicaSystem;
 import org.apache.accumulo.core.client.replication.ReplicaSystemFactory;
-import org.apache.accumulo.core.client.replication.ReplicationTable;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -87,7 +86,7 @@ public class ReplicationServlet extends BasicServlet {
     Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
 
     TableOperations tops = conn.tableOperations();
-    if (!tops.exists(ReplicationTable.NAME)) {
+    if (!tops.exists(ReplicationConstants.TABLE_NAME)) {
       banner(sb, "", "Replication table does not yet exist");
       return;
     }
@@ -155,7 +154,7 @@ public class ReplicationServlet extends BasicServlet {
     }
 
     // Read over the queued work
-    BatchScanner bs = conn.createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
+    BatchScanner bs = conn.createBatchScanner(ReplicationConstants.TABLE_NAME, Authorizations.EMPTY, 4);
     bs.setRanges(Collections.singleton(new Range()));
     WorkSection.limit(bs);
     try {
@@ -224,7 +223,7 @@ public class ReplicationServlet extends BasicServlet {
       String path = null;
       if (null != data) {
         path = new String(data);
-        Scanner s = ReplicationTable.getScanner(conn);
+        Scanner s = conn.createScanner(ReplicationConstants.TABLE_NAME, Authorizations.EMPTY);
         s.setRange(Range.exact(path));
         s.fetchColumn(WorkSection.NAME, target.toText());
   

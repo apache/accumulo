@@ -20,6 +20,8 @@ package org.apache.accumulo.core.replication;
  * 
  */
 public class ReplicationConstants {
+  public static final String TABLE_NAME = "replication";
+
   // Constants for replication information in zookeeper
   public static final String ZOO_BASE = "/replication";
   public static final String ZOO_WORK_QUEUE = ZOO_BASE + "/workqueue";

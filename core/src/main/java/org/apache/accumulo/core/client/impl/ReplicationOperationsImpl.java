@@ -34,7 +34,6 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.replication.PeerExistsException;
 import org.apache.accumulo.core.client.replication.PeerNotFoundException;
 import org.apache.accumulo.core.client.replication.ReplicaSystem;
-import org.apache.accumulo.core.client.replication.ReplicationTable;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -45,6 +44,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
+import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
@@ -152,7 +152,7 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
     log.info("reading from replication table");
     boolean allReplicationRefsReplicated = false;
     while (!allReplicationRefsReplicated) {
-      BatchScanner bs = conn.createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
+      BatchScanner bs = conn.createBatchScanner(ReplicationConstants.TABLE_NAME, Authorizations.EMPTY, 4);
       bs.setRanges(Collections.singleton(new Range()));
       try {
         allReplicationRefsReplicated = allReferencesReplicated(bs, tableId, wals);
@@ -216,7 +216,7 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
 
   protected Text getTableId(Connector conn, String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     TableOperations tops = conn.tableOperations();
-    while (!tops.exists(ReplicationTable.NAME)) {
+    while (!tops.exists(ReplicationConstants.TABLE_NAME)) {
       UtilWaitThread.sleep(200);
     }
 

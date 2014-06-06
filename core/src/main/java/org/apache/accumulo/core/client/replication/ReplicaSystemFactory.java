@@ -47,9 +47,9 @@ public class ReplicaSystemFactory {
 
     try {
       Class<?> clz = Class.forName(name);
-      Object o = clz.newInstance();
 
-      if (ReplicaSystem.class.isAssignableFrom(o.getClass())) {
+      if (ReplicaSystem.class.isAssignableFrom(clz)) {
+        Object o = clz.newInstance();
         ReplicaSystem rs = (ReplicaSystem) o;
         rs.configure(configuration);
         return rs;

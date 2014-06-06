@@ -20,6 +20,8 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -51,7 +53,9 @@ public class StatusCombinerTest {
     key = new Key();
     combiner = new StatusCombiner();
     builder = Status.newBuilder();
-    combiner.init(new DevNull(), ImmutableMap.of(Combiner.COLUMNS_OPTION, StatusSection.NAME.toString()), new IteratorEnvironment() {
+    IteratorSetting cfg = new IteratorSetting(50, StatusCombiner.class);
+    Combiner.setColumns(cfg, Collections.singletonList(new Column(StatusSection.NAME)));
+    combiner.init(new DevNull(), cfg.getOptions(), new IteratorEnvironment() {
 
       public AccumuloConfiguration getConfig() {
         return null;
