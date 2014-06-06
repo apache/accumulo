@@ -891,6 +891,11 @@ public class ReplicationTest extends ConfigurableMacIT {
 
     conn.tableOperations().compact(ReplicationTable.NAME, null, null, true, true);
 
+    // Master is creating entries in the replication table from the metadata table every second.
+    // Compaction should trigger the record to be written to metadata. Wait a bit to ensure
+    // that the master has time to work.
+    Thread.sleep(5000);
+
     s = ReplicationTable.getScanner(conn);
     StatusSection.limit(s);
     Assert.assertEquals(2, Iterables.size(s));
