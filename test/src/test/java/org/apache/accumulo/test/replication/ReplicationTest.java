@@ -461,6 +461,10 @@ public class ReplicationTest extends ConfigurableMacIT {
     keepRunning.set(false);
     t.join(5000);
 
+    // The master is only running every second to create records in the replication table from the metadata table
+    // Sleep a sufficient amount of time to ensure that we get the straggling WALs that might have been created at the end
+    Thread.sleep(5000);
+
     Scanner s = ReplicationTable.getScanner(conn);
     StatusSection.limit(s);
     Set<String> replFiles = new HashSet<>();
