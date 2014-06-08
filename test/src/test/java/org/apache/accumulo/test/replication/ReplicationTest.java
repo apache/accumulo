@@ -346,17 +346,24 @@ public class ReplicationTest extends ConfigurableMacIT {
     Set<String> tableIds = Sets.newHashSet(conn.tableOperations().tableIdMap().get(table1), conn.tableOperations().tableIdMap().get(table2));
     Set<String> tableIdsForMetadata = Sets.newHashSet(tableIds);
 
+    Thread.sleep(2000);
+
     s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.setRange(MetadataSchema.ReplicationSection.getRange());
-    iter = s.iterator();
 
-    Assert.assertTrue("Found no records in metadata table", iter.hasNext());
-    entry = iter.next();
-    Assert.assertTrue("Expected to find element in metadata table", tableIdsForMetadata.remove(entry.getKey().getColumnQualifier().toString()));
-    Assert.assertTrue("Expected to find two elements in metadata table, only found one ", iter.hasNext());
-    entry = iter.next();
-    Assert.assertTrue("Expected to find element in metadata table", tableIdsForMetadata.remove(entry.getKey().getColumnQualifier().toString()));
-    Assert.assertFalse("Expected to only find two elements in metadata table", iter.hasNext());
+    List<Entry<Key,Value>> records = new ArrayList<>();
+    for (Entry<Key,Value> metadata : s) {
+      records.add(metadata);
+    }
+
+    Assert.assertEquals("Expected to find 2 records, but actually found " + records, 2, records.size());
+
+    for (Entry<Key,Value> metadata : records) {
+      Assert.assertTrue("Expected record to be in metadata but wasn't " + metadata.getKey().toStringNoTruncate() + ", tableIds remaining " + tableIdsForMetadata,
+          tableIdsForMetadata.remove(metadata.getKey().getColumnQualifier().toString()));
+    }
+
+    Assert.assertTrue("Expected that we had removed all metadata entries " + tableIdsForMetadata, tableIdsForMetadata.isEmpty());
 
     // Should be creating these records in replication table from metadata table every second
     Thread.sleep(5000);
