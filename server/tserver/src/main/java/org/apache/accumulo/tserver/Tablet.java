@@ -151,6 +151,8 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 
+import com.google.common.annotations.VisibleForTesting;
+
 /*
  * We need to be able to have the master tell a tabletServer to
  * close this file, and the tablet server to handle all pending client reads
@@ -1060,6 +1062,18 @@ public class Tablet {
   public Tablet(KeyExtent extent, TabletServer tabletServer, TabletResourceManager trm, SplitInfo info) throws IOException {
     this(tabletServer, new Text(info.dir), extent, trm, CachedConfiguration.getInstance(), info.datafiles, info.time, info.initFlushID, info.initCompactID, info.lastLocation);
     splitCreationTime = System.currentTimeMillis();
+  }
+
+  /**
+   * Only visibile for testing
+   */
+  @VisibleForTesting
+  protected Tablet(TabletTime tabletTime, String tabletDirectory, int logId, Path location, DatafileManager datafileManager) {
+    this.tabletTime = tabletTime;
+    this.tabletDirectory = tabletDirectory;
+    this.logId = logId;
+    this.location = location;
+    this.datafileManager = datafileManager; 
   }
 
   private Tablet(TabletServer tabletServer, Text location, KeyExtent extent, TabletResourceManager trm, Configuration conf,
@@ -3228,7 +3242,7 @@ public class Tablet {
     }
   }
 
-  private AccumuloConfiguration createTableConfiguration(TableConfiguration base, CompactionPlan plan) {
+  protected AccumuloConfiguration createTableConfiguration(TableConfiguration base, CompactionPlan plan) {
     if (plan == null || plan.writeParameters == null)
       return base;
     WriteParameters p = plan.writeParameters;
@@ -3238,7 +3252,7 @@ public class Tablet {
     if (p.getBlockSize() > 0)
       result.set(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE, "" + p.getBlockSize());
     if (p.getIndexBlockSize() > 0)
-      result.set(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX, "" + p.getBlockSize());
+      result.set(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX, "" + p.getIndexBlockSize());
     if (p.getCompressType() != null)
       result.set(Property.TABLE_FILE_COMPRESSION_TYPE, p.getCompressType());
     if (p.getReplication() != 0)
