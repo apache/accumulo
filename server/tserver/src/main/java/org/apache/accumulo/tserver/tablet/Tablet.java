@@ -137,6 +137,8 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 
+import com.google.common.annotations.VisibleForTesting;
+
 /**
  * 
  * Provide access to a single row range in a living TabletServer.
@@ -256,6 +258,25 @@ public class Tablet implements TabletCommitter {
       }
       tableDirChecked = true;
     }
+  }
+
+  /**
+   * Only visibile for testing
+   */
+  @VisibleForTesting
+  protected Tablet(TabletTime tabletTime, String tabletDirectory, int logId, Path location, DatafileManager datafileManager, TabletServer tabletServer,
+      TabletResourceManager tabletResources, TabletMemory tabletMemory, TableConfiguration tableConfiguration, KeyExtent extent, ConfigurationObserver configObserver) {
+    this.tabletTime = tabletTime;
+    this.tabletDirectory = tabletDirectory;
+    this.logId = logId;
+    this.location = location;
+    this.datafileManager = datafileManager;
+    this.tabletServer = tabletServer;
+    this.tabletResources = tabletResources;
+    this.tabletMemory = tabletMemory;
+    this.tableConfiguration = tableConfiguration;
+    this.extent = extent;
+    this.configObserver = configObserver;
   }
 
   public Tablet(TabletServer tabletServer, KeyExtent extent, TabletResourceManager trm, SplitInfo info) throws IOException {
@@ -1882,7 +1903,7 @@ public class Tablet implements TabletCommitter {
     }
   }
 
-  private AccumuloConfiguration createTableConfiguration(TableConfiguration base, CompactionPlan plan) {
+  protected AccumuloConfiguration createTableConfiguration(TableConfiguration base, CompactionPlan plan) {
     if (plan == null || plan.writeParameters == null)
       return base;
     WriteParameters p = plan.writeParameters;
@@ -1892,7 +1913,7 @@ public class Tablet implements TabletCommitter {
     if (p.getBlockSize() > 0)
       result.set(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE, "" + p.getBlockSize());
     if (p.getIndexBlockSize() > 0)
-      result.set(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX, "" + p.getBlockSize());
+      result.set(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX, "" + p.getIndexBlockSize());
     if (p.getCompressType() != null)
       result.set(Property.TABLE_FILE_COMPRESSION_TYPE, p.getCompressType());
     if (p.getReplication() != 0)
