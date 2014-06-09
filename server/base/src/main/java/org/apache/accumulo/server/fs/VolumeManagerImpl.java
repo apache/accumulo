@@ -393,7 +393,7 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   public static VolumeManager get() throws IOException {
-    AccumuloConfiguration conf = ServerConfiguration.getSystemConfiguration(HdfsZooInstance.getInstance());
+    AccumuloConfiguration conf = ServerConfiguration.getSiteConfiguration();
     return get(conf);
   }
 
