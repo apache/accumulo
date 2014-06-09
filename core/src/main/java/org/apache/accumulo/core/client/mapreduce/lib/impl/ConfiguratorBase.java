@@ -82,7 +82,8 @@ public class ConfiguratorBase {
    * @since 1.6.0
    */
   public static enum GeneralOpts {
-    LOG_LEVEL
+    LOG_LEVEL,
+    VISIBILITY_CACHE_SIZE
   }
 
   /**
@@ -97,6 +98,17 @@ public class ConfiguratorBase {
    */
   protected static String enumToConfKey(Class<?> implementingClass, Enum<?> e) {
     return implementingClass.getSimpleName() + "." + e.getDeclaringClass().getSimpleName() + "." + StringUtils.camelize(e.name().toLowerCase());
+  }
+
+  /**
+  * Provides a configuration key for a given feature enum.
+  * 
+  * @param e
+  *          the enum used to provide the unique part of the configuration key
+  * @return the configuration key
+  */
+  protected static String enumToConfKey(Enum<?> e) {
+	  return  e.getDeclaringClass().getSimpleName() + "." +  StringUtils.camelize(e.name().toLowerCase());
   }
 
   /**
@@ -367,6 +379,29 @@ public class ConfiguratorBase {
    */
   public static Level getLogLevel(Class<?> implementingClass, Configuration conf) {
     return Level.toLevel(conf.getInt(enumToConfKey(implementingClass, GeneralOpts.LOG_LEVEL), Level.INFO.toInt()));
+  }
+
+  /**
+   * Sets the valid visibility count for this job.
+   * 
+   * @param conf
+   *          the Hadoop configuration object to configure
+   * @param visibilityCacheSize
+   *          the LRU cache size
+   */
+  public static void setVisibilityCacheSize(Configuration conf, int visibilityCacheSize) {
+    conf.setInt(enumToConfKey(GeneralOpts.VISIBILITY_CACHE_SIZE), visibilityCacheSize);
+  }
+
+  /**
+   * Gets the valid visibility count for this job.
+   * 
+   * @param conf
+   *          the Hadoop configuration object to configure
+   * @return the valid visibility count
+   */
+  public static int getVisibilityCacheSize(Configuration conf) {
+    return conf.getInt(enumToConfKey(GeneralOpts.VISIBILITY_CACHE_SIZE),Constants.DEFAULT_VISIBILITY_CACHE_SIZE);
   }
 
 }
