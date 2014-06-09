@@ -74,18 +74,30 @@ SLEEP_TIME=10
 #set auths.
 AUTHS=''
 
-#time amount of time (in minutes) the agitator should sleep before killing
-KILL_SLEEP_TIME=20
-
-#time amount of time (in minutes) the agitator should sleep after killing before running tup 
-TUP_SLEEP_TIME=10
-
 #determines if checksum are generated, may want to turn of when performance testing
 CHECKSUM=true
 
-#the minimum and maximum server the agitator will kill at once
-MIN_KILL=1
-MAX_KILL=1
+#the amount of time (in minutes) the agitator should sleep before killing tservers
+TSERVER_KILL_SLEEP_TIME=20
+
+#the amount of time (in minutes) the agitator should sleep after killing
+# before restarting tservers
+TSERVER_RESTART_SLEEP_TIME=10
+
+#the minimum and maximum number of tservers the agitator will kill at once
+TSERVER_MIN_KILL=1
+TSERVER_MAX_KILL=1
+
+#the amount of time (in minutes) the agitator should sleep before killing datanodes
+DATANODE_KILL_SLEEP_TIME=20
+
+#the amount of time (in minutes) the agitator should sleep after killing
+# before restarting datanodes
+DATANODE_RESTART_SLEEP_TIME=10
+
+#the minimum and maximum number of datanodes the agitator will kill at once
+DATANODE_MIN_KILL=1
+DATANODE_MAX_KILL=1
 
 #time in minutes between killing masters
 MASTER_KILL_SLEEP_TIME=60
