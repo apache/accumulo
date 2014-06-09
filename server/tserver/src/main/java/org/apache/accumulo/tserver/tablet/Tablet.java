@@ -1319,7 +1319,7 @@ public class Tablet implements TabletCommitter {
 
       // determines if inserts and queries can still continue while minor compacting
       if (disableWrites) {
-        closeState = CloseState.CLOSING;
+        closeState = CloseState.CLOSED;
       }
 
       // wait for major compactions to finish, setting closing to
@@ -1988,11 +1988,9 @@ public class Tablet implements TabletCommitter {
         success = true;
       } catch (CompactionCanceledException mcce) {
         log.debug("Major compaction canceled, extent = " + getExtent());
-        throw new RuntimeException(mcce);
       } catch (Throwable t) {
         log.error("MajC Failed, extent = " + getExtent());
         log.error("MajC Failed, message = " + (t.getMessage() == null ? t.getClass().getName() : t.getMessage()), t);
-        throw new RuntimeException(t);
       } finally {
         // ensure we always reset boolean, even
         // when an exception is thrown

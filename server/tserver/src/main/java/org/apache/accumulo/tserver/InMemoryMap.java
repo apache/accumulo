@@ -499,7 +499,9 @@ public class InMemoryMap {
     return map.iterator(startKey);
   }
   
-  public long getNumEntries() {
+  public synchronized long getNumEntries() {
+    if (map == null)
+      return 0;
     return map.size();
   }
   
