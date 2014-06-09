@@ -28,6 +28,7 @@ import java.io.IOException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -53,6 +54,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class AccumuloFileOutputFormatTest {
+  private static final int JOB_VISIBILITY_CACHE_SIZE = 3000;
   private static final String PREFIX = AccumuloFileOutputFormatTest.class.getSimpleName();
   private static final String INSTANCE_NAME = PREFIX + "_mapred_instance";
   private static final String BAD_TABLE = PREFIX + "_mapred_bad_table";
@@ -145,6 +147,7 @@ public class AccumuloFileOutputFormatTest {
 
       JobConf job = new JobConf(getConf());
       job.setJarByClass(this.getClass());
+      ConfiguratorBase.setVisibilityCacheSize(job, JOB_VISIBILITY_CACHE_SIZE);
 
       job.setInputFormat(AccumuloInputFormat.class);
 
