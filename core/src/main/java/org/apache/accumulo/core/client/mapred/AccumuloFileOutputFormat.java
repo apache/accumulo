@@ -19,6 +19,7 @@ package org.apache.accumulo.core.client.mapred;
 import java.io.IOException;
 import java.util.Arrays;
 
+import org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.FileOutputConfigurator;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -145,7 +146,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
     final String extension = acuConf.get(Property.TABLE_FILE_TYPE);
     final Path file = new Path(getWorkOutputPath(job), getUniqueName(job, "part") + "." + extension);
     
-    final LRUMap validVisibilities = new LRUMap(1000);
+    final LRUMap validVisibilities = new LRUMap(ConfiguratorBase.getVisibilityCacheSize(conf));
     
     return new RecordWriter<Key,Value>() {
       FileSKVWriter out = null;
