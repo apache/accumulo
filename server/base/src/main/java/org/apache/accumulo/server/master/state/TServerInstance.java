@@ -78,6 +78,14 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
     m.putDelete(TabletsSection.LastLocationColumnFamily.NAME, asColumnQualifier());
   }
   
+  public void clearFutureLocation(Mutation m) {
+    m.putDelete(TabletsSection.FutureLocationColumnFamily.NAME, asColumnQualifier());
+  }
+
+  public void clearLocation(Mutation m) {
+    m.putDelete(TabletsSection.CurrentLocationColumnFamily.NAME, asColumnQualifier());
+  }
+  
   @Override
   public int compareTo(TServerInstance other) {
     if (this == other)
@@ -115,11 +123,11 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
     return getLocation().toString();
   }
   
-  public Text asColumnQualifier() {
+  private Text asColumnQualifier() {
     return new Text(this.getSession());
   }
   
-  public Value asMutationValue() {
+  private Value asMutationValue() {
     return new Value(getLocation().toString().getBytes(StandardCharsets.UTF_8));
   }
   
@@ -140,4 +148,5 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
     in.defaultReadObject();
     location = HostAndPort.fromString(in.readObject().toString());
   }
+
 }

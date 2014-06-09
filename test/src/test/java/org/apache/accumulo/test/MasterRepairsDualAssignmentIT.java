@@ -33,7 +33,6 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.fate.util.UtilWaitThread;
@@ -120,7 +119,7 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacIT {
     // throw a mutation in as if we were the dying tablet
     BatchWriter bw = c.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     Mutation assignment = new Mutation(moved.extent.getMetadataEntry());
-    assignment.put(CurrentLocationColumnFamily.NAME, moved.current.asColumnQualifier(), moved.current.asMutationValue());
+    moved.current.putLocation(assignment);
     bw.addMutation(assignment);
     bw.close();
     // wait for the master to fix the problem
@@ -128,7 +127,7 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacIT {
     // now jam up the metadata table
     bw = c.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     assignment = new Mutation(new KeyExtent(new Text(MetadataTable.ID), null, null).getMetadataEntry());
-    assignment.put(CurrentLocationColumnFamily.NAME, moved.current.asColumnQualifier(), moved.current.asMutationValue());
+    moved.current.putLocation(assignment);
     bw.addMutation(assignment);
     bw.close();
     waitForCleanStore(new RootTabletStateStore(c.getInstance(), creds, null));
