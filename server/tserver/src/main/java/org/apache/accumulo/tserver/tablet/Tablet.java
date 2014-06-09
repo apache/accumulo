@@ -261,7 +261,7 @@ public class Tablet implements TabletCommitter {
   }
 
   /**
-   * Only visibile for testing
+   * Only visible for testing
    */
   @VisibleForTesting
   protected Tablet(TabletTime tabletTime, String tabletDirectory, int logId, Path location, DatafileManager datafileManager, TabletServer tabletServer,
@@ -346,7 +346,6 @@ public class Tablet implements TabletCommitter {
       mdScanner.setRange(new Range(rowName));
 
       for (Entry<Key,Value> entry : mdScanner) {
-
         if (entry.getKey().compareRow(rowName) != 0) {
           break;
         }
@@ -1324,7 +1323,7 @@ public class Tablet implements TabletCommitter {
 
       // wait for major compactions to finish, setting closing to
       // true should cause any running major compactions to abort
-      while (majorCompactionRunning()) {
+      while (isMajorCompactionRunning()) {
         try {
           this.wait(50);
         } catch (InterruptedException e) {
@@ -1510,7 +1509,7 @@ public class Tablet implements TabletCommitter {
 
   public synchronized boolean initiateMajorCompaction(MajorCompactionReason reason) {
 
-    if (isClosing() || isClosed() || !needsMajorCompaction(reason) || majorCompactionRunning() || majorCompactionQueued.contains(reason)) {
+    if (isClosing() || isClosed() || !needsMajorCompaction(reason) || isMajorCompactionRunning() || majorCompactionQueued.contains(reason)) {
       return false;
     }
 
@@ -1526,7 +1525,7 @@ public class Tablet implements TabletCommitter {
    * 
    */
   public boolean needsMajorCompaction(MajorCompactionReason reason) {
-    if (majorCompactionRunning())
+    if (isMajorCompactionRunning())
       return false;
     if (reason == MajorCompactionReason.CHOP || reason == MajorCompactionReason.USER)
       return true;
@@ -1534,7 +1533,7 @@ public class Tablet implements TabletCommitter {
   }
 
   /**
-   * Returns an int representing the total block size of the f served by this tablet.
+   * Returns an int representing the total block size of the files served by this tablet.
    * 
    * @return size
    */
@@ -1695,14 +1694,9 @@ public class Tablet implements TabletCommitter {
    * 
    */
   public synchronized boolean needsSplit() {
-    boolean ret;
-
     if (isClosing() || isClosed())
-      ret = false;
-    else
-      ret = findSplitRow(getDatafileManager().getFiles()) != null;
-
-    return ret;
+      return false;
+    return findSplitRow(getDatafileManager().getFiles()) != null;
   }
 
   // BEGIN PRIVATE METHODS RELATED TO MAJOR COMPACTION
@@ -1972,7 +1966,7 @@ public class Tablet implements TabletCommitter {
         // check that compaction is still needed - defer to splitting
         majorCompactionQueued.remove(reason);
 
-        if (isClosing() || isClosed ()|| !needsMajorCompaction(reason) || majorCompactionRunning() || needsSplit()) {
+        if (isClosing() || isClosed ()|| !needsMajorCompaction(reason) || isMajorCompactionRunning() || needsSplit()) {
           return null;
         }
 
@@ -2061,7 +2055,7 @@ public class Tablet implements TabletCommitter {
     return closeState == CloseState.COMPLETE;
   }
 
-  public boolean majorCompactionRunning() {
+  public boolean isMajorCompactionRunning() {
     return majorCompactionState == CompactionState.IN_PROGRESS;
   }
 
@@ -2268,12 +2262,10 @@ public class Tablet implements TabletCommitter {
 
   private Set<DfsLogger> currentLogs = new HashSet<DfsLogger>();
 
-  public Set<String> getCurrentLogFiles() {
+  public synchronized Set<String> getCurrentLogFiles() {
     Set<String> result = new HashSet<String>();
-    synchronized (currentLogs) {
-      for (DfsLogger log : currentLogs) {
-        result.add(log.getFileName());
-      }
+    for (DfsLogger log : currentLogs) {
+      result.add(log.getFileName());
     }
     return result;
   }
@@ -2425,7 +2417,7 @@ public class Tablet implements TabletCommitter {
       if (lastCompactID >= compactionId)
         return;
 
-      if (isClosing() || isClosed() || majorCompactionQueued.contains(MajorCompactionReason.USER) || majorCompactionRunning())
+      if (isClosing() || isClosed() || majorCompactionQueued.contains(MajorCompactionReason.USER) || isMajorCompactionRunning())
         return;
 
       if (getDatafileManager().getDatafileSizes().size() == 0) {
@@ -2560,10 +2552,6 @@ public class Tablet implements TabletCommitter {
 
   public void minorCompactionComplete() {
     minorCompactionState = null;
-  }
-
-  public boolean isMajorCompactionRunning() {
-    return majorCompactionState == CompactionState.IN_PROGRESS;
   }
 
   public TabletStats getTabletStats() {
