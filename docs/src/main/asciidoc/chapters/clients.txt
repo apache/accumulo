@@ -150,10 +150,10 @@ Scanner scan =
     conn.createScanner("table", auths);
 
 scan.setRange(new Range("harry","john"));
-scan.fetchFamily("attributes");
+scan.fetchColumnFamily(new Text("attributes"));
 
 for(Entry<Key,Value> entry : scan) {
-    String row = entry.getKey().getRow();
+    Text row = entry.getKey().getRow();
     Value value = entry.getValue();
 }
 ----
@@ -203,7 +203,7 @@ ArrayList<Range> ranges = new ArrayList<Range>();
 BatchScanner bscan =
     conn.createBatchScanner("table", auths, 10);
 bscan.setRanges(ranges);
-bscan.fetchFamily("attributes");
+bscan.fetchColumnFamily("attributes");
 
 for(Entry<Key,Value> entry : scan) {
     System.out.println(entry.getValue());
