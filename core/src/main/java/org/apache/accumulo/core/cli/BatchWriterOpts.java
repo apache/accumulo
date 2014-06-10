@@ -41,6 +41,7 @@ public class BatchWriterOpts {
   
   public BatchWriterConfig getBatchWriterConfig() {
     BatchWriterConfig config = new BatchWriterConfig();
+    config.setMaxWriteThreads(this.batchThreads);
     config.setMaxLatency(this.batchLatency, TimeUnit.MILLISECONDS);
     config.setMaxMemory(this.batchMemory);
     config.setTimeout(this.batchTimeout, TimeUnit.MILLISECONDS);
