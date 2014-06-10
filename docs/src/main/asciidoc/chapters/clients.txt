@@ -110,8 +110,8 @@ The ConditionalWriter enables efficient, atomic read-modify-write operations on
 rows.  The ConditionalWriter writes special Mutations which have a list of per
 column conditions that must all be met before the mutation is applied.  The
 conditions are checked in the tablet server while a row lock is
-held\footnote{Mutations written by the BatchWriter will not obtain a row
-lock.}.  The conditions that can be checked for a column are equality and
+held (Mutations written by the BatchWriter will not obtain a row
+lock).  The conditions that can be checked for a column are equality and
 absence.  For example a conditional mutation can require that column A is
 absent inorder to be applied.  Iterators can be applied when checking
 conditions.  Using iterators, many other operations besides equality and
