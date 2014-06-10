@@ -76,8 +76,10 @@ if [ -z "$PID" ]; then
    fi
 
    if [ -n "$MAX_FILES_OPEN" ] && [ -n "$SLAVES" ] ; then
-      if [ "$SLAVES" -gt 10 ] && [ "$MAX_FILES_OPEN" -lt 65536 ]; then
-         echo "WARN : Max files open on $HOST is $MAX_FILES_OPEN, recommend 65536"
+      MAX_FILES_RECOMMENDED=${MAX_FILES_RECOMMENDED:-32768}
+      if (( SLAVES > 10 )) && (( MAX_FILES_OPEN < MAX_FILES_RECOMMENDED ))
+      then
+         echo "WARN : Max open files on $HOST is $MAX_FILES_OPEN, recommend $MAX_FILES_RECOMMENDED" >&2
       fi
    fi
 else
