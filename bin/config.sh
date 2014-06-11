@@ -115,7 +115,11 @@ then
 fi
 export HADOOP_PREFIX
 
-MASTER1=$(egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/masters" | head -1)
+unset MASTER1
+if [[ -f "$ACCUMULO_CONF_DIR/masters" ]]; then
+  MASTER1=$(egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/masters" | head -1)
+fi
+
 if [ -z "${MONITOR}" ] ; then
   MONITOR=$MASTER1
   if [ -f "$ACCUMULO_CONF_DIR/monitor" ]; then
