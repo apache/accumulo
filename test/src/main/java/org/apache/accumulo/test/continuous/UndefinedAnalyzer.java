@@ -256,7 +256,7 @@ public class UndefinedAnalyzer {
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     BatchScannerOpts bsOpts = new BatchScannerOpts();
-    opts.parseArgs(UndefinedAnalyzer.class.getName(), args, opts);
+    opts.parseArgs(UndefinedAnalyzer.class.getName(), args, bsOpts);
 
     List<UndefinedNode> undefs = new ArrayList<UndefinedNode>();
 
