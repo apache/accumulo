@@ -17,18 +17,15 @@
 package org.apache.accumulo.server.conf;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
+import org.apache.accumulo.core.conf.ObservableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
@@ -36,7 +33,7 @@ import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.log4j.Logger;
 
-public class NamespaceConfiguration extends AccumuloConfiguration {
+public class NamespaceConfiguration extends ObservableConfiguration {
   private static final Logger log = Logger.getLogger(NamespaceConfiguration.class);
 
   private final AccumuloConfiguration parent;
@@ -44,7 +41,6 @@ public class NamespaceConfiguration extends AccumuloConfiguration {
   private static final Object lock = new Object();
   protected String namespaceId = null;
   protected Instance inst = null;
-  private Set<ConfigurationObserver> observers;
 
   public NamespaceConfiguration(String namespaceId, AccumuloConfiguration parent) {
     this(namespaceId, HdfsZooInstance.getInstance(), parent);
@@ -54,7 +50,6 @@ public class NamespaceConfiguration extends AccumuloConfiguration {
     this.inst = inst;
     this.parent = parent;
     this.namespaceId = namespaceId;
-    this.observers = Collections.synchronizedSet(new HashSet<ConfigurationObserver>());
   }
 
   @Override
@@ -143,6 +138,7 @@ public class NamespaceConfiguration extends AccumuloConfiguration {
     return namespaceId;
   }
 
+  @Override
   public void addObserver(ConfigurationObserver co) {
     if (namespaceId == null) {
       String err = "Attempt to add observer for non-namespace configuration";
@@ -150,34 +146,17 @@ public class NamespaceConfiguration extends AccumuloConfiguration {
       throw new RuntimeException(err);
     }
     iterator();
-    observers.add(co);
+    super.addObserver(co);
   }
 
-  public void removeObserver(ConfigurationObserver configObserver) {
+  @Override
+  public void removeObserver(ConfigurationObserver co) {
     if (namespaceId == null) {
       String err = "Attempt to remove observer for non-namespace configuration";
       log.error(err);
       throw new RuntimeException(err);
     }
-    observers.remove(configObserver);
-  }
-
-  public void expireAllObservers() {
-    Collection<ConfigurationObserver> copy = Collections.unmodifiableCollection(observers);
-    for (ConfigurationObserver co : copy)
-      co.sessionExpired();
-  }
-
-  public void propertyChanged(String key) {
-    Collection<ConfigurationObserver> copy = Collections.unmodifiableCollection(observers);
-    for (ConfigurationObserver co : copy)
-      co.propertyChanged(key);
-  }
-
-  public void propertiesChanged(String key) {
-    Collection<ConfigurationObserver> copy = Collections.unmodifiableCollection(observers);
-    for (ConfigurationObserver co : copy)
-      co.propertiesChanged();
+    super.removeObserver(co);
   }
 
   protected boolean isIteratorOrConstraint(String key) {

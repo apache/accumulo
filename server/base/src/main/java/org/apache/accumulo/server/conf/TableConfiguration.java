@@ -17,17 +17,14 @@
 package org.apache.accumulo.server.conf;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
+import org.apache.accumulo.core.conf.ObservableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
@@ -35,7 +32,7 @@ import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.log4j.Logger;
 
-public class TableConfiguration extends AccumuloConfiguration {
+public class TableConfiguration extends ObservableConfiguration {
   private static final Logger log = Logger.getLogger(TableConfiguration.class);
 
   // Need volatile keyword to ensure double-checked locking works as intended
@@ -47,7 +44,6 @@ public class TableConfiguration extends AccumuloConfiguration {
   private final NamespaceConfiguration parent;
 
   private String table = null;
-  private Set<ConfigurationObserver> observers;
 
   public TableConfiguration(String instanceId, String table, NamespaceConfiguration parent) {
     this(instanceId, HdfsZooInstance.getInstance(), table, parent);
@@ -58,8 +54,6 @@ public class TableConfiguration extends AccumuloConfiguration {
     this.instance = instance;
     this.table = table;
     this.parent = parent;
-
-    this.observers = Collections.synchronizedSet(new HashSet<ConfigurationObserver>());
   }
 
   private void initializeZooCache() {
@@ -77,6 +71,7 @@ public class TableConfiguration extends AccumuloConfiguration {
     return tablePropCache;
   }
 
+  @Override
   public void addObserver(ConfigurationObserver co) {
     if (table == null) {
       String err = "Attempt to add observer for non-table configuration";
@@ -84,34 +79,17 @@ public class TableConfiguration extends AccumuloConfiguration {
       throw new RuntimeException(err);
     }
     iterator();
-    observers.add(co);
+    super.addObserver(co);
   }
 
-  public void removeObserver(ConfigurationObserver configObserver) {
+  @Override
+  public void removeObserver(ConfigurationObserver co) {
     if (table == null) {
       String err = "Attempt to remove observer for non-table configuration";
       log.error(err);
       throw new RuntimeException(err);
     }
-    observers.remove(configObserver);
-  }
-
-  public void expireAllObservers() {
-    Collection<ConfigurationObserver> copy = Collections.unmodifiableCollection(observers);
-    for (ConfigurationObserver co : copy)
-      co.sessionExpired();
-  }
-
-  public void propertyChanged(String key) {
-    Collection<ConfigurationObserver> copy = Collections.unmodifiableCollection(observers);
-    for (ConfigurationObserver co : copy)
-      co.propertyChanged(key);
-  }
-
-  public void propertiesChanged(String key) {
-    Collection<ConfigurationObserver> copy = Collections.unmodifiableCollection(observers);
-    for (ConfigurationObserver co : copy)
-      co.propertiesChanged();
+    super.removeObserver(co);
   }
 
   @Override
