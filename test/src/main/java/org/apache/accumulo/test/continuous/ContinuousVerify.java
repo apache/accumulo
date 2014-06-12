@@ -44,6 +44,7 @@ import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.apache.log4j.Logger;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.validators.PositiveInteger;
@@ -57,6 +58,7 @@ public class ContinuousVerify extends Configured implements Tool {
 
   public static class CMapper extends Mapper<Key,Value,LongWritable,VLongWritable> {
 
+    private static final Logger log = Logger.getLogger(CMapper.class);
     private LongWritable row = new LongWritable();
     private LongWritable ref = new LongWritable();
     private VLongWritable vrow = new VLongWritable();
@@ -74,7 +76,7 @@ public class ContinuousVerify extends Configured implements Tool {
       } catch (BadChecksumException bce) {
         CounterUtils.increment(context.getCounter(Counts.CORRUPT));
         if (corrupt < 1000) {
-          System.out.println("ERROR Bad checksum : " + key);
+          log.error("Bad checksum : " + key);
         } else if (corrupt == 1000) {
           System.out.println("Too many bad checksums, not printing anymore!");
         }
