@@ -169,6 +169,14 @@ config -t mytable -s table.iteartor.{scan|minc|majc}.myiter.opt.myoptionname=myo
 \end{verbatim}
 \normalsize
 
+Typically, a table will have multiple iterators. Accumulo configures a set of
+system level iterators for each table. These iterators provide core
+functionality like visibility label filtering and may not be removed by
+users. User level iterators are applied in the order of their priority.
+Priority is a user configured integer; iterators with lower numbers go first,
+passing the results of their iteration on to the other iterators up the
+stack.
+
 \subsection{Setting Iterators Programmatically}
 
 \small
