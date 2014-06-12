@@ -45,70 +45,89 @@ public class Main {
       Class<?> runTMP = null;
 
       Thread.currentThread().setContextClassLoader(cl);
-      
-      if (args[0].equals("help")){
-        printUsage();
-        System.exit(0);
-      } else if (args[0].equals("master")) {
-	runTMP = cl.loadClass("org.apache.accumulo.master.Master");
-      } else if (args[0].equals("tserver")) {
-        runTMP = cl.loadClass("org.apache.accumulo.tserver.TabletServer");
-      } else if (args[0].equals("shell")) {
-        runTMP = cl.loadClass("org.apache.accumulo.shell.Shell");
-      } else if (args[0].equals("init")) {
-        runTMP = cl.loadClass("org.apache.accumulo.server.init.Initialize");
-      } else if (args[0].equals("admin")) {
-        runTMP = cl.loadClass("org.apache.accumulo.server.util.Admin");
-      } else if (args[0].equals("gc")) {
-        runTMP = cl.loadClass("org.apache.accumulo.gc.SimpleGarbageCollector");
-      } else if (args[0].equals("monitor")) {
-        runTMP = cl.loadClass("org.apache.accumulo.monitor.Monitor");
-      } else if (args[0].equals("tracer")) {
-        runTMP = cl.loadClass("org.apache.accumulo.tracer.TraceServer");
-      } else if (args[0].equals("proxy")) {
-        runTMP = cl.loadClass("org.apache.accumulo.proxy.Proxy");
-      } else if (args[0].equals("minicluster")) {
-        runTMP = cl.loadClass("org.apache.accumulo.minicluster.MiniAccumuloRunner");
-      } else if (args[0].equals("classpath")) {
-        vfsClassLoader.getMethod("printClassPath", new Class[] {}).invoke(vfsClassLoader, new Object[] {});
-        return;
-      } else if (args[0].equals("version")) {
-        runTMP = cl.loadClass("org.apache.accumulo.core.Constants");
-        System.out.println(runTMP.getField("VERSION").get(null));
-        return;
-      } else if (args[0].equals("rfile-info")) {
-        runTMP = cl.loadClass("org.apache.accumulo.core.file.rfile.PrintInfo");
-      } else if (args[0].equals("login-info")) {
-        runTMP = cl.loadClass("org.apache.accumulo.server.util.LoginProperties");
-      } else if (args[0].equals("zookeeper")) {
-        runTMP = cl.loadClass("org.apache.accumulo.server.util.ZooKeeperMain");
-      } else if (args[0].equals("create-token")) {
-        runTMP = cl.loadClass("org.apache.accumulo.core.util.CreateToken");
-      } else if (args[0].equals("info")) {
-        runTMP = cl.loadClass("org.apache.accumulo.server.util.Info");
-      } else if (args[0].equals("jar")) {
-        if (args.length < 2) {
+
+      switch (args[0]) {
+        case "help":
           printUsage();
-          System.exit(1);
-        }
-        try {
-          JarFile f = new JarFile(args[1]);
-          runTMP = loadClassFromJar(args, f, cl);
-        } catch (IOException ioe) {
-          System.out.println("File " + args[1] + " could not be found or read.");
-          System.exit(1);
-        } catch (ClassNotFoundException cnfe) {
-          System.out.println("Classname " + (args.length > 2 ? args[2] : "in JAR manifest")
-              + " not found.  Please make sure you use the wholly qualified package name.");
-          System.exit(1);
-        }
-      } else {
-        try {
-          runTMP = cl.loadClass(args[0]);
-        } catch (ClassNotFoundException cnfe) {
-          System.out.println("Classname " + args[0] + " not found.  Please make sure you use the wholly qualified package name.");
-          System.exit(1);
-        }
+          System.exit(0);
+          break;
+        case "master":
+          runTMP = cl.loadClass("org.apache.accumulo.master.Master");
+          break;
+        case "tserver":
+          runTMP = cl.loadClass("org.apache.accumulo.tserver.TabletServer");
+          break;
+        case "shell":
+          runTMP = cl.loadClass("org.apache.accumulo.shell.Shell");
+          break;
+        case "init":
+          runTMP = cl.loadClass("org.apache.accumulo.server.init.Initialize");
+          break;
+        case "admin":
+          runTMP = cl.loadClass("org.apache.accumulo.server.util.Admin");
+          break;
+        case "gc":
+          runTMP = cl.loadClass("org.apache.accumulo.gc.SimpleGarbageCollector");
+          break;
+        case "monitor":
+          runTMP = cl.loadClass("org.apache.accumulo.monitor.Monitor");
+          break;
+        case "tracer":
+          runTMP = cl.loadClass("org.apache.accumulo.tracer.TraceServer");
+          break;
+        case "proxy":
+          runTMP = cl.loadClass("org.apache.accumulo.proxy.Proxy");
+          break;
+        case "minicluster":
+          runTMP = cl.loadClass("org.apache.accumulo.minicluster.MiniAccumuloRunner");
+          break;
+        case "classpath":
+          vfsClassLoader.getMethod("printClassPath", new Class[] {}).invoke(vfsClassLoader, new Object[] {});
+          return;
+        case "version":
+          runTMP = cl.loadClass("org.apache.accumulo.core.Constants");
+          System.out.println(runTMP.getField("VERSION").get(null));
+          return;
+        case "rfile-info":
+          runTMP = cl.loadClass("org.apache.accumulo.core.file.rfile.PrintInfo");
+          break;
+        case "login-info":
+          runTMP = cl.loadClass("org.apache.accumulo.server.util.LoginProperties");
+          break;
+        case "zookeeper":
+          runTMP = cl.loadClass("org.apache.accumulo.server.util.ZooKeeperMain");
+          break;
+        case "create-token":
+          runTMP = cl.loadClass("org.apache.accumulo.core.util.CreateToken");
+          break;
+        case "info":
+          runTMP = cl.loadClass("org.apache.accumulo.server.util.Info");
+          break;
+        case "jar":
+          if (args.length < 2) {
+            printUsage();
+            System.exit(1);
+          }
+          try {
+            JarFile f = new JarFile(args[1]);
+            runTMP = loadClassFromJar(args, f, cl);
+          } catch (IOException ioe) {
+            System.out.println("File " + args[1] + " could not be found or read.");
+            System.exit(1);
+          } catch (ClassNotFoundException cnfe) {
+            System.out.println("Classname " + (args.length > 2 ? args[2] : "in JAR manifest")
+                + " not found.  Please make sure you use the wholly qualified package name.");
+            System.exit(1);
+          }
+          break;
+        default:
+          try {
+            runTMP = cl.loadClass(args[0]);
+          } catch (ClassNotFoundException cnfe) {
+            System.out.println("Classname " + args[0] + " not found.  Please make sure you use the wholly qualified package name.");
+            System.exit(1);
+          }
+          break;
       }
       Method main = null;
       try {
