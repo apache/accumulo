@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.iterators;
 
+import com.google.common.base.Splitter;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -23,6 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.StringTokenizer;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
@@ -233,7 +235,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     if (encodedColumns.length() == 0)
       throw new IllegalArgumentException("The " + COLUMNS_OPTION + " must not be empty");
 
-    combiners = new ColumnSet(Arrays.asList(encodedColumns.split(",")));
+    combiners = new ColumnSet(Splitter.on(",").splitToList(encodedColumns));
   }
 
   @Override
@@ -277,7 +279,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     if (encodedColumns.length() == 0)
       throw new IllegalArgumentException("empty columns specified in option " + COLUMNS_OPTION);
 
-    for (String columns : encodedColumns.split(",")) {
+    for (String columns : Splitter.on(",").splitToList(encodedColumns)) {
       if (!ColumnSet.isValidEncoding(columns))
         throw new IllegalArgumentException("invalid column encoding " + encodedColumns);
     }
