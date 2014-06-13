@@ -58,14 +58,6 @@ import org.apache.log4j.Logger;
  */
 public class HdfsZooInstance implements Instance {
 
-  public static class AccumuloNotInitializedException extends RuntimeException {
-    private static final long serialVersionUID = 1L;
-
-    public AccumuloNotInitializedException(String string) {
-      super(string);
-    }
-  }
-
   private HdfsZooInstance() {
     AccumuloConfiguration acuConf = ServerConfiguration.getSiteConfiguration();
     zooCache = new ZooCacheFactory().getZooCache(acuConf.get(Property.INSTANCE_ZK_HOST), (int) acuConf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT));
