@@ -324,7 +324,7 @@ class ConfigurationDocGen {
         while ((n = data.read(buffer)) > 0)
           doc.print(new String(buffer, 0, n, StandardCharsets.UTF_8));
       } catch (IOException e) {
-        e.printStackTrace();
+        log.debug("Encountered IOException while reading InputStream in appendResource().", e);
         return;
       } finally {
         try {

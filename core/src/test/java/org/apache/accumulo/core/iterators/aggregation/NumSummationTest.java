@@ -19,12 +19,16 @@ package org.apache.accumulo.core.iterators.aggregation;
 import junit.framework.TestCase;
 
 import org.apache.accumulo.core.data.Value;
+import org.apache.log4j.Logger;
 
 /**
  * @deprecated since 1.4
  */
 @Deprecated
 public class NumSummationTest extends TestCase {
+  
+  private static final Logger log = Logger.getLogger(NumSummationTest.class);
+  
   public byte[] init(int n) {
     byte[] b = new byte[n];
     for (int i = 0; i < b.length; i++)
@@ -64,7 +68,7 @@ public class NumSummationTest extends TestCase {
       la = NumArraySummation.bytesToLongArray(nas.aggregate().get());
       assertTrue(la.length == 0);
     } catch (Exception e) {
-      e.printStackTrace();
+      log.error(e);
       assertTrue(false);
     }
   }

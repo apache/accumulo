@@ -874,7 +874,7 @@ public class RFile {
         try {
           lgr.close();
         } catch (IOException e) {
-          e.printStackTrace();
+          log.warn("Errored out attempting to close LocalityGroupReader.", e);
         }
       }
     }

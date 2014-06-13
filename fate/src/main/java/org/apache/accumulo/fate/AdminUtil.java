@@ -31,6 +31,7 @@ import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 
 /**
@@ -38,6 +39,7 @@ import org.apache.zookeeper.KeeperException;
  */
 public class AdminUtil<T> {
   private static final Charset UTF8 = Charset.forName("UTF-8");
+  private static final Logger log = Logger.getLogger(AdminUtil.class);
   
   private boolean exitOnError = false;
   
@@ -108,13 +110,13 @@ public class AdminUtil<T> {
             tables.add(lda[0].charAt(0) + ":" + id);
             
           } catch (Exception e) {
-            e.printStackTrace();
+            log.error(e);
           }
           pos++;
         }
         
       } catch (Exception e) {
-        e.printStackTrace();
+        log.error("Failed to read locks for "+id+" continuing.", e);
         fmt.format("Failed to read locks for %s continuing", id);
       }
     }

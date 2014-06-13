@@ -168,7 +168,7 @@ public class ZooCache {
         // do not hold lock while sleeping
         wait(sleepTime);
       } catch (InterruptedException e) {
-        e.printStackTrace();
+        log.debug("Wait in retry() was interrupted.", e);
       }
       if (sleepTime < 10000)
         sleepTime = (int) (sleepTime + sleepTime * Math.random());

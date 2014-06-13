@@ -78,7 +78,7 @@ public class InterferenceTest {
         try {
           bw.addMutation(m);
         } catch (MutationsRejectedException e) {
-          e.printStackTrace();
+          log.error("Mutation was rejected.", e);
           System.exit(-1);
         }
       }

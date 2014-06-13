@@ -22,8 +22,11 @@ import org.apache.accumulo.core.util.interpret.ScanInterpreter;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
 
 public class MaxRowCommand extends ScanCommand {
+  
+  private static final Logger log = Logger.getLogger(MaxRowCommand.class);
   
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
@@ -42,7 +45,7 @@ public class MaxRowCommand extends ScanCommand {
         shellState.getReader().println(max.toString());
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      log.debug("Could not get shell state.", e);
     }
     
     return 0;

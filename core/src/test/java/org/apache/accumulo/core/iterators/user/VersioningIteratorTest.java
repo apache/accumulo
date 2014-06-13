@@ -34,12 +34,14 @@ import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.TypedValueCombiner.Encoder;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
 import org.junit.Test;
 
 public class VersioningIteratorTest {
   // add test for seek function
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
   private static final Encoder<Long> encoder = LongCombiner.FIXED_LEN_ENCODER;
+  private static final Logger log = Logger.getLogger(VersioningIteratorTest.class);
   
   void createTestData(TreeMap<Key,Value> tm, Text colf, Text colq) {
     for (int i = 0; i < 2; i++) {
@@ -88,7 +90,7 @@ public class VersioningIteratorTest {
     } catch (IOException e) {
       assertFalse(true);
     } catch (Exception e) {
-      e.printStackTrace();
+      log.error(e);
       assertFalse(true);
     }
   }
@@ -124,7 +126,7 @@ public class VersioningIteratorTest {
     } catch (IOException e) {
       assertFalse(true);
     } catch (Exception e) {
-      e.printStackTrace();
+      log.error(e);
       assertFalse(true);
     }
   }
@@ -173,7 +175,7 @@ public class VersioningIteratorTest {
     } catch (IOException e) {
       assertFalse(true);
     } catch (Exception e) {
-      e.printStackTrace();
+      log.error(e);
       assertFalse(true);
     }
   }
@@ -201,7 +203,7 @@ public class VersioningIteratorTest {
       } catch (IOException e) {
         assertFalse(true);
       } catch (Exception e) {
-        e.printStackTrace();
+        log.error(e);
         assertFalse(true);
       }
     }

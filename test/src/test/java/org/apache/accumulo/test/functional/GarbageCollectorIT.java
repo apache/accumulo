@@ -208,7 +208,7 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
         try {
           output = FunctionalTestUtils.readAll(cluster, SimpleGarbageCollector.class, gc);
         } catch (IOException ioe) {
-          ioe.printStackTrace();
+          log.error("Could not read all from cluster.", ioe);
         }
       }
     } finally {

@@ -408,8 +408,8 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
       if (!bws.containsKey(table))
         try {
           addTable(table);
-        } catch (Exception e) {
-          e.printStackTrace();
+        } catch (final Exception e) {
+          log.error("Could not add table '"+table.toString()+"'", e);
           throw new IOException(e);
         }
 

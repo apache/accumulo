@@ -34,6 +34,7 @@ import org.apache.commons.io.FileUtils;
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
 import com.google.common.io.Files;
+import org.apache.log4j.Logger;
 
 /**
  * A runner for starting up a {@link MiniAccumuloCluster} from the command line using an optional configuration properties file. An example property file looks
@@ -59,6 +60,8 @@ import com.google.common.io.Files;
  * @since 1.6.0
  */
 public class MiniAccumuloRunner {
+  private static final Logger log = Logger.getLogger(MiniAccumuloRunner.class);
+  
   private static final String ROOT_PASSWORD_PROP = "rootPassword";
   private static final String SHUTDOWN_PORT_PROP = "shutdownPort";
   private static final String DEFAULT_MEMORY_PROP = "defaultMemory";
@@ -188,13 +191,22 @@ public class MiniAccumuloRunner {
       public void run() {
         try {
           accumulo.stop();
-          FileUtils.deleteDirectory(miniDir);
-          System.out.println("\nShut down gracefully on " + new Date());
         } catch (IOException e) {
-          e.printStackTrace();
+          log.error("IOException attempting to stop Accumulo.", e);
+          return;
         } catch (InterruptedException e) {
-          e.printStackTrace();
+          log.error("InterruptedException attempting to stop Accumulo.", e);
+          return;
         }
+        
+        try {
+          FileUtils.deleteDirectory(miniDir);
+        } catch (IOException e) {
+          log.error("IOException attempting to clean up miniDir.", e);
+          return;
+        }
+        
+        System.out.println("\nShut down gracefully on " + new Date());
       }
     });
 

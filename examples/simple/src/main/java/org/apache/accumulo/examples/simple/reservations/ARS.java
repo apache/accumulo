@@ -38,6 +38,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
 
 /**
  * Accumulo Reservation System : An example reservation system using Accumulo. Supports atomic reservations of a resource at a date. Wait list are also
@@ -51,6 +52,8 @@ import org.apache.hadoop.io.Text;
 // 10 threads per node.
 
 public class ARS {
+  
+  private static final Logger log = Logger.getLogger(ARS.class);
   
   private Connector conn;
   private String rTable;
@@ -260,7 +263,7 @@ public class ARS {
               try {
                 reader.println("  " + String.format("%20s", tokens[whoIndex]) + " : " + fars.reserve(tokens[1], tokens[2], tokens[whoIndex]));
               } catch (Exception e) {
-                e.printStackTrace();
+                log.warn("Could not write to the ConsoleReader.", e);
               }
             }
           };

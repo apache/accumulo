@@ -23,8 +23,11 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.cli.Help;
 
 import com.beust.jcommander.Parameter;
+import org.apache.log4j.Logger;
 
 public class CreateRFiles {
+  
+  private static final Logger log = Logger.getLogger(CreateRFiles.class);
   
   static class Opts extends Help {
     
@@ -67,7 +70,7 @@ public class CreateRFiles {
           try {
             TestIngest.main(tia.split(" "));
           } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Could not run "+TestIngest.class.getName()+".main using the input '"+tia+"'", e);
           }
         }
         

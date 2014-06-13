@@ -58,8 +58,10 @@ import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 
 import com.beust.jcommander.Parameter;
+import org.apache.log4j.Logger;
 
 public class VerifyTabletAssignments {
+  private static final Logger log = Logger.getLogger(VerifyTabletAssignments.class);
   
   static class Opts extends ClientOpts {
     @Parameter(names = {"-v", "--verbose"}, description = "verbose mode (prints locations of tablets)")
@@ -126,8 +128,7 @@ public class VerifyTabletAssignments {
           try {
             checkTabletServer(inst, conf.getConfiguration(), new Credentials(opts.principal, opts.getToken()), entry, failures);
           } catch (Exception e) {
-            System.err.println("Failure on ts " + entry.getKey() + " " + e.getMessage());
-            e.printStackTrace();
+            log.error("Failure on tablet server '"+entry.getKey()+".", e);
             failures.addAll(entry.getValue());
           }
         }

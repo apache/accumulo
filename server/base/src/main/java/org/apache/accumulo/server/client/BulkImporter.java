@@ -399,7 +399,7 @@ public class BulkImporter {
       try {
         threadPool.awaitTermination(60, TimeUnit.SECONDS);
       } catch (InterruptedException e) {
-        e.printStackTrace();
+        log.error("Encountered InterruptedException while waiting for the threadPool to terminate.", e);
         throw new RuntimeException(e);
       }
     }
@@ -575,7 +575,7 @@ public class BulkImporter {
       try {
         threadPool.awaitTermination(60, TimeUnit.SECONDS);
       } catch (InterruptedException e) {
-        e.printStackTrace();
+        log.error("Encountered InterruptedException while waiting for the thread pool to terminate.", e);
         throw new RuntimeException(e);
       }
     }
@@ -611,7 +611,7 @@ public class BulkImporter {
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code, e);
     } catch (Throwable t) {
-      t.printStackTrace();
+      log.error("Encountered unknown exception in assignMapFiles.", t);
       throw new AccumuloException(t);
     }
   }

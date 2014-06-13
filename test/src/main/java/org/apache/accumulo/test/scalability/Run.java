@@ -16,19 +16,20 @@
  */
 package org.apache.accumulo.test.scalability;
 
+import com.beust.jcommander.Parameter;
 import java.io.FileInputStream;
-import java.util.Properties;
 import java.net.InetAddress;
-
+import java.util.Properties;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-
-import com.beust.jcommander.Parameter;
+import org.apache.log4j.Logger;
 
 public class Run {
+  
+  private static final Logger log = Logger.getLogger(Run.class);
   
   static class Opts extends Help {
     @Parameter(names="--testId", required=true)
@@ -63,8 +64,7 @@ public class Run {
       fis = new FileInputStream(testPath);
       testProps.load(fis);
     } catch (Exception e) {
-      System.out.println("Problem loading config file");
-      e.printStackTrace();
+      log.error("Error loading config file.", e);
     }
     
     ScaleTest test = (ScaleTest) Class.forName(String.format("org.apache.accumulo.test.scalability.%s", opts.testId)).newInstance();

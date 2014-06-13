@@ -137,7 +137,7 @@ public class NativeMapStressTest {
       try {
         thread.join();
       } catch (InterruptedException e) {
-        e.printStackTrace();
+        log.error("Could not join thread '"+thread.getName()+"'.", e);
         throw new RuntimeException(e);
       }
     }
@@ -199,7 +199,7 @@ public class NativeMapStressTest {
       try {
         thread.join();
       } catch (InterruptedException e) {
-        e.printStackTrace();
+        log.error("Could not join thread '"+thread.getName()+"'.", e);
         throw new RuntimeException(e);
       }
     }
@@ -260,7 +260,7 @@ public class NativeMapStressTest {
       try {
         thread.join();
       } catch (InterruptedException e) {
-        e.printStackTrace();
+        log.error("Could not join thread '"+thread.getName()+"'.", e);
         throw new RuntimeException(e);
       }
     }

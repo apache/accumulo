@@ -24,8 +24,11 @@ import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.log4j.Logger;
 
 public class Main {
+  
+  private static final Logger log = Logger.getLogger(Main.class);
 
   public static void main(String[] args) {
     Runnable r = null;
@@ -133,7 +136,7 @@ public class Main {
       try {
         main = runTMP.getMethod("main", args.getClass());
       } catch (Throwable t) {
-        t.printStackTrace();
+        log.error("Could not run main method on '"+runTMP.getName()+"'.", t);
       }
       if (main == null || !Modifier.isPublic(main.getModifiers()) || !Modifier.isStatic(main.getModifiers())) {
         System.out.println(args[0] + " must implement a public static void main(String args[]) method");
@@ -175,8 +178,7 @@ public class Main {
       t.setContextClassLoader(cl);
       t.start();
     } catch (Throwable t) {
-      System.err.println("Uncaught exception: " + t);
-      t.printStackTrace(System.err);
+      log.error("Uncaught exception", t);
       System.exit(1);
     }
   }
@@ -188,8 +190,7 @@ public class Main {
    *          The {@link Throwable} containing a stack trace to print.
    */
   private static void die(Throwable t) {
-    System.err.println("Thread \"" + Thread.currentThread().getName() + "\" died " + t.getMessage());
-    t.printStackTrace(System.err);
+    log.error("Thread '"+Thread.currentThread().getName()+"' died.", t);
     System.exit(1);
   }
 

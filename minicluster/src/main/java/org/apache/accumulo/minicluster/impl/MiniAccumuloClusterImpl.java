@@ -110,7 +110,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           try {
             flush();
           } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Exception while attempting to flush.", e);
           }
         }
       }, 1000, 1000);
@@ -446,9 +446,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           try {
             MiniAccumuloClusterImpl.this.stop();
           } catch (IOException e) {
-            e.printStackTrace();
+            log.error("IOException while attempting to stop the MiniAccumuloCluster.", e);
           } catch (InterruptedException e) {
-            e.printStackTrace();
+            log.error("The stopping of MiniAccumuloCluster was interrupted.", e);
           }
         }
       });
