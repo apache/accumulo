@@ -114,20 +114,20 @@ public class DefaultFormatter implements Formatter {
   
   public static String formatEntry(Entry<Key,Value> entry, DateFormat timestampFormat) {
     StringBuilder sb = new StringBuilder();
-    
     Key key = entry.getKey();
+    Text buffer = new Text();
 
     // append row
-    appendText(sb, key.getRow()).append(" ");
-
+    appendText(sb, key.getRow(buffer)).append(" ");
+    
     // append column family
-    appendText(sb, key.getColumnFamily()).append(":");
-
+    appendText(sb, key.getColumnFamily(buffer)).append(":");
+    
     // append column qualifier
-    appendText(sb, key.getColumnQualifier()).append(" ");
-
+    appendText(sb, key.getColumnQualifier(buffer)).append(" ");
+    
     // append visibility expression
-    sb.append(new ColumnVisibility(key.getColumnVisibility()));
+    sb.append(new ColumnVisibility(key.getColumnVisibility(buffer)));
     
     // append timestamp
     if (timestampFormat != null) {
