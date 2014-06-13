@@ -218,7 +218,7 @@ public class ListInstances {
   
   private static void handleException(Exception e, boolean printErrors) {
     if (printErrors) {
-      e.printStackTrace();
+      log.error(e);
     }
     
     errors++;

@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
@@ -126,4 +127,11 @@ public class ConfiguratorBaseTest {
     assertEquals(Level.FATAL, ConfiguratorBase.getLogLevel(this.getClass(), conf));
   }
 
+  @Test
+  public void testSetVisibiltyCacheSize(){
+	 Configuration conf = new Configuration();
+	 assertEquals(Constants.DEFAULT_VISIBILITY_CACHE_SIZE,ConfiguratorBase.getVisibilityCacheSize(conf));
+	 ConfiguratorBase.setVisibilityCacheSize(conf, 2000);
+	 assertEquals(2000,ConfiguratorBase.getVisibilityCacheSize(conf));
+  }
 }

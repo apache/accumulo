@@ -917,7 +917,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
         }
 
       } catch (Exception e) {
-        e.printStackTrace();
+        log.error(e);
         failed.set(true);
       }
     }

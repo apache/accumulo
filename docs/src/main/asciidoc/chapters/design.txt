@@ -93,7 +93,7 @@ the state of an instance. The Monitor shows graphs and tables which contain info
 about read/write rates, cache hit/miss rates, and Accumulo table information such as scan
 rate and active/queued compactions. Additionally, the Monitor should always be the first
 point of entry when attempting to debug an Accumulo problem as it will show high-level problems
-in addition to aggregated errors from all nodes in the cluster. See the section on Monitoring
+in addition to aggregated errors from all nodes in the cluster. See the section on <<monitoring>>
 for more information.
 
 Multiple Monitors can be run to provide hot-standby support in the face of failure. Due to the

@@ -34,6 +34,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
+import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 
 /**
@@ -41,6 +42,8 @@ import org.apache.thrift.TException;
  * designed for performance, do not use on production systems. I'm calling it the LokiLoadBalancer.
  */
 public class ChaoticLoadBalancer extends TabletBalancer {
+  private static final Logger log = Logger.getLogger(ChaoticLoadBalancer.class);
+  
   Random r = new Random();
   
   @Override
@@ -124,10 +127,10 @@ public class ChaoticLoadBalancer extends TabletBalancer {
           }
         } catch (ThriftSecurityException e1) {
           // Shouldn't happen, but carry on if it does
-          e1.printStackTrace();
+          log.debug("Encountered ThriftSecurityException.  This should not happen.  Carrying on anyway.", e1);
         } catch (TException e1) {
           // Shouldn't happen, but carry on if it does
-          e1.printStackTrace();
+          log.debug("Encountered TException.  This should not happen.  Carrying on anyway.", e1);
         }
       }
     }

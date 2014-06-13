@@ -53,8 +53,11 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.ClusterStatus;
 import org.apache.hadoop.mapred.JobClient;
+import org.apache.log4j.Logger;
 
 public class ContinuousStatsCollector {
+  
+  private static final Logger log = Logger.getLogger(ContinuousStatsCollector.class);
   
   static class StatsCollectionTask extends TimerTask {
     
@@ -82,8 +85,7 @@ public class ContinuousStatsCollector {
         
         System.out.println(System.currentTimeMillis() + " " + acuStats + " " + fsStats + " " + mrStats + " " + tabletStats);
       } catch (Exception e) {
-        System.err.println(System.currentTimeMillis() + " Failed to collect stats : " + e.getMessage());
-        e.printStackTrace();
+        log.error(System.currentTimeMillis()+" - Failed to collect stats", e);
       }
     }
     

@@ -38,6 +38,7 @@ import javax.xml.validation.SchemaFactory;
 
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -46,6 +47,8 @@ import org.w3c.dom.NodeList;
  * A module is directed graph of tests
  */
 public class Module extends Node {
+  
+  private static final Logger log = Logger.getLogger(Module.class);
   
   private class Dummy extends Node {
     
@@ -339,7 +342,7 @@ public class Module extends Node {
       try {
         timer.join();
       } catch (InterruptedException e) {
-        e.printStackTrace();
+        log.error("Failed to join timer '"+timer.getName()+"'.", e);
       }
     }
     if (runningLong.get())

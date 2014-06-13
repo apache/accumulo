@@ -26,8 +26,10 @@ import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
+import org.apache.log4j.Logger;
 
 class MockInstanceOperations implements InstanceOperations {
+  private static final Logger log = Logger.getLogger(MockInstanceOperations.class);
   MockAccumulo acu;
 
   public MockInstanceOperations(MockAccumulo acu) {
@@ -69,7 +71,7 @@ class MockInstanceOperations implements InstanceOperations {
     try {
       AccumuloVFSClassLoader.loadClass(className, Class.forName(asTypeName));
     } catch (ClassNotFoundException e) {
-      e.printStackTrace();
+      log.warn("Could not find class named '"+className+"' in testClassLoad.", e);
       return false;
     }
     return true;

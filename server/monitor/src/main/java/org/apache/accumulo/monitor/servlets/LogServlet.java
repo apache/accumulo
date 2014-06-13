@@ -41,7 +41,7 @@ public class LogServlet extends BasicServlet {
   @Override
   protected void pageBody(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) {
     boolean clear = true;
-    SimpleDateFormat fmt = new SimpleDateFormat("dd HH:mm:ss,SSSS");
+    SimpleDateFormat fmt = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss,SSSS");
     Table logTable = new Table("logTable", "Recent&nbsp;Logs");
     logTable.addSortableColumn("Time", new DateTimeType(fmt), null);
     logTable.addSortableColumn("Application");

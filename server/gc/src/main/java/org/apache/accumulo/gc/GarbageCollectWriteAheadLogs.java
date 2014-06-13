@@ -323,7 +323,9 @@ public class GarbageCollectWriteAheadLogs {
     while (iterator.hasNext()) {
       // Each metadata reference has at least one WAL file
       for (String entry : iterator.next().logSet) {
-        String uuid = new Path(entry).getName();
+        // old style WALs will have the IP:Port of their logger and new style will either be a Path either absolute or relative, in all cases
+        // the last "/" will mark a UUID file name.
+        String uuid = entry.substring(entry.lastIndexOf("/") + 1);
         if (!isUUID(uuid)) {
           // fully expect this to be a uuid, if its not then something is wrong and walog GC should not proceed!
           throw new IllegalArgumentException("Expected uuid, but got " + uuid + " from " + entry);
@@ -482,8 +484,8 @@ public class GarbageCollectWriteAheadLogs {
         continue;
       for (FileStatus status : listing) {
         String server = status.getPath().getName();
-        servers.add(server);
         if (status.isDir()) {
+          servers.add(server);
           for (FileStatus file : fs.listStatus(new Path(walRoot, server))) {
             if (isUUID(file.getPath().getName())) {
               fileToServerMap.put(file.getPath(), server);
@@ -494,7 +496,9 @@ public class GarbageCollectWriteAheadLogs {
           }
         } else if (isUUID(server)) {
           // old-style WAL are not under a directory
+          servers.add("");
           fileToServerMap.put(status.getPath(), "");
+          nameToFileMap.put(server, status.getPath());
         } else {
           log.info("Ignoring file " + status.getPath() + " because it doesn't look like a uuid");
         }

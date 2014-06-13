@@ -129,6 +129,11 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     // instance_name,zookeepers
     int index = configuration.indexOf(',');
     if (-1 == index) {
+      try {
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalArgumentException("Expected comma in configuration string");
     }
 

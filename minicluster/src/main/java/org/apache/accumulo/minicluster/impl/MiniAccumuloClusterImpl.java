@@ -110,7 +110,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           try {
             flush();
           } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Exception while attempting to flush.", e);
           }
         }
       }, 1000, 1000);
@@ -140,8 +140,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       } catch (IOException e) {}
     }
   }
-
-  private static final long ZOOKEEPER_STARTUP_WAIT = 20 * 1000;
 
   private boolean initialized = false;
   private Process zooKeeperProcess = null;
@@ -446,9 +444,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           try {
             MiniAccumuloClusterImpl.this.stop();
           } catch (IOException e) {
-            e.printStackTrace();
+            log.error("IOException while attempting to stop the MiniAccumuloCluster.", e);
           } catch (InterruptedException e) {
-            e.printStackTrace();
+            log.error("The stopping of MiniAccumuloCluster was interrupted.", e);
           }
         }
       });
@@ -472,9 +470,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           if (n >= 4 && new String(buffer, 0, 4).equals("imok"))
             break;
         } catch (Exception e) {
-          if (System.currentTimeMillis() - startTime >= ZOOKEEPER_STARTUP_WAIT) {
-            throw new RuntimeException("Zookeeper did not start within " + (ZOOKEEPER_STARTUP_WAIT / 1000) + " seconds. Check the logs in "
-                + config.getLogDir() + " for errors.  Last exception: " + e);
+          if (System.currentTimeMillis() - startTime >= config.getZooKeeperStartupTime()) {
+            throw new RuntimeException("Zookeeper did not start within " + (config.getZooKeeperStartupTime()/1000) + " seconds. Check the logs in " + config.getLogDir() + " for errors.  Last exception: " + e);
           }
           UtilWaitThread.sleep(250);
         } finally {

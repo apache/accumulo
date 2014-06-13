@@ -155,6 +155,16 @@ public class ReplicationTest extends ConfigurableMacIT {
     } while (!exists && attempts > 0);
     Assert.assertTrue("Replication table did not exist", exists);
 
+    for (int i = 0; i < 5; i++) {
+      if (conn.securityOperations().hasTablePermission("root", ReplicationTable.NAME, TablePermission.READ)) {
+        break;
+      }
+      log.info("Could not read replication table, waiting and will retry");
+      Thread.sleep(1000);
+    }
+
+    Assert.assertTrue("'root' user could not read the replication table", conn.securityOperations().hasTablePermission("root", ReplicationTable.NAME, TablePermission.READ));
+
     Set<String> replRows = Sets.newHashSet();
     Scanner scanner;
     attempts = 5;
@@ -885,7 +895,7 @@ public class ReplicationTest extends ConfigurableMacIT {
 
     // Write some more data so that we over-run the single WAL
     bw = conn.createBatchWriter(table1, new BatchWriterConfig());
-    for (int rows = 0; rows < 2000; rows++) {
+    for (int rows = 0; rows < 3000; rows++) {
       Mutation m = new Mutation(Integer.toString(rows));
       for (int cols = 0; cols < 50; cols++) {
         String value = Integer.toString(cols);
@@ -896,7 +906,9 @@ public class ReplicationTest extends ConfigurableMacIT {
 
     bw.close();
 
-    conn.tableOperations().compact(ReplicationTable.NAME, null, null, true, true);
+    log.info("Issued compaction for table");
+    conn.tableOperations().compact(table1, null, null, true, true);
+    log.info("Compaction completed");
 
     // Master is creating entries in the replication table from the metadata table every second.
     // Compaction should trigger the record to be written to metadata. Wait a bit to ensure
@@ -905,7 +917,13 @@ public class ReplicationTest extends ConfigurableMacIT {
 
     s = ReplicationTable.getScanner(conn);
     StatusSection.limit(s);
-    Assert.assertEquals(2, Iterables.size(s));
+    int numRecords = 0;
+    for (Entry<Key,Value> e : s) {
+      numRecords++;
+      log.info("Found status record {}\t{}", e.getKey().toStringNoTruncate(), ProtobufUtil.toString(Status.parseFrom(e.getValue().get())));
+    }
+
+    Assert.assertEquals(2, numRecords);
 
     // We should eventually get 2 work records recorded, need to account for a potential delay though
     // might see: status1 -> work1 -> status2 -> (our scans) -> work2

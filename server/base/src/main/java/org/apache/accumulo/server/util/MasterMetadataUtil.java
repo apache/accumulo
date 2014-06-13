@@ -77,8 +77,8 @@ public class MasterMetadataUtil {
       TabletsSection.ServerColumnFamily.COMPACT_COLUMN.put(m, new Value(("" + lastCompactID).getBytes()));
     
     if (location != null) {
-      m.put(TabletsSection.CurrentLocationColumnFamily.NAME, location.asColumnQualifier(), location.asMutationValue());
-      m.putDelete(TabletsSection.FutureLocationColumnFamily.NAME, location.asColumnQualifier());
+      location.putLocation(m);
+      location.clearFutureLocation(m);
     }
     
     for (Entry<FileRef,DataFileValue> entry : datafileSizes.entrySet()) {

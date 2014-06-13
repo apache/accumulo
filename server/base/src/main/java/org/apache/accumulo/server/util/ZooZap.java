@@ -27,8 +27,10 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import org.apache.log4j.Logger;
 
 public class ZooZap {
+  private static final Logger log = Logger.getLogger(ZooZap.class);
   
   static boolean verbose = false;
   
@@ -89,7 +91,7 @@ public class ZooZap {
           }
         }
       } catch (Exception e) {
-        e.printStackTrace();
+        log.error(e);
       }
     }
     
@@ -108,7 +110,7 @@ public class ZooZap {
         zoo.recursiveDelete(path + "/" + child, NodeMissingPolicy.SKIP);
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      log.error("Exception running zapDirectory.", e);
     }
   }
 }

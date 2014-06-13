@@ -34,6 +34,7 @@ import org.apache.commons.io.FileUtils;
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
 import com.google.common.io.Files;
+import org.apache.log4j.Logger;
 
 /**
  * A runner for starting up a {@link MiniAccumuloCluster} from the command line using an optional configuration properties file. An example property file looks
@@ -59,6 +60,8 @@ import com.google.common.io.Files;
  * @since 1.6.0
  */
 public class MiniAccumuloRunner {
+  private static final Logger log = Logger.getLogger(MiniAccumuloRunner.class);
+  
   private static final String ROOT_PASSWORD_PROP = "rootPassword";
   private static final String SHUTDOWN_PORT_PROP = "shutdownPort";
   private static final String DEFAULT_MEMORY_PROP = "defaultMemory";
@@ -67,6 +70,7 @@ public class MiniAccumuloRunner {
   private static final String ZOO_KEEPER_MEMORY_PROP = "zooKeeperMemory";
   private static final String JDWP_ENABLED_PROP = "jdwpEnabled";
   private static final String ZOO_KEEPER_PORT_PROP = "zooKeeperPort";
+  private static final String ZOO_KEEPER_STARTUP_TIME_PROP = "zooKeeperStartupTime";
   private static final String NUM_T_SERVERS_PROP = "numTServers";
   private static final String DIRECTORY_PROP = "directory";
   private static final String INSTANCE_NAME_PROP = "instanceName";
@@ -81,6 +85,7 @@ public class MiniAccumuloRunner {
     System.out.println("#" + ROOT_PASSWORD_PROP + "=secret");
     System.out.println("#" + NUM_T_SERVERS_PROP + "=2");
     System.out.println("#" + ZOO_KEEPER_PORT_PROP + "=40404");
+    System.out.println("#" + ZOO_KEEPER_STARTUP_TIME_PROP + "=39000");
     System.out.println("#" + SHUTDOWN_PORT_PROP + "=41414");
     System.out.println("#" + DEFAULT_MEMORY_PROP + "=128M");
     System.out.println("#" + MASTER_MEMORY_PROP + "=128M");
@@ -159,6 +164,8 @@ public class MiniAccumuloRunner {
       config.setNumTservers(Integer.parseInt(opts.prop.getProperty(NUM_T_SERVERS_PROP)));
     if (opts.prop.containsKey(ZOO_KEEPER_PORT_PROP))
       config.setZooKeeperPort(Integer.parseInt(opts.prop.getProperty(ZOO_KEEPER_PORT_PROP)));
+    if (opts.prop.containsKey(ZOO_KEEPER_STARTUP_TIME_PROP))
+      config.setZooKeeperStartupTime(Long.parseLong(opts.prop.getProperty(ZOO_KEEPER_STARTUP_TIME_PROP)));
     if (opts.prop.containsKey(JDWP_ENABLED_PROP))
       config.setJDWPEnabled(Boolean.parseBoolean(opts.prop.getProperty(JDWP_ENABLED_PROP)));
     if (opts.prop.containsKey(ZOO_KEEPER_MEMORY_PROP))
@@ -188,13 +195,22 @@ public class MiniAccumuloRunner {
       public void run() {
         try {
           accumulo.stop();
-          FileUtils.deleteDirectory(miniDir);
-          System.out.println("\nShut down gracefully on " + new Date());
         } catch (IOException e) {
-          e.printStackTrace();
+          log.error("IOException attempting to stop Accumulo.", e);
+          return;
         } catch (InterruptedException e) {
-          e.printStackTrace();
+          log.error("InterruptedException attempting to stop Accumulo.", e);
+          return;
         }
+        
+        try {
+          FileUtils.deleteDirectory(miniDir);
+        } catch (IOException e) {
+          log.error("IOException attempting to clean up miniDir.", e);
+          return;
+        }
+        
+        System.out.println("\nShut down gracefully on " + new Date());
       }
     });
 

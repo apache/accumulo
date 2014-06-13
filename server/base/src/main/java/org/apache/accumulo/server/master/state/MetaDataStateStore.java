@@ -27,11 +27,9 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.security.SystemCredentials;
-import org.apache.hadoop.io.Text;
 
 public class MetaDataStateStore extends TabletStateStore {
   // private static final Logger log = Logger.getLogger(MetaDataStateStore.class);
@@ -75,9 +73,8 @@ public class MetaDataStateStore extends TabletStateStore {
     try {
       for (Assignment assignment : assignments) {
         Mutation m = new Mutation(assignment.tablet.getMetadataEntry());
-        Text cq = assignment.server.asColumnQualifier();
-        m.put(TabletsSection.CurrentLocationColumnFamily.NAME, cq, assignment.server.asMutationValue());
-        m.putDelete(TabletsSection.FutureLocationColumnFamily.NAME, cq);
+        assignment.server.putLocation(m);
+        assignment.server.clearFutureLocation(m);
         writer.addMutation(m);
       }
     } catch (Exception ex) {
@@ -109,7 +106,7 @@ public class MetaDataStateStore extends TabletStateStore {
     try {
       for (Assignment assignment : assignments) {
         Mutation m = new Mutation(assignment.tablet.getMetadataEntry());
-        m.put(TabletsSection.FutureLocationColumnFamily.NAME, assignment.server.asColumnQualifier(), assignment.server.asMutationValue());
+        assignment.server.putFutureLocation(m);
         writer.addMutation(m);
       }
     } catch (Exception ex) {
@@ -131,10 +128,10 @@ public class MetaDataStateStore extends TabletStateStore {
       for (TabletLocationState tls : tablets) {
         Mutation m = new Mutation(tls.extent.getMetadataEntry());
         if (tls.current != null) {
-          m.putDelete(TabletsSection.CurrentLocationColumnFamily.NAME, tls.current.asColumnQualifier());
+          tls.current.clearLocation(m);
         }
         if (tls.future != null) {
-          m.putDelete(TabletsSection.FutureLocationColumnFamily.NAME, tls.future.asColumnQualifier());
+          tls.future.clearFutureLocation(m);
         }
         writer.addMutation(m);
       }

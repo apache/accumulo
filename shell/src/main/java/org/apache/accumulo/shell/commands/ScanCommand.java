@@ -281,7 +281,7 @@ public class ScanCommand extends Command {
     scanOptColumns = new Option("c", "columns", true, "comma-separated columns");
     timestampOpt = new Option("st", "show-timestamps", false, "display timestamps");
     disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
-    showFewOpt = new Option("f", "show few", true, "show only a specified number of characters");
+    showFewOpt = new Option("f", "show-few", true, "show only a specified number of characters");
     formatterOpt = new Option("fm", "formatter", true, "fully qualified name of the formatter class to use");
     interpreterOpt = new Option("i", "interpreter", true, "fully qualified name of the interpreter class to use");
     formatterInterpeterOpt = new Option("fi", "fmt-interpreter", true, "fully qualified name of a class that is a formatter and interpreter");

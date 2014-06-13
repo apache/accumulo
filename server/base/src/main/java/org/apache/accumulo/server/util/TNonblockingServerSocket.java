@@ -100,7 +100,7 @@ public class TNonblockingServerSocket extends TNonblockingServerTransport {
       try {
         serverSocket_.setSoTimeout(0);
       } catch (SocketException sx) {
-        sx.printStackTrace();
+        log.error("SocketException caused by serverSocket in listen()", sx);
       }
     }
   }

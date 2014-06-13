@@ -72,7 +72,7 @@ class NamespaceConfWatcher implements Watcher {
           ServerConfiguration.getNamespaceConfiguration(instance, namespaceId).propertyChanged(key);
         break;
       case NodeChildrenChanged:
-        ServerConfiguration.getNamespaceConfiguration(instance, namespaceId).propertiesChanged(key);
+        ServerConfiguration.getNamespaceConfiguration(instance, namespaceId).propertiesChanged();
         break;
       case NodeDeleted:
         if (key == null) {

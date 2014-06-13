@@ -142,6 +142,8 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 
+import com.google.common.annotations.VisibleForTesting;
+
 /**
  * 
  * Provide access to a single row range in a living TabletServer.
@@ -264,6 +266,25 @@ public class Tablet implements TabletCommitter {
     }
   }
 
+  /**
+   * Only visible for testing
+   */
+  @VisibleForTesting
+  protected Tablet(TabletTime tabletTime, String tabletDirectory, int logId, Path location, DatafileManager datafileManager, TabletServer tabletServer,
+      TabletResourceManager tabletResources, TabletMemory tabletMemory, TableConfiguration tableConfiguration, KeyExtent extent, ConfigurationObserver configObserver) {
+    this.tabletTime = tabletTime;
+    this.tabletDirectory = tabletDirectory;
+    this.logId = logId;
+    this.location = location;
+    this.datafileManager = datafileManager;
+    this.tabletServer = tabletServer;
+    this.tabletResources = tabletResources;
+    this.tabletMemory = tabletMemory;
+    this.tableConfiguration = tableConfiguration;
+    this.extent = extent;
+    this.configObserver = configObserver;
+  }
+
   public Tablet(TabletServer tabletServer, KeyExtent extent, TabletResourceManager trm, SplitInfo info) throws IOException {
     this(tabletServer, new Text(info.getDir()), extent, trm, info.getDatafiles(), info.getTime(), info.getInitFlushID(), info.getInitCompactID(), info.getLastLocation());
     splitCreationTime = System.currentTimeMillis();
@@ -331,7 +352,6 @@ public class Tablet implements TabletCommitter {
       mdScanner.setRange(new Range(rowName));
 
       for (Entry<Key,Value> entry : mdScanner) {
-
         if (entry.getKey().compareRow(rowName) != 0) {
           break;
         }
@@ -534,7 +554,9 @@ public class Tablet implements TabletCommitter {
     configObserver.propertiesChanged();
 
     if (!logEntries.isEmpty()) {
-      log.info("Starting Write-Ahead Log recovery for " + extent);
+      log.info("Starting Write-Ahead Log recovery for " + this.extent);
+      // count[0] = entries used on tablet
+      // count[1] = track max time from walog entries wihtout timestamps
       final long[] count = new long[2];
       final CommitSession commitSession = getTabletMemory().getCommitSession();
       count[1] = Long.MIN_VALUE;
@@ -566,6 +588,7 @@ public class Tablet implements TabletCommitter {
         commitSession.updateMaxCommittedTime(tabletTime.getTime());
 
         if (count[0] == 0) {
+          log.debug("No replayed mutations applied, removing unused entries for " + extent);
           MetadataTableUtil.removeUnusedWALEntries(extent, logEntries, tabletServer.getLock());
 
           // Ensure that we write a record marking each WAL as requiring replication to make sure we don't abandon the data
@@ -599,7 +622,7 @@ public class Tablet implements TabletCommitter {
       currentLogs = new HashSet<DfsLogger>();
       for (LogEntry logEntry : logEntries) {
         for (String log : logEntry.logSet) {
-          currentLogs.add(new DfsLogger(tabletServer.getServerConfig(), log));
+          currentLogs.add(new DfsLogger(tabletServer.getServerConfig(), log, logEntry.getColumnQualifier().toString()));
         }
       }
 
@@ -1322,12 +1345,12 @@ public class Tablet implements TabletCommitter {
 
       // determines if inserts and queries can still continue while minor compacting
       if (disableWrites) {
-        closeState = CloseState.CLOSING;
+        closeState = CloseState.CLOSED;
       }
 
       // wait for major compactions to finish, setting closing to
       // true should cause any running major compactions to abort
-      while (majorCompactionRunning()) {
+      while (isMajorCompactionRunning()) {
         try {
           this.wait(50);
         } catch (InterruptedException e) {
@@ -1513,7 +1536,7 @@ public class Tablet implements TabletCommitter {
 
   public synchronized boolean initiateMajorCompaction(MajorCompactionReason reason) {
 
-    if (isClosing() || isClosed() || !needsMajorCompaction(reason) || majorCompactionRunning() || majorCompactionQueued.contains(reason)) {
+    if (isClosing() || isClosed() || !needsMajorCompaction(reason) || isMajorCompactionRunning() || majorCompactionQueued.contains(reason)) {
       return false;
     }
 
@@ -1529,7 +1552,7 @@ public class Tablet implements TabletCommitter {
    * 
    */
   public boolean needsMajorCompaction(MajorCompactionReason reason) {
-    if (majorCompactionRunning())
+    if (isMajorCompactionRunning())
       return false;
     if (reason == MajorCompactionReason.CHOP || reason == MajorCompactionReason.USER)
       return true;
@@ -1537,7 +1560,7 @@ public class Tablet implements TabletCommitter {
   }
 
   /**
-   * Returns an int representing the total block size of the f served by this tablet.
+   * Returns an int representing the total block size of the files served by this tablet.
    * 
    * @return size
    */
@@ -1698,14 +1721,9 @@ public class Tablet implements TabletCommitter {
    * 
    */
   public synchronized boolean needsSplit() {
-    boolean ret;
-
     if (isClosing() || isClosed())
-      ret = false;
-    else
-      ret = findSplitRow(getDatafileManager().getFiles()) != null;
-
-    return ret;
+      return false;
+    return findSplitRow(getDatafileManager().getFiles()) != null;
   }
 
   // BEGIN PRIVATE METHODS RELATED TO MAJOR COMPACTION
@@ -1906,7 +1924,7 @@ public class Tablet implements TabletCommitter {
     }
   }
 
-  private AccumuloConfiguration createTableConfiguration(TableConfiguration base, CompactionPlan plan) {
+  protected AccumuloConfiguration createTableConfiguration(TableConfiguration base, CompactionPlan plan) {
     if (plan == null || plan.writeParameters == null)
       return base;
     WriteParameters p = plan.writeParameters;
@@ -1916,7 +1934,7 @@ public class Tablet implements TabletCommitter {
     if (p.getBlockSize() > 0)
       result.set(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE, "" + p.getBlockSize());
     if (p.getIndexBlockSize() > 0)
-      result.set(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX, "" + p.getBlockSize());
+      result.set(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX, "" + p.getIndexBlockSize());
     if (p.getCompressType() != null)
       result.set(Property.TABLE_FILE_COMPRESSION_TYPE, p.getCompressType());
     if (p.getReplication() != 0)
@@ -1975,7 +1993,7 @@ public class Tablet implements TabletCommitter {
         // check that compaction is still needed - defer to splitting
         majorCompactionQueued.remove(reason);
 
-        if (isClosing() || isClosed ()|| !needsMajorCompaction(reason) || majorCompactionRunning() || needsSplit()) {
+        if (isClosing() || isClosed ()|| !needsMajorCompaction(reason) || isMajorCompactionRunning() || needsSplit()) {
           return null;
         }
 
@@ -1991,11 +2009,9 @@ public class Tablet implements TabletCommitter {
         success = true;
       } catch (CompactionCanceledException mcce) {
         log.debug("Major compaction canceled, extent = " + getExtent());
-        throw new RuntimeException(mcce);
       } catch (Throwable t) {
         log.error("MajC Failed, extent = " + getExtent());
         log.error("MajC Failed, message = " + (t.getMessage() == null ? t.getClass().getName() : t.getMessage()), t);
-        throw new RuntimeException(t);
       } finally {
         // ensure we always reset boolean, even
         // when an exception is thrown
@@ -2066,7 +2082,7 @@ public class Tablet implements TabletCommitter {
     return closeState == CloseState.COMPLETE;
   }
 
-  public boolean majorCompactionRunning() {
+  public boolean isMajorCompactionRunning() {
     return majorCompactionState == CompactionState.IN_PROGRESS;
   }
 
@@ -2273,12 +2289,10 @@ public class Tablet implements TabletCommitter {
 
   private Set<DfsLogger> currentLogs = new HashSet<DfsLogger>();
 
-  public Set<String> getCurrentLogFiles() {
+  public synchronized Set<String> getCurrentLogFiles() {
     Set<String> result = new HashSet<String>();
-    synchronized (currentLogs) {
-      for (DfsLogger log : currentLogs) {
-        result.add(log.getFileName());
-      }
+    for (DfsLogger log : currentLogs) {
+      result.add(log.getFileName());
     }
     return result;
   }
@@ -2298,12 +2312,12 @@ public class Tablet implements TabletCommitter {
 
       for (DfsLogger logger : otherLogs) {
         otherLogsCopy.add(logger.toString());
-        doomed.add(logger.toString());
+        doomed.add(logger.getMeta());
       }
 
       for (DfsLogger logger : currentLogs) {
         currentLogsCopy.add(logger.toString());
-        doomed.remove(logger.toString());
+        doomed.remove(logger.getMeta());
       }
 
       otherLogs = Collections.emptySet();
@@ -2319,6 +2333,10 @@ public class Tablet implements TabletCommitter {
 
     for (String logger : currentLogsCopy) {
       log.debug("Logs for current memory: " + getExtent() + " " + logger);
+    }
+
+    for (String logger : doomed) {
+      log.debug("Logs to be destroyed: " + getExtent() + " " + logger);
     }
 
     return doomed;
@@ -2430,7 +2448,7 @@ public class Tablet implements TabletCommitter {
       if (lastCompactID >= compactionId)
         return;
 
-      if (isClosing() || isClosed() || majorCompactionQueued.contains(MajorCompactionReason.USER) || majorCompactionRunning())
+      if (isClosing() || isClosed() || majorCompactionQueued.contains(MajorCompactionReason.USER) || isMajorCompactionRunning())
         return;
 
       if (getDatafileManager().getDatafileSizes().size() == 0) {
@@ -2565,10 +2583,6 @@ public class Tablet implements TabletCommitter {
 
   public void minorCompactionComplete() {
     minorCompactionState = null;
-  }
-
-  public boolean isMajorCompactionRunning() {
-    return majorCompactionState == CompactionState.IN_PROGRESS;
   }
 
   public TabletStats getTabletStats() {

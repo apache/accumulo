@@ -236,7 +236,7 @@ public class CollectTabletStats {
           try {
             calcTabletStats(conn, opts.getTableName(), opts.auths, scanOpts.scanBatchSize, ke, columns);
           } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Failed to calculate tablet stats.", e);
           }
         }
       });
@@ -270,7 +270,7 @@ public class CollectTabletStats {
       try {
         startCdl.await();
       } catch (InterruptedException e) {
-        e.printStackTrace();
+        log.error("startCdl.await() failed.", e);
       }
       
       t1 = System.currentTimeMillis();
@@ -278,7 +278,7 @@ public class CollectTabletStats {
       try {
         count = runTest();
       } catch (Exception e) {
-        e.printStackTrace();
+        log.error("runTest() failed.", e);
       }
       
       t2 = System.currentTimeMillis();

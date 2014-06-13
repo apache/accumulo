@@ -31,7 +31,6 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.Accumulo;
-import org.apache.accumulo.server.client.HdfsZooInstance.AccumuloNotInitializedException;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.fs.Path;
@@ -88,11 +87,7 @@ public class ZooConfiguration extends AccumuloConfiguration {
     String value = null;
     
     if (Property.isValidZooPropertyKey(key)) {
-      try {
-        value = get(key);
-      } catch (AccumuloNotInitializedException e) {
-        log.warn("failed to lookup property in zookeeper: " + key, e);
-      }
+      value = get(key);
     }
     
     if (value == null || !property.getType().isValidFormat(value)) {

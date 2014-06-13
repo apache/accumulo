@@ -87,7 +87,8 @@ public class ReplicationProcessor implements Processor {
     } catch (Exception e) {
       log.error("Could not instantiate ReplicaSystem for {}, waiting before returning the work", target, e);
       try {
-        Thread.sleep(10000);
+        // TODO configurable
+        Thread.sleep(5000);
       } catch (InterruptedException ie) {
         Thread.currentThread().interrupt();
       }

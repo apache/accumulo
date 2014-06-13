@@ -20,7 +20,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -29,8 +28,11 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.test.continuous.ContinuousIngest;
+import org.apache.log4j.Logger;
 
 public class Ingest extends ScaleTest {
+  
+  private static final Logger log = Logger.getLogger(Ingest.class);
   
   @Override
   public void setup() {
@@ -44,8 +46,7 @@ public class Ingest extends ScaleTest {
       try {
         conn.tableOperations().delete(tableName);
       } catch (Exception e) {
-        System.out.println("Failed to delete table: " + tableName);
-        e.printStackTrace();
+        log.error("Failed to delete table '"+tableName+"'.", e);
       }
     }
     
@@ -55,8 +56,7 @@ public class Ingest extends ScaleTest {
       conn.tableOperations().addSplits(tableName, calculateSplits());
       conn.tableOperations().setProperty(tableName, "table.split.threshold", "256M");
     } catch (Exception e) {
-      System.out.println("Failed to create table: " + tableName);
-      e.printStackTrace();
+      log.error("Failed to create table '"+tableName+"'.", e);
     }
     
   }
@@ -78,8 +78,7 @@ public class Ingest extends ScaleTest {
       bw = conn.createBatchWriter(tableName, new BatchWriterConfig().setMaxMemory(maxMemory).setMaxLatency(maxLatency, TimeUnit.MILLISECONDS)
           .setMaxWriteThreads(maxWriteThreads));
     } catch (TableNotFoundException e) {
-      System.out.println("Table not found: " + tableName);
-      e.printStackTrace();
+      log.error("Table '"+tableName+"' not found.", e);
     }
     
     // configure writing
@@ -107,7 +106,7 @@ public class Ingest extends ScaleTest {
       try {
         bw.addMutation(m);
       } catch (MutationsRejectedException e) {
-        e.printStackTrace();
+        log.error("Mutations rejected.", e);
         System.exit(-1);
       }
     }
@@ -116,7 +115,7 @@ public class Ingest extends ScaleTest {
     try {
       bw.close();
     } catch (MutationsRejectedException e) {
-      e.printStackTrace();
+      log.error("Could not close BatchWriter due to mutations being rejected.", e);
       System.exit(-1);
     }
     
@@ -133,8 +132,7 @@ public class Ingest extends ScaleTest {
     try {
       conn.tableOperations().delete(tableName);
     } catch (Exception e) {
-      System.out.println("Failed to delete table: " + tableName);
-      e.printStackTrace();
+      log.error("Failed to delete table '"+tableName+"'", e);
     }
   }
   

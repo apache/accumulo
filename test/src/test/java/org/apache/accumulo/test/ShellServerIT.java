@@ -417,7 +417,8 @@ public class ShellServerIT extends SimpleMacIT {
     ts.exec("revoke -u xyzzy -t " + MetadataTable.NAME + " Table.WRITE", true);
     ts.exec("revoke -u xyzzy -t " + MetadataTable.NAME + " Table.GOOFY", false);
     ts.exec("revoke -u xyzzy -t " + MetadataTable.NAME + " foo", false);
-    ts.exec("deleteuser xyzzy", true);
+    ts.exec("deleteuser xyzzy", true, "deleteuser { xyzzy } (yes|no)?", true);
+    ts.exec("deleteuser -f xyzzy", true);
     ts.exec("users", true, "xyzzy", false);
   }
 

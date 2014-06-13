@@ -165,7 +165,7 @@ public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansi
     try {
       populateChildren((DefaultMutableTreeNode) event.getPath().getLastPathComponent());
     } catch (TableNotFoundException e) {
-      e.printStackTrace();
+      log.error("Could not find table.", e);
     }
   }
   
@@ -196,7 +196,7 @@ public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansi
         data.setText("");
       }
     } catch (IOException e1) {
-      e1.printStackTrace();
+      log.error("Could not get data from FileDataQuery.", e1);
     }
   }
   

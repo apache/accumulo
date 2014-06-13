@@ -41,7 +41,6 @@ import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.volume.NonConfiguredVolume;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.hadoop.conf.Configuration;
@@ -393,7 +392,7 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   public static VolumeManager get() throws IOException {
-    AccumuloConfiguration conf = ServerConfiguration.getSystemConfiguration(HdfsZooInstance.getInstance());
+    AccumuloConfiguration conf = ServerConfiguration.getSiteConfiguration();
     return get(conf);
   }
 
@@ -529,8 +528,15 @@ public class VolumeManagerImpl implements VolumeManager {
 
   @Override
   public Path getFullPath(FileType fileType, String path) {
-    if (path.contains(":"))
-      return new Path(path);
+    int colon = path.indexOf(':');
+    if (colon > -1) {
+      // Check if this is really an absolute path or if this is a 1.4 style relative path for a WAL
+      if (fileType == FileType.WAL && path.charAt(colon + 1) != '/') {
+        path = path.substring(path.indexOf('/'));
+      } else {
+        return new Path(path);
+      }
+    }
 
     // normalize the path
     Path fullPath = new Path(defaultVolume.getBasePath(), fileType.getDirectory());

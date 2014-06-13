@@ -30,11 +30,14 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.log4j.Logger;
 
 /**
  * A Filter that matches entries based on Java regular expressions.
  */
 public class RegExFilter extends Filter {
+  
+  private static final Logger log = Logger.getLogger(RegExFilter.class);
   
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
@@ -79,7 +82,7 @@ public class RegExFilter extends Filter {
         matcher.reset(new String(bs.getBackingArray(), bs.offset(), bs.length(), encoding));
         return matchSubstring ? matcher.find() : matcher.matches();
       } catch (UnsupportedEncodingException e) {
-        e.printStackTrace();
+        log.debug("Could not create a String for the provided ByteSequence.", e);
       }
     }
     return !orFields;
@@ -91,7 +94,7 @@ public class RegExFilter extends Filter {
         matcher.reset(new String(data, offset, len, encoding));
         return matchSubstring ? matcher.find() : matcher.matches();
       } catch (UnsupportedEncodingException e) {
-        e.printStackTrace();
+        log.warn("Could not create a String from the provided byte array.", e);
       }
     }
     return !orFields;
