@@ -67,6 +67,7 @@ public class MiniAccumuloRunner {
   private static final String ZOO_KEEPER_MEMORY_PROP = "zooKeeperMemory";
   private static final String JDWP_ENABLED_PROP = "jdwpEnabled";
   private static final String ZOO_KEEPER_PORT_PROP = "zooKeeperPort";
+  private static final String ZOO_KEEPER_STARTUP_TIME_PROP = "zooKeeperStartupTime";
   private static final String NUM_T_SERVERS_PROP = "numTServers";
   private static final String DIRECTORY_PROP = "directory";
   private static final String INSTANCE_NAME_PROP = "instanceName";
@@ -81,6 +82,7 @@ public class MiniAccumuloRunner {
     System.out.println("#" + ROOT_PASSWORD_PROP + "=secret");
     System.out.println("#" + NUM_T_SERVERS_PROP + "=2");
     System.out.println("#" + ZOO_KEEPER_PORT_PROP + "=40404");
+    System.out.println("#" + ZOO_KEEPER_STARTUP_TIME_PROP + "=39000");
     System.out.println("#" + SHUTDOWN_PORT_PROP + "=41414");
     System.out.println("#" + DEFAULT_MEMORY_PROP + "=128M");
     System.out.println("#" + MASTER_MEMORY_PROP + "=128M");
@@ -159,6 +161,8 @@ public class MiniAccumuloRunner {
       config.setNumTservers(Integer.parseInt(opts.prop.getProperty(NUM_T_SERVERS_PROP)));
     if (opts.prop.containsKey(ZOO_KEEPER_PORT_PROP))
       config.setZooKeeperPort(Integer.parseInt(opts.prop.getProperty(ZOO_KEEPER_PORT_PROP)));
+    if (opts.prop.containsKey(ZOO_KEEPER_STARTUP_TIME_PROP))
+      config.setZooKeeperStartupTime(Long.parseLong(opts.prop.getProperty(ZOO_KEEPER_STARTUP_TIME_PROP)));
     if (opts.prop.containsKey(JDWP_ENABLED_PROP))
       config.setJDWPEnabled(Boolean.parseBoolean(opts.prop.getProperty(JDWP_ENABLED_PROP)));
     if (opts.prop.containsKey(ZOO_KEEPER_MEMORY_PROP))

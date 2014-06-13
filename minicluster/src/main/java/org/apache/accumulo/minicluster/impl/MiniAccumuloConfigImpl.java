@@ -57,6 +57,7 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
 
   private int zooKeeperPort = 0;
   private int configuredZookeeperPort = 0;
+  private long zooKeeperStartupTime = 20*1000;
 
   private long defaultMemorySize = 128 * 1024 * 1024;
 
@@ -212,6 +213,21 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
   }
 
   /**
+   * Configure the time to wait for ZooKeeper to startup.
+   * Calling this method is optional. The default is 20000 milliseconds
+   * 
+   * @param zooKeeperStartupTime
+   *          Time to wait for ZooKeeper to startup, in milliseconds
+   * 
+   * @since 1.6.1
+   */
+  @Override
+  public MiniAccumuloConfigImpl setZooKeeperStartupTime(long zooKeeperStartupTime) {
+    this.zooKeeperStartupTime = zooKeeperStartupTime;
+    return this;
+  }
+
+  /**
    * Sets the amount of memory to use in the master process. Calling this method is optional. Default memory is 128M
    * 
    * @param serverType
@@ -281,6 +297,10 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
 
   public int getConfiguredZookeeperPort() {
     return configuredZookeeperPort;
+  }
+
+  public long getZooKeeperStartupTime() {
+    return zooKeeperStartupTime;
   }
 
   File getLibDir() {

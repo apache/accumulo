@@ -61,6 +61,17 @@ public interface AccumuloConfig {
   public AccumuloConfig setZooKeeperPort(int zooKeeperPort);
 
   /**
+   * Configure the time to wait for ZooKeeper to startup.
+   * Calling this method is optional. The default is 20000 milliseconds
+   *
+   * @param zooKeeperStartupTime
+   *          Time to wait for ZooKeeper to startup, in milliseconds
+   *
+   * @since 1.6.1
+   */
+  public AccumuloConfig setZooKeeperStartupTime(long zooKeeperStartupTime);
+
+  /**
    * Sets the amount of memory to use in the master process. Calling this method is optional. Default memory is 128M
    *
    * @param serverType
