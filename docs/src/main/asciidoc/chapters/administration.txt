@@ -214,8 +214,8 @@ Make sure ZooKeeper is configured and running on at least one machine in the
 cluster.
 Start Accumulo using the +bin/start-all.sh+ script.
 
-To verify that Accumulo is running, check the Status page as described under
-_Monitoring_. In addition, the Shell can provide some information about the status of
+To verify that Accumulo is running, check the Status page as described in
+<<monitoring>>. In addition, the Shell can provide some information about the status of
 tables via reading the metadata tables.
 
 ==== Stopping Accumulo
@@ -254,12 +254,53 @@ account for the removal of these hosts. Bear in mind that the monitor will not r
 slaves file automatically, so it will report the decomissioned servers as down; it's
 recommended that you restart the monitor so that the node list is up to date.
 
+[[monitoring]]
 === Monitoring
 
 The Accumulo Master provides an interface for monitoring the status and health of
-Accumulo components. This interface can be accessed by pointing a web browser to
-+http://accumulomaster:50095/status+
+Accumulo components. The Accumulo Monitor provides a web UI for accessing this information at
++http://_monitorhost_:50095/+.
 
+Things highlighted in yellow may be in need of attention.
+If anything is highlighted in red on the monitor page, it is something that definitely needs attention.
+
+The Overview page contains some summary information about the Accumulo instance, including the version, instance name, and instance ID.
+There is a table labeled Accumulo Master with current status, a table listing the active Zookeeper servers, and graphs displaying various metrics over time.
+These include ingest and scan performance and other useful measurements.
+
+The Master Server, Tablet Servers, and Tables pages display metrics grouped in different ways (e.g. by tablet server or by table).
+Metrics typically include number of entries (key/value pairs), ingest and query rates.
+The number of running scans, major and minor compactions are in the form _number_running_ (_number_queued_).
+Another important metric is hold time, which is the amount of time a tablet has been waiting but unable to flush its memory in a minor compaction.
+
+The Server Activity page graphically displays tablet server status, with each server represented as a circle or square.
+Different metrics may be assigned to the nodes' color and speed of oscillation.
+The Overall Avg metric is only used on the Server Activity page, and represents the average of all the other metrics (after normalization).
+Similarly, the Overall Max metric picks the metric with the maximum normalized value.
+
+The Garbage Collector page displays a list of garbage collection cycles, the number of files found of each type (including deletion candidates in use and files actually deleted), and the length of the deletion cycle.
+The Traces page displays data for recent traces performed (see the following section for information on <<tracing>>).
+The Recent Logs page displays warning and error logs forwarded to the monitor from all Accumulo processes.
+Also, the XML and JSON links provide metrics in XML and JSON formats, respectively.
+
+==== SSL
+SSL may be enabled for the monitor page by setting the following properties in the +accumulo-site.xml+ file:
+
+  monitor.ssl.keyStore
+  monitor.ssl.keyStorePassword
+  monitor.ssl.trustStore
+  monitor.ssl.trustStorePassword
+
+If the Accumulo conf directory has been configured (in particular the +accumulo-env.sh+ file must be set up), the +generate_monitor_certificate.sh+ script in the Accumulo +bin+ directory can be used to create the keystore and truststore files with random passwords.
+The script will print out the properties that need to be added to the +accumulo-site.xml+ file.
+The stores can also be generated manually with the Java +keytool+ command, whose usage can be seen in the +generate_monitor_certificate.sh+ script.
+
+If SSL is enabled, the monitor URL can only be accessed via https.
+This also allows you to access the Accumulo shell through the monitor page.
+The left navigation bar will have a new link to Shell.
+An Accumulo user name and password must be entered for access to the shell.
+
+[[tracing]]
 === Tracing
 It can be difficult to determine why some operations are taking longer
 than expected. For example, you may be looking up items with very low
