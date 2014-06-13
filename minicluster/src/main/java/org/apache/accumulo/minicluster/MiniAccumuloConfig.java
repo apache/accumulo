@@ -165,7 +165,7 @@ public class MiniAccumuloConfig {
    * @since 1.6.0
    */
   public int getZooKeeperPort() {
-    return impl.getConfiguredZookeeperPort();
+    return impl.getConfiguredZooKeeperPort();
   }
 
   /**

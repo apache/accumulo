@@ -56,7 +56,7 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
   private File walogDir;
 
   private int zooKeeperPort = 0;
-  private int configuredZookeeperPort = 0;
+  private int configuredZooKeeperPort = 0;
   private long zooKeeperStartupTime = 20*1000;
 
   private long defaultMemorySize = 128 * 1024 * 1024;
@@ -207,7 +207,7 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
    */
   @Override
   public MiniAccumuloConfigImpl setZooKeeperPort(int zooKeeperPort) {
-    this.configuredZookeeperPort = zooKeeperPort;
+    this.configuredZooKeeperPort = zooKeeperPort;
     this.zooKeeperPort = zooKeeperPort;
     return this;
   }
@@ -295,8 +295,8 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
     return zooKeeperPort;
   }
 
-  public int getConfiguredZookeeperPort() {
-    return configuredZookeeperPort;
+  public int getConfiguredZooKeeperPort() {
+    return configuredZooKeeperPort;
   }
 
   public long getZooKeeperStartupTime() {
