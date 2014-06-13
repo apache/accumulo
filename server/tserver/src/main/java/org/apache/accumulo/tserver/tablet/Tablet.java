@@ -2059,7 +2059,7 @@ public class Tablet implements TabletCommitter {
   }
 
   public boolean isMajorCompactionRunning() {
-    return majorCompactionState == CompactionState.IN_PROGRESS;
+    return majorCompactionState != null;
   }
 
   public boolean isMinorCompactionQueued() {
