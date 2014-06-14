@@ -26,7 +26,9 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.TimeZone;
 
 import jline.console.ConsoleReader;
@@ -77,6 +79,19 @@ public class ShellTest {
   private StringInputStream input;
   private TestOutputStream output;
   private Shell shell;
+
+  void execExpectList(String cmd, boolean expecteGoodExit, List<String> expectedStrings) throws IOException {
+    exec(cmd);
+    if (expecteGoodExit) {
+      assertGoodExit("", true);
+    } else {
+      assertBadExit("", true);
+    }
+
+    for (String expectedString : expectedStrings) {
+      assertTrue(expectedString + " was not present in " + output.get(), output.get().contains(expectedString));
+    }
+  }
 
   void exec(String cmd) throws IOException {
     output.clear();
@@ -185,11 +200,11 @@ public class ShellTest {
     exec("setauths -s x,y,z -u notauser", false, "user does not exist");
     exec("setauths -s y,z,x", true);
     exec("getauths -u notauser", false, "user does not exist");
-    exec("getauths", true, "x,y,z");
+    execExpectList("getauths", true, Arrays.asList("x", "y", "z"));
     exec("addauths -u notauser", false, "Missing required option");
     exec("addauths -u notauser -s foo", false, "user does not exist");
     exec("addauths -s a", true);
-    exec("getauths", true, "a,x,y,z");
+    execExpectList("getauths", true, Arrays.asList("x", "y", "z", "a"));
     exec("setauths -c", true);
   }
 
