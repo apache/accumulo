@@ -26,12 +26,18 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SystemPropUtil {
+  private static final Logger log = LoggerFactory.getLogger(SystemPropUtil.class);
+
   public static boolean setSystemProperty(String property, String value) throws KeeperException, InterruptedException {
     Property p = Property.getPropertyByKey(property);
-    if ((p != null && !p.getType().isValidFormat(value)) || !Property.isValidZooPropertyKey(property))
+    if ((p != null && !p.getType().isValidFormat(value)) || !Property.isValidZooPropertyKey(property)) {
+      log.warn("Ignoring property {} it is null, an invalid format, or not capable of being changed in zookeeper", property);
       return false;
+    }
     
     // create the zk node for this property and set it's data to the specified value
     String zPath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZCONFIG + "/" + property;

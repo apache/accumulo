@@ -22,7 +22,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.accumulo.core.data.thrift.TMutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -83,6 +85,9 @@ public class Mutation implements Writable {
   private UnsynchronizedBuffer.Writer buffer;
   
   private List<ColumnUpdate> updates;
+
+  private static final Set<String> EMPTY = Collections.emptySet();
+  private Set<String> replicationSources = EMPTY;
   
   private static final byte[] EMPTY_BYTES = new byte[0];
   
@@ -151,6 +156,10 @@ public class Mutation implements Writable {
     this.data = ByteBufferUtil.toBytes(tmutation.data);
     this.entries = tmutation.entries;
     this.values = ByteBufferUtil.toBytesList(tmutation.values);
+
+    if (tmutation.isSetSources()) {
+      this.replicationSources = new HashSet<>(tmutation.sources);
+    }
     
     if (this.row == null) {
       throw new IllegalArgumentException("null row");
@@ -171,6 +180,7 @@ public class Mutation implements Writable {
     this.data = m.data;
     this.entries = m.entries;
     this.values = m.values;
+    this.replicationSources = m.replicationSources;
   }
   
   /**
@@ -742,6 +752,43 @@ public class Mutation implements Writable {
   public int size() {
     return entries;
   }
+
+  /**
+   * Add a new element to the set of peers which this Mutation originated from
+   * 
+   * @param peer
+   *         the peer to add
+   * @since 1.7.0
+   */
+  public void addReplicationSource(String peer) {
+    if (null == replicationSources || replicationSources == EMPTY) {
+      replicationSources = new HashSet<>();
+    }
+
+    replicationSources.add(peer);
+  }
+
+  /**
+   * Set the replication peers which this Mutation originated from
+   * 
+   * @param sources
+   *          Set of peer names which have processed this update
+   * @since 1.7.0
+   */
+  public void setReplicationSources(Set<String> sources) {
+    this.replicationSources = sources;
+  }
+
+  /**
+   * Return the replication sources for this Mutation
+   * @return An unmodifiable view of the replication sources
+   */
+  public Set<String> getReplicationSources() {
+    if (null == replicationSources) {
+      return EMPTY;
+    }
+    return Collections.unmodifiableSet(replicationSources);
+  }
   
   @Override
   public void readFields(DataInput in) throws IOException {
@@ -780,6 +827,14 @@ public class Mutation implements Writable {
         byte val[] = new byte[len];
         in.readFully(val);
         values.add(val);
+      }
+    }
+
+    if (0x02 == (first & 0x02)) {
+      int numMutations = WritableUtils.readVInt(in);
+      this.replicationSources = new HashSet<>();
+      for (int i = 0; i < numMutations; i++) {
+        replicationSources.add(WritableUtils.readString(in));
       }
     }
   }
@@ -851,7 +906,11 @@ public class Mutation implements Writable {
   @Override
   public void write(DataOutput out) throws IOException {
     serialize();
-    byte hasValues = (values == null) ? 0 : (byte)1; 
+    byte hasValues = (values == null) ? 0 : (byte)1;
+    if (!replicationSources.isEmpty()) {
+      // Use 2nd least-significant bit for whether or not we have replication sources
+      hasValues = (byte) (0x02 | hasValues);
+    }
     out.write((byte)(0x80 | hasValues));
     
     WritableUtils.writeVInt(out, row.length);
@@ -861,12 +920,22 @@ public class Mutation implements Writable {
     out.write(data);
     WritableUtils.writeVInt(out, entries);
     
-    if (hasValues > 0) {
+    if (0x01 == (0x01 & hasValues)) {
       WritableUtils.writeVInt(out, values.size());
       for (int i = 0; i < values.size(); i++) {
         byte val[] = values.get(i);
         WritableUtils.writeVInt(out, val.length);
         out.write(val);
+      }
+    }
+    if (0x02 == (0x02 & hasValues)) {
+      if (null == replicationSources) {
+        WritableUtils.writeVInt(out, 0);
+      } else {
+        WritableUtils.writeVInt(out, replicationSources.size());
+        for (String source : replicationSources) {
+          WritableUtils.writeString(out, source);
+        }
       }
     }
   }
@@ -898,10 +967,16 @@ public class Mutation implements Writable {
   public boolean equals(Mutation m) {
     return this.equals((Object) m);
   }
+
   private boolean equalMutation(Mutation m) {
     serialize();
     m.serialize();
     if (Arrays.equals(row, m.row) && entries == m.entries && Arrays.equals(data, m.data)) {
+      // If two mutations don't have the same
+      if (!replicationSources.equals(m.replicationSources)) {
+        return false;
+      }
+
       if (values == null && m.values == null)
         return true;
       
@@ -926,7 +1001,11 @@ public class Mutation implements Writable {
    */
   public TMutation toThrift() {
     serialize();
-    return new TMutation(java.nio.ByteBuffer.wrap(row), java.nio.ByteBuffer.wrap(data), ByteBufferUtil.toByteBuffers(values), entries);
+    TMutation tmutation = new TMutation(java.nio.ByteBuffer.wrap(row), java.nio.ByteBuffer.wrap(data), ByteBufferUtil.toByteBuffers(values), entries);
+    if (!this.replicationSources.isEmpty()) {
+      tmutation.setSources(new ArrayList<>(replicationSources));
+    }
+    return tmutation;
   }
   
   /**

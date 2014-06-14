@@ -75,6 +75,7 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Column;
+import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -108,6 +109,8 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.replication.ReplicationConstants;
+import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.security.thrift.TCredentials;
@@ -201,6 +204,8 @@ import org.apache.accumulo.tserver.metrics.TabletServerMBean;
 import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerUpdateMetrics;
+import org.apache.accumulo.tserver.replication.ReplicationServicerHandler;
+import org.apache.accumulo.tserver.replication.ReplicationWorker;
 import org.apache.accumulo.tserver.session.ConditionalSession;
 import org.apache.accumulo.tserver.session.MultiScanSession;
 import org.apache.accumulo.tserver.session.ScanSession;
@@ -255,6 +260,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
   private final ServerConfiguration serverConfig;
   private final LogSorter logSorter;
+  private ReplicationWorker replWorker = null;
   private final TabletStatsKeeper statsKeeper;
   private final AtomicInteger logIdGenerator = new AtomicInteger();
   
@@ -276,6 +282,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
   private Thread majorCompactorThread;
 
+  private HostAndPort replicationAddress;
   private HostAndPort clientAddress;
 
   private volatile boolean serverStopRequested = false;
@@ -285,6 +292,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   private ZooLock tabletServerLock;
 
   private TServer server;
+  private TServer replServer;
 
   private DistributedWorkQueue bulkFailedCopyQ;
 
@@ -301,7 +309,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     this.serverConfig = conf;
     this.fs = fs;
     AccumuloConfiguration aconf = getSystemConfiguration();
-    this.logSorter = new LogSorter(getInstance(), fs, aconf);
+    Instance instance = getInstance();
+    this.logSorter = new LogSorter(instance, fs, aconf);
+    this.replWorker = new ReplicationWorker(instance, fs, aconf);
     this.statsKeeper = new TabletStatsKeeper();
     SimpleTimer.getInstance(aconf).schedule(new Runnable() {
       @Override
@@ -1185,6 +1195,21 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       final UpdateSession us = (UpdateSession) sessionManager.removeSession(updateID);
       if (us == null) {
         throw new NoSuchScanIDException();
+      }
+
+      log.trace("Writing mutations in closeUpdate: ");
+      for (Entry<Tablet,List<Mutation>> entry : us.queuedMutations.entrySet()) {
+        log.trace(entry.getKey().getExtent() + " => ");
+        for (Mutation m : entry.getValue()) {
+          StringBuilder sb = new StringBuilder(64);
+          for (ColumnUpdate update : m.getUpdates()) {
+            if (sb.length()>0) {
+              sb.append(", ");
+            }
+            sb.append(new String(update.getColumnFamily()) + " " + new String(update.getColumnQualifier()) +  " " + new String(update.getValue()));
+          }
+          log.trace(new String(m.getRow()) + " [" + sb + "]");
+        }
       }
 
       // clients may or may not see data from an update session while
@@ -2516,6 +2541,29 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     return address;
   }
 
+  private HostAndPort startReplicationService() throws UnknownHostException {
+    ReplicationServicer.Iface repl = TraceWrap.service(new ReplicationServicerHandler(HdfsZooInstance.getInstance()));
+    ReplicationServicer.Processor<ReplicationServicer.Iface> processor = new ReplicationServicer.Processor<ReplicationServicer.Iface>(repl);
+    AccumuloConfiguration conf = getSystemConfiguration();
+    Property maxMessageSizeProperty = (conf.get(Property.TSERV_MAX_MESSAGE_SIZE) != null ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
+    ServerAddress sp = TServerUtils.startServer(conf, clientAddress.getHostText(), Property.REPLICATION_RECEIPT_SERVICE_PORT, processor,
+        "ReplicationServicerHandler", "Replication Servicer", null, Property.REPLICATION_MIN_THREADS, Property.REPLICATION_THREADCHECK, maxMessageSizeProperty);
+    this.replServer = sp.server;
+    log.info("Started replication service on " + sp.address);
+
+    try {
+      // The replication service is unique to the thrift service for a tserver, not just a host.
+      // Advertise the host and port for replication service given the host and port for the tserver.
+      ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(getInstance()) + ReplicationConstants.ZOO_TSERVERS + "/" + clientAddress.toString(),
+          sp.address.toString().getBytes(StandardCharsets.UTF_8), NodeExistsPolicy.OVERWRITE);
+    } catch (Exception e) {
+      log.error("Could not advertise replication service port", e);
+      throw new RuntimeException(e);
+    }
+
+    return sp.address;
+  }
+
   public ZooLock getLock() {
     return tabletServerLock;
   }
@@ -2603,6 +2651,32 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       throw new RuntimeException(ex);
     }
 
+    // Start the thrift service listening for incoming replication requests
+    try {
+      replicationAddress = startReplicationService();
+    } catch (UnknownHostException e) {
+      throw new RuntimeException("Failed to start replication service", e);
+    }
+
+    // Start the pool to handle outgoing replications
+    final ThreadPoolExecutor replicationThreadPool = new SimpleThreadPool(getSystemConfiguration().getCount(Property.REPLICATION_WORKER_THREADS), "replication task");
+    replWorker.setExecutor(replicationThreadPool);
+    replWorker.run();
+
+    // Check the configuration value for the size of the pool and, if changed, resize the pool, every 5 seconds);
+    final AccumuloConfiguration aconf = getSystemConfiguration();
+    Runnable replicationWorkThreadPoolResizer = new Runnable() {
+      @Override
+      public void run() {
+        int maxPoolSize = aconf.getCount(Property.REPLICATION_WORKER_THREADS);
+        if (replicationThreadPool.getMaximumPoolSize() != maxPoolSize) {
+          log.info("Resizing thread pool for sending replication work from " + replicationThreadPool.getMaximumPoolSize() + " to " + maxPoolSize);
+          replicationThreadPool.setMaximumPoolSize(maxPoolSize);
+        }
+      }
+    };
+    SimpleTimer.getInstance(aconf).schedule(replicationWorkThreadPoolResizer, 10000, 30000);
+
     try {
       OBJECT_NAME = new ObjectName("accumulo.server.metrics:service=TServerInfo,name=TabletServerMBean,instance=" + Thread.currentThread().getName());
       // Do this because interface not in same package.
@@ -2688,6 +2762,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         }
       }
     }
+    log.debug("Stopping Replication Server");
+    TServerUtils.stopTServer(this.replServer);
     log.debug("Stopping Thrift Servers");
     TServerUtils.stopTServer(server);
 
@@ -2863,6 +2939,13 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     if (clientAddress == null)
       return null;
     return clientAddress.getHostText() + ":" + clientAddress.getPort();
+  }
+
+  public String getReplicationAddressSTring() {
+    if (null == replicationAddress) {
+      return null;
+    }
+    return replicationAddress.getHostText() + ":" + replicationAddress.getPort();
   }
 
   public TServerInstance getTabletSession() {

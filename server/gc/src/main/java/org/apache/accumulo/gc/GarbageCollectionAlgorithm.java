@@ -38,11 +38,16 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
+import org.apache.accumulo.core.replication.StatusUtil;
+import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
+
+import com.google.common.collect.Iterators;
+import com.google.common.collect.PeekingIterator;
 
 /**
  * 
@@ -202,6 +207,37 @@ public class GarbageCollectionAlgorithm {
           log.debug("Candidate was still in use: " + dir);
       } else
         throw new RuntimeException("Scanner over metadata table returned unexpected column : " + entry.getKey());
+    }
+
+    confirmDeletesFromReplication(gce.getReplicationNeededIterator(), candidateMap.entrySet().iterator());
+  }
+
+  protected void confirmDeletesFromReplication(Iterator<Entry<String,Status>> replicationNeededIterator, Iterator<Entry<String,String>> candidateMapIterator) {
+    PeekingIterator<Entry<String,Status>> pendingReplication = Iterators.peekingIterator(replicationNeededIterator);
+    PeekingIterator<Entry<String,String>> candidates = Iterators.peekingIterator(candidateMapIterator);
+    while (pendingReplication.hasNext() && candidates.hasNext()) {
+      Entry<String,Status> pendingReplica = pendingReplication.peek();
+      Entry<String,String> candidate = candidates.peek();
+
+      String filePendingReplication = pendingReplica.getKey();
+      String fullPathCandidate = candidate.getValue();
+
+      int comparison = filePendingReplication.compareTo(fullPathCandidate);
+      if (comparison < 0) {
+        pendingReplication.next();
+      } else if (comparison > 1) {
+        candidates.next();
+      } else {
+        // We want to advance both, and try to delete the candidate if we can
+        candidates.next();
+        pendingReplication.next();
+
+        // We cannot delete a file if it is still needed for replication
+        if (!StatusUtil.isSafeForRemoval(pendingReplica.getValue())) {
+          // If it must be replicated, we must remove it from the candidate set to prevent deletion
+          candidates.remove();
+        }
+      }
     }
   }
 

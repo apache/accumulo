@@ -73,6 +73,10 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
+import org.apache.accumulo.core.protobuf.ProtobufUtil;
+import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
+import org.apache.accumulo.core.replication.StatusUtil;
+import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.Credentials;
@@ -99,6 +103,7 @@ import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.accumulo.server.util.FileUtil;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
+import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.server.util.TabletOperations;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
@@ -208,6 +213,7 @@ public class Tablet implements TabletCommitter {
   private long ingestBytes = 0;
 
   private byte[] defaultSecurityLabel = new byte[0];
+
 
   private long lastMinorCompactionFinishTime = 0;
   private long lastMapFileImportTime = 0;
@@ -441,7 +447,7 @@ public class Tablet implements TabletCommitter {
       final TServerInstance lastLocation, Set<FileRef> scanFiles, long initFlushID, long initCompactID) throws IOException {
 
     TabletFiles tabletPaths = VolumeUtil.updateTabletVolumes(tabletServer.getLock(), tabletServer.getFileSystem(), extent, new TabletFiles(location.toString(), rawLogEntries,
-        rawDatafiles));
+        rawDatafiles), ReplicationConfigurationUtil.isEnabled(extent, tabletServer.getTableConfiguration(extent)));
 
     Path locationPath;
 
@@ -584,7 +590,25 @@ public class Tablet implements TabletCommitter {
         if (count[0] == 0) {
           log.debug("No replayed mutations applied, removing unused entries for " + extent);
           MetadataTableUtil.removeUnusedWALEntries(extent, logEntries, tabletServer.getLock());
+
+          // Ensure that we write a record marking each WAL as requiring replication to make sure we don't abandon the data
+          if (ReplicationConfigurationUtil.isEnabled(extent, tabletServer.getTableConfiguration(extent))) {
+            Status status = StatusUtil.fileClosed();
+            for (LogEntry logEntry : logEntries) {
+              log.debug("Writing closed status to metadata table for " + logEntry.logSet + " " + ProtobufUtil.toString(status));
+              ReplicationTableUtil.updateFiles(SystemCredentials.get(), extent, logEntry.logSet, status);
+            }
+          }
+
           logEntries.clear();
+        } else if (ReplicationConfigurationUtil.isEnabled(extent, tabletServer.getTableConfiguration(extent))) {
+          // The logs are about to be re-used, we need to record that they have data for this extent,
+          // but that they may get more data
+          Status status = StatusUtil.openWithUnknownLength();
+          for (LogEntry logEntry : logEntries) {
+            log.debug("Writing updated status to metadata table for " + logEntry.logSet + " " + ProtobufUtil.toString(status));
+            ReplicationTableUtil.updateFiles(SystemCredentials.get(), extent, logEntry.logSet, status);
+          }
         }
 
       } catch (Throwable t) {

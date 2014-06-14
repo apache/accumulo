@@ -29,10 +29,26 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
+import org.apache.accumulo.core.protobuf.ProtobufUtil;
+import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
+import org.apache.accumulo.core.replication.StatusUtil;
+import org.apache.accumulo.core.replication.proto.Replication.Status;
+import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
@@ -42,6 +58,7 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
@@ -50,108 +67,129 @@ import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterables;
 import com.google.common.net.HostAndPort;
+import com.google.protobuf.InvalidProtocolBufferException;
 
 public class GarbageCollectWriteAheadLogs {
-  private static final Logger log = Logger.getLogger(GarbageCollectWriteAheadLogs.class);
-  
+  private static final Logger log = LoggerFactory.getLogger(GarbageCollectWriteAheadLogs.class);
+
   private final Instance instance;
   private final VolumeManager fs;
-  
+
   private boolean useTrash;
-  
+
   /**
    * Creates a new GC WAL object.
-   *
-   * @param instance instance to use
-   * @param fs volume manager to use
-   * @param useTrash true to move files to trash rather than delete them
+   * 
+   * @param instance
+   *          instance to use
+   * @param fs
+   *          volume manager to use
+   * @param useTrash
+   *          true to move files to trash rather than delete them
    */
   GarbageCollectWriteAheadLogs(Instance instance, VolumeManager fs, boolean useTrash) throws IOException {
     this.instance = instance;
     this.fs = fs;
     this.useTrash = useTrash;
   }
-  
+
   /**
    * Gets the instance used by this object.
-   *
+   * 
    * @return instance
    */
   Instance getInstance() {
     return instance;
   }
+
   /**
    * Gets the volume manager used by this object.
-   *
+   * 
    * @return volume manager
    */
   VolumeManager getVolumeManager() {
     return fs;
   }
+
   /**
-   * Checks if the volume manager should move files to the trash rather than
-   * delete them.
-   *
+   * Checks if the volume manager should move files to the trash rather than delete them.
+   * 
    * @return true if trash is used
    */
   boolean isUsingTrash() {
     return useTrash;
   }
+
   public void collect(GCStatus status) {
-    
+
     Span span = Trace.start("scanServers");
     try {
-      
-      Map<String, Path> sortedWALogs = getSortedWALogs();
-      
+
+      Map<String,Path> sortedWALogs = getSortedWALogs();
+
       status.currentLog.started = System.currentTimeMillis();
-      
+
       Map<Path,String> fileToServerMap = new HashMap<Path,String>();
-      Map<String,Path> nameToFileMap = new HashMap<String, Path>();
+      Map<String,Path> nameToFileMap = new HashMap<String,Path>();
       int count = scanServers(fileToServerMap, nameToFileMap);
       long fileScanStop = System.currentTimeMillis();
       log.info(String.format("Fetched %d files from %d servers in %.2f seconds", fileToServerMap.size(), count,
           (fileScanStop - status.currentLog.started) / 1000.));
       status.currentLog.candidates = fileToServerMap.size();
       span.stop();
-      
+
       span = Trace.start("removeMetadataEntries");
       try {
-        count = removeMetadataEntries(nameToFileMap, sortedWALogs, status);
+        count = removeMetadataEntries(nameToFileMap, sortedWALogs, status, SystemCredentials.get());
       } catch (Exception ex) {
         log.error("Unable to scan metadata table", ex);
         return;
       } finally {
         span.stop();
       }
-      
+
       long logEntryScanStop = System.currentTimeMillis();
       log.info(String.format("%d log entries scanned in %.2f seconds", count, (logEntryScanStop - fileScanStop) / 1000.));
-      
+
+      span = Trace.start("removeReplicationEntries");
+      try {
+        count = removeReplicationEntries(nameToFileMap, sortedWALogs, status, SystemCredentials.get());
+      } catch (Exception ex) {
+        log.error("Unable to scan replication table", ex);
+        return;
+      } finally {
+        span.stop();
+      }
+
+      long replicationEntryScanStop = System.currentTimeMillis();
+      log.info(String.format("%d replication entries scanned in %.2f seconds", count, (replicationEntryScanStop - logEntryScanStop) / 1000.));
+
       span = Trace.start("removeFiles");
       Map<String,ArrayList<Path>> serverToFileMap = mapServersToFiles(fileToServerMap, nameToFileMap);
-      
+
       count = removeFiles(nameToFileMap, serverToFileMap, sortedWALogs, status);
-      
+
       long removeStop = System.currentTimeMillis();
       log.info(String.format("%d total logs removed from %d servers in %.2f seconds", count, serverToFileMap.size(), (removeStop - logEntryScanStop) / 1000.));
       status.currentLog.finished = removeStop;
       status.lastLog = status.currentLog;
       status.currentLog = new GcCycleStats();
       span.stop();
-      
+
     } catch (Exception e) {
       log.error("exception occured while garbage collecting write ahead logs", e);
     } finally {
       span.stop();
     }
   }
-  
+
   boolean holdsLock(HostAndPort addr) {
     try {
       String zpath = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + addr.toString();
@@ -160,12 +198,12 @@ public class GarbageCollectWriteAheadLogs {
     } catch (KeeperException.NoNodeException ex) {
       return false;
     } catch (Exception ex) {
-      log.debug(ex, ex);
+      log.debug(ex.toString(), ex);
       return true;
     }
   }
-  
-  private int removeFiles(Map<String,Path> nameToFileMap, Map<String,ArrayList<Path>> serverToFileMap, Map<String, Path> sortedWALogs, final GCStatus status) {
+
+  private int removeFiles(Map<String,Path> nameToFileMap, Map<String,ArrayList<Path>> serverToFileMap, Map<String,Path> sortedWALogs, final GCStatus status) {
     AccumuloConfiguration conf = ServerConfiguration.getSystemConfiguration(instance);
     for (Entry<String,ArrayList<Path>> entry : serverToFileMap.entrySet()) {
       if (entry.getKey().isEmpty()) {
@@ -214,7 +252,7 @@ public class GarbageCollectWriteAheadLogs {
         }
       }
     }
-    
+
     for (Path swalog : sortedWALogs.values()) {
       log.debug("Removing sorted WAL " + swalog);
       try {
@@ -233,14 +271,15 @@ public class GarbageCollectWriteAheadLogs {
         }
       }
     }
-    
+
     return 0;
   }
-  
+
   /**
    * Converts a list of paths to their corresponding strings.
-   *
-   * @param paths list of paths
+   * 
+   * @param paths
+   *          list of paths
    * @return string forms of paths
    */
   static List<String> paths2strings(List<Path> paths) {
@@ -249,14 +288,15 @@ public class GarbageCollectWriteAheadLogs {
       result.add(path.toString());
     return result;
   }
-  
+
   /**
-   * Reverses the given mapping of file paths to servers. The returned map
-   * provides a list of file paths for each server. Any path whose name is not
-   * in the mapping of file names to paths is skipped.
-   *
-   * @param fileToServerMap map of file paths to servers
-   * @param nameToFileMap map of file names to paths
+   * Reverses the given mapping of file paths to servers. The returned map provides a list of file paths for each server. Any path whose name is not in the
+   * mapping of file names to paths is skipped.
+   * 
+   * @param fileToServerMap
+   *          map of file paths to servers
+   * @param nameToFileMap
+   *          map of file names to paths
    * @return map of servers to lists of file paths
    */
   static Map<String,ArrayList<Path>> mapServersToFiles(Map<Path,String> fileToServerMap, Map<String,Path> nameToFileMap) {
@@ -273,13 +313,15 @@ public class GarbageCollectWriteAheadLogs {
     }
     return result;
   }
-  
-  private int removeMetadataEntries(Map<String,Path>  nameToFileMap, Map<String, Path> sortedWALogs, GCStatus status) throws IOException, KeeperException,
-      InterruptedException {
-    int count = 0;
-    Iterator<LogEntry> iterator = MetadataTableUtil.getLogEntries(SystemCredentials.get());
 
+  protected int removeMetadataEntries(Map<String,Path> nameToFileMap, Map<String,Path> sortedWALogs, GCStatus status, Credentials creds) throws IOException,
+      KeeperException, InterruptedException {
+    int count = 0;
+    Iterator<LogEntry> iterator = MetadataTableUtil.getLogEntries(creds);
+
+    // For each WAL reference in the metadata table
     while (iterator.hasNext()) {
+      // Each metadata reference has at least one WAL file
       for (String entry : iterator.next().logSet) {
         // old style WALs will have the IP:Port of their logger and new style will either be a Path either absolute or relative, in all cases
         // the last "/" will mark a UUID file name.
@@ -294,16 +336,129 @@ public class GarbageCollectWriteAheadLogs {
           status.currentLog.inUse++;
           sortedWALogs.remove(uuid);
         }
+
         count++;
       }
     }
+
     return count;
+  }
+
+  protected int removeReplicationEntries(Map<String,Path> nameToFileMap, Map<String,Path> sortedWALogs, GCStatus status, Credentials creds) throws IOException,
+      KeeperException, InterruptedException {
+    Connector conn;
+    try {
+      conn = instance.getConnector(creds.getPrincipal(), creds.getToken());
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      log.error("Failed to get connector", e);
+      throw new IllegalArgumentException(e);
+    }
+
+    int count = 0;
+
+    Iterator<Entry<String,Path>> walIter = nameToFileMap.entrySet().iterator();
+    while (walIter.hasNext()) {
+      Entry<String,Path> wal = walIter.next();
+      String fullPath = wal.getValue().toString();
+      if (neededByReplication(conn, fullPath)) {
+        log.debug("Removing WAL from candidate deletion as it is still needed for replication: {} ", fullPath);
+        // If we haven't already removed it, check to see if this WAL is
+        // "in use" by replication (needed for replication purposes)
+        status.currentLog.inUse++;
+
+        walIter.remove();
+        sortedWALogs.remove(wal.getKey());
+      } else {
+        log.debug("WAL not needed for replication {}", fullPath);
+      }
+      count++;
+    }
+
+    return count;
+  }
+
+  /**
+   * Determine if the given WAL is needed for replication
+   * 
+   * @param wal
+   *          The full path (URI)
+   * @return True if the WAL is still needed by replication (not a candidate for deletion)
+   */
+  protected boolean neededByReplication(Connector conn, String wal) {
+    log.info("Checking replication table for " + wal);
+
+    // try {
+    // log.info("Current state of Metadata table");
+    // for (Entry<Key,Value> entry : conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    // log.info(entry.getKey().toStringNoTruncate() + "=" + TextFormat.shortDebugString(Status.parseFrom(entry.getValue().get())));
+    // }
+    // } catch (Exception e) {
+    // log.error("Could not read metadata table");
+    // }
+    // try {
+    // log.info("Current state of replication table");
+    // for (Entry<Key,Value> entry : conn.createScanner(ReplicationTable.NAME, Authorizations.EMPTY)) {
+    // log.info(entry.getKey().toStringNoTruncate() + "=" + TextFormat.shortDebugString(Status.parseFrom(entry.getValue().get())));
+    // }
+    // } catch (Exception e) {
+    // log.error("Could not read replication table");
+    // }
+
+    Iterable<Entry<Key,Value>> iter = getReplicationStatusForFile(conn, wal);
+
+    // TODO Push down this filter to the tserver to only return records
+    // that are not completely replicated and convert this loop into a
+    // `return s.iterator.hasNext()` statement
+    for (Entry<Key,Value> entry : iter) {
+      try {
+        Status status = Status.parseFrom(entry.getValue().get());
+        log.info("Checking if {} is safe for removal with {}", wal, ProtobufUtil.toString(status));
+        if (!StatusUtil.isSafeForRemoval(status)) {
+          return true;
+        }
+      } catch (InvalidProtocolBufferException e) {
+        log.error("Could not deserialize Status protobuf for " + entry.getKey(), e);
+      }
+    }
+
+    return false;
+  }
+
+  protected Iterable<Entry<Key,Value>> getReplicationStatusForFile(Connector conn, String wal) {
+    Scanner metaScanner;
+    try {
+      metaScanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    } catch (TableNotFoundException e) {
+      throw new RuntimeException(e);
+    }
+
+    // Need to add in the replication section prefix
+    metaScanner.setRange(Range.exact(ReplicationSection.getRowPrefix() + wal));
+    // Limit the column family to be sure
+    metaScanner.fetchColumnFamily(ReplicationSection.COLF);
+
+    try {
+      Scanner replScanner = ReplicationTable.getScanner(conn);
+
+      // Scan only the Status records
+      StatusSection.limit(replScanner);
+
+      // Only look for this specific WAL
+      replScanner.setRange(Range.exact(wal));
+
+      return Iterables.concat(metaScanner, replScanner);
+    } catch (TableNotFoundException e) {
+      // do nothing
+    }
+
+    return metaScanner;
   }
 
   private int scanServers(Map<Path,String> fileToServerMap, Map<String,Path> nameToFileMap) throws Exception {
     return scanServers(ServerConstants.getWalDirs(), fileToServerMap, nameToFileMap);
   }
-  //TODO Remove deprecation warning suppression when Hadoop1 support is dropped
+
+  // TODO Remove deprecation warning suppression when Hadoop1 support is dropped
   @SuppressWarnings("deprecation")
   /**
    * Scans write-ahead log directories for logs. The maps passed in are
@@ -351,22 +506,24 @@ public class GarbageCollectWriteAheadLogs {
     }
     return servers.size();
   }
-  
-  private Map<String, Path> getSortedWALogs() throws IOException {
+
+  private Map<String,Path> getSortedWALogs() throws IOException {
     return getSortedWALogs(ServerConstants.getRecoveryDirs());
   }
+
   /**
    * Looks for write-ahead logs in recovery directories.
-   *
-   * @param recoveryDirs recovery directories
+   * 
+   * @param recoveryDirs
+   *          recovery directories
    * @return map of log file names to paths
    */
-  Map<String, Path> getSortedWALogs(String[] recoveryDirs) throws IOException {
-    Map<String, Path> result = new HashMap<String, Path>();
-    
+  Map<String,Path> getSortedWALogs(String[] recoveryDirs) throws IOException {
+    Map<String,Path> result = new HashMap<String,Path>();
+
     for (String dir : recoveryDirs) {
       Path recoveryDir = new Path(dir);
-      
+
       if (fs.exists(recoveryDir)) {
         for (FileStatus status : fs.listStatus(recoveryDir)) {
           String name = status.getPath().getName();
@@ -380,11 +537,12 @@ public class GarbageCollectWriteAheadLogs {
     }
     return result;
   }
-  
+
   /**
    * Checks if a string is a valid UUID.
-   *
-   * @param name string to check
+   * 
+   * @param name
+   *          string to check
    * @return true if string is a UUID
    */
   static boolean isUUID(String name) {
@@ -398,5 +556,5 @@ public class GarbageCollectWriteAheadLogs {
       return false;
     }
   }
-  
+
 }
