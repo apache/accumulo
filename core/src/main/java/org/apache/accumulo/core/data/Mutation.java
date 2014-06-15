@@ -34,6 +34,8 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
 
+import com.google.common.base.Preconditions;
+
 /**
  * <p>
  * Mutation represents an action that manipulates a row in a table. A mutation holds a list of column/value pairs that represent an atomic set of modifications
@@ -776,6 +778,7 @@ public class Mutation implements Writable {
    * @since 1.7.0
    */
   public void setReplicationSources(Set<String> sources) {
+    Preconditions.checkNotNull(sources);
     this.replicationSources = sources;
   }
 
@@ -929,13 +932,9 @@ public class Mutation implements Writable {
       }
     }
     if (0x02 == (0x02 & hasValues)) {
-      if (null == replicationSources) {
-        WritableUtils.writeVInt(out, 0);
-      } else {
-        WritableUtils.writeVInt(out, replicationSources.size());
-        for (String source : replicationSources) {
-          WritableUtils.writeString(out, source);
-        }
+      WritableUtils.writeVInt(out, replicationSources.size());
+      for (String source : replicationSources) {
+        WritableUtils.writeString(out, source);
       }
     }
   }
