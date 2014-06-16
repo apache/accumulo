@@ -140,10 +140,13 @@ def runTest(testName, siteConfig, testDir, numNodes, fdata):
     avg = (float(totalMs) / numClients) / 1000
     median = times[int(numClients/2)] / 1000
     max = times[numClients-1] / 1000
+    q1 = times[int(numClients/4)] / 1000
+    q3 = times[int((3*numClients)/4)] / 1000
 
-    log('Tservs\tClients\tMin\tAvg\tMed\tMax\tEntries\tMB')
-    log('%d\t%d\t%d\t%d\t%d\t%d\t%dM\t%d' % (numNodes, numClients, min, avg, median, max, totalEntries / 1000000, totalBytes / 1000000))
-    fdata.write('%d\t%d\t%d\t%d\t%d\t%d\t%dM\t%d\n' % (numNodes, numClients, min, avg, median, max, totalEntries / 1000000, totalBytes / 1000000))
+    log('Tservs\tClients\tMin\tQ1\tAvg\tMed\tQ3\tMax\tEntries\tMB')
+    resultStr = '%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%dM\t%d' % (numNodes, numClients, min, q1, avg, median, q3, max, totalEntries / 1000000, totalBytes / 1000000)
+    log(resultStr)
+    fdata.write(resultStr + '\n')
     fdata.flush()
 
     time.sleep(5)

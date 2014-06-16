@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.admin.ReplicationOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -144,6 +145,12 @@ public class MockConnector extends Connector {
   
   @Override
   public ConditionalWriter createConditionalWriter(String tableName, ConditionalWriterConfig config) throws TableNotFoundException {
+    // TODO add implementation
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public ReplicationOperations replicationOperations() {
     // TODO add implementation
     throw new UnsupportedOperationException();
   }

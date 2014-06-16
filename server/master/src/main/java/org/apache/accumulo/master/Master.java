@@ -60,6 +60,7 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.NamespacePermission;
@@ -76,6 +77,9 @@ import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.master.recovery.RecoveryManager;
+import org.apache.accumulo.master.replication.MasterReplicationCoordinator;
+import org.apache.accumulo.master.replication.ReplicationDriver;
+import org.apache.accumulo.master.replication.WorkDriver;
 import org.apache.accumulo.master.state.TableCounts;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.ServerConstants;
@@ -166,6 +170,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   final SortedMap<KeyExtent,TServerInstance> migrations = Collections.synchronizedSortedMap(new TreeMap<KeyExtent,TServerInstance>());
   final EventCoordinator nextEvent = new EventCoordinator();
   final private Object mergeLock = new Object();
+  private ReplicationDriver replicationWorkDriver;
+  private WorkDriver replicationWorkAssigner;
   RecoveryManager recoveryManager = null;
 
   ZooLock masterLock = null;
@@ -986,6 +992,31 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     while (!clientService.isServing()) {
       UtilWaitThread.sleep(100);
     }
+
+    // Start the daemon to scan the replication table and make units of work
+    replicationWorkDriver = new ReplicationDriver(this);
+    replicationWorkDriver.start();
+
+    // Start the daemon to assign work to tservers to replicate to our peers
+    try {
+      replicationWorkAssigner = new WorkDriver(this, getConnector());
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      log.error("Caught exception trying to initialize replication WorkDriver", e);
+      throw new RuntimeException(e);
+    }
+    replicationWorkAssigner.start();
+
+    // Start the replication coordinator which assigns tservers to service replication requests
+    ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor = new ReplicationCoordinator.Processor<ReplicationCoordinator.Iface>(
+        TraceWrap.service(new MasterReplicationCoordinator(this)));
+    ServerAddress replAddress = TServerUtils.startServer(getSystemConfiguration(), hostname, Property.MASTER_REPLICATION_COORDINATOR_PORT,
+        replicationCoordinatorProcessor, "Master Replication Coordinator", "Replication Coordinator", null, Property.MASTER_REPLICATION_COORDINATOR_MINTHREADS,
+        Property.MASTER_REPLICATION_COORDINATOR_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
+
+    // Advertise that port we used so peers don't have to be told what it is
+    ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instance) + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR,
+        replAddress.address.toString().getBytes(StandardCharsets.UTF_8), NodeExistsPolicy.OVERWRITE);
+
     while (clientService.isServing()) {
       UtilWaitThread.sleep(500);
     }
@@ -994,6 +1025,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
     final long deadline = System.currentTimeMillis() + MAX_CLEANUP_WAIT_TIME;
     statusThread.join(remaining(deadline));
+    replicationWorkAssigner.join(remaining(deadline));
+    replicationWorkDriver.join(remaining(deadline));
+    replAddress.server.stop();
 
     // quit, even if the tablet servers somehow jam up and the watchers
     // don't stop

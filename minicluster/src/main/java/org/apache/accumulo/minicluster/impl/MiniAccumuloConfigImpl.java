@@ -56,7 +56,7 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
   private File walogDir;
 
   private int zooKeeperPort = 0;
-  private int configuredZookeeperPort = 0;
+  private int configuredZooKeeperPort = 0;
   private long zooKeeperStartupTime = 20*1000;
 
   private long defaultMemorySize = 128 * 1024 * 1024;
@@ -125,6 +125,8 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
       mergePropWithRandomPort(Property.TSERV_CLIENTPORT.getKey());
       mergePropWithRandomPort(Property.MONITOR_PORT.getKey());
       mergePropWithRandomPort(Property.GC_PORT.getKey());
+      mergePropWithRandomPort(Property.REPLICATION_RECEIPT_SERVICE_PORT.getKey());
+      mergePropWithRandomPort(Property.MASTER_REPLICATION_COORDINATOR_PORT.getKey());
 
       // zookeeper port should be set explicitly in this class, not just on the site config
       if (zooKeeperPort == 0)
@@ -207,7 +209,7 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
    */
   @Override
   public MiniAccumuloConfigImpl setZooKeeperPort(int zooKeeperPort) {
-    this.configuredZookeeperPort = zooKeeperPort;
+    this.configuredZooKeeperPort = zooKeeperPort;
     this.zooKeeperPort = zooKeeperPort;
     return this;
   }
@@ -295,8 +297,8 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
     return zooKeeperPort;
   }
 
-  public int getConfiguredZookeeperPort() {
-    return configuredZookeeperPort;
+  public int getConfiguredZooKeeperPort() {
+    return configuredZooKeeperPort;
   }
 
   public long getZooKeeperStartupTime() {

@@ -1,0 +1,40 @@
+// Licensed to the Apache Software Foundation (ASF) under one or more
+// contributor license agreements.  See the NOTICE file distributed with
+// this work for additional information regarding copyright ownership.
+// The ASF licenses this file to You under the Apache License, Version 2.0
+// (the "License"); you may not use this file except in compliance with
+// the License.  You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+digraph Replication {
+    graph [ label="Replication", fontsize=24, fontname=Helvetica];
+    node [fontsize=12, fontname=Helvetica];
+    edge [fontsize=9, fontcolor=blue, fontname=ArialMT];
+    subgraph cluster_ReplicationStatus {
+        label="ReplicationStatus"
+        "ReplicationStatus.OPEN" [ label = "Open for\nreplication" ];
+        "ReplicationStatus.OPEN" -> "ReplicationStatus.DATA_REPLICATED" [ label = "Data replicated" ];
+        "ReplicationStatus.OPEN" -> "ReplicationStatus.DATA_INGESTED" [ label = "Data ingested locally" ];
+        "ReplicationStatus.OPEN" -> "ReplicationStatus.CLOSED" [ label = "Local file closed\nfor addl writes" ];
+
+        "ReplicationStatus.DATA_REPLICATED" [ label = "Data Replicated" ];
+        "ReplicationStatus.DATA_REPLICATED" -> "ReplicationStatus.OPEN" [ label = "Increment replication\nfinished offset" ];
+        "ReplicationStatus.DATA_REPLICATED" -> "ReplicationStatus.CLOSED" [ label = "Increment replication\nfinished offset" ];
+
+        "ReplicationStatus.DATA_INGESTED" [ label = "Data Ingested" ];
+        "ReplicationStatus.DATA_INGESTED" -> "ReplicationStatus.OPEN" [ label = "Increment replication\nneeded offset" ];
+
+        "ReplicationStatus.CLOSED" [ label = Closed];
+        "ReplicationStatus.CLOSED" -> "ReplicationStatus.DATA_REPLICATED" [ label = "Data replicated" ];
+        "ReplicationStatus.CLOSED" -> "ReplicationStatus.DELETED" [ label = "All data replicated" ];
+
+        "ReplicationStatus.DELETED" [ label = "Local resources ready for deletion" ];
+    }
+}

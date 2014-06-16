@@ -41,7 +41,8 @@ struct TMutation {
 	1:binary row,
 	2:binary data,
 	3:list<binary> values
-	4:i32 entries
+	4:i32 entries,
+	5:optional list<string> sources, 
 }
 
 struct TKeyExtent {

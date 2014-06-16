@@ -16,25 +16,56 @@
  */
 package org.apache.accumulo.gc;
 
-import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.Path;
-
-import org.junit.Before;
-import org.junit.Test;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
+
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.UUID;
+
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.mock.MockInstance;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.gc.thrift.GCStatus;
+import org.apache.accumulo.core.gc.thrift.GcCycleStats;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
+import org.apache.accumulo.core.protobuf.ProtobufUtil;
+import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
+import org.apache.accumulo.core.replication.StatusUtil;
+import org.apache.accumulo.core.replication.proto.Replication.Status;
+import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.replication.ReplicationTable;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TestName;
+
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 
 public class GarbageCollectWriteAheadLogsTest {
   private static final long BLOCK_SIZE = 64000000L;
@@ -50,6 +81,9 @@ public class GarbageCollectWriteAheadLogsTest {
   private VolumeManager volMgr;
   private GarbageCollectWriteAheadLogs gcwal;
   private long modTime;
+
+  @Rule
+  public TestName testName = new TestName();
 
   @Before
   public void setUp() throws Exception {
@@ -267,5 +301,209 @@ public class GarbageCollectWriteAheadLogsTest {
     assertFalse(GarbageCollectWriteAheadLogs.isUUID("foo"));
     assertFalse(GarbageCollectWriteAheadLogs.isUUID("0" + UUID.randomUUID().toString()));
     assertFalse(GarbageCollectWriteAheadLogs.isUUID(null));
+  }
+
+  // It was easier to do this than get the mocking working for me
+  private static class ReplicationGCWAL extends GarbageCollectWriteAheadLogs {
+
+    private List<Entry<Key,Value>> replData;
+
+    /**
+     * @param instance
+     * @param fs
+     * @param useTrash
+     * @throws IOException
+     */
+    ReplicationGCWAL(Instance instance, VolumeManager fs, boolean useTrash, List<Entry<Key,Value>> replData) throws IOException {
+      super(instance, fs, useTrash);
+      this.replData = replData;
+    }
+
+    @Override
+    protected Iterable<Entry<Key,Value>> getReplicationStatusForFile(Connector conn, String wal) {
+      return this.replData;
+    }
+  }
+
+  @Test
+  public void replicationEntriesAffectGC() throws Exception {
+    String file1 = UUID.randomUUID().toString(), file2 = UUID.randomUUID().toString();
+    Connector conn = createMock(Connector.class);
+
+    // Write a Status record which should prevent file1 from being deleted
+    LinkedList<Entry<Key,Value>> replData = new LinkedList<>();
+    replData.add(Maps.immutableEntry(new Key("/wals/" + file1, StatusSection.NAME.toString(), "1"), StatusUtil.fileCreatedValue(System.currentTimeMillis())));
+
+    ReplicationGCWAL replGC = new ReplicationGCWAL(instance, volMgr, false, replData);
+
+    replay(conn);
+
+    // Open (not-closed) file must be retained
+    assertTrue(replGC.neededByReplication(conn, "/wals/" + file1));
+
+    // No replication data, not needed
+    replData.clear();
+    assertFalse(replGC.neededByReplication(conn, "/wals/" + file2));
+
+    // The file is closed but not replicated, must be retained
+    replData.add(Maps.immutableEntry(new Key("/wals/" + file1, StatusSection.NAME.toString(), "1"), StatusUtil.fileClosedValue()));
+    assertTrue(replGC.neededByReplication(conn, "/wals/" + file1));
+
+    // File is closed and fully replicated, can be deleted
+    replData.clear();
+    replData.add(Maps.immutableEntry(new Key("/wals/" + file1, StatusSection.NAME.toString(), "1"),
+        ProtobufUtil.toValue(Status.newBuilder().setInfiniteEnd(true).setBegin(Long.MAX_VALUE).setClosed(true).build())));
+    assertFalse(replGC.neededByReplication(conn, "/wals/" + file1));
+  }
+
+  @Test
+  public void removeReplicationEntries() throws Exception {
+    String file1 = UUID.randomUUID().toString(), file2 = UUID.randomUUID().toString();
+
+    Instance inst = new MockInstance(testName.getMethodName());
+    Credentials creds = new Credentials("root", new PasswordToken(""));
+    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
+
+    GarbageCollectWriteAheadLogs gcWALs = new GarbageCollectWriteAheadLogs(inst, volMgr, false);
+
+    ReplicationTable.create(conn);
+
+    long file1CreateTime = System.currentTimeMillis();
+    long file2CreateTime = file1CreateTime + 50;
+    BatchWriter bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
+    Mutation m = new Mutation("/wals/" + file1);
+    StatusSection.add(m, new Text("1"), StatusUtil.fileCreatedValue(file1CreateTime));
+    bw.addMutation(m);
+    m = new Mutation("/wals/" + file2);
+    StatusSection.add(m, new Text("1"), StatusUtil.fileCreatedValue(file2CreateTime));
+    bw.addMutation(m);
+
+    // These WALs are potential candidates for deletion from fs
+    Map<String,Path> nameToFileMap = new HashMap<>();
+    nameToFileMap.put(file1, new Path("/wals/" + file1));
+    nameToFileMap.put(file2, new Path("/wals/" + file2));
+
+    Map<String,Path> sortedWALogs = Collections.emptyMap();
+
+    // Make the GCStatus and GcCycleStats
+    GCStatus status = new GCStatus();
+    GcCycleStats cycleStats = new GcCycleStats();
+    status.currentLog = cycleStats;
+
+    // We should iterate over two entries
+    Assert.assertEquals(2, gcWALs.removeReplicationEntries(nameToFileMap, sortedWALogs, status, creds));
+
+    // We should have noted that two files were still in use
+    Assert.assertEquals(2l, cycleStats.inUse);
+
+    // Both should have been deleted
+    Assert.assertEquals(0, nameToFileMap.size());
+  }
+
+  @Test
+  public void replicationEntriesOnlyInMetaPreventGC() throws Exception {
+    String file1 = UUID.randomUUID().toString(), file2 = UUID.randomUUID().toString();
+
+    Instance inst = new MockInstance(testName.getMethodName());
+    Credentials creds = new Credentials("root", new PasswordToken(""));
+    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
+
+    GarbageCollectWriteAheadLogs gcWALs = new GarbageCollectWriteAheadLogs(inst, volMgr, false);
+
+    ReplicationTable.create(conn);
+
+    long file1CreateTime = System.currentTimeMillis();
+    long file2CreateTime = file1CreateTime + 50;
+    // Write some records to the metadata table, we haven't yet written status records to the replication table
+    BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    Mutation m = new Mutation(ReplicationSection.getRowPrefix() + "/wals/" + file1);
+    m.put(ReplicationSection.COLF, new Text("1"), StatusUtil.fileCreatedValue(file1CreateTime));
+    bw.addMutation(m);
+
+    m = new Mutation(ReplicationSection.getRowPrefix() + "/wals/" + file2);
+    m.put(ReplicationSection.COLF, new Text("1"), StatusUtil.fileCreatedValue(file2CreateTime));
+    bw.addMutation(m);
+
+    // These WALs are potential candidates for deletion from fs
+    Map<String,Path> nameToFileMap = new HashMap<>();
+    nameToFileMap.put(file1, new Path("/wals/" + file1));
+    nameToFileMap.put(file2, new Path("/wals/" + file2));
+
+    Map<String,Path> sortedWALogs = Collections.emptyMap();
+
+    // Make the GCStatus and GcCycleStats objects
+    GCStatus status = new GCStatus();
+    GcCycleStats cycleStats = new GcCycleStats();
+    status.currentLog = cycleStats;
+
+    // We should iterate over two entries
+    Assert.assertEquals(2, gcWALs.removeReplicationEntries(nameToFileMap, sortedWALogs, status, creds));
+
+    // We should have noted that two files were still in use
+    Assert.assertEquals(2l, cycleStats.inUse);
+
+    // Both should have been deleted
+    Assert.assertEquals(0, nameToFileMap.size());
+  }
+
+  @Test
+  public void noReplicationTableDoesntLimitMetatdataResults() throws Exception {
+    Instance inst = new MockInstance(testName.getMethodName());
+    Connector conn = inst.getConnector("root", new PasswordToken(""));
+
+    String wal = "hdfs://localhost:8020/accumulo/wal/tserver+port/123456-1234-1234-12345678";
+    BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    Mutation m = new Mutation(ReplicationSection.getRowPrefix() + wal);
+    m.put(ReplicationSection.COLF, new Text("1"), StatusUtil.fileCreatedValue(System.currentTimeMillis()));
+    bw.addMutation(m);
+    bw.close();
+
+    GarbageCollectWriteAheadLogs gcWALs = new GarbageCollectWriteAheadLogs(inst, volMgr, false);
+
+    Iterable<Entry<Key,Value>> data = gcWALs.getReplicationStatusForFile(conn, wal);
+    Entry<Key,Value> entry = Iterables.getOnlyElement(data);
+
+    Assert.assertEquals(ReplicationSection.getRowPrefix() + wal, entry.getKey().getRow().toString());
+  }
+
+  @Test
+  public void fetchesReplicationEntriesFromMetadataAndReplicationTables() throws Exception {
+    Instance inst = new MockInstance(testName.getMethodName());
+    Connector conn = inst.getConnector("root", new PasswordToken(""));
+    ReplicationTable.create(conn);
+
+    long walCreateTime = System.currentTimeMillis();
+    String wal = "hdfs://localhost:8020/accumulo/wal/tserver+port/123456-1234-1234-12345678";
+    BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    Mutation m = new Mutation(ReplicationSection.getRowPrefix() + wal);
+    m.put(ReplicationSection.COLF, new Text("1"), StatusUtil.fileCreatedValue(walCreateTime));
+    bw.addMutation(m);
+    bw.close();
+
+    bw = ReplicationTable.getBatchWriter(conn);
+    m = new Mutation(wal);
+    StatusSection.add(m, new Text("1"), StatusUtil.fileCreatedValue(walCreateTime));
+    bw.addMutation(m);
+    bw.close();
+
+    GarbageCollectWriteAheadLogs gcWALs = new GarbageCollectWriteAheadLogs(inst, volMgr, false);
+
+    Iterable<Entry<Key,Value>> iter = gcWALs.getReplicationStatusForFile(conn, wal);
+    Map<Key,Value> data = new HashMap<>();
+    for (Entry<Key,Value> e : iter) {
+      data.put(e.getKey(), e.getValue());
+    }
+
+    Assert.assertEquals(2, data.size());
+
+    // Should get one element from each table (metadata and replication)
+    for (Key k : data.keySet()) {
+      String row = k.getRow().toString();
+      if (row.startsWith(ReplicationSection.getRowPrefix())) {
+        Assert.assertTrue(row.endsWith(wal));
+      } else {
+        Assert.assertEquals(wal, row);
+      }
+    }
   }
 }

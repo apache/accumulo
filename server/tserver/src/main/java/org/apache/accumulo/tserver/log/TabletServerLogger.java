@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -33,9 +34,15 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.protobuf.ProtobufUtil;
+import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
+import org.apache.accumulo.core.replication.StatusUtil;
+import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.security.SystemCredentials;
+import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.tserver.TabletMutations;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.log.DfsLogger.LoggerOperation;
@@ -233,7 +240,7 @@ public class TabletServerLogger {
     return write(sessions, mincFinish, writer);
   }
 
-  private int write(Collection<CommitSession> sessions, boolean mincFinish, Writer writer) throws IOException {
+  private int write(final Collection<CommitSession> sessions, boolean mincFinish, Writer writer) throws IOException {
     // Work very hard not to lock this during calls to the outside world
     int currentLogSet = logSetId.get();
 
@@ -259,6 +266,19 @@ public class TabletServerLogger {
                   tserver.addLoggersToMetadata(copy, commitSession.getExtent(), commitSession.getLogId());
               } finally {
                 commitSession.finishUpdatingLogsUsed();
+              }
+
+              // Need to release
+              KeyExtent extent = commitSession.getExtent();
+              if (ReplicationConfigurationUtil.isEnabled(extent, tserver.getTableConfiguration(extent))) {
+                Set<String> logs = new HashSet<String>();
+                for (DfsLogger logger : copy) {
+                  logs.add(logger.getFileName());
+                }
+                Status status = StatusUtil.fileCreated(System.currentTimeMillis());
+                log.debug("Writing " + ProtobufUtil.toString(status) + " to replication table for " + logs);
+                // Got some new WALs, note this in the replication table
+                ReplicationTableUtil.updateFiles(SystemCredentials.get(), commitSession.getExtent(), logs, status);
               }
             }
           }
@@ -310,6 +330,7 @@ public class TabletServerLogger {
           @Override
           void withWriteLock() throws IOException {
             close();
+            closeForReplication(sessions);
           }
         });
       }
@@ -325,9 +346,14 @@ public class TabletServerLogger {
       @Override
       void withWriteLock() throws IOException {
         close();
+        closeForReplication(sessions);
       }
     });
     return seq;
+  }
+
+  protected void closeForReplication(Collection<CommitSession> sessions) {
+    // TODO We can close the WAL here for replication purposes
   }
 
   public int defineTablet(final CommitSession commitSession) throws IOException {

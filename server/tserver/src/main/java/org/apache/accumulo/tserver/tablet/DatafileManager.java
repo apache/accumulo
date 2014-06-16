@@ -23,16 +23,18 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
+import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
@@ -46,6 +48,7 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
+import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
@@ -394,6 +397,21 @@ class DatafileManager {
       MetadataTableUtil.addDeleteEntries(tablet.getExtent(), Collections.singleton(absMergeFile), SystemCredentials.get());
 
     Set<String> unusedWalLogs = tablet.beginClearingUnusedLogs();
+    boolean replicate = ReplicationConfigurationUtil.isEnabled(tablet.getExtent(), tablet.getTableConfiguration());
+    Set<String> logFileOnly = null;
+    if (replicate) {
+      // unusedWalLogs is of the form host/fileURI, need to strip off the host portion
+      logFileOnly = new HashSet<>();
+      for (String unusedWalLog : unusedWalLogs) {
+        int index = unusedWalLog.indexOf('/');
+        if (-1 == index) {
+          log.warn("Could not find host component to strip from DFSLogger representation of WAL");
+        } else {
+          unusedWalLog = unusedWalLog.substring(index + 1);
+        }
+        logFileOnly.add(unusedWalLog);
+      }
+    }
     try {
       // the order of writing to metadata and walog is important in the face of machine/process failures
       // need to write to metadata before writing to walog, when things are done in the reverse order
@@ -402,6 +420,12 @@ class DatafileManager {
 
       tablet.updateTabletDataFile(commitSession.getMaxCommittedTime(), newDatafile, absMergeFile, dfv, unusedWalLogs, filesInUseByScans, flushId);
 
+      // Mark that we have data we want to replicate
+      // This WAL could still be in use by other Tablets *from the same table*, so we can only mark that there is data to replicate,
+      // but it is *not* closed
+      if (replicate) {
+        ReplicationTableUtil.updateFiles(SystemCredentials.get(), tablet.getExtent(), logFileOnly, StatusUtil.openWithUnknownLength());
+      }
     } finally {
       tablet.finishClearingUnusedLogs();
     }
