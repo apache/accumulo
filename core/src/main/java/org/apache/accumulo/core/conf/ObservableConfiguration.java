@@ -26,7 +26,6 @@ import org.apache.log4j.Logger;
  * A configuration that can be observed. Handling of observers is thread-safe.
  */
 public abstract class ObservableConfiguration extends AccumuloConfiguration {
-  private static final Logger log = Logger.getLogger(ObservableConfiguration.class);
 
   private Set<ConfigurationObserver> observers;
 
