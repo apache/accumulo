@@ -21,6 +21,9 @@ import java.text.SimpleDateFormat;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.util.Table;
 import org.apache.accumulo.monitor.util.celltypes.DateTimeType;
 import org.apache.accumulo.monitor.util.celltypes.StringType;
@@ -40,8 +43,17 @@ public class LogServlet extends BasicServlet {
   
   @Override
   protected void pageBody(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) {
+    AccumuloConfiguration conf = Monitor.getSystemConfiguration();
     boolean clear = true;
-    SimpleDateFormat fmt = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss,SSSS");
+    final String dateFormatStr = conf.get(Property.MONITOR_LOG_DATE_FORMAT);
+    SimpleDateFormat fmt;
+    try {
+      fmt = new SimpleDateFormat(dateFormatStr);
+    } catch (IllegalArgumentException e) {
+      log.warn("Could not instantiate SimpleDateFormat with format string of '" + dateFormatStr + "', using default format string");
+      fmt = new SimpleDateFormat(Property.MONITOR_LOG_DATE_FORMAT.getDefaultValue());
+    }
+
     Table logTable = new Table("logTable", "Recent&nbsp;Logs");
     logTable.addSortableColumn("Time", new DateTimeType(fmt), null);
     logTable.addSortableColumn("Application");
