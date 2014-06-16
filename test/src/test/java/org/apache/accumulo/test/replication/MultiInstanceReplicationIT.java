@@ -608,8 +608,6 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
       }
 
       cluster.exec(TabletServer.class);
-      // connMaster.tableOperations().compact(masterTable1, null, null, true, false);
-      // connMaster.tableOperations().compact(masterTable2, null, null, true, false);
 
       // Wait until we fully replicated something
       boolean fullyReplicated = false;
@@ -628,6 +626,8 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
 
       Assert.assertNotEquals(0, fullyReplicated);
 
+      // We have to wait for the master to assign the replication work, a local tserver to process it, and then the remote tserver to replay it
+      // Be cautious in how quickly we assert that the data is present on the peer
       long countTable = 0l;
       for (int i = 0; i < 10; i++) {
         for (Entry<Key,Value> entry : connPeer.createScanner(peerTable1, Authorizations.EMPTY)) {
@@ -647,15 +647,26 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
 
       Assert.assertTrue("Found no records in " + peerTable1 + " in the peer cluster", countTable > 0);
 
-      countTable = 0l;
-      for (Entry<Key,Value> entry : connPeer.createScanner(peerTable2, Authorizations.EMPTY)) {
-        countTable++;
-        Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " " + entry.getValue(), entry.getKey().getRow().toString()
-            .startsWith(masterTable2));
+      // We have to wait for the master to assign the replication work, a local tserver to process it, and then the remote tserver to replay it
+      // Be cautious in how quickly we assert that the data is present on the peer
+      for (int i = 0; i < 10; i++) {
+        countTable = 0l;
+        for (Entry<Key,Value> entry : connPeer.createScanner(peerTable2, Authorizations.EMPTY)) {
+          countTable++;
+          Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " " + entry.getValue(), entry.getKey().getRow().toString()
+              .startsWith(masterTable2));
+        }
+  
+        log.info("Found {} records in {}", countTable, peerTable2);
+
+        if (0l == countTable) {
+          Thread.sleep(5000);
+        } else {
+          break;
+        }
       }
 
-      log.info("Found {} records in {}", countTable, peerTable2);
-      Assert.assertTrue(countTable > 0);
+      Assert.assertTrue("Found no records in " + peerTable2 + " in the peer cluster", countTable > 0);
 
     } finally {
       peer1Cluster.stop();
