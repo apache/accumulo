@@ -20,7 +20,6 @@ import com.google.common.base.Preconditions;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
-import org.apache.log4j.Logger;
 
 /**
  * A configuration that can be observed. Handling of observers is thread-safe.
