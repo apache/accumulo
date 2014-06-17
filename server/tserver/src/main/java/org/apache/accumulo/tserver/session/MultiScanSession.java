@@ -27,7 +27,7 @@ import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.data.thrift.MultiScanResult;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.tserver.TabletServer.ScanTask;
+import org.apache.accumulo.tserver.scan.ScanTask;
 
 public class MultiScanSession extends Session {
   public final KeyExtent threadPoolExtent;

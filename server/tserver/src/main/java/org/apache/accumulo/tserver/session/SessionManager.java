@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.tserver;
+package org.apache.accumulo.tserver.session;
 
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -35,11 +35,8 @@ import org.apache.accumulo.core.tabletserver.thrift.ScanState;
 import org.apache.accumulo.core.tabletserver.thrift.ScanType;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.server.util.time.SimpleTimer;
-import org.apache.accumulo.tserver.TabletServer.ScanRunState;
-import org.apache.accumulo.tserver.TabletServer.ScanTask;
-import org.apache.accumulo.tserver.session.MultiScanSession;
-import org.apache.accumulo.tserver.session.ScanSession;
-import org.apache.accumulo.tserver.session.Session;
+import org.apache.accumulo.tserver.scan.ScanRunState;
+import org.apache.accumulo.tserver.scan.ScanTask;
 import org.apache.accumulo.tserver.tablet.ScanBatch;
 
 public class SessionManager {
@@ -49,7 +46,7 @@ public class SessionManager {
   private final long maxIdle;
   private final AccumuloConfiguration aconf;
 
-  SessionManager(AccumuloConfiguration conf) {
+  public SessionManager(AccumuloConfiguration conf) {
     aconf = conf;
     maxIdle = conf.getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
 
@@ -63,7 +60,7 @@ public class SessionManager {
     SimpleTimer.getInstance(conf).schedule(r, 0, Math.max(maxIdle / 2, 1000));
   }
 
-  synchronized long createSession(Session session, boolean reserve) {
+  public synchronized long createSession(Session session, boolean reserve) {
     long sid = random.nextLong();
 
     while (sessions.containsKey(sid)) {
@@ -79,7 +76,7 @@ public class SessionManager {
     return sid;
   }
 
-  long getMaxIdleTime() {
+  public long getMaxIdleTime() {
     return maxIdle;
   }
 
@@ -89,7 +86,7 @@ public class SessionManager {
    * @param sessionId
    */
 
-  synchronized Session reserveSession(long sessionId) {
+  public synchronized Session reserveSession(long sessionId) {
     Session session = sessions.get(sessionId);
     if (session != null) {
       if (session.reserved)
@@ -101,7 +98,7 @@ public class SessionManager {
 
   }
 
-  synchronized Session reserveSession(long sessionId, boolean wait) {
+  public synchronized Session reserveSession(long sessionId, boolean wait) {
     Session session = sessions.get(sessionId);
     if (session != null) {
       while (wait && session.reserved) {
@@ -121,7 +118,7 @@ public class SessionManager {
 
   }
 
-  synchronized void unreserveSession(Session session) {
+  public synchronized void unreserveSession(Session session) {
     if (!session.reserved)
       throw new IllegalStateException();
     notifyAll();
@@ -129,24 +126,24 @@ public class SessionManager {
     session.lastAccessTime = System.currentTimeMillis();
   }
 
-  synchronized void unreserveSession(long sessionId) {
+  public synchronized void unreserveSession(long sessionId) {
     Session session = getSession(sessionId);
     if (session != null)
       unreserveSession(session);
   }
 
-  synchronized Session getSession(long sessionId) {
+  public synchronized Session getSession(long sessionId) {
     Session session = sessions.get(sessionId);
     if (session != null)
       session.lastAccessTime = System.currentTimeMillis();
     return session;
   }
 
-  Session removeSession(long sessionId) {
+  public Session removeSession(long sessionId) {
     return removeSession(sessionId, false);
   }
 
-  Session removeSession(long sessionId, boolean unreserve) {
+  public Session removeSession(long sessionId, boolean unreserve) {
     Session session = null;
     synchronized (this) {
       session = sessions.remove(sessionId);
@@ -181,7 +178,7 @@ public class SessionManager {
     }
   }
 
-  synchronized void removeIfNotAccessed(final long sessionId, long delay) {
+  public synchronized void removeIfNotAccessed(final long sessionId, long delay) {
     Session session = sessions.get(sessionId);
     if (session != null) {
       final long removeTime = session.lastAccessTime;

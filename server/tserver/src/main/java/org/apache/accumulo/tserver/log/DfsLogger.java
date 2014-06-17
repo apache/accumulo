@@ -229,7 +229,7 @@ public class DfsLogger {
   }
 
   /**
-   * Refernce a pre-existing log file.
+   * Reference a pre-existing log file.
    * @param meta the cq for the "log" entry in +r/!0
    */
   public DfsLogger(ServerResources conf, String filename, String meta) throws IOException {
