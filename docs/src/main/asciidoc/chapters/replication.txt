@@ -312,3 +312,52 @@ Finally, we can enable replication on this table.
 ----
 root@primary> config -t my_table -s table.replication=true
 ----
+
+=== Extra considerations for use
+
+While this feature is intended for general-purpose use, its implementation does carry some baggage. Like any software,
+replication is a feature that operates well within some set of use cases but is not meant to support all use cases.
+For the benefit of the users, we can enumerate these cases.
+
+==== Latency
+
+As previously mentioned, the replication feature uses the Write-Ahead Log files for a number of reasons, one of which
+is to prevent the need for data to be written to RFiles before it is available to be replicated. While this can help
+reduce the latency for a batch of Mutations that have been written to Accumulo, the latency is at least seconds to tens
+of seconds for replication once ingest is active. For a table which replication has just been enabled on, this is likely
+to take a few minutes before replication will begin.
+
+Once ingest is active and flowing into the system at a regular rate, replication should be occurring at a similar rate, 
+given sufficient computing resources. Replication attempts to copy data at a rate that is to be considered low latency
+but is not a replacement for custom indexing code which can ensure near real-time referential integrity on secondary indexes.
+
+==== Table-Configured Iterators
+
+Accumulo Iterators tend to be a heavy hammer which can be used to solve a variety of problems. In general, it is highly
+recommended that Iterators which are applied at major compaction time are both idempotent and associative due to the
+non-determinism in which some set of files for a Tablet might be compacted. In practice, this translates to common patterns,
+such as aggregation, which are implemented in a manner resilient to duplication (such as using a Set instead of a List).
+
+Due to the asynchronous nature of replication and the expectation that hardware failures and network partitions will exist,
+it is generally not recommended to not configure replication on a table which has Iterators set which are not idempotent.
+While the replication implementation can make some simple assertions to try to avoid re-replication of data, it is not
+presently guaranteed that all data will only be sent to a peer once. Data will be replicated at least once. Typically,
+this is not a problem as the VersioningIterator will automaticaly deduplicate this over-replication because they will
+have the same timestamp; however, certain Combiners may result in inaccurate aggregations.
+
+As a concrete example, consider a table which has the SummingCombiner configured to sum all values for
+multiple versions of the same Key. For some key, consider a set of numeric values that are written to a table on the
+primary: [1, 2, 3]. On the primary, all of these are successfully written and thus the current value for the given key
+would be 6, (1 + 2 + 3). Consider, however, that each of these updates to the peer were done independently (because
+other data was also included in the write-ahead log that needed to be replicated). The update with a value of 1 was
+successfully replicated, and then we attempted to replicate the update with a value of 2 but the remote server never
+responded. The primary does not know whether the update with a value of 2 was actually applied or not, so the
+only recourse is to re-send the update. After we receive confirmation that the update with a value of 2 was replicated,
+we will then replicate the update with 3. If the peer did never apply the first update of '2', the summation is accurate.
+If the update was applied but the acknowledgement was lost for some reason (system failure, network partition), the
+update will be resent to the peer. Because addition is non-idempotent, we have created an inconsistency between the
+primary and peer. As such, the SummingCombiner wouldn't be recommended on a table being replicated.
+
+While there are changes that could be made to the replication implementation which could attempt to mitigate this risk,
+presently, it is not recommended to configure Iterators or Combiners which are not idempotent to support cases where
+inaccuracy of aggregations is not acceptable.
