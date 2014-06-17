@@ -160,6 +160,7 @@ import org.apache.accumulo.server.master.state.TabletStateStore;
 import org.apache.accumulo.server.master.state.ZooTabletStateStore;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
+import org.apache.accumulo.server.replication.ZooKeeperInitialization;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.SystemCredentials;
@@ -2339,6 +2340,15 @@ public class TabletServer implements Runnable {
   // main loop listens for client requests
   public void run() {
     SecurityUtil.serverLogin(ServerConfiguration.getSiteConfiguration());
+
+    // To make things easier on users/devs, and to avoid creating an upgrade path to 1.7
+    // We can just make the zookeeper paths before we try to use.
+    try {
+      ZooKeeperInitialization.ensureZooKeeperInitialized(ZooReaderWriter.getInstance(), ZooUtil.getRoot(getInstance()));
+    } catch (KeeperException | InterruptedException e) {
+      log.error("Could not ensure that ZooKeeper is properly initialized", e);
+      throw new RuntimeException(e);
+    }
 
     try {
       clientAddress = startTabletClientService();

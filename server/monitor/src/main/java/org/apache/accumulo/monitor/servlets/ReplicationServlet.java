@@ -57,6 +57,7 @@ import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.hadoop.io.Text;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -210,56 +211,60 @@ public class ReplicationServlet extends BasicServlet {
 
     DistributedWorkQueue workQueue = new DistributedWorkQueue(workQueuePath, ServerConfiguration.getSystemConfiguration(inst));
 
-    for (String queueKey : workQueue.getWorkQueued()) {
-      Entry<String,ReplicationTarget> queueKeyPair = DistributedWorkQueueWorkAssignerHelper.fromQueueKey(queueKey);
-      String filename = queueKeyPair.getKey();
-      ReplicationTarget target = queueKeyPair.getValue();
-
-      byte[] data = zooCache.get(workQueuePath + "/" + queueKey);
-
-      // We could try to grep over the table, but without knowing the full file path, we
-      // can't find the status quickly
-      String status = "Unknown";
-      String path = null;
-      if (null != data) {
-        path = new String(data);
-        Scanner s = conn.createScanner(ReplicationConstants.TABLE_NAME, Authorizations.EMPTY);
-        s.setRange(Range.exact(path));
-        s.fetchColumn(WorkSection.NAME, target.toText());
+    try {
+      for (String queueKey : workQueue.getWorkQueued()) {
+        Entry<String,ReplicationTarget> queueKeyPair = DistributedWorkQueueWorkAssignerHelper.fromQueueKey(queueKey);
+        String filename = queueKeyPair.getKey();
+        ReplicationTarget target = queueKeyPair.getValue();
   
-        // Fetch the work entry for this item
-        Entry<Key,Value> kv = null;
-        try {
-          kv = Iterables.getOnlyElement(s);
-        } catch (NoSuchElementException e) {
-         log.trace("Could not find status of {} replicating to {}", filename, target);
-         status = "Unknown";
-        } finally {
-          s.close();
-        }
+        byte[] data = zooCache.get(workQueuePath + "/" + queueKey);
   
-        // If we found the work entry for it, try to compute some progress
-        if (null != kv) {
+        // We could try to grep over the table, but without knowing the full file path, we
+        // can't find the status quickly
+        String status = "Unknown";
+        String path = null;
+        if (null != data) {
+          path = new String(data);
+          Scanner s = conn.createScanner(ReplicationConstants.TABLE_NAME, Authorizations.EMPTY);
+          s.setRange(Range.exact(path));
+          s.fetchColumn(WorkSection.NAME, target.toText());
+    
+          // Fetch the work entry for this item
+          Entry<Key,Value> kv = null;
           try {
-            Status stat = Status.parseFrom(kv.getValue().get());
-            if (StatusUtil.isFullyReplicated(stat)) {
-              status = "Finished";
-            } else {
-              if (stat.getInfiniteEnd()) {
-                status = stat.getBegin() + "/&infin; records";
+            kv = Iterables.getOnlyElement(s);
+          } catch (NoSuchElementException e) {
+           log.trace("Could not find status of {} replicating to {}", filename, target);
+           status = "Unknown";
+          } finally {
+            s.close();
+          }
+    
+          // If we found the work entry for it, try to compute some progress
+          if (null != kv) {
+            try {
+              Status stat = Status.parseFrom(kv.getValue().get());
+              if (StatusUtil.isFullyReplicated(stat)) {
+                status = "Finished";
               } else {
-                status = stat.getBegin() + "/" + stat.getEnd() + " records";
+                if (stat.getInfiniteEnd()) {
+                  status = stat.getBegin() + "/&infin; records";
+                } else {
+                  status = stat.getBegin() + "/" + stat.getEnd() + " records";
+                }
               }
+            } catch (InvalidProtocolBufferException e) {
+              log.warn("Could not deserialize protobuf for {}", kv.getKey(), e);
+              status = "Unknown";
             }
-          } catch (InvalidProtocolBufferException e) {
-            log.warn("Could not deserialize protobuf for {}", kv.getKey(), e);
-            status = "Unknown";
           }
         }
+  
+        // Add a row in the table
+        replicationInProgress.addRow(null == path ? ".../" + filename : path, target.getPeerName(), target.getSourceTableId(), target.getRemoteIdentifier(), status);
       }
-
-      // Add a row in the table
-      replicationInProgress.addRow(null == path ? ".../" + filename : path, target.getPeerName(), target.getSourceTableId(), target.getRemoteIdentifier(), status);
+    } catch (KeeperException | InterruptedException e) {
+      log.warn("Could not calculate replication in progress", e);
     }
 
     replicationInProgress.generate(req, sb);

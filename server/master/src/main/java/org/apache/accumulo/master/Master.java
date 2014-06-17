@@ -106,6 +106,7 @@ import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.master.state.ZooStore;
 import org.apache.accumulo.server.master.state.ZooTabletStateStore;
+import org.apache.accumulo.server.replication.ZooKeeperInitialization;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.SystemCredentials;
@@ -935,7 +936,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
     tserverSet.startListeningForTabletServerChanges();
 
-    ZooReaderWriter.getInstance().getChildren(zroot + Constants.ZRECOVERY, new Watcher() {
+    ZooReaderWriter zReaderWriter = ZooReaderWriter.getInstance();
+
+    zReaderWriter.getChildren(zroot + Constants.ZRECOVERY, new Watcher() {
       @Override
       public void process(WatchedEvent event) {
         nextEvent.event("Noticed recovery changes", event.getType());
@@ -980,6 +983,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     } catch (InterruptedException e) {
       throw new IOException(e);
     }
+
+    ZooKeeperInitialization.ensureZooKeeperInitialized(zReaderWriter, zroot);
 
     Processor<Iface> processor = new Processor<Iface>(TraceWrap.service(new MasterClientServiceHandler(this)));
     ServerAddress sa = TServerUtils.startServer(getSystemConfiguration(), hostname, Property.MASTER_CLIENTPORT, processor, "Master",
