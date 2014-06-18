@@ -40,7 +40,8 @@ public class LargestFirstMemoryManager implements MemoryManager {
   private static final long ZERO_TIME = System.currentTimeMillis();
   private static final int TSERV_MINC_MAXCONCURRENT_NUMWAITING_MULTIPLIER = 2;
   private static final double MAX_FLUSH_AT_ONCE_PERCENT = 0.20;
-  
+
+
   private long maxMemory = -1;
   private int maxConcurrentMincs;
   private int numWaitingMultiplier;
@@ -111,7 +112,7 @@ public class LargestFirstMemoryManager implements MemoryManager {
     maxObserved = 0;
   }
   
-  private long getMinCIdleThreshold(KeyExtent extent) {
+  protected long getMinCIdleThreshold(KeyExtent extent) {
     Text tableId = extent.getTableId();
     if (!mincIdleThresholds.containsKey(tableId))
       mincIdleThresholds.put(tableId, config.getTableConfiguration(tableId.toString()).getTimeInMillis(Property.TABLE_MINC_COMPACT_IDLETIME));
@@ -131,7 +132,7 @@ public class LargestFirstMemoryManager implements MemoryManager {
     
     TreeMap<Long,TabletInfo> largestMemTablets = new LargestMap(maxMinCs);
     final TreeMap<Long,TabletInfo> largestIdleMemTablets = new LargestMap(maxConcurrentMincs);
-    final long now = System.currentTimeMillis();
+    final long now = currentTimeMillis();
     
     long ingestMemory = 0;
     long compactionMemory = 0;
@@ -222,6 +223,10 @@ public class LargestFirstMemoryManager implements MemoryManager {
     return result;
   }
   
+  protected long currentTimeMillis() {
+    return System.currentTimeMillis();
+  }
+
   @Override
   public void tabletClosed(KeyExtent extent) {}
   
