@@ -610,8 +610,6 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
       }
 
       cluster.exec(TabletServer.class);
-      // connMaster.tableOperations().compact(masterTable1, null, null, true, false);
-      // connMaster.tableOperations().compact(masterTable2, null, null, true, false);
 
       // Wait until we fully replicated something
       boolean fullyReplicated = false;
@@ -631,24 +629,39 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
       Assert.assertNotEquals(0, fullyReplicated);
 
       long countTable = 0l;
-      for (Entry<Key,Value> entry : connPeer.createScanner(peerTable1, Authorizations.EMPTY)) {
-        countTable++;
-        Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " " + entry.getValue(), entry.getKey().getRow().toString()
-            .startsWith(masterTable1));
+
+      // Check a few times
+      for (int i = 0; i < 5; i++) {
+        countTable = 0l;
+        for (Entry<Key,Value> entry : connPeer.createScanner(peerTable1, Authorizations.EMPTY)) {
+          countTable++;
+          Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " " + entry.getValue(), entry.getKey().getRow().toString()
+              .startsWith(masterTable1));
+        }
+        log.info("Found {} records in {}", countTable, peerTable1);
+        if (0 < countTable) {
+          break;
+        }
+        Thread.sleep(2000);
       }
 
-      log.info("Found {} records in {}", countTable, peerTable1);
-      Assert.assertTrue(countTable > 0);
+      Assert.assertTrue("Did not find any records in " + peerTable1 + " on peer", countTable > 0);
 
-      countTable = 0l;
-      for (Entry<Key,Value> entry : connPeer.createScanner(peerTable2, Authorizations.EMPTY)) {
-        countTable++;
-        Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " " + entry.getValue(), entry.getKey().getRow().toString()
-            .startsWith(masterTable2));
+      for (int i = 0; i < 5; i++ ) {
+        countTable = 0l;
+        for (Entry<Key,Value> entry : connPeer.createScanner(peerTable2, Authorizations.EMPTY)) {
+          countTable++;
+          Assert.assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " " + entry.getValue(), entry.getKey().getRow().toString()
+              .startsWith(masterTable2));
+        }
+
+        log.info("Found {} records in {}", countTable, peerTable2);
+        if (0 < countTable) {
+          break;
+        }
+        Thread.sleep(2000);
       }
-
-      log.info("Found {} records in {}", countTable, peerTable2);
-      Assert.assertTrue("Did not find any records in peer", countTable > 0);
+      Assert.assertTrue("Did not find any records in " + peerTable2 + " on peer", countTable > 0);
 
     } finally {
       peer1Cluster.stop();

@@ -89,11 +89,6 @@ public class ReplicationIT extends ConfigurableMacIT {
   private static final Logger log = LoggerFactory.getLogger(ReplicationIT.class);
 
   @Override
-  public int defaultTimeoutSeconds() {
-    return 30;
-  }
-
-  @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     // Run the master replication loop run frequently
     cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
