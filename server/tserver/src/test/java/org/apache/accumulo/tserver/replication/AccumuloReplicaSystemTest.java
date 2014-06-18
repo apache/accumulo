@@ -448,7 +448,7 @@ public class AccumuloReplicaSystemTest {
     Path p = new Path("/accumulo/wals/tserver+port/" + UUID.randomUUID().toString());
     Status status = null;
     long sizeLimit = Long.MAX_VALUE;
-    int remoteTableId = Integer.parseInt(target.getRemoteIdentifier());
+    String remoteTableId = target.getRemoteIdentifier();
     TCredentials tcreds = null;
     Set<Integer> tids = new HashSet<>();
 
@@ -477,7 +477,7 @@ public class AccumuloReplicaSystemTest {
     Path p = new Path("/accumulo/wals/tserver+port/" + UUID.randomUUID().toString());
     Status status = null;
     long sizeLimit = Long.MAX_VALUE;
-    int remoteTableId = Integer.parseInt(target.getRemoteIdentifier());
+    String remoteTableId = target.getRemoteIdentifier();
     TCredentials tcreds = null;
     Set<Integer> tids = new HashSet<>();
 

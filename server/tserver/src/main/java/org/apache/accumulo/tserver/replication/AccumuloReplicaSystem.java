@@ -162,7 +162,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
       Instance peerInstance = getPeerInstance(target);
       // Remote identifier is an integer (table id) in this case.
-      final int remoteTableId = Integer.parseInt(target.getRemoteIdentifier());
+      final String remoteTableId = target.getRemoteIdentifier();
 
       // Attempt the replication of this status a number of times before giving up and
       // trying to replicate it again later some other time.
@@ -233,7 +233,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   }
 
   protected Status replicateRFiles(final Instance peerInstance, final String peerTserver, final ReplicationTarget target, final Path p, final Status status,
-      final long sizeLimit, final int remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper) throws TTransportException,
+      final long sizeLimit, final String remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper) throws TTransportException,
       AccumuloException, AccumuloSecurityException {
     DataInputStream input;
     try {
@@ -279,7 +279,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   }
 
   protected Status replicateLogs(final Instance peerInstance, final String peerTserver, final ReplicationTarget target, final Path p, final Status status,
-      final long sizeLimit, final int remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper) throws TTransportException,
+      final long sizeLimit, final String remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper) throws TTransportException,
       AccumuloException, AccumuloSecurityException {
 
     final Set<Integer> tids;
@@ -317,7 +317,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       span.data("File", p.toString());
       span.data("Peer instance name", peerInstance.getInstanceName());
       span.data("Peer tserver", peerTserver);
-      span.data("Remote table ID", Integer.toString(remoteTableId));
+      span.data("Remote table ID", remoteTableId);
 
       ReplicationStats replResult;
       try {
@@ -374,11 +374,11 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     private Path p;
     private Status status;
     private long sizeLimit;
-    private int remoteTableId;
+    private String remoteTableId;
     private TCredentials tcreds;
     private Set<Integer> tids;
 
-    public WalClientExecReturn(ReplicationTarget target, DataInputStream input, Path p, Status status, long sizeLimit, int remoteTableId, TCredentials tcreds,
+    public WalClientExecReturn(ReplicationTarget target, DataInputStream input, Path p, Status status, long sizeLimit, String remoteTableId, TCredentials tcreds,
         Set<Integer> tids) {
       this.target = target;
       this.input = input;
@@ -425,10 +425,10 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     private Path p;
     private Status status;
     private long sizeLimit;
-    private int remoteTableId;
+    private String remoteTableId;
     private TCredentials tcreds;
 
-    public RFileClientExecReturn(ReplicationTarget target, DataInputStream input, Path p, Status status, long sizeLimit, int remoteTableId, TCredentials tcreds) {
+    public RFileClientExecReturn(ReplicationTarget target, DataInputStream input, Path p, Status status, long sizeLimit, String remoteTableId, TCredentials tcreds) {
       this.target = target;
       this.input = input;
       this.p = p;

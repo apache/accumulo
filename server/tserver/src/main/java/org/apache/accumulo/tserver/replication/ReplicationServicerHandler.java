@@ -52,10 +52,9 @@ public class ReplicationServicerHandler implements Iface {
   }
 
   @Override
-  public long replicateLog(int remoteTableId, WalEdits data, TCredentials tcreds) throws RemoteReplicationException, TException {
-    log.debug("Got replication request to tableID {} with {} edits", remoteTableId, data.getEditsSize());
+  public long replicateLog(String tableId, WalEdits data, TCredentials tcreds) throws RemoteReplicationException, TException {
+    log.debug("Got replication request to tableID {} with {} edits", tableId, data.getEditsSize());
 
-    String tableId = Integer.toString(remoteTableId);
     Credentials creds = Credentials.fromThrift(tcreds);
     Connector conn;
     String tableName;
@@ -116,7 +115,7 @@ public class ReplicationServicerHandler implements Iface {
   }
 
   @Override
-  public long replicateKeyValues(int remoteTableId, KeyValues data, TCredentials creds) throws RemoteReplicationException, TException {
+  public long replicateKeyValues(String tableId, KeyValues data, TCredentials creds) throws RemoteReplicationException, TException {
     throw new UnsupportedOperationException();
   }
 

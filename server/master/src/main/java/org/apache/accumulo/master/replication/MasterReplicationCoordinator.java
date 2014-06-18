@@ -67,7 +67,7 @@ public class MasterReplicationCoordinator implements ReplicationCoordinator.Ifac
 
 
   @Override
-  public String getServicerAddress(int remoteTableId, TCredentials creds) throws ReplicationCoordinatorException, TException {
+  public String getServicerAddress(String remoteTableId, TCredentials creds) throws ReplicationCoordinatorException, TException {
     try { 
       security.authenticateUser(SystemCredentials.get().toThrift(inst), creds);
     } catch (ThriftSecurityException e) {

@@ -54,10 +54,10 @@ exception RemoteReplicationException {
 }
 
 service ReplicationCoordinator {
-	string getServicerAddress(1:i32 remoteTableId, 2:security.TCredentials credentials) throws (1:ReplicationCoordinatorException e),
+	string getServicerAddress(1:string remoteTableId, 2:security.TCredentials credentials) throws (1:ReplicationCoordinatorException e),
 }
 
 service ReplicationServicer {
-    i64 replicateLog(1:i32 remoteTableId, 2:WalEdits data, 3:security.TCredentials credentials) throws (1:RemoteReplicationException e),
-    i64 replicateKeyValues(1:i32 remoteTableId, 2:KeyValues data, 3:security.TCredentials credentials) throws (1:RemoteReplicationException e)
+    i64 replicateLog(1:string remoteTableId, 2:WalEdits data, 3:security.TCredentials credentials) throws (1:RemoteReplicationException e),
+    i64 replicateKeyValues(1:string remoteTableId, 2:KeyValues data, 3:security.TCredentials credentials) throws (1:RemoteReplicationException e)
 }
