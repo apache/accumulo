@@ -16,10 +16,11 @@
  */
 package org.apache.accumulo.core.conf;
 
-import com.google.common.base.Preconditions;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
+
+import com.google.common.base.Preconditions;
 
 /**
  * A configuration that can be observed. Handling of observers is thread-safe.
