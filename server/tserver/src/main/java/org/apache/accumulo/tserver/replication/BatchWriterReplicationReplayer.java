@@ -20,6 +20,8 @@ import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -28,13 +30,15 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ColumnUpdate;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.replication.AccumuloReplicationReplayer;
 import org.apache.accumulo.core.replication.thrift.KeyValues;
 import org.apache.accumulo.core.replication.thrift.RemoteReplicationErrorCode;
 import org.apache.accumulo.core.replication.thrift.RemoteReplicationException;
 import org.apache.accumulo.core.replication.thrift.WalEdits;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.slf4j.Logger;
@@ -48,8 +52,7 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
   private static final Logger log = LoggerFactory.getLogger(BatchWriterReplicationReplayer.class);
 
   @Override
-  public long replicateLog(Connector conn, String tableName, WalEdits data) throws RemoteReplicationException {
-    final AccumuloConfiguration conf = ServerConfiguration.getSystemConfiguration(HdfsZooInstance.getInstance());
+  public long replicateLog(Connector conn, AccumuloConfiguration conf, String tableName, WalEdits data) throws RemoteReplicationException {
     final LogFileKey key = new LogFileKey();
     final LogFileValue value = new LogFileValue();
     final long memoryInBytes = conf.getMemoryInBytes(Property.TSERV_REPLICATION_BW_REPLAYER_MEMORY);
@@ -61,6 +64,8 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(edit.array()));
         try {
           key.readFields(dis);
+          // TODO this is brittle because AccumuloReplicaSystem isn't actually calling LogFileValue.write, but we're expecting
+          // what we receive to be readable by the LogFileValue.
           value.readFields(dis);
         } catch (IOException e) {
           log.error("Could not deserialize edit from stream", e);
@@ -80,8 +85,45 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
 
         log.info("Applying {} mutations to table {} as part of batch", value.mutations.size(), tableName);
 
+        // If we got a ServerMutation, we have to make sure that we preserve the systemTimestamp otherwise
+        // the local system will assign a new timestamp.
+        List<Mutation> mutationsCopy = new ArrayList<>(value.mutations.size());
+        long mutationsCopied = 0l;
+        for (Mutation orig : value.mutations) {
+          if (orig instanceof ServerMutation) {
+            mutationsCopied++;
+
+            ServerMutation origServer = (ServerMutation) orig;
+            Mutation copy = new Mutation(orig.getRow());
+            for (ColumnUpdate update : orig.getUpdates()) {
+              long timestamp;
+
+              // If the update doesn't have a timestamp, pull it from the ServerMutation
+              if (!update.hasTimestamp()) {
+                timestamp = origServer.getSystemTimestamp();
+              } else {
+                timestamp = update.getTimestamp();
+              }
+
+              // TODO cache the CVs
+              if (update.isDeleted()) {
+                copy.putDelete(update.getColumnFamily(), update.getColumnQualifier(), new ColumnVisibility(update.getColumnVisibility()), timestamp);
+              } else {
+                copy.put(update.getColumnFamily(), update.getColumnQualifier(), new ColumnVisibility(update.getColumnVisibility()), timestamp,
+                    update.getValue());
+              }
+            }
+
+            mutationsCopy.add(copy);
+          } else {
+            mutationsCopy.add(orig);
+          }
+        }
+
+        log.debug("Copied {} mutations to ensure server-assigned timestamps are propagated", mutationsCopied);
+
         try {
-          bw.addMutations(value.mutations);
+          bw.addMutations(mutationsCopy);
         } catch (MutationsRejectedException e) {
           log.error("Could not apply mutations to {}", tableName);
           throw new RemoteReplicationException(RemoteReplicationErrorCode.COULD_NOT_APPLY, "Could not apply mutations to " + tableName);

@@ -39,7 +39,6 @@ import org.apache.accumulo.core.client.replication.ReplicaSystem;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
@@ -57,8 +56,6 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
-import org.apache.accumulo.server.data.ServerColumnUpdate;
-import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.trace.instrument.Span;
@@ -584,6 +581,9 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
    * {@link ReplicationTarget}
    */
   protected long writeValueAvoidingReplicationCycles(DataOutputStream out, LogFileValue value, ReplicationTarget target) throws IOException {
+    // TODO This works like LogFileValue, and needs to be parsable by it, which makes this serialization brittle.
+    // see matching TODO in BatchWriterReplicationReplayer
+
     int mutationsToSend = 0;
     for (Mutation m : value.mutations) {
       if (!m.getReplicationSources().contains(target.getPeerName())) {
