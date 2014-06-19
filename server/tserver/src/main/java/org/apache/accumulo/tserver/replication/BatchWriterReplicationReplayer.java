@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -111,6 +112,14 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
               } else {
                 copy.put(update.getColumnFamily(), update.getColumnQualifier(), new ColumnVisibility(update.getColumnVisibility()), timestamp,
                     update.getValue());
+              }
+            }
+
+            // We also need to preserve the replicationSource information to prevent cycles
+            Set<String> replicationSources = orig.getReplicationSources();
+            if (null != replicationSources && !replicationSources.isEmpty()) {
+              for (String replicationSource : replicationSources) {
+                copy.addReplicationSource(replicationSource);
               }
             }
 
