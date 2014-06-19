@@ -17,9 +17,8 @@
 package org.apache.accumulo.core.util;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.log4j.AsyncAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.apache.log4j.net.SocketAppender;
 import org.apache.log4j.spi.LoggingEvent;
 
