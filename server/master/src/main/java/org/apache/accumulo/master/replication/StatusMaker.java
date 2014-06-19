@@ -155,9 +155,6 @@ public class StatusMaker {
 
   /**
    * Create a status record in the replication table
-   * @param file
-   * @param tableId
-   * @param v
    */
   protected boolean addStatusRecord(Text file, Text tableId, Value v) {
     try {

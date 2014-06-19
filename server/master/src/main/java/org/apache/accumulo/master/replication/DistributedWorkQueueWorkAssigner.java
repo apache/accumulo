@@ -110,8 +110,6 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
 
   /**
    * Initialize the DistributedWorkQueue using the proper ZK location
-   * 
-   * @param conf
    */
   protected void initializeWorkQueue(AccumuloConfiguration conf) {
     workQueue = new DistributedWorkQueue(ZooUtil.getRoot(conn.getInstance()) + ReplicationConstants.ZOO_WORK_QUEUE, conf);
@@ -266,8 +264,6 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
 
   /**
    * Remove the given work from the internal state
-   * @param target 
-   * @param queueKey
    */
   protected abstract void removeQueuedWork(ReplicationTarget target, String queueKey);
 

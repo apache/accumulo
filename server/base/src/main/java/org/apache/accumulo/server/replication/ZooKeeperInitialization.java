@@ -29,10 +29,6 @@ import org.apache.zookeeper.KeeperException;
 public class ZooKeeperInitialization {
   /**
    * Ensure that the full path to ZooKeeper nodes that will be used exist
-   * @param zooReaderWriter
-   * @param zRoot
-   * @throws KeeperException
-   * @throws InterruptedException
    */
   public static void ensureZooKeeperInitialized(final ZooReaderWriter zooReaderWriter, final String zRoot) throws KeeperException, InterruptedException {
     if (!zooReaderWriter.exists(zRoot + ReplicationConstants.ZOO_TSERVERS, null)) {

@@ -67,8 +67,6 @@ public class ReplicationSchema {
 
     /**
      * Limit the scanner to only pull replication work records
-     * 
-     * @param scanner
      */
     public static void limit(ScannerBase scanner) {
       scanner.fetchColumnFamily(NAME);
@@ -136,8 +134,6 @@ public class ReplicationSchema {
 
     /**
      * Limit the scanner to only return Status records
-     * 
-     * @param scanner
      */
     public static void limit(ScannerBase scanner) {
       scanner.fetchColumnFamily(NAME);
@@ -190,8 +186,6 @@ public class ReplicationSchema {
 
     /**
      * Limit the scanner to only return Order records
-     * 
-     * @param scanner
      */
     public static void limit(ScannerBase scanner) {
       scanner.fetchColumnFamily(NAME);

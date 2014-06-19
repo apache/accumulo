@@ -41,7 +41,6 @@ public interface ReplicaSystem {
    * <p>
    * For example, we only need one implementation for Accumulo, but, for each peer,
    * we have a ZK quorum and instance name
-   * @param configuration
    */
   public void configure(String configuration);
 }

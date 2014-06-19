@@ -579,8 +579,6 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   /**
    * Wrapper around {@link LogFileValue#write(java.io.DataOutput)} which does not serialize {@link Mutation}s that do not need to be replicate to the given
    * {@link ReplicationTarget}
-   * 
-   * @throws IOException
    */
   protected long writeValueAvoidingReplicationCycles(DataOutputStream out, LogFileValue value, ReplicationTarget target) throws IOException {
     int mutationsToSend = 0;

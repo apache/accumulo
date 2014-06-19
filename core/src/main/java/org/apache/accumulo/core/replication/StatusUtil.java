@@ -167,7 +167,6 @@ public class StatusUtil {
   /**
    * @param v Value with serialized Status
    * @return A Status created from the Value
-   * @throws InvalidProtocolBufferException
    */
   public static Status fromValue(Value v) throws InvalidProtocolBufferException {
     return Status.parseFrom(v.get());

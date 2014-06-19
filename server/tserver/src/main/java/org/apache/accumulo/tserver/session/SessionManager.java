@@ -22,8 +22,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.TimerTask;
 import java.util.Map.Entry;
+import java.util.TimerTask;
 
 import org.apache.accumulo.core.client.impl.Translator;
 import org.apache.accumulo.core.client.impl.Translators;
@@ -82,8 +82,6 @@ public class SessionManager {
 
   /**
    * while a session is reserved, it cannot be canceled or removed
-   *
-   * @param sessionId
    */
 
   public synchronized Session reserveSession(long sessionId) {

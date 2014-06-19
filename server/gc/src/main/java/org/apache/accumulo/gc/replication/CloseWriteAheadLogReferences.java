@@ -245,7 +245,6 @@ public class CloseWriteAheadLogReferences implements Runnable {
    *          BatchWriter
    * @param k
    *          Key to create close mutation from
-   * @throws MutationsRejectedException
    */
   protected void closeWal(BatchWriter bw, Key k) throws MutationsRejectedException {
     log.debug("Closing unreferenced WAL ({}) in metadata table", k.toStringNoTruncate());

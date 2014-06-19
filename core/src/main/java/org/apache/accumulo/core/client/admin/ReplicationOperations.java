@@ -42,14 +42,12 @@ public interface ReplicationOperations {
    * Defines a cluster with the given name and the given name system.
    * @param name Unique name for the cluster
    * @param replicaType {@link ReplicaSystem} class name to use to replicate the data
-   * @throws PeerExistsException
    */
   public void addPeer(String name, String replicaType) throws AccumuloException, AccumuloSecurityException, PeerExistsException;
 
   /**
    * Removes a cluster with the given name.
    * @param name Name of the cluster to remove
-   * @throws PeerNotFoundException
    */
   public void removePeer(String name) throws AccumuloException, AccumuloSecurityException, PeerNotFoundException;
 
@@ -57,8 +55,6 @@ public interface ReplicationOperations {
    * Waits for a table to be fully replicated, given the state of files pending replication for the provided table
    * at the point in time which this method is invoked.
    * @param tableName The table to wait for
-   * @throws AccumuloException
-   * @throws AccumuloSecurityException
    */
   public void drain(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
@@ -67,8 +63,6 @@ public interface ReplicationOperations {
    * files to be fully replicated to all configured peers. This allows for the accurate calculation
    * when a table, at a given point in time, has been fully replicated.
    * @param tableName The table to wait for
-   * @throws AccumuloException
-   * @throws AccumuloSecurityException
    */
   public void drain(String tableName, Set<String> files) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
@@ -79,8 +73,6 @@ public interface ReplicationOperations {
    * <p>
    * This also allows callers to get the {@link Set} of files for a table at some time, and later provide that
    * {@link Set} to {@link #drain(String,Set)} to wait for all of those files to be replicated.
-   * @param tableName
-   * @throws TableNotFoundException
    */
   public Set<String> referencedFiles(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 }
