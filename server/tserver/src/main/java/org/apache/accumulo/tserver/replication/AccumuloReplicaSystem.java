@@ -39,6 +39,7 @@ import org.apache.accumulo.core.client.replication.ReplicaSystem;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
@@ -56,6 +57,8 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.data.ServerColumnUpdate;
+import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.trace.instrument.Span;
@@ -593,16 +596,16 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       log.debug("Removing {} mutations from WAL entry as they have already been replicated to {}", mutationsRemoved, target.getPeerName());
     }
 
+    // Add our name, and send it
+    final String name = conf.get(Property.REPLICATION_NAME);
+    if (StringUtils.isBlank(name)) {
+      throw new IllegalArgumentException("Local system has no replication name configured");
+    }
+
     out.writeInt(mutationsToSend);
     for (Mutation m : value.mutations) {
       // If we haven't yet replicated to this peer
       if (!m.getReplicationSources().contains(target.getPeerName())) {
-        // Add our name, and send it
-        String name = conf.get(Property.REPLICATION_NAME);
-        if (StringUtils.isBlank(name)) {
-          throw new IllegalArgumentException("Local system has no replication name configured");
-        }
-
         m.addReplicationSource(name);
 
         m.write(out);
