@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.util.StringUtils;
 
@@ -33,19 +34,19 @@ import org.apache.hadoop.util.StringUtils;
  * @since 1.5.0
  */
 public class BatchWriterConfig implements Writable {
-  
+
   private static final Long DEFAULT_MAX_MEMORY = 50 * 1024 * 1024l;
   private Long maxMemory = null;
-  
+
   private static final Long DEFAULT_MAX_LATENCY = 2 * 60 * 1000l;
   private Long maxLatency = null;
-  
+
   private static final Long DEFAULT_TIMEOUT = Long.MAX_VALUE;
   private Long timeout = null;
-  
+
   private static final Integer DEFAULT_MAX_WRITE_THREADS = 3;
   private Integer maxWriteThreads = null;
-  
+
   /**
    * Sets the maximum memory to batch before writing. The smaller this value, the more frequently the {@link BatchWriter} will write.<br />
    * If set to a value smaller than a single mutation, then it will {@link BatchWriter#flush()} after each added mutation. Must be non-negative.
@@ -65,7 +66,7 @@ public class BatchWriterConfig implements Writable {
     this.maxMemory = maxMemory;
     return this;
   }
-  
+
   /**
    * Sets the maximum amount of time to hold the data in memory before flushing it to servers.<br />
    * For no maximum, set to zero, or {@link Long#MAX_VALUE} with {@link TimeUnit#MILLISECONDS}.
@@ -89,7 +90,7 @@ public class BatchWriterConfig implements Writable {
   public BatchWriterConfig setMaxLatency(long maxLatency, TimeUnit timeUnit) {
     if (maxLatency < 0)
       throw new IllegalArgumentException("Negative max latency not allowed " + maxLatency);
-    
+
     if (maxLatency == 0)
       this.maxLatency = Long.MAX_VALUE;
     else
@@ -97,7 +98,7 @@ public class BatchWriterConfig implements Writable {
       this.maxLatency = Math.max(1, timeUnit.toMillis(maxLatency));
     return this;
   }
-  
+
   /**
    * Sets the maximum amount of time an unresponsive server will be re-tried. When this timeout is exceeded, the {@link BatchWriter} should throw an exception.<br />
    * For no timeout, set to zero, or {@link Long#MAX_VALUE} with {@link TimeUnit#MILLISECONDS}.
@@ -121,7 +122,7 @@ public class BatchWriterConfig implements Writable {
   public BatchWriterConfig setTimeout(long timeout, TimeUnit timeUnit) {
     if (timeout < 0)
       throw new IllegalArgumentException("Negative timeout not allowed " + timeout);
-    
+
     if (timeout == 0)
       this.timeout = Long.MAX_VALUE;
     else
@@ -129,7 +130,7 @@ public class BatchWriterConfig implements Writable {
       this.timeout = Math.max(1, timeUnit.toMillis(timeout));
     return this;
   }
-  
+
   /**
    * Sets the maximum number of threads to use for writing data to the tablet servers.
    * 
@@ -145,27 +146,27 @@ public class BatchWriterConfig implements Writable {
   public BatchWriterConfig setMaxWriteThreads(int maxWriteThreads) {
     if (maxWriteThreads <= 0)
       throw new IllegalArgumentException("Max threads must be positive " + maxWriteThreads);
-    
+
     this.maxWriteThreads = maxWriteThreads;
     return this;
   }
-  
+
   public long getMaxMemory() {
     return maxMemory != null ? maxMemory : DEFAULT_MAX_MEMORY;
   }
-  
+
   public long getMaxLatency(TimeUnit timeUnit) {
     return timeUnit.convert(maxLatency != null ? maxLatency : DEFAULT_MAX_LATENCY, TimeUnit.MILLISECONDS);
   }
-  
+
   public long getTimeout(TimeUnit timeUnit) {
     return timeUnit.convert(timeout != null ? timeout : DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS);
   }
-  
+
   public int getMaxWriteThreads() {
     return maxWriteThreads != null ? maxWriteThreads : DEFAULT_MAX_WRITE_THREADS;
   }
-  
+
   @Override
   public void write(DataOutput out) throws IOException {
     // write this out in a human-readable way
@@ -179,7 +180,7 @@ public class BatchWriterConfig implements Writable {
     if (timeout != null)
       addField(fields, "timeout", timeout);
     String output = StringUtils.join(",", fields);
-    
+
     byte[] bytes = output.getBytes(StandardCharsets.UTF_8);
     byte[] len = String.format("%6s#", Integer.toString(bytes.length, 36)).getBytes(StandardCharsets.UTF_8);
     if (len.length != 7)
@@ -187,13 +188,13 @@ public class BatchWriterConfig implements Writable {
     out.write(len);
     out.write(bytes);
   }
-  
+
   private void addField(List<String> fields, String name, Object value) {
     String key = StringUtils.escapeString(name, '\\', new char[] {',', '='});
     String val = StringUtils.escapeString(String.valueOf(value), '\\', new char[] {',', '='});
     fields.add(key + '=' + val);
   }
-  
+
   @Override
   public void readFields(DataInput in) throws IOException {
     byte[] len = new byte[7];
@@ -203,7 +204,7 @@ public class BatchWriterConfig implements Writable {
       throw new IllegalStateException("length was not encoded correctly");
     byte[] bytes = new byte[Integer.parseInt(strLen.substring(strLen.lastIndexOf(' ') + 1, strLen.length() - 1), 36)];
     in.readFully(bytes);
-    
+
     String strFields = new String(bytes, StandardCharsets.UTF_8);
     String[] fields = StringUtils.split(strFields, '\\', ',');
     for (String field : fields) {
@@ -222,5 +223,71 @@ public class BatchWriterConfig implements Writable {
         /* ignore any other properties */
       }
     }
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o instanceof BatchWriterConfig) {
+      BatchWriterConfig other = (BatchWriterConfig) o;
+
+      if (null != maxMemory) {
+        if (!maxMemory.equals(other.maxMemory)) {
+          return false;
+        }
+      } else {
+        if (null != other.maxMemory) {
+          return false;
+        }
+      }
+
+      if (null != maxLatency) {
+        if (!maxLatency.equals(other.maxLatency)) {
+          return false;
+        }
+      } else {
+        if (null != other.maxLatency) {
+          return false;
+        }
+      }
+
+      if (null != maxWriteThreads) {
+        if (!maxWriteThreads.equals(other.maxWriteThreads)) {
+          return false;
+        }
+      } else {
+        if (null != other.maxWriteThreads) {
+          return false;
+        }
+      }
+
+      if (null != timeout) {
+        if (!timeout.equals(other.timeout)) {
+          return false;
+        }
+      } else {
+        if (null != other.timeout) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    HashCodeBuilder hcb = new HashCodeBuilder();
+    hcb.append(maxMemory).append(maxLatency).append(maxWriteThreads).append(timeout);
+    return hcb.toHashCode();
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder(32);
+    sb.append("[maxMemory=").append(getMaxMemory()).append(", maxLatency=").append(getMaxLatency(TimeUnit.MILLISECONDS)).append(", maxWriteThreads=")
+        .append(getMaxWriteThreads()).append(", timeout=").append(getTimeout(TimeUnit.MILLISECONDS)).append("]");
+    return sb.toString();
   }
 }
