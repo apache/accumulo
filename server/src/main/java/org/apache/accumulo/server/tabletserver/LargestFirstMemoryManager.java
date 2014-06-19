@@ -39,7 +39,6 @@ public class LargestFirstMemoryManager implements MemoryManager {
   
   private static final Logger log = Logger.getLogger(LargestFirstMemoryManager.class);
   private static final long ZERO_TIME = System.currentTimeMillis();
-  private static final int TSERV_MINC_MAXCONCURRENT_NUMWAITING_MULTIPLIER = 2;
   private static final double MAX_FLUSH_AT_ONCE_PERCENT = 0.20;
   
   private long maxMemory = -1;
@@ -98,6 +97,7 @@ public class LargestFirstMemoryManager implements MemoryManager {
     this.numWaitingMultiplier = numWaitingMultiplier;
   }
   
+  @Override
   public void init(ServerConfiguration conf) {
     this.config = conf;
     maxMemory = conf.getConfiguration().getMemoryInBytes(Property.TSERV_MAXMEM);
