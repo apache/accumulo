@@ -16,17 +16,16 @@
  */
 package org.apache.accumulo.core.conf;
 
-import com.google.common.base.Preconditions;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
-import org.apache.log4j.Logger;
+
+import com.google.common.base.Preconditions;
 
 /**
  * A configuration that can be observed. Handling of observers is thread-safe.
  */
 public abstract class ObservableConfiguration extends AccumuloConfiguration {
-  private static final Logger log = Logger.getLogger(ObservableConfiguration.class);
 
   private Set<ConfigurationObserver> observers;
 
