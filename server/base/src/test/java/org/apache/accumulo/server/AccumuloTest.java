@@ -16,20 +16,21 @@
  */
 package org.apache.accumulo.server;
 
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.FileNotFoundException;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
 
 public class AccumuloTest {
   private FileSystem fs;
@@ -113,7 +114,6 @@ public class AccumuloTest {
     String confDirName = confDir.getAbsolutePath();
     assertTrue("Failed to make test configuration directory", confDir.mkdir());
     try {
-      File genericXml = new File(confDir, "generic_logger.xml");
       String genericXmlName = String.format("%s/generic_logger.xml", confDirName);
 
       assertEquals(genericXmlName, Accumulo.locateLogConfig(confDirName, "flogger"));
