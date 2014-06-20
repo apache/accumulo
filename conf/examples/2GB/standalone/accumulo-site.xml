@@ -110,7 +110,7 @@
       $HADOOP_PREFIX/lib/[^.].*.jar,
       <!-- Comment the following for hadoop-1 -->
       $HADOOP_PREFIX/share/hadoop/common/.*.jar,
-      $HADOOP_PREFIX/share/hadoop/common/lib/.*.jar,
+      $HADOOP_PREFIX/share/hadoop/common/lib/(?!slf4j)[^.].*.jar,
       $HADOOP_PREFIX/share/hadoop/hdfs/.*.jar,
       $HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar,
       $HADOOP_PREFIX/share/hadoop/yarn/.*.jar,
