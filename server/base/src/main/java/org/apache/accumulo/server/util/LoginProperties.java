@@ -27,7 +27,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.security.handler.Authenticator;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 
 /**
  * 
@@ -36,7 +36,7 @@ public class LoginProperties {
   
   public static void main(String[] args) throws Exception {
     AccumuloConfiguration config = ServerConfiguration.getSystemConfiguration(HdfsZooInstance.getInstance());
-    Authenticator authenticator = AccumuloClassLoader.getClassLoader().loadClass(config.get(Property.INSTANCE_SECURITY_AUTHENTICATOR))
+    Authenticator authenticator = AccumuloVFSClassLoader.getClassLoader().loadClass(config.get(Property.INSTANCE_SECURITY_AUTHENTICATOR))
         .asSubclass(Authenticator.class).newInstance();
     
     List<Set<TokenProperty>> tokenProps = new ArrayList<Set<TokenProperty>>();
