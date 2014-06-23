@@ -19,10 +19,10 @@ package org.apache.accumulo.monitor;
 import javax.servlet.http.HttpServlet;
 
 import org.apache.accumulo.core.conf.Property;
-import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.nio.SelectChannelConnector;
 import org.eclipse.jetty.server.session.SessionHandler;
+import org.eclipse.jetty.server.ssl.SslSelectChannelConnector;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
@@ -30,7 +30,7 @@ public class EmbeddedWebServer {
   private static String EMPTY = "";
 
   Server server = null;
-  ServerConnector connector = null;
+  SelectChannelConnector connector = null;
   ServletContextHandler handler;
   boolean usingSsl;
 
@@ -44,16 +44,16 @@ public class EmbeddedWebServer {
         || EMPTY.equals(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_KEYSTOREPASS))
         || EMPTY.equals(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_TRUSTSTORE)) || EMPTY.equals(Monitor.getSystemConfiguration().get(
 Property.MONITOR_SSL_TRUSTSTOREPASS))) {
-      connector = new ServerConnector(server, new HttpConnectionFactory());
+      connector = new SelectChannelConnector();
       usingSsl = false;
     } else {
       SslContextFactory sslContextFactory = new SslContextFactory();
       sslContextFactory.setKeyStorePath(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_KEYSTORE));
       sslContextFactory.setKeyStorePassword(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_KEYSTOREPASS));
-      sslContextFactory.setTrustStorePath(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_TRUSTSTORE));
+      sslContextFactory.setTrustStore(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_TRUSTSTORE));
       sslContextFactory.setTrustStorePassword(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_TRUSTSTOREPASS));
 
-      connector = new ServerConnector(server, sslContextFactory);
+      connector = new SslSelectChannelConnector(sslContextFactory);
       usingSsl = true;
     }
 

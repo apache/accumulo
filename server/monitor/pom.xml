@@ -81,6 +81,10 @@
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-http</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-security</artifactId>
     </dependency>
     <dependency>
@@ -97,7 +101,7 @@
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-http</artifactId>
+      <artifactId>jetty-continuation</artifactId>
       <scope>runtime</scope>
     </dependency>
     <dependency>

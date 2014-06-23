@@ -35,6 +35,7 @@
         <include>org.apache.commons:commons-math</include>
         <include>org.apache.commons:commons-vfs2</include>
         <include>org.apache.thrift:libthrift</include>
+        <include>org.eclipse.jetty:jetty-continuation</include>
         <include>org.eclipse.jetty:jetty-http</include>
         <include>org.eclipse.jetty:jetty-io</include>
         <include>org.eclipse.jetty:jetty-security</include>
