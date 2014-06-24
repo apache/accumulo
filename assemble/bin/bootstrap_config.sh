@@ -25,6 +25,7 @@ where options include (long options not available on all platforms):
     -j, --jvm        Configure to use the jvm
     -o, --overwrite  Overwrite the default config directory
     -v, --version    Specify the Apache Hadoop version supported versions: '1' '2'
+    -x  --vendor     Specify the vendor of the Java Virtual Machine in which Accumulo will run: 'Sun', 'OpenJDK', 'IBM' & 'Other'
     -h, --help       Print this help message
 EOF
 }
@@ -57,9 +58,9 @@ BASE_DIR=
 
 #Execute getopt
 if [[ $(uname -s) == "Linux" ]]; then
-  args=$(getopt -o "b:d:s:njov:h" -l "basedir:,dir:,size:,native,jvm,overwrite,version:,help" -q -- "$@")
+  args=$(getopt -o "b:d:s:njov:x:h" -l "basedir:,dir:,size:,native,jvm,overwrite,version:,vendor:,help" -q -- "$@")
 else # Darwin, BSD
-  args=$(getopt b:d:s:njov:h $*)
+  args=$(getopt b:d:s:njov:x:h $*)
 fi
 
 #Bad arguments
@@ -93,6 +94,9 @@ do
     -v|--version)
       HADOOP_VERSION=$2; shift
       shift;;
+    -x|--vendor)
+      JVM_VENDOR=$2; shift
+      shift;;
     -h|--help)
       usage
       exit 0
@@ -122,83 +126,6 @@ while [[ "${OVERWRITE}" = "0" ]]; do
   fi
 done
 echo "Coppying configuration files to: ${CONF_DIR}"
-
-#Native 1GB
-native_1GB_tServer="-Xmx128m -Xms128m"
-_1GB_master="-Xmx128m -Xms128m"
-_1GB_monitor="-Xmx64m -Xms64m"
-_1GB_gc="-Xmx64m -Xms64m"
-_1GB_other="-Xmx128m -Xms64m"
-
-_1GB_memoryMapMax="256M"
-native_1GB_nativeEnabled="true"
-_1GB_cacheDataSize="15M"
-_1GB_cacheIndexSize="40M"
-_1GB_sortBufferSize="50M"
-_1GB_waLogMaxSize="256M"
-
-#Native 2GB
-native_2GB_tServer="-Xmx256m -Xms256m"
-_2GB_master="-Xmx256m -Xms256m"
-_2GB_monitor="-Xmx128m -Xms64m"
-_2GB_gc="-Xmx128m -Xms128m"
-_2GB_other="-Xmx256m -Xms64m"
-
-_2GB_memoryMapMax="512M"
-native_2GB_nativeEnabled="true"
-_2GB_cacheDataSize="30M"
-_2GB_cacheIndexSize="80M"
-_2GB_sortBufferSize="50M"
-_2GB_waLogMaxSize="512M"
-
-#Native 3GB
-native_3GB_tServer="-Xmx1g -Xms1g -XX:NewSize=500m -XX:MaxNewSize=500m"
-_3GB_master="-Xmx1g -Xms1g"
-_3GB_monitor="-Xmx1g -Xms256m"
-_3GB_gc="-Xmx256m -Xms256m"
-_3GB_other="-Xmx1g -Xms256m"
-
-_3GB_memoryMapMax="1G"
-native_3GB_nativeEnabled="true"
-_3GB_cacheDataSize="128M"
-_3GB_cacheIndexSize="128M"
-_3GB_sortBufferSize="200M"
-_3GB_waLogMaxSize="1G"
-
-#Native 512MB
-native_512MB_tServer="-Xmx48m -Xms48m"
-_512MB_master="-Xmx128m -Xms128m"
-_512MB_monitor="-Xmx64m -Xms64m"
-_512MB_gc="-Xmx64m -Xms64m"
-_512MB_other="-Xmx128m -Xms64m"
-
-_512MB_memoryMapMax="80M"
-native_512MB_nativeEnabled="true"
-_512MB_cacheDataSize="7M"
-_512MB_cacheIndexSize="20M"
-_512MB_sortBufferSize="50M"
-_512MB_waLogMaxSize="100M"
-
-#JVM 1GB
-jvm_1GB_tServer="-Xmx384m -Xms384m"
-
-jvm_1GB_nativeEnabled="false"
-
-#JVM 2GB
-jvm_2GB_tServer="-Xmx768m -Xms768m"
-
-jvm_2GB_nativeEnabled="false"
-
-#JVM 3GB
-jvm_3GB_tServer="-Xmx2g -Xms2g -XX:NewSize=1G -XX:MaxNewSize=1G"
-
-jvm_3GB_nativeEnabled="false"
-
-#JVM 512MB
-jvm_512MB_tServer="-Xmx128m -Xms128m"
-
-jvm_512MB_nativeEnabled="false"
-
 
 if [[ -z "${SIZE}" ]]; then
   echo "Choose the heap configuration:"
@@ -255,6 +182,110 @@ for var in SIZE TYPE HADOOP_VERSION; do
   fi
 done
 
+if [[ -z "${JVM_VENDOR}" ]]; then
+  echo 
+  echo "Choose Java vendor:"
+  select SEL_JVM_VENDOR in Sun OpenJDK IBM Other; do
+    echo "Using configuration for ${SEL_JVM_VENDOR} JVM"
+    JVM_VENDOR=${SEL_JVM_VENDOR}
+    echo
+    break
+  done
+fi
+
+if [[ "${JVM_VENDOR}" == "IBM" ]] ; then
+  GC_NEWSIZE_PREFIX="-Xmns"
+  GC_MAXNEWSIZE_PREFIX="-Xmnx"
+  GC_POLICY_ARGS="-Xgcpolicy:gencon"
+  JAXP_DOCUMENT_BUILDER_FACTORY_ARGS=""
+  RNG_PROVIDER_OVERRIDE_ARGS="-Dcrypto.secure.rng.provider=IBMJCE"
+else
+  GC_NEWSIZE_PREFIX="-XX:NewSize="
+  GC_MAXNEWSIZE_PREFIX="-XX:MaxNewSize="
+  GC_POLICY_ARGS="-XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=75" 
+  JAXP_DOCUMENT_BUILDER_FACTORY_ARGS="-Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl"
+  RNG_PROVIDER_OVERRIDE_ARGS=""
+fi
+
+#Native 1GB
+native_1GB_tServer="-Xmx128m -Xms128m"
+_1GB_master="-Xmx128m -Xms128m"
+_1GB_monitor="-Xmx64m -Xms64m"
+_1GB_gc="-Xmx64m -Xms64m"
+_1GB_other="-Xmx128m -Xms64m"
+
+_1GB_memoryMapMax="256M"
+native_1GB_nativeEnabled="true"
+_1GB_cacheDataSize="15M"
+_1GB_cacheIndexSize="40M"
+_1GB_sortBufferSize="50M"
+_1GB_waLogMaxSize="256M"
+
+#Native 2GB
+native_2GB_tServer="-Xmx256m -Xms256m"
+_2GB_master="-Xmx256m -Xms256m"
+_2GB_monitor="-Xmx128m -Xms64m"
+_2GB_gc="-Xmx128m -Xms128m"
+_2GB_other="-Xmx256m -Xms64m"
+
+_2GB_memoryMapMax="512M"
+native_2GB_nativeEnabled="true"
+_2GB_cacheDataSize="30M"
+_2GB_cacheIndexSize="80M"
+_2GB_sortBufferSize="50M"
+_2GB_waLogMaxSize="512M"
+
+#Native 3GB
+native_3GB_tServer="-Xmx1g -Xms1g ${GC_NEWSIZE_PREFIX}500m ${GC_MAXNEWSIZE_PREFIX}500m"
+_3GB_master="-Xmx1g -Xms1g"
+_3GB_monitor="-Xmx1g -Xms256m"
+_3GB_gc="-Xmx256m -Xms256m"
+_3GB_other="-Xmx1g -Xms256m"
+
+_3GB_memoryMapMax="1G"
+native_3GB_nativeEnabled="true"
+_3GB_cacheDataSize="128M"
+_3GB_cacheIndexSize="128M"
+_3GB_sortBufferSize="200M"
+_3GB_waLogMaxSize="1G"
+
+#Native 512MB
+native_512MB_tServer="-Xmx48m -Xms48m"
+_512MB_master="-Xmx128m -Xms128m"
+_512MB_monitor="-Xmx64m -Xms64m"
+_512MB_gc="-Xmx64m -Xms64m"
+_512MB_other="-Xmx128m -Xms64m"
+
+_512MB_memoryMapMax="80M"
+native_512MB_nativeEnabled="true"
+_512MB_cacheDataSize="7M"
+_512MB_cacheIndexSize="20M"
+_512MB_sortBufferSize="50M"
+_512MB_waLogMaxSize="100M"
+
+#JVM 1GB
+jvm_1GB_tServer="-Xmx384m -Xms384m"
+
+jvm_1GB_nativeEnabled="false"
+
+#JVM 2GB
+jvm_2GB_tServer="-Xmx768m -Xms768m"
+
+jvm_2GB_nativeEnabled="false"
+
+#JVM 3GB
+jvm_3GB_tServer="-Xmx2g -Xms2g ${GC_NEWSIZE_PREFIX}1G ${GC_MAXNEWSIZE_PREFIX}1G"
+
+jvm_3GB_nativeEnabled="false"
+
+#JVM 512MB
+jvm_512MB_tServer="-Xmx128m -Xms128m"
+
+jvm_512MB_nativeEnabled="false"
+
+
+
+
 TSERVER="${TYPE}_${SIZE}_tServer"
 MASTER="_${SIZE}_master"
 MONITOR="_${SIZE}_monitor"
@@ -281,6 +312,9 @@ sed -e "s/\${tServerHigh_tServerLow}/${!TSERVER}/" \
     -e "s/\${monitorHigh_monitorLow}/${!MONITOR}/" \
     -e "s/\${gcHigh_gcLow}/${!GC}/" \
     -e "s/\${otherHigh_otherLow}/${!OTHER}/" \
+    -e "s/\${gcPolicy}/$GC_POLICY_ARGS/" \
+    -e "s/\${jaxpDocBuilderFactory}/$JAXP_DOCUMENT_BUILDER_FACTORY_ARGS/" \
+    -e "s/\${randomNumGeneratorProviderOverride}/$RNG_PROVIDER_OVERRIDE_ARGS/" \
     ${TEMPLATE_CONF_DIR}/$ACCUMULO_ENV > ${CONF_DIR}/$ACCUMULO_ENV
 
 #Configure accumulo-site.xml
