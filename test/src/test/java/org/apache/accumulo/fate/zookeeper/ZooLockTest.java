@@ -27,6 +27,9 @@ import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.junit.AfterClass;
@@ -43,6 +46,23 @@ public class ZooLockTest {
   public static TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   private static MiniAccumuloCluster accumulo;
+
+  static class ConnectedWatcher implements Watcher {
+    volatile boolean connected = false;
+
+    @Override
+    public synchronized void process(WatchedEvent event) {
+      if (event.getState() == KeeperState.SyncConnected) { // For ZK >3.4.... || event.getState() == KeeperState.ConnectedReadOnly) {
+        connected = true;
+      } else {
+        connected = false;
+      }
+    }
+
+    public synchronized boolean isConnected() {
+      return connected;
+    }
+  }
 
   static class TestALW implements AsyncLockWatcher {
 
@@ -102,8 +122,6 @@ public class ZooLockTest {
 
   @Test(timeout = 10000)
   public void testDeleteParent() throws Exception {
-    accumulo.getZooKeepers();
-
     String parent = "/zltest-" + this.hashCode() + "-l" + pdCount++;
 
     ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 30000, "digest", "secret".getBytes(), parent);
@@ -135,8 +153,6 @@ public class ZooLockTest {
 
   @Test(timeout = 10000)
   public void testNoParent() throws Exception {
-    accumulo.getZooKeepers();
-
     String parent = "/zltest-" + this.hashCode() + "-l" + pdCount++;
 
     ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 30000, "digest", "secret".getBytes(), parent);
@@ -157,8 +173,6 @@ public class ZooLockTest {
 
   @Test(timeout = 10000)
   public void testDeleteLock() throws Exception {
-    accumulo.getZooKeepers();
-
     String parent = "/zltest-" + this.hashCode() + "-l" + pdCount++;
 
     ZooReaderWriter zk = ZooReaderWriter.getInstance(accumulo.getZooKeepers(), 30000, "digest", "secret".getBytes());
@@ -190,8 +204,6 @@ public class ZooLockTest {
 
   @Test(timeout = 10000)
   public void testDeleteWaiting() throws Exception {
-    accumulo.getZooKeepers();
-
     String parent = "/zltest-" + this.hashCode() + "-l" + pdCount++;
 
     ZooReaderWriter zk = ZooReaderWriter.getInstance(accumulo.getZooKeepers(), 30000, "digest", "secret".getBytes());
@@ -258,13 +270,16 @@ public class ZooLockTest {
 
   @Test(timeout = 10000)
   public void testUnexpectedEvent() throws Exception {
-    accumulo.getZooKeepers();
-
     String parent = "/zltest-" + this.hashCode() + "-l" + pdCount++;
 
-    ZooKeeper zk = new ZooKeeper(accumulo.getZooKeepers(), 30000, null);
+    ConnectedWatcher watcher = new ConnectedWatcher();
+    ZooKeeper zk = new ZooKeeper(accumulo.getZooKeepers(), 30000, watcher);
     zk.addAuthInfo("digest", "secret".getBytes());
 
+    while (!watcher.isConnected()) {
+      Thread.sleep(200);
+    }
+    
     zk.create(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
     ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 30000, "digest", "secret".getBytes(), parent);
@@ -302,10 +317,15 @@ public class ZooLockTest {
     String parent = "/zltest-" + this.hashCode() + "-l" + pdCount++;
 
     ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 1000, "digest", "secret".getBytes(), parent);
-
-    ZooKeeper zk = new ZooKeeper(accumulo.getZooKeepers(), 1000, null);
+    
+    ConnectedWatcher watcher = new ConnectedWatcher();
+    ZooKeeper zk = new ZooKeeper(accumulo.getZooKeepers(), 1000, watcher);
     zk.addAuthInfo("digest", "secret".getBytes());
 
+    while (!watcher.isConnected()) {
+      Thread.sleep(200);
+    }
+    
     for (int i = 0; i < 10; i++) {
       zk.create(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
       zk.delete(parent, -1);
@@ -332,8 +352,14 @@ public class ZooLockTest {
   @Test(timeout = 10000)
   public void testChangeData() throws Exception {
     String parent = "/zltest-" + this.hashCode() + "-l" + pdCount++;
-    ZooKeeper zk = new ZooKeeper(accumulo.getZooKeepers(), 1000, null);
+    ConnectedWatcher watcher = new ConnectedWatcher();
+    ZooKeeper zk = new ZooKeeper(accumulo.getZooKeepers(), 1000, watcher);
     zk.addAuthInfo("digest", "secret".getBytes());
+
+    while (!watcher.isConnected()) {
+      Thread.sleep(200);
+    }
+    
     zk.create(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
     ZooLock zl = new ZooLock(accumulo.getZooKeepers(), 1000, "digest", "secret".getBytes(), parent);
