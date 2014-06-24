@@ -286,8 +286,8 @@ public class ReplicationIT extends ConfigurableMacIT {
 
     bw.close();
 
-    // Compact the table1
-    conn.tableOperations().compact(table1, null, null, true, true);
+    // After the commit for these mutations finishes, we'll get a replication entry in accumulo.metadata for table1
+    // Don't want to compact table1 as it ultimately cause the entry in accumulo.metadata to be removed before we can verify it's there
 
     // After writing data, we'll get a replication table
     boolean exists = conn.tableOperations().exists(ReplicationTable.NAME);
@@ -344,8 +344,8 @@ public class ReplicationIT extends ConfigurableMacIT {
 
     bw.close();
 
-    // Compact the table2
-    conn.tableOperations().compact(table2, null, null, true, true);
+    // After the commit on these mutations, we'll get a replication entry in accumulo.metadata for table2
+    // Don't want to compact table2 as it ultimately cause the entry in accumulo.metadata to be removed before we can verify it's there
 
     // After writing data, we'll get a replication table
     Assert.assertTrue(conn.tableOperations().exists(ReplicationTable.NAME));
