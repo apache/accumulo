@@ -138,7 +138,20 @@ public abstract class RowFilter extends WrappingIterator {
     super.init(source, options, env);
     this.decisionIterator = new RowIterator(source.deepCopy(env));
   }
-  
+
+  @Override
+  public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
+    RowFilter newInstance;
+    try {
+      newInstance = getClass().newInstance();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+    newInstance.setSource(getSource().deepCopy(env));
+    newInstance.decisionIterator = new RowIterator(getSource().deepCopy(env));
+    return newInstance;
+  }
+
   @Override
   public boolean hasTop() {
     return hasTop && super.hasTop();
