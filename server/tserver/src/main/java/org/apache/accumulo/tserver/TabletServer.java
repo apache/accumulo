@@ -179,6 +179,7 @@ import org.apache.accumulo.server.util.FileSystemMonitor;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
+import org.apache.accumulo.server.util.RpcWrapper;
 import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.util.TServerUtils.ServerAddress;
 import org.apache.accumulo.server.util.time.RelativeTime;
@@ -192,7 +193,6 @@ import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
-import org.apache.accumulo.trace.instrument.thrift.TraceWrap;
 import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.accumulo.tserver.Compactor.CompactionInfo;
 import org.apache.accumulo.tserver.RowLocks.RowLock;
@@ -3085,7 +3085,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
   private HostAndPort startTabletClientService() throws UnknownHostException {
     // start listening for client connection last
-    Iface tch = TraceWrap.service(new ThriftClientHandler());
+    Iface tch = RpcWrapper.service(new ThriftClientHandler());
     Processor<Iface> processor = new Processor<Iface>(tch);
     HostAndPort address = startServer(getSystemConfiguration(), clientAddress.getHostText(), Property.TSERV_CLIENTPORT, processor, "Thrift Client Server");
     log.info("address = " + address);

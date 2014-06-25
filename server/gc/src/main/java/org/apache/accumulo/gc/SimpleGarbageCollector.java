@@ -85,6 +85,7 @@ import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.Halt;
+import org.apache.accumulo.server.util.RpcWrapper;
 import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.util.TabletIterator;
 import org.apache.accumulo.server.zookeeper.ZooLock;
@@ -92,7 +93,6 @@ import org.apache.accumulo.trace.instrument.CountSampler;
 import org.apache.accumulo.trace.instrument.Sampler;
 import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
-import org.apache.accumulo.trace.instrument.thrift.TraceWrap;
 import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -645,7 +645,7 @@ public class SimpleGarbageCollector implements Iface {
   }
 
   private HostAndPort startStatsService() throws UnknownHostException {
-    Processor<Iface> processor = new Processor<Iface>(TraceWrap.service(this));
+    Processor<Iface> processor = new Processor<Iface>(RpcWrapper.service(this));
     AccumuloConfiguration conf = ServerConfiguration.getSystemConfiguration(instance);
     int port = conf.getPort(Property.GC_PORT);
     long maxMessageSize = conf.getMemoryInBytes(Property.GENERAL_MAX_MESSAGE_SIZE);

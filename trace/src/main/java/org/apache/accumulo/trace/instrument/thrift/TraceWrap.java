@@ -17,15 +17,7 @@
 package org.apache.accumulo.trace.instrument.thrift;
 
 import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-
-import org.apache.accumulo.trace.instrument.Span;
-import org.apache.accumulo.trace.instrument.Trace;
-import org.apache.accumulo.trace.instrument.Tracer;
-import org.apache.accumulo.trace.thrift.TInfo;
-
 
 /**
  * To move trace data from client to server, the RPC call must be annotated to take a TInfo object as its first argument. The user can simply pass null, so long
@@ -45,55 +37,21 @@ import org.apache.accumulo.trace.thrift.TInfo;
  * 
  */
 public class TraceWrap {
-  
-  @SuppressWarnings("unchecked")
+
   public static <T> T service(final T instance) {
-    InvocationHandler handler = new InvocationHandler() {
-      @Override
-      public Object invoke(Object obj, Method method, Object[] args) throws Throwable {
-        if (args == null || args.length < 1 || args[0] == null || !(args[0] instanceof TInfo)) {
-          try {
-            return method.invoke(instance, args);
-          } catch (InvocationTargetException ex) {
-            throw ex.getCause();
-          }
-        }
-        Span span = Trace.trace((TInfo) args[0], method.getName());
-        try {
-          return method.invoke(instance, args);
-        } catch (InvocationTargetException ex) {
-          throw ex.getCause();
-        } finally {
-          span.stop();
-        }
-      }
-    };
-    return (T) Proxy.newProxyInstance(instance.getClass().getClassLoader(), instance.getClass().getInterfaces(), handler);
+    InvocationHandler handler = new RpcServerInvocationHandler<T>(instance);
+    return wrappedInstance(handler, instance);
   }
-  
-  @SuppressWarnings("unchecked")
+
   public static <T> T client(final T instance) {
-    InvocationHandler handler = new InvocationHandler() {
-      @Override
-      public Object invoke(Object obj, Method method, Object[] args) throws Throwable {
-        if (args == null || args.length < 1 || args[0] != null) {
-          return method.invoke(instance, args);
-        }
-        Class<?> klass = method.getParameterTypes()[0];
-        if (TInfo.class.isAssignableFrom(klass)) {
-          args[0] = Tracer.traceInfo();
-        }
-        Span span = Trace.start("client:" + method.getName());
-        try {
-          return method.invoke(instance, args);
-        } catch (InvocationTargetException ex) {
-          throw ex.getCause();
-        } finally {
-          span.stop();
-        }
-      }
-    };
-    return (T) Proxy.newProxyInstance(instance.getClass().getClassLoader(), instance.getClass().getInterfaces(), handler);
+    InvocationHandler handler = new RpcClientInvocationHandler<T>(instance);
+    return wrappedInstance(handler, instance);
   }
-  
+
+  private static <T> T wrappedInstance(final InvocationHandler handler, final T instance) {
+    @SuppressWarnings("unchecked")
+    T proxiedInstance = (T) Proxy.newProxyInstance(instance.getClass().getClassLoader(), instance.getClass().getInterfaces(), handler);
+    return proxiedInstance;
+  }
+
 }
