@@ -47,7 +47,12 @@ public class Write {
         System.err.println("Couldn't create table ourselves, but that's ok. Continuing.");
       }
     }
-  
+
+    long writeDelay = opts.write_delay;
+    if (writeDelay < 0) {
+      writeDelay = 0;
+    }
+
     DataWriter dw = new DataWriter(c.createBatchWriter(opts.getTableName(), batch_writer_opts.getBatchWriterConfig()),
         new RandomMutations(
             //rows
@@ -82,6 +87,9 @@ public class Write {
     
     while(true) {
       dw.next();
+      if (writeDelay > 0) {
+        Thread.sleep(writeDelay);
+      }
     }
   }
 }
