@@ -33,8 +33,12 @@ CQ_SEED='--cq-seed 3'
 VALUE_SEED='--value-seed 4'
 ROW_WIDTH_SEED='--row-width-seed 5'
 
+# This is the delay in milliseconds between writes. Use <= 0 for no delay.
+WRITE_DELAY='--write-delay 0'
+
 # Let's reset the table, for good measure
 ../../../bin/accumulo shell $USERPASS -e 'deletetable -f stress_test'
 ../../../bin/accumulo shell $USERPASS -e 'createtable stress_test'
 
-../../../bin/accumulo org.apache.accumulo.test.stress.random.Write $INSTANCE $USERPASS $ROW_RANGE $CF_RANGE $CQ_RANGE $VALUE_RANGE $ROW_SEED $CF_SEED $CQ_SEED $VALUE_SEED $ROW_WIDTH $ROW_WIDTH_SEED
+../../../bin/accumulo org.apache.accumulo.test.stress.random.Write $INSTANCE $USERPASS $ROW_RANGE $CF_RANGE $CQ_RANGE $VALUE_RANGE \
+  $ROW_SEED $CF_SEED $CQ_SEED $VALUE_SEED $ROW_WIDTH $ROW_WIDTH_SEED $WRITE_DELAY
