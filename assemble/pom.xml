@@ -161,6 +161,30 @@
       <artifactId>slf4j-log4j12</artifactId>
     </dependency>
   </dependencies>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>generate-example-configs</id>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <phase>generate-resources</phase>
+            <configuration>
+              <executable>bash</executable>
+              <arguments>
+                <argument>-c</argument>
+                <argument>for s in 1GB 2GB 3GB 512MB; do bin/bootstrap_config.sh -o -d target/example-configs/$s/standalone -s $s -j -v 2; bin/bootstrap_config.sh -o -d target/example-configs/$s/native-standalone -s $s -n -v 2; done</argument>
+              </arguments>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
   <profiles>
     <profile>
       <id>apache-release</id>
