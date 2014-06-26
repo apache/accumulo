@@ -57,14 +57,29 @@ public final class SystemCredentials extends Credentials {
   }
 
   public static SystemCredentials get() {
-    SecurityManager sm = System.getSecurityManager();
-    if (sm != null) {
-      sm.checkPermission(SYSTEM_CREDENTIALS_PERMISSION);
-    }
+    check_permission();
     if (SYSTEM_CREDS == null) {
       SYSTEM_CREDS = new SystemCredentials(HdfsZooInstance.getInstance());
     }
     return SYSTEM_CREDS;
+  }
+
+  private static void check_permission() {
+    SecurityManager sm = System.getSecurityManager();
+    if (sm != null) {
+      sm.checkPermission(SYSTEM_CREDENTIALS_PERMISSION);
+    }
+  }
+
+  public static SystemCredentials get(Instance instance) {
+    check_permission();
+    /* Special case to avoid duplicating SYSTEM_CREDS */
+    if (null != SYSTEM_CREDS) {
+      if (SYSTEM_CREDS.AS_THRIFT.getInstanceId().equals(instance.getInstanceID())) {
+        return SYSTEM_CREDS;
+      }
+    }
+    return new SystemCredentials(instance);
   }
 
   @Override

@@ -75,6 +75,14 @@ public class AccumuloSecurityException extends Exception {
   }
   
   /**
+   * Construct a user-facing exception from a serialized version.
+   * @param thrift a serialized version
+   */
+  public AccumuloSecurityException(final ThriftSecurityException thrift) {
+    this(thrift.getUser(), thrift.getCode(), thrift);
+  }
+
+  /**
    * @param user
    *          the relevant user for the security violation
    * @param errorcode
