@@ -32,7 +32,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
-import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
@@ -79,7 +78,7 @@ public class Merge {
     Text end = null;
   }
   
-  public void start(String[] args) throws MergeException, ParseException {
+  public void start(String[] args) throws MergeException {
     Opts opts = new Opts();
     opts.parseArgs(Merge.class.getCanonicalName(), args);
     
@@ -102,7 +101,7 @@ public class Merge {
     }
   }
   
-  public static void main(String[] args) throws MergeException, ParseException {
+  public static void main(String[] args) throws MergeException {
     Merge merge = new Merge();
     merge.start(args);
   }
