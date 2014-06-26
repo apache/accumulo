@@ -333,7 +333,7 @@ public class AccumuloInputFormatTest {
   public void testCorrectRangeInputSplits() throws Exception {
     Job job = new Job(new Configuration(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
 
-    String username = "user", table = "table", instance = "instance";
+    String username = "user", table = "table", instance = "mapreduce_testCorrectRangeInputSplits";
     PasswordToken password = new PasswordToken("password");
     Authorizations auths = new Authorizations("foo");
     Collection<Pair<Text,Text>> fetchColumns = Collections.singleton(new Pair<Text,Text>(new Text("foo"), new Text("bar")));
