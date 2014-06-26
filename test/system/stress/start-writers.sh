@@ -25,14 +25,16 @@ while [ -h "${SOURCE}" ]; do # resolve $SOURCE until the file is no longer a sym
 done
 DIR="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
 # Stop: Resolve Script Directory
-LOG_DIR=${DIR}/logs
-mkdir -p $LOG_DIR
 
 # Source environment
 . ${DIR}/stress-env.sh
 
-ts=$(date +%Y%m%d%H%M%S)
-host=$(hostname)
-${ACCUMULO_HOME}/bin/accumulo org.apache.accumulo.test.stress.random.Scan $INSTANCE $USERPASS $SCAN_SEED $CONTINUOUS_SCAN $SCAN_BATCH_SIZE \
-    > $LOG_DIR/${ts}_${host}_reader.out \
-    2> $LOG_DIR/${ts}_${host}_reader.err
+if [[ ! -f ${DIR}/writers ]]; then
+    echo writers file is missing
+    exit 1
+fi
+
+# Copy environment out
+pscp -h ${DIR}/writers ${DIR}/stress-env.sh ${DIR}
+
+pssh -h ${DIR}/writers "nohup ${DIR}/writer.sh >${DIR}/writer.out 2>${DIR}/writer.err < /dev/null &"
