@@ -33,7 +33,10 @@ class ScanOpts extends ClientOnDefaultTable {
   
   @Parameter(names = "--scan-seed", description = "seed for randomly choosing tablets to scan")
   int scan_seed = 1337;
-  
+
+  @Parameter(names = "--scan-batch-size", description="scanner batch size")
+  int batch_size = -1;
+
   public ScanOpts() {
     this(WriteOptions.DEFAULT_TABLE);
   }

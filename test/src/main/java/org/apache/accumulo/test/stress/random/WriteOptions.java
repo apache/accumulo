@@ -71,7 +71,10 @@ class WriteOptions extends ClientOnDefaultTable {
   
   @Parameter(names = "--row-width-seed", description = "seed for generating the number of cells within a row (a row's \"width\")")
   int row_width_seed = 444;
-  
+
+  @Parameter(names = "--write-delay", description = "milliseconds to wait between writes")
+  long write_delay = 0L;
+
   public WriteOptions(String table) {
     super(table);
   }

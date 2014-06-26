@@ -31,4 +31,8 @@ CONTINUOUS_SCAN='--continuous'
 # Controls whether or not the scan will be using an isolated scanner. Add this to the execution 
 #SCAN_ISOLATION='--isolate'
 
-../../../bin/accumulo org.apache.accumulo.test.stress.random.Scan $INSTANCE $USERPASS $SCAN_SEED $CONTINUOUS_SCAN
+# Sets the batch size for the scanner, use a lower number for large rows / cells
+#SCAN_BATCH_SIZE='--scan-batch-size -1'
+
+../../../bin/accumulo org.apache.accumulo.test.stress.random.Scan $INSTANCE $USERPASS $SCAN_SEED $CONTINUOUS_SCAN \
+  $SCAN_BATCH_SIZE
