@@ -37,6 +37,6 @@ host=$(hostname)
 # TBD - --clear-table option
 
 ${ACCUMULO_HOME}/bin/accumulo org.apache.accumulo.test.stress.random.Write $INSTANCE $USERPASS $ROW_RANGE $CF_RANGE $CQ_RANGE $VALUE_RANGE \
-  $ROW_SEED $CF_SEED $CQ_SEED $VALUE_SEED $ROW_WIDTH $ROW_WIDTH_SEED $WRITE_DELAY \
+  $ROW_SEED $CF_SEED $CQ_SEED $VALUE_SEED $ROW_WIDTH $ROW_WIDTH_SEED $MAX_CELLS_PER_MUTATION $WRITE_DELAY \
     > $LOG_DIR/${ts}_${host}_writer.out \
     2> $LOG_DIR/${ts}_${host}_writer.err
