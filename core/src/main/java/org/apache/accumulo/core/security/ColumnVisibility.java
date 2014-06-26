@@ -35,6 +35,38 @@ import org.apache.hadoop.io.WritableComparator;
 /**
  * Validate the column visibility is a valid expression and set the visibility for a Mutation. See {@link ColumnVisibility#ColumnVisibility(byte[])} for the
  * definition of an expression.
+ *
+ * <P>
+ * The expression is a sequence of characters from the set [A-Za-z0-9_-.] along with the
+ * binary operators "&" and "|" indicating that both operands are necessary, or the either
+ * is necessary. The following are valid expressions for visibility:
+ * 
+ * <pre>
+ * A
+ * A|B
+ * (A|B)&(C|D)
+ * orange|(red&yellow)
+ * </pre>
+ * 
+ * <P>
+ * The following are not valid expressions for visibility:
+ * 
+ * <pre>
+ * A|B&C
+ * A=B
+ * A|B|
+ * A&|B
+ * ()
+ * )
+ * dog|!cat
+ * </pre>
+ * 
+ * <P>
+ * In addition to the base set of visibilities, any character can be used in the expression if it is quoted. If the quoted term contains '&quot;' or '\', then escape
+ * the character with '\'. The {@link #quote(String)} method can be used to properly quote and escape terms automatically. The following is an example of a quoted term:
+ * <pre>
+ * &quot;A#C&quot;<span />&amp;<span />B
+ * </pre>
  */
 public class ColumnVisibility {
   
@@ -381,39 +413,7 @@ public class ColumnVisibility {
    * Set the column visibility for a Mutation.
    * 
    * @param expression
-   *          An expression of the rights needed to see this mutation. The expression is a sequence of characters from the set [A-Za-z0-9_-] along with the
-   *          binary operators "&" and "|" indicating that both operands are necessary, or the either is necessary. The following are valid expressions for
-   *          visibility:
-   * 
-   *          <pre>
-   * A
-   * A|B
-   * (A|B)&(C|D)
-   * orange|(red&yellow)
-   * 
-   * </pre>
-   * 
-   *          <P>
-   *          The following are not valid expressions for visibility:
-   * 
-   *          <pre>
-   * A|B&C
-   * A=B
-   * A|B|
-   * A&|B
-   * ()
-   * )
-   * dog|!cat
-   * </pre>
-   * 
-   *          <P>
-   *          You can use any character you like in your column visibility expression with quoting. If your quoted term contains '&quot;' or '\' then escape
-   *          them with '\'. The {@link #quote(String)} method will properly quote and escape terms for you.
-   * 
-   *          <pre>
-   * &quot;A#C&quot;<span />&amp;<span />B
-   * </pre>
-   * 
+   *          An expression of the rights needed to see this mutation. The expression syntax is defined at the class-level documentation
    */
   public ColumnVisibility(String expression) {
     this(expression.getBytes(Constants.UTF8));

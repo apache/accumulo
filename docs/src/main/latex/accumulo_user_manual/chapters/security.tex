@@ -48,8 +48,14 @@ mutation.put(colFam, colQual, colVis, timestamp, value);
 
 Security labels consist of a set of user-defined tokens that are required to read the
 value the label is associated with. The set of tokens required can be specified using
-syntax that supports logical AND and OR combinations of tokens, as well as nesting
-groups of tokens together.
+syntax that supports logical AND \verb^&^ and OR \verb^|^ combinations of terms, as
+well as nesting groups \verb^()^ of terms together.
+
+Each term is comprised of one to many alpha-numeric characters, hyphens, underscores or
+periods. Optionally, each term may be wrapped in quotation marks
+which removes the restriction on valid characters. In quoted terms, quotation marks
+and backslash characters can be used as characters in the term by escaping them
+with a backslash.
 
 For example, suppose within our organization we want to label our data values with
 security labels defined in terms of user roles. We might have tokens such as:
