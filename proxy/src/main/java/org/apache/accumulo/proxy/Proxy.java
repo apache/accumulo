@@ -144,6 +144,7 @@ public class Proxy {
       throw new RuntimeException(maxFrameSize + " is larger than MAX_INT");
     args.transportFactory(new TFramedTransport.Factory((int)maxFrameSize));
     args.protocolFactory(protoClass.newInstance());
+    args.maxReadBufferBytes = maxFrameSize;
     return new THsHaServer(args);
   }
 }
