@@ -36,7 +36,6 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
@@ -84,7 +83,7 @@ public class Merge {
     Text end = null;
   }
   
-  public void start(String[] args) throws MergeException, ParseException {
+  public void start(String[] args) throws MergeException {
     Opts opts = new Opts();
     opts.parseArgs(Merge.class.getName(), args);
     
@@ -107,7 +106,7 @@ public class Merge {
     }
   }
   
-  public static void main(String[] args) throws MergeException, ParseException {
+  public static void main(String[] args) throws MergeException {
     Merge merge = new Merge();
     merge.start(args);
   }
