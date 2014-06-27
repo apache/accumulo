@@ -18,14 +18,14 @@
 function usage {
   cat <<EOF
 Usage: bootstrap_config.sh [-options]
-where options include:
-    -d --dir        Alternate directory to setup config files
-    -s --size       Supported sizes: '1GB' '2GB' '3GB' '512MB'
-    -n --native     Configure to use native libraries
-    -j --jvm        Configure to use the jvm
-    -o --overwrite  Overwrite the default config directory
-    -v --version    Specify the Apache Hadoop version supported versions: '1' '2'
-    -h --help       Print this help message
+where options include (long options not available on all platforms):
+    -d, --dir        Alternate directory to setup config files
+    -s, --size       Supported sizes: '1GB' '2GB' '3GB' '512MB'
+    -n, --native     Configure to use native libraries
+    -j, --jvm        Configure to use the jvm
+    -o, --overwrite  Overwrite the default config directory
+    -v, --version    Specify the Apache Hadoop version supported versions: '1' '2'
+    -h, --help       Print this help message
 EOF
 }
 
@@ -56,7 +56,11 @@ OVERWRITE="0"
 BASE_DIR=
 
 #Execute getopt
-args=$(getopt -o "b:d:s:njov:h" -l "basedir:,dir:,size:,native,jvm,overwrite,version:,help" -q -- "$@")
+if [[ $(uname -s) == "Linux" ]]; then
+  args=$(getopt -o "b:d:s:njov:h" -l "basedir:,dir:,size:,native,jvm,overwrite,version:,help" -q -- "$@")
+else # Darwin, BSD
+  args=$(getopt b:d:s:njov:h $*)
+fi
 
 #Bad arguments
 if [[ $? != 0 ]]; then
