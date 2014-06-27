@@ -130,6 +130,7 @@
           <configuration>
             <excludes>
               <exclude>src/test/resources/*.walog</exclude>
+              <exclude>src/test/resources/walog-from-14/*</exclude>
             </excludes>
           </configuration>
         </plugin>
