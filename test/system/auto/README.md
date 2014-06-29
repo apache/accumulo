@@ -93,7 +93,7 @@ only the tests you wish to run.
 
 You may specify a 'timeout factor' via an optional integer argument:
 
-> `$ ./bin/accumulo org.apache.accumulo.test.functional.RunTests --tests \  
+> `$ ./bin/tool.sh lib/accumulo-test.jar org.apache.accumulo.test.functional.RunTests --tests \
 /user/hadoop/tests --output /user/hadoop/results --timeoutFactor timeout_factor`
 
 Where `timeout_factor` indicates how much we should scale up timeouts. It will
