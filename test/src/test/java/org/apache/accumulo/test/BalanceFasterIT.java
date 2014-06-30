@@ -40,7 +40,7 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 // ACCUMULO-2952
-public class BalanceFaster extends ConfigurableMacIT {
+public class BalanceFasterIT extends ConfigurableMacIT {
   
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -49,6 +49,7 @@ public class BalanceFaster extends ConfigurableMacIT {
 
   @Test(timeout=30*1000)
   public void test() throws Exception {
+    // create a table, add a bunch of splits
     String tableName = getUniqueNames(1)[0];
     Connector conn = getConnector();
     conn.tableOperations().create(tableName);
@@ -57,8 +58,10 @@ public class BalanceFaster extends ConfigurableMacIT {
       splits.add(new Text("" + i));
     }
     conn.tableOperations().addSplits(tableName, splits);
+    // give a short wait for balancing
+    UtilWaitThread.sleep(10*1000);
+    // find out where the tabets are
     Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    UtilWaitThread.sleep(5000);
     s.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
     s.setRange(MetadataSchema.TabletsSection.getRange());
     Map<String, Integer> counts = new HashMap<String, Integer>();
@@ -68,13 +71,16 @@ public class BalanceFaster extends ConfigurableMacIT {
         counts.put(host, 0);
       counts.put(host, counts.get(host) + 1);
     }
+    // should be on all three servers
     assertTrue(counts.size() == 3);
+    // and distributed evenly
     Iterator<Integer> i = counts.values().iterator();
     int a = i.next();
     int b = i.next();
     int c = i.next();
     assertTrue(Math.abs(a - b) < 3);
     assertTrue(Math.abs(a - c) < 3);
+    assertTrue(a > 330);
   }
   
 }
