@@ -15,4 +15,4 @@
 language: java
 jdk:
   - oraclejdk7
-script: mvn package -P assemble
+script: mvn package
