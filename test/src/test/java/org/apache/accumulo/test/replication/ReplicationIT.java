@@ -775,13 +775,16 @@ public class ReplicationIT extends ConfigurableMacIT {
     // Create a table
     conn.tableOperations().create(table1);
 
-    int attempts = 5;
+    int attempts = 10;
+
+    // Might think the table doesn't yet exist, retry
     while (attempts > 0) {
       try {
         // Enable replication on table1
         conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION.getKey(), "true");
         // Replicate table1 to cluster1 in the table with id of '4'
         conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "4");
+        // Sleep for 100 seconds before saying something is replicated
         conn.instanceOperations().setProperty(Property.REPLICATION_PEERS.getKey() + "cluster1",
             ReplicaSystemFactory.getPeerConfigurationValue(MockReplicaSystem.class, "100000"));
         break;
@@ -790,7 +793,7 @@ public class ReplicationIT extends ConfigurableMacIT {
         if (attempts <= 0) {
           throw e;
         }
-        UtilWaitThread.sleep(500);
+        UtilWaitThread.sleep(1000);
       }
     }
 
@@ -809,10 +812,10 @@ public class ReplicationIT extends ConfigurableMacIT {
 
     // Make sure the replication table exists at this point
     boolean exists = conn.tableOperations().exists(ReplicationTable.NAME);
-    attempts = 5;
+    attempts = 10;
     do {
       if (!exists) {
-        UtilWaitThread.sleep(200);
+        UtilWaitThread.sleep(1000);
         exists = conn.tableOperations().exists(ReplicationTable.NAME);
         attempts--;
       }
@@ -820,7 +823,7 @@ public class ReplicationIT extends ConfigurableMacIT {
     Assert.assertTrue("Replication table was never created", exists);
 
     // ACCUMULO-2743 The Observer in the tserver has to be made aware of the change to get the combiner (made by the master)
-    for (int i = 0; i < 5 && !conn.tableOperations().listIterators(ReplicationTable.NAME).keySet().contains(ReplicationTable.COMBINER_NAME); i++) {
+    for (int i = 0; i < 10 && !conn.tableOperations().listIterators(ReplicationTable.NAME).keySet().contains(ReplicationTable.COMBINER_NAME); i++) {
       UtilWaitThread.sleep(1000);
     }
 
@@ -836,7 +839,7 @@ public class ReplicationIT extends ConfigurableMacIT {
     StatusSection.limit(s);
     Entry<Key,Value> entry = null;
     Status expectedStatus = StatusUtil.openWithUnknownLength();
-    attempts = 5;
+    attempts = 10;
     // This record will move from new to new with infinite length because of the minc (flush)
     while (null == entry && attempts > 0) {
       try {
