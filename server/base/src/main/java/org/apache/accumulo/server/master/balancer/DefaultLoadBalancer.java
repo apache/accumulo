@@ -86,7 +86,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
   
   static class ServerCounts implements Comparable<ServerCounts> {
     public final TServerInstance server;
-    public final int count;
+    public int count;
     public final TabletServerStatus status;
     
     ServerCounts(int count, TServerInstance server, TabletServerStatus status) {
@@ -145,7 +145,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
       int end = totals.size() - 1;
       int movedAlready = 0;
       int tooManyIndex = 0;
-      while (tooManyIndex < totals.size() && end > tooManyIndex) {
+      while (tooManyIndex < end) {
         ServerCounts tooMany = totals.get(tooManyIndex);
         int goal = even;
         if (tooManyIndex < numServersOverEven) {
@@ -255,7 +255,8 @@ public class DefaultLoadBalancer extends TabletBalancer {
         tooLittleCount = 0;
       }
       tooLittleMap.put(table, tooLittleCount + 1);
-      
+      tooMuch.count--;
+      tooLittle.count++;
       result.add(new TabletMigration(extent, tooMuch.server, tooLittle.server));
     }
     return result;
