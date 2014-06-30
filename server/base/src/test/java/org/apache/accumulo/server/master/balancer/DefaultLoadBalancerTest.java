@@ -203,7 +203,7 @@ public class DefaultLoadBalancerTest {
         servers.get(migration.newServer).extents.add(migration.tablet);
       }
     }
-    assertEquals(8, moved);
+    assertEquals(9, moved);
   }
   
   @Test
