@@ -21,13 +21,17 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.iterators.user.SummingCombiner;
+import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
@@ -63,6 +67,16 @@ public class RangeInputSplitTest {
     
     fetchedColumns.add(new Pair<Text,Text>(new Text("colf1"), new Text("colq1")));
     fetchedColumns.add(new Pair<Text,Text>(new Text("colf2"), new Text("colq2")));
+
+    // Fake some iterators
+    ArrayList<IteratorSetting> iterators = new ArrayList<IteratorSetting>();
+    IteratorSetting setting = new IteratorSetting(50, SummingCombiner.class);
+    setting.addOption("foo", "bar");
+    iterators.add(setting);
+
+    setting = new IteratorSetting(100, WholeRowIterator.class);
+    setting.addOption("bar", "foo");
+    iterators.add(setting);
     
     split.setAuths(new Authorizations("foo"));
     split.setOffline(true);
@@ -74,6 +88,7 @@ public class RangeInputSplitTest {
     split.setInstanceName("instance");
     split.setMockInstance(true);
     split.setZooKeepers("localhost");
+    split.setIterators(iterators);
     split.setLogLevel(Level.WARN);
     
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -99,6 +114,7 @@ public class RangeInputSplitTest {
     Assert.assertEquals(split.getInstanceName(), newSplit.getInstanceName());
     Assert.assertEquals(split.isMockInstance(), newSplit.isMockInstance());
     Assert.assertEquals(split.getZooKeepers(), newSplit.getZooKeepers());
+    Assert.assertEquals(split.getIterators(), newSplit.getIterators());
     Assert.assertEquals(split.getLogLevel(), newSplit.getLogLevel());
   }
   
