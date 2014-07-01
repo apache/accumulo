@@ -66,6 +66,13 @@ public class ZooSession {
     
   }
   
+  /**
+   * @param host comma separated list of zk servers
+   * @param timeout in milliseconds
+   * @param scheme authentication type, e.g. 'digest', may be null
+   * @param auth authentication-scheme-specific token, may be null
+   * @param watcher ZK notifications, may be null
+   */
   public static ZooKeeper connect(String host, int timeout, String scheme, byte[] auth, Watcher watcher) {
     final int TIME_BETWEEN_CONNECT_CHECKS_MS = 100;
     final int TOTAL_CONNECT_TIME_WAIT_MS = 10 * 1000;
@@ -88,9 +95,6 @@ public class ZooSession {
             UtilWaitThread.sleep(TIME_BETWEEN_CONNECT_CHECKS_MS);
         }
         
-        if (System.currentTimeMillis() - startTime > 2 * timeout)
-          throw new RuntimeException("Failed to connect to zookeeper (" + host + ") within 2x zookeeper timeout period " + timeout);
-
       } catch (IOException e) {
         if (e instanceof UnknownHostException) {
           /*
@@ -107,6 +111,10 @@ public class ZooSession {
           } catch (InterruptedException e) {
             log.warn("interrupted", e);
           }
+      }
+
+      if (System.currentTimeMillis() - startTime > 2 * timeout) {
+        throw new RuntimeException("Failed to connect to zookeeper (" + host + ") within 2x zookeeper timeout period " + timeout);
       }
       
       if (tryAgain) {
