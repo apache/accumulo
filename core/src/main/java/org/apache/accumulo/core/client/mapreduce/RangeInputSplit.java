@@ -233,6 +233,14 @@ public class RangeInputSplit extends InputSplit implements Writable {
     }
 
     if (in.readBoolean()) {
+      int numIterators = in.readInt();
+      iterators = new ArrayList<IteratorSetting>(numIterators);
+      for (int i = 0; i < numIterators; i++) {
+        iterators.add(new IteratorSetting(in));
+      }
+    }
+
+    if (in.readBoolean()) {
       level = Level.toLevel(in.readInt());
     }
   }
@@ -307,6 +315,14 @@ public class RangeInputSplit extends InputSplit implements Writable {
     out.writeBoolean(null != zooKeepers);
     if (null != zooKeepers) {
       out.writeUTF(zooKeepers);
+    }
+
+    out.writeBoolean(null != iterators);
+    if (null != iterators) {
+      out.writeInt(iterators.size());
+      for (IteratorSetting iterator : iterators) {
+        iterator.write(out);
+      }
     }
 
     out.writeBoolean(null != level);
