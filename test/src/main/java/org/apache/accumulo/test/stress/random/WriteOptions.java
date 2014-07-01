@@ -72,6 +72,9 @@ class WriteOptions extends ClientOnDefaultTable {
   @Parameter(names = "--row-width-seed", description = "seed for generating the number of cells within a row (a row's \"width\")")
   int row_width_seed = 444;
 
+  @Parameter(names = "--max-cells-per-mutation", description = "maximum number of cells per mutation; non-positive value implies no limit")
+  int max_cells_per_mutation = -1;
+
   @Parameter(names = "--write-delay", description = "milliseconds to wait between writes")
   long write_delay = 0L;
 

@@ -52,5 +52,9 @@ CQ_SEED='--cq-seed 3'
 VALUE_SEED='--value-seed 4'
 ROW_WIDTH_SEED='--row-width-seed 5'
 
+# This is the maximum number of cells to include in each mutation written out.
+# A non-positive value implies no limit.
+MAX_CELLS_PER_MUTATION='--max-cells-per-mutation -1'
+
 # This is the delay in milliseconds between writes. Use <= 0 for no delay.
 WRITE_DELAY='--write-delay 0'

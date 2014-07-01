@@ -83,7 +83,10 @@ public class Write {
             new RandomWithinRange(
                 opts.row_width_seed,
                 opts.rowWidthMin(),
-                opts.rowWidthMax())));
+                opts.rowWidthMax()),
+            // max cells per mutation
+            opts.max_cells_per_mutation)
+        );
     
     while(true) {
       dw.next();
