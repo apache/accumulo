@@ -47,7 +47,7 @@ public class BalanceFasterIT extends ConfigurableMacIT {
     cfg.setNumTservers(3);
   }
 
-  @Test(timeout=30*1000)
+  @Test(timeout=90*1000)
   public void test() throws Exception {
     // create a table, add a bunch of splits
     String tableName = getUniqueNames(1)[0];
