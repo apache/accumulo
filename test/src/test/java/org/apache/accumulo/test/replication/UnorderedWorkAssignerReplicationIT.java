@@ -631,7 +631,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
       long countTable = 0l;
 
       // Check a few times
-      for (int i = 0; i < 5; i++) {
+      for (int i = 0; i < 10; i++) {
         countTable = 0l;
         for (Entry<Key,Value> entry : connPeer.createScanner(peerTable1, Authorizations.EMPTY)) {
           countTable++;
@@ -647,7 +647,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
 
       Assert.assertTrue("Did not find any records in " + peerTable1 + " on peer", countTable > 0);
 
-      for (int i = 0; i < 5; i++ ) {
+      for (int i = 0; i < 10; i++ ) {
         countTable = 0l;
         for (Entry<Key,Value> entry : connPeer.createScanner(peerTable2, Authorizations.EMPTY)) {
           countTable++;
