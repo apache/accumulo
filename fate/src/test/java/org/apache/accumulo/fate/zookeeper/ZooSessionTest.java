@@ -25,8 +25,9 @@ public class ZooSessionTest {
   private static final String UNKNOWN_HOST = "hostname.that.should.not.exist.example.com:2181";
 
   @Test(expected=RuntimeException.class, timeout=MINIMUM_TIMEOUT*4)
-  public void testUnknownHost() {
+  public void testUnknownHost() throws Exception {
     ZooKeeper session = ZooSession.connect(UNKNOWN_HOST, MINIMUM_TIMEOUT, null, null, null);
+    session.close();
   }
 
 }
