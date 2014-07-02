@@ -1138,7 +1138,7 @@ public class ShellServerIT extends SimpleMacIT {
     assertTrue(err.contains("BAD_CREDENTIALS for user NoSuchUser"));
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 60 * 1000)
   public void namespaces() throws Exception {
     ts.exec("namespaces", true, "\"\"", true); // default namespace, displayed as quoted empty string
     ts.exec("namespaces", true, Namespaces.ACCUMULO_NAMESPACE, true);
