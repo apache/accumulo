@@ -16,6 +16,11 @@
  */
 package org.apache.accumulo.master;
 
+import static org.apache.accumulo.master.util.TableValidators.NOT_ROOT_ID;
+import static org.apache.accumulo.master.util.TableValidators.NOT_SYSTEM;
+import static org.apache.accumulo.master.util.TableValidators.VALID_ID;
+import static org.apache.accumulo.master.util.TableValidators.VALID_NAME;
+
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -26,9 +31,9 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
-import org.apache.accumulo.core.client.impl.TableOperationsImpl;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.impl.Namespaces;
+import org.apache.accumulo.core.client.impl.TableOperationsImpl;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
@@ -123,7 +128,7 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_CREATE: {
         TableOperation tableOp = TableOperation.CREATE;
-        String tableName = validateTableNameArgument(arguments.get(0), tableOp, Tables.NOT_SYSTEM);
+        String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
         TimeType timeType = TimeType.valueOf(ByteBufferUtil.toString(arguments.get(1)));
 
         String namespaceId;
@@ -143,7 +148,7 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_RENAME: {
         TableOperation tableOp = TableOperation.RENAME;
-        final String oldTableName = validateTableNameArgument(arguments.get(0), tableOp, Tables.NOT_SYSTEM);
+        final String oldTableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
         String newTableName = validateTableNameArgument(arguments.get(1), tableOp, new Validator<String>() {
 
           @Override
@@ -176,8 +181,8 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_CLONE: {
         TableOperation tableOp = TableOperation.CLONE;
-        String srcTableId = validateTableIdArgument(arguments.get(0), tableOp, Tables.NOT_ROOT_ID);
-        String tableName = validateTableNameArgument(arguments.get(1), tableOp, Tables.NOT_SYSTEM);
+        String srcTableId = validateTableIdArgument(arguments.get(0), tableOp, NOT_ROOT_ID);
+        String tableName = validateTableNameArgument(arguments.get(1), tableOp, NOT_SYSTEM);
         String namespaceId;
         try {
           namespaceId = Namespaces.getNamespaceId(master.getInstance(), Tables.qualify(tableName).getFirst());
@@ -213,7 +218,7 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_DELETE: {
         TableOperation tableOp = TableOperation.DELETE;
-        String tableName = validateTableNameArgument(arguments.get(0), tableOp, Tables.NOT_SYSTEM);
+        String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
 
         final String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp);
         String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
@@ -225,7 +230,7 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_ONLINE: {
         TableOperation tableOp = TableOperation.ONLINE;
-        final String tableId = validateTableIdArgument(arguments.get(0), tableOp, Tables.NOT_ROOT_ID);
+        final String tableId = validateTableIdArgument(arguments.get(0), tableOp, NOT_ROOT_ID);
         String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
 
         if (!master.security.canOnlineOfflineTable(c, tableId, op, namespaceId))
@@ -236,7 +241,7 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_OFFLINE: {
         TableOperation tableOp = TableOperation.OFFLINE;
-        final String tableId = validateTableIdArgument(arguments.get(0), tableOp, Tables.NOT_ROOT_ID);
+        final String tableId = validateTableIdArgument(arguments.get(0), tableOp, NOT_ROOT_ID);
         String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
 
         if (!master.security.canOnlineOfflineTable(c, tableId, op, namespaceId))
@@ -263,7 +268,7 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_DELETE_RANGE: {
         TableOperation tableOp = TableOperation.DELETE_RANGE;
-        String tableName = validateTableNameArgument(arguments.get(0), tableOp, Tables.NOT_SYSTEM);
+        String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
         Text startRow = ByteBufferUtil.toText(arguments.get(1));
         Text endRow = ByteBufferUtil.toText(arguments.get(2));
 
@@ -278,7 +283,7 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_BULK_IMPORT: {
         TableOperation tableOp = TableOperation.BULK_IMPORT;
-        String tableName = validateTableNameArgument(arguments.get(0), tableOp, Tables.NOT_SYSTEM);
+        String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
         String dir = ByteBufferUtil.toString(arguments.get(1));
         String failDir = ByteBufferUtil.toString(arguments.get(2));
         boolean setTime = Boolean.parseBoolean(ByteBufferUtil.toString(arguments.get(3)));
@@ -319,7 +324,7 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_IMPORT: {
         TableOperation tableOp = TableOperation.IMPORT;
-        String tableName = validateTableNameArgument(arguments.get(0), tableOp, Tables.NOT_SYSTEM);
+        String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
         String exportDir = ByteBufferUtil.toString(arguments.get(1));
         String namespaceId;
         try {
@@ -336,7 +341,7 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_EXPORT: {
         TableOperation tableOp = TableOperation.EXPORT;
-        String tableName = validateTableNameArgument(arguments.get(0), tableOp, Tables.NOT_SYSTEM);
+        String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
         String exportDir = ByteBufferUtil.toString(arguments.get(1));
 
         String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp);
@@ -393,7 +398,7 @@ class FateServiceHandler implements FateService.Iface {
   private String validateTableIdArgument(ByteBuffer tableIdArg, TableOperation op, Validator<String> userValidator) throws ThriftTableOperationException {
     String tableId = tableIdArg == null ? null : ByteBufferUtil.toString(tableIdArg);
     try {
-      return Tables.VALID_ID.and(userValidator).validate(tableId);
+      return VALID_ID.and(userValidator).validate(tableId);
     } catch (IllegalArgumentException e) {
       String why = e.getMessage();
       log.warn(why);
@@ -404,7 +409,7 @@ class FateServiceHandler implements FateService.Iface {
   // Verify table name arguments are valid, and match any additional restrictions
   private String validateTableNameArgument(ByteBuffer tableNameArg, TableOperation op, Validator<String> userValidator) throws ThriftTableOperationException {
     String tableName = tableNameArg == null ? null : ByteBufferUtil.toString(tableNameArg);
-    return _validateArgument(tableName, op, Tables.VALID_NAME.and(userValidator));
+    return _validateArgument(tableName, op, VALID_NAME.and(userValidator));
   }
 
   // Verify namespace arguments are valid, and match any additional restrictions
