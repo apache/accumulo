@@ -32,6 +32,7 @@ import javax.management.ObjectName;
 import javax.management.StandardMBean;
 
 import org.apache.commons.lang.builder.ToStringBuilder;
+import org.apache.commons.lang.builder.ToStringStyle;
 import org.apache.commons.lang.time.DateUtils;
 
 public abstract class AbstractMetricsImpl {
@@ -83,7 +84,7 @@ public abstract class AbstractMetricsImpl {
     
     @Override
     public String toString() {
-      return new ToStringBuilder(this).append("count", count).append("average", avg).append("minimum", min).append("maximum", max).toString();
+      return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE).append("count", count).append("average", avg).append("minimum", min).append("maximum", max).toString();
     }
     
   }
