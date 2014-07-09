@@ -147,4 +147,50 @@ public class PropertyTest {
       }
     }
   }
+  
+  @Test
+  public void validateDefaultValWithSytemOverride() {
+    String key = Property.CRYPTO_SECURE_RNG_PROVIDER.getKey();
+    String prevVal = System.getProperty(key);
+    System.clearProperty(key);
+    try {
+      assertEquals("SUN",Property.CRYPTO_SECURE_RNG_PROVIDER.getDefaultValue());
+
+      System.setProperty(key, "OTHER_PROV");
+      assertEquals("OTHER_PROV",Property.CRYPTO_SECURE_RNG_PROVIDER.getDefaultValue());
+    } finally {
+      if (prevVal != null) {
+        System.setProperty(key, prevVal);
+      } else {
+        System.clearProperty(key);
+      }
+    }
+  }
+  
+  @Test
+  public void validateDefaultValWithNonSytemOverride() {
+    String key = Property.MASTER_CLIENTPORT.getKey();
+    String prevVal = System.getProperty(key);
+    System.clearProperty(key);
+    try {
+        assertEquals("9999",Property.MASTER_CLIENTPORT.getDefaultValue());
+
+        System.setProperty(key, "8888");
+        //ensure that System property is ignored in this case
+        assertEquals("9999",Property.MASTER_CLIENTPORT.getDefaultValue());
+    } finally {
+      if (prevVal != null) {
+        System.setProperty(key, prevVal);
+      } else {
+        System.clearProperty(key);
+      }
+    }
+  }
+  
+  @Test
+  public void validateSystemOverrideAnnotations() {
+    assertTrue(Property.CRYPTO_SECURE_RNG_PROVIDER.isSystemOverride());
+    assertFalse(Property.MASTER_CLIENTPORT.isSystemOverride());
+  }
+  
 }

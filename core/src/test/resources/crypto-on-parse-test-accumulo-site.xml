@@ -129,6 +129,10 @@
       <value>SHA1PRNG</value>
     </property>
     <property>
+      <name>crypto.secure.rng.provider</name>
+      <value>SUN</value>
+    </property>
+    <property>
       <name>crypto.secret.key.encryption.strategy.class</name>
       <value>org.apache.accumulo.core.security.crypto.CachingHDFSSecretKeyEncryptionStrategy</value>
     </property>

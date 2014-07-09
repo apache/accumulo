@@ -60,6 +60,7 @@ public enum Property {
   CRYPTO_SECURE_RNG("crypto.secure.rng", "SHA1PRNG", PropertyType.STRING,
       "States the secure random number generator to use, and defaults to the built-in Sun SHA1PRNG"),
   @Experimental
+  @SystemOverride
   CRYPTO_SECURE_RNG_PROVIDER("crypto.secure.rng.provider", "SUN", PropertyType.STRING,
       "States the secure random number generator provider to use, and defaults to the built-in SUN provider"),
   @Experimental
@@ -475,6 +476,9 @@ public enum Property {
       }
       pconf.addProperty("hack_default_value", this.defaultValue);
       v = pconf.getString("hack_default_value");
+    } else if (isSystemOverride()) {
+      String systemOverrideVal = System.getProperty(getKey());
+      v = systemOverrideVal != null ? systemOverrideVal : getRawDefaultValue();
     } else {
       v = getRawDefaultValue();
     }
@@ -505,6 +509,10 @@ public enum Property {
 
   public boolean isSensitive() {
     return hasAnnotation(Sensitive.class) || hasPrefixWithAnnotation(getKey(), Sensitive.class);
+  }
+
+  public boolean isSystemOverride() {
+    return hasAnnotation(SystemOverride.class) || hasPrefixWithAnnotation(getKey(), SystemOverride.class);
   }
 
   public static boolean isSensitive(String key) {

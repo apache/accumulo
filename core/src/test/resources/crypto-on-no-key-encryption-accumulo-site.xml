@@ -129,10 +129,6 @@
       <value>SHA1PRNG</value>
     </property>
     <property>
-      <name>crypto.secure.rng.provider</name>
-      <value>SUN</value>
-    </property>
-    <property>
       <name>instance.dfs.dir</name>
       <value>/tmp</value>
     </property>

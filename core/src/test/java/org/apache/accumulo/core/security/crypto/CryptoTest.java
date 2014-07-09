@@ -57,6 +57,7 @@ public class CryptoTest {
   private static final int MARKER_INT = 0xCADEFEDD;
   private static final String MARKER_STRING = "1 2 3 a b c";
   public static final String CONFIG_FILE_SYSTEM_PROP = "org.apache.accumulo.config.file";
+  public static final String CRYPTO_ON_PARSE_TEST_CONF = "crypto-on-parse-test-accumulo-site.xml";
   public static final String CRYPTO_ON_CONF = "crypto-on-accumulo-site.xml";
   public static final String CRYPTO_OFF_CONF = "crypto-off-accumulo-site.xml";
   public static final String CRYPTO_ON_KEK_OFF_CONF = "crypto-on-no-key-encryption-accumulo-site.xml"; 
@@ -90,7 +91,7 @@ public class CryptoTest {
   
   @Test
   public void testCryptoModuleParamsParsing() {
-    AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);    
+    AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_PARSE_TEST_CONF);    
 
     CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
     
@@ -335,6 +336,9 @@ public class CryptoTest {
     ConfigurationCopy result = new ConfigurationCopy(AccumuloConfiguration.getDefaultConfiguration());
     Configuration conf = new Configuration(false);
     conf.addResource(cryptoConfSetting);
+    String oveerride = System.getProperty("crypto.secure.rng.provider.override");
+    String prov = conf.get("crypto.secure.rng.provider");
+    
     for (Entry<String,String> e : conf) {
       result.set(e.getKey(), e.getValue());
     }
@@ -344,7 +348,7 @@ public class CryptoTest {
   @Test
   public void testKeyWrapAndUnwrap() throws NoSuchAlgorithmException, NoSuchPaddingException, NoSuchProviderException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
     Cipher keyWrapCipher = Cipher.getInstance("AES/ECB/NoPadding");
-    SecureRandom random = SecureRandom.getInstance("SHA1PRNG", "SUN");
+    SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
     
     byte[] kek = new byte[16];
     random.nextBytes(kek);
