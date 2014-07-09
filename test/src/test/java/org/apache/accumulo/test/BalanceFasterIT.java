@@ -65,11 +65,19 @@ public class BalanceFasterIT extends ConfigurableMacIT {
     s.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
     s.setRange(MetadataSchema.TabletsSection.getRange());
     Map<String, Integer> counts = new HashMap<String, Integer>();
-    for (Entry<Key,Value> kv : s) {
-      String host = kv.getValue().toString();
-      if (!counts.containsKey(host))
-        counts.put(host, 0);
-      counts.put(host, counts.get(host) + 1);
+    while (true) {
+      int total = 0;
+      counts.clear();
+      for (Entry<Key,Value> kv : s) {
+        String host = kv.getValue().toString();
+        if (!counts.containsKey(host))
+          counts.put(host, 0);
+        counts.put(host, counts.get(host) + 1);
+        total++;
+      }
+      // are enough tablets online?
+      if (total > 1000)
+        break;
     }
     // should be on all three servers
     assertTrue(counts.size() == 3);
