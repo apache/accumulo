@@ -51,8 +51,8 @@ public class WatchTheWatchCountIT extends ConfigurableMacIT {
       int n = socket.getInputStream().read(buffer);
       String response = new String(buffer, 0, n);
       long total = Long.parseLong(response.split(":")[1].trim());
-      assertTrue(total > 500);
-      assertTrue(total < 600);
+      assertTrue("Total watches was not greater than 500, but was " + total, total > 500);
+      assertTrue("Total watches was not less than 600, but was " + total, total < 600);
     } finally {
       socket.close();
     }
