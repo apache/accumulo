@@ -130,6 +130,9 @@ public class MiniAccumuloCluster {
   
   private MiniAccumuloConfig config;
   private Process[] tabletServerProcesses;
+
+  // Non-final for testing purposes
+  private ExecutorService executor;
   
   private Process exec(Class<? extends Object> clazz, String... args) throws IOException {
     String javaHome = System.getProperty("java.home");
@@ -295,7 +298,8 @@ public class MiniAccumuloCluster {
     zooCfg.store(fileWriter, null);
     
     fileWriter.close();
-    
+
+    this.executor = Executors.newSingleThreadExecutor();
   }
   
   /**
@@ -407,9 +411,27 @@ public class MiniAccumuloCluster {
         log.warn("GarbageCollector did not fully stop after 30 seconds", e);
       }
     }
+
+    // ACCUMULO-2985 stop the ExecutorService after we finished using it to stop accumulo procs
+    if (null != executor) {
+      List<Runnable> tasksRemaining = executor.shutdownNow();
+
+      // the single thread executor shouldn't have any pending tasks, but check anyways
+      if (!tasksRemaining.isEmpty()) {
+        log.warn("Unexpectedly had " + tasksRemaining.size() + " task(s) remaining in threadpool for execution when being stopped");
+      }
+    }
   }
 
-  private final ExecutorService executor = Executors.newSingleThreadExecutor();
+  // Visible for testing
+  protected void setShutdownExecutor(ExecutorService svc) {
+    this.executor = svc;
+  }
+
+  // Visible for testing
+  protected ExecutorService getShutdownExecutor() {
+    return executor;
+  }
 
   private int stopProcessWithTimeout(final Process proc, long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
     FutureTask<Integer> future = new FutureTask<Integer>(new Callable<Integer>() {
