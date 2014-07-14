@@ -26,6 +26,8 @@ import java.util.Set;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
@@ -140,8 +142,7 @@ public class FateCommand extends Command {
   protected synchronized IZooReaderWriter getZooReaderWriter(Instance instance, String secret) {
     
     if (secret == null) {
-      @SuppressWarnings("deprecation")
-      AccumuloConfiguration conf = AccumuloConfiguration.getSiteConfiguration();
+      AccumuloConfiguration conf = SiteConfiguration.getInstance(DefaultConfiguration.getInstance());
       secret = conf.get(Property.INSTANCE_SECRET);
     }
     

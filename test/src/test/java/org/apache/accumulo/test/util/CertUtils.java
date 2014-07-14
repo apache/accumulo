@@ -46,6 +46,7 @@ import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.commons.io.FileExistsException;
 import org.apache.hadoop.conf.Configuration;
@@ -114,10 +115,9 @@ public class CertUtils {
     @Parameter(names = "--keysize", description = "Key size used by encryption algorithm")
     public int keysize = 2048;
 
-    @SuppressWarnings("deprecation")
     public AccumuloConfiguration getConfiguration() {
       if (siteFile == null) {
-        return AccumuloConfiguration.getSiteConfiguration();
+        return SiteConfiguration.getInstance(DefaultConfiguration.getInstance());
       } else {
         return new AccumuloConfiguration() {
           Configuration xml = new Configuration();
@@ -179,9 +179,8 @@ public class CertUtils {
     }
   }
 
-  @SuppressWarnings("deprecation")
   private static String getDefaultKeyPassword() {
-    return AccumuloConfiguration.getSiteConfiguration().get(Property.INSTANCE_SECRET);
+    return SiteConfiguration.getInstance(DefaultConfiguration.getInstance()).get(Property.INSTANCE_SECRET);
   }
 
   private String issuerDirString;
