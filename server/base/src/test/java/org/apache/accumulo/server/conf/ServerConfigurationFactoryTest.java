@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.server.conf;
 
-import org.apache.accumulo.core.Constants;
+import java.nio.charset.StandardCharsets;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -54,7 +54,7 @@ public class ServerConfigurationFactoryTest {
     expect(zc.getChildren(anyObject(String.class))).andReturn(null);
     expectLastCall().anyTimes();
     // ConfigSanityCheck looks at timeout
-    expect(zc.get(endsWith("timeout"))).andReturn(("" + ZK_TIMEOUT + "ms").getBytes(Constants.UTF8));
+    expect(zc.get(endsWith("timeout"))).andReturn(("" + ZK_TIMEOUT + "ms").getBytes(StandardCharsets.UTF_8));
     replay(zc);
   }
 

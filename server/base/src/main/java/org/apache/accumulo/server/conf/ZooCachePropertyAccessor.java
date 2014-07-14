@@ -16,9 +16,9 @@
  */
 package org.apache.accumulo.server.conf;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration.PropertyFilter;
 import org.apache.accumulo.core.conf.Property;
@@ -106,7 +106,7 @@ public class ZooCachePropertyAccessor {
   private String get(String path) {
     byte[] v = propCache.get(path);
     if (v != null) {
-      return new String(v, Constants.UTF8);
+      return new String(v, StandardCharsets.UTF_8);
     } else {
       return null;
     }

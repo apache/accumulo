@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.conf;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -85,7 +86,7 @@ public class TableConfigurationTest {
   public void testGet_InZK() {
     Property p = Property.INSTANCE_SECRET;
     expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF + "/" + p.getKey()))
-        .andReturn("sekrit".getBytes(Constants.UTF8));
+        .andReturn("sekrit".getBytes(StandardCharsets.UTF_8));
     replay(zc);
     assertEquals("sekrit", c.get(Property.INSTANCE_SECRET));
   }
@@ -110,8 +111,8 @@ public class TableConfigurationTest {
     children.add("foo");
     children.add("ding");
     expect(zc.getChildren(ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF)).andReturn(children);
-    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF + "/" + "foo")).andReturn("bar".getBytes(Constants.UTF8));
-    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF + "/" + "ding")).andReturn("dong".getBytes(Constants.UTF8));
+    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF + "/" + "foo")).andReturn("bar".getBytes(StandardCharsets.UTF_8));
+    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF + "/" + "ding")).andReturn("dong".getBytes(StandardCharsets.UTF_8));
     replay(zc);
     c.getProperties(props, filter);
     assertEquals(2, props.size());
@@ -136,7 +137,7 @@ public class TableConfigurationTest {
     // need to do a get so the accessor is created
     Property p = Property.INSTANCE_SECRET;
     expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF + "/" + p.getKey()))
-        .andReturn("sekrit".getBytes(Constants.UTF8));
+        .andReturn("sekrit".getBytes(StandardCharsets.UTF_8));
     zc.clear();
     replay(zc);
     c.get(Property.INSTANCE_SECRET);
