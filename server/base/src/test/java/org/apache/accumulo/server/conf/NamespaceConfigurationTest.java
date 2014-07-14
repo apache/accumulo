@@ -44,24 +44,24 @@ import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 
-public class TableConfigurationTest {
-  private static final String TID = "table";
+public class NamespaceConfigurationTest {
+  private static final String NSID = "namespace";
   private static final String ZOOKEEPERS = "localhost";
   private static final int ZK_SESSION_TIMEOUT = 120000;
 
   private String iid;
   private Instance instance;
-  private NamespaceConfiguration parent;
+  private AccumuloConfiguration parent;
   private ZooCacheFactory zcf;
   private ZooCache zc;
-  private TableConfiguration c;
+  private NamespaceConfiguration c;
 
   @Before
   public void setUp() {
     iid = UUID.randomUUID().toString();
     instance = createMock(Instance.class);
-    parent = createMock(NamespaceConfiguration.class);
-    c = new TableConfiguration(iid, instance, TID, parent);
+    parent = createMock(AccumuloConfiguration.class);
+    c = new NamespaceConfiguration(NSID, instance, parent);
     zcf = createMock(ZooCacheFactory.class);
     c.setZooCacheFactory(zcf);
 
@@ -71,21 +71,21 @@ public class TableConfigurationTest {
     expect(instance.getZooKeepersSessionTimeOut()).andReturn(ZK_SESSION_TIMEOUT);
     replay(instance);
     zc = createMock(ZooCache.class);
-    expect(zcf.getZooCache(eq(ZOOKEEPERS), eq(ZK_SESSION_TIMEOUT), anyObject(TableConfWatcher.class))).andReturn(zc);
+    expect(zcf.getZooCache(eq(ZOOKEEPERS), eq(ZK_SESSION_TIMEOUT), anyObject(NamespaceConfWatcher.class))).andReturn(zc);
     replay(zcf);
   }
 
   @Test
   public void testGetters() {
-    assertEquals(TID, c.getTableId());
+    assertEquals(NSID, c.getNamespaceId());
     assertEquals(parent, c.getParentConfiguration());
   }
 
   @Test
   public void testGet_InZK() {
     Property p = Property.INSTANCE_SECRET;
-    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF + "/" + p.getKey()))
-        .andReturn("sekrit".getBytes(Constants.UTF8));
+    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF + "/" + p.getKey())).andReturn(
+        "sekrit".getBytes(Constants.UTF8));
     replay(zc);
     assertEquals("sekrit", c.get(Property.INSTANCE_SECRET));
   }
@@ -93,11 +93,22 @@ public class TableConfigurationTest {
   @Test
   public void testGet_InParent() {
     Property p = Property.INSTANCE_SECRET;
-    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF + "/" + p.getKey())).andReturn(null);
+    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF + "/" + p.getKey())).andReturn(null);
     replay(zc);
     expect(parent.get(p)).andReturn("sekrit");
     replay(parent);
     assertEquals("sekrit", c.get(Property.INSTANCE_SECRET));
+  }
+
+  @Test
+  public void testGet_SkipParentIfAccumuloNS() {
+    c = new NamespaceConfiguration(Namespaces.ACCUMULO_NAMESPACE_ID, instance, parent);
+    c.setZooCacheFactory(zcf);
+    Property p = Property.INSTANCE_SECRET;
+    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + Namespaces.ACCUMULO_NAMESPACE_ID + Constants.ZNAMESPACE_CONF + "/" + p.getKey()))
+        .andReturn(null);
+    replay(zc);
+    assertNull(c.get(Property.INSTANCE_SECRET));
   }
 
   @Test
@@ -109,9 +120,11 @@ public class TableConfigurationTest {
     List<String> children = new java.util.ArrayList<String>();
     children.add("foo");
     children.add("ding");
-    expect(zc.getChildren(ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF)).andReturn(children);
-    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF + "/" + "foo")).andReturn("bar".getBytes(Constants.UTF8));
-    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF + "/" + "ding")).andReturn("dong".getBytes(Constants.UTF8));
+    expect(zc.getChildren(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF)).andReturn(children);
+    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF + "/" + "foo")).andReturn(
+        "bar".getBytes(Constants.UTF8));
+    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF + "/" + "ding")).andReturn(
+        "dong".getBytes(Constants.UTF8));
     replay(zc);
     c.getProperties(props, filter);
     assertEquals(2, props.size());
@@ -135,8 +148,8 @@ public class TableConfigurationTest {
   public void testInvalidateCache() {
     // need to do a get so the accessor is created
     Property p = Property.INSTANCE_SECRET;
-    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF + "/" + p.getKey()))
-        .andReturn("sekrit".getBytes(Constants.UTF8));
+    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF + "/" + p.getKey())).andReturn(
+        "sekrit".getBytes(Constants.UTF8));
     zc.clear();
     replay(zc);
     c.get(Property.INSTANCE_SECRET);
