@@ -40,7 +40,7 @@ SERVICE=$2
 LONGNAME=$3
 [[ -z $LONGNAME ]] && LONGNAME=$2
 
-SLAVES=$(wc -l "${ACCUMULO_CONF_DIR}/slaves")
+SLAVES=$(wc -l < "${ACCUMULO_CONF_DIR}/slaves")
 
 IFCONFIG=/sbin/ifconfig
 [[ ! -x $IFCONFIG ]] && IFCONFIG='/bin/netstat -ie'
