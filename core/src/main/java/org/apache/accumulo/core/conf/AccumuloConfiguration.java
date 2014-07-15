@@ -349,18 +349,6 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
   
   /**
-   * Gets a site configuration parented by a default configuration. Only here
-   * for shell option-free start-up.
-   *
-   * @return configuration
-   * @deprecated not for client use
-   */
-  @Deprecated
-  public static synchronized AccumuloConfiguration getSiteConfiguration() {
-    return SiteConfiguration.getInstance(getDefaultConfiguration());
-  }
-  
-  /**
    * Gets the configuration specific to a table.
    *
    * @param conn connector (used to find table name)

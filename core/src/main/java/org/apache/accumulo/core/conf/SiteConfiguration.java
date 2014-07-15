@@ -32,6 +32,9 @@ import org.apache.log4j.Logger;
  * property is not defined, it defaults to "accumulo-site.xml".
  * <p>
  * This class is a singleton.
+ * <p>
+ * <b>Note</b>: Client code should not use this class, and it may be deprecated
+ * in the future.
  */
 public class SiteConfiguration extends AccumuloConfiguration {
   private static final Logger log = Logger.getLogger(SiteConfiguration.class);
