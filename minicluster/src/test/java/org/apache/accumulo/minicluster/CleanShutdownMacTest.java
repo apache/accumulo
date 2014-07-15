@@ -37,10 +37,6 @@ public class CleanShutdownMacTest {
   public void testExecutorServiceShutdown() throws Exception {
     File tmp = Files.createTempDir();
     MiniAccumuloCluster cluster = new MiniAccumuloCluster(tmp, "foo");
-    ExecutorService service = cluster.getShutdownExecutor();
-
-    // Don't leak the one that gets created
-    service.shutdownNow();
 
     ExecutorService mockService = EasyMock.createMock(ExecutorService.class);
     Future<Integer> future = EasyMock.createMock(Future.class);

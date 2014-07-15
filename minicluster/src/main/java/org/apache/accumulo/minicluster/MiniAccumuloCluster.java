@@ -298,8 +298,6 @@ public class MiniAccumuloCluster {
     zooCfg.store(fileWriter, null);
     
     fileWriter.close();
-
-    this.executor = Executors.newSingleThreadExecutor();
   }
   
   /**
@@ -345,6 +343,10 @@ public class MiniAccumuloCluster {
     masterProcess = exec(Master.class);
     
     gcProcess = exec(SimpleGarbageCollector.class);
+
+    if (null == executor) {
+      executor = Executors.newSingleThreadExecutor();
+    }
   }
   
   /**
@@ -420,6 +422,8 @@ public class MiniAccumuloCluster {
       if (!tasksRemaining.isEmpty()) {
         log.warn("Unexpectedly had " + tasksRemaining.size() + " task(s) remaining in threadpool for execution when being stopped");
       }
+
+      executor = null;
     }
   }
 
