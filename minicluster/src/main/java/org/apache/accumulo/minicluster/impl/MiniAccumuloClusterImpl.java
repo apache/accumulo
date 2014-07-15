@@ -408,8 +408,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     if (auditStream != null) {
       FileUtils.copyInputStreamToFile(auditStream, new File(config.getConfDir(), "auditLog.xml"));
     }
-
-    this.executor = Executors.newSingleThreadExecutor();
   }
 
   private void writeConfig(File file, Iterable<Map.Entry<String,String>> settings) throws IOException {
@@ -512,6 +510,10 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     if (gcProcess == null) {
       gcProcess = _exec(SimpleGarbageCollector.class, ServerType.GARBAGE_COLLECTOR);
+    }
+
+    if (null == executor) {
+      executor = Executors.newSingleThreadExecutor();
     }
   }
 
@@ -671,6 +673,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       if (!tasksRemaining.isEmpty()) {
         log.warn("Unexpectedly had " + tasksRemaining.size() + " task(s) remaining in threadpool for execution when being stopped");
       }
+
+      executor = null;
     }
 
     if (config.useMiniDFS() && miniDFS != null)
