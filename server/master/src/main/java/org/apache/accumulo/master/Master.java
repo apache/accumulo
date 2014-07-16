@@ -164,7 +164,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   final VolumeManager fs;
   final private Instance instance;
   final private String hostname;
-  final private Object balanceLock = new Object();
+  final private Object balancedNotifier = new Object();
   final LiveTServerSet tserverSet;
   final private List<TabletGroupWatcher> watchers = new ArrayList<TabletGroupWatcher>();
   final SecurityOperation security;
@@ -871,8 +871,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       if (migrationsOut.size() > 0) {
         nextEvent.event("Migrating %d more tablets, %d total", migrationsOut.size(), migrations.size());
       } else {
-        synchronized (balanceLock) {
-          balanceLock.notify();
+        synchronized (balancedNotifier) {
+          balancedNotifier.notifyAll();
         }
       }
       return wait;
@@ -1314,14 +1314,14 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   }
 
   public void waitForBalance(TInfo tinfo) {
-    synchronized (balanceLock) {
-      while (displayUnassigned() > 0 || migrations.size() > 0) {
+    synchronized (balancedNotifier) {
+      do {
         try {
-          balanceLock.wait();
+          balancedNotifier.wait();
         } catch (InterruptedException e) {
           log.debug(e.toString(), e);
         }
-      }
+      } while (displayUnassigned() > 0 || migrations.size() > 0);
     }
   }
 }
