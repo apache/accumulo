@@ -232,7 +232,7 @@ public class TServerUtils {
           if (pool.getCorePoolSize() > pool.getActiveCount() + 3) {
             int smaller = Math.max(numThreads, pool.getCorePoolSize() - 1);
             if (smaller != pool.getCorePoolSize()) {
-              // there is a race condition here... the active count could be higher by the time
+              // ACCUMULO-2997 there is a race condition here... the active count could be higher by the time
               // we decrease the core pool size... so the active count could end up higher than
               // the core pool size, in which case everything will be queued... the increase case
               // should handle this and prevent deadlock
