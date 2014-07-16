@@ -86,4 +86,8 @@ class MockInstanceOperations implements InstanceOperations {
   public void ping(String tserver) throws AccumuloException {
 
   }
+
+  @Override
+  public void waitForBalance() throws AccumuloException {
+  }
 }

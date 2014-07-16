@@ -164,6 +164,7 @@ service MasterClientService extends FateService {
 
   // system monitoring methods
   MasterMonitorInfo getMasterStats(2:trace.TInfo tinfo, 1:security.TCredentials credentials) throws (1:client.ThriftSecurityException sec)
+  void waitForBalance(1:trace.TInfo tinfo) 
 
   // tablet server reporting
   oneway void reportSplitExtent(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string serverName, 3:TabletSplit split)

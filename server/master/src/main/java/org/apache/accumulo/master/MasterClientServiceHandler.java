@@ -466,4 +466,9 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
     }
   }
 
+  @Override
+  public void waitForBalance(TInfo tinfo) throws TException {
+    master.waitForBalance(tinfo);
+  }
+
 }

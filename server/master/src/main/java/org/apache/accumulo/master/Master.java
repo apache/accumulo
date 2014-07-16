@@ -124,6 +124,7 @@ import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.start.classloader.vfs.ContextManager;
+import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -163,6 +164,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   final VolumeManager fs;
   final private Instance instance;
   final private String hostname;
+  final private Object balanceLock = new Object();
   final LiveTServerSet tserverSet;
   final private List<TabletGroupWatcher> watchers = new ArrayList<TabletGroupWatcher>();
   final SecurityOperation security;
@@ -868,6 +870,10 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       }
       if (migrationsOut.size() > 0) {
         nextEvent.event("Migrating %d more tablets, %d total", migrationsOut.size(), migrations.size());
+      } else {
+        synchronized (balanceLock) {
+          balanceLock.notify();
+        }
       }
       return wait;
     }
@@ -1303,6 +1309,18 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       // probably too late, but try anyhow
       if (getMasterState().equals(MasterState.STOP)) {
         setMasterState(MasterState.UNLOAD_ROOT_TABLET);
+      }
+    }
+  }
+
+  public void waitForBalance(TInfo tinfo) {
+    synchronized (balanceLock) {
+      while (displayUnassigned() > 0 || migrations.size() > 0) {
+        try {
+          balanceLock.wait();
+        } catch (InterruptedException e) {
+          log.debug(e.toString(), e);
+        }
       }
     }
   }
