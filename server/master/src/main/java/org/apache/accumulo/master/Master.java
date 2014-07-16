@@ -275,7 +275,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     // that the master is not the only thing that may alter zookeeper before starting.
 
     final int accumuloPersistentVersion = Accumulo.getAccumuloPersistentVersion(fs);
-    if (accumuloPersistentVersion == ServerConstants.TWO_VERSIONS_AGO || accumuloPersistentVersion == ServerConstants.PREV_DATA_VERSION) {
+    if (Accumulo.persistentVersionNeedsUpgrade(accumuloPersistentVersion)) {
       // This Master hasn't started Fate yet, so any outstanding transactions must be from before the upgrade.
       // Change to Guava's Verify once we use Guava 17.
       if (null != fate) {
@@ -288,8 +288,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         IZooReaderWriter zoo = ZooReaderWriter.getInstance();
         final String zooRoot = ZooUtil.getRoot(instance);
 
-        if (accumuloPersistentVersion == ServerConstants.TWO_VERSIONS_AGO) {
-          log.debug("Handling updates for version " + ServerConstants.TWO_VERSIONS_AGO);
+        if (accumuloPersistentVersion == ServerConstants.TWO_DATA_VERSIONS_AGO) {
+          log.debug("Handling updates for version " + ServerConstants.TWO_DATA_VERSIONS_AGO);
 
           log.debug("Cleaning out remnants of logger role.");
           zoo.recursiveDelete(zooRoot + "/loggers", NodeMissingPolicy.SKIP);
@@ -369,11 +369,11 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     // we make sure we're only doing the rest of this method once so that we can signal to other threads that an upgrade wasn't needed.
     if (upgradeMetadataRunning.compareAndSet(false, true)) {
       final int accumuloPersistentVersion = Accumulo.getAccumuloPersistentVersion(fs);
-      if (accumuloPersistentVersion == ServerConstants.TWO_VERSIONS_AGO || accumuloPersistentVersion == ServerConstants.PREV_DATA_VERSION) {
+      if (Accumulo.persistentVersionNeedsUpgrade(accumuloPersistentVersion)) {
         // sanity check that we passed the Fate verification prior to ZooKeeper upgrade, and that Fate still hasn't been started.
         // Change both to use Guava's Verify once we use Guava 17.
         if (!haveUpgradedZooKeeper) {
-          throw new IllegalStateException("We should only attempt to upgrade Accumulo's !METADATA table if we've already upgraded ZooKeeper. Please save all logs and file a bug.");
+          throw new IllegalStateException("We should only attempt to upgrade Accumulo's metadata table if we've already upgraded ZooKeeper. Please save all logs and file a bug.");
         }
         if (null != fate) {
           throw new IllegalStateException("Access to Fate should not have been initialized prior to the Master finishing upgrades. Please save all logs and file a bug.");
@@ -382,12 +382,12 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           @Override
           public void run() {
             try {
-              log.info("Starting to upgrade !METADATA table.");
-              if (accumuloPersistentVersion == ServerConstants.TWO_VERSIONS_AGO) {
-                log.info("Updating Delete Markers in !METADATA table for version 1.4");
+              log.info("Starting to upgrade metadata table.");
+              if (accumuloPersistentVersion == ServerConstants.TWO_DATA_VERSIONS_AGO) {
+                log.info("Updating Delete Markers in metadata table for version 1.4");
                 MetadataTableUtil.moveMetaDeleteMarkersFrom14(instance, SystemCredentials.get());
               } else {
-                log.info("Updating Delete Markers in !METADATA table.");
+                log.info("Updating Delete Markers in metadata table.");
                 MetadataTableUtil.moveMetaDeleteMarkers(instance, SystemCredentials.get());
               }
               log.info("Updating persistent data version.");

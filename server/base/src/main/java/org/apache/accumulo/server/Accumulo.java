@@ -55,10 +55,6 @@ public class Accumulo {
   
   private static final Logger log = Logger.getLogger(Accumulo.class);
   
-  public static synchronized void updateAccumuloVersion(VolumeManager fs) {
-    updateAccumuloVersion(fs, ServerConstants.PREV_DATA_VERSION);
-  }
-
   public static synchronized void updateAccumuloVersion(VolumeManager fs, int oldVersion) {
     for (Volume volume : fs.getVolumes()) {
       try {
@@ -180,7 +176,7 @@ public class Accumulo {
     Accumulo.waitForZookeeperAndHdfs(fs);
     
     Version codeVersion = new Version(Constants.VERSION);
-    if (dataVersion != ServerConstants.DATA_VERSION && dataVersion != ServerConstants.PREV_DATA_VERSION && dataVersion != ServerConstants.TWO_VERSIONS_AGO) {
+    if (!(canUpgradeFromDataVersion(dataVersion))) {
       throw new RuntimeException("This version of accumulo (" + codeVersion + ") is not compatible with files stored using data version " + dataVersion);
     }
     
@@ -194,6 +190,21 @@ public class Accumulo {
     }
     
     monitorSwappiness();
+  }
+
+  /**
+   * Sanity check that the current persistent version is allowed to upgrade to the version of Accumulo running.
+   * @param dataVersion the version that is persisted in the backing Volumes
+   */
+  public static boolean canUpgradeFromDataVersion(final int dataVersion) {
+    return dataVersion == ServerConstants.DATA_VERSION || dataVersion == ServerConstants.PREV_DATA_VERSION || dataVersion == ServerConstants.TWO_DATA_VERSIONS_AGO;
+  }
+
+  /**
+   * Does the data version number stored in the backing Volumes indicate we need to upgrade something?
+   */
+  public static boolean persistentVersionNeedsUpgrade(final int accumuloPersistentVersion) {
+    return accumuloPersistentVersion == ServerConstants.TWO_DATA_VERSIONS_AGO || accumuloPersistentVersion == ServerConstants.PREV_DATA_VERSION;
   }
   
   /**
