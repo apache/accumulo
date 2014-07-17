@@ -528,6 +528,8 @@ public class VolumeManagerImpl implements VolumeManager {
     return getFullPath(FileType.TABLE, path);
   }
 
+  private static final String RFILE_SUFFIX = "." + RFile.EXTENSION;
+
   @Override
   public Path getFullPath(FileType fileType, String path) {
     int colon = path.indexOf(':');
@@ -550,7 +552,7 @@ public class VolumeManagerImpl implements VolumeManager {
       String[] pathComponents = StringUtils.split(path, Path.SEPARATOR_CHAR);
 
       // Is an rfile
-      if (path.endsWith(RFile.EXTENSION)) {
+      if (path.endsWith(RFILE_SUFFIX)) {
         if (pathComponents.length < 3) {
           throw new IllegalArgumentException("Fewer components in file path than expected");
         }
