@@ -22,6 +22,8 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -33,13 +35,16 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.system.MultiIteratorTest;
 import org.apache.accumulo.core.iterators.user.AgeOffFilter;
+import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.hadoop.io.Text;
+import org.junit.Assert;
 import org.junit.Test;
 
-public class IterUtilTest {
+public class IteratorUtilTest {
   
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
   
@@ -275,5 +280,27 @@ public class IterUtilTest {
     
     assertFalse(iter.hasTop());
     
+  }
+
+  @Test
+  public void onlyReadsRelevantIteratorScopeConfigurations() throws Exception {
+    Map<String,String> data = new HashMap<String,String>();
+
+    // Make some configuration items, one with a bogus scope 
+    data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foo", "50," + SummingCombiner.class.getName());
+    data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foo.opt." + SummingCombiner.ALL_OPTION, "true");
+    data.put(Property.TABLE_ITERATOR_PREFIX + ".fakescope.bar", "50," + SummingCombiner.class.getName());
+    data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foo.opt.fakeopt", "fakevalue");
+
+    AccumuloConfiguration conf = new ConfigurationCopy(data);
+
+    List<IterInfo> iterators = new ArrayList<IterInfo>();
+    Map<String,Map<String,String>> options = new HashMap<String,Map<String,String>>();
+
+    IteratorUtil.parseIterConf(IteratorScope.scan, iterators, options, conf);
+
+    Assert.assertEquals(1, iterators.size());
+    IterInfo ii = iterators.get(0);
+    Assert.assertEquals(new IterInfo(50, SummingCombiner.class.getName(), "foo"), ii);
   }
 }
