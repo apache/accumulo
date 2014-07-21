@@ -87,6 +87,11 @@ public class VolumeUtil {
       return null;
     }
 
+    if (!path.contains(":")) {
+      // ignore relative paths
+      return null;
+    }
+
     Path p = new Path(path);
 
     // removing slash because new Path("hdfs://nn1").equals(new Path("hdfs://nn1/")) evaluates to false
