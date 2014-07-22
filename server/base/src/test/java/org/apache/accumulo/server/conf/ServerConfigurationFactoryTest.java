@@ -16,21 +16,29 @@
  */
 package org.apache.accumulo.server.conf;
 
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.endsWith;
+import static org.easymock.EasyMock.eq;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.replay;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+
 import java.nio.charset.StandardCharsets;
+
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.*;
-import org.easymock.Capture;
-import static org.easymock.EasyMock.*;
 
 public class ServerConfigurationFactoryTest {
   private static final String ZK_HOST = "localhost";
@@ -70,7 +78,7 @@ public class ServerConfigurationFactoryTest {
 
   @After
   public void tearDown() throws Exception {
-    scf.clearCachedConfigurations();
+    ServerConfigurationFactory.clearCachedConfigurations();
   }
 
   private void mockInstanceForConfig() {
@@ -115,7 +123,6 @@ public class ServerConfigurationFactoryTest {
   }
 
   private static final String NSID = "NAMESPACE";
-  private static final String TABLE = "TABLE";
 
   @Test
   public void testGetNamespaceConfiguration() {
