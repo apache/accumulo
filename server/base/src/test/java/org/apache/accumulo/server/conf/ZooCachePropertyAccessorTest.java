@@ -16,32 +16,29 @@
  */
 package org.apache.accumulo.server.conf;
 
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.AccumuloConfiguration.PropertyFilter;
-import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.PropertyType;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
-
-import org.junit.Before;
-import org.junit.Test;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import org.easymock.Capture;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.AccumuloConfiguration.PropertyFilter;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.junit.Before;
+import org.junit.Test;
 
 public class ZooCachePropertyAccessorTest {
   private static final String PATH = "/root/path/to/props";
   private static final Property PROP = Property.INSTANCE_SECRET;
   private static final String KEY = PROP.getKey();
-  private static final String FULL_PATH = PATH + "/" + KEY;
   private static final String VALUE = "value";
   private static final byte[] VALUE_BYTES = VALUE.getBytes(StandardCharsets.UTF_8);
 
