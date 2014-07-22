@@ -19,7 +19,6 @@ package org.apache.accumulo.server.conf;
 import java.security.SecurityPermission;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Tables;
