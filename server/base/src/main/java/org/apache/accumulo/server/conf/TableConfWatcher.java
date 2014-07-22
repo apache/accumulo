@@ -33,13 +33,11 @@ class TableConfWatcher implements Watcher {
   private static final Logger log = Logger.getLogger(TableConfWatcher.class);
   private final Instance instance;
   private final String tablesPrefix;
-  private final int tablesPrefixLength;
   private ServerConfigurationFactory scf;
 
   TableConfWatcher(Instance instance) {
     this.instance = instance;
     tablesPrefix = ZooUtil.getRoot(instance) + Constants.ZTABLES + "/";
-    tablesPrefixLength = tablesPrefix.length();
     scf = new ServerConfigurationFactory(instance);
   }
 
