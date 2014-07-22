@@ -88,6 +88,10 @@ public class MasterAssignmentIT extends SimpleMacIT {
   private TabletLocationState getTabletLocationState(Connector c, String tableId) {
     Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
     MetaDataTableScanner s = new MetaDataTableScanner(c.getInstance(), creds, new Range(KeyExtent.getMetadataEntry(new Text(tableId), null)));
-    return s.next();
+    try {
+      return s.next();
+    } finally {
+      s.close();
+    }
   }
 }
