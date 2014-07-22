@@ -19,10 +19,10 @@ package org.apache.accumulo.server.conf;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration.PropertyFilter;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.log4j.Logger;
 
