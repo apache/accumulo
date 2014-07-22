@@ -17,5 +17,5 @@
 package org.apache.accumulo.tserver;
 
 public enum MinorCompactionReason {
-  USER, SYSTEM, CLOSE
+  USER, SYSTEM, CLOSE, RECOVERY
 }

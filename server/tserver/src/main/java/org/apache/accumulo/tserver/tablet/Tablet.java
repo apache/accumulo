@@ -972,7 +972,10 @@ public class Tablet implements TabletCommitter {
     otherLogs = currentLogs;
     currentLogs = new HashSet<DfsLogger>();
 
-    FileRef mergeFile = getDatafileManager().reserveMergingMinorCompactionFile();
+    FileRef mergeFile = null;
+    if (mincReason != MinorCompactionReason.RECOVERY) {
+      mergeFile = getDatafileManager().reserveMergingMinorCompactionFile();
+    }
 
     return new MinorCompactionTask(this, mergeFile, oldCommitSession, flushId, mincReason);
 
@@ -1087,13 +1090,6 @@ public class Tablet implements TabletCommitter {
             logMessage.append(" tabletMemory.getMemTable().getNumEntries() " + getTabletMemory().getMemTable().getNumEntries());
           logMessage.append(" updatingFlushID " + updatingFlushID);
 
-          return null;
-        }
-        // We're still recovering log entries
-        if (getDatafileManager() == null) {
-          logMessage = new StringBuilder();
-          logMessage.append(extent.toString());
-          logMessage.append(" datafileManager " + getDatafileManager());
           return null;
         }
 
