@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.server.conf;
 
-import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.Constants;
