@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.server.conf;
 
-import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.Constants;
@@ -91,7 +89,7 @@ public class NamespaceConfiguration extends ObservableConfiguration {
   public String get(Property property) {
     String key = property.getKey();
     AccumuloConfiguration getParent;
-    if (!(namespaceId.equals(Namespaces.ACCUMULO_NAMESPACE_ID) && isIteratorOrConstraint(property.getKey()))) {
+    if (!(namespaceId.equals(Namespaces.ACCUMULO_NAMESPACE_ID) && isIteratorOrConstraint(key))) {
       getParent = parent;
     } else {
       // ignore iterators from parent if system namespace
