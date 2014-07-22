@@ -65,6 +65,7 @@ import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.state.TServerInstance;
@@ -387,8 +388,8 @@ class CopyFailed extends MasterRepo {
     if (!fs.exists(new Path(error, BulkImport.FAILURES_TXT)))
       return new CleanUpBulkImport(tableId, source, bulk, error);
 
-    HashMap<String,String> failures = new HashMap<String,String>();
-    HashMap<String,String> loadedFailures = new HashMap<String,String>();
+    HashMap<FileRef,String> failures = new HashMap<FileRef,String>();
+    HashMap<FileRef,String> loadedFailures = new HashMap<FileRef,String>();
 
     FSDataInputStream failFile = fs.open(new Path(error, BulkImport.FAILURES_TXT));
     BufferedReader in = new BufferedReader(new InputStreamReader(failFile, Constants.UTF8));
@@ -397,7 +398,7 @@ class CopyFailed extends MasterRepo {
       while ((line = in.readLine()) != null) {
         Path path = new Path(line);
         if (!fs.exists(new Path(error, path.getName())))
-          failures.put("/" + path.getParent().getName() + "/" + path.getName(), line);
+          failures.put(new FileRef(line, path), line);
       }
     } finally {
       failFile.close();
@@ -416,7 +417,7 @@ class CopyFailed extends MasterRepo {
 
     for (Entry<Key,Value> entry : mscanner) {
       if (Long.parseLong(entry.getValue().toString()) == tid) {
-        String loadedFile = entry.getKey().getColumnQualifier().toString();
+        FileRef loadedFile = new FileRef(fs, entry.getKey());
         String absPath = failures.remove(loadedFile);
         if (absPath != null) {
           loadedFailures.put(loadedFile, absPath);
