@@ -2940,8 +2940,14 @@ public class Tablet {
         lastRow = extent.getEndRow();
       }
 
+      // We expect to get a midPoint for this set of files. If we don't get one, we have a problem.
+      final Key mid = keys.get(.5);
+      if (null == mid) {
+        throw new IllegalStateException("Could not determine midpoint for files");
+      }
+
       // check to see that the midPoint is not equal to the end key
-      if (keys.get(.5).compareRow(lastRow) == 0) {
+      if (mid.compareRow(lastRow) == 0) {
         if (keys.firstKey() < .5) {
           Key candidate = keys.get(keys.firstKey());
           if (candidate.compareRow(lastRow) != 0) {
@@ -2961,8 +2967,7 @@ public class Tablet {
 
         return null;
       }
-      Key mid = keys.get(.5);
-      Text text = (mid == null) ? null : mid.getRow();
+      Text text = mid.getRow();
       SortedMap<Double,Key> firstHalf = keys.headMap(.5);
       if (firstHalf.size() > 0) {
         Text beforeMid = firstHalf.get(firstHalf.lastKey()).getRow();
