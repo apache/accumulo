@@ -23,7 +23,7 @@
 
 <h1>Apache Accumulo Documentation : Metrics</h1>
 
-As of version 1.2, metrics for the Master, Tablet Servers, and Loggers are available. A new configuration file, accumulo-metrics.xml, is located in the conf directory and can
+As of version 1.2, metrics for the Master and Tablet Servers are available. A new configuration file, accumulo-metrics.xml, is located in the conf directory and can
 be modified to turn metrics collection on or off, and to enable file logging if desired. This file can be modified at runtime and the changes will be seen after a few seconds.
 Except where specified all time values are in milliseconds.
 <h1>Master Metrics</h1>
@@ -38,37 +38,6 @@ Except where specified all time values are in milliseconds.
 		<tr class="highlight"><td>public long getPingMinTime();</td><td>Minimum time for each ping</td></tr>
 		<tr><td>public long getPingMaxTime();</td><td>Maximum time for each ping</td></tr>
 		<tr class="highlight"><td>public String getTServerWithHighestPingTime();</td><td>tablet server with highest ping</td></tr>
-		<tr><td>public void reset();</td><td>Resets all counters to zero</td></tr>
-	</tbody>
-</table>
-<h1>Logging Server Metrics</h1>
-<p>JMX Object Name: org.apache.accumulo.server.metrics:type=LogWriterMBean,name= &lt;current thread name&gt;</p>
-<table>
-	<thead>
-		<tr><td>Method Name</td><td>Description</td></tr>
-	</thead>
-	<tbody>
-		<tr class="highlight"><td>public long getCloseCount();</td><td>Number of closed log files</td></tr>
-		<tr><td>public long getCloseAvgTime();</td><td>Average time to close a log file</td></tr>
-		<tr class="highlight"><td>public long getCloseMinTime();</td><td>Minimum time to close a log file</td></tr>
-		<tr><td>public long getCloseMaxTime();</td><td>Maximum time to close a log file</td></tr>
-		<tr class="highlight"><td>public long getCopyCount();</td><td>Number of log files copied</td></tr>
-		<tr><td>public long getCopyAvgTime();</td><td>Average time to copy a log file</td></tr>
-		<tr class="highlight"><td>public long getCopyMinTime();</td><td>Minimum time to copy a log file</td></tr>
-		<tr><td>public long getCopyMaxTime();</td><td>Maximum time to copy a log file</td></tr>
-		<tr class="highlight"><td>public long getCreateCount();</td><td>Number of log files created</td></tr>
-		<tr><td>public long getCreateMinTime();</td><td>Minimum time to create a log file</td></tr>
-		<tr class="highlight"><td>public long getCreateMaxTime();</td><td>Maximum time to create a log file</td></tr>
-		<tr><td>public long getCreateAvgTime();</td><td>Average time to create a log file</td></tr>
-		<tr class="highlight"><td>public long getLogAppendCount();</td><td>Number of times logs have been appended</td></tr>
-		<tr><td>public long getLogAppendMinTime();</td><td>Minimum time to append to a log file</td></tr>
-		<tr class="highlight"><td>public long getLogAppendMaxTime();</td><td>Maximum time to append to a log file</td></tr>
-		<tr><td>public long getLogAppendAvgTime();</td><td>Average time to append to a log file</td></tr>
-		<tr class="highlight"><td>public long getLogFlushCount();</td><td>Number of log file flushes</td></tr>
-		<tr><td>public long getLogFlushMinTime();</td><td>Minimum time to flush a log file</td></tr>
-		<tr class="highlight"><td>public long getLogFlushMaxTime();</td><td>Maximum time to flush a log file</td></tr>
-		<tr><td>public long getLogFlushAvgTime();</td><td>Average time to flush a log file</td></tr>
-		<tr class="highlight"><td>public long getLogExceptionCount();</td><td>Number of log exceptions</td></tr>
 		<tr><td>public void reset();</td><td>Resets all counters to zero</td></tr>
 	</tbody>
 </table>
