@@ -33,10 +33,6 @@
     <enabled type="boolean">false</enabled>
     <logging type="boolean">false</logging>
   </master>
-  <logger>
-    <enabled type="boolean">false</enabled>
-    <logging type="boolean">false</logging>
-  </logger>
   <tserver>
     <enabled type="boolean">false</enabled>
     <logging type="boolean">false</logging>
