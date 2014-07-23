@@ -39,7 +39,7 @@ Below 1 million random values are inserted into accumulo. The randomly
 generated rows range between 0 and 1 billion. The random number generator is
 initialized with the seed 7.
 
-    $ ./bin/accumulo org.apache.accumulo.examples.simple.client.RandomBatchWriter --seed 7 -i instance -z zookeepers -u username -p password -t bloom_test --num 1000000 -min 0 -max 1000000000 -valueSize 50 -batchMemory 2M -batchLatency 60s -batchThreads 3 --vis exampleVis
+    $ ./bin/accumulo org.apache.accumulo.examples.simple.client.RandomBatchWriter --seed 7 -i instance -z zookeepers -u username -p password -t bloom_test --num 1000000 --min 0 --max 1000000000 --size 50 --batchMemory 2M --batchLatency 60s --batchThreads 3 --vis exampleVis
 
 Below the table is flushed:
 
@@ -50,7 +50,7 @@ After the flush completes, 500 random queries are done against the table. The
 same seed is used to generate the queries, therefore everything is found in the
 table.
 
-    $ ./bin/accumulo org.apache.accumulo.examples.simple.client.RandomBatchScanner --seed 7 -i instance -z zookeepers -u username -p password -t bloom_test --num 500 --min 0 --max 1000000000 --size 50 -batchThreads 20 --vis exampleVis
+    $ ./bin/accumulo org.apache.accumulo.examples.simple.client.RandomBatchScanner --seed 7 -i instance -z zookeepers -u username -p password -t bloom_test --num 500 --min 0 --max 1000000000 --size 50 --scanThreads 20 --auths exampleVis
     Generating 500 random queries...finished
     96.19 lookups/sec   5.20 secs
     num results : 500
@@ -113,7 +113,7 @@ The commands for creating the first table without bloom filters are below.
     username@instance bloom_test1> config -t bloom_test1 -s table.compaction.major.ratio=7
     username@instance bloom_test1> exit
 
-    $ ARGS="-i instance -z zookeepers -u username -p password -t bloom_test1 --num 1000000 --min 0 --max 1000000000 --size 50 --batchMemory 2M --batchLatency 60s --batchThreads 3 --auths exampleVis"
+    $ ARGS="-i instance -z zookeepers -u username -p password -t bloom_test1 --num 1000000 --min 0 --max 1000000000 --size 50 --batchMemory 2M --batchLatency 60s --batchThreads 3 --vis exampleVis"
     $ ./bin/accumulo org.apache.accumulo.examples.simple.client.RandomBatchWriter --seed 7 $ARGS
     $ ./bin/accumulo shell -u username -p password -e 'flush -t bloom_test1 -w'
     $ ./bin/accumulo org.apache.accumulo.examples.simple.client.RandomBatchWriter --seed 8 $ARGS
@@ -137,7 +137,7 @@ The commands for creating the second table with bloom filers are below.
     username@instance bloom_test2> config -t bloom_test2 -s table.bloom.enabled=true
     username@instance bloom_test2> exit
 
-    $ ARGS="-i instance -z zookeepers -u username -p password -t bloom_test2 --num 1000000 --min 0 --max 1000000000 --size 50 --batchMemory 2M --batchLatency 60s --batchThreads 3 --auths exampleVis"
+    $ ARGS="-i instance -z zookeepers -u username -p password -t bloom_test2 --num 1000000 --min 0 --max 1000000000 --size 50 --batchMemory 2M --batchLatency 60s --batchThreads 3 --vis exampleVis"
     $ ./bin/accumulo org.apache.accumulo.examples.simple.client.RandomBatchWriter --seed 7 $ARGS
     $ ./bin/accumulo shell -u username -p password -e 'flush -t bloom_test2 -w'
     $ ./bin/accumulo org.apache.accumulo.examples.simple.client.RandomBatchWriter --seed 8 $ARGS
