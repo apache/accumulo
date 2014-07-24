@@ -32,7 +32,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.server.util.reflection.CounterUtils;
 import org.apache.accumulo.test.continuous.ContinuousIngest.BaseOpts;
 import org.apache.accumulo.test.continuous.ContinuousIngest.ShortConverter;
 import org.apache.hadoop.conf.Configuration;
@@ -111,7 +110,7 @@ public class ContinuousMoru extends Configured implements Tool {
         }
         
       } else {
-        CounterUtils.increment(context.getCounter(Counts.SELF_READ));
+        ContinuousVerify.increment(context.getCounter(Counts.SELF_READ));
       }
     }
   }

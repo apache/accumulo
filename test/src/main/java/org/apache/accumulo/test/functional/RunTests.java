@@ -27,13 +27,14 @@ import java.util.Map;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
-import org.apache.accumulo.server.util.reflection.CounterUtils;
+import org.apache.accumulo.test.continuous.ContinuousVerify;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapred.Counters.Counter;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
@@ -132,7 +133,7 @@ public class RunTests extends Configured implements Tool {
             if (resultLine.length() > 0) {
               Outcome outcome = OUTCOME_COUNTERS.get(resultLine.charAt(0));
               if (outcome != null) {
-                CounterUtils.increment(context.getCounter(outcome));
+                ContinuousVerify.increment(context.getCounter(outcome));
               }
             }
             String taskAttemptId = context.getTaskAttemptID().toString();
