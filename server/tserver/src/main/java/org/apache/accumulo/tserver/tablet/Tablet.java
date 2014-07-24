@@ -2564,7 +2564,7 @@ public class Tablet implements TabletCommitter {
     return activeScans.size();
   }
 
-  public void setLastCompactionID(Long compactionId) {
+  synchronized public void setLastCompactionID(Long compactionId) {
     if (compactionId != null)
       this.lastCompactID = compactionId;
   }
