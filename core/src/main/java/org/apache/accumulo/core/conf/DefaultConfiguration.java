@@ -23,6 +23,8 @@ import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Collections;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
@@ -30,32 +32,40 @@ import org.apache.accumulo.core.Constants;
 import org.apache.log4j.Logger;
 
 public class DefaultConfiguration extends AccumuloConfiguration {
-  private static DefaultConfiguration instance = null;
   private static Logger log = Logger.getLogger(DefaultConfiguration.class);
-  
-  synchronized public static DefaultConfiguration getInstance() {
-    if (instance == null) {
-      instance = new DefaultConfiguration();
-      ConfigSanityCheck.validate(instance);
+
+  private final static Map<String,String> resolvedProps;
+  static {
+    Map<String,String> m = new TreeMap<String,String>();
+    for (Property prop : Property.values()) {
+      if (!prop.isExperimental() && !prop.getType().equals(PropertyType.PREFIX)) {
+        m.put(prop.getKey(), prop.getDefaultValue());
+      }
     }
-    return instance;
+    ConfigSanityCheck.validate(m.entrySet());
+    resolvedProps = Collections.unmodifiableMap(m);
   }
-  
+
+  /**
+   * Gets a default configuration.
+   *
+   * @return default configuration
+   */
+  public static DefaultConfiguration getInstance() {
+    return new DefaultConfiguration();
+  }
+
   @Override
   public String get(Property property) {
     return property.getDefaultValue();
   }
-  
+
   @Override
   public Iterator<Entry<String,String>> iterator() {
-    TreeMap<String,String> entries = new TreeMap<String,String>();
-    for (Property prop : Property.values())
-      if (!prop.isExperimental() && !prop.getType().equals(PropertyType.PREFIX))
-        entries.put(prop.getKey(), prop.getDefaultValue());
-    
-    return entries.entrySet().iterator();
+    return resolvedProps.entrySet().iterator();
   }
   
+
   private static void generateDocumentation(PrintStream doc) {
     // read static content from resources and output
     InputStream data = DefaultConfiguration.class.getResourceAsStream("config.html");
@@ -185,5 +195,4 @@ public class DefaultConfiguration extends AccumuloConfiguration {
       throw new IllegalArgumentException("Usage: " + DefaultConfiguration.class.getName() + " --generate-doc <filename>");
     }
   }
-  
 }
