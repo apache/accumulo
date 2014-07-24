@@ -19,7 +19,6 @@ import logging
 import unittest
 import time
 import sys
-import glob
 
 from TestUtils import TestUtilsMixin, ACCUMULO_HOME, SITE, ROOT, ROOT_PASSWORD, INSTANCE_NAME, ZOOKEEPERS
 
@@ -64,9 +63,9 @@ class Examples(TestUtilsMixin, unittest.TestCase):
         self.wait(self.runOn('localhost', cmd))
 
     def runTest(self):
-        examplesJar = glob.glob(os.path.join(ACCUMULO_HOME, 'lib', 'examples-simple*[!javadoc|sources].jar'))
-	self.comment("Testing MaxMutation constraint")
-	self.ashell('createtable test_ingest\n'
+        examplesJar = os.path.join(ACCUMULO_HOME, 'lib', 'accumulo-examples-simple.jar')
+        self.comment("Testing MaxMutation constraint")
+        self.ashell('createtable test_ingest\n'
                     'constraint -a org.apache.accumulo.examples.simple.constraints.MaxMutationSize\n')
         handle = self.runOn('localhost', [self.accumulo_sh(), 'org.apache.accumulo.test.TestIngest', '-u', ROOT, '--rows', '1', '--start', '0', '--cols', '10000', '-p', ROOT_PASSWORD])
         out, err = handle.communicate()
