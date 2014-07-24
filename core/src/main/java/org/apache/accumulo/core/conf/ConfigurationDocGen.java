@@ -16,9 +16,11 @@
  */
 package org.apache.accumulo.core.conf;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.TreeMap;
 
@@ -277,7 +279,7 @@ class ConfigurationDocGen {
     }
   }
 
-  private static Logger log = Logger.getLogger(DefaultConfiguration.class);
+  private static Logger log = Logger.getLogger(ConfigurationDocGen.class);
 
   private PrintStream doc;
 
@@ -302,7 +304,7 @@ class ConfigurationDocGen {
   }
 
   private void appendResource(String resourceName) {
-    InputStream data = DefaultConfiguration.class.getResourceAsStream(resourceName);
+    InputStream data = ConfigurationDocGen.class.getResourceAsStream(resourceName);
     if (data != null) {
       byte[] buffer = new byte[1024];
       int n;
@@ -336,6 +338,19 @@ class ConfigurationDocGen {
 
   void generateLaTeX() {
     new LaTeX().generate();
+  }
+
+  /*
+   * Generate documentation for conf/accumulo-site.xml file usage
+   */
+  public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException {
+    if (args.length == 2 && args[0].equals("--generate-html")) {
+      new ConfigurationDocGen(new PrintStream(args[1], Constants.UTF8.name())).generateHtml();
+    } else if (args.length == 2 && args[0].equals("--generate-latex")) {
+      new ConfigurationDocGen(new PrintStream(args[1], Constants.UTF8.name())).generateLaTeX();
+    } else {
+      throw new IllegalArgumentException("Usage: " + ConfigurationDocGen.class.getName() + " --generate-html <filename> | --generate-latex <filename>");
+    }
   }
 
 }
