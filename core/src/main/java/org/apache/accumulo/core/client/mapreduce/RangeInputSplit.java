@@ -355,8 +355,24 @@ public class RangeInputSplit extends InputSplit implements Writable {
     return sb.toString();
   }
 
+  /**
+   * Use {@link #getTableName}
+   */
+  @Deprecated
+  public String getTable() {
+    return getTableName();
+  }
+
   public String getTableName() {
     return tableName;
+  }
+
+  /**
+   * Use {@link #setTableName}
+   */
+  @Deprecated
+  public void setTable(String table) {
+    setTableName(table);
   }
 
   public void setTableName(String table) {
