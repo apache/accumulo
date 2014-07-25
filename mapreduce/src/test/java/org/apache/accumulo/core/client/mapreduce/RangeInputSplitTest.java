@@ -79,7 +79,8 @@ public class RangeInputSplitTest {
     setting = new IteratorSetting(100, WholeRowIterator.class);
     setting.addOption("bar", "foo");
     iterators.add(setting);
-    
+
+    split.setTable("table");
     split.setAuths(new Authorizations("foo"));
     split.setOffline(true);
     split.setIsolatedScan(true);
@@ -105,7 +106,8 @@ public class RangeInputSplitTest {
     
     Assert.assertEquals(split.getRange(), newSplit.getRange());
     Assert.assertArrayEquals(split.getLocations(), newSplit.getLocations());
-    
+
+    Assert.assertEquals(split.getTable(), newSplit.getTable());
     Assert.assertEquals(split.getAuths(), newSplit.getAuths());
     Assert.assertEquals(split.isOffline(), newSplit.isOffline());
     Assert.assertEquals(split.isIsolatedScan(), newSplit.isOffline());
