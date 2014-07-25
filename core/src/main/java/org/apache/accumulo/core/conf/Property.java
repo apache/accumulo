@@ -123,7 +123,7 @@ public enum Property {
   TSERV_INDEXCACHE_SIZE("tserver.cache.index.size", "512M", PropertyType.MEMORY, "Specifies the size of the cache for file indices."),
   TSERV_PORTSEARCH("tserver.port.search", "false", PropertyType.BOOLEAN, "if the ports above are in use, search higher ports until one is available"),
   TSERV_CLIENTPORT("tserver.port.client", "9997", PropertyType.PORT, "The port used for handling client connections on the tablet servers"),
-  TSERV_MUTATION_QUEUE_MAX("tserver.mutation.queue.max", "256K", PropertyType.MEMORY,
+  TSERV_MUTATION_QUEUE_MAX("tserver.mutation.queue.max", "1M", PropertyType.MEMORY,
       "The amount of memory to use to store write-ahead-log mutations-per-session before flushing them. Since the buffer is per write session, consider the"
           + " max number of concurrent writer when configuring.  When using Hadoop 2, Accumulo will call hsync() on the WAL .  For a small number of "
           + "concurrent writers, increasing this buffer size decreases the frequncy of hsync calls.  For a large number of concurrent writers a small buffers "
