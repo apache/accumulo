@@ -902,21 +902,6 @@ public class TabletServer implements Runnable {
         throw new NoSuchScanIDException();
       }
 
-      log.trace("Writing mutations in closeUpdate: ");
-      for (Entry<Tablet,List<Mutation>> entry : us.queuedMutations.entrySet()) {
-        log.trace(entry.getKey().getExtent() + " => ");
-        for (Mutation m : entry.getValue()) {
-          StringBuilder sb = new StringBuilder(64);
-          for (ColumnUpdate update : m.getUpdates()) {
-            if (sb.length()>0) {
-              sb.append(", ");
-            }
-            sb.append(new String(update.getColumnFamily()) + " " + new String(update.getColumnQualifier()) +  " " + new String(update.getValue()));
-          }
-          log.trace(new String(m.getRow()) + " [" + sb + "]");
-        }
-      }
-
       // clients may or may not see data from an update session while
       // it is in progress, however when the update session is closed
       // want to ensure that reads wait for the write to finish

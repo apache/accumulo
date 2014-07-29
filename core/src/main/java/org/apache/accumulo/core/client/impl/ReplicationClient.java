@@ -103,7 +103,7 @@ public class ReplicationClient {
     // Throw the hostname and port through HostAndPort to get some normalization
     HostAndPort coordinatorAddr = HostAndPort.fromString(replCoordinatorAddr);
 
-    log.debug("Connecting to master at {}", coordinatorAddr.toString());
+    log.debug("Connecting to master at {}", coordinatorAddr);
 
     try {
       // Master requests can take a long time: don't ever time out
@@ -111,7 +111,7 @@ public class ReplicationClient {
           conf);
       return client;
     } catch (TTransportException tte) {
-      log.debug("Failed to connect to master coordinator service ({})", coordinatorAddr.toString(), tte);
+      log.debug("Failed to connect to master coordinator service ({})", coordinatorAddr, tte);
       return null;
     }
   }
@@ -132,7 +132,7 @@ public class ReplicationClient {
     try {
       return ThriftUtil.getClientNoTimeout(new ReplicationServicer.Client.Factory(), server, ServerConfigurationUtil.getConfiguration(inst));
     } catch (TTransportException tte) {
-      log.debug("Failed to connect to servicer ({}), will retry...", tte);
+      log.debug("Failed to connect to servicer ({}), will retry...", server, tte);
       throw tte;
     }
   }
