@@ -16,86 +16,20 @@
  */
 package org.apache.accumulo.server.conf;
 
-import java.security.SecurityPermission;
-
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.KeyExtent;
 
-/**
- * @deprecated Use {@link ServerConfigurationFactory} instead.
- */
-@Deprecated
-public class ServerConfiguration {
+public abstract class ServerConfiguration {
+  
+  abstract public TableConfiguration getTableConfiguration(String tableId);
 
-  private static SecurityPermission CONFIGURATION_PERMISSION = new SecurityPermission("configurationPermission");
+  abstract public TableConfiguration getTableConfiguration(KeyExtent extent);
 
-  public static synchronized SiteConfiguration getSiteConfiguration() {
-    checkPermissions();
-    return SiteConfiguration.getInstance(getDefaultConfiguration());
-  }
+  abstract public NamespaceConfiguration getNamespaceConfiguration(String namespaceId);
 
-  private static void checkPermissions() {
-    SecurityManager sm = System.getSecurityManager();
-    if (sm != null) {
-      sm.checkPermission(CONFIGURATION_PERMISSION);
-    }
-  }
+  abstract public AccumuloConfiguration getConfiguration();
 
-  private static synchronized ZooConfiguration getZooConfiguration(Instance instance) {
-    return (ZooConfiguration) new ServerConfigurationFactory(instance).getConfiguration();
-  }
-
-  public static synchronized DefaultConfiguration getDefaultConfiguration() {
-    checkPermissions();
-    return DefaultConfiguration.getInstance();
-  }
-
-  public static synchronized AccumuloConfiguration getSystemConfiguration(Instance instance) {
-    return getZooConfiguration(instance);
-  }
-
-  public static NamespaceConfiguration getNamespaceConfigurationForTable(Instance instance, String tableId) {
-    return new ServerConfigurationFactory(instance).getNamespaceConfigurationForTable(tableId);
-  }
-
-  public static NamespaceConfiguration getNamespaceConfiguration(Instance instance, String namespaceId) {
-    return new ServerConfigurationFactory(instance).getNamespaceConfiguration(namespaceId);
-  }
-
-  public static TableConfiguration getTableConfiguration(Instance instance, String tableId) {
-    return new ServerConfigurationFactory(instance).getTableConfiguration(tableId);
-  }
-
-  static void expireAllTableObservers() {
-    ServerConfigurationFactory.expireAllTableObservers();
-  }
-  private final ServerConfigurationFactory scf;
-
-  public ServerConfiguration(Instance instance) {
-    scf = new ServerConfigurationFactory(instance);
-  }
-
-  public TableConfiguration getTableConfiguration(String tableId) {
-    return scf.getTableConfiguration(tableId);
-  }
-
-  public TableConfiguration getTableConfiguration(KeyExtent extent) {
-    return getTableConfiguration(extent.getTableId().toString());
-  }
-
-  public NamespaceConfiguration getNamespaceConfiguration(String namespaceId) {
-    return scf.getNamespaceConfiguration(namespaceId);
-  }
-
-  public synchronized AccumuloConfiguration getConfiguration() {
-    return scf.getConfiguration();
-  }
-
-  public Instance getInstance() {
-    return scf.getInstance();
-  }
-
+  abstract public Instance getInstance();
+  
 }

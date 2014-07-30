@@ -30,6 +30,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.accumulo.server.security.SystemCredentials;
@@ -42,15 +43,19 @@ public abstract class TabletBalancer {
   
   private static final Logger log = Logger.getLogger(TabletBalancer.class);
   
-  protected ServerConfiguration configuration;
+  protected ServerConfigurationFactory configuration;
   
   /**
    * Initialize the TabletBalancer. This gives the balancer the opportunity to read the configuration.
    */
-  public void init(ServerConfiguration conf) {
+  public void init(ServerConfigurationFactory conf) {
     configuration = conf;
   }
-  
+
+  public void init(ServerConfiguration conf) {
+    configuration = (ServerConfigurationFactory)conf;
+  }
+
   /**
    * Assign tablets to tablet servers. This method is called whenever the master finds tablets that are unassigned.
    * 

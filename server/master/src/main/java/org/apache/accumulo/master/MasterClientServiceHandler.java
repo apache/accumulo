@@ -67,7 +67,7 @@ import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
 import org.apache.accumulo.master.tableOps.TraceRepo;
 import org.apache.accumulo.master.tserverOps.ShutdownTServer;
 import org.apache.accumulo.server.client.ClientServiceHandler;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.balancer.DefaultLoadBalancer;
 import org.apache.accumulo.server.master.balancer.TabletBalancer;
@@ -103,7 +103,7 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
     String namespaceId = Tables.getNamespaceId(instance, tableId);
     master.security.canFlush(c, tableId, namespaceId);
 
-    String zTablePath = Constants.ZROOT + "/" + master.getConfiguration().getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId
+    String zTablePath = Constants.ZROOT + "/" + master.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId
         + Constants.ZTABLE_FLUSH_ID;
 
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
@@ -458,9 +458,10 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
 
   private void updatePlugins(String property) {
     if (property.equals(Property.MASTER_TABLET_BALANCER.getKey())) {
-      TabletBalancer balancer = ServerConfiguration.getSystemConfiguration(master.getInstance()).instantiateClassProperty(Property.MASTER_TABLET_BALANCER,
+      ServerConfigurationFactory factory = new ServerConfigurationFactory(master.getInstance());
+      TabletBalancer balancer = factory.getConfiguration().instantiateClassProperty(Property.MASTER_TABLET_BALANCER,
           TabletBalancer.class, new DefaultLoadBalancer());
-      balancer.init(master.getConfiguration());
+      balancer.init(master.getConfigurationFactory());
       master.tabletBalancer = balancer;
       log.info("tablet balancer changed to " + master.tabletBalancer.getClass().getName());
     }

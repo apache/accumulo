@@ -44,6 +44,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
@@ -80,7 +81,7 @@ import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -146,9 +147,9 @@ public class SimpleGarbageCollector implements Iface {
   private Instance instance;
 
   public static void main(String[] args) throws UnknownHostException, IOException {
-    SecurityUtil.serverLogin(ServerConfiguration.getSiteConfiguration());
+    SecurityUtil.serverLogin(SiteConfiguration.getInstance());
     Instance instance = HdfsZooInstance.getInstance();
-    ServerConfiguration serverConf = new ServerConfiguration(instance);
+    ServerConfigurationFactory serverConf = new ServerConfigurationFactory(instance);
     final VolumeManager fs = VolumeManagerImpl.get();
     Accumulo.init(fs, serverConf, "gc");
     Opts opts = new Opts();
@@ -234,7 +235,7 @@ public class SimpleGarbageCollector implements Iface {
    * @param noTrash true to not move files to trash instead of deleting
    */
   public void init(VolumeManager fs, Instance instance, Credentials credentials, boolean noTrash) {
-    init(fs, instance, credentials, noTrash, ServerConfiguration.getSystemConfiguration(instance));
+    init(fs, instance, credentials, noTrash, new ServerConfigurationFactory(instance).getConfiguration());
   }
 
   /**
@@ -630,7 +631,7 @@ public class SimpleGarbageCollector implements Iface {
 
       Trace.offNoFlush();
       try {
-        long gcDelay = ServerConfiguration.getSystemConfiguration(instance).getTimeInMillis(Property.GC_CYCLE_DELAY);
+        long gcDelay = new ServerConfigurationFactory(instance).getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
         log.debug("Sleeping for " + gcDelay + " milliseconds");
         Thread.sleep(gcDelay);
       } catch (InterruptedException e) {
@@ -692,7 +693,7 @@ public class SimpleGarbageCollector implements Iface {
 
   private HostAndPort startStatsService() throws UnknownHostException {
     Processor<Iface> processor = new Processor<Iface>(RpcWrapper.service(this));
-    AccumuloConfiguration conf = ServerConfiguration.getSystemConfiguration(instance);
+    AccumuloConfiguration conf = new ServerConfigurationFactory(instance).getConfiguration();
     int port = conf.getPort(Property.GC_PORT);
     long maxMessageSize = conf.getMemoryInBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
     HostAndPort result = HostAndPort.fromParts(opts.getAddress(), port);

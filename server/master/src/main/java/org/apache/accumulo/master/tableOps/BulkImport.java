@@ -48,8 +48,8 @@ import org.apache.accumulo.core.client.impl.thrift.ClientService.Client;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
@@ -65,7 +65,6 @@ import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
@@ -436,7 +435,7 @@ class CopyFailed extends MasterRepo {
 
     if (loadedFailures.size() > 0) {
       DistributedWorkQueue bifCopyQueue = new DistributedWorkQueue(Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID()
-          + Constants.ZBULK_FAILED_COPYQ, master.getConfiguration().getConfiguration());
+          + Constants.ZBULK_FAILED_COPYQ, master.getConfiguration());
 
       HashSet<String> workIds = new HashSet<String>();
 
@@ -491,7 +490,7 @@ class LoadFiles extends MasterRepo {
 
   private static synchronized ExecutorService getThreadPool(Master master) {
     if (threadPool == null) {
-      int threadPoolSize = master.getSystemConfiguration().getCount(Property.MASTER_BULK_THREADPOOL_SIZE);
+      int threadPoolSize = master.getConfiguration().getCount(Property.MASTER_BULK_THREADPOOL_SIZE);
       ThreadPoolExecutor pool = new SimpleThreadPool(threadPoolSize, "bulk import");
       pool.allowCoreThreadTimeOut(true);
       threadPool = new TraceExecutorService(pool);
@@ -502,7 +501,7 @@ class LoadFiles extends MasterRepo {
   @Override
   public Repo<Master> call(final long tid, final Master master) throws Exception {
     ExecutorService executor = getThreadPool(master);
-    final SiteConfiguration conf = ServerConfiguration.getSiteConfiguration();
+    final AccumuloConfiguration conf = master.getConfiguration();
     VolumeManager fs = master.getFileSystem();
     List<FileStatus> files = new ArrayList<FileStatus>();
     for (FileStatus entry : fs.listStatus(new Path(bulk))) {
@@ -548,7 +547,7 @@ class LoadFiles extends MasterRepo {
               // get a connection to a random tablet server, do not prefer cached connections because
               // this is running on the master and there are lots of connections to tablet servers
               // serving the metadata tablets
-              long timeInMillis = master.getConfiguration().getConfiguration().getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
+              long timeInMillis = master.getConfiguration().getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
               Pair<String,Client> pair = ServerClient.getConnection(master.getInstance(), false, timeInMillis);
               client = pair.getSecond();
               server = pair.getFirst();

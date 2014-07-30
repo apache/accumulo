@@ -37,6 +37,7 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Prope
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.AgeOffFilter;
@@ -48,7 +49,7 @@ import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.util.time.SimpleTimer;
@@ -77,7 +78,7 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 public class TraceServer implements Watcher {
 
   final private static Logger log = Logger.getLogger(TraceServer.class);
-  final private ServerConfiguration serverConfiguration;
+  final private ServerConfigurationFactory serverConfiguration;
   final private TServer server;
   final private AtomicReference<BatchWriter> writer;
   final private Connector connector;
@@ -169,7 +170,7 @@ public class TraceServer implements Watcher {
 
   }
 
-  public TraceServer(ServerConfiguration serverConfiguration, String hostname) throws Exception {
+  public TraceServer(ServerConfigurationFactory serverConfiguration, String hostname) throws Exception {
     this.serverConfiguration = serverConfiguration;
     AccumuloConfiguration conf = serverConfiguration.getConfiguration();
     table = conf.get(Property.TRACE_TABLE);
@@ -284,11 +285,11 @@ public class TraceServer implements Watcher {
   }
 
   public static void main(String[] args) throws Exception {
-    SecurityUtil.serverLogin(ServerConfiguration.getSiteConfiguration());
+    SecurityUtil.serverLogin(SiteConfiguration.getInstance());
     ServerOpts opts = new ServerOpts();
     opts.parseArgs("tracer", args);
     Instance instance = HdfsZooInstance.getInstance();
-    ServerConfiguration conf = new ServerConfiguration(instance);
+    ServerConfigurationFactory conf = new ServerConfigurationFactory(instance);
     VolumeManager fs = VolumeManagerImpl.get();
     Accumulo.init(fs, conf, "tracer");
     String hostname = opts.getAddress();

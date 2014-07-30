@@ -43,7 +43,7 @@ public class WorkDriver extends Daemon {
     super();
     this.master = master;
     this.conn = conn;
-    this.conf = master.getConfiguration().getConfiguration();
+    this.conf = master.getConfiguration();
     configureWorkAssigner();
   }
 

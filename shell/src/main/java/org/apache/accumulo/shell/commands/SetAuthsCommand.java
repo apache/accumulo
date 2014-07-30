@@ -22,6 +22,7 @@ import java.util.Set;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.shell.Shell;
+import org.apache.accumulo.shell.ShellOptions;
 import org.apache.accumulo.shell.Token;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -64,7 +65,7 @@ public class SetAuthsCommand extends Command {
     setOrClear.addOption(clearOptAuths);
     setOrClear.setRequired(true);
     o.addOptionGroup(setOrClear);
-    userOpt = new Option(Shell.userOption, "user", true, "user to operate on");
+    userOpt = new Option(ShellOptions.userOption, "user", true, "user to operate on");
     userOpt.setArgName("user");
     o.addOption(userOpt);
     return o;

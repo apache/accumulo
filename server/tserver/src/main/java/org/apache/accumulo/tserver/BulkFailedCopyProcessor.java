@@ -19,8 +19,8 @@ package org.apache.accumulo.tserver;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.trace.TraceFileSystem;
@@ -52,7 +52,7 @@ public class BulkFailedCopyProcessor implements Processor {
     Path tmp = new Path(dest.getParent(), dest.getName() + ".tmp");
 
     try {
-      VolumeManager vm = VolumeManagerImpl.get(ServerConfiguration.getSiteConfiguration());
+      VolumeManager vm = VolumeManagerImpl.get(SiteConfiguration.getInstance());
       FileSystem origFs = TraceFileSystem.wrap(vm.getVolumeByPath(orig).getFileSystem());
       FileSystem destFs = TraceFileSystem.wrap(vm.getVolumeByPath(dest).getFileSystem());
       
@@ -61,7 +61,7 @@ public class BulkFailedCopyProcessor implements Processor {
       log.debug("copied " + orig + " to " + dest);
     } catch (IOException ex) {
       try {
-        VolumeManager vm = VolumeManagerImpl.get(ServerConfiguration.getSiteConfiguration());
+        VolumeManager vm = VolumeManagerImpl.get(SiteConfiguration.getInstance());
         FileSystem destFs = TraceFileSystem.wrap(vm.getVolumeByPath(dest).getFileSystem());
         destFs.create(dest).close();
         log.warn(" marked " + dest + " failed", ex);

@@ -22,10 +22,10 @@ import java.nio.charset.StandardCharsets;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.RetryingInvocationHandler;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 
 /**
  * A factory for {@link ZooReaderWriter} objects.
@@ -59,7 +59,7 @@ public class ZooReaderWriterFactory {
   public IZooReaderWriter getInstance() {
     synchronized (ZooReaderWriterFactory.class) {
       if (instance == null) {
-        AccumuloConfiguration conf = ServerConfiguration.getSiteConfiguration();
+        AccumuloConfiguration conf = SiteConfiguration.getInstance();
         instance = getZooReaderWriter(conf.get(Property.INSTANCE_ZK_HOST), (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT),
             conf.get(Property.INSTANCE_SECRET));
       }

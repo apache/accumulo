@@ -48,6 +48,7 @@ import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
@@ -85,7 +86,7 @@ import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -220,7 +221,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     if (newState == MasterState.STOP) {
       // Give the server a little time before shutdown so the client
       // thread requesting the stop can return
-      SimpleTimer.getInstance(serverConfig.getConfiguration()).schedule(new Runnable() {
+      SimpleTimer.getInstance(getConfiguration()).schedule(new Runnable() {
         @Override
         public void run() {
           // This frees the main thread and will cause the master to exit
@@ -354,7 +355,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   private final AtomicBoolean upgradeMetadataRunning = new AtomicBoolean(false);
   private final CountDownLatch waitForMetadataUpgrade = new CountDownLatch(1);
 
-  private final ServerConfiguration serverConfig;
+  private final ServerConfigurationFactory serverConfig;
 
   private void upgradeMetadata() {
     // we make sure we're only doing the rest of this method once so that we can signal to other threads that an upgrade wasn't needed.
@@ -474,7 +475,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     return instance.getConnector(SystemCredentials.get().getPrincipal(), SystemCredentials.get().getToken());
   }
 
-  private Master(ServerConfiguration config, VolumeManager fs, String hostname) throws IOException {
+  private Master(ServerConfigurationFactory config, VolumeManager fs, String hostname) throws IOException {
     this.serverConfig = config;
     this.instance = config.getInstance();
     this.fs = fs;
@@ -494,7 +495,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       AccumuloVFSClassLoader.getContextManager().setContextConfig(new ContextManager.DefaultContextsConfig(new Iterable<Entry<String,String>>() {
         @Override
         public Iterator<Entry<String,String>> iterator() {
-          return getSystemConfiguration().iterator();
+          return getConfiguration().iterator();
         }
       }));
     } catch (IOException e) {
@@ -829,7 +830,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       TServerInstance instance = null;
       int crazyHoldTime = 0;
       int someHoldTime = 0;
-      final long maxWait = getSystemConfiguration().getTimeInMillis(Property.TSERV_HOLD_TIME_SUICIDE);
+      final long maxWait = getConfiguration().getTimeInMillis(Property.TSERV_HOLD_TIME_SUICIDE);
       for (Entry<TServerInstance,TabletServerStatus> entry : tserverStatus.entrySet()) {
         if (entry.getValue().getHoldTime() > 0) {
           someHoldTime++;
@@ -972,12 +973,12 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       final AgeOffStore<Master> store = new AgeOffStore<Master>(new org.apache.accumulo.fate.ZooStore<Master>(ZooUtil.getRoot(instance) + Constants.ZFATE,
           ZooReaderWriter.getRetryingInstance()), 1000 * 60 * 60 * 8);
 
-      int threads = this.getConfiguration().getConfiguration().getCount(Property.MASTER_FATE_THREADPOOL_SIZE);
+      int threads = getConfiguration().getCount(Property.MASTER_FATE_THREADPOOL_SIZE);
 
       fate = new Fate<Master>(this, store);
       fate.startTransactionRunners(threads);
 
-      SimpleTimer.getInstance(serverConfig.getConfiguration()).schedule(new Runnable() {
+      SimpleTimer.getInstance(getConfiguration()).schedule(new Runnable() {
 
         @Override
         public void run() {
@@ -993,7 +994,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     ZooKeeperInitialization.ensureZooKeeperInitialized(zReaderWriter, zroot);
 
     Processor<Iface> processor = new Processor<Iface>(RpcWrapper.service(new MasterClientServiceHandler(this)));
-    ServerAddress sa = TServerUtils.startServer(getSystemConfiguration(), hostname, Property.MASTER_CLIENTPORT, processor, "Master",
+    ServerAddress sa = TServerUtils.startServer(getConfiguration(), hostname, Property.MASTER_CLIENTPORT, processor, "Master",
         "Master Client Service Handler", null, Property.MASTER_MINTHREADS, Property.MASTER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
     clientService = sa.server;
     String address = sa.address.toString();
@@ -1020,7 +1021,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     // Start the replication coordinator which assigns tservers to service replication requests
     ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor = new ReplicationCoordinator.Processor<ReplicationCoordinator.Iface>(
         RpcWrapper.service(new MasterReplicationCoordinator(this)));
-    ServerAddress replAddress = TServerUtils.startServer(getSystemConfiguration(), hostname, Property.MASTER_REPLICATION_COORDINATOR_PORT,
+    ServerAddress replAddress = TServerUtils.startServer(getConfiguration(), hostname, Property.MASTER_REPLICATION_COORDINATOR_PORT,
         replicationCoordinatorProcessor, "Master Replication Coordinator", "Replication Coordinator", null, Property.MASTER_REPLICATION_COORDINATOR_MINTHREADS,
         Property.MASTER_REPLICATION_COORDINATOR_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
 
@@ -1115,7 +1116,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   private void getMasterLock(final String zMasterLoc) throws KeeperException, InterruptedException {
     log.info("trying to get master lock");
 
-    final String masterClientAddress = hostname + ":" + getSystemConfiguration().getPort(Property.MASTER_CLIENTPORT);
+    final String masterClientAddress = hostname + ":" + getConfiguration().getPort(Property.MASTER_CLIENTPORT);
 
     while (true) {
 
@@ -1143,14 +1144,14 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
   public static void main(String[] args) throws Exception {
     try {
-      SecurityUtil.serverLogin(ServerConfiguration.getSiteConfiguration());
+      SecurityUtil.serverLogin(SiteConfiguration.getInstance());
 
       VolumeManager fs = VolumeManagerImpl.get();
       ServerOpts opts = new ServerOpts();
       opts.parseArgs("master", args);
       String hostname = opts.getAddress();
       Instance instance = HdfsZooInstance.getInstance();
-      ServerConfiguration conf = new ServerConfiguration(instance);
+      ServerConfigurationFactory conf = new ServerConfigurationFactory(instance);
       Accumulo.init(fs, conf, "master");
       Master master = new Master(conf, fs, hostname);
       Accumulo.enableTracing(hostname, "master");
@@ -1287,11 +1288,11 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     return this.instance;
   }
 
-  public AccumuloConfiguration getSystemConfiguration() {
+  public AccumuloConfiguration getConfiguration() {
     return serverConfig.getConfiguration();
   }
 
-  public ServerConfiguration getConfiguration() {
+  public ServerConfigurationFactory getConfigurationFactory() {
     return serverConfig;
   }
 

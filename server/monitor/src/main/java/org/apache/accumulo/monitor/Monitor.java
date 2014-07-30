@@ -33,6 +33,7 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
@@ -70,7 +71,7 @@ import org.apache.accumulo.monitor.servlets.trace.Summary;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.monitor.LogService;
@@ -155,7 +156,7 @@ public class Monitor {
 
   private static Instance instance;
 
-  private static ServerConfiguration config;
+  private static ServerConfigurationFactory config;
 
   private static EmbeddedWebServer server;
 
@@ -392,7 +393,7 @@ public class Monitor {
   }
 
   public static void main(String[] args) throws Exception {
-    SecurityUtil.serverLogin(ServerConfiguration.getSiteConfiguration());
+    SecurityUtil.serverLogin(SiteConfiguration.getInstance());
     
     VolumeManager fs = VolumeManagerImpl.get();
     ServerOpts opts = new ServerOpts();
@@ -400,7 +401,7 @@ public class Monitor {
     String hostname = opts.getAddress();
 
     instance = HdfsZooInstance.getInstance();
-    config = new ServerConfiguration(instance);
+    config = new ServerConfigurationFactory(instance);
     Accumulo.init(fs, config, "monitor");
     Monitor monitor = new Monitor();
     Accumulo.enableTracing(hostname, "monitor");

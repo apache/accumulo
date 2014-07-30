@@ -64,7 +64,7 @@ public class RecoveryManager {
     executor = Executors.newScheduledThreadPool(4, new NamingThreadFactory("Walog sort starter "));
     zooCache = new ZooCache();
     try {
-      AccumuloConfiguration aconf = master.getConfiguration().getConfiguration();
+      AccumuloConfiguration aconf = master.getConfiguration();
       List<String> workIDs = new DistributedWorkQueue(ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY, aconf).getWorkQueued();
       sortsQueued.addAll(workIDs);
     } catch (Exception e) {
@@ -89,7 +89,7 @@ public class RecoveryManager {
     public void run() {
       boolean rescheduled = false;
       try {
-        AccumuloConfiguration aconf = master.getConfiguration().getConfiguration();
+        AccumuloConfiguration aconf = master.getConfiguration();
         long time = closer.close(aconf, master.getFileSystem(), new Path(source));
 
         if (time > 0) {
@@ -169,11 +169,11 @@ public class RecoveryManager {
         recoveryNeeded = true;
         synchronized (this) {
           if (!closeTasksQueued.contains(sortId) && !sortsQueued.contains(sortId)) {
-            AccumuloConfiguration aconf = master.getConfiguration().getConfiguration();
+            AccumuloConfiguration aconf = master.getConfiguration();
             LogCloser closer = aconf.instantiateClassProperty(Property.MASTER_WALOG_CLOSER_IMPLEMETATION, LogCloser.class, new HadoopLogCloser());
             Long delay = recoveryDelay.get(sortId);
             if (delay == null) {
-              delay = master.getSystemConfiguration().getTimeInMillis(Property.MASTER_RECOVERY_DELAY);
+              delay = aconf.getTimeInMillis(Property.MASTER_RECOVERY_DELAY);
             } else {
               delay = Math.min(2 * delay, 1000 * 60 * 5l);
             }

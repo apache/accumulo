@@ -49,7 +49,7 @@ public class ReplicationDriver extends Daemon {
     super("Replication Driver");
 
     this.master = master;
-    this.conf = master.getConfiguration().getConfiguration();
+    this.conf = master.getConfiguration();
   }
 
   @Override

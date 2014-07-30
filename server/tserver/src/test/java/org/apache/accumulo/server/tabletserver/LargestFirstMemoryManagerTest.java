@@ -25,10 +25,8 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
-import org.apache.accumulo.server.conf.ServerConfiguration;
-import org.apache.accumulo.server.conf.TableConfiguration;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -45,7 +43,12 @@ public class LargestFirstMemoryManagerTest {
   public void test() throws Exception {
     LargestFirstMemoryManagerUnderTest mgr = new LargestFirstMemoryManagerUnderTest();
     Instance instance = new MockInstance();
-    ServerConfigurationCopy config = new ServerConfigurationCopy(instance);
+    ServerConfigurationFactory config = new ServerConfigurationFactory(instance) {
+      @Override
+      public AccumuloConfiguration getConfiguration() {
+        return DefaultConfiguration.getInstance();
+      }
+    };
     mgr.init(config);
     MemoryManagementActions result;
     // nothing to do
@@ -263,38 +266,4 @@ public class LargestFirstMemoryManagerTest {
     return Arrays.asList(states);
   }
 
-  // Spoof out the TableConfiguration to just use a DefaultConfiguration
-  private static class DefaultTableConfiguration extends TableConfiguration {
-    private static final DefaultConfiguration defaultConf = new DefaultConfiguration();
-
-    public DefaultTableConfiguration() {
-      super(null, null, null, null);
-    }
-
-    @Override
-    public String get(Property property) {
-      return defaultConf.get(property);
-    }
-
-    @Override
-    public long getMemoryInBytes(Property property) {
-      return defaultConf.getMemoryInBytes(property);
-    }
-  }
-
-  private static class ServerConfigurationCopy extends ServerConfiguration {
-    public ServerConfigurationCopy(Instance instance) {
-      super(instance);
-    }
-
-    @Override
-    public TableConfiguration getTableConfiguration(String tableId) {
-      return new DefaultTableConfiguration();
-    }
-
-    @Override
-    public AccumuloConfiguration getConfiguration() {
-      return new DefaultTableConfiguration();
-    }
-  }
 }

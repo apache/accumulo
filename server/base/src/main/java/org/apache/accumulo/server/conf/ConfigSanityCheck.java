@@ -21,7 +21,7 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 public class ConfigSanityCheck {
   
   public static void main(String[] args) {
-    new ServerConfiguration(HdfsZooInstance.getInstance()).getConfiguration();
+    new ServerConfigurationFactory(HdfsZooInstance.getInstance()).getConfiguration();
   }
   
 }

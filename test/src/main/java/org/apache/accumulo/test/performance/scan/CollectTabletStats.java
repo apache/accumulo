@@ -63,7 +63,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.server.cli.ClientOnRequiredTable;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -107,7 +107,7 @@ public class CollectTabletStats {
     final VolumeManager fs = VolumeManagerImpl.get();
     
     Instance instance = opts.getInstance();
-    final ServerConfiguration sconf = new ServerConfiguration(instance);
+    final ServerConfigurationFactory sconf = new ServerConfigurationFactory(instance);
     
     String tableId = Tables.getNameToIdMap(instance).get(opts.getTableName());
     if (tableId == null) {
@@ -467,7 +467,7 @@ public class CollectTabletStats {
     return columnSet;
   }
   
-  private static int readFilesUsingIterStack(VolumeManager fs, ServerConfiguration aconf, List<FileRef> files, Authorizations auths, KeyExtent ke,
+  private static int readFilesUsingIterStack(VolumeManager fs, ServerConfigurationFactory aconf, List<FileRef> files, Authorizations auths, KeyExtent ke,
       String[] columns, boolean useTableIterators) throws Exception {
     
     SortedKeyValueIterator<Key,Value> reader;

@@ -23,6 +23,7 @@ import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.ShellCommandException;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.ShellCommandException.ErrorCode;
+import org.apache.accumulo.shell.ShellOptions;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
@@ -124,7 +125,7 @@ public class ConstraintCommand extends Command {
 
     OptionGroup grp = new OptionGroup();
     grp.addOption(OptUtil.tableOpt("table to add, delete, or list constraints for"));
-    namespaceOpt = new Option(Shell.namespaceOption, "namespace", true, "name of a namespace to operate on");
+    namespaceOpt = new Option(ShellOptions.namespaceOption, "namespace", true, "name of a namespace to operate on");
     namespaceOpt.setArgName("namespace");
     grp.addOption(namespaceOpt);
 

@@ -63,6 +63,10 @@ public class SiteConfiguration extends AccumuloConfiguration {
     return instance;
   }
   
+  synchronized public static SiteConfiguration getInstance() {
+    return getInstance(DefaultConfiguration.getInstance());
+  }
+
   synchronized private static Configuration getXmlConfig() {
     String configFile = System.getProperty("org.apache.accumulo.config.file", "accumulo-site.xml");
     if (xmlConfig == null) {

@@ -36,7 +36,7 @@ import org.apache.accumulo.core.replication.thrift.WalEdits;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,7 +111,7 @@ public class ReplicationServicerHandler implements Iface {
           + clz.getName());
     }
 
-    long entriesReplicated = replayer.replicateLog(conn, ServerConfiguration.getSystemConfiguration(HdfsZooInstance.getInstance()), tableName, data);
+    long entriesReplicated = replayer.replicateLog(conn, new ServerConfigurationFactory(HdfsZooInstance.getInstance()).getConfiguration(), tableName, data);
 
     return entriesReplicated;
   }

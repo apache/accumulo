@@ -37,6 +37,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.shell.Shell;
+import org.apache.accumulo.shell.ShellOptions;
 import org.apache.accumulo.shell.Token;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.Shell.PrintFile;
@@ -278,13 +279,13 @@ public class ConfigCommand extends Command {
     final OptionGroup og = new OptionGroup();
     final OptionGroup tgroup = new OptionGroup();
 
-    tableOpt = new Option(Shell.tableOption, "table", true, "table to display/set/delete properties for");
+    tableOpt = new Option(ShellOptions.tableOption, "table", true, "table to display/set/delete properties for");
     deleteOpt = new Option("d", "delete", true, "delete a per-table property");
     setOpt = new Option("s", "set", true, "set a per-table property");
     filterOpt = new Option("f", "filter", true, "show only properties that contain this string");
     disablePaginationOpt = new Option("np", "no-pagination", false, "disables pagination of output");
     outputFileOpt = new Option("o", "output", true, "local file to write the scan output to");
-    namespaceOpt = new Option(Shell.namespaceOption, "namespace", true, "namespace to display/set/delete properties for");
+    namespaceOpt = new Option(ShellOptions.namespaceOption, "namespace", true, "namespace to display/set/delete properties for");
 
     tableOpt.setArgName("table");
     deleteOpt.setArgName("property");

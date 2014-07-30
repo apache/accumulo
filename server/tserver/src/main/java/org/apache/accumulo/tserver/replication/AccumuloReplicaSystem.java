@@ -55,7 +55,7 @@ import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.trace.instrument.Span;
@@ -140,7 +140,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     instanceName = configuration.substring(0, index);
     zookeepers = configuration.substring(index + 1);
 
-    conf = ServerConfiguration.getSystemConfiguration(HdfsZooInstance.getInstance());
+    conf = new ServerConfigurationFactory(HdfsZooInstance.getInstance()).getConfiguration();
 
     try {
       fs = VolumeManagerImpl.get(conf);

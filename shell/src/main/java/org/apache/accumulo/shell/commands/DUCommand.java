@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
+import org.apache.accumulo.shell.ShellOptions;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -43,8 +44,8 @@ public class DUCommand extends Command {
 
     final SortedSet<String> tables = new TreeSet<String>(Arrays.asList(cl.getArgs()));
 
-    if (cl.hasOption(Shell.tableOption)) {
-      String tableName = cl.getOptionValue(Shell.tableOption);
+    if (cl.hasOption(ShellOptions.tableOption)) {
+      String tableName = cl.getOptionValue(ShellOptions.tableOption);
       if (!shellState.getConnector().tableOperations().exists(tableName)) {
         throw new TableNotFoundException(tableName, tableName, "specified table that doesn't exist");
       }
@@ -100,7 +101,7 @@ public class DUCommand extends Command {
     optHumanReadble = new Option("h", "human-readable", false, "format large sizes to human readable units");
     optHumanReadble.setArgName("human readable output");
 
-    optNamespace = new Option(Shell.namespaceOption, "namespace", true, "name of a namespace");
+    optNamespace = new Option(ShellOptions.namespaceOption, "namespace", true, "name of a namespace");
     optNamespace.setArgName("namespace");
 
     o.addOption(OptUtil.tableOpt("table to examine"));

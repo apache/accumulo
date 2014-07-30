@@ -36,7 +36,7 @@ import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.accumulo.trace.instrument.Span;
@@ -63,6 +63,7 @@ public class WorkMaker {
   }
 
   public void run() {
+    ServerConfigurationFactory serverConf = new ServerConfigurationFactory(conn.getInstance());
     if (!conn.tableOperations().exists(ReplicationTable.NAME)) {
       log.info("Replication table does not yet exist");
       return;
@@ -109,7 +110,7 @@ public class WorkMaker {
         }
 
         // Get the table configuration for the table specified by the status record
-        tableConf = ServerConfiguration.getTableConfiguration(conn.getInstance(), tableId.toString());
+        tableConf = serverConf.getTableConfiguration(tableId.toString());
 
         // Pull the relevant replication targets
         // TODO Cache this instead of pulling it every time

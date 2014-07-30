@@ -34,6 +34,7 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
@@ -43,7 +44,7 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.Accumulo;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.zookeeper.ZooLock;
@@ -61,7 +62,7 @@ import com.google.common.base.Joiner;
 public class HdfsZooInstance implements Instance {
 
   private HdfsZooInstance() {
-    AccumuloConfiguration acuConf = ServerConfiguration.getSiteConfiguration();
+    AccumuloConfiguration acuConf = SiteConfiguration.getInstance();
     zooCache = new ZooCacheFactory().getZooCache(acuConf.get(Property.INSTANCE_ZK_HOST), (int) acuConf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT));
   }
 
@@ -121,7 +122,7 @@ public class HdfsZooInstance implements Instance {
 
   private static synchronized void _getInstanceID() {
     if (instanceId == null) {
-      AccumuloConfiguration acuConf = ServerConfiguration.getSiteConfiguration();
+      AccumuloConfiguration acuConf = SiteConfiguration.getInstance();
       // InstanceID should be the same across all volumes, so just choose one
       VolumeManager fs;
       try {
@@ -143,12 +144,12 @@ public class HdfsZooInstance implements Instance {
 
   @Override
   public String getZooKeepers() {
-    return ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_ZK_HOST);
+    return SiteConfiguration.getInstance().get(Property.INSTANCE_ZK_HOST);
   }
 
   @Override
   public int getZooKeepersSessionTimeOut() {
-    return (int) ServerConfiguration.getSiteConfiguration().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
+    return (int) SiteConfiguration.getInstance().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
   }
 
   @Override
@@ -180,7 +181,7 @@ public class HdfsZooInstance implements Instance {
   @Override
   public AccumuloConfiguration getConfiguration() {
     if (conf == null)
-      conf = new ServerConfiguration(this).getConfiguration();
+      conf = new ServerConfigurationFactory(this).getConfiguration();
     return conf;
   }
 

@@ -32,7 +32,7 @@ import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 /**
  * A factor for configurations used by a server process. Instance of this class are thread-safe.
  */
-public class ServerConfigurationFactory {
+public class ServerConfigurationFactory extends ServerConfiguration {
 
   private static final Map<String,Map<String,TableConfiguration>> tableConfigs;
   private static final Map<String,Map<String,NamespaceConfiguration>> namespaceConfigs;

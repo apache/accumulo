@@ -44,7 +44,7 @@ import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tabletserver.LargestFirstMemoryManager;
@@ -95,7 +95,7 @@ public class TabletServerResourceManager {
 
   private final LruBlockCache _dCache;
   private final LruBlockCache _iCache;
-  private final ServerConfiguration conf;
+  private final ServerConfigurationFactory conf;
 
   private ExecutorService addEs(String name, ExecutorService tp) {
     if (threadPools.containsKey(name)) {
@@ -146,7 +146,7 @@ public class TabletServerResourceManager {
   }
 
   public TabletServerResourceManager(Instance instance, VolumeManager fs) {
-    this.conf = new ServerConfiguration(instance);
+    this.conf = new ServerConfigurationFactory(instance);
     this.fs = fs;
     final AccumuloConfiguration acuConf = conf.getConfiguration();
 

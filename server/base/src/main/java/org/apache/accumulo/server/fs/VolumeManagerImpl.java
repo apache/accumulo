@@ -35,6 +35,7 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.file.rfile.RFile;
@@ -42,7 +43,6 @@ import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.volume.NonConfiguredVolume;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -394,7 +394,7 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   public static VolumeManager get() throws IOException {
-    AccumuloConfiguration conf = ServerConfiguration.getSiteConfiguration();
+    AccumuloConfiguration conf = SiteConfiguration.getInstance();
     return get(conf);
   }
 

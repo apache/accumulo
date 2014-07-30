@@ -28,9 +28,9 @@ import java.util.UUID;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.log4j.Logger;
 
@@ -61,7 +61,7 @@ public class ListInstances {
     opts.parseArgs(ListInstances.class.getName(), args);
     
     if (opts.keepers == null) {
-      opts.keepers = ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_ZK_HOST);
+      opts.keepers = SiteConfiguration.getInstance().get(Property.INSTANCE_ZK_HOST);
     }
     
     String keepers = opts.keepers;

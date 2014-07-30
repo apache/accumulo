@@ -23,6 +23,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.shell.Shell;
+import org.apache.accumulo.shell.ShellOptions;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
@@ -35,8 +36,8 @@ public abstract class OptUtil {
   public static String getTableOpt(final CommandLine cl, final Shell shellState) throws TableNotFoundException {
     String tableName;
 
-    if (cl.hasOption(Shell.tableOption)) {
-      tableName = cl.getOptionValue(Shell.tableOption);
+    if (cl.hasOption(ShellOptions.tableOption)) {
+      tableName = cl.getOptionValue(ShellOptions.tableOption);
       if (!shellState.getConnector().tableOperations().exists(tableName)) {
         throw new TableNotFoundException(tableName, tableName, "specified table that doesn't exist");
       }
@@ -51,8 +52,8 @@ public abstract class OptUtil {
   public static String getNamespaceOpt(final CommandLine cl, final Shell shellState) throws NamespaceNotFoundException, AccumuloException,
       AccumuloSecurityException {
     String namespace = null;
-    if (cl.hasOption(Shell.namespaceOption)) {
-      namespace = cl.getOptionValue(Shell.namespaceOption);
+    if (cl.hasOption(ShellOptions.namespaceOption)) {
+      namespace = cl.getOptionValue(ShellOptions.namespaceOption);
       if (!shellState.getConnector().namespaceOperations().exists(namespace)) {
         throw new NamespaceNotFoundException(namespace, namespace, "specified namespace that doesn't exist");
       }
@@ -67,7 +68,7 @@ public abstract class OptUtil {
   }
 
   public static Option tableOpt(final String description) {
-    final Option tableOpt = new Option(Shell.tableOption, "table", true, description);
+    final Option tableOpt = new Option(ShellOptions.tableOption, "table", true, description);
     tableOpt.setArgName("table");
     tableOpt.setRequired(false);
     return tableOpt;
@@ -78,7 +79,7 @@ public abstract class OptUtil {
   }
 
   public static Option namespaceOpt(final String description) {
-    final Option namespaceOpt = new Option(Shell.namespaceOption, "namespace", true, description);
+    final Option namespaceOpt = new Option(ShellOptions.namespaceOption, "namespace", true, description);
     namespaceOpt.setArgName("namespace");
     namespaceOpt.setRequired(false);
     return namespaceOpt;

@@ -22,7 +22,7 @@ import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.server.cli.ClientOpts;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.hadoop.io.Text;
 
@@ -39,7 +39,7 @@ public class WrongTabletTest {
     Opts opts = new Opts();
     opts.parseArgs(WrongTabletTest.class.getName(), args);
     
-    ServerConfiguration conf = new ServerConfiguration(opts.getInstance());
+    ServerConfigurationFactory conf = new ServerConfigurationFactory(opts.getInstance());
     try {
       TabletClientService.Iface client = ThriftUtil.getTServerClient(opts.location, conf.getConfiguration());
       

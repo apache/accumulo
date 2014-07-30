@@ -37,7 +37,7 @@ import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Credentials;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
 import org.apache.accumulo.server.replication.ReplicationTable;
@@ -71,7 +71,7 @@ public class ReplicationProcessor implements Processor {
 
   @Override
   public ReplicationProcessor newProcessor() {
-    return new ReplicationProcessor(inst, new ServerConfiguration(inst).getConfiguration(), fs, creds);
+    return new ReplicationProcessor(inst, new ServerConfigurationFactory(inst).getConfiguration(), fs, creds);
   }
 
   @Override
