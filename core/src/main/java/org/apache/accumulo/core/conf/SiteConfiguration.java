@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.conf;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -64,7 +65,26 @@ public class SiteConfiguration extends AccumuloConfiguration {
   @Override
   public String get(Property property) {
     String key = property.getKey();
-    
+
+    // If the property is sensitive, see if CredentialProvider was configured.
+    if (property.isSensitive()) {
+      Configuration hadoopConf = getHadoopConfiguration();
+      if (null != hadoopConf) {
+        // Try to find the sensitive value from the CredentialProvider
+        try {
+          char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf, key);
+          if (null != value) {
+            if (log.isTraceEnabled()) {
+              log.trace("Loaded " + key + "=" + new String(value) + " from CredentialProvider");
+            }
+            return new String(value);
+          }
+        } catch (IOException e) {
+          log.warn("Failed to extract sensitive property (" + key + ") from Hadoop CredentialProvider, falling back to accumulo-site.xml", e);
+        }
+      }
+    }
+
     String value = getXmlConfig().get(key);
     
     if (value == null || !property.getType().isValidFormat(value)) {
@@ -79,9 +99,40 @@ public class SiteConfiguration extends AccumuloConfiguration {
   public void getProperties(Map<String,String> props, PropertyFilter filter) {
     parent.getProperties(props, filter);
 
+    Configuration hadoopConf = getHadoopConfiguration();
+    if (null != hadoopConf) {
+      try {
+        for (String key : CredentialProviderFactoryShim.getKeys(hadoopConf)) {
+          if (filter.accept(key)) {
+            char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf, key);
+            if (null != value) {
+              props.put(key, new String(value));
+            }
+          }
+        }
+      } catch (IOException e) {
+        log.warn("Failed to extract sensitive properties from Hadoop CredentialProvider, falling back to accumulo-site.xml", e);
+      }
+    }
+
     for (Entry<String,String> entry : getXmlConfig())
       if (filter.accept(entry.getKey()))
         props.put(entry.getKey(), entry.getValue());
+  }
+
+  protected Configuration getHadoopConfiguration() {
+    String credProviderPathsKey = Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey();
+    String credProviderPathsValue = getXmlConfig().get(credProviderPathsKey);
+
+    if (null != credProviderPathsValue) {
+      // We have configuration for a CredentialProvider
+      // Try to pull the sensitive password from there
+      Configuration conf = new Configuration();
+      conf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, credProviderPathsValue);
+      return conf;
+    }
+
+    return null;
   }
 
   /**
