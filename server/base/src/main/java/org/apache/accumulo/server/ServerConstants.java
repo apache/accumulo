@@ -51,6 +51,7 @@ public class ServerConstants {
    */
   public static final int DATA_VERSION = 6;
   public static final int PREV_DATA_VERSION = 5;
+  public static final int TWO_DATA_VERSIONS_AGO = 4;
 
   private static String[] baseUris = null;
 
