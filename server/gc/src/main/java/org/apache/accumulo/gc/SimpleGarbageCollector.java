@@ -438,7 +438,7 @@ public class SimpleGarbageCollector implements Iface {
                   if (tableState != null && tableState != TableState.DELETING) {
                     // clone directories don't always exist
                     if (!tabletDir.startsWith("c-"))
-                      log.warn("File doesn't exist: " + fullPath);
+                      log.debug("File doesn't exist: " + fullPath);
                   }
                 } else {
                   log.warn("Very strange path name: " + delete);
