@@ -178,6 +178,8 @@ settings between processes and helps finalize TabletServer failure.
 
 The instance needs a secret to enable secure communication between servers. Configure your
 secret and make sure that the +accumulo-site.xml+ file is not readable to other users.
+For alternatives to storing the +instance.secret+ in plaintext, please read the
++Sensitive Configuration Values+ section.
 
 Some settings can be modified via the Accumulo shell and take effect immediately, but
 some settings require a process restart to take effect. See the configuration documentation
@@ -188,6 +190,47 @@ some settings require a process restart to take effect. See the configuration do
 Copy the masters, slaves, accumulo-env.sh, and if necessary, accumulo-site.xml
 from the +$ACCUMULO_HOME/conf/+ directory on the master to all the machines
 specified in the slaves file.
+
+==== Sensitive Configuration Values
+
+Accumulo has a number of properties that can be specified via the accumulo-site.xml
+file which are sensitive in nature, instance.secret and trace.token.property.password
+are two common examples. Both of these properties, if compromised, have the ability
+to result in data being leaked to users who should not have access to that data.
+
+In Hadoop-2.6.0, a new CredentialProvider class was introduced which serves as a common
+implementation to abstract away the storage and retrieval of passwords from plaintext
+storage in configuration files. Any Property marked with the +Sensitive+ annotation
+is a candidate for use with these CredentialProviders. For version of Hadoop which lack
+these classes, the feature will just be unavailable for use.
+
+A comma separated list of CredentialProviders can be configured using the Accumulo Property
++general.security.credential.provider.paths+. Each configured URL will be consulted
+when the Configuration object for accumulo-site.xml is accessed.
+
+==== Using a JavaKeyStoreCredentialProvider for storage
+
+One of the implementations provided in Hadoop-2.6.0 is a Java KeyStore CredentialProvider.
+Each entry in the KeyStore is the Accumulo Property key name. For example, to store the
+\texttt{instance.secret}, the following command can be used:
+
+  hadoop credential create instance.secret --provider jceks://file/etc/accumulo/conf/accumulo.jceks
+
+The command will then prompt you to enter the secret to use and create a keystore in: 
+
+  /etc/accumulo/conf/accumulo.jceks
+
+Then, accumulo-site.xml must be configured to use this KeyStore as a CredentialProvider:
+
+[source,xml]
+<property>
+    <name>general.security.credential.provider.paths</name>
+    <value>jceks://file/etc/accumulo/conf/accumulo.jceks</value>
+</property>
+
+This configuration will then transparently extract the +instance.secret+ from
+the configured KeyStore and alleviates a human readable storage of the sensitive
+property.
 
 === Initialization
 
