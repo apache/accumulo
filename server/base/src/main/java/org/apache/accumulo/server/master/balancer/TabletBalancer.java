@@ -17,10 +17,13 @@
 package org.apache.accumulo.server.master.balancer;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
+
+import com.google.common.collect.Iterables;
 
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -67,6 +70,11 @@ public abstract class TabletBalancer {
   
   /**
    * Ask the balancer if any migrations are necessary.
+   *
+   * If the balancer is going to self-abort due to some environmental constraint (e.g. it requires some minimum number of tservers, or a maximum number
+   * of outstanding migrations), it should issue a log message to alert operators. The message should be at WARN normally and at ERROR if the balancer knows that the
+   * problem can not self correct. It should not issue these messages more than once a minute. Subclasses can use the convenience methods of {@link #constraintNotMet()} and
+   * {@link #balanceSuccessful()} to accomplish this logging.
    * 
    * @param current
    *          The current table-summary state of all the online tablet servers. Read-only.
@@ -79,6 +87,89 @@ public abstract class TabletBalancer {
    *         This method will not be called when there are unassigned tablets.
    */
   public abstract long balance(SortedMap<TServerInstance,TabletServerStatus> current, Set<KeyExtent> migrations, List<TabletMigration> migrationsOut);
+
+  private static final long ONE_SECOND = 1000l;
+  private boolean stuck = false;
+  private long stuckNotificationTime = -1l;
+
+  protected static final long TIME_BETWEEN_BALANCER_WARNINGS = 60 * ONE_SECOND;
+
+  /**
+   * A deferred call descendent TabletBalancers use to log why they can't continue.
+   * The call is deferred so that TabletBalancer can limit how often messages happen.
+   *
+   * Implementations should be reused as much as possible.
+   *
+   * Be sure to pass in a properly scoped Logger instance so that messages indicate
+   * what part of the system is having trouble.
+   */
+  protected static abstract class BalancerProblem implements Runnable {
+    protected final Logger balancerLog;
+    public BalancerProblem(Logger logger) {
+      balancerLog = logger;
+    }
+  }
+
+  /**
+   * If a TabletBalancer requires active tservers, it should use this problem to indicate when there are none.
+   * NoTservers is safe to share with anyone who uses the same Logger. TabletBalancers should have a single
+   * static instance.
+   */
+  protected static class NoTservers extends BalancerProblem {
+    public NoTservers(Logger logger) {
+      super(logger);
+    }
+
+    @Override
+    public void run() {
+      balancerLog.warn("Not balancing because we don't have any tservers");
+    }
+  }
+
+  /**
+   * If a TabletBalancer only balances when there are no outstanding migrations, it should use this problem
+   * to indicate when they exist.
+   *
+   * Iff a TabletBalancer makes use of the migrations member to provide samples, then OutstandingMigrations
+   * is not thread safe.
+   */
+  protected static class OutstandingMigrations extends BalancerProblem {
+    public Set<KeyExtent> migrations = Collections.<KeyExtent>emptySet();
+
+    public OutstandingMigrations(Logger logger) {
+      super(logger);
+    }
+
+    @Override
+    public void run() {
+      balancerLog.warn("Not balancing due to " + migrations.size() + " outstanding migrations.");
+      /* TODO ACCUMULO-2938 redact key extents in this output to avoid leaking protected information. */
+      balancerLog.debug("Sample up to 10 outstanding migrations: " + Iterables.limit(migrations, 10));
+    }
+  }
+
+  /**
+   * Warn that a Balancer can't work because of some external restriction.
+   * Will not call the provided logging handler  more often than TIME_BETWEEN_BALANCER_WARNINGS
+   */
+  protected void constraintNotMet(BalancerProblem cause) {
+    if (!stuck) {
+      stuck = true;
+      stuckNotificationTime = System.currentTimeMillis();
+    } else {
+      if ((System.currentTimeMillis() - stuckNotificationTime) > TIME_BETWEEN_BALANCER_WARNINGS) {
+        cause.run();
+        stuckNotificationTime = System.currentTimeMillis();
+      }
+    }
+  }
+
+  /**
+   * Resets logging about problems meeting an external constraint on balancing.
+   */
+  protected void resetBalancerErrors() {
+    stuck = false;
+  }
   
   /**
    * Fetch the tablets for the given table by asking the tablet server. Useful if your balance strategy needs details at the tablet level to decide what tablets

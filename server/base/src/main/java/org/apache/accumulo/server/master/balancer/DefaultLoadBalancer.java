@@ -302,16 +302,26 @@ public class DefaultLoadBalancer extends TabletBalancer {
       assignments.put(entry.getKey(), getAssignment(current, entry.getKey(), entry.getValue()));
     }
   }
-  
+
+  private static final NoTservers NO_SERVERS = new NoTservers(log);
+
+  protected final OutstandingMigrations outstandingMigrations = new OutstandingMigrations(log);
+
   @Override
   public long balance(SortedMap<TServerInstance,TabletServerStatus> current, Set<KeyExtent> migrations, List<TabletMigration> migrationsOut) {
     // do we have any servers?
     if (current.size() > 0) {
       // Don't migrate if we have migrations in progress
       if (migrations.size() == 0) {
+        resetBalancerErrors();
         if (getMigrations(current, migrationsOut))
           return 1 * 1000;
+      } else {
+        outstandingMigrations.migrations = migrations;
+        constraintNotMet(outstandingMigrations);
       }
+    } else {
+      constraintNotMet(NO_SERVERS);
     }
     return 5 * 1000;
   }
