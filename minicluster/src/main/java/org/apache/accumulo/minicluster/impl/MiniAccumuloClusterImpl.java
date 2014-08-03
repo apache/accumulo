@@ -56,9 +56,13 @@ import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.impl.MasterClient;
+import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
+import org.apache.accumulo.core.master.thrift.MasterClientService;
+import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -67,10 +71,12 @@ import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.state.SetGoalState;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.init.Initialize;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
+import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.commons.configuration.MapConfiguration;
 import org.apache.commons.io.FileUtils;
@@ -81,6 +87,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.log4j.Logger;
+import org.apache.thrift.TException;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
 
 import com.google.common.base.Joiner;
@@ -740,5 +747,30 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     executor.execute(future);
 
     return future.get(timeout, unit);
+  }
+
+  /**
+   * Get programmatic interface to information available in a normal monitor.
+   * XXX the returned structure won't contain information about the metadata table until there is data in it.
+   * e.g. if you want to see the metadata table you should create a table.
+   * @since 1.6.1
+   */
+  public MasterMonitorInfo getMasterMonitorInfo() throws AccumuloException, AccumuloSecurityException {
+    MasterClientService.Iface client = null;
+    MasterMonitorInfo stats = null;
+    try {
+      Instance instance = new ZooKeeperInstance(getClientConfig());
+      client = MasterClient.getConnectionWithRetry(instance);
+      stats = client.getMasterStats(Tracer.traceInfo(), SystemCredentials.get(instance).toThrift(instance));
+    } catch (ThriftSecurityException exception) {
+      throw new AccumuloSecurityException(exception);
+    } catch (TException exception) {
+      throw new AccumuloException(exception);
+    } finally {
+      if (client != null) {
+        MasterClient.close(client);
+      }
+    }
+    return stats;
   }
 }

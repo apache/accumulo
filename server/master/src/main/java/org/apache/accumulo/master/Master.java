@@ -726,7 +726,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       while (stillMaster()) {
         if (!migrations.isEmpty()) {
           try {
-            cleanupMutations();
+            cleanupOfflineMigrations();
+            cleanupNonexistentMigrations(getConnector());
           } catch (Exception ex) {
             log.error("Error cleaning up migrations", ex);
           }
@@ -735,12 +736,13 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       }
     }
 
-    // If a migrating tablet splits, and the tablet dies before sending the
-    // master a message, the migration will refer to a non-existing tablet,
-    // so it can never complete. Periodically scan the metadata table and
-    // remove any migrating tablets that no longer exist.
-    private void cleanupMutations() throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-      Connector connector = getConnector();
+    /**
+     * If a migrating tablet splits, and the tablet dies before sending the
+     * master a message, the migration will refer to a non-existing tablet,
+     * so it can never complete. Periodically scan the metadata table and
+     * remove any migrating tablets that no longer exist.
+     */
+    private void cleanupNonexistentMigrations(final Connector connector) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
       Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
       TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       Set<KeyExtent> found = new HashSet<KeyExtent>();
@@ -751,6 +753,21 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         }
       }
       migrations.keySet().retainAll(found);
+    }
+
+    /**
+     * If migrating a tablet for a table that is offline, the migration
+     * can never succeed because no tablet server will load the tablet.
+     * check for offline tables and remove their migrations.
+     */
+    private void cleanupOfflineMigrations() {
+      TableManager manager = TableManager.getInstance();
+      for (String tableId : Tables.getIdToNameMap(instance).keySet()) {
+        TableState state = manager.getTableState(tableId);
+        if (TableState.OFFLINE == state) {
+          clearMigrations(tableId);
+        }
+      }
     }
   }
 
@@ -1256,6 +1273,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   @Override
   public void stateChanged(String tableId, TableState state) {
     nextEvent.event("Table state in zookeeper changed for %s to %s", tableId, state);
+    if (TableState.OFFLINE == state) {
+      clearMigrations(tableId);
+    }
   }
 
   @Override

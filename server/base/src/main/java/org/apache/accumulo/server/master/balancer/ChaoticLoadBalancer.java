@@ -80,6 +80,8 @@ public class ChaoticLoadBalancer extends TabletBalancer {
     }
   }
   
+  protected final OutstandingMigrations outstandingMigrations = new OutstandingMigrations(log);
+
   /**
    * Will balance randomly, maintaining distribution
    */
@@ -87,10 +89,14 @@ public class ChaoticLoadBalancer extends TabletBalancer {
   public long balance(SortedMap<TServerInstance,TabletServerStatus> current, Set<KeyExtent> migrations, List<TabletMigration> migrationsOut) {
     Map<TServerInstance,Long> numTablets = new HashMap<TServerInstance,Long>();
     List<TServerInstance> underCapacityTServer = new ArrayList<TServerInstance>();
-    
-    if (!migrations.isEmpty())
+
+    if (!migrations.isEmpty()) {
+      outstandingMigrations.migrations = migrations;
+      constraintNotMet(outstandingMigrations);
       return 100;
-    
+    }
+    resetBalancerErrors();
+
     boolean moveMetadata = r.nextInt(4) == 0;
     long totalTablets = 0;
     for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
