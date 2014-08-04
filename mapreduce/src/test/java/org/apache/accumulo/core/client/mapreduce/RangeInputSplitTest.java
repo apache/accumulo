@@ -61,6 +61,7 @@ public class RangeInputSplitTest {
     Assert.assertTrue(Arrays.equals(split.getLocations(), newSplit.getLocations()));
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testAllFieldsWritable() throws IOException {
     RangeInputSplit split = new RangeInputSplit("table", "1", new Range(new Key("a"), new Key("b")), new String[]{"localhost"});
