@@ -42,6 +42,9 @@ public class WaitForBalanceIT extends ConfigurableMacIT {
   @Test(timeout = 30 * 1000)
   public void test() throws Exception {
     final Connector c = getConnector();
+    // ensure the metadata table is online
+    for (@SuppressWarnings("unused") Entry<Key,Value> unused : c.createScanner(MetadataTable.NAME, Authorizations.EMPTY))
+      ;
     c.instanceOperations().waitForBalance();
     assertTrue(isBalanced());
     final String tableName = getUniqueNames(1)[0];
