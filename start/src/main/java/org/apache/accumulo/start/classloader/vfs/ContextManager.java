@@ -173,7 +173,7 @@ public class ContextManager {
     
     ClassLoader loader = context.getClassLoader();
     if (loader == null) {
-      // ooppss, context was closed by another thread, try again
+      // oops, context was closed by another thread, try again
       return getClassLoader(contextName);
     }
     
