@@ -126,7 +126,6 @@ public class BalanceInPresenceOfOfflineTableIT extends ConfigurableMacIT {
         continue;
       }
 
-      int numTablets = 0;
       long[] tabletsPerServer = new long[stats.getTServerInfoSize()];
       Arrays.fill(tabletsPerServer, 0l);
       for (int i = 0; i < stats.getTServerInfoSize(); i++) {
