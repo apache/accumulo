@@ -38,6 +38,7 @@ import org.apache.commons.vfs2.cache.SoftRefFilesCache;
 import org.apache.commons.vfs2.impl.DefaultFileSystemManager;
 import org.apache.commons.vfs2.impl.FileContentInfoFilenameFactory;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
+import org.apache.commons.vfs2.provider.FileReplicator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.log4j.Logger;
@@ -385,8 +386,18 @@ public class AccumuloVFSClassLoader {
   public static void close() {
     for (WeakReference<DefaultFileSystemManager> vfsInstance : vfsInstances) {
       DefaultFileSystemManager ref = vfsInstance.get();
-      if (ref != null)
+      if (ref != null) {
+        FileReplicator replicator;
+        try {
+          replicator = ref.getReplicator();
+          if (replicator instanceof UniqueFileReplicator) {
+            ((UniqueFileReplicator) replicator).close();
+          }
+        } catch (FileSystemException e) {
+          log.error(e, e);
+        }
         ref.close();
+      }
     }
   }
 }
