@@ -219,16 +219,6 @@ public class VolumeManagerImpl implements VolumeManager {
       final String volumeName = entry.getKey();
       FileSystem fs = entry.getValue().getFileSystem();
 
-      if (ViewFSUtils.isViewFS(fs)) {
-        try {
-          FileSystem resolvedFs = ViewFSUtils.resolvePath(fs, new Path("/")).getFileSystem(fs.getConf());
-          log.debug("resolved " + fs.getUri() + " to " + resolvedFs.getUri() + " for sync check");
-          fs = resolvedFs;
-        } catch (IOException e) {
-          log.warn("Failed to resolve " + fs.getUri(), e);
-        }
-      }
-
       if (fs instanceof DistributedFileSystem) {
         final String DFS_DURABLE_SYNC = "dfs.durable.sync", DFS_SUPPORT_APPEND = "dfs.support.append";
         final String ticketMessage = "See ACCUMULO-623 and ACCUMULO-1637 for more details.";
@@ -410,6 +400,9 @@ public class VolumeManagerImpl implements VolumeManager {
         // Cannot re-define the default volume
         throw new IllegalArgumentException();
 
+      if (volumeUriOrDir.startsWith("viewfs"))
+        throw new IllegalArgumentException();
+
       // We require a URI here, fail if it doesn't look like one
       if (volumeUriOrDir.contains(":")) {
         volumes.put(volumeUriOrDir, VolumeConfiguration.create(new Path(volumeUriOrDir), hadoopConf));
@@ -425,16 +418,6 @@ public class VolumeManagerImpl implements VolumeManager {
   public boolean isReady() throws IOException {
     for (Volume volume : getFileSystems().values()) {
       FileSystem fs = volume.getFileSystem();
-
-      if (ViewFSUtils.isViewFS(fs)) {
-        try {
-          FileSystem resolvedFs = ViewFSUtils.resolvePath(fs, new Path("/")).getFileSystem(fs.getConf());
-          log.debug("resolved " + fs.getUri() + " to " + resolvedFs.getUri() + " for ready check");
-          fs = resolvedFs;
-        } catch (IOException e) {
-          log.warn("Failed to resolve " + fs.getUri(), e);
-        }
-      }
 
       if (!(fs instanceof DistributedFileSystem))
         continue;
