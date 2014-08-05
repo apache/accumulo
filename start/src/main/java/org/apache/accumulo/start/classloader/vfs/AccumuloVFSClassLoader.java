@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.accumulo.start.classloader.vfs.providers.HdfsFileObject;
 import org.apache.accumulo.start.classloader.vfs.providers.HdfsFileProvider;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.vfs2.CacheStrategy;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
@@ -405,6 +406,10 @@ public class AccumuloVFSClassLoader {
         ref.close();
       }
     }
-    computeTopCacheDir().delete();
+    try {
+      FileUtils.deleteDirectory(computeTopCacheDir());
+    } catch (IOException e) {
+      log.error(e, e);
+    }
   }
 }
