@@ -19,6 +19,9 @@ package org.apache.accumulo.server.fs;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.hadoop.fs.Path;
 import org.junit.Assert;
@@ -81,5 +84,12 @@ public class VolumeManagerImplTest {
       Path fullPath = fs.getFullPath(FileType.TABLE, pathToTest);
       Assert.assertEquals(new Path(expectedBase, pathToTest), fullPath);
     }
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void noViewFS() throws Exception {
+    ConfigurationCopy conf = new ConfigurationCopy();
+    conf.set(Property.INSTANCE_VOLUMES, "viewfs://dummy");
+    VolumeManagerImpl.get(conf);
   }
 }
