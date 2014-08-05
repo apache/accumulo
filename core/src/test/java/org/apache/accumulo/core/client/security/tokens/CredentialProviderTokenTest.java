@@ -19,8 +19,8 @@ package org.apache.accumulo.core.client.security.tokens;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties;
 import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
 import org.junit.Assert;
@@ -55,10 +55,10 @@ public class CredentialProviderTokenTest {
     }
 
     CredentialProviderToken token = new CredentialProviderToken("root.password", keystorePath);
-    Assert.assertArrayEquals("password".getBytes(Constants.UTF8), token.getPassword());
+    Assert.assertArrayEquals("password".getBytes(StandardCharsets.UTF_8), token.getPassword());
 
     token = new CredentialProviderToken("bob.password", keystorePath);
-    Assert.assertArrayEquals("bob".getBytes(Constants.UTF8), token.getPassword());
+    Assert.assertArrayEquals("bob".getBytes(StandardCharsets.UTF_8), token.getPassword());
   }
 
   @Test
