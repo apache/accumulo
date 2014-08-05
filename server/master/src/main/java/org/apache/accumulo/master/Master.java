@@ -33,6 +33,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.management.StandardMBean;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -77,6 +79,7 @@ import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.master.metrics.ReplicationMetrics;
 import org.apache.accumulo.master.recovery.RecoveryManager;
 import org.apache.accumulo.master.replication.MasterReplicationCoordinator;
 import org.apache.accumulo.master.replication.ReplicationDriver;
@@ -1073,6 +1076,14 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     // Advertise that port we used so peers don't have to be told what it is
     ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instance) + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR,
         replAddress.address.toString().getBytes(StandardCharsets.UTF_8), NodeExistsPolicy.OVERWRITE);
+
+    final SystemCredentials creds = SystemCredentials.get();
+    try {
+      ReplicationMetrics beanImpl = new ReplicationMetrics(this.instance.getConnector(creds.getPrincipal(), creds.getToken()));
+      beanImpl.register();
+    } catch (Exception e) {
+      log.error("Error registering Replication metrics with JMX", e);
+    }
 
     while (clientService.isServing()) {
       UtilWaitThread.sleep(500);
