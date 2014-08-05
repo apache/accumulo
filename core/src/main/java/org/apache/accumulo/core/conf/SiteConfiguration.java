@@ -44,8 +44,11 @@ public class SiteConfiguration extends AccumuloConfiguration {
   private static SiteConfiguration instance = null;
   
   private static Configuration xmlConfig;
-  
-  private SiteConfiguration(AccumuloConfiguration parent) {
+
+  /**
+   * Not for consumers. Call {@link SiteConfiguration#getInstance(AccumuloConfiguration)} instead
+   */
+  SiteConfiguration(AccumuloConfiguration parent) {
     SiteConfiguration.parent = parent;
   }
   
@@ -122,6 +125,10 @@ public class SiteConfiguration extends AccumuloConfiguration {
     if (null != hadoopConf) {
       try {
         for (String key : CredentialProviderFactoryShim.getKeys(hadoopConf)) {
+          if (!Property.isValidPropertyKey(key) || !Property.isSensitive(key)) { 
+            continue;
+          }
+
           if (filter.accept(key)) {
             char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf, key);
             if (null != value) {
