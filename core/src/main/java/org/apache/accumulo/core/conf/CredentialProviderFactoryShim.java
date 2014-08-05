@@ -37,26 +37,26 @@ import org.slf4j.LoggerFactory;
  */
 public class CredentialProviderFactoryShim {
   private static final Logger log = LoggerFactory.getLogger(CredentialProviderFactoryShim.class);
-
-  protected static final String HADOOP_CRED_PROVIDER_FACTORY_CLASS_NAME = "org.apache.hadoop.security.alias.JavaKeyStoreProvider$Factory";
-  protected static final String HADOOP_CRED_PROVIDER_FACTORY_GET_PROVIDERS_METHOD_NAME = "getProviders";
-
-  protected static final String HADOOP_CRED_PROVIDER_CLASS_NAME = "org.apache.hadoop.security.alias.CredentialProvider";
-  protected static final String HADOOP_CRED_PROVIDER_GET_CREDENTIAL_ENTRY_METHOD_NAME = "getCredentialEntry";
-  protected static final String HADOOP_CRED_PROVIDER_GET_ALIASES_METHOD_NAME = "getAliases";
-
-  protected static final String HADOOP_CRED_ENTRY_CLASS_NAME = "org.apache.hadoop.security.alias.CredentialProvider$CredentialEntry";
-  protected static final String HADOOP_CRED_ENTRY_GET_CREDENTIAL_METHOD_NAME = "getCredential";
-
+  
+  public static final String HADOOP_CRED_PROVIDER_FACTORY_CLASS_NAME = "org.apache.hadoop.security.alias.JavaKeyStoreProvider$Factory";
+  public static final String HADOOP_CRED_PROVIDER_FACTORY_GET_PROVIDERS_METHOD_NAME = "getProviders";
+  
+  public static final String HADOOP_CRED_PROVIDER_CLASS_NAME = "org.apache.hadoop.security.alias.CredentialProvider";
+  public static final String HADOOP_CRED_PROVIDER_GET_CREDENTIAL_ENTRY_METHOD_NAME = "getCredentialEntry";
+  public static final String HADOOP_CRED_PROVIDER_GET_ALIASES_METHOD_NAME = "getAliases";
+  
+  public static final String HADOOP_CRED_ENTRY_CLASS_NAME = "org.apache.hadoop.security.alias.CredentialProvider$CredentialEntry";
+  public static final String HADOOP_CRED_ENTRY_GET_CREDENTIAL_METHOD_NAME = "getCredential";
+  
   public static final String CREDENTIAL_PROVIDER_PATH = "hadoop.security.credential.provider.path";
-
+  
   private static Object hadoopCredProviderFactory = null;
   private static Method getProvidersMethod = null;
   private static Method getAliasesMethod = null;
   private static Method getCredentialEntryMethod = null;
   private static Method getCredentialMethod = null;
   private static Boolean hadoopClassesAvailable = null;
-
+  
   /**
    * Determine if we can load the necessary CredentialProvider classes. Only loaded the first time, so subsequent invocations of this method should return fast.
    *
@@ -74,9 +74,9 @@ public class CredentialProviderFactoryShim {
         return false;
       }
     }
-
+    
     hadoopClassesAvailable = false;
-
+    
     // Load Hadoop CredentialProviderFactory
     Class<?> hadoopCredProviderFactoryClz = null;
     try {
@@ -85,7 +85,7 @@ public class CredentialProviderFactoryShim {
       log.trace("Could not load class {}", HADOOP_CRED_PROVIDER_FACTORY_CLASS_NAME, e);
       return false;
     }
-
+    
     // Load Hadoop CredentialProviderFactory.getProviders(Configuration)
     try {
       getProvidersMethod = hadoopCredProviderFactoryClz.getMethod(HADOOP_CRED_PROVIDER_FACTORY_GET_PROVIDERS_METHOD_NAME, Configuration.class);
@@ -96,7 +96,7 @@ public class CredentialProviderFactoryShim {
       log.trace("Could not find {} method on {}", HADOOP_CRED_PROVIDER_FACTORY_GET_PROVIDERS_METHOD_NAME, HADOOP_CRED_PROVIDER_FACTORY_CLASS_NAME, e);
       return false;
     }
-
+    
     // Instantiate Hadoop CredentialProviderFactory
     try {
       hadoopCredProviderFactory = hadoopCredProviderFactoryClz.newInstance();
@@ -107,7 +107,7 @@ public class CredentialProviderFactoryShim {
       log.trace("Could not instantiate class {}", HADOOP_CRED_PROVIDER_FACTORY_CLASS_NAME, e);
       return false;
     }
-
+    
     // Load Hadoop CredentialProvider
     Class<?> hadoopCredProviderClz = null;
     try {
@@ -116,7 +116,7 @@ public class CredentialProviderFactoryShim {
       log.trace("Could not load class {}", HADOOP_CRED_PROVIDER_CLASS_NAME, e);
       return false;
     }
-
+    
     // Load Hadoop CredentialProvider.getCredentialEntry(String)
     try {
       getCredentialEntryMethod = hadoopCredProviderClz.getMethod(HADOOP_CRED_PROVIDER_GET_CREDENTIAL_ENTRY_METHOD_NAME, String.class);
@@ -127,7 +127,7 @@ public class CredentialProviderFactoryShim {
       log.trace("Could not find {} method on {}", HADOOP_CRED_PROVIDER_GET_CREDENTIAL_ENTRY_METHOD_NAME, HADOOP_CRED_PROVIDER_CLASS_NAME, e);
       return false;
     }
-
+    
     // Load Hadoop CredentialProvider.getAliases()
     try {
       getAliasesMethod = hadoopCredProviderClz.getMethod(HADOOP_CRED_PROVIDER_GET_ALIASES_METHOD_NAME);
@@ -138,7 +138,7 @@ public class CredentialProviderFactoryShim {
       log.trace("Could not find {} method on {}", HADOOP_CRED_PROVIDER_GET_ALIASES_METHOD_NAME, HADOOP_CRED_PROVIDER_CLASS_NAME, e);
       return false;
     }
-
+    
     // Load Hadoop CredentialEntry
     Class<?> hadoopCredentialEntryClz = null;
     try {
@@ -147,7 +147,7 @@ public class CredentialProviderFactoryShim {
       log.trace("Could not load class {}", HADOOP_CRED_ENTRY_CLASS_NAME);
       return false;
     }
-
+    
     // Load Hadoop CredentialEntry.getCredential()
     try {
       getCredentialMethod = hadoopCredentialEntryClz.getMethod(HADOOP_CRED_ENTRY_GET_CREDENTIAL_METHOD_NAME);
@@ -158,12 +158,12 @@ public class CredentialProviderFactoryShim {
       log.trace("Could not find {} method on {}", HADOOP_CRED_ENTRY_GET_CREDENTIAL_METHOD_NAME, HADOOP_CRED_ENTRY_CLASS_NAME, e);
       return false;
     }
-
+    
     hadoopClassesAvailable = true;
-
+    
     return true;
   }
-
+  
   /**
    * Wrapper to fetch the configured {@code List<CredentialProvider>}s.
    *
@@ -187,7 +187,7 @@ public class CredentialProviderFactoryShim {
       log.warn("Could not invoke {}.{}", HADOOP_CRED_PROVIDER_FACTORY_CLASS_NAME, HADOOP_CRED_PROVIDER_FACTORY_GET_PROVIDERS_METHOD_NAME, e);
       return null;
     }
-
+    
     // Cast the Object to List<Object> (actually List<CredentialProvider>)
     try {
       return (List<Object>) providersObj;
@@ -196,26 +196,26 @@ public class CredentialProviderFactoryShim {
       return null;
     }
   }
-
+  
   protected static char[] getFromHadoopCredentialProvider(Configuration conf, String alias) {
     List<Object> providerObjList = getCredentialProviders(conf);
-
+    
     if (null == providerObjList) {
       return null;
     }
-
+    
     for (Object providerObj : providerObjList) {
       try {
         // Invoke CredentialProvider.getCredentialEntry(String)
         Object credEntryObj = getCredentialEntryMethod.invoke(providerObj, alias);
-
+        
         if (null == credEntryObj) {
           continue;
         }
-
+        
         // Then, CredentialEntry.getCredential()
         Object credential = getCredentialMethod.invoke(credEntryObj);
-
+        
         return (char[]) credential;
       } catch (IllegalArgumentException e) {
         log.warn("Failed to get credential from {}", providerObj, e);
@@ -228,28 +228,28 @@ public class CredentialProviderFactoryShim {
         continue;
       }
     }
-
+    
     log.warn("Could not extract credential from providers");
-
+    
     return null;
   }
-
+  
   @SuppressWarnings("unchecked")
   protected static List<String> getAliasesFromHadoopCredentialProvider(Configuration conf) {
     List<Object> providerObjList = getCredentialProviders(conf);
-
+    
     if (null == providerObjList) {
       log.debug("Failed to get CredProviders");
       return Collections.emptyList();
     }
-
+    
     ArrayList<String> aliases = new ArrayList<String>();
     for (Object providerObj : providerObjList) {
       if (null != providerObj) {
         Object aliasesObj;
         try {
           aliasesObj = getAliasesMethod.invoke(providerObj);
-
+          
           if (null != aliasesObj && aliasesObj instanceof List) {
             try {
               aliases.addAll((List<String>) aliasesObj);
@@ -258,7 +258,7 @@ public class CredentialProviderFactoryShim {
               continue;
             }
           }
-
+          
         } catch (IllegalArgumentException e) {
           log.warn("Failed to invoke {} on {}", HADOOP_CRED_PROVIDER_GET_ALIASES_METHOD_NAME, providerObj, e);
           continue;
@@ -271,10 +271,24 @@ public class CredentialProviderFactoryShim {
         }
       }
     }
-
+    
     return aliases;
   }
-
+  
+  /**
+   * Create a Hadoop {@link Configuration} with the appropriate members to access CredentialProviders
+   *
+   * @param credentialProviders
+   *          Comma-separated list of CredentialProvider URLs
+   * @return Configuration to be used for CredentialProvider
+   */
+  public static Configuration getConfiguration(String credentialProviders) {
+    Preconditions.checkNotNull(credentialProviders);
+    final Configuration conf = new Configuration();
+    conf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, credentialProviders);
+    return conf;
+  }
+  
   /**
    * Attempt to extract the password from any configured CredentialsProviders for the given alias. If no providers or credential is found, null is returned.
    *
@@ -289,15 +303,15 @@ public class CredentialProviderFactoryShim {
   public static char[] getValueFromCredentialProvider(Configuration conf, String alias) throws IOException {
     Preconditions.checkNotNull(conf);
     Preconditions.checkNotNull(alias);
-
+    
     if (isHadoopCredentialProviderAvailable()) {
       log.trace("Hadoop CredentialProvider is available, attempting to extract value for {}", alias);
       return getFromHadoopCredentialProvider(conf, alias);
     }
-
+    
     return null;
   }
-
+  
   /**
    * Attempt to extract all aliases from any configured CredentialsProviders.
    *
@@ -309,12 +323,12 @@ public class CredentialProviderFactoryShim {
    */
   public static List<String> getKeys(Configuration conf) throws IOException {
     Preconditions.checkNotNull(conf);
-
+    
     if (isHadoopCredentialProviderAvailable()) {
       log.trace("Hadoop CredentialProvider is available, attempting to extract all aliases");
       return getAliasesFromHadoopCredentialProvider(conf);
     }
-
+    
     return Collections.emptyList();
   }
 }
