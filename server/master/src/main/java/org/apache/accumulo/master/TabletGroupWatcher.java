@@ -515,8 +515,12 @@ class TabletGroupWatcher extends Daemon {
         } else if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
           // ACCUMULO-2974 Need to include the TableID when converting a relative path to an absolute path.
           // The value has the leading path separator already included so it doesn't need it included.
-          datafiles.add(new FileRef(entry.getValue().toString(), this.master.fs.getFullPath(FileType.TABLE, Path.SEPARATOR + extent.getTableId()
-              + entry.getValue().toString())));
+          String path = entry.getValue().toString();
+          if (path.contains(":")) {
+            datafiles.add(new FileRef(path));
+          } else {
+            datafiles.add(new FileRef(path, this.master.fs.getFullPath(FileType.TABLE, Path.SEPARATOR + extent.getTableId() + path)));
+          }
           if (datafiles.size() > 1000) {
             MetadataTableUtil.addDeleteEntries(extent, datafiles, SystemCredentials.get());
             datafiles.clear();
