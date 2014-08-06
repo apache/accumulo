@@ -47,6 +47,7 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.security.handler.Authenticator;
 import org.apache.accumulo.server.security.handler.Authorizor;
 import org.apache.accumulo.server.security.handler.PermissionHandler;
+import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -120,7 +121,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   private void audit(TCredentials credentials, boolean permitted, String template, Object... args) {
     if (shouldAudit(credentials)) {
       String prefix = permitted ? "permitted" : "denied";
-      audit.info("operation: " + prefix + "; user: " + credentials.getPrincipal() + "; " + String.format(template, args));
+      audit.info("operation: " + prefix + "; user: " + credentials.getPrincipal() + "; client: "  + TServerUtils.clientAddress.get() + "; " + String.format(template, args));
     }
   }
 
