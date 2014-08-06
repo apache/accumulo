@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.core.client.security.tokens;
 
-import java.io.DataInput;
-import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.CharBuffer;
 import java.util.LinkedHashSet;
@@ -57,17 +55,7 @@ public class CredentialProviderToken extends PasswordToken {
 
     setPassword(CharBuffer.wrap(password));    
   }
-  
-  @Override
-  public void write(DataOutput out) throws IOException {
-    super.write(out);
-  }
-  
-  @Override
-  public void readFields(DataInput in) throws IOException {
-    super.readFields(in);
-  }
-  
+
   @Override
   public void init(Properties properties) {
     char[] nameCharArray = properties.get(NAME_PROPERTY), credentialProvidersCharArray = properties.get(CREDENTIAL_PROVIDERS_PROPERTY);
@@ -83,7 +71,7 @@ public class CredentialProviderToken extends PasswordToken {
 
     throw new IllegalArgumentException("Expected " + NAME_PROPERTY + " and " + CREDENTIAL_PROVIDERS_PROPERTY + " properties.");
   }
-  
+
   @Override
   public Set<TokenProperty> getProperties() {
     LinkedHashSet<TokenProperty> properties = new LinkedHashSet<TokenProperty>();
@@ -92,12 +80,12 @@ public class CredentialProviderToken extends PasswordToken {
     properties.add(new TokenProperty(CREDENTIAL_PROVIDERS_PROPERTY, "Comma separated list of URLs defining CredentialProvider(s)", false));
     return properties;
   }
-  
+
   @Override
   public CredentialProviderToken clone() {
     CredentialProviderToken clone = new CredentialProviderToken();
     clone.setPassword(this.getPassword());
     return clone;
   }
-  
+
 }
