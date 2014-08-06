@@ -16,6 +16,118 @@
 -->
 
 
+Release Notes - Accumulo - Version 1.5.2
+
+
+** Sub-task
+    * [ACCUMULO-2438] - deleting all table rows caused tablet load failure
+    * [ACCUMULO-2551] - Add read-only access to Fate
+
+** Bug
+    * [ACCUMULO-1897] - Bug in MemKeyConversionIterator constructor
+    * [ACCUMULO-1936] - SimpleTest test cases occasionally fail
+    * [ACCUMULO-1951] - start-here.sh and stop-here.sh throw errors on OS X
+    * [ACCUMULO-2194] - Back-to-back Security randomwalk tests fail
+    * [ACCUMULO-2233] - Continuous Verify job should find ranges on cloned table
+    * [ACCUMULO-2270] - bulk import thread pool initialized in non-static method.
+    * [ACCUMULO-2301] - Monitor should not list jetty as provided
+    * [ACCUMULO-2319] - TabletServerResourceManager MemoryManagementFramework constructor starts threads
+    * [ACCUMULO-2382] - Using non-default CONTINUOUS_CONF_DIR breaks agitation
+    * [ACCUMULO-2399] - BatchWalkers die when started before Ingesters
+    * [ACCUMULO-2401] - client code cannot create an RFile without logging a warning
+    * [ACCUMULO-2404] - Main.main can log cleaner messages when underlying process has errors
+    * [ACCUMULO-2408] - metadata table not assigned after root table is loaded
+    * [ACCUMULO-2410] - TServerUtils no longer needs to catch NPE as a thrift bug workaround
+    * [ACCUMULO-2422] - Backup master can miss acquiring lock when primary exits
+    * [ACCUMULO-2425] - ConcurrentModificationException in master at startup
+    * [ACCUMULO-2428] - Improper handling of rename in root tablet file management
+    * [ACCUMULO-2433] - ShellServerTest still fails occasionally
+    * [ACCUMULO-2437] - Cannot create splits with MSBit set in MSByte via API
+    * [ACCUMULO-2443] - Instructions for 1.5 functional tests via mapreduce should specify use of tool.sh
+    * [ACCUMULO-2447] - Shell#printHelp should use the ConsoleReader to print
+    * [ACCUMULO-2453] - NoClassDefFound building against Hadoop1 in ShellServerTest
+    * [ACCUMULO-2539] - SummingCombiner does not adhere to Combiner#COLUMNS_OPTION
+    * [ACCUMULO-2540] - Public API declaration misstates the package for MAC
+    * [ACCUMULO-2544] - Incorrect boundry matching for MockTableOperations.deleteRows
+    * [ACCUMULO-2549] - ShellTest sometimes fails because of order of authentication strings returned
+    * [ACCUMULO-2566] - Utilities and examples should maintain binary compatibility between Hadoop 1 and Hadoop 2
+    * [ACCUMULO-2586] - RangeInputSplit package name changed
+    * [ACCUMULO-2617] - locationByProgram incorrectly computes JAVA_HOME
+    * [ACCUMULO-2631] - Excessively large number of minutes for trace page prints exception
+    * [ACCUMULO-2636] - Examples functional test can sometimes pick up the wrong jars
+    * [ACCUMULO-2648] - AccumuloInputFormat referencing incorrect RangeInputSplit
+    * [ACCUMULO-2658] - Thrift Proxy crashes with OOM on bad input
+    * [ACCUMULO-2694] - Offline tables block balancing for online tables
+    * [ACCUMULO-2716] - Duplicate connection loss logging in Writer
+    * [ACCUMULO-2722] - Classes outside of shell shouldn't be using commons-cli
+    * [ACCUMULO-2747] - Scan "show few" long option contains a space
+    * [ACCUMULO-2748] - MockTableOperations.deleteRow does not handle null for start or end keys
+    * [ACCUMULO-2758] - LocalityGroupUtil.encodeColumnFamily() ignores offset parameter
+    * [ACCUMULO-2761] - bootstrap_hdfs.sh inconsistent with accumulo-site.xml
+    * [ACCUMULO-2764] - Stopping MAC before it's processes have fully started causes an indefinite hang
+    * [ACCUMULO-2766] - Single walog operation may wait for multiple hsync calls
+    * [ACCUMULO-2767] - Documentation of valid Visibility Labels is wrong
+    * [ACCUMULO-2768] - Agitator not restarting all datanodes
+    * [ACCUMULO-2785] - ShellServlet vulnerable to CSRF
+    * [ACCUMULO-2790] - generate_monitor_certificate.sh fails on OSX
+    * [ACCUMULO-2796] - user manual doesn't mention ordering of iterator application
+    * [ACCUMULO-2811] - UniqueFileReplicator logs many warnings about a directory that exists
+    * [ACCUMULO-2818] - generate_monitor_certificate creates bad keystore
+    * [ACCUMULO-2831] - HDFS Configuration classloader not correct when using VFSClassLoader
+    * [ACCUMULO-2852] - master-agitator.pl calls Cwd::cwd() but doesn't import the Cwd module
+    * [ACCUMULO-2857] - MockTableOperations.tableIdMap always returns tableName as ID
+    * [ACCUMULO-2864] - Multiple calls to ZooSession.shutdown result in NPE
+    * [ACCUMULO-2870] - Potential null pointer dereference in Tablet#longestCommonLength()
+    * [ACCUMULO-2874] - user documentation errors
+    * [ACCUMULO-2888] - BatchWriterOpts doesn't configure the number of threads
+    * [ACCUMULO-2890] - Remove AccumuloNotInitializedException
+    * [ACCUMULO-2919] - metrics documentation and example configs refer to the logger
+    * [ACCUMULO-2928] - Missing toString, hashCode and equals methods on BatchWriterConfig
+    * [ACCUMULO-2940] - ZooLockTest doesn't wait for connection
+    * [ACCUMULO-2948] - Possible race condition in ZooLockTest
+    * [ACCUMULO-2962] - RangeInputSplit Writable methods don't serialize IteratorSettings
+    * [ACCUMULO-2967] - Unknown Host results in unending wait for clients
+    * [ACCUMULO-2985] - MAC doesn't stop cleanly in 1.6.1-SNAPSHOT
+    * [ACCUMULO-3008] - Update example READMEs for changed argument names
+    * [ACCUMULO-3013] - ContinuousVerify Reducers fail on java.lang.ClassNotFoundException: org.apache.accumulo.server.util.reflection.CounterUtils
+    * [ACCUMULO-3015] - RangeInputSplit doesn't serialize table name
+    * [ACCUMULO-3016] - Glob for accumulo-examples-simple jar fails
+
+** Improvement
+    * [ACCUMULO-1669] - User manual examples use two argument Mutation.put
+    * [ACCUMULO-1945] - bin/accumulo help should print usage
+    * [ACCUMULO-2239] - Reformat test README files to Markdown
+    * [ACCUMULO-2253] - Scalability tests should output quartiles
+    * [ACCUMULO-2454] - Aggregate Cobertura reports
+    * [ACCUMULO-2623] - AbstractMetricsImpl's toString is excessively verbose
+    * [ACCUMULO-2663] - Remove usage of String#split from Combiner#init
+    * [ACCUMULO-2762] - Use better compiler optimizations by default for native maps
+    * [ACCUMULO-2789] - Add a system stress test based on key/cell/row size
+    * [ACCUMULO-2803] - Agitator; Set Tablet Server and Datanode min/max kill values independently.
+    * [ACCUMULO-2827] - HeapIterator optimization
+    * [ACCUMULO-2832] - Improve DefaultFormatter for reuse and object creation
+    * [ACCUMULO-2842] - Allow for use of hflush instead of hsync
+    * [ACCUMULO-2849] - Add scan batch size configurability and write delay to memory stress test
+    * [ACCUMULO-2850] - Enhance memory stress test scripts
+    * [ACCUMULO-2947] - Support configurable changes per mutation for size-based stress test
+    * [ACCUMULO-2994] - IteratorUtil.parseIterConf loops over each iterator scope repeatedly
+    * [ACCUMULO-3018] - Increase tserver.mutation.queue.max default for 1.5
+
+** Task
+    * [ACCUMULO-2411] - Remove warnings in 1.5 branch
+    * [ACCUMULO-2653] - Remove useless javadocs
+    * [ACCUMULO-2654] - means to create empty rfile for recovery
+    * [ACCUMULO-2734] - javadoc bug with multi-line @code tag
+    * [ACCUMULO-2805] - Exclude unused HTTP Components from thrift dependency
+
+** Test
+    * [ACCUMULO-2005] - Provide a scaling factor for mapred.task.timeout inside functional test's RunTests.java
+    * [ACCUMULO-2543] - cacheBlock should be closed in BlockIndexTest
+    * [ACCUMULO-2649] - Extend test coverage for RangeInputSplit
+    * [ACCUMULO-2754] - Skip generated code in PMD/CPD analysis
+
+
+
 Release Notes - Accumulo - Version 1.5.1
 
 
