@@ -338,6 +338,11 @@ If the Accumulo conf directory has been configured (in particular the +accumulo-
 The script will print out the properties that need to be added to the +accumulo-site.xml+ file.
 The stores can also be generated manually with the Java +keytool+ command, whose usage can be seen in the +generate_monitor_certificate.sh+ script.
 
+If desired, the SSL ciphers allowed for connections can be controlled via the following properties in +accumulo-site.xml+:
+
+  monitor.ssl.include.ciphers
+  monitor.ssl.exclude.ciphers
+
 If SSL is enabled, the monitor URL can only be accessed via https.
 This also allows you to access the Accumulo shell through the monitor page.
 The left navigation bar will have a new link to Shell.

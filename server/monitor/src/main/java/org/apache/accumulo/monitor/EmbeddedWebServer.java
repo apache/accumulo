@@ -18,7 +18,9 @@ package org.apache.accumulo.monitor;
 
 import javax.servlet.http.HttpServlet;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.hadoop.util.StringUtils;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
@@ -40,18 +42,27 @@ public class EmbeddedWebServer {
 
   public EmbeddedWebServer(String host, int port) {
     server = new Server();
-    if (EMPTY.equals(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_KEYSTORE))
-        || EMPTY.equals(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_KEYSTOREPASS))
-        || EMPTY.equals(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_TRUSTSTORE)) || EMPTY.equals(Monitor.getSystemConfiguration().get(
-Property.MONITOR_SSL_TRUSTSTOREPASS))) {
+    final AccumuloConfiguration conf = Monitor.getSystemConfiguration();
+    if (EMPTY.equals(conf.get(Property.MONITOR_SSL_KEYSTORE)) || EMPTY.equals(conf.get(Property.MONITOR_SSL_KEYSTOREPASS))
+        || EMPTY.equals(conf.get(Property.MONITOR_SSL_TRUSTSTORE)) || EMPTY.equals(conf.get(Property.MONITOR_SSL_TRUSTSTOREPASS))) {
       connector = new ServerConnector(server, new HttpConnectionFactory());
       usingSsl = false;
     } else {
       SslContextFactory sslContextFactory = new SslContextFactory();
-      sslContextFactory.setKeyStorePath(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_KEYSTORE));
-      sslContextFactory.setKeyStorePassword(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_KEYSTOREPASS));
-      sslContextFactory.setTrustStorePath(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_TRUSTSTORE));
-      sslContextFactory.setTrustStorePassword(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_TRUSTSTOREPASS));
+      sslContextFactory.setKeyStorePath(conf.get(Property.MONITOR_SSL_KEYSTORE));
+      sslContextFactory.setKeyStorePassword(conf.get(Property.MONITOR_SSL_KEYSTOREPASS));
+      sslContextFactory.setTrustStorePath(conf.get(Property.MONITOR_SSL_TRUSTSTORE));
+      sslContextFactory.setTrustStorePassword(conf.get(Property.MONITOR_SSL_TRUSTSTOREPASS));
+
+      final String includedCiphers = conf.get(Property.MONITOR_SSL_INCLUDE_CIPHERS);
+      if (!Property.MONITOR_SSL_INCLUDE_CIPHERS.getDefaultValue().equals(includedCiphers)) {
+        sslContextFactory.setIncludeCipherSuites(StringUtils.split(includedCiphers, ','));
+      }
+
+      final String excludedCiphers = conf.get(Property.MONITOR_SSL_EXCLUDE_CIPHERS);
+      if (!Property.MONITOR_SSL_EXCLUDE_CIPHERS.getDefaultValue().equals(excludedCiphers)) {
+        sslContextFactory.setExcludeCipherSuites(StringUtils.split(excludedCiphers, ','));
+      }
 
       connector = new ServerConnector(server, sslContextFactory);
       usingSsl = true;
