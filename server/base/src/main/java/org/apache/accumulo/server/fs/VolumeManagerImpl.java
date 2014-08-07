@@ -397,11 +397,10 @@ public class VolumeManagerImpl implements VolumeManager {
     // The "default" Volume for Accumulo (in case no volumes are specified)
     for (String volumeUriOrDir : VolumeConfiguration.getVolumeUris(conf)) {
       if (volumeUriOrDir.equals(DEFAULT))
-        // Cannot re-define the default volume
-        throw new IllegalArgumentException();
+        throw new IllegalArgumentException("Cannot re-define the default volume");
 
       if (volumeUriOrDir.startsWith("viewfs"))
-        throw new IllegalArgumentException();
+        throw new IllegalArgumentException("Cannot use viewfs as a volume");
 
       // We require a URI here, fail if it doesn't look like one
       if (volumeUriOrDir.contains(":")) {
