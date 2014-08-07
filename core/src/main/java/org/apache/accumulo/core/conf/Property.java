@@ -320,6 +320,8 @@ public enum Property {
   @Experimental
   @Sensitive
   MONITOR_SSL_TRUSTSTOREPASS("monitor.ssl.trustStorePassword", "", PropertyType.STRING, "The truststore password for enabling monitor SSL."),
+  MONITOR_SSL_INCLUDE_CIPHERS("monitor.ssl.include.ciphers", "", PropertyType.STRING, "A comma-separated list of allows SSL Ciphers, see monitor.ssl.exclude.ciphers to disallow ciphers"),
+  MONITOR_SSL_EXCLUDE_CIPHERS("monitor.ssl.exclude.ciphers", "", PropertyType.STRING, "A comma-separated list of disallowed SSL Ciphers, see mmonitor.ssl.include.ciphers to allow ciphers"),
 
   MONITOR_LOCK_CHECK_INTERVAL("monitor.lock.check.interval", "5s", PropertyType.TIMEDURATION,
       "The amount of time to sleep between checking for the Montior ZooKeeper lock"),
