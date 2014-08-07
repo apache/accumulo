@@ -232,6 +232,10 @@ This configuration will then transparently extract the +instance.secret+ from
 the configured KeyStore and alleviates a human readable storage of the sensitive
 property.
 
+A KeyStore can also be stored in HDFS, which will make the KeyStore readily available to
+all Accumulo servers. If the local filesystem is used, be aware that each Accumulo server
+will expect the KeyStore in the same location.
+
 === Initialization
 
 Accumulo must be initialized to create the structures it uses internally to locate

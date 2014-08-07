@@ -57,6 +57,16 @@ Instance inst = new ZooKeeperInstance(instanceName, zooServers);
 Connector conn = inst.getConnector("user", new PasswordToken("passwd"));
 ----
 
+The PasswordToken is the most common implementation of an \texttt{AuthenticationToken}.
+This general interface allow authentication as an Accumulo user to come from
+a variety of sources or means. The CredentialProviderToken leverages the Hadoop
+CredentialProviders (new in Hadoop 2.6).
+
+For example, the CredentialProviderToken can be used in conjunction with a Java
+KeyStore to alleviate passwords stored in cleartext. When stored in HDFS, a single
+KeyStore can be used across an entire instance. Be aware that KeyStores stored on
+the local filesystem must be made available to all nodes in the Accumulo cluster.
+
 === Writing Data
 
 Data are written to Accumulo by creating Mutation objects that represent all the
