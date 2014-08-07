@@ -2919,7 +2919,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
          * the logs (the file will be in metadata, preventing replay of compacted data)... but do not want a majc to wipe the file out from metadata and then
          * have another process failure... this could cause duplicate data to replay
          */
-        if (tablet.getNumEntriesInMemory() > 0 && !tablet.minorCompactNow(MinorCompactionReason.SYSTEM)) {
+        if (tablet.getNumEntriesInMemory() > 0 && !tablet.minorCompactNow(MinorCompactionReason.RECOVERY)) {
           throw new RuntimeException("Minor compaction after recovery fails for " + extent);
         }
 
