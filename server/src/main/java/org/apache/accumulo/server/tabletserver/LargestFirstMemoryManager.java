@@ -66,27 +66,51 @@ public class LargestFirstMemoryManager implements MemoryManager {
   }
   
   // A little map that will hold the "largest" N tablets, where largest is a result of the timeMemoryLoad function
-  @SuppressWarnings("serial")
-  private static class LargestMap extends TreeMap<Long,TabletInfo> {
+  private static class LargestMap {
     final int max;
+    final TreeMap<Long, List<TabletInfo>> map = new TreeMap<Long, List<TabletInfo>>(); 
     
     LargestMap(int n) {
       max = n;
     }
     
-    @Override
-    public TabletInfo put(Long key, TabletInfo value) {
-      if (size() == max) {
-        if (key.compareTo(this.firstKey()) < 0)
-          return value;
+    public boolean put(Long key, TabletInfo value) {
+      if (map.size() == max) {
+        if (key.compareTo(map.firstKey()) < 0)
+          return false;
         try {
-          return super.put(key, value);
+          add(key, value);
+          return true;
         } finally {
-          super.remove(this.firstKey());
+          map.remove(map.firstKey());
         }
       } else {
-        return super.put(key, value);
+        add(key, value);
+        return true;
       }
+    }
+
+    private void add(Long key, TabletInfo value) {
+      List<TabletInfo> lst = map.get(key);
+      if (lst != null) {
+        lst.add(value);
+      } else {
+        lst = new ArrayList<TabletInfo>();
+        lst.add(value);
+        map.put(key, lst);
+      }
+    }
+
+    public boolean isEmpty() {
+      return map.isEmpty();
+    }
+
+    public Entry<Long,List<TabletInfo>> lastEntry() {
+      return map.lastEntry();
+    }
+
+    public void remove(Long key) {
+      map.remove(key);
     }
   }
   
@@ -129,8 +153,8 @@ public class LargestFirstMemoryManager implements MemoryManager {
     final MemoryManagementActions result = new MemoryManagementActions();
     result.tabletsToMinorCompact = new ArrayList<KeyExtent>();
     
-    TreeMap<Long,TabletInfo> largestMemTablets = new LargestMap(maxMinCs);
-    final TreeMap<Long,TabletInfo> largestIdleMemTablets = new LargestMap(maxConcurrentMincs);
+    LargestMap largestMemTablets = new LargestMap(maxMinCs);
+    final LargestMap largestIdleMemTablets = new LargestMap(maxConcurrentMincs);
     final long now = System.currentTimeMillis();
     
     long ingestMemory = 0;
@@ -182,17 +206,20 @@ public class LargestFirstMemoryManager implements MemoryManager {
     
     if (startMinC) {
       long toBeCompacted = compactionMemory;
-      for (int i = numWaitingMincs; i < maxMinCs && !largestMemTablets.isEmpty(); i++) {
-        Entry<Long,TabletInfo> lastEntry = largestMemTablets.lastEntry();
-        TabletInfo largest = lastEntry.getValue();
-        toBeCompacted += largest.memTableSize;
-        result.tabletsToMinorCompact.add(largest.extent);
-        log.debug(String.format("COMPACTING %s  total = %,d ingestMemory = %,d", largest.extent.toString(), (ingestMemory + compactionMemory), ingestMemory));
-        log.debug(String.format("chosenMem = %,d chosenIT = %.2f load %,d", largest.memTableSize, largest.idleTime / 1000.0, largest.load));
-        largestMemTablets.remove(lastEntry.getKey());
-        if (toBeCompacted > ingestMemory * MAX_FLUSH_AT_ONCE_PERCENT)
-          break;
-      }
+      outer:
+        for (int i = numWaitingMincs; i < maxMinCs && !largestMemTablets.isEmpty(); /* empty */) {
+          Entry<Long,List<TabletInfo>> lastEntry = largestMemTablets.lastEntry();
+          for (TabletInfo largest : lastEntry.getValue()) {
+            toBeCompacted += largest.memTableSize;
+            result.tabletsToMinorCompact.add(largest.extent);
+            log.debug(String.format("COMPACTING %s  total = %,d ingestMemory = %,d", largest.extent.toString(), (ingestMemory + compactionMemory), ingestMemory));
+            log.debug(String.format("chosenMem = %,d chosenIT = %.2f load %,d", largest.memTableSize, largest.idleTime / 1000.0, largest.load));
+            if (toBeCompacted > ingestMemory * MAX_FLUSH_AT_ONCE_PERCENT)
+              break outer;
+            i++;
+          }
+          largestMemTablets.remove(lastEntry.getKey());
+        }
     } else if (memoryChange < 0) {
       // before idle mincs, starting a minor compaction meant that memoryChange >= 0.
       // we thought we might want to remove the "else" if that changed,
