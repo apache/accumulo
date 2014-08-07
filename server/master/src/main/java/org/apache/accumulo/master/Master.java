@@ -33,8 +33,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.management.StandardMBean;
-
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -1373,13 +1371,15 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
   public void waitForBalance(TInfo tinfo) {
     synchronized (balancedNotifier) {
+      long eventCounter;
       do {
+        eventCounter = nextEvent.waitForEvents(0, 0);
         try {
           balancedNotifier.wait();
         } catch (InterruptedException e) {
           log.debug(e.toString(), e);
         }
-      } while (displayUnassigned() > 0 || migrations.size() > 0);
+      } while (displayUnassigned() > 0 || migrations.size() > 0 || eventCounter != nextEvent.waitForEvents(0, 0));
     }
   }
 }
