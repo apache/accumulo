@@ -147,6 +147,9 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
       connMaster.tableOperations().setProperty(masterTable, Property.TABLE_REPLICATION.getKey(), "true");
       connMaster.tableOperations().setProperty(masterTable, Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId);
 
+      // Wait for zookeeper updates (configuration) to propogate
+      UtilWaitThread.sleep(3 * 1000);
+
       // Write some data to table1
       BatchWriter bw = connMaster.createBatchWriter(masterTable, new BatchWriterConfig());
       for (int rows = 0; rows < 5000; rows++) {
@@ -310,6 +313,9 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
 
       connMaster.tableOperations().setProperty(masterTable2, Property.TABLE_REPLICATION.getKey(), "true");
       connMaster.tableOperations().setProperty(masterTable2, Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId2);
+
+      // Wait for zookeeper updates (configuration) to propogate
+      UtilWaitThread.sleep(3 * 1000);
 
       // Write some data to table1
       BatchWriter bw = connMaster.createBatchWriter(masterTable1, new BatchWriterConfig());
@@ -572,6 +578,9 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
 
       connMaster.tableOperations().setProperty(masterTable2, Property.TABLE_REPLICATION.getKey(), "true");
       connMaster.tableOperations().setProperty(masterTable2, Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId2);
+
+      // Wait for zookeeper updates (configuration) to propogate
+      UtilWaitThread.sleep(3 * 1000);
 
       // Write some data to table1
       BatchWriter bw = connMaster.createBatchWriter(masterTable1, new BatchWriterConfig());
