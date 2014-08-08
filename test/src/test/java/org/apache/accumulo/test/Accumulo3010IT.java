@@ -38,7 +38,7 @@ import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class Accumulo3010 extends ConfigurableMacIT {
+public class Accumulo3010IT extends ConfigurableMacIT {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
