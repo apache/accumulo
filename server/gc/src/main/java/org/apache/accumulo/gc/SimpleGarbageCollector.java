@@ -134,29 +134,27 @@ public class SimpleGarbageCollector implements Iface {
   private static final Logger log = Logger.getLogger(SimpleGarbageCollector.class);
 
   private Credentials credentials;
-  private long gcStartDelay;
   private VolumeManager fs;
-  private boolean useTrash = true;
+  private AccumuloConfiguration config;
   private Opts opts = new Opts();
   private ZooLock lock;
 
   private GCStatus status = new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
-
-  private int numDeleteThreads;
 
   private Instance instance;
 
   public static void main(String[] args) throws UnknownHostException, IOException {
     SecurityUtil.serverLogin(SiteConfiguration.getInstance());
     Instance instance = HdfsZooInstance.getInstance();
-    ServerConfigurationFactory serverConf = new ServerConfigurationFactory(instance);
+    ServerConfigurationFactory conf = new ServerConfigurationFactory(instance);
     final VolumeManager fs = VolumeManagerImpl.get();
-    Accumulo.init(fs, serverConf, "gc");
+    Accumulo.init(fs, conf, "gc");
     Opts opts = new Opts();
     opts.parseArgs("gc", args);
     SimpleGarbageCollector gc = new SimpleGarbageCollector(opts);
+    AccumuloConfiguration config = conf.getConfiguration();
 
-    gc.init(fs, instance, SystemCredentials.get(), serverConf.getConfiguration().getBoolean(Property.GC_TRASH_IGNORE));
+    gc.init(fs, instance, SystemCredentials.get(), config);
     Accumulo.enableTracing(opts.getAddress(), "gc");
     gc.run();
   }
@@ -184,7 +182,7 @@ public class SimpleGarbageCollector implements Iface {
    * @return start delay, in milliseconds
    */
   long getStartDelay() {
-    return gcStartDelay;
+    return config.getTimeInMillis(Property.GC_CYCLE_START);
   }
   /**
    * Gets the volume manager used by this GC.
@@ -201,7 +199,7 @@ public class SimpleGarbageCollector implements Iface {
    * @return true if trash is used
    */
   boolean isUsingTrash() {
-    return useTrash;
+    return !config.getBoolean(Property.GC_TRASH_IGNORE);
   }
   /**
    * Gets the options for this garbage collector.
@@ -215,7 +213,7 @@ public class SimpleGarbageCollector implements Iface {
    * @return number of delete threads
    */
   int getNumDeleteThreads() {
-    return numDeleteThreads;
+    return config.getCount(Property.GC_DELETE_THREADS);
   }
   /**
    * Gets the instance used by this GC.
@@ -227,18 +225,6 @@ public class SimpleGarbageCollector implements Iface {
   }
 
   /**
-   * Initializes this garbage collector with the current system configuration.
-   *
-   * @param fs volume manager
-   * @param instance instance
-   * @param credentials credentials
-   * @param noTrash true to not move files to trash instead of deleting
-   */
-  public void init(VolumeManager fs, Instance instance, Credentials credentials, boolean noTrash) {
-    init(fs, instance, credentials, noTrash, new ServerConfigurationFactory(instance).getConfiguration());
-  }
-
-  /**
    * Initializes this garbage collector.
    *
    * @param fs volume manager
@@ -247,21 +233,18 @@ public class SimpleGarbageCollector implements Iface {
    * @param noTrash true to not move files to trash instead of deleting
    * @param systemConfig system configuration
    */
-  public void init(VolumeManager fs, Instance instance, Credentials credentials, boolean noTrash, AccumuloConfiguration systemConfig) {
+  public void init(VolumeManager fs, Instance instance, Credentials credentials, AccumuloConfiguration config) {
     this.fs = fs;
     this.credentials = credentials;
     this.instance = instance;
-
-    gcStartDelay = systemConfig.getTimeInMillis(Property.GC_CYCLE_START);
-    long gcDelay = systemConfig.getTimeInMillis(Property.GC_CYCLE_DELAY);
-    numDeleteThreads = systemConfig.getCount(Property.GC_DELETE_THREADS);
-    log.info("start delay: " + gcStartDelay + " milliseconds");
+    this.config = config;
+    long gcDelay = config.getTimeInMillis(Property.GC_CYCLE_DELAY);
+    log.info("start delay: " + getStartDelay() + " milliseconds");
     log.info("time delay: " + gcDelay + " milliseconds");
     log.info("safemode: " + opts.safeMode);
     log.info("verbose: " + opts.verbose);
     log.info("memory threshold: " + CANDIDATE_MEMORY_PERCENTAGE + " of " + Runtime.getRuntime().maxMemory() + " bytes");
-    log.info("delete threads: " + numDeleteThreads);
-    useTrash = !noTrash;
+    log.info("delete threads: " + getNumDeleteThreads());
   }
 
   private class GCEnv implements GarbageCollectionEnvironment {
@@ -383,7 +366,7 @@ public class SimpleGarbageCollector implements Iface {
 
       final BatchWriter finalWriter = writer;
 
-      ExecutorService deleteThreadPool = Executors.newFixedThreadPool(numDeleteThreads, new NamingThreadFactory("deleting"));
+      ExecutorService deleteThreadPool = Executors.newFixedThreadPool(getNumDeleteThreads(), new NamingThreadFactory("deleting"));
 
       final List<Pair<Path,Path>> replacements = ServerConstants.getVolumeReplacements();
 
@@ -556,8 +539,9 @@ public class SimpleGarbageCollector implements Iface {
     }
 
     try {
-      log.debug("Sleeping for " + gcStartDelay + " milliseconds before beginning garbage collection cycles");
-      Thread.sleep(gcStartDelay);
+      long delay = getStartDelay();
+      log.debug("Sleeping for " + delay + " milliseconds before beginning garbage collection cycles");
+      Thread.sleep(delay);
     } catch (InterruptedException e) {
       log.warn(e, e);
       return;
@@ -610,7 +594,7 @@ public class SimpleGarbageCollector implements Iface {
       // Clean up any unused write-ahead logs
       Span waLogs = Trace.start("walogs");
       try {
-        GarbageCollectWriteAheadLogs walogCollector = new GarbageCollectWriteAheadLogs(instance, fs, useTrash);
+        GarbageCollectWriteAheadLogs walogCollector = new GarbageCollectWriteAheadLogs(instance, fs, isUsingTrash());
         log.info("Beginning garbage collection of write-ahead logs");
         walogCollector.collect(status);
       } catch (Exception e) {
@@ -631,7 +615,7 @@ public class SimpleGarbageCollector implements Iface {
 
       Trace.offNoFlush();
       try {
-        long gcDelay = new ServerConfigurationFactory(instance).getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
+        long gcDelay = config.getTimeInMillis(Property.GC_CYCLE_DELAY);
         log.debug("Sleeping for " + gcDelay + " milliseconds");
         Thread.sleep(gcDelay);
       } catch (InterruptedException e) {
@@ -651,7 +635,7 @@ public class SimpleGarbageCollector implements Iface {
    * @throws IOException if the volume manager encountered a problem
    */
   boolean moveToTrash(Path path) throws IOException {
-    if (!useTrash)
+    if (!isUsingTrash())
       return false;
     try {
       return fs.moveToTrash(path);
@@ -693,14 +677,13 @@ public class SimpleGarbageCollector implements Iface {
 
   private HostAndPort startStatsService() throws UnknownHostException {
     Processor<Iface> processor = new Processor<Iface>(RpcWrapper.service(this));
-    AccumuloConfiguration conf = new ServerConfigurationFactory(instance).getConfiguration();
-    int port = conf.getPort(Property.GC_PORT);
-    long maxMessageSize = conf.getMemoryInBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
+    int port = config.getPort(Property.GC_PORT);
+    long maxMessageSize = config.getMemoryInBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
     HostAndPort result = HostAndPort.fromParts(opts.getAddress(), port);
     log.debug("Starting garbage collector listening on " + result);
     try {
-      return TServerUtils.startTServer(result, processor, this.getClass().getSimpleName(), "GC Monitor Service", 2,
-          conf.getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), 1000, maxMessageSize, SslConnectionParams.forServer(conf), 0).address;
+      return TServerUtils.startTServer(result, processor, this.getClass().getSimpleName(), "GC Monitor Service", 2, 
+          config.getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), 1000, maxMessageSize, SslConnectionParams.forServer(config), 0).address;
     } catch (Exception ex) {
       log.fatal(ex, ex);
       throw new RuntimeException(ex);

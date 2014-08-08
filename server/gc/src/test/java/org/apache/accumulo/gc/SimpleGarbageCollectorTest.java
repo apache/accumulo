@@ -70,13 +70,15 @@ public class SimpleGarbageCollectorTest {
     expect(systemConfig.getTimeInMillis(Property.GC_CYCLE_START)).andReturn(1000L);
     expect(systemConfig.getTimeInMillis(Property.GC_CYCLE_DELAY)).andReturn(20000L);
     expect(systemConfig.getCount(Property.GC_DELETE_THREADS)).andReturn(2);
+    expect(systemConfig.getCount(Property.GC_DELETE_THREADS)).andReturn(2);
+    expect(systemConfig.getBoolean(Property.GC_TRASH_IGNORE)).andReturn(false);
     replay(systemConfig);
     return systemConfig;
   }
 
   @Test
   public void testInit() throws Exception {
-    gc.init(volMgr, instance, credentials, false, systemConfig);
+    gc.init(volMgr, instance, credentials, systemConfig);
     assertSame(volMgr, gc.getVolumeManager());
     assertSame(instance, gc.getInstance());
     assertSame(credentials, gc.getCredentials());
@@ -87,7 +89,7 @@ public class SimpleGarbageCollectorTest {
 
   @Test
   public void testMoveToTrash_UsingTrash() throws Exception {
-    gc.init(volMgr, instance, credentials, false, systemConfig);
+    gc.init(volMgr, instance, credentials, systemConfig);
     Path path = createMock(Path.class);
     expect(volMgr.moveToTrash(path)).andReturn(true);
     replay(volMgr);
@@ -97,7 +99,7 @@ public class SimpleGarbageCollectorTest {
 
   @Test
   public void testMoveToTrash_UsingTrash_VolMgrFailure() throws Exception {
-    gc.init(volMgr, instance, credentials, false, systemConfig);
+    gc.init(volMgr, instance, credentials, systemConfig);
     Path path = createMock(Path.class);
     expect(volMgr.moveToTrash(path)).andThrow(new FileNotFoundException());
     replay(volMgr);
@@ -107,7 +109,13 @@ public class SimpleGarbageCollectorTest {
 
   @Test
   public void testMoveToTrash_NotUsingTrash() throws Exception {
-    gc.init(volMgr, instance, credentials, true, systemConfig);
+    AccumuloConfiguration systemConfig = createMock(AccumuloConfiguration.class);
+    expect(systemConfig.getTimeInMillis(Property.GC_CYCLE_START)).andReturn(1000L);
+    expect(systemConfig.getTimeInMillis(Property.GC_CYCLE_DELAY)).andReturn(20000L);
+    expect(systemConfig.getCount(Property.GC_DELETE_THREADS)).andReturn(2);
+    expect(systemConfig.getBoolean(Property.GC_TRASH_IGNORE)).andReturn(true);
+    replay(systemConfig);
+    gc.init(volMgr, instance, credentials, systemConfig);
     Path path = createMock(Path.class);
     assertFalse(gc.moveToTrash(path));
   }

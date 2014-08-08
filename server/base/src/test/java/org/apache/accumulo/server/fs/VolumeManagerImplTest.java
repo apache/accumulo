@@ -19,7 +19,6 @@ package org.apache.accumulo.server.fs;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
