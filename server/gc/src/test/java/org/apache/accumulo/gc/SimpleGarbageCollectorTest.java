@@ -68,6 +68,7 @@ public class SimpleGarbageCollectorTest {
   private AccumuloConfiguration mockSystemConfig() {
     AccumuloConfiguration systemConfig = createMock(AccumuloConfiguration.class);
     expect(systemConfig.getTimeInMillis(Property.GC_CYCLE_START)).andReturn(1000L);
+    expect(systemConfig.getTimeInMillis(Property.GC_CYCLE_START)).andReturn(1000L);
     expect(systemConfig.getTimeInMillis(Property.GC_CYCLE_DELAY)).andReturn(20000L);
     expect(systemConfig.getCount(Property.GC_DELETE_THREADS)).andReturn(2);
     expect(systemConfig.getCount(Property.GC_DELETE_THREADS)).andReturn(2);
