@@ -25,6 +25,7 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
@@ -36,6 +37,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.replication.ReplicationConstants;
@@ -66,6 +68,20 @@ public class ReplicationUtil {
 
   public ReplicationUtil(ZooCache cache) {
     this.zooCache = cache;
+  }
+
+  public int getMaxReplicationThreads(Map<String,String> systemProperties, MasterMonitorInfo mmi) {
+    int activeTservers = mmi.getTServerInfoSize();
+
+    // The number of threads each tserver will use at most to replicate data
+    int replicationThreadsPerServer = Integer.parseInt(systemProperties.get(Property.REPLICATION_WORKER_THREADS.getKey()));
+
+    // The total number of "slots" we have to replicate data
+    return activeTservers * replicationThreadsPerServer;
+  }
+
+  public int getMaxReplicationThreads(Connector conn, MasterMonitorInfo mmi) throws AccumuloException, AccumuloSecurityException {
+    return getMaxReplicationThreads(conn.instanceOperations().getSystemConfiguration(), mmi);
   }
 
   /**

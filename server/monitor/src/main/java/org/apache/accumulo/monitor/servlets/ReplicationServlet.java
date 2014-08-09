@@ -26,10 +26,13 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.util.Table;
 import org.apache.accumulo.monitor.util.celltypes.NumberType;
 import org.apache.accumulo.server.client.HdfsZooInstance;
@@ -63,9 +66,14 @@ public class ReplicationServlet extends BasicServlet {
   
   @Override
   protected void pageBody(HttpServletRequest req, HttpServletResponse response, StringBuilder sb) throws Exception {
-    Instance inst = HdfsZooInstance.getInstance();
-    Credentials creds = SystemCredentials.get();
-    Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
+    final Instance inst = HdfsZooInstance.getInstance();
+    final Credentials creds = SystemCredentials.get();
+    final Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
+    final Map<String,String> systemProps = conn.instanceOperations().getSystemConfiguration();
+    final MasterMonitorInfo mmi = Monitor.getMmi();
+
+    // The total number of "slots" we have to replicate data
+    int totalWorkQueueSize = replicationUtil.getMaxReplicationThreads(systemProps, mmi);
 
     TableOperations tops = conn.tableOperations();
     if (!tops.exists(ReplicationConstants.TABLE_NAME)) {
@@ -80,7 +88,7 @@ public class ReplicationServlet extends BasicServlet {
     replicationStats.addSortableColumn("ReplicaSystem Type");
     replicationStats.addSortableColumn("Files needing replication", new NumberType<Long>(), null);
 
-    Map<String,String> peers = replicationUtil.getPeers(conn.instanceOperations().getSystemConfiguration());
+    Map<String,String> peers = replicationUtil.getPeers(systemProps);
 
     // The total set of configured targets
     Set<ReplicationTarget> allConfiguredTargets = replicationUtil.getReplicationTargets(tops);
@@ -91,6 +99,7 @@ public class ReplicationServlet extends BasicServlet {
     Map<String,String> tableNameToId = tops.tableIdMap();
     Map<String,String> tableIdToName = replicationUtil.invert(tableNameToId);
 
+    long filesPendingOverAllTargets = 0l;
     for (ReplicationTarget configuredTarget : allConfiguredTargets) {
       String tableName = tableIdToName.get(configuredTarget.getSourceTableId());
       if (null == tableName) {
@@ -106,8 +115,21 @@ public class ReplicationServlet extends BasicServlet {
 
       Long numFiles = targetCounts.get(configuredTarget);
 
-      replicationStats.addRow(tableName, configuredTarget.getPeerName(), configuredTarget.getRemoteIdentifier(), replicaSystemClass, (null == numFiles) ? 0 : numFiles); 
+      if (null == numFiles) {
+        replicationStats.addRow(tableName, configuredTarget.getPeerName(), configuredTarget.getRemoteIdentifier(), replicaSystemClass, 0); 
+      } else {
+        replicationStats.addRow(tableName, configuredTarget.getPeerName(), configuredTarget.getRemoteIdentifier(), replicaSystemClass, numFiles);
+        filesPendingOverAllTargets += numFiles;
+      }
     }
+
+    // Up to 2x the number of slots for replication available, WARN
+    // More than 2x the number of slots for replication available, ERROR
+    NumberType<Long> filesPendingFormat = new NumberType<Long>(Long.valueOf(0), Long.valueOf(2 * totalWorkQueueSize), Long.valueOf(0), Long.valueOf(4 * totalWorkQueueSize));
+
+    String utilization = filesPendingFormat.format(filesPendingOverAllTargets);
+
+    sb.append("<div><center><br/><span class=\"table-caption\">Total files pending replication: ").append(utilization).append("</span></center></div>");
 
     replicationStats.generate(req, sb);
 

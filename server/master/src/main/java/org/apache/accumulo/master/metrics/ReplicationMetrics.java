@@ -26,10 +26,16 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.impl.MasterClient;
+import org.apache.accumulo.core.master.thrift.MasterClientService;
+import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.ReplicationTarget;
+import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.metrics.AbstractMetricsImpl;
 import org.apache.accumulo.server.replication.ReplicationUtil;
+import org.apache.accumulo.server.security.SystemCredentials;
+import org.apache.accumulo.trace.instrument.Tracer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,6 +113,40 @@ public class ReplicationMetrics extends AbstractMetricsImpl implements Replicati
 
     // Get all of the configured replication peers
     return replicationUtil.getPeers(properties).size();
+  }
+
+  @Override
+  public int getMaxReplicationThreads() {
+    MasterMonitorInfo mmi = null;
+    for (int i = 0; i < 10; i++) {
+      MasterClientService.Iface client = null;
+      try {
+        client = MasterClient.getConnection(HdfsZooInstance.getInstance());
+        if (client != null) {
+          mmi = client.getMasterStats(Tracer.traceInfo(), SystemCredentials.get().toThrift(HdfsZooInstance.getInstance()));
+          break;
+        }
+      } catch (Exception e) {
+        log.debug("Error fetching stats: " + e);
+      } finally {
+        if (client != null) {
+          MasterClient.close(client);
+        }
+      }
+    }
+
+    if (null != mmi) {
+      try {
+        return replicationUtil.getMaxReplicationThreads(conn, mmi);
+      } catch (AccumuloException e) {
+        log.warn("Failed to fetch replication work queue size", e);
+      } catch (AccumuloSecurityException e) {
+        log.warn("Failed to fetch replication work queue size", e);
+      }
+    }
+
+    log.warn("Could not fetch metrics information from Master");
+    return -1;
   }
 
   @Override
