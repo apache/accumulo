@@ -130,7 +130,7 @@ public class MiniAccumuloCluster {
   
   private MiniAccumuloConfig config;
   private Process[] tabletServerProcesses;
-
+  
   // Non-final for testing purposes
   private ExecutorService executor;
   
@@ -184,7 +184,7 @@ public class MiniAccumuloCluster {
     if (!siteConfig.containsKey(key))
       fileWriter.append("<property><name>" + key + "</name><value>" + value + "</value></property>\n");
   }
-
+  
   /**
    * Sets a given key with a random port for the value on the site config if it doesn't already exist.
    */
@@ -273,12 +273,12 @@ public class MiniAccumuloCluster {
     appendProp(fileWriter, Property.TSERV_MAJC_DELAY, "3", siteConfig);
     
     // ACCUMULO-1472 -- Use the classpath, not what might be installed on the system.
-    // We have to set *something* here, otherwise the AccumuloClassLoader will default to pulling from 
+    // We have to set *something* here, otherwise the AccumuloClassLoader will default to pulling from
     // environment variables (e.g. ACCUMULO_HOME, HADOOP_HOME/PREFIX) which will result in multiple copies
     // of artifacts on the classpath as they'll be provided by the invoking application
     appendProp(fileWriter, Property.GENERAL_CLASSPATHS, libDir.getAbsolutePath() + "/[^.].*.jar", siteConfig);
     appendProp(fileWriter, Property.GENERAL_DYNAMIC_CLASSPATHS, libExtDir.getAbsolutePath() + "/[^.].*.jar", siteConfig);
-
+    
     for (Entry<String,String> entry : siteConfig.entrySet())
       fileWriter.append("<property><name>" + entry.getKey() + "</name><value>" + entry.getValue() + "</value></property>\n");
     fileWriter.append("</configuration>\n");
@@ -306,7 +306,6 @@ public class MiniAccumuloCluster {
    * @throws IllegalStateException
    *           if already started
    */
-  
   public void start() throws IOException, InterruptedException {
     if (zooKeeperProcess != null)
       throw new IllegalStateException("Already started");
@@ -343,7 +342,7 @@ public class MiniAccumuloCluster {
     masterProcess = exec(Master.class);
     
     gcProcess = exec(SimpleGarbageCollector.class);
-
+    
     if (null == executor) {
       executor = Executors.newSingleThreadExecutor();
     }
@@ -369,7 +368,6 @@ public class MiniAccumuloCluster {
    * Stops Accumulo and Zookeeper processes. If stop is not called, there is a shutdown hook that is setup to kill the processes. Howerver its probably best to
    * call stop in a finally block as soon as possible.
    */
-  
   public void stop() throws IOException, InterruptedException {
     if (zooKeeperProcess != null) {
       try {
@@ -403,7 +401,7 @@ public class MiniAccumuloCluster {
     
     for (LogWriter lw : logWriters)
       lw.flush();
-
+    
     if (gcProcess != null) {
       try {
         stopProcessWithTimeout(gcProcess, 30, TimeUnit.SECONDS);
@@ -413,41 +411,41 @@ public class MiniAccumuloCluster {
         log.warn("GarbageCollector did not fully stop after 30 seconds", e);
       }
     }
-
+    
     // ACCUMULO-2985 stop the ExecutorService after we finished using it to stop accumulo procs
     if (null != executor) {
       List<Runnable> tasksRemaining = executor.shutdownNow();
-
+      
       // the single thread executor shouldn't have any pending tasks, but check anyways
       if (!tasksRemaining.isEmpty()) {
         log.warn("Unexpectedly had " + tasksRemaining.size() + " task(s) remaining in threadpool for execution when being stopped");
       }
-
+      
       executor = null;
     }
   }
-
+  
   // Visible for testing
   protected void setShutdownExecutor(ExecutorService svc) {
     this.executor = svc;
   }
-
+  
   // Visible for testing
   protected ExecutorService getShutdownExecutor() {
     return executor;
   }
-
+  
   private int stopProcessWithTimeout(final Process proc, long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
     FutureTask<Integer> future = new FutureTask<Integer>(new Callable<Integer>() {
-        @Override
-        public Integer call() throws InterruptedException {
-          proc.destroy();
-          return proc.waitFor();
-        }
+      @Override
+      public Integer call() throws InterruptedException {
+        proc.destroy();
+        return proc.waitFor();
+      }
     });
-
+    
     executor.execute(future);
-
+    
     return future.get(timeout, unit);
   }
 }
