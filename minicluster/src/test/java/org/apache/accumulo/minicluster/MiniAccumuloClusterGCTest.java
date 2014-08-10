@@ -30,8 +30,6 @@ import org.apache.accumulo.server.util.PortUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.SuffixFileFilter;
 import org.apache.commons.io.filefilter.TrueFileFilter;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.rules.TemporaryFolder;
@@ -50,7 +48,6 @@ public class MiniAccumuloClusterGCTest {
   
   public static void setupMiniCluster() throws Exception {
     tmpDir.create();
-    Logger.getLogger("org.apache.zookeeper").setLevel(Level.ERROR);
     
     macConfig = new MiniAccumuloConfig(tmpDir.getRoot(), passwd);
     macConfig.setNumTservers(1);

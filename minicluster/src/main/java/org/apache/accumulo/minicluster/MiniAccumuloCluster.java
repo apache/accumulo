@@ -53,6 +53,8 @@ import org.apache.accumulo.start.Main;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
 
+import com.google.common.base.Preconditions;
+
 /**
  * A utility class that will create Zookeeper and Accumulo processes that write all of their data to a single local directory. This class makes it easy to test
  * code against a real Accumulo instance. Its much more accurate for testing than MockAccumulo, but much slower than MockAccumulo.
@@ -306,7 +308,7 @@ public class MiniAccumuloCluster {
    * @throws IllegalStateException
    *           if already started
    */
-  public void start() throws IOException, InterruptedException {
+  public synchronized void start() throws IOException, InterruptedException {
     if (zooKeeperProcess != null)
       throw new IllegalStateException("Already started");
     
@@ -365,10 +367,15 @@ public class MiniAccumuloCluster {
   }
   
   /**
-   * Stops Accumulo and Zookeeper processes. If stop is not called, there is a shutdown hook that is setup to kill the processes. Howerver its probably best to
+   * Stops Accumulo and Zookeeper processes. If stop is not called, there is a shutdown hook that is setup to kill the processes. However its probably best to
    * call stop in a finally block as soon as possible.
    */
-  public void stop() throws IOException, InterruptedException {
+  public synchronized void stop() throws IOException, InterruptedException {
+    if (null == executor) {
+      // keep repeated calls to stop() from failing
+      return;
+    }
+
     if (zooKeeperProcess != null) {
       try {
         stopProcessWithTimeout(zooKeeperProcess, 30, TimeUnit.SECONDS);
@@ -436,6 +443,7 @@ public class MiniAccumuloCluster {
   }
   
   private int stopProcessWithTimeout(final Process proc, long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+    Preconditions.checkNotNull(executor, "Executor was already null");
     FutureTask<Integer> future = new FutureTask<Integer>(new Callable<Integer>() {
       @Override
       public Integer call() throws InterruptedException {

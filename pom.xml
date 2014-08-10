@@ -113,6 +113,8 @@
     <httpclient.version>3.0.1</httpclient.version>
     <!-- the maven-release-plugin makes this recommendation, due to plugin bugs -->
     <maven.min-version>3.0.4</maven.min-version>
+    <!-- surefire/failsafe plugin option -->
+    <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <powermock.version>1.5</powermock.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -501,7 +503,7 @@
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
           <configuration>
-            <redirectTestOutputToFile>true</redirectTestOutputToFile>
+            <argLine>-Xmx1G</argLine>
           </configuration>
         </plugin>
         <plugin>
