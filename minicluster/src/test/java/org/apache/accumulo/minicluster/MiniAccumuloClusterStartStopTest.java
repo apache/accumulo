@@ -41,17 +41,14 @@ public class MiniAccumuloClusterStartStopTest {
     folder.delete();
   }
   
-  // Multiple start()'s failed in 1.5, but apparently is successful in 1.6.0
-  //  @Test
+  @Test
   public void multipleStartsThrowsAnException() throws Exception {
     MiniAccumuloCluster accumulo = new MiniAccumuloCluster(folder.getRoot(), "superSecret");
-    accumulo.start();
-    
+
+    // In 1.6.0, multiple start's did not throw an exception as advertised
     try {
       accumulo.start();
-      Assert.fail("Invoking start() while already started is an error");
-    } catch (IllegalStateException e) {
-      // pass
+      accumulo.start();
     } finally {
       accumulo.stop();
     }
