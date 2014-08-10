@@ -443,7 +443,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
    *           if already started
    */
   @Override
-  public void start() throws IOException, InterruptedException {
+  public synchronized void start() throws IOException, InterruptedException {
 
     if (!initialized) {
 
@@ -620,7 +620,12 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
    * call stop in a finally block as soon as possible.
    */
   @Override
-  public void stop() throws IOException, InterruptedException {
+  public synchronized void stop() throws IOException, InterruptedException {
+    if (null == executor) {
+      // keep repeated calls to stop() from failing
+      return;
+    }
+
     for (LogWriter lw : logWriters) {
       lw.flush();
     }
