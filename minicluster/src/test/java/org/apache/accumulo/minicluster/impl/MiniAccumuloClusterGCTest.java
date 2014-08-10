@@ -32,7 +32,6 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.SuffixFileFilter;
 import org.apache.commons.io.filefilter.TrueFileFilter;
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -56,7 +55,6 @@ public class MiniAccumuloClusterGCTest {
   public static void setupMiniCluster() throws Exception {
     FileUtils.deleteQuietly(testDir);
     testDir.mkdir();
-    Logger.getLogger("org.apache.zookeeper").setLevel(Level.ERROR);
 
     macConfig = new MiniAccumuloConfigImpl(testDir, passwd);
     macConfig.setNumTservers(1);

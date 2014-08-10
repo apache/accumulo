@@ -43,7 +43,6 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -60,8 +59,6 @@ public class MiniAccumuloClusterTest {
 
   @BeforeClass
   public static void setupMiniCluster() throws Exception {
-    Logger.getLogger("org.apache.zookeeper").setLevel(Level.ERROR);
-
     File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
     baseDir.mkdirs();
     testDir = new File(baseDir, MiniAccumuloClusterTest.class.getName());
