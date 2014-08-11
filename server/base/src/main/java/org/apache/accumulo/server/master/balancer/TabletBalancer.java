@@ -23,8 +23,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 
-import com.google.common.collect.Iterables;
-
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
@@ -40,6 +38,8 @@ import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
+
+import com.google.common.collect.Iterables;
 
 public abstract class TabletBalancer {
   
@@ -70,11 +70,10 @@ public abstract class TabletBalancer {
   
   /**
    * Ask the balancer if any migrations are necessary.
-   *
-   * If the balancer is going to self-abort due to some environmental constraint (e.g. it requires some minimum number of tservers, or a maximum number
-   * of outstanding migrations), it should issue a log message to alert operators. The message should be at WARN normally and at ERROR if the balancer knows that the
-   * problem can not self correct. It should not issue these messages more than once a minute. Subclasses can use the convenience methods of {@link #constraintNotMet()} and
-   * {@link #balanceSuccessful()} to accomplish this logging.
+   * 
+   * If the balancer is going to self-abort due to some environmental constraint (e.g. it requires some minimum number of tservers, or a maximum number of
+   * outstanding migrations), it should issue a log message to alert operators. The message should be at WARN normally and at ERROR if the balancer knows that
+   * the problem can not self correct. It should not issue these messages more than once a minute.
    * 
    * @param current
    *          The current table-summary state of all the online tablet servers. Read-only.
