@@ -53,4 +53,8 @@
     <enabled type="boolean">false</enabled>
     <logging type="boolean">false</logging>
   </thrift>
+  <replication>
+    <enabled type="boolean">false</enabled>
+    <logging type="boolean">false</logging>
+  </replication>
 </config>
