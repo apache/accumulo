@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
-import org.apache.zookeeper.ZooKeeper;
 import org.junit.Test;
 
 public class ZooSessionTest {
@@ -26,7 +25,7 @@ public class ZooSessionTest {
 
   @Test(expected=RuntimeException.class, timeout=MINIMUM_TIMEOUT*4)
   public void testUnknownHost() {
-    ZooKeeper session = ZooSession.connect(UNKNOWN_HOST, MINIMUM_TIMEOUT, null, null, null);
+    ZooSession.connect(UNKNOWN_HOST, MINIMUM_TIMEOUT, null, null, null);
   }
 
 }
