@@ -92,6 +92,7 @@ Release Notes - Accumulo - Version 1.5.2
     * [ACCUMULO-3013] - ContinuousVerify Reducers fail on java.lang.ClassNotFoundException: org.apache.accumulo.server.util.reflection.CounterUtils
     * [ACCUMULO-3015] - RangeInputSplit doesn't serialize table name
     * [ACCUMULO-3016] - Glob for accumulo-examples-simple jar fails
+    * [ACCUMULO-3055] - calling MiniAccumuloCluster.stop multiple times fails with NPE
 
 ** Improvement
     * [ACCUMULO-1669] - User manual examples use two argument Mutation.put
@@ -109,6 +110,7 @@ Release Notes - Accumulo - Version 1.5.2
     * [ACCUMULO-2842] - Allow for use of hflush instead of hsync
     * [ACCUMULO-2849] - Add scan batch size configurability and write delay to memory stress test
     * [ACCUMULO-2850] - Enhance memory stress test scripts
+    * [ACCUMULO-2905] - Seeing short hold times and no MinC's
     * [ACCUMULO-2947] - Support configurable changes per mutation for size-based stress test
     * [ACCUMULO-2994] - IteratorUtil.parseIterConf loops over each iterator scope repeatedly
     * [ACCUMULO-3018] - Increase tserver.mutation.queue.max default for 1.5
