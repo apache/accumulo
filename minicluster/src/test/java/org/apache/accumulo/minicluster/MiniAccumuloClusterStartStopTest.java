@@ -19,8 +19,6 @@ package org.apache.accumulo.minicluster;
 import java.io.IOException;
 
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -57,8 +55,8 @@ public class MiniAccumuloClusterStartStopTest {
   public void multipleStopsIsAllowed() throws Exception {
     MiniAccumuloCluster accumulo = new MiniAccumuloCluster(folder.getRoot(), "superSecret");
     accumulo.start();
-    
-    Connector conn = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers()).getConnector("root", new PasswordToken("superSecret"));
+
+    Connector conn = accumulo.getConnector("root", "superSecret");
     conn.tableOperations().create("foo");
 
     accumulo.stop();
