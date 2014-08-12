@@ -101,7 +101,7 @@ public abstract class AbstractMacIT {
     File publicTruststoreFile = new File(sslDir, "public-" + cfg.getInstanceName() + ".jks");
     try {
       new CertUtils(Property.RPC_SSL_KEYSTORE_TYPE.getDefaultValue(), "o=Apache Accumulo,cn=MiniAccumuloCluster", "RSA", 2048, "sha1WithRSAEncryption")
-          .createAll(rootKeystoreFile, localKeystoreFile, publicTruststoreFile, cfg.getInstanceName(), cfg.getRootPassword());
+          .createAll(rootKeystoreFile, localKeystoreFile, publicTruststoreFile, cfg.getInstanceName(), "root_keystore_password", cfg.getRootPassword(), "");
     } catch (Exception e) {
       throw new RuntimeException("error creating MAC keystore", e);
     }

@@ -62,7 +62,7 @@ public class CertUtilsTest {
     File rootKeyStoreFile = new File(folder.getRoot(), "root.jks");
     certUtils.createSelfSignedCert(rootKeyStoreFile, "test", PASSWORD);
     File publicKeyStoreFile = new File(folder.getRoot(), "public.jks");
-    certUtils.createPublicCert(publicKeyStoreFile, "test", rootKeyStoreFile.getAbsolutePath(), PASSWORD);
+    certUtils.createPublicCert(publicKeyStoreFile, "test", rootKeyStoreFile.getAbsolutePath(), PASSWORD, "");
 
     KeyStore keyStore = KeyStore.getInstance(KEYSTORE_TYPE);
     keyStore.load(new FileInputStream(publicKeyStoreFile), new char[0]);
@@ -110,11 +110,11 @@ public class CertUtilsTest {
     File rootKeyStoreFile = new File(folder.getRoot(), "root.jks");
     certUtils.createSelfSignedCert(rootKeyStoreFile, "test", PASSWORD);
     File publicRootKeyStoreFile = new File(folder.getRoot(), "publicroot.jks");
-    certUtils.createPublicCert(publicRootKeyStoreFile, "test", rootKeyStoreFile.getAbsolutePath(), PASSWORD);
+    certUtils.createPublicCert(publicRootKeyStoreFile, "test", rootKeyStoreFile.getAbsolutePath(), PASSWORD, "");
     File signedKeyStoreFile = new File(folder.getRoot(), "signed.jks");
     certUtils.createSignedCert(signedKeyStoreFile, "test", PASSWORD, rootKeyStoreFile.getAbsolutePath(), PASSWORD);
     File publicSignedKeyStoreFile = new File(folder.getRoot(), "publicsigned.jks");
-    certUtils.createPublicCert(publicSignedKeyStoreFile, "test", signedKeyStoreFile.getAbsolutePath(), PASSWORD);
+    certUtils.createPublicCert(publicSignedKeyStoreFile, "test", signedKeyStoreFile.getAbsolutePath(), PASSWORD, "");
 
     KeyStore rootKeyStore = KeyStore.getInstance(KEYSTORE_TYPE);
     rootKeyStore.load(new FileInputStream(publicRootKeyStoreFile), new char[0]);

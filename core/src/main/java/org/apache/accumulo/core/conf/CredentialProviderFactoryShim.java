@@ -218,18 +218,19 @@ public class CredentialProviderFactoryShim {
         
         return (char[]) credential;
       } catch (IllegalArgumentException e) {
-        log.warn("Failed to get credential from {}", providerObj, e);
+        log.warn("Failed to get credential for {} from {}", alias, providerObj, e);
         continue;
       } catch (IllegalAccessException e) {
-        log.warn("Failed to get credential from {}", providerObj, e);
+        log.warn("Failed to get credential for {} from {}", alias, providerObj, e);
         continue;
       } catch (InvocationTargetException e) {
-        log.warn("Failed to get credential from {}", providerObj, e);
+        log.warn("Failed to get credential for {} from {}", alias, providerObj, e);
         continue;
       }
     }
-    
-    log.warn("Could not extract credential from providers");
+
+    // If we didn't find it, this isn't an error, it just wasn't set in the CredentialProvider
+    log.trace("Could not extract credential for {} from providers", alias);
     
     return null;
   }
