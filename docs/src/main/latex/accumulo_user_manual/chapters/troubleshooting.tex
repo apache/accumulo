@@ -733,9 +733,9 @@ The directory structure in HDFS for tables will follow the general structure:
 \normalsize
 
 For each table, make a new directory that you can move (or copy if you have the HDFS space to do so)
-all of the rfiles for a given table into. For example, to process the table with an ID of ``1``, make a new directory, 
-say ``/new-table-1`` and then copy all files from ``/accumulo/tables/1/*/*.rf`` into that directory. Additionally,
-make a directory, ``/new-table-1-failures``, for any failures during the import process. Then, issue the import
+all of the rfiles for a given table into. For example, to process the table with an ID of \texttt{1}, make a new directory, 
+say \texttt{/new-table-1} and then copy all files from \texttt{/accumulo/tables/1/*/*.rf} into that directory. Additionally,
+make a directory, texttt{/new-table-1-failures}, for any failures during the import process. Then, issue the import
 command using the Accumulo shell into the new table, telling Accumulo to not re-set the timestamp:
 
 \small
@@ -744,9 +744,9 @@ user@instance new_table> importdirectory /new-table-1 /new-table-1-failures fals
 \end{verbatim}
 \normalsize
 
-Any RFiles which were failed to be loaded will be placed in ``/new-table-1-failures``. Rfiles that were successfully
-imported will no longer exist in ``/new-table-1``. For failures, move them back to the import directory and retry
-the ``importdirectory`` command.
+Any RFiles which were failed to be loaded will be placed in \texttt{/new-table-1-failures}. Rfiles that were successfully
+imported will no longer exist in \texttt{/new-table-1}. For failures, move them back to the import directory and retry
+the \texttt{importdirectory} command.
 
 It is \textbf{extremely} important to note that this approach may introduce stale data back into
 the tables. For a few reasons, RFiles may exist in the table directory which are candidates for deletion but have
