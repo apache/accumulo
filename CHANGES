@@ -22,6 +22,7 @@ Release Notes - Accumulo - Version 1.5.2
 ** Sub-task
     * [ACCUMULO-2438] - deleting all table rows caused tablet load failure
     * [ACCUMULO-2551] - Add read-only access to Fate
+    * [ACCUMULO-3058] - Javadoc comment added to balancer describes non-existent methods
 
 ** Bug
     * [ACCUMULO-1897] - Bug in MemKeyConversionIterator constructor
