@@ -201,6 +201,16 @@
           <configuration>
             <systemPropertyVariables>
               <timeout.factor>${timeout.factor}</timeout.factor>
+              <org.apache.accumulo.test.functional.useSslForIT>${useSslForIT}</org.apache.accumulo.test.functional.useSslForIT>
+            </systemPropertyVariables>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <configuration>
+            <systemPropertyVariables>
+              <org.apache.accumulo.test.functional.useSslForIT>${useSslForIT}</org.apache.accumulo.test.functional.useSslForIT>
             </systemPropertyVariables>
           </configuration>
         </plugin>
@@ -259,18 +269,6 @@
                 </configuration>
               </execution>
             </executions>
-          </plugin>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-failsafe-plugin</artifactId>
-            <configuration>
-              <systemProperties>
-                <property>
-                  <name>org.apache.accumulo.test.functional.useSslForIT</name>
-                  <value>${useSslForIT}</value>
-                </property>
-              </systemProperties>
-            </configuration>
           </plugin>
         </plugins>
       </build>
