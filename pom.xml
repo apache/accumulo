@@ -481,6 +481,8 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-release-plugin</artifactId>
+          <!-- Work around MRELEASE-812 -->
+          <version>2.5</version>
           <configuration>
             <arguments>-P apache-release,check-licenses,thrift,native,assemble,docs,rpm,deb</arguments>
             <autoVersionSubmodules>true</autoVersionSubmodules>
