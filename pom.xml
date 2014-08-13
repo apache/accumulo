@@ -617,6 +617,8 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-release-plugin</artifactId>
+          <!-- Work around MRELEASE-812 -->
+          <version>2.5</version>
           <configuration>
             <arguments>-P apache-release,thrift,assemble,docs,sunny -Dtimeout.factor=2</arguments>
             <autoVersionSubmodules>true</autoVersionSubmodules>
