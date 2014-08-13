@@ -16,10 +16,7 @@
  */
 package org.apache.accumulo.core.conf;
 
-import java.io.FileNotFoundException;
-import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -29,61 +26,36 @@ import java.util.Map.Entry;
  * properties. This class is a singleton.
  */
 public class DefaultConfiguration extends AccumuloConfiguration {
-  private static DefaultConfiguration instance = null;
-  private Map<String,String> resolvedProps = null;
+  private final static Map<String,String> resolvedProps;
+  static {
+    Map<String, String> m = new HashMap<String,String>();
+    for (Property prop : Property.values()) {
+      if (!prop.getType().equals(PropertyType.PREFIX)) {
+        m.put(prop.getKey(), prop.getDefaultValue());
+      }
+    }
+    ConfigSanityCheck.validate(m.entrySet());
+    resolvedProps = Collections.unmodifiableMap(m);
+  }
 
   /**
-   * Gets an instance of this class.
+   * Gets a default configuration.
    *
    * @return default configuration
-   * @throws RuntimeException if the default configuration is invalid
    */
-  synchronized public static DefaultConfiguration getInstance() {
-    if (instance == null) {
-      instance = new DefaultConfiguration();
-      ConfigSanityCheck.validate(instance);
-    }
-    return instance;
+  public static DefaultConfiguration getInstance() {
+    return new DefaultConfiguration();
   }
 
   @Override
   public String get(Property property) {
-    return getResolvedProps().get(property.getKey());
-  }
-
-  private synchronized Map<String,String> getResolvedProps() {
-    if (resolvedProps == null) {
-      // the following loop is super slow, it takes a few milliseconds, so cache it
-      resolvedProps = new HashMap<String,String>();
-      for (Property prop : Property.values())
-        if (!prop.getType().equals(PropertyType.PREFIX))
-          resolvedProps.put(prop.getKey(), prop.getDefaultValue());
-    }
-    return resolvedProps;
+    return resolvedProps.get(property.getKey());
   }
 
   @Override
   public void getProperties(Map<String,String> props, PropertyFilter filter) {
-    for (Entry<String,String> entry : getResolvedProps().entrySet())
+    for (Entry<String,String> entry : resolvedProps.entrySet())
       if (filter.accept(entry.getKey()))
         props.put(entry.getKey(), entry.getValue());
   }
-
-  /*
-   * Generates documentation for conf/accumulo-site.xml file usage. Arguments
-   * are: "--generate-doc", file to write to.
-   *
-   * @param args command-line arguments
-   * @throws IllegalArgumentException if args is invalid
-   */
-  public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException {
-    if (args.length == 2 && args[0].equals("--generate-html")) {
-      new ConfigurationDocGen(new PrintStream(args[1], StandardCharsets.UTF_8.name())).generateHtml();
-    } else if (args.length == 2 && args[0].equals("--generate-asciidoc")) {
-      new ConfigurationDocGen(new PrintStream(args[1], StandardCharsets.UTF_8.name())).generateAsciidoc();
-    } else {
-      throw new IllegalArgumentException("Usage: " + DefaultConfiguration.class.getName() + " --generate-html <filename> | --generate-latex <filename>");
-    }
-  }
-
 }
