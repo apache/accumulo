@@ -356,6 +356,7 @@ public enum Property {
           + "Compactions of idle tablets are only started when regular compactions are not running. Idle "
           + "compactions only take place for tablets that have one or more files."),
   TABLE_SPLIT_THRESHOLD("table.split.threshold", "1G", PropertyType.MEMORY, "When combined size of files exceeds this amount a tablet is split."),
+  TABLE_MAX_END_ROW_SIZE("table.split.endrow.size.max", "10K", PropertyType.MEMORY, "Maximum size of end row"),
   TABLE_MINC_LOGS_MAX("table.compaction.minor.logs.threshold", "3", PropertyType.COUNT,
       "When there are more than this many write-ahead logs against a tablet, it will be minor compacted. See comment for property tserver.memory.maps.max"),
   TABLE_MINC_COMPACT_IDLETIME("table.compaction.minor.idle", "5m", PropertyType.TIMEDURATION,
@@ -506,7 +507,7 @@ public enum Property {
   /**
    * Gets the key (string) for this property.
    *
-   * @return keuy
+   * @return key
    */
   public String getKey() {
     return this.key;

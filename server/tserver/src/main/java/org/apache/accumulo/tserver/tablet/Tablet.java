@@ -1582,6 +1582,8 @@ public class Tablet implements TabletCommitter {
     // check to see if we're big enough to split
 
     long splitThreshold = tableConfiguration.getMemoryInBytes(Property.TABLE_SPLIT_THRESHOLD);
+    long maxEndRow = tableConfiguration.getMemoryInBytes(Property.TABLE_MAX_END_ROW_SIZE);
+
     if (extent.isRootTablet() || estimateTabletSize() <= splitThreshold) {
       return null;
     }
@@ -1601,7 +1603,8 @@ public class Tablet implements TabletCommitter {
 
     try {
       // we should make .25 below configurable
-      keys = FileUtil.findMidPoint(getTabletServer().getFileSystem(), getTabletServer().getConfiguration(), extent.getPrevEndRow(), extent.getEndRow(), FileUtil.toPathStrings(files), .25);
+      keys = FileUtil.findMidPoint(getTabletServer().getFileSystem(), getTabletServer().getConfiguration(), extent.getPrevEndRow(), extent.getEndRow(),
+          FileUtil.toPathStrings(files), .25);
     } catch (IOException e) {
       log.error("Failed to find midpoint " + e.getMessage());
       return null;
@@ -1628,6 +1631,15 @@ public class Tablet implements TabletCommitter {
       if (mid.compareRow(lastRow) == 0) {
         if (keys.firstKey() < .5) {
           Key candidate = keys.get(keys.firstKey());
+          if (candidate.getLength() > maxEndRow) {
+            log.warn("Cannot split tablet " + extent + ", selected split point too long.  Length :  " + candidate.getLength());
+
+            sawBigRow = true;
+            timeOfLastMinCWhenBigFreakinRowWasSeen = lastMinorCompactionFinishTime;
+            timeOfLastImportWhenBigFreakinRowWasSeen = lastMapFileImportTime;
+
+            return null;
+          }
           if (candidate.compareRow(lastRow) != 0) {
             // we should use this ratio in split size estimations
             if (log.isTraceEnabled())
@@ -1645,6 +1657,7 @@ public class Tablet implements TabletCommitter {
 
         return null;
       }
+
       Text text = mid.getRow();
       SortedMap<Double,Key> firstHalf = keys.headMap(.5);
       if (firstHalf.size() > 0) {
@@ -1654,12 +1667,24 @@ public class Tablet implements TabletCommitter {
         shorter.set(text.getBytes(), 0, Math.min(text.getLength(), trunc + 1));
         text = shorter;
       }
+
+      if (text.getLength() > maxEndRow) {
+        log.warn("Cannot split tablet " + extent + ", selected split point too long.  Length :  " + text.getLength());
+
+        sawBigRow = true;
+        timeOfLastMinCWhenBigFreakinRowWasSeen = lastMinorCompactionFinishTime;
+        timeOfLastImportWhenBigFreakinRowWasSeen = lastMapFileImportTime;
+
+        return null;
+      }
+
       return new SplitRowSpec(.5, text);
     } catch (IOException e) {
       // don't split now, but check again later
       log.error("Failed to find lastkey " + e.getMessage());
       return null;
     }
+
   }
 
   private static int longestCommonLength(Text text, Text beforeMid) {
@@ -2100,9 +2125,15 @@ public class Tablet implements TabletCommitter {
   }
 
   public TreeMap<KeyExtent,SplitInfo> split(byte[] sp) throws IOException {
-
+	  
     if (sp != null && extent.getEndRow() != null && extent.getEndRow().equals(new Text(sp))) {
       throw new IllegalArgumentException();
+    }
+    
+    if (sp != null && sp.length > tableConfiguration.getMemoryInBytes(Property.TABLE_MAX_END_ROW_SIZE)) {
+      String msg = "Cannot split tablet " + extent + ", selected split point too long.  Length :  " + sp.length;
+      log.warn(msg);
+      throw new IOException(msg);
     }
 
     if (extent.isRootTablet()) {
@@ -2130,7 +2161,6 @@ public class Tablet implements TabletCommitter {
       TreeMap<KeyExtent,SplitInfo> newTablets = new TreeMap<KeyExtent,SplitInfo>();
 
       long t1 = System.currentTimeMillis();
-
       // choose a split point
       SplitRowSpec splitPoint;
       if (sp == null)
@@ -2146,7 +2176,7 @@ public class Tablet implements TabletCommitter {
         closeState = CloseState.OPEN;
         return null;
       }
-
+      
       closeState = CloseState.CLOSING;
       completeClose(true, false);
 
