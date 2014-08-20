@@ -117,7 +117,6 @@ public class CredentialProviderFactoryShimTest {
 
   @Test
   public void testEmptyAndPopulatedKeyStores() throws IOException {
-
     if (!isCredentialProviderAvailable) {
       return;
     }
@@ -153,5 +152,28 @@ public class CredentialProviderFactoryShimTest {
     final Configuration actualConf = CredentialProviderFactoryShim.getConfiguration(path);
     Assert.assertNotNull(actualConf);
     Assert.assertEquals(path, actualConf.get(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH));
+  }
+
+  @Test
+  public void createKeystoreProvider() throws Exception {
+    if (!isCredentialProviderAvailable) {
+      return;
+    }
+
+    File targetDir = new File(System.getProperty("user.dir") + "/target");
+    File keystoreFile = new File(targetDir, "create.jks");
+    if (keystoreFile.exists()) {
+      keystoreFile.delete();
+    }
+
+    String providerUrl = "jceks://file" + keystoreFile.getAbsolutePath();
+    Configuration conf = new Configuration();
+    conf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, providerUrl);
+
+    String alias = "foo";
+    char[] credential = "bar".toCharArray();
+    CredentialProviderFactoryShim.createEntry(conf, alias, credential);
+
+    Assert.assertArrayEquals(credential, CredentialProviderFactoryShim.getValueFromCredentialProvider(conf, alias));
   }
 }
