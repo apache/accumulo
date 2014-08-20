@@ -19,13 +19,18 @@ package org.apache.accumulo.minicluster.impl;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.accumulo.cluster.AccumuloConfig;
+import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.util.PortUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.log4j.Logger;
 
 /**
  * Holds configuration for {@link MiniAccumuloClusterImpl}. Required configurations must be passed to constructor(s) and all other configurations are optional.
@@ -33,7 +38,7 @@ import org.apache.accumulo.server.util.PortUtils;
  * @since 1.6.0
  */
 public class MiniAccumuloConfigImpl implements AccumuloConfig {
-
+  private static final Logger log = Logger.getLogger(MiniAccumuloConfigImpl.class);
   private static final String DEFAULT_INSTANCE_SECRET = "DONTTELL";
 
   private File dir = null;
@@ -64,6 +69,8 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
   private boolean initialized = false;
 
   private boolean useMiniDFS = false;
+
+  private boolean useCredentialProvider = false;
 
   private String[] classpathItems = null;
 
@@ -128,6 +135,10 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
       mergePropWithRandomPort(Property.REPLICATION_RECEIPT_SERVICE_PORT.getKey());
       mergePropWithRandomPort(Property.MASTER_REPLICATION_COORDINATOR_PORT.getKey());
 
+      if (isUseCredentialProvider()) {
+        updateConfigForCredentialProvider();
+      }
+
       // zookeeper port should be set explicitly in this class, not just on the site config
       if (zooKeeperPort == 0)
         zooKeeperPort = PortUtils.getRandomFreePort();
@@ -135,6 +146,46 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
       initialized = true;
     }
     return this;
+  }
+
+  private void updateConfigForCredentialProvider() {
+    String cpPaths = siteConfig.get(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
+    if (null != cpPaths && !Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getDefaultValue().equals(cpPaths)) {
+      // Already configured
+      return;
+    }
+
+    if (!CredentialProviderFactoryShim.isHadoopCredentialProviderAvailable()) {
+      throw new RuntimeException("Cannot use CredentialProvider when implementation is not available. Be sure to use >=Hadoop-2.6.0");
+    }
+
+    File keystoreFile = new File(getConfDir(), "credential-provider.jks");
+    String keystoreUri = "jceks://file" + keystoreFile.getAbsolutePath();
+    Configuration conf = CredentialProviderFactoryShim.getConfiguration(keystoreUri);
+
+    // Set the URI on the siteCfg
+    siteConfig.put(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), keystoreUri);
+
+    Iterator<Entry<String,String>> entries = siteConfig.entrySet().iterator();
+    while (entries.hasNext()) {
+      Entry<String,String> entry = entries.next();
+
+      // Not a @Sensitive Property, ignore it
+      if (!Property.isSensitive(entry.getKey())) {
+        continue;
+      }
+
+      // Add the @Sensitive Property to the CredentialProvider
+      try {
+        CredentialProviderFactoryShim.createEntry(conf, entry.getKey(), entry.getValue().toCharArray());
+      } catch (IOException e) {
+        log.warn("Attempted to add " + entry.getKey() + " to CredentialProvider but failed", e);
+        continue;
+      }
+
+      // Only remove it from the siteCfg if we succeeded in adding it to the CredentialProvider
+      entries.remove();
+    }
   }
 
   @SuppressWarnings("deprecation")
@@ -496,6 +547,20 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
    */
   public void setProperty(Property p, String value) {
     this.siteConfig.put(p.getKey(), value);
+  }
+
+  /**
+   * @return the useCredentialProvider
+   */
+  public boolean isUseCredentialProvider() {
+    return useCredentialProvider;
+  }
+
+  /**
+   * @param useCredentialProvider the useCredentialProvider to set
+   */
+  public void setUseCredentialProvider(boolean useCredentialProvider) {
+    this.useCredentialProvider = useCredentialProvider;
   }
 
   @Override
