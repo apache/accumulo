@@ -43,9 +43,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class MiniAccumuloClusterImplTest {
-
-  private static final Logger log = Logger.getLogger(MiniAccumuloClusterImplTest.class);
-
   public static File testDir;
 
   private static MiniAccumuloClusterImpl accumulo;
@@ -96,10 +93,15 @@ public class MiniAccumuloClusterImplTest {
     }
   }
 
-  @Test
+  @Test(timeout = 60000)
   public void saneMonitorInfo() throws Exception {
-    log.info("ensure monitor info includes some base information.");
-    MasterMonitorInfo stats = accumulo.getMasterMonitorInfo();
+    MasterMonitorInfo stats;
+    while (true) {
+      stats = accumulo.getMasterMonitorInfo();
+      if (null != stats.tServerInfo && stats.tServerInfo.size() == NUM_TSERVERS) {
+        break;
+      }
+    }
     List<MasterState> validStates = Arrays.asList(MasterState.values());
     List<MasterGoalState> validGoals = Arrays.asList(MasterGoalState.values());
     Assert.assertTrue("master state should be valid.", validStates.contains(stats.state));
