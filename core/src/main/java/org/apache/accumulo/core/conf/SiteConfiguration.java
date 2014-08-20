@@ -96,9 +96,6 @@ public class SiteConfiguration extends AccumuloConfiguration {
         try {
           char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf, key);
           if (null != value) {
-            if (log.isTraceEnabled()) {
-              log.trace("Loaded " + key + "=" + new String(value) + " from CredentialProvider");
-            }
             return new String(value);
           }
         } catch (IOException e) {
@@ -121,6 +118,11 @@ public class SiteConfiguration extends AccumuloConfiguration {
   public void getProperties(Map<String,String> props, PropertyFilter filter) {
     parent.getProperties(props, filter);
 
+    for (Entry<String,String> entry : getXmlConfig())
+      if (filter.accept(entry.getKey()))
+        props.put(entry.getKey(), entry.getValue());
+
+    // CredentialProvider should take precedence over site
     Configuration hadoopConf = getHadoopConfiguration();
     if (null != hadoopConf) {
       try {
@@ -140,10 +142,6 @@ public class SiteConfiguration extends AccumuloConfiguration {
         log.warn("Failed to extract sensitive properties from Hadoop CredentialProvider, falling back to accumulo-site.xml", e);
       }
     }
-
-    for (Entry<String,String> entry : getXmlConfig())
-      if (filter.accept(entry.getKey()))
-        props.put(entry.getKey(), entry.getValue());
   }
 
   protected Configuration getHadoopConfiguration() {

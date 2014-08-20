@@ -50,6 +50,8 @@ public class SiteConfigurationTest {
 
     SiteConfiguration siteCfg = EasyMock.createMockBuilder(SiteConfiguration.class).addMockedMethod("getHadoopConfiguration")
         .withConstructor(AccumuloConfiguration.class).withArgs(DefaultConfiguration.getInstance()).createMock();
+
+    siteCfg.set(Property.INSTANCE_SECRET, "ignored");
     
     // site-cfg.jceks={'ignored.property'=>'ignored', 'instance.secret'=>'mysecret', 'general.rpc.timeout'=>'timeout'}
     URL keystore = SiteConfigurationTest.class.getResource("/site-cfg.jceks");
