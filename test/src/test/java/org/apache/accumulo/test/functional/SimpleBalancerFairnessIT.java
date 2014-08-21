@@ -41,7 +41,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
 public class SimpleBalancerFairnessIT extends ConfigurableMacIT {
-  
+
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = new HashMap<String,String>();
@@ -49,10 +49,10 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacIT {
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "0");
     cfg.setSiteConfig(siteConfig);
   }
-  
+
   @Override
   protected int defaultTimeoutSeconds() {
-    return 7 * 60;
+    return 10 * 60;
   }
 
   @Test
@@ -69,7 +69,7 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacIT {
     c.tableOperations().flush("test_ingest", null, null, false);
     UtilWaitThread.sleep(15 * 1000);
     Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
-    
+
     MasterClientService.Iface client = null;
     MasterMonitorInfo stats = null;
     try {
@@ -91,5 +91,5 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacIT {
     for (int i = 1; i < counts.size(); i++)
       assertTrue(Math.abs(counts.get(0) - counts.get(i)) <= tservers.size());
   }
-  
+
 }

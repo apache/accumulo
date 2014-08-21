@@ -99,7 +99,7 @@ public class MergeIT extends SimpleMacIT {
     return strings;
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test(timeout = 8 * 60 * 1000)
   public void mergeTest() throws Exception {
     int tc = 0;
     Connector c = getConnector();

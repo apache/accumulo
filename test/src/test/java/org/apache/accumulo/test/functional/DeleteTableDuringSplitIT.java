@@ -35,7 +35,7 @@ public class DeleteTableDuringSplitIT extends SimpleMacIT {
   
   @Override
   protected int defaultTimeoutSeconds() {
-    return 10 * 60;
+    return 15 * 60;
   }
 
   @Test
