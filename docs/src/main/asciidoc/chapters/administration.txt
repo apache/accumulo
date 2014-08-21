@@ -55,6 +55,8 @@ their value in conf/accumulo-site.xml.
 |42424 | Accumulo Proxy Server | n/a
 |50091 | Accumulo GC | gc.port.client
 |50095 | Accumulo HTTP monitor | monitor.port.client
+|10001 | Master Replication service | master.replication.coordinator.port
+|10002 | TabletServer Replication service | replication.receipt.service.port
 |====
 
 In addition, the user can provide +0+ and an ephemeral port will be chosen instead. This
