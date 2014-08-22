@@ -16,21 +16,30 @@
  */
 package org.apache.accumulo.test.replication;
 
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.replication.ReplicationTable;
+import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
@@ -39,9 +48,34 @@ import org.junit.Test;
 import com.google.common.collect.Iterables;
 
 /**
- * 
+ *
  */
 public class StatusCombinerMacTest extends SimpleMacIT {
+
+  @Test
+  public void testCombinerSetOnMetadata() throws Exception {
+    TableOperations tops = getConnector().tableOperations();
+    Map<String,EnumSet<IteratorScope>> iterators = tops.listIterators(MetadataTable.NAME);
+
+    Assert.assertTrue(iterators.containsKey(ReplicationTableUtil.COMBINER_NAME));
+    EnumSet<IteratorScope> scopes = iterators.get(ReplicationTableUtil.COMBINER_NAME);
+    Assert.assertEquals(3, scopes.size());
+    Assert.assertTrue(scopes.contains(IteratorScope.scan));
+    Assert.assertTrue(scopes.contains(IteratorScope.minc));
+    Assert.assertTrue(scopes.contains(IteratorScope.majc));
+
+    Iterable<Entry<String,String>> propIter = tops.getProperties(MetadataTable.NAME);
+    HashMap<String,String> properties = new HashMap<String,String>();
+    for (Entry<String,String> entry : propIter) {
+      properties.put(entry.getKey(), entry.getValue());
+    }
+
+    for (IteratorScope scope : scopes) {
+      String key = Property.TABLE_ITERATOR_PREFIX.getKey() + scope.name() + "." + ReplicationTableUtil.COMBINER_NAME + ".opt.columns";
+      Assert.assertTrue("Properties did not contain key : " + key, properties.containsKey(key));
+      Assert.assertEquals(MetadataSchema.ReplicationSection.COLF.toString(), properties.get(key));
+    }
+  }
 
   @Test
   public void test() throws Exception {

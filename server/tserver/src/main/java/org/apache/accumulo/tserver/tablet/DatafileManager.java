@@ -61,7 +61,7 @@ class DatafileManager {
   // access to datafilesizes needs to be synchronized: see CompactionRunner#getNumFiles
   private final Map<FileRef,DataFileValue> datafileSizes = Collections.synchronizedMap(new TreeMap<FileRef,DataFileValue>());
   private final Tablet tablet;
-  
+
   // ensure we only have one reader/writer of our bulk file notes at at time
   private final Object bulkFileImportLock = new Object();
 
@@ -80,7 +80,7 @@ class DatafileManager {
   private boolean reservationsBlocked = false;
 
   private final Set<FileRef> majorCompactingFiles = new HashSet<FileRef>();
-  
+
   static void rename(VolumeManager fs, Path src, Path dst) throws IOException {
     if (!fs.rename(src, dst)) {
       throw new IOException("Rename " + src + " to " + dst + " returned false ");
@@ -268,7 +268,7 @@ class DatafileManager {
             dfv.setTime(bulkTime);
           }
         }
-        
+
         tablet.updatePersistedTime(bulkTime, paths, tid);
       }
     }
@@ -424,6 +424,9 @@ class DatafileManager {
       // This WAL could still be in use by other Tablets *from the same table*, so we can only mark that there is data to replicate,
       // but it is *not* closed
       if (replicate) {
+        if (log.isDebugEnabled()) {
+          log.debug("Recording that data has been ingested into " + tablet.getExtent() + " using " + logFileOnly);
+        }
         ReplicationTableUtil.updateFiles(SystemCredentials.get(), tablet.getExtent(), logFileOnly, StatusUtil.openWithUnknownLength());
       }
     } finally {
@@ -434,7 +437,7 @@ class DatafileManager {
       try {
         // the purpose of making this update use the new commit session, instead of the old one passed in,
         // is because the new one will reference the logs used by current memory...
-        
+
         tablet.getTabletServer().minorCompactionFinished(tablet.getTabletMemory().getCommitSession(), newDatafile.toString(), commitSession.getWALogSeq() + 2);
         break;
       } catch (IOException e) {
@@ -449,19 +452,19 @@ class DatafileManager {
       if (datafileSizes.containsKey(newDatafile)) {
         log.error("Adding file that is already in set " + newDatafile);
       }
-      
+
       if (dfv.getNumEntries() > 0) {
         datafileSizes.put(newDatafile, dfv);
       }
-      
+
       if (absMergeFile != null) {
         datafileSizes.remove(absMergeFile);
       }
-      
+
       unreserveMergingMinorCompactionFile(absMergeFile);
-      
+
       tablet.flushComplete(flushId);
-      
+
       t2 = System.currentTimeMillis();
     }
 
@@ -597,7 +600,7 @@ class DatafileManager {
       return Collections.unmodifiableSet(files);
     }
   }
-  
+
   public int getNumFiles() {
     return datafileSizes.size();
   }

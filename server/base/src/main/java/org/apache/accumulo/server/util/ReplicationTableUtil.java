@@ -72,7 +72,7 @@ public class ReplicationTableUtil {
    * For testing purposes only -- should not be called by server code
    * <p>
    * Allows mocking of a Writer for testing
-   * 
+   *
    * @param creds
    *          Credentials
    * @param writer
@@ -187,7 +187,7 @@ public class ReplicationTableUtil {
    */
   public static void updateFiles(Credentials creds, KeyExtent extent, Collection<String> files, Status stat) {
     if (log.isDebugEnabled()) {
-      log.debug("Updating replication for " + extent + " with " + files + " using " + ProtobufUtil.toString(stat));
+      log.debug("Updating replication status for " + extent + " with " + files + " using " + ProtobufUtil.toString(stat));
     }
     // TODO could use batch writer, would need to handle failure and retry like update does - ACCUMULO-1294
     if (files.isEmpty()) {

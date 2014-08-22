@@ -276,8 +276,8 @@ public class TabletServerLogger {
                   logs.add(logger.getFileName());
                 }
                 Status status = StatusUtil.fileCreated(System.currentTimeMillis());
-                log.debug("Writing " + ProtobufUtil.toString(status) + " to replication table for " + logs);
-                // Got some new WALs, note this in the replication table
+                log.debug("Writing " + ProtobufUtil.toString(status) + " to metadata table for " + logs);
+                // Got some new WALs, note this in the metadata table
                 ReplicationTableUtil.updateFiles(SystemCredentials.get(), commitSession.getExtent(), logs, status);
               }
             }

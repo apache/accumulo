@@ -17,8 +17,10 @@
 package org.apache.accumulo.server.replication;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
@@ -38,7 +40,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class StatusCombinerTest {
 
@@ -55,22 +57,27 @@ public class StatusCombinerTest {
     Combiner.setColumns(cfg, Collections.singletonList(new Column(StatusSection.NAME)));
     combiner.init(new DevNull(), cfg.getOptions(), new IteratorEnvironment() {
 
+      @Override
       public AccumuloConfiguration getConfig() {
         return null;
       }
 
+      @Override
       public IteratorScope getIteratorScope() {
         return null;
       }
 
+      @Override
       public boolean isFullMajorCompaction() {
         return false;
       }
 
+      @Override
       public void registerSideChannel(SortedKeyValueIterator<Key,Value> arg0) {
 
       }
 
+      @Override
       public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String arg0) throws IOException {
         return null;
       }
@@ -251,5 +258,21 @@ public class StatusCombinerTest {
     Status combined2 = combiner.typedReduce(key, Arrays.asList(combined, stat3).iterator());
 
     Assert.assertEquals(combined, combined2);
+  }
+
+  @Test
+  public void testCombination() {
+    List<Status> status = new ArrayList<>();
+    long time = System.currentTimeMillis();
+
+    status.add(StatusUtil.fileCreated(time));
+    status.add(StatusUtil.openWithUnknownLength());
+    status.add(StatusUtil.fileClosed());
+
+    Status combined = combiner.typedReduce(new Key("row"), status.iterator());
+
+    Assert.assertEquals(time, combined.getCreatedTime());
+    Assert.assertTrue(combined.getInfiniteEnd());
+    Assert.assertTrue(combined.getClosed());
   }
 }

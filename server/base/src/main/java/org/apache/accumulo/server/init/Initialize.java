@@ -20,6 +20,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
@@ -31,6 +32,8 @@ import jline.console.ConsoleReader;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -41,6 +44,8 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
+import org.apache.accumulo.core.iterators.Combiner;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
@@ -65,10 +70,12 @@ import org.apache.accumulo.server.constraints.MetadataConstraints;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.iterators.MetadataBulkLoadFilter;
+import org.apache.accumulo.server.replication.StatusCombiner;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tablets.TabletTime;
+import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.conf.Configuration;
@@ -84,7 +91,7 @@ import com.beust.jcommander.Parameter;
 
 /**
  * This class is used to setup the directory structure and the root tablet to get an instance started
- * 
+ *
  */
 public class Initialize {
   private static final Logger log = Logger.getLogger(Initialize.class);
@@ -102,7 +109,7 @@ public class Initialize {
 
   /**
    * Sets this class's ZooKeeper reader/writer.
-   * 
+   *
    * @param izoo
    *          reader/writer
    */
@@ -112,7 +119,7 @@ public class Initialize {
 
   /**
    * Gets this class's ZooKeeper reader/writer.
-   * 
+   *
    * @return reader/writer
    */
   static IZooReaderWriter getZooReaderWriter() {
@@ -566,6 +573,23 @@ public class Initialize {
   protected static void initMetadataConfig() throws IOException {
     initMetadataConfig(RootTable.ID);
     initMetadataConfig(MetadataTable.ID);
+
+    // ACCUMULO-3077 Set the combiner on accumulo.metadata during init to reduce the likelihood of a race
+    // condition where a tserver compacts away Status updates because it didn't see the Combiner configured
+    IteratorSetting setting = new IteratorSetting(9, ReplicationTableUtil.COMBINER_NAME, StatusCombiner.class);
+    Combiner.setColumns(setting, Collections.singletonList(new Column(MetadataSchema.ReplicationSection.COLF)));
+    try {
+      for (IteratorScope scope : IteratorScope.values()) {
+        String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), setting.getName());
+        for (Entry<String,String> prop : setting.getOptions().entrySet()) {
+          TablePropUtil.setTableProperty(MetadataTable.ID, root + ".opt." + prop.getKey(), prop.getValue());
+        }
+        TablePropUtil.setTableProperty(MetadataTable.ID, root, setting.getPriority() + "," + setting.getIteratorClass());
+      }
+    } catch (Exception e) {
+      log.fatal("Error talking to ZooKeeper", e);
+      throw new IOException(e);
+    }
   }
 
   private static void setMetadataReplication(int replication, String reason) throws IOException {
