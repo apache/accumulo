@@ -106,6 +106,8 @@ public class ConfigSanityCheck {
    * The exception thrown when {@link ConfigSanityCheck#validate(Iterable)} fails.
    */
   public static class SanityCheckException extends RuntimeException {
+    private static final long serialVersionUID = 1L;
+
     /**
      * Creates a new exception with the given message.
      */
