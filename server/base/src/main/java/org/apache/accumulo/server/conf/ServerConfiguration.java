@@ -25,9 +25,9 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.KeyExtent;
 
 /**
- * @deprecated Use {@link ServerConfigurationFactory} instead.
+ * Prefer {@link ServerConfigurationFactory} over this class, due to this class being deprecated in future versions with the addition of ACCUMULO-2615. It is
+ * left un-deprecated here, due to the fact that doing so would generate too much churn and noise. See ACCUMULO-3019.
  */
-@Deprecated
 public class ServerConfiguration {
 
   private static SecurityPermission CONFIGURATION_PERMISSION = new SecurityPermission("configurationPermission");
@@ -72,6 +72,7 @@ public class ServerConfiguration {
   static void expireAllTableObservers() {
     ServerConfigurationFactory.expireAllTableObservers();
   }
+
   private final ServerConfigurationFactory scf;
 
   public ServerConfiguration(Instance instance) {
