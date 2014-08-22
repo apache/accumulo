@@ -119,8 +119,7 @@ public class SimpleGarbageCollector implements Iface {
   }
 
   /**
-   * A fraction representing how much of the JVM's available memory should be
-   * used for gathering candidates.
+   * A fraction representing how much of the JVM's available memory should be used for gathering candidates.
    */
   static final float CANDIDATE_MEMORY_PERCENTAGE = 0.75f;
 
@@ -155,7 +154,8 @@ public class SimpleGarbageCollector implements Iface {
   /**
    * Creates a new garbage collector.
    *
-   * @param opts options
+   * @param opts
+   *          options
    */
   public SimpleGarbageCollector(Opts opts) {
     this.opts = opts;
@@ -169,6 +169,7 @@ public class SimpleGarbageCollector implements Iface {
   Credentials getCredentials() {
     return credentials;
   }
+
   /**
    * Gets the delay before the first collection.
    *
@@ -177,6 +178,7 @@ public class SimpleGarbageCollector implements Iface {
   long getStartDelay() {
     return config.getTimeInMillis(Property.GC_CYCLE_START);
   }
+
   /**
    * Gets the volume manager used by this GC.
    *
@@ -185,21 +187,23 @@ public class SimpleGarbageCollector implements Iface {
   VolumeManager getVolumeManager() {
     return fs;
   }
+
   /**
-   * Checks if the volume manager should move files to the trash rather than
-   * delete them.
+   * Checks if the volume manager should move files to the trash rather than delete them.
    *
    * @return true if trash is used
    */
   boolean isUsingTrash() {
     return !config.getBoolean(Property.GC_TRASH_IGNORE);
   }
+
   /**
    * Gets the options for this garbage collector.
    */
   Opts getOpts() {
     return opts;
   }
+
   /**
    * Gets the number of threads used for deleting files.
    *
@@ -208,6 +212,7 @@ public class SimpleGarbageCollector implements Iface {
   int getNumDeleteThreads() {
     return config.getCount(Property.GC_DELETE_THREADS);
   }
+
   /**
    * Gets the instance used by this GC.
    *
@@ -220,11 +225,14 @@ public class SimpleGarbageCollector implements Iface {
   /**
    * Initializes this garbage collector.
    *
-   * @param fs volume manager
-   * @param instance instance
-   * @param credentials credentials
-   * @param noTrash true to not move files to trash instead of deleting
-   * @param systemConfig system configuration
+   * @param fs
+   *          volume manager
+   * @param instance
+   *          instance
+   * @param credentials
+   *          credentials
+   * @param config
+   *          system configuration
    */
   public void init(VolumeManager fs, Instance instance, Credentials credentials, AccumuloConfiguration config) {
     this.fs = fs;
@@ -579,13 +587,13 @@ public class SimpleGarbageCollector implements Iface {
   }
 
   /**
-   * Moves a file to trash. If this garbage collector is not using trash, this
-   * method returns false and leaves the file alone. If the file is missing,
-   * this method returns false as opposed to throwing an exception.
+   * Moves a file to trash. If this garbage collector is not using trash, this method returns false and leaves the file alone. If the file is missing, this
+   * method returns false as opposed to throwing an exception.
    *
    * @param path
    * @return true if the file was moved to trash
-   * @throws IOException if the volume manager encountered a problem
+   * @throws IOException
+   *           if the volume manager encountered a problem
    */
   boolean moveToTrash(Path path) throws IOException {
     if (!isUsingTrash())
@@ -646,7 +654,8 @@ public class SimpleGarbageCollector implements Iface {
   /**
    * Checks if the system is almost out of memory.
    *
-   * @param runtime Java runtime
+   * @param runtime
+   *          Java runtime
    * @return true if system is almost out of memory
    * @see #CANDIDATE_MEMORY_PERCENTAGE
    */
@@ -665,11 +674,14 @@ public class SimpleGarbageCollector implements Iface {
   /**
    * Checks if the given string is a directory.
    *
-   * @param delete possible directory
+   * @param delete
+   *          possible directory
    * @return true if string is a directory
    */
   static boolean isDir(String delete) {
-    if (delete == null) { return false; }
+    if (delete == null) {
+      return false;
+    }
     int slashCount = 0;
     for (int i = 0; i < delete.length(); i++)
       if (delete.charAt(i) == '/')

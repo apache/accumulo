@@ -368,7 +368,6 @@ public class CredentialProviderFactoryShim {
    *          CredentialEntry name (alias)
    * @param credential
    *          The credential
-   * @throws IOException
    */
   public static void createEntry(Configuration conf, String name, char[] credential) throws IOException {
     Preconditions.checkNotNull(conf);
@@ -403,7 +402,6 @@ public class CredentialProviderFactoryShim {
    *          CredentialEntry name (alias)
    * @param credential
    *          The credential to store
-   * @throws IOException
    */
   public static void createEntryInProvider(Object credentialProvider, String name, char[] credential) throws IOException {
     Preconditions.checkNotNull(credentialProvider);
