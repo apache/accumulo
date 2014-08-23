@@ -21,12 +21,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
-
 public class DefaultConfiguration extends AccumuloConfiguration {
   private final static Map<String,String> resolvedProps;
   static {
-    Map<String, String> m = new HashMap<String,String>();
+    Map<String,String> m = new HashMap<String,String>();
     for (Property prop : Property.values()) {
       if (!prop.getType().equals(PropertyType.PREFIX)) {
         m.put(prop.getKey(), prop.getDefaultValue());

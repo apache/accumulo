@@ -28,12 +28,10 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 
-import com.google.common.base.Preconditions;
-
 /**
  * A utility class that will create Zookeeper and Accumulo processes that write all of their data to a single local directory. This class makes it easy to test
  * code against a real Accumulo instance. Its much more accurate for testing than {@link org.apache.accumulo.core.client.mock.MockAccumulo}, but much slower.
- * 
+ *
  * @since 1.5.0
  */
 public class MiniAccumuloCluster {
@@ -45,7 +43,7 @@ public class MiniAccumuloCluster {
   }
 
   /**
-   * 
+   *
    * @param dir
    *          An empty or nonexistant temp directoy that Accumulo and Zookeeper can store data in. Creating the directory is left to the user. Java 7, Guava,
    *          and Junit provide methods for creating temporary directories.
@@ -66,7 +64,7 @@ public class MiniAccumuloCluster {
 
   /**
    * Starts Accumulo and Zookeeper processes. Can only be called once.
-   * 
+   *
    * @throws IllegalStateException
    *           if already started
    */
@@ -113,7 +111,7 @@ public class MiniAccumuloCluster {
 
   /**
    * Utility method to get a connector to the MAC.
-   * 
+   *
    * @since 1.6.0
    */
   public Connector getConnector(String user, String passwd) throws AccumuloException, AccumuloSecurityException {

@@ -19,7 +19,6 @@ package org.apache.accumulo.server.conf;
 import java.security.SecurityPermission;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -43,23 +42,25 @@ public class ServerConfigurationFactory {
     namespaceConfigs = new HashMap<String,Map<String,NamespaceConfiguration>>(1);
     tableParentConfigs = new HashMap<String,Map<String,NamespaceConfiguration>>(1);
   }
+
   private static void addInstanceToCaches(String iid) {
-    synchronized(tableConfigs) {
+    synchronized (tableConfigs) {
       if (!tableConfigs.containsKey(iid)) {
         tableConfigs.put(iid, new HashMap<String,TableConfiguration>());
       }
     }
-    synchronized(namespaceConfigs) {
+    synchronized (namespaceConfigs) {
       if (!namespaceConfigs.containsKey(iid)) {
         namespaceConfigs.put(iid, new HashMap<String,NamespaceConfiguration>());
       }
     }
-    synchronized(tableParentConfigs) {
+    synchronized (tableParentConfigs) {
       if (!tableParentConfigs.containsKey(iid)) {
         tableParentConfigs.put(iid, new HashMap<String,NamespaceConfiguration>());
       }
     }
   }
+
   private static final SecurityPermission CONFIGURATION_PERMISSION = new SecurityPermission("configurationPermission");
   private static final SecurityManager SM = System.getSecurityManager();
 
@@ -74,11 +75,13 @@ public class ServerConfigurationFactory {
       return tableConfigs.get(instanceId).remove(tableId) != null;
     }
   }
+
   static boolean removeCachedNamespaceConfiguration(String instanceId, String namespaceId) {
     synchronized (namespaceConfigs) {
       return namespaceConfigs.get(instanceId).remove(namespaceId) != null;
     }
   }
+
   static void clearCachedConfigurations() {
     synchronized (tableConfigs) {
       tableConfigs.clear();
@@ -90,6 +93,7 @@ public class ServerConfigurationFactory {
       tableParentConfigs.clear();
     }
   }
+
   static void expireAllTableObservers() {
     synchronized (tableConfigs) {
       for (Map<String,TableConfiguration> instanceMap : tableConfigs.values()) {
@@ -109,6 +113,7 @@ public class ServerConfigurationFactory {
     instanceID = instance.getInstanceID();
     addInstanceToCaches(instanceID);
   }
+
   void setZooCacheFactory(ZooCacheFactory zcf) {
     this.zcf = zcf;
   }
@@ -140,7 +145,6 @@ public class ServerConfigurationFactory {
     }
     return systemConfig;
   }
-
 
   public TableConfiguration getTableConfiguration(String tableId) {
     checkPermissions();

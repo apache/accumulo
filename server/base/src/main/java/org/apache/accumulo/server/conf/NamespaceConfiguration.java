@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.conf;
 
-import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.Constants;
@@ -90,7 +89,7 @@ public class NamespaceConfiguration extends ObservableConfiguration {
   public String get(Property property) {
     String key = property.getKey();
     AccumuloConfiguration getParent;
-    if (!(namespaceId.equals(Namespaces.ACCUMULO_NAMESPACE_ID) && isIteratorOrConstraint(property.getKey()))) {
+    if (!(namespaceId.equals(Namespaces.ACCUMULO_NAMESPACE_ID) && isIteratorOrConstraint(key))) {
       getParent = parent;
     } else {
       // ignore iterators from parent if system namespace
@@ -157,8 +156,7 @@ public class NamespaceConfiguration extends ObservableConfiguration {
   }
 
   /**
-   * Invalidates the <code>ZooCache</code> used for storage and quick retrieval
-   * of properties for this namespace configuration.
+   * Invalidates the <code>ZooCache</code> used for storage and quick retrieval of properties for this namespace configuration.
    */
   @Override
   public synchronized void invalidateCache() {

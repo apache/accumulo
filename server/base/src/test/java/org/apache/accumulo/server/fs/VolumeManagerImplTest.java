@@ -19,7 +19,6 @@ package org.apache.accumulo.server.fs;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
@@ -29,7 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class VolumeManagerImplTest {
 
@@ -65,7 +64,7 @@ public class VolumeManagerImplTest {
     String basePath = fs.getDefaultVolume().getBasePath();
     String scheme = fs.getDefaultVolume().getFileSystem().getUri().toURL().getProtocol();
     System.out.println(basePath);
-    Path expectedBase = new Path(scheme + ":" + basePath, FileType.TABLE.getDirectory()); 
+    Path expectedBase = new Path(scheme + ":" + basePath, FileType.TABLE.getDirectory());
     List<String> pathsToTest = Arrays.asList("1/default_tablet", "1/default_tablet/", "1/t-0000001");
     for (String pathToTest : pathsToTest) {
       Path fullPath = fs.getFullPath(FileType.TABLE, pathToTest);
@@ -78,7 +77,7 @@ public class VolumeManagerImplTest {
     String basePath = fs.getDefaultVolume().getBasePath();
     String scheme = fs.getDefaultVolume().getFileSystem().getUri().toURL().getProtocol();
     System.out.println(basePath);
-    Path expectedBase = new Path(scheme + ":" + basePath, FileType.TABLE.getDirectory()); 
+    Path expectedBase = new Path(scheme + ":" + basePath, FileType.TABLE.getDirectory());
     List<String> pathsToTest = Arrays.asList("1/default_tablet/C0000001.rf", "1/t-0000001/C0000001.rf");
     for (String pathToTest : pathsToTest) {
       Path fullPath = fs.getFullPath(FileType.TABLE, pathToTest);

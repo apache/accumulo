@@ -18,7 +18,6 @@ package org.apache.accumulo.server.util;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -983,7 +982,6 @@ public class MetadataTableUtil {
     }
 
   }
-
 
   public static void moveMetaDeleteMarkersFrom14(Instance instance, Credentials creds) {
     // new KeyExtent is only added to force update to write to the metadata table, not the root table

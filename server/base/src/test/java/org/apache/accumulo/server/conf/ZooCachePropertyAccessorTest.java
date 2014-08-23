@@ -16,26 +16,24 @@
  */
 package org.apache.accumulo.server.conf;
 
-import java.nio.charset.Charset;
-import java.util.List;
-import java.util.Map;
-import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.AccumuloConfiguration.PropertyFilter;
-import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.PropertyType;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
-
-import org.junit.Before;
-import org.junit.Test;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import org.easymock.Capture;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+
+import java.util.List;
+import java.util.Map;
+
+import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.AccumuloConfiguration.PropertyFilter;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.junit.Before;
+import org.junit.Test;
 
 public class ZooCachePropertyAccessorTest {
   private static final String PATH = "/root/path/to/props";
@@ -61,7 +59,7 @@ public class ZooCachePropertyAccessorTest {
 
   @Test
   public void testGet_Valid() {
-    expect(zc.get(PATH + "/" + KEY)).andReturn(VALUE_BYTES);
+    expect(zc.get(FULL_PATH)).andReturn(VALUE_BYTES);
     replay(zc);
     assertEquals(VALUE, a.get(PROP, PATH, null));
   }
@@ -71,7 +69,7 @@ public class ZooCachePropertyAccessorTest {
     AccumuloConfiguration parent = createMock(AccumuloConfiguration.class);
     expect(parent.get(PROP)).andReturn(VALUE);
     replay(parent);
-    expect(zc.get(PATH + "/" + KEY)).andReturn(null);
+    expect(zc.get(FULL_PATH)).andReturn(null);
     replay(zc);
     assertEquals(VALUE, a.get(PROP, PATH, parent));
   }
@@ -81,14 +79,14 @@ public class ZooCachePropertyAccessorTest {
     AccumuloConfiguration parent = createMock(AccumuloConfiguration.class);
     expect(parent.get(PROP)).andReturn(null);
     replay(parent);
-    expect(zc.get(PATH + "/" + KEY)).andReturn(null);
+    expect(zc.get(FULL_PATH)).andReturn(null);
     replay(zc);
     assertNull(a.get(PROP, PATH, parent));
   }
 
   @Test
   public void testGet_Null_NoParent() {
-    expect(zc.get(PATH + "/" + KEY)).andReturn(null);
+    expect(zc.get(FULL_PATH)).andReturn(null);
     replay(zc);
     assertNull(a.get(PROP, PATH, null));
   }

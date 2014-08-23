@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.conf;
 
-import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.Constants;
@@ -131,8 +130,7 @@ public class TableConfiguration extends ObservableConfiguration {
   }
 
   /**
-   * Invalidates the <code>ZooCache</code> used for storage and quick retrieval
-   * of properties for this table configuration.
+   * Invalidates the <code>ZooCache</code> used for storage and quick retrieval of properties for this table configuration.
    */
   @Override
   public synchronized void invalidateCache() {
