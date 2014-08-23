@@ -39,6 +39,7 @@ public class ZooCachePropertyAccessorTest {
   private static final String PATH = "/root/path/to/props";
   private static final Property PROP = Property.INSTANCE_SECRET;
   private static final String KEY = PROP.getKey();
+  private static final String FULL_PATH = PATH + "/" + KEY;
   private static final String VALUE = "value";
   private static final byte[] VALUE_BYTES = VALUE.getBytes(StandardCharsets.UTF_8);
 
@@ -58,7 +59,7 @@ public class ZooCachePropertyAccessorTest {
 
   @Test
   public void testGet_Valid() {
-    expect(zc.get(PATH + "/" + KEY)).andReturn(VALUE_BYTES);
+    expect(zc.get(FULL_PATH)).andReturn(VALUE_BYTES);
     replay(zc);
     assertEquals(VALUE, a.get(PROP, PATH, null));
   }
@@ -68,7 +69,7 @@ public class ZooCachePropertyAccessorTest {
     AccumuloConfiguration parent = createMock(AccumuloConfiguration.class);
     expect(parent.get(PROP)).andReturn(VALUE);
     replay(parent);
-    expect(zc.get(PATH + "/" + KEY)).andReturn(null);
+    expect(zc.get(FULL_PATH)).andReturn(null);
     replay(zc);
     assertEquals(VALUE, a.get(PROP, PATH, parent));
   }
@@ -78,14 +79,14 @@ public class ZooCachePropertyAccessorTest {
     AccumuloConfiguration parent = createMock(AccumuloConfiguration.class);
     expect(parent.get(PROP)).andReturn(null);
     replay(parent);
-    expect(zc.get(PATH + "/" + KEY)).andReturn(null);
+    expect(zc.get(FULL_PATH)).andReturn(null);
     replay(zc);
     assertNull(a.get(PROP, PATH, parent));
   }
 
   @Test
   public void testGet_Null_NoParent() {
-    expect(zc.get(PATH + "/" + KEY)).andReturn(null);
+    expect(zc.get(FULL_PATH)).andReturn(null);
     replay(zc);
     assertNull(a.get(PROP, PATH, null));
   }

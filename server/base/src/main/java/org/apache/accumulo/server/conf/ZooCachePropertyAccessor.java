@@ -35,10 +35,12 @@ public class ZooCachePropertyAccessor {
   static class PropCacheKey {
     final String instanceId;
     final String scope;
+
     PropCacheKey(String iid, String s) {
       instanceId = iid;
       scope = s;
     }
+
     @Override
     public boolean equals(Object other) {
       if (this == other) {
@@ -50,6 +52,7 @@ public class ZooCachePropertyAccessor {
       PropCacheKey o = (PropCacheKey) other;
       return (instanceId.equals(o.instanceId) && scope.equals(o.scope));
     }
+
     @Override
     public int hashCode() {
       int c = 17;
@@ -64,11 +67,13 @@ public class ZooCachePropertyAccessor {
   /**
    * Creates a new accessor.
    *
-   * @param propCache property cache
+   * @param propCache
+   *          property cache
    */
   ZooCachePropertyAccessor(ZooCache propCache) {
     this.propCache = propCache;
   }
+
   /**
    * Gets the property cache accessed by this object.
    *
@@ -79,13 +84,15 @@ public class ZooCachePropertyAccessor {
   }
 
   /**
-   * Gets a property. If the property is not in ZooKeeper or is present but an
-   * invalid format for the property type, the parent configuration is consulted
-   * (if provided).
+   * Gets a property. If the property is not in ZooKeeper or is present but an invalid format for the property type, the parent configuration is consulted (if
+   * provided).
    *
-   * @param property property to get
-   * @param path ZooKeeper path where properties lie
-   * @param parent parent configuration (optional)
+   * @param property
+   *          property to get
+   * @param path
+   *          ZooKeeper path where properties lie
+   * @param parent
+   *          parent configuration (optional)
    * @return property value, or null if not found
    */
   String get(Property property, String path, AccumuloConfiguration parent) {
@@ -113,16 +120,19 @@ public class ZooCachePropertyAccessor {
   }
 
   /**
-   * Gets all properties into the given map. Properties are filtered using the
-   * given filter. Properties from a parent configuration are also added to the
-   * map and filtered, either using a separate filter or, if not specified, the
-   * other filter.
+   * Gets all properties into the given map. Properties are filtered using the given filter. Properties from a parent configuration are also added to the map
+   * and filtered, either using a separate filter or, if not specified, the other filter.
    *
-   * @param props map to populate with properties
-   * @param path ZooKeeper path where properties lie
-   * @param filter property filter (required)
-   * @param parent parent configuration (required)
-   * @param parentFilter separate filter for parent properties (optional)
+   * @param props
+   *          map to populate with properties
+   * @param path
+   *          ZooKeeper path where properties lie
+   * @param filter
+   *          property filter (required)
+   * @param parent
+   *          parent configuration (required)
+   * @param parentFilter
+   *          separate filter for parent properties (optional)
    */
   void getProperties(Map<String,String> props, String path, PropertyFilter filter, AccumuloConfiguration parent, PropertyFilter parentFilter) {
     parent.getProperties(props, parentFilter != null ? parentFilter : filter);

@@ -35,7 +35,7 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class MasterAssignmentIT extends SimpleMacIT {
-  
+
   @Override
   protected int defaultTimeoutSeconds() {
     return 2 * 60;
@@ -55,7 +55,7 @@ public class MasterAssignmentIT extends SimpleMacIT {
     } while (newTablet.current == null);
     assertNull(newTablet.last);
     assertNull(newTablet.future);
-    
+
     // put something in it
     BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m = new Mutation("a");
@@ -64,19 +64,19 @@ public class MasterAssignmentIT extends SimpleMacIT {
     bw.close();
     // give it a last location
     c.tableOperations().flush(tableName, null, null, true);
-    
+
     TabletLocationState flushed = getTabletLocationState(c, tableId);
     assertEquals(newTablet.current, flushed.current);
     assertEquals(flushed.current, flushed.last);
     assertNull(newTablet.future);
-    
+
     // take the tablet offline
     c.tableOperations().offline(tableName, true);
     TabletLocationState offline = getTabletLocationState(c, tableId);
     assertNull(offline.future);
     assertNull(offline.current);
     assertEquals(flushed.current, offline.last);
-    
+
     // put it back online
     c.tableOperations().online(tableName, true);
     TabletLocationState online = getTabletLocationState(c, tableId);
@@ -88,10 +88,8 @@ public class MasterAssignmentIT extends SimpleMacIT {
   private TabletLocationState getTabletLocationState(Connector c, String tableId) {
     Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
     MetaDataTableScanner s = new MetaDataTableScanner(c.getInstance(), creds, new Range(KeyExtent.getMetadataEntry(new Text(tableId), null)));
-    try {
-      return s.next();
-    } finally {
-      s.close();
-    }
+    TabletLocationState tlState = s.next();
+    s.close();
+    return tlState;
   }
 }

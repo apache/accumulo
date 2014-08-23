@@ -26,7 +26,6 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.ReplicationTarget;
@@ -46,7 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * 
+ *
  */
 public class ReplicationServlet extends BasicServlet {
   private static final Logger log = LoggerFactory.getLogger(ReplicationServlet.class);
@@ -63,7 +62,7 @@ public class ReplicationServlet extends BasicServlet {
   protected String getTitle(HttpServletRequest req) {
     return "Replication Overview";
   }
-  
+
   @Override
   protected void pageBody(HttpServletRequest req, HttpServletResponse response, StringBuilder sb) throws Exception {
     final Instance inst = HdfsZooInstance.getInstance();
@@ -116,7 +115,7 @@ public class ReplicationServlet extends BasicServlet {
       Long numFiles = targetCounts.get(configuredTarget);
 
       if (null == numFiles) {
-        replicationStats.addRow(tableName, configuredTarget.getPeerName(), configuredTarget.getRemoteIdentifier(), replicaSystemClass, 0); 
+        replicationStats.addRow(tableName, configuredTarget.getPeerName(), configuredTarget.getRemoteIdentifier(), replicaSystemClass, 0);
       } else {
         replicationStats.addRow(tableName, configuredTarget.getPeerName(), configuredTarget.getRemoteIdentifier(), replicaSystemClass, numFiles);
         filesPendingOverAllTargets += numFiles;
@@ -125,7 +124,8 @@ public class ReplicationServlet extends BasicServlet {
 
     // Up to 2x the number of slots for replication available, WARN
     // More than 2x the number of slots for replication available, ERROR
-    NumberType<Long> filesPendingFormat = new NumberType<Long>(Long.valueOf(0), Long.valueOf(2 * totalWorkQueueSize), Long.valueOf(0), Long.valueOf(4 * totalWorkQueueSize));
+    NumberType<Long> filesPendingFormat = new NumberType<Long>(Long.valueOf(0), Long.valueOf(2 * totalWorkQueueSize), Long.valueOf(0),
+        Long.valueOf(4 * totalWorkQueueSize));
 
     String utilization = filesPendingFormat.format(filesPendingOverAllTargets);
 
@@ -152,12 +152,13 @@ public class ReplicationServlet extends BasicServlet {
         Entry<String,ReplicationTarget> queueKeyPair = DistributedWorkQueueWorkAssignerHelper.fromQueueKey(queueKey);
         String filename = queueKeyPair.getKey();
         ReplicationTarget target = queueKeyPair.getValue();
-  
+
         String path = replicationUtil.getAbsolutePath(conn, workQueuePath, queueKey);
         String progress = replicationUtil.getProgress(conn, path, target);
-        
+
         // Add a row in the table
-        replicationInProgress.addRow(null == path ? ".../" + filename : path, target.getPeerName(), target.getSourceTableId(), target.getRemoteIdentifier(), progress);
+        replicationInProgress.addRow(null == path ? ".../" + filename : path, target.getPeerName(), target.getSourceTableId(), target.getRemoteIdentifier(),
+            progress);
       }
     } catch (KeeperException | InterruptedException e) {
       log.warn("Could not calculate replication in progress", e);

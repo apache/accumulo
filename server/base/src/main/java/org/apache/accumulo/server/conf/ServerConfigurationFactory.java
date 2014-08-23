@@ -42,23 +42,25 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     namespaceConfigs = new HashMap<String,Map<String,NamespaceConfiguration>>(1);
     tableParentConfigs = new HashMap<String,Map<String,NamespaceConfiguration>>(1);
   }
+
   private static void addInstanceToCaches(String iid) {
-    synchronized(tableConfigs) {
+    synchronized (tableConfigs) {
       if (!tableConfigs.containsKey(iid)) {
         tableConfigs.put(iid, new HashMap<String,TableConfiguration>());
       }
     }
-    synchronized(namespaceConfigs) {
+    synchronized (namespaceConfigs) {
       if (!namespaceConfigs.containsKey(iid)) {
         namespaceConfigs.put(iid, new HashMap<String,NamespaceConfiguration>());
       }
     }
-    synchronized(tableParentConfigs) {
+    synchronized (tableParentConfigs) {
       if (!tableParentConfigs.containsKey(iid)) {
         tableParentConfigs.put(iid, new HashMap<String,NamespaceConfiguration>());
       }
     }
   }
+
   private static final SecurityPermission CONFIGURATION_PERMISSION = new SecurityPermission("configurationPermission");
   private static final SecurityManager SM = System.getSecurityManager();
 
@@ -73,11 +75,13 @@ public class ServerConfigurationFactory extends ServerConfiguration {
       return tableConfigs.get(instanceId).remove(tableId) != null;
     }
   }
+
   static boolean removeCachedNamespaceConfiguration(String instanceId, String namespaceId) {
     synchronized (namespaceConfigs) {
       return namespaceConfigs.get(instanceId).remove(namespaceId) != null;
     }
   }
+
   static void clearCachedConfigurations() {
     synchronized (tableConfigs) {
       tableConfigs.clear();
@@ -89,6 +93,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
       tableParentConfigs.clear();
     }
   }
+
   static void expireAllTableObservers() {
     synchronized (tableConfigs) {
       for (Map<String,TableConfiguration> instanceMap : tableConfigs.values()) {
@@ -108,6 +113,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     instanceID = instance.getInstanceID();
     addInstanceToCaches(instanceID);
   }
+
   void setZooCacheFactory(ZooCacheFactory zcf) {
     this.zcf = zcf;
   }
@@ -139,7 +145,6 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     }
     return systemConfig;
   }
-
 
   public TableConfiguration getTableConfiguration(String tableId) {
     checkPermissions();

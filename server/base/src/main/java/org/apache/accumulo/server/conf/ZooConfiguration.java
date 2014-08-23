@@ -31,18 +31,18 @@ import org.apache.log4j.Logger;
 
 public class ZooConfiguration extends AccumuloConfiguration {
   private static final Logger log = Logger.getLogger(ZooConfiguration.class);
-  
+
   private final String instanceId;
   private final ZooCache propCache;
   private final AccumuloConfiguration parent;
   private final Map<String,String> fixedProps = Collections.synchronizedMap(new HashMap<String,String>());
-  
+
   protected ZooConfiguration(String instanceId, ZooCache propCache, AccumuloConfiguration parent) {
     this.instanceId = instanceId;
     this.propCache = propCache;
     this.parent = parent;
   }
-  
+
   @Override
   public void invalidateCache() {
     if (propCache != null)
@@ -61,11 +61,11 @@ public class ZooConfiguration extends AccumuloConfiguration {
   private String _get(Property property) {
     String key = property.getKey();
     String value = null;
-    
+
     if (Property.isValidZooPropertyKey(key)) {
       value = get(key);
     }
-    
+
     if (value == null || !property.getType().isValidFormat(value)) {
       if (value != null)
         log.error("Using parent value for " + key + " due to improperly formatted " + property.getType() + ": " + value);
@@ -73,7 +73,7 @@ public class ZooConfiguration extends AccumuloConfiguration {
     }
     return value;
   }
-  
+
   @Override
   public String get(Property property) {
     if (Property.isFixedZooPropertyKey(property)) {
@@ -85,13 +85,13 @@ public class ZooConfiguration extends AccumuloConfiguration {
           fixedProps.put(property.getKey(), val);
           return val;
         }
-        
+
       }
     } else {
       return _get(property);
     }
   }
-  
+
   private String get(String key) {
     String zPath = ZooUtil.getRoot(instanceId) + Constants.ZCONFIG + "/" + key;
     byte[] v = propCache.get(zPath);
@@ -100,7 +100,7 @@ public class ZooConfiguration extends AccumuloConfiguration {
       value = new String(v, StandardCharsets.UTF_8);
     return value;
   }
-  
+
   @Override
   public void getProperties(Map<String,String> props, PropertyFilter filter) {
     parent.getProperties(props, filter);

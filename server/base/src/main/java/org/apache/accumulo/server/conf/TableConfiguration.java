@@ -130,8 +130,7 @@ public class TableConfiguration extends ObservableConfiguration {
   }
 
   /**
-   * Invalidates the <code>ZooCache</code> used for storage and quick retrieval
-   * of properties for this table configuration.
+   * Invalidates the <code>ZooCache</code> used for storage and quick retrieval of properties for this table configuration.
    */
   @Override
   public synchronized void invalidateCache() {

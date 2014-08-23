@@ -983,7 +983,6 @@ public class MetadataTableUtil {
 
   }
 
-
   public static void moveMetaDeleteMarkersFrom14(Instance instance, Credentials creds) {
     // new KeyExtent is only added to force update to write to the metadata table, not the root table
     KeyExtent notMetadata = new KeyExtent(new Text("anythingNotMetadata"), null, null);

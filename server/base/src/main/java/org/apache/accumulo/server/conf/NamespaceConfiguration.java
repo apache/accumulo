@@ -156,8 +156,7 @@ public class NamespaceConfiguration extends ObservableConfiguration {
   }
 
   /**
-   * Invalidates the <code>ZooCache</code> used for storage and quick retrieval
-   * of properties for this namespace configuration.
+   * Invalidates the <code>ZooCache</code> used for storage and quick retrieval of properties for this namespace configuration.
    */
   @Override
   public synchronized void invalidateCache() {
