@@ -16,6 +16,17 @@
  */
 package org.apache.accumulo.server.conf;
 
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.endsWith;
+import static org.easymock.EasyMock.eq;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.replay;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -23,14 +34,10 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.*;
-import org.easymock.Capture;
-import static org.easymock.EasyMock.*;
 
 public class ServerConfigurationFactoryTest {
   private static final String ZK_HOST = "localhost";
@@ -70,7 +77,7 @@ public class ServerConfigurationFactoryTest {
 
   @After
   public void tearDown() throws Exception {
-    scf.clearCachedConfigurations();
+    ServerConfigurationFactory.clearCachedConfigurations();
   }
 
   private void mockInstanceForConfig() {
@@ -102,7 +109,6 @@ public class ServerConfigurationFactoryTest {
     ready();
     SiteConfiguration c = scf.getSiteConfiguration();
     assertNotNull(c);
-    // TBD: assertTrue(c.getParent() instanceof DefaultConfiguration);
   }
 
   @Test
@@ -111,11 +117,9 @@ public class ServerConfigurationFactoryTest {
     ready();
     AccumuloConfiguration c = scf.getConfiguration();
     assertNotNull(c);
-    // TBD: assertTrue(c.getParent() instanceof SiteConfiguration);
   }
 
   private static final String NSID = "NAMESPACE";
-  private static final String TABLE = "TABLE";
 
   @Test
   public void testGetNamespaceConfiguration() {
@@ -123,37 +127,8 @@ public class ServerConfigurationFactoryTest {
     ready();
     NamespaceConfiguration c = scf.getNamespaceConfiguration(NSID);
     assertEquals(NSID, c.getNamespaceId());
-    // TBD: assertTrue(c.getParent() instanceof AccumuloConfiguration);
 
     assertSame(c, scf.getNamespaceConfiguration(NSID));
   }
 
-  /*
-   * TBD: need to work around Tables.getNamespaceId() call in constructor
-  @Test
-  public void testGetNamespaceConfigurationForTable() {
-    mockInstanceForConfig();
-    ready();
-    NamespaceConfiguration c = scf.getNamespaceConfigurationForTable(TABLE);
-    assertTrue(c instanceof TableParentConfiguration);
-    assertEquals(TABLE, ((TableParentConfiguration) c).getTableId());
-    // TBD: assertTrue(c.getParent() instanceof AccumuloConfiguration);
-
-    assertSame(c, scf.getNamespaceConfigurationForTable(TABLE));
-  }
-  */
-
-  /*
-   * TBD: ditto
-  @Test
-  public void testGetTableConfiguration() {
-    mockInstanceForConfig();
-    ready();
-    TableConfiguration c = scf.getTableConfiguration(TABLE);
-    assertEquals(TABLE, c.getTableId());
-    // TBD: assertTrue(c.getParent() instanceof TableParentConfiguration);
-
-    assertSame(c, scf.getTableConfiguration(TABLE));
-  }
-  */
 }
