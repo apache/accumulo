@@ -265,6 +265,50 @@ public class InMemoryMapTest {
     ski1.close();
   }
 
+  private void deepCopyAndDelete(int interleaving) throws Exception {
+    // interleaving == 0 intentionally omitted, this runs the test w/o deleting in mem map
+
+    InMemoryMap imm = new InMemoryMap(false, tempFolder.newFolder().getAbsolutePath());
+    
+    mutate(imm, "r1", "foo:cq1", 3, "bar1");
+    mutate(imm, "r1", "foo:cq2", 3, "bar2");
+    
+    MemoryIterator ski1 = imm.skvIterator();
+    
+    if (interleaving == 1)
+      imm.delete(0);
+    
+    SortedKeyValueIterator<Key,Value> dc = ski1.deepCopy(null);
+
+    if (interleaving == 2)
+      imm.delete(0);
+
+    dc.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski1.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+
+    if (interleaving == 3)
+      imm.delete(0);
+
+    ae(dc, "r1", "foo:cq1", 3, "bar1");
+    ae(ski1, "r1", "foo:cq1", 3, "bar1");
+    dc.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+
+    if (interleaving == 4)
+      imm.delete(0);
+
+    ae(ski1, "r1", "foo:cq2", 3, "bar2");
+    ae(dc, "r1", "foo:cq1", 3, "bar1");
+    ae(dc, "r1", "foo:cq2", 3, "bar2");
+    assertFalse(dc.hasTop());
+    assertFalse(ski1.hasTop());
+  }
+
+  @Test
+  public void testDeepCopyAndDelete() throws Exception {
+    for (int i = 0; i <= 4; i++)
+      deepCopyAndDelete(i);
+  }
+   
   @Test
   public void testBug1() throws Exception {
     InMemoryMap imm = new InMemoryMap(false, tempFolder.newFolder().getAbsolutePath());
