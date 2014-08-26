@@ -284,7 +284,7 @@ public class TabletServer implements Runnable {
   private volatile boolean serverStopRequested = false;
   private volatile boolean majorCompactorDisabled = false;
   private volatile boolean shutdownComplete = false;
-  
+
   private ZooLock tabletServerLock;
 
   private TServer server;
