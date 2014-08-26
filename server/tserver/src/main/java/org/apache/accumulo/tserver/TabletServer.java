@@ -244,11 +244,13 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
   private static HashMap<String,Long> prevGcTime = new HashMap<String,Long>();
   private static long lastMemorySize = 0;
+  private static long lastMemoryCheckTime = 0;
   private static long gcTimeIncreasedCount;
 
   private static final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = 1000;
   private static final long RECENTLY_SPLIT_MILLIES = 60 * 1000;
-
+  private static final long TIME_BETWEEN_GC_CHECKS = 5000;
+  
   private TabletServerLogger logger;
 
   protected TabletServerMinCMetrics mincMetrics = new TabletServerMinCMetrics();
@@ -275,10 +277,12 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
             }
         }
       }
-    }, 5000, 5000);
+    }, TIME_BETWEEN_GC_CHECKS, TIME_BETWEEN_GC_CHECKS);
   }
 
   private synchronized static void logGCInfo(AccumuloConfiguration conf) {
+    long now = System.currentTimeMillis();
+
     List<GarbageCollectorMXBean> gcmBeans = ManagementFactory.getGarbageCollectorMXBeans();
     Runtime rt = Runtime.getRuntime();
 
@@ -332,13 +336,23 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     if (sawChange) {
       log.debug(sb.toString());
     }
-
+    
+    if (lastMemoryCheckTime > 0 && lastMemoryCheckTime < now) {
+      long diff = now - lastMemoryCheckTime;
+      if (diff > 2 * TIME_BETWEEN_GC_CHECKS) {
+        log.warn(String.format("Check for long GC pauses not called in a timely fashion %.1f", diff / 1000.));
+      }
+      lastMemoryCheckTime = now;
+      return;
+    }
+    
     final long keepAliveTimeout = conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
     if (maxIncreaseInCollectionTime > keepAliveTimeout) {
       Halt.halt("Garbage collection may be interfering with lock keep-alive.  Halting.", -1);
     }
 
     lastMemorySize = mem;
+    lastMemoryCheckTime = now;
   }
 
   private TabletStatsKeeper statsKeeper;
