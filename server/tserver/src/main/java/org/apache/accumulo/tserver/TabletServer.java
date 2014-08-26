@@ -245,6 +245,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   private static final String METRICS_PREFIX = "tserver";
   private static final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = 1000;
   private static final long RECENTLY_SPLIT_MILLIES = 60 * 1000;
+  private static final long TIME_BETWEEN_GC_CHECKS = 5000;
   private static final Set<Column> EMPTY_COLUMNS = Collections.emptySet();
 
   private final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
@@ -286,7 +287,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   private volatile boolean serverStopRequested = false;
   private volatile boolean majorCompactorDisabled = false;
   private volatile boolean shutdownComplete = false;
-
+  
   private ZooLock tabletServerLock;
 
   private TServer server;
@@ -3281,7 +3282,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       }
     };
 
-    SimpleTimer.getInstance(aconf).schedule(gcDebugTask, 0, 1000);
+    SimpleTimer.getInstance(aconf).schedule(gcDebugTask, 0, TIME_BETWEEN_GC_CHECKS);
 
     Runnable constraintTask = new Runnable() {
 

@@ -32,11 +32,14 @@ public class GarbageCollectionLogger {
   private final HashMap<String,Long> prevGcTime = new HashMap<String,Long>();
   private long lastMemorySize = 0;
   private long gcTimeIncreasedCount = 0;
+  private static long lastMemoryCheckTime = 0;
   
   public GarbageCollectionLogger() {
   }
 
   public synchronized void logGCInfo(AccumuloConfiguration conf) {
+    final long now = System.currentTimeMillis();
+
     List<GarbageCollectorMXBean> gcmBeans = ManagementFactory.getGarbageCollectorMXBeans();
     Runtime rt = Runtime.getRuntime();
 
@@ -92,11 +95,21 @@ public class GarbageCollectionLogger {
     }
 
     final long keepAliveTimeout = conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
+    if (lastMemoryCheckTime > 0 && lastMemoryCheckTime < now) {
+      final long diff = now - lastMemoryCheckTime;
+      if (diff > keepAliveTimeout) {
+        log.warn(String.format("Check for long GC pauses not called in a timely fashion %.1f", diff / 1000.));
+      }
+      lastMemoryCheckTime = now;
+      return;
+    }
+
     if (maxIncreaseInCollectionTime > keepAliveTimeout) {
       Halt.halt("Garbage collection may be interfering with lock keep-alive.  Halting.", -1);
     }
 
     lastMemorySize = mem;
+    lastMemoryCheckTime = now;
   }
 
 
