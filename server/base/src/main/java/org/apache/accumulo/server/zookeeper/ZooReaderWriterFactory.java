@@ -18,19 +18,19 @@ package org.apache.accumulo.server.zookeeper;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.RetryingInvocationHandler;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 
 /**
  * A factory for {@link ZooReaderWriter} objects.
  */
 public class ZooReaderWriterFactory {
-  private static final Charset UTF8 = Charset.forName("UTF-8");
   private static final String SCHEME = "digest";
   private static final String USER = "accumulo";
   private static IZooReaderWriter instance = null;
@@ -48,7 +48,7 @@ public class ZooReaderWriterFactory {
    * @return reader/writer
    */
   public IZooReaderWriter getZooReaderWriter(String string, int timeInMillis, String secret) {
-    return new ZooReaderWriter(string, timeInMillis, SCHEME, (USER + ":" + secret).getBytes(UTF8));
+    return new ZooReaderWriter(string, timeInMillis, SCHEME, (USER + ":" + secret).getBytes(StandardCharsets.UTF_8));
   }
 
   /**
@@ -59,7 +59,7 @@ public class ZooReaderWriterFactory {
   public IZooReaderWriter getInstance() {
     synchronized (ZooReaderWriterFactory.class) {
       if (instance == null) {
-        AccumuloConfiguration conf = ServerConfiguration.getSiteConfiguration();
+        AccumuloConfiguration conf = SiteConfiguration.getInstance();
         instance = getZooReaderWriter(conf.get(Property.INSTANCE_ZK_HOST), (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT),
             conf.get(Property.INSTANCE_SECRET));
       }

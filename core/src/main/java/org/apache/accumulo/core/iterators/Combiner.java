@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.iterators;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -35,6 +34,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.conf.ColumnSet;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
+
+import com.google.common.base.Splitter;
+import com.google.common.collect.Lists;
 
 /**
  * A SortedKeyValueIterator that combines the Values for different versions (timestamp) of a Key within a row into a single Value. Combiner will replace one or
@@ -224,7 +226,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     if (encodedColumns.length() == 0)
       throw new IllegalArgumentException("The " + COLUMNS_OPTION + " must not be empty");
 
-    combiners = new ColumnSet(Arrays.asList(encodedColumns.split(",")));
+    combiners = new ColumnSet(Lists.newArrayList(Splitter.on(",").split(encodedColumns)));
   }
 
   @Override
@@ -268,7 +270,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     if (encodedColumns.length() == 0)
       throw new IllegalArgumentException("empty columns specified in option " + COLUMNS_OPTION);
 
-    for (String columns : encodedColumns.split(",")) {
+    for (String columns : Splitter.on(",").split(encodedColumns)) {
       if (!ColumnSet.isValidEncoding(columns))
         throw new IllegalArgumentException("invalid column encoding " + encodedColumns);
     }

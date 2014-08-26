@@ -25,10 +25,12 @@ import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.accumulo.start.classloader.vfs.providers.HdfsFileObject;
 import org.apache.accumulo.start.classloader.vfs.providers.HdfsFileProvider;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.vfs2.CacheStrategy;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
@@ -38,6 +40,7 @@ import org.apache.commons.vfs2.cache.SoftRefFilesCache;
 import org.apache.commons.vfs2.impl.DefaultFileSystemManager;
 import org.apache.commons.vfs2.impl.FileContentInfoFilenameFactory;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
+import org.apache.commons.vfs2.provider.FileReplicator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.log4j.Logger;
@@ -88,6 +91,8 @@ public class AccumuloVFSClassLoader {
   public static final String VFS_CONTEXT_CLASSPATH_PROPERTY = "general.vfs.context.classpath.";
 
   public static final String VFS_CACHE_DIR = "general.vfs.cache.dir";
+  
+  public static final AtomicInteger uniqueDirectoryGenerator = new AtomicInteger(0);
 
   private static ClassLoader parent = null;
   private static volatile ReloadingClassLoader loader = null;
@@ -240,7 +245,7 @@ public class AccumuloVFSClassLoader {
   }
 
   public static FileSystemManager generateVfs() throws FileSystemException {
-    DefaultFileSystemManager vfs = new FinalCloseDefaultFileSystemManager();
+    DefaultFileSystemManager vfs = new DefaultFileSystemManager();
     vfs.addProvider("res", new org.apache.commons.vfs2.provider.res.ResourceFileProvider());
     vfs.addProvider("zip", new org.apache.commons.vfs2.provider.zip.ZipFileProvider());
     vfs.addProvider("gz", new org.apache.commons.vfs2.provider.gzip.GzipFileProvider());
@@ -275,15 +280,19 @@ public class AccumuloVFSClassLoader {
     vfs.setFileContentInfoFactory(new FileContentInfoFilenameFactory());
     vfs.setFilesCache(new SoftRefFilesCache());
     String cacheDirPath = AccumuloClassLoader.getAccumuloString(VFS_CACHE_DIR, "");
-    String procName = ManagementFactory.getRuntimeMXBean().getName();
-    File cacheDir = new File(System.getProperty("java.io.tmpdir"), "accumulo-vfs-cache-" + procName + "-" + System.getProperty("user.name", "nouser"));
+    File cacheDir = computeTopCacheDir(); 
     if (!cacheDirPath.isEmpty())
-      cacheDir = new File(cacheDirPath);
+      cacheDir = new File(cacheDirPath, "" + uniqueDirectoryGenerator.getAndIncrement());
     vfs.setReplicator(new UniqueFileReplicator(cacheDir));
     vfs.setCacheStrategy(CacheStrategy.ON_RESOLVE);
     vfs.init();
     vfsInstances.add(new WeakReference<DefaultFileSystemManager>(vfs));
     return vfs;
+  }
+
+  private static File computeTopCacheDir() {
+    String procName = ManagementFactory.getRuntimeMXBean().getName();
+    return new File(System.getProperty("java.io.tmpdir"), "accumulo-vfs-cache-" + procName + "-" + System.getProperty("user.name", "nouser"));
   }
 
   public interface Printer {
@@ -384,8 +393,23 @@ public class AccumuloVFSClassLoader {
   public static void close() {
     for (WeakReference<DefaultFileSystemManager> vfsInstance : vfsInstances) {
       DefaultFileSystemManager ref = vfsInstance.get();
-      if (ref != null)
+      if (ref != null) {
+        FileReplicator replicator;
+        try {
+          replicator = ref.getReplicator();
+          if (replicator instanceof UniqueFileReplicator) {
+            ((UniqueFileReplicator) replicator).close();
+          }
+        } catch (FileSystemException e) {
+          log.error(e, e);
+        }
         ref.close();
+      }
+    }
+    try {
+      FileUtils.deleteDirectory(computeTopCacheDir());
+    } catch (IOException e) {
+      log.error(e, e);
     }
   }
 }

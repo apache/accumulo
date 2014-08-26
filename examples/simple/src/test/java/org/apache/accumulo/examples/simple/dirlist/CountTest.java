@@ -37,8 +37,12 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.examples.simple.dirlist.FileCount.Opts;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
 
 public class CountTest extends TestCase {
+  
+  private static Logger log = Logger.getLogger(CountTest.class);
+  
   {
     try {
       Connector conn = new MockInstance("counttest").getConnector("root", new PasswordToken(""));
@@ -57,7 +61,7 @@ public class CountTest extends TestCase {
       bw.addMutation(Ingest.buildMutation(cv, "/local/user1/file2", false, false, false, 1028, 23456, null));
       bw.close();
     } catch (Exception e) {
-      e.printStackTrace();
+      log.error("Could not add mutations in initializer.", e);
     }
   }
   

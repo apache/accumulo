@@ -41,31 +41,31 @@ public class SslWithClientAuthIT extends SslIT {
   }
 
   @Override
-  @Test(timeout = 60000)
+  @Test(timeout = 4 * 60 * 1000)
   public void binary() throws AccumuloException, AccumuloSecurityException, Exception {
     super.binary();
   }
 
   @Override
-  @Test(timeout = 120000)
+  @Test(timeout = 4 * 60 * 1000)
   public void concurrency() throws Exception {
     super.concurrency();
   }
 
   @Override
-  @Test(timeout = 120000)
+  @Test(timeout = 4 * 60 * 1000)
   public void adminStop() throws Exception {
     super.adminStop();
   }
 
   @Override
-  @Test(timeout = 4 * 60 * 1000)
+  @Test(timeout = 6 * 60 * 1000)
   public void bulk() throws Exception {
     super.bulk();
   }
 
   @Override
-  @Test(timeout = 60000)
+  @Test(timeout = 2 * 60 * 1000)
   public void mapReduce() throws Exception {
     super.mapReduce();
   }

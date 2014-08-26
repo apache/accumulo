@@ -29,6 +29,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.file.rfile.RFile;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.interpret.DefaultScanInterpreter;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
@@ -97,6 +98,8 @@ public enum Property {
   RPC_SSL_TRUSTSTORE_TYPE("rpc.javax.net.ssl.trustStoreType", "jks", PropertyType.STRING, "Type of SSL truststore"),
   RPC_USE_JSSE("rpc.useJsse", "false", PropertyType.BOOLEAN, "Use JSSE system properties to configure SSL rather than the " + RPC_PREFIX.getKey()
       + "javax.net.ssl.* Accumulo properties"),
+  RPC_SSL_CIPHER_SUITES("rpc.ssl.cipher.suites", "", PropertyType.STRING, "Comma separated list of cipher suites that can be used by accepted connections"),
+
   // instance properties (must be the same for every node in an instance)
   INSTANCE_PREFIX("instance.", null, PropertyType.PREFIX,
       "Properties in this category must be consistent throughout a cloud. This is enforced and servers won't be able to communicate if these differ."),
@@ -125,9 +128,9 @@ public enum Property {
           + "encoding. For example replace commas with %2C."),
   INSTANCE_VOLUMES_REPLACEMENTS("instance.volumes.replacements", "", PropertyType.STRING,
       "Since accumulo stores absolute URIs changing the location of a namenode could prevent Accumulo from starting. The property helps deal with that "
-          + "situation. Provide a comma seperated list of uri replacement pairs here if a namenode location changes. Each pair shold be separated with a "
-          + "space. For example, if hdfs://nn1 was repalced with hdfs://nnA and hdfs://nn2 was replaced with hdfs://nnB, then set this property to "
-          + "'hdfs://nn1 hdfs://nnA,hdfs://nn2 hdfs://nnB'Replacements must be configured for use. To see which volumes are currently in use, run "
+          + "situation. Provide a comma separated list of uri replacement pairs here if a namenode location changes. Each pair shold be separated with a "
+          + "space. For example, if hdfs://nn1 was replaced with hdfs://nnA and hdfs://nn2 was replaced with hdfs://nnB, then set this property to "
+          + "'hdfs://nn1 hdfs://nnA,hdfs://nn2 hdfs://nnB' Replacements must be configured for use. To see which volumes are currently in use, run "
           + "'accumulo admin volumes -l'. To use a comma or other reserved characters in a URI use standard URI hex encoding. For example replace commas with "
           + "%2C."),
   INSTANCE_SECURITY_AUTHENTICATOR("instance.security.authenticator", "org.apache.accumulo.server.security.handler.ZKAuthenticator", PropertyType.CLASSNAME,
@@ -158,6 +161,7 @@ public enum Property {
   @Experimental
   GENERAL_VOLUME_CHOOSER("general.volume.chooser", "org.apache.accumulo.server.fs.RandomVolumeChooser", PropertyType.CLASSNAME,
       "The class that will be used to select which volume will be used to create new files."),
+  GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS("general.security.credential.provider.paths", "", PropertyType.STRING, "Comma-separated list of paths to CredentialProviders"),
 
   // properties that are specific to master server behavior
   MASTER_PREFIX("master.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the master server"),
@@ -179,6 +183,11 @@ public enum Property {
       "A class that implements a mechansim to steal write access to a file"),
   MASTER_FATE_THREADPOOL_SIZE("master.fate.threadpool.size", "4", PropertyType.COUNT,
       "The number of threads used to run FAult-Tolerant Executions. These are primarily table operations like merge."),
+  MASTER_REPLICATION_SCAN_INTERVAL("master.replication.status.scan.interval", "30s", PropertyType.TIMEDURATION,
+      "Amount of time to sleep before scanning the status section of the replication table for new data"),
+  MASTER_REPLICATION_COORDINATOR_PORT("master.replication.coordinator.port", "10001", PropertyType.PORT, "Port for the replication coordinator service"),
+  MASTER_REPLICATION_COORDINATOR_MINTHREADS("master.replication.coordinator.minthreads", "4", PropertyType.COUNT, "Minimum number of threads dedicated to answering coordinator requests"),
+  MASTER_REPLICATION_COORDINATOR_THREADCHECK("master.replication.coordinator.threadcheck.time", "5s", PropertyType.TIMEDURATION, "The time between adjustments of the coordinator thread pool"),
 
   // properties that are specific to tablet server behavior
   TSERV_PREFIX("tserver.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the tablet servers"),
@@ -271,6 +280,10 @@ public enum Property {
       "resiliency in the face of unexpected power outages, at the cost of speed. If method is not available, the legacy 'sync' method " +
       "will be used to ensure backwards compatibility with older Hadoop versions. A value of 'hflush' is the alternative to the default value " +
       "of 'hsync' which will result in faster writes, but with less durability"),
+  TSERV_REPLICATION_REPLAYERS("tserver.replication.replayer.", null, PropertyType.PREFIX, "Allows configuration of implementation used to apply replicated data"),
+  TSERV_REPLICATION_DEFAULT_HANDLER("tserver.replication.default.replayer", "org.apache.accumulo.tserver.replication.BatchWriterReplicationReplayer",
+      PropertyType.CLASSNAME, "Default AccumuloReplicationReplayer implementation"),
+  TSERV_REPLICATION_BW_REPLAYER_MEMORY("tserver.replication.batchwriter.replayer.memory", "50M", PropertyType.MEMORY, "Memory to provide to batchwriter to replay mutations for replication"),
 
   // properties that are specific to logger server behavior
   LOGGER_PREFIX("logger.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the write-ahead logger servers"),
@@ -297,19 +310,19 @@ public enum Property {
   MONITOR_BANNER_BACKGROUND("monitor.banner.background", "#304065", PropertyType.STRING,
       "The background color of the banner text displayed on the monitor page."),
 
-  @Experimental
   MONITOR_SSL_KEYSTORE("monitor.ssl.keyStore", "", PropertyType.PATH, "The keystore for enabling monitor SSL."),
-  @Experimental
   @Sensitive
   MONITOR_SSL_KEYSTOREPASS("monitor.ssl.keyStorePassword", "", PropertyType.STRING, "The keystore password for enabling monitor SSL."),
-  @Experimental
   MONITOR_SSL_TRUSTSTORE("monitor.ssl.trustStore", "", PropertyType.PATH, "The truststore for enabling monitor SSL."),
-  @Experimental
   @Sensitive
   MONITOR_SSL_TRUSTSTOREPASS("monitor.ssl.trustStorePassword", "", PropertyType.STRING, "The truststore password for enabling monitor SSL."),
+  MONITOR_SSL_INCLUDE_CIPHERS("monitor.ssl.include.ciphers", "", PropertyType.STRING, "A comma-separated list of allows SSL Ciphers, see monitor.ssl.exclude.ciphers to disallow ciphers"),
+  MONITOR_SSL_EXCLUDE_CIPHERS("monitor.ssl.exclude.ciphers", "", PropertyType.STRING, "A comma-separated list of disallowed SSL Ciphers, see mmonitor.ssl.include.ciphers to allow ciphers"),
 
   MONITOR_LOCK_CHECK_INTERVAL("monitor.lock.check.interval", "5s", PropertyType.TIMEDURATION,
       "The amount of time to sleep between checking for the Montior ZooKeeper lock"),
+  MONITOR_LOG_DATE_FORMAT("monitor.log.date.format", "yyyy/MM/dd HH:mm:ss,SSS", PropertyType.STRING, "The SimpleDateFormat string used to configure "
+      + "the date shown on the 'Recent Logs' monitor page"),
 
   TRACE_PREFIX("trace.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of distributed tracing."),
   TRACE_PORT("trace.port.client", "12234", PropertyType.PORT, "The listening port for the trace server"),
@@ -339,6 +352,7 @@ public enum Property {
           + "Compactions of idle tablets are only started when regular compactions are not running. Idle "
           + "compactions only take place for tablets that have one or more files."),
   TABLE_SPLIT_THRESHOLD("table.split.threshold", "1G", PropertyType.MEMORY, "When combined size of files exceeds this amount a tablet is split."),
+  TABLE_MAX_END_ROW_SIZE("table.split.endrow.size.max", "10K", PropertyType.MEMORY, "Maximum size of end row"),
   TABLE_MINC_LOGS_MAX("table.compaction.minor.logs.threshold", "3", PropertyType.COUNT,
       "When there are more than this many write-ahead logs against a tablet, it will be minor compacted. See comment for property tserver.memory.maps.max"),
   TABLE_MINC_COMPACT_IDLETIME("table.compaction.minor.idle", "5m", PropertyType.TIMEDURATION,
@@ -406,6 +420,9 @@ public enum Property {
           + "These iterators can take options if additional properties are set that look like this property, "
           + "but are suffixed with a period, followed by 'opt' followed by another period, and a property name.\n"
           + "For example, table.iterator.minc.vers.opt.maxVersions = 3"),
+  TABLE_ITERATOR_SCAN_PREFIX(TABLE_ITERATOR_PREFIX.getKey() + IteratorScope.scan.name() + ".", null, PropertyType.PREFIX, "Convenience prefix to find options for the scan iterator scope"),
+  TABLE_ITERATOR_MINC_PREFIX(TABLE_ITERATOR_PREFIX.getKey() + IteratorScope.minc.name() + ".", null, PropertyType.PREFIX, "Convenience prefix to find options for the minc iterator scope"),
+  TABLE_ITERATOR_MAJC_PREFIX(TABLE_ITERATOR_PREFIX.getKey() + IteratorScope.majc.name() + ".", null, PropertyType.PREFIX, "Convenience prefix to find options for the majc iterator scope"),
   TABLE_LOCALITY_GROUP_PREFIX("table.group.", null, PropertyType.PREFIX,
       "Properties in this category are per-table properties that define locality groups in a table. These properties start "
           + "with the category prefix, followed by a name, followed by a period, and followed by a property for that group.\n"
@@ -420,6 +437,10 @@ public enum Property {
       "A customizable major compaction strategy."),
   TABLE_COMPACTION_STRATEGY_PREFIX("table.majc.compaction.strategy.opts.", null, PropertyType.PREFIX,
       "Properties in this category are used to configure the compaction strategy."),
+  TABLE_REPLICATION("table.replication", "false", PropertyType.BOOLEAN, "Is replication enabled for the given table"),
+  TABLE_REPLICATION_TARGET("table.replication.target.", null, PropertyType.PREFIX, "Enumerate a mapping of other systems which this table should " +
+      "replicate their data to. The key suffix is the identifying cluster name and the value is an identifier for a location on the target system, " +
+      "e.g. the ID of the table on the target to replicate to"),
 
   // VFS ClassLoader properties
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(AccumuloVFSClassLoader.VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, "", PropertyType.STRING,
@@ -440,6 +461,26 @@ public enum Property {
   @Experimental
   GENERAL_MAVEN_PROJECT_BASEDIR(AccumuloClassLoader.MAVEN_PROJECT_BASEDIR_PROPERTY_NAME, AccumuloClassLoader.DEFAULT_MAVEN_PROJECT_BASEDIR_VALUE,
       PropertyType.ABSOLUTEPATH, "Set this to automatically add maven target/classes directories to your dynamic classpath"),
+
+  // General properties for configuring replication
+  REPLICATION_PREFIX("replication.", null, PropertyType.PREFIX, "Properties in this category affect the replication of data to other Accumulo instances."),
+  REPLICATION_PEERS("replication.peer.", null, PropertyType.PREFIX, "Properties in this category control what systems data can be replicated to"),
+  REPLICATION_PEER_USER("replication.peer.user.", null, PropertyType.PREFIX, "The username to provide when authenticating with the given peer"),
+  @Sensitive
+  REPLICATION_PEER_PASSWORD("replication.peer.password.", null, PropertyType.PREFIX, "The password to provide when authenticating with the given peer"),
+  REPLICATION_NAME("replication.name", "", PropertyType.STRING, "Name of this cluster with respect to replication. Used to identify this instance from other peers"),
+  REPLICATION_MAX_WORK_QUEUE("replication.max.work.queue", "1000", PropertyType.COUNT, "Upper bound of the number of files queued for replication"),
+  REPLICATION_WORK_ASSIGNMENT_SLEEP("replication.work.assignment.sleep", "30s", PropertyType.TIMEDURATION, "Amount of time to sleep between replication work assignment"),
+  REPLICATION_WORKER_THREADS("replication.worker.threads", "4", PropertyType.COUNT, "Size of the threadpool that each tabletserver devotes to replicating data"),
+  REPLICATION_RECEIPT_SERVICE_PORT("replication.receipt.service.port", "10002", PropertyType.PORT, "Listen port used by thrift service in tserver listening for replication"),
+  REPLICATION_WORK_ATTEMPTS("replication.work.attempts", "10", PropertyType.COUNT, "Number of attempts to try to replicate some data before giving up and letting it naturally be retried later"),
+  REPLICATION_MIN_THREADS("replication.receiver.min.threads", "1", PropertyType.COUNT, "Minimum number of threads for replication"),
+  REPLICATION_THREADCHECK("replication.receiver.threadcheck.time", "30s", PropertyType.TIMEDURATION, "The time between adjustments of the replication thread pool."),
+  REPLICATION_MAX_UNIT_SIZE("replication.max.unit.size", "64M", PropertyType.MEMORY, "Maximum size of data to send in a replication message"),
+  REPLICATION_WORK_ASSIGNER("replication.work.assigner", "org.apache.accumulo.master.replication.UnorderedWorkAssigner", PropertyType.CLASSNAME,
+      "Replication WorkAssigner implementation to use"),
+  REPLICATION_WORK_PROCESSOR_DELAY("replication.work.processor.delay", "0s", PropertyType.TIMEDURATION, "Amount of time to wait before first checking for replication work, not useful outside of tests"),
+  REPLICATION_WORK_PROCESSOR_PERIOD("replication.work.processor.period", "0s", PropertyType.TIMEDURATION, "Amount of time to wait before re-checking for replication work, not useful outside of tests"),
 
   ;
 
@@ -462,7 +503,7 @@ public enum Property {
   /**
    * Gets the key (string) for this property.
    *
-   * @return keuy
+   * @return key
    */
   public String getKey() {
     return this.key;
@@ -650,7 +691,7 @@ public enum Property {
 
     return validTableProperties.contains(key) || key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())
         || key.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey()) || key.startsWith(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey())
-        || key.startsWith(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey());
+        || key.startsWith(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey()) || key.startsWith(Property.TABLE_REPLICATION_TARGET.getKey());
   }
 
   private static final EnumSet<Property> fixedProperties = EnumSet.of(Property.TSERV_CLIENTPORT, Property.TSERV_NATIVEMAP_ENABLED,
@@ -689,7 +730,7 @@ public enum Property {
     return key.startsWith(Property.TABLE_PREFIX.getKey()) || key.startsWith(Property.TSERV_PREFIX.getKey()) || key.startsWith(Property.LOGGER_PREFIX.getKey())
         || key.startsWith(Property.MASTER_PREFIX.getKey()) || key.startsWith(Property.GC_PREFIX.getKey())
         || key.startsWith(Property.MONITOR_PREFIX.getKey() + "banner.") || key.startsWith(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey())
-        || key.startsWith(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey());
+        || key.startsWith(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey()) || key.startsWith(REPLICATION_PREFIX.getKey());
   }
 
   /**

@@ -695,7 +695,7 @@ The directory structure in HDFS for tables will follow the general structure:
 
 For each table, make a new directory that you can move (or copy if you have the HDFS space to do so)
 all of the rfiles for a given table into. For example, to process the table with an ID of +1+, make a new directory,
-say +/new-table-1+ and then copy all files from +/accumulo/tables/1/*/*.rf+ into that directory. Additionally,
+say +/new-table-1+ and then copy all files from +/accumulo/tables/1/\*/*.rf+ into that directory. Additionally,
 make a directory, +/new-table-1-failures+, for any failures during the import process. Then, issue the import
 command using the Accumulo shell into the new table, telling Accumulo to not re-set the timestamp:
 

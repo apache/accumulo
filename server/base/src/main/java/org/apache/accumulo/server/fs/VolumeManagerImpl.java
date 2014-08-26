@@ -35,15 +35,16 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.volume.NonConfiguredVolume;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.commons.lang.NotImplementedException;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -218,16 +219,6 @@ public class VolumeManagerImpl implements VolumeManager {
       final String volumeName = entry.getKey();
       FileSystem fs = entry.getValue().getFileSystem();
 
-      if (ViewFSUtils.isViewFS(fs)) {
-        try {
-          FileSystem resolvedFs = ViewFSUtils.resolvePath(fs, new Path("/")).getFileSystem(fs.getConf());
-          log.debug("resolved " + fs.getUri() + " to " + resolvedFs.getUri() + " for sync check");
-          fs = resolvedFs;
-        } catch (IOException e) {
-          log.warn("Failed to resolve " + fs.getUri(), e);
-        }
-      }
-
       if (fs instanceof DistributedFileSystem) {
         final String DFS_DURABLE_SYNC = "dfs.durable.sync", DFS_SUPPORT_APPEND = "dfs.support.append";
         final String ticketMessage = "See ACCUMULO-623 and ACCUMULO-1637 for more details.";
@@ -393,7 +384,7 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   public static VolumeManager get() throws IOException {
-    AccumuloConfiguration conf = ServerConfiguration.getSystemConfiguration(HdfsZooInstance.getInstance());
+    AccumuloConfiguration conf = SiteConfiguration.getInstance();
     return get(conf);
   }
 
@@ -406,8 +397,10 @@ public class VolumeManagerImpl implements VolumeManager {
     // The "default" Volume for Accumulo (in case no volumes are specified)
     for (String volumeUriOrDir : VolumeConfiguration.getVolumeUris(conf)) {
       if (volumeUriOrDir.equals(DEFAULT))
-        // Cannot re-define the default volume
-        throw new IllegalArgumentException();
+        throw new IllegalArgumentException("Cannot re-define the default volume");
+
+      if (volumeUriOrDir.startsWith("viewfs"))
+        throw new IllegalArgumentException("Cannot use viewfs as a volume");
 
       // We require a URI here, fail if it doesn't look like one
       if (volumeUriOrDir.contains(":")) {
@@ -424,16 +417,6 @@ public class VolumeManagerImpl implements VolumeManager {
   public boolean isReady() throws IOException {
     for (Volume volume : getFileSystems().values()) {
       FileSystem fs = volume.getFileSystem();
-
-      if (ViewFSUtils.isViewFS(fs)) {
-        try {
-          FileSystem resolvedFs = ViewFSUtils.resolvePath(fs, new Path("/")).getFileSystem(fs.getConf());
-          log.debug("resolved " + fs.getUri() + " to " + resolvedFs.getUri() + " for ready check");
-          fs = resolvedFs;
-        } catch (IOException e) {
-          log.warn("Failed to resolve " + fs.getUri(), e);
-        }
-      }
 
       if (!(fs instanceof DistributedFileSystem))
         continue;
@@ -527,15 +510,44 @@ public class VolumeManagerImpl implements VolumeManager {
     return getFullPath(FileType.TABLE, path);
   }
 
+  private static final String RFILE_SUFFIX = "." + RFile.EXTENSION;
+
   @Override
   public Path getFullPath(FileType fileType, String path) {
-    if (path.contains(":"))
-      return new Path(path);
+    int colon = path.indexOf(':');
+    if (colon > -1) {
+      // Check if this is really an absolute path or if this is a 1.4 style relative path for a WAL
+      if (fileType == FileType.WAL && path.charAt(colon + 1) != '/') {
+        path = path.substring(path.indexOf('/'));
+      } else {
+        return new Path(path);
+      }
+    }
+
+    if (path.startsWith("/"))
+      path = path.substring(1);
+
+    // ACCUMULO-2974 To ensure that a proper absolute path is created, the caller needs to include the table ID
+    // in the relative path. Fail when this doesn't appear to happen.
+    if (FileType.TABLE == fileType) {
+      // Trailing slash doesn't create an additional element
+      String[] pathComponents = StringUtils.split(path, Path.SEPARATOR_CHAR);
+
+      // Is an rfile
+      if (path.endsWith(RFILE_SUFFIX)) {
+        if (pathComponents.length < 3) {
+          throw new IllegalArgumentException("Fewer components in file path than expected");
+        }
+      } else {
+        // is a directory
+        if (pathComponents.length < 2) {
+          throw new IllegalArgumentException("Fewer components in directory path than expected");
+        }
+      }
+    }
 
     // normalize the path
     Path fullPath = new Path(defaultVolume.getBasePath(), fileType.getDirectory());
-    if (path.startsWith("/"))
-      path = path.substring(1);
     fullPath = new Path(fullPath, path);
 
     FileSystem fs = getVolumeByPath(fullPath).getFileSystem();

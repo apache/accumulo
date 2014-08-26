@@ -27,8 +27,8 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.AddressUtil;
@@ -36,11 +36,11 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.Version;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.fate.ReadOnlyTStore;
 import org.apache.accumulo.fate.ReadOnlyStore;
+import org.apache.accumulo.fate.ReadOnlyTStore;
 import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.watcher.MonitorLog4jWatcher;
@@ -57,15 +57,15 @@ public class Accumulo {
   
   private static final Logger log = Logger.getLogger(Accumulo.class);
   
-  public static synchronized void updateAccumuloVersion(VolumeManager fs) {
+  public static synchronized void updateAccumuloVersion(VolumeManager fs, int oldVersion) {
     for (Volume volume : fs.getVolumes()) {
       try {
-        if (getAccumuloPersistentVersion(fs) == ServerConstants.PREV_DATA_VERSION) {
+        if (getAccumuloPersistentVersion(fs) == oldVersion) {
           log.debug("Attempting to upgrade " + volume);
           Path dataVersionLocation = ServerConstants.getDataVersionLocation(volume);
           fs.create(new Path(dataVersionLocation, Integer.toString(ServerConstants.DATA_VERSION))).close();
           // TODO document failure mode & recovery if FS permissions cause above to work and below to fail ACCUMULO-2596
-          Path prevDataVersionLoc = new Path(dataVersionLocation, Integer.toString(ServerConstants.PREV_DATA_VERSION));
+          Path prevDataVersionLoc = new Path(dataVersionLocation, Integer.toString(oldVersion));
           if (!fs.delete(prevDataVersionLoc)) {
             throw new RuntimeException("Could not delete previous data version location (" + prevDataVersionLoc + ") for " + volume);
           }
@@ -141,7 +141,7 @@ public class Accumulo {
     return defaultConfigFile;
   }
 
-  public static void init(VolumeManager fs, ServerConfiguration config, String application) throws UnknownHostException {
+  public static void init(VolumeManager fs, ServerConfigurationFactory config, String application) throws UnknownHostException {
     
     System.setProperty("org.apache.accumulo.core.application", application);
     
@@ -178,7 +178,7 @@ public class Accumulo {
     Accumulo.waitForZookeeperAndHdfs(fs);
     
     Version codeVersion = new Version(Constants.VERSION);
-    if (dataVersion != ServerConstants.DATA_VERSION && dataVersion != ServerConstants.PREV_DATA_VERSION) {
+    if (!(canUpgradeFromDataVersion(dataVersion))) {
       throw new RuntimeException("This version of accumulo (" + codeVersion + ") is not compatible with files stored using data version " + dataVersion);
     }
     
@@ -192,6 +192,21 @@ public class Accumulo {
     }
     
     monitorSwappiness(config.getConfiguration());
+  }
+
+  /**
+   * Sanity check that the current persistent version is allowed to upgrade to the version of Accumulo running.
+   * @param dataVersion the version that is persisted in the backing Volumes
+   */
+  public static boolean canUpgradeFromDataVersion(final int dataVersion) {
+    return dataVersion == ServerConstants.DATA_VERSION || dataVersion == ServerConstants.PREV_DATA_VERSION || dataVersion == ServerConstants.TWO_DATA_VERSIONS_AGO;
+  }
+
+  /**
+   * Does the data version number stored in the backing Volumes indicate we need to upgrade something?
+   */
+  public static boolean persistentVersionNeedsUpgrade(final int accumuloPersistentVersion) {
+    return accumuloPersistentVersion == ServerConstants.TWO_DATA_VERSIONS_AGO || accumuloPersistentVersion == ServerConstants.PREV_DATA_VERSION;
   }
   
   /**

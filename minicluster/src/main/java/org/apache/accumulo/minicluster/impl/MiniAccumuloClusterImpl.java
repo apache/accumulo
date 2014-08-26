@@ -56,9 +56,13 @@ import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.impl.MasterClient;
+import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
+import org.apache.accumulo.core.master.thrift.MasterClientService;
+import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -67,10 +71,12 @@ import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.state.SetGoalState;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.init.Initialize;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
+import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.commons.configuration.MapConfiguration;
 import org.apache.commons.io.FileUtils;
@@ -81,6 +87,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.log4j.Logger;
+import org.apache.thrift.TException;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
 
 import com.google.common.base.Joiner;
@@ -110,7 +117,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           try {
             flush();
           } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Exception while attempting to flush.", e);
           }
         }
       }, 1000, 1000);
@@ -141,8 +148,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
   }
 
-  private static final long ZOOKEEPER_STARTUP_WAIT = 20 * 1000;
-
   private boolean initialized = false;
   private Process zooKeeperProcess = null;
   private Process masterProcess = null;
@@ -163,6 +168,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   private MiniAccumuloConfigImpl config;
   private MiniDFSCluster miniDFS = null;
   private List<Process> cleanup = new ArrayList<Process>();
+
+  private ExecutorService executor;
 
   public Process exec(Class<?> clazz, String... args) throws IOException {
     return exec(clazz, null, args);
@@ -436,7 +443,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
    *           if already started
    */
   @Override
-  public void start() throws IOException, InterruptedException {
+  public synchronized void start() throws IOException, InterruptedException {
 
     if (!initialized) {
 
@@ -446,9 +453,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           try {
             MiniAccumuloClusterImpl.this.stop();
           } catch (IOException e) {
-            e.printStackTrace();
+            log.error("IOException while attempting to stop the MiniAccumuloCluster.", e);
           } catch (InterruptedException e) {
-            e.printStackTrace();
+            log.error("The stopping of MiniAccumuloCluster was interrupted.", e);
           }
         }
       });
@@ -472,9 +479,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           if (n >= 4 && new String(buffer, 0, 4).equals("imok"))
             break;
         } catch (Exception e) {
-          if (System.currentTimeMillis() - startTime >= ZOOKEEPER_STARTUP_WAIT) {
-            throw new RuntimeException("Zookeeper did not start within " + (ZOOKEEPER_STARTUP_WAIT / 1000) + " seconds. Check the logs in "
-                + config.getLogDir() + " for errors.  Last exception: " + e);
+          if (System.currentTimeMillis() - startTime >= config.getZooKeeperStartupTime()) {
+            throw new RuntimeException("Zookeeper did not start within " + (config.getZooKeeperStartupTime()/1000) + " seconds. Check the logs in " + config.getLogDir() + " for errors.  Last exception: " + e);
           }
           UtilWaitThread.sleep(250);
         } finally {
@@ -510,6 +516,10 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     if (gcProcess == null) {
       gcProcess = _exec(SimpleGarbageCollector.class, ServerType.GARBAGE_COLLECTOR);
+    }
+
+    if (null == executor) {
+      executor = Executors.newSingleThreadExecutor();
     }
   }
 
@@ -610,7 +620,12 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
    * call stop in a finally block as soon as possible.
    */
   @Override
-  public void stop() throws IOException, InterruptedException {
+  public synchronized void stop() throws IOException, InterruptedException {
+    if (null == executor) {
+      // keep repeated calls to stop() from failing
+      return;
+    }
+
     for (LogWriter lw : logWriters) {
       lw.flush();
     }
@@ -660,6 +675,19 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     masterProcess = null;
     gcProcess = null;
     tabletServerProcesses.clear();
+
+    // ACCUMULO-2985 stop the ExecutorService after we finished using it to stop accumulo procs
+    if (null != executor) {
+      List<Runnable> tasksRemaining = executor.shutdownNow();
+
+      // the single thread executor shouldn't have any pending tasks, but check anyways
+      if (!tasksRemaining.isEmpty()) {
+        log.warn("Unexpectedly had " + tasksRemaining.size() + " task(s) remaining in threadpool for execution when being stopped");
+      }
+
+      executor = null;
+    }
+
     if (config.useMiniDFS() && miniDFS != null)
       miniDFS.shutdown();
     for (Process p : cleanup) {
@@ -702,7 +730,15 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
   }
 
-  private final ExecutorService executor = Executors.newSingleThreadExecutor();
+  // Visible for testing
+  protected void setShutdownExecutor(ExecutorService svc) {
+    this.executor = svc;
+  }
+
+  // Visible for testing
+  protected ExecutorService getShutdownExecutor() {
+    return executor;
+  }
 
   private int stopProcessWithTimeout(final Process proc, long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
     FutureTask<Integer> future = new FutureTask<Integer>(new Callable<Integer>() {
@@ -716,5 +752,30 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     executor.execute(future);
 
     return future.get(timeout, unit);
+  }
+
+  /**
+   * Get programmatic interface to information available in a normal monitor.
+   * XXX the returned structure won't contain information about the metadata table until there is data in it.
+   * e.g. if you want to see the metadata table you should create a table.
+   * @since 1.6.1
+   */
+  public MasterMonitorInfo getMasterMonitorInfo() throws AccumuloException, AccumuloSecurityException {
+    MasterClientService.Iface client = null;
+    MasterMonitorInfo stats = null;
+    try {
+      Instance instance = new ZooKeeperInstance(getClientConfig());
+      client = MasterClient.getConnectionWithRetry(instance);
+      stats = client.getMasterStats(Tracer.traceInfo(), SystemCredentials.get(instance).toThrift(instance));
+    } catch (ThriftSecurityException exception) {
+      throw new AccumuloSecurityException(exception);
+    } catch (TException exception) {
+      throw new AccumuloException(exception);
+    } finally {
+      if (client != null) {
+        MasterClient.close(client);
+      }
+    }
+    return stats;
   }
 }

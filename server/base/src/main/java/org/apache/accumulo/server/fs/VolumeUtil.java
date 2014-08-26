@@ -28,6 +28,10 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.protobuf.ProtobufUtil;
+import org.apache.accumulo.core.replication.StatusUtil;
+import org.apache.accumulo.core.replication.proto.Replication.Status;
+import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Pair;
@@ -35,6 +39,7 @@ import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.MetadataTableUtil;
+import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -84,6 +89,11 @@ public class VolumeUtil {
   public static String switchVolume(String path, FileType ft, List<Pair<Path,Path>> replacements) {
     if (replacements.size() == 0) {
       log.trace("Not switching volume because there are no replacements");
+      return null;
+    }
+
+    if (!path.contains(":")) {
+      // ignore relative paths
       return null;
     }
 
@@ -174,7 +184,7 @@ public class VolumeUtil {
    * This method does two things. First, it switches any volumes a tablet is using that are configured in instance.volumes.replacements. Second, if a tablet dir
    * is no longer configured for use it chooses a new tablet directory.
    */
-  public static TabletFiles updateTabletVolumes(ZooLock zooLock, VolumeManager vm, KeyExtent extent, TabletFiles tabletFiles) throws IOException {
+  public static TabletFiles updateTabletVolumes(ZooLock zooLock, VolumeManager vm, KeyExtent extent, TabletFiles tabletFiles, boolean replicate) throws IOException {
     List<Pair<Path,Path>> replacements = ServerConstants.getVolumeReplacements();
     log.trace("Using volume replacements: " + replacements);
 
@@ -224,8 +234,16 @@ public class VolumeUtil {
       tabletDir = switchedDir;
     }
 
-    if (logsToRemove.size() + filesToRemove.size() > 0 || switchedDir != null)
-      MetadataTableUtil.updateTabletVolumes(extent, logsToRemove, logsToAdd, filesToRemove, filesToAdd, switchedDir, zooLock, SystemCredentials.get());
+    if (logsToRemove.size() + filesToRemove.size() > 0 || switchedDir != null) {
+      Credentials creds = SystemCredentials.get();
+      MetadataTableUtil.updateTabletVolumes(extent, logsToRemove, logsToAdd, filesToRemove, filesToAdd, switchedDir, zooLock, creds);
+      if (replicate) {
+        Status status = StatusUtil.fileClosed();
+        log.debug("Tablet directory switched, need to record old log files " + logsToRemove + " " + ProtobufUtil.toString(status));
+        // Before deleting these logs, we need to mark them for replication
+        ReplicationTableUtil.updateLogs(creds, extent, logsToRemove, status);
+      }
+    }
 
     ret.dir = decommisionedTabletDir(zooLock, vm, extent, tabletDir);
 

@@ -1,0 +1,77 @@
+// Licensed to the Apache Software Foundation (ASF) under one or more
+// contributor license agreements.  See the NOTICE file distributed with
+// this work for additional information regarding copyright ownership.
+// The ASF licenses this file to You under the Apache License, Version 2.0
+// (the "License"); you may not use this file except in compliance with
+// the License.  You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+digraph Replication {
+    graph [ label="Replication Pipeline", fontsize=24, fontname=Helvetica];
+    node [fontsize=12, fontname=Helvetica];
+    edge [fontsize=9, fontcolor=blue, fontname=ArialMT];
+
+    subgraph cluster_zookeeper {
+        label = "ZooKeeper"
+        "DistributedWorkQueue" [ label = "DistributedWorkQueue" ];
+    }
+
+    subgraph cluster_tables {
+        label = "Tables"
+        "MetadataTable" [ label = "Metadata Table" ];
+        "ReplicationTable" [ label = "Replication Table" ];
+    }
+
+    subgraph cluster_tserver {
+        label = "TabletServer"
+        "WalCreated" [ label = "'New' WAL used" ];
+        "WalCreated" -> "MetadataTable" [ label = "Create record for WAL\nand local table id" ];
+
+        "WalMinC" [ label = "Minor Compaction" ];
+        "WalMinC" -> "MetadataTable" [ label = "Update record for data available to replicate" ];
+
+        "ReplicaSystem" [ label = "ReplicaSystem" ];
+        "DistributedWorkQueue" -> "ReplicaSystem" [ label = "ReplicaSystem accepts Work" ];
+        "ReplicaSystem" -> "ReplicaSystem" [ label = "Replicate data in chunks to peer" ];
+        "ReplicaSystem" -> "ReplicationTable" [ label = "Update Work record with\ntotal data replicated" ];
+    }
+
+    subgraph cluster_master {
+        label = "Master"
+
+        "StatusMaker" [ label = "StatusMaker" ];
+        "MetadataTable" -> "StatusMaker" [ label = "Reads records" ];
+        "StatusMaker" -> "ReplicationTable" [ label = "Makes Status records" ];
+
+        "WorkMaker" [ label = "WorkMaker" ];
+        "ReplicationTable" -> "WorkMaker" [ label = "Read Status records" ]; 
+        "WorkMaker" -> "ReplicationTable" [ label = "Write Work record for each peer\nwhen work is needed" ];
+
+        "FinishedWorkUpdater" [ label = "FinishedWorkUpdater" ];
+        "ReplicationTable" -> "FinishedWorkUpdater" [ label = "Read all Work records for file" ];
+        "FinishedWorkUpdater" -> "ReplicationTable" [ label = "Record new Status with\nminimum replication progress" ];
+        "FinishedWorkUpdater" -> "ReplicationTable" [ label = "Delete Work records when\nall are fully replicated" ];
+
+        "WorkAssigner" [ label = "WorkAssigner" ];
+        "ReplicationTable" -> "WorkAssigner" [ label = "Read Work records" ];
+        "WorkAssigner" -> "DistributedWorkQueue" [ label = "Make Work available\nvia ZooKeeper" ];
+
+        "RemoveCompleteRecords" [ label = "RemoveCompleteReplicationRecords" ];
+        "ReplicationTable" -> "RemoveCompleteRecords" [ label = "Read all Status and Work\nrecords by file" ];
+        "RemoveCompleteRecords" -> "ReplicationTable" [ label = "Delete records for file if\nall are fully replicated" ];
+    }
+
+    subgraph cluster_gc {
+        label = "Garbage Collector";
+        "CloseWALs" [ label = "CloseWriteAheadLogs" ];
+        "MetadataTable" -> "CloseWALs" [ label = "Find all referenced WALs by tserver" ];
+        "CloseWALs" -> "MetadataTable" [ label = "Close replication records\nfor unreferenced WALs" ];
+    }
+}

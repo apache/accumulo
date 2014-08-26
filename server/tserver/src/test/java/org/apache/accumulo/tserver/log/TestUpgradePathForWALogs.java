@@ -23,7 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.commons.io.FileUtils;
@@ -84,7 +84,7 @@ public class TestUpgradePathForWALogs {
       walogInHDFStream.close();
       walogInHDFStream = null;
 
-      LogSorter logSorter = new LogSorter(null, fs, ServerConfiguration.getSiteConfiguration());
+      LogSorter logSorter = new LogSorter(null, fs, SiteConfiguration.getInstance());
       LogSorter.LogProcessor logProcessor = logSorter.new LogProcessor();
 
       logProcessor.sort(WALOG_FROM_15, new Path("file://" + root.getRoot().getAbsolutePath() + WALOG_FROM_15), "file://" + root.getRoot().getAbsolutePath()
@@ -118,7 +118,7 @@ public class TestUpgradePathForWALogs {
       walogInHDFStream.close();
       walogInHDFStream = null;
 
-      LogSorter logSorter = new LogSorter(null, fs, ServerConfiguration.getSiteConfiguration());
+      LogSorter logSorter = new LogSorter(null, fs, SiteConfiguration.getInstance());
       LogSorter.LogProcessor logProcessor = logSorter.new LogProcessor();
 
       logProcessor.sort(walogToTest, new Path("file://" + root.getRoot().getAbsolutePath() + walogToTest), "file://" + root.getRoot().getAbsolutePath()

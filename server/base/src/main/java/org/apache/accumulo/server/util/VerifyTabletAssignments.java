@@ -50,16 +50,18 @@ import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.server.cli.ClientOpts;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 
 import com.beust.jcommander.Parameter;
 
 public class VerifyTabletAssignments {
+  private static final Logger log = Logger.getLogger(VerifyTabletAssignments.class);
   
   static class Opts extends ClientOpts {
     @Parameter(names = {"-v", "--verbose"}, description = "verbose mode (prints locations of tablets)")
@@ -117,7 +119,7 @@ public class VerifyTabletAssignments {
     }
     
     ExecutorService tp = Executors.newFixedThreadPool(20);
-    final ServerConfiguration conf = new ServerConfiguration(inst);
+    final ServerConfigurationFactory conf = new ServerConfigurationFactory(inst);
     for (final Entry<String,List<KeyExtent>> entry : extentsPerServer.entrySet()) {
       Runnable r = new Runnable() {
         
@@ -126,8 +128,7 @@ public class VerifyTabletAssignments {
           try {
             checkTabletServer(inst, conf.getConfiguration(), new Credentials(opts.principal, opts.getToken()), entry, failures);
           } catch (Exception e) {
-            System.err.println("Failure on ts " + entry.getKey() + " " + e.getMessage());
-            e.printStackTrace();
+            log.error("Failure on tablet server '"+entry.getKey()+".", e);
             failures.addAll(entry.getValue());
           }
         }

@@ -16,135 +16,20 @@
  */
 package org.apache.accumulo.server.conf;
 
-import java.security.SecurityPermission;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.ConfigSanityCheck;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.KeyExtent;
 
-public class ServerConfiguration {
+public abstract class ServerConfiguration {
+  
+  abstract public TableConfiguration getTableConfiguration(String tableId);
 
-  private static final Map<String,TableConfiguration> tableInstances = new HashMap<String,TableConfiguration>(1);
-  private static final Map<String,NamespaceConfiguration> namespaceInstances = new HashMap<String,NamespaceConfiguration>(1);
-  private static final Map<String,NamespaceConfiguration> tableParentInstances = new HashMap<String,NamespaceConfiguration>(1);
-  private static SecurityPermission CONFIGURATION_PERMISSION = new SecurityPermission("configurationPermission");
+  abstract public TableConfiguration getTableConfiguration(KeyExtent extent);
 
-  public static synchronized SiteConfiguration getSiteConfiguration() {
-    checkPermissions();
-    return SiteConfiguration.getInstance(getDefaultConfiguration());
-  }
+  abstract public NamespaceConfiguration getNamespaceConfiguration(String namespaceId);
 
-  private static void checkPermissions() {
-    SecurityManager sm = System.getSecurityManager();
-    if (sm != null) {
-      sm.checkPermission(CONFIGURATION_PERMISSION);
-    }
-  }
+  abstract public AccumuloConfiguration getConfiguration();
 
-  private static synchronized ZooConfiguration getZooConfiguration(Instance instance) {
-    checkPermissions();
-    return ZooConfiguration.getInstance(instance, getSiteConfiguration());
-  }
-
-  public static synchronized DefaultConfiguration getDefaultConfiguration() {
-    checkPermissions();
-    return DefaultConfiguration.getInstance();
-  }
-
-  public static synchronized AccumuloConfiguration getSystemConfiguration(Instance instance) {
-    return getZooConfiguration(instance);
-  }
-
-  public static NamespaceConfiguration getNamespaceConfigurationForTable(Instance instance, String tableId) {
-    checkPermissions();
-    synchronized (tableParentInstances) {
-      NamespaceConfiguration conf = tableParentInstances.get(tableId);
-      if (conf == null) {
-        conf = new TableParentConfiguration(tableId, getSystemConfiguration(instance));
-        ConfigSanityCheck.validate(conf);
-        tableParentInstances.put(tableId, conf);
-      }
-      return conf;
-    }
-  }
-
-  public static NamespaceConfiguration getNamespaceConfiguration(Instance instance, String namespaceId) {
-    checkPermissions();
-    synchronized (namespaceInstances) {
-      NamespaceConfiguration conf = namespaceInstances.get(namespaceId);
-      if (conf == null) {
-        conf = new NamespaceConfiguration(namespaceId, getSystemConfiguration(instance));
-        ConfigSanityCheck.validate(conf);
-        namespaceInstances.put(namespaceId, conf);
-      }
-      return conf;
-    }
-  }
-
-  public static TableConfiguration getTableConfiguration(Instance instance, String tableId) {
-    checkPermissions();
-    synchronized (tableInstances) {
-      TableConfiguration conf = tableInstances.get(tableId);
-      if (conf == null && Tables.exists(instance, tableId)) {
-        conf = new TableConfiguration(instance.getInstanceID(), tableId, getNamespaceConfigurationForTable(instance, tableId));
-        ConfigSanityCheck.validate(conf);
-        tableInstances.put(tableId, conf);
-      }
-      return conf;
-    }
-  }
-
-  static void removeTableIdInstance(String tableId) {
-    synchronized (tableInstances) {
-      tableInstances.remove(tableId);
-    }
-  }
-
-  static void removeNamespaceIdInstance(String namespaceId) {
-    synchronized (namespaceInstances) {
-      namespaceInstances.remove(namespaceId);
-    }
-  }
-
-  static void expireAllTableObservers() {
-    synchronized (tableInstances) {
-      for (Entry<String,TableConfiguration> entry : tableInstances.entrySet()) {
-        entry.getValue().expireAllObservers();
-      }
-    }
-  }
-
-  private final Instance instance;
-
-  public ServerConfiguration(Instance instance) {
-    this.instance = instance;
-  }
-
-  public TableConfiguration getTableConfiguration(String tableId) {
-    return getTableConfiguration(instance, tableId);
-  }
-
-  public TableConfiguration getTableConfiguration(KeyExtent extent) {
-    return getTableConfiguration(extent.getTableId().toString());
-  }
-
-  public NamespaceConfiguration getNamespaceConfiguration(String namespaceId) {
-    return getNamespaceConfiguration(instance, namespaceId);
-  }
-
-  public synchronized AccumuloConfiguration getConfiguration() {
-    return getZooConfiguration(instance);
-  }
-
-  public Instance getInstance() {
-    return instance;
-  }
-
+  abstract public Instance getInstance();
+  
 }

@@ -59,6 +59,7 @@ import java.io.ObjectOutputStream;
 import java.util.BitSet;
 
 import org.apache.hadoop.util.bloom.Key;
+import org.apache.log4j.Logger;
 
 /**
  * Implements a <i>Bloom filter</i>, as defined by Bloom in 1970.
@@ -78,7 +79,7 @@ import org.apache.hadoop.util.bloom.Key;
  * @see <a href="http://portal.acm.org/citation.cfm?id=362692&dl=ACM&coll=portal">Space/Time Trade-Offs in Hash Coding with Allowable Errors</a>
  */
 public class BloomFilter extends Filter {
-  
+  private static final Logger log = Logger.getLogger(BloomFilter.class);
   private static final byte[] bitvalues = new byte[] {(byte) 0x01, (byte) 0x02, (byte) 0x04, (byte) 0x08, (byte) 0x10, (byte) 0x20, (byte) 0x40, (byte) 0x80};
   
   /** The bit vector. */
@@ -217,7 +218,7 @@ public class BloomFilter extends Filter {
       try {
         bits = (BitSet) ois.readObject();
       } catch (ClassNotFoundException e) {
-        e.printStackTrace();
+        log.error("BloomFilter tried to deserialize as bitset", e);
         throw new IOException("BloomFilter tried to deserialize as bitset: " + e);
       }
       // can not close ois, it would close in

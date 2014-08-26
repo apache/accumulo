@@ -1,4 +1,4 @@
-#!/bin/sh
+#! /usr/bin/env bash
 
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -16,9 +16,9 @@
 # limitations under the License.
 
 
-if [ $# -ne 1 ]
-then
-  echo "Usage: `basename $0` clean|dirty"
+if [[ $# != 1 ]] ; then
+  BASENAME=$(basename "$0")
+  echo "Usage: $BASENAME clean|dirty"
   exit -1
 fi
 
@@ -34,43 +34,43 @@ DIR=/accumulo
 BULK=/tmp/upt
 
 pkill -f accumulo.start
-hadoop fs -rmr $DIR
-hadoop fs -rmr $BULK
-hadoop fs -mkdir $BULK/fail
+hadoop fs -rmr "$DIR"
+hadoop fs -rmr "$BULK"
+hadoop fs -mkdir "$BULK/fail"
 
-$PREV/bin/accumulo init --clear-instance-name --instance-name testUp --password secret
-$PREV/bin/start-all.sh
+"$PREV/bin/accumulo" init --clear-instance-name --instance-name testUp --password secret
+"$PREV/bin/start-all.sh"
 
-$PREV/bin/accumulo org.apache.accumulo.test.TestIngest -u root -p secret --timestamp 1 --size 50 --random 56 --rows 200000 --start 0 --cols 1  --createTable --splits 10
-$PREV/bin/accumulo org.apache.accumulo.test.TestIngest --rfile $BULK/bulk/test --timestamp 1 --size 50 --random 56 --rows 200000 --start 200000 --cols 1
+"$PREV/bin/accumulo" org.apache.accumulo.test.TestIngest -u root -p secret --timestamp 1 --size 50 --random 56 --rows 200000 --start 0 --cols 1  --createTable --splits 10
+"$PREV/bin/accumulo" org.apache.accumulo.test.TestIngest --rfile $BULK/bulk/test --timestamp 1 --size 50 --random 56 --rows 200000 --start 200000 --cols 1
 
 echo -e "table test_ingest\nimportdirectory $BULK/bulk $BULK/fail false" | $PREV/bin/accumulo shell -u root -p secret
-if [ $1 == "dirty" ]; then
+if [[ $1 == dirty ]]; then
 	pkill -9 -f accumulo.start
 else 
-	$PREV/bin/stop-all.sh
+	"$PREV/bin/stop-all.sh"
 fi
 
 echo "==== Starting Current ==="
 
-$CURR/bin/start-all.sh
-$CURR/bin/accumulo  org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 400000 --start 0 --cols 1 -u root -p secret
+"$CURR/bin/start-all.sh"
+"$CURR/bin/accumulo" org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 400000 --start 0 --cols 1 -u root -p secret
 echo "compact -t test_ingest -w" | $CURR/bin/accumulo shell -u root -p secret
-$CURR/bin/accumulo  org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 400000 --start 0 --cols 1 -u root -p secret
+"$CURR/bin/accumulo" org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 400000 --start 0 --cols 1 -u root -p secret
 
 
-$CURR/bin/accumulo org.apache.accumulo.test.TestIngest --timestamp 2 --size 50 --random 57 --rows 500000 --start 0 --cols 1 -u root -p secret
-$CURR/bin/accumulo  org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 500000 --start 0 --cols 1 -u root -p secret
+"$CURR/bin/accumulo" org.apache.accumulo.test.TestIngest --timestamp 2 --size 50 --random 57 --rows 500000 --start 0 --cols 1 -u root -p secret
+"$CURR/bin/accumulo" org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 500000 --start 0 --cols 1 -u root -p secret
 echo "compact -t test_ingest -w" | $CURR/bin/accumulo shell -u root -p secret
-$CURR/bin/accumulo  org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 500000 --start 0 --cols 1 -u root -p secret
+"$CURR/bin/accumulo" org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 500000 --start 0 --cols 1 -u root -p secret
 
-$CURR/bin/stop-all.sh
-$CURR/bin/start-all.sh
+"$CURR/bin/stop-all.sh"
+"$CURR/bin/start-all.sh"
 
-$CURR/bin/accumulo  org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 500000 --start 0 --cols 1 -u root -p secret
+"$CURR/bin/accumulo" org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 500000 --start 0 --cols 1 -u root -p secret
 
 pkill -9 -f accumulo.start
-$CURR/bin/start-all.sh
+"$CURR/bin/start-all.sh"
 
-$CURR/bin/accumulo  org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 500000 --start 0 --cols 1 -u root -p secret
+"$CURR/bin/accumulo" org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 500000 --start 0 --cols 1 -u root -p secret
 

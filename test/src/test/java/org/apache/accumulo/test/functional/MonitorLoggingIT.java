@@ -56,7 +56,7 @@ public class MonitorLoggingIT extends ConfigurableMacIT {
     return (NUM_LOCATION_PASSES + 2) * LOCATION_DELAY;
   }
 
-  @Test
+  @Test(timeout = (NUM_LOCATION_PASSES + 2) * LOCATION_DELAY)
   public void logToMonitor() throws Exception {
     // Start the monitor.
     log.debug("Starting Monitor");

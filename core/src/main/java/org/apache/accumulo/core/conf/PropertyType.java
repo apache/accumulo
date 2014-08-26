@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.conf;
 
-import java.util.Arrays;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.Constants;
@@ -56,7 +55,7 @@ public enum PropertyType {
 
   PATH("path", ".*",
       "A string that represents a filesystem path, which can be either relative or absolute to some directory. The filesystem depends on the property. The "
-          + "following environment variables will be substituted: " + Arrays.asList(Constants.PATH_PROPERTY_ENV_VARS)), ABSOLUTEPATH("absolute path", null,
+          + "following environment variables will be substituted: " + Constants.PATH_PROPERTY_ENV_VARS), ABSOLUTEPATH("absolute path", null,
       "An absolute filesystem path. The filesystem depends on the property. This is the same as path, but enforces that its root is explicitly specified.") {
     @Override
     public boolean isValidFormat(String value) {

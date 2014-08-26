@@ -18,61 +18,73 @@ package org.apache.accumulo.monitor;
 
 import javax.servlet.http.HttpServlet;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.mortbay.jetty.Server;
-import org.mortbay.jetty.bio.SocketConnector;
-import org.mortbay.jetty.handler.ContextHandlerCollection;
-import org.mortbay.jetty.security.SslSocketConnector;
-import org.mortbay.jetty.servlet.Context;
-import org.mortbay.jetty.servlet.SessionHandler;
+import org.apache.commons.lang.StringUtils;
+import org.eclipse.jetty.server.HttpConnectionFactory;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.session.SessionHandler;
+import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.util.ssl.SslContextFactory;
 
 public class EmbeddedWebServer {
   private static String EMPTY = "";
-  
+
   Server server = null;
-  SocketConnector sock;
-  ContextHandlerCollection handler;
-  Context root;
+  ServerConnector connector = null;
+  ServletContextHandler handler;
   boolean usingSsl;
-  
+
   public EmbeddedWebServer() {
     this("0.0.0.0", 0);
   }
-  
+
   public EmbeddedWebServer(String host, int port) {
     server = new Server();
-    handler = new ContextHandlerCollection();
-    root = new Context(handler, "/", new SessionHandler(), null, null, null);
-    
-    if (EMPTY.equals(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_KEYSTORE))
-        || EMPTY.equals(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_KEYSTOREPASS))
-        || EMPTY.equals(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_TRUSTSTORE))
-        || EMPTY.equals(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_TRUSTSTOREPASS))) {
-      sock = new SocketConnector();
+    final AccumuloConfiguration conf = Monitor.getSystemConfiguration();
+    if (EMPTY.equals(conf.get(Property.MONITOR_SSL_KEYSTORE)) || EMPTY.equals(conf.get(Property.MONITOR_SSL_KEYSTOREPASS))
+        || EMPTY.equals(conf.get(Property.MONITOR_SSL_TRUSTSTORE)) || EMPTY.equals(conf.get(Property.MONITOR_SSL_TRUSTSTOREPASS))) {
+      connector = new ServerConnector(server, new HttpConnectionFactory());
       usingSsl = false;
     } else {
-      sock = new SslSocketConnector();
-      ((SslSocketConnector) sock).setKeystore(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_KEYSTORE));
-      ((SslSocketConnector) sock).setKeyPassword(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_KEYSTOREPASS));
-      ((SslSocketConnector) sock).setTruststore(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_TRUSTSTORE));
-      ((SslSocketConnector) sock).setTrustPassword(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_TRUSTSTOREPASS));
+      SslContextFactory sslContextFactory = new SslContextFactory();
+      sslContextFactory.setKeyStorePath(conf.get(Property.MONITOR_SSL_KEYSTORE));
+      sslContextFactory.setKeyStorePassword(conf.get(Property.MONITOR_SSL_KEYSTOREPASS));
+      sslContextFactory.setTrustStorePath(conf.get(Property.MONITOR_SSL_TRUSTSTORE));
+      sslContextFactory.setTrustStorePassword(conf.get(Property.MONITOR_SSL_TRUSTSTOREPASS));
+
+      final String includedCiphers = conf.get(Property.MONITOR_SSL_INCLUDE_CIPHERS);
+      if (!Property.MONITOR_SSL_INCLUDE_CIPHERS.getDefaultValue().equals(includedCiphers)) {
+        sslContextFactory.setIncludeCipherSuites(StringUtils.split(includedCiphers, ','));
+      }
+
+      final String excludedCiphers = conf.get(Property.MONITOR_SSL_EXCLUDE_CIPHERS);
+      if (!Property.MONITOR_SSL_EXCLUDE_CIPHERS.getDefaultValue().equals(excludedCiphers)) {
+        sslContextFactory.setExcludeCipherSuites(StringUtils.split(excludedCiphers, ','));
+      }
+
+      connector = new ServerConnector(server, sslContextFactory);
       usingSsl = true;
     }
-    sock.setHost(host);
-    sock.setPort(port);
+
+    connector.setHost(host);
+    connector.setPort(port);
+
+    handler = new ServletContextHandler(server, "/", new SessionHandler(), null, null, null);
   }
-  
+
   public void addServlet(Class<? extends HttpServlet> klass, String where) {
-    root.addServlet(klass, where);
+    handler.addServlet(klass, where);
   }
-  
+
   public int getPort() {
-    return sock.getLocalPort();
+    return connector.getLocalPort();
   }
-  
+
   public void start() {
     try {
-      server.addConnector(sock);
+      server.addConnector(connector);
       server.setHandler(handler);
       server.start();
     } catch (Exception e) {
@@ -80,7 +92,7 @@ public class EmbeddedWebServer {
       throw new RuntimeException(e);
     }
   }
-  
+
   public void stop() {
     try {
       server.stop();
@@ -88,7 +100,7 @@ public class EmbeddedWebServer {
       throw new RuntimeException(e);
     }
   }
-  
+
   public boolean isUsingSsl() {
     return usingSsl;
   }

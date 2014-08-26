@@ -17,9 +17,22 @@
 package org.apache.accumulo.minicluster.impl;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.master.thrift.MasterGoalState;
+import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.master.thrift.MasterState;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Level;
@@ -30,10 +43,14 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class MiniAccumuloClusterImplTest {
-
   public static File testDir;
 
   private static MiniAccumuloClusterImpl accumulo;
+
+  private static final int NUM_TSERVERS = 2;
+
+  private static String TEST_TABLE = "test";
+  private static String testTableID;
 
   @BeforeClass
   public static void setupMiniCluster() throws Exception {
@@ -46,8 +63,17 @@ public class MiniAccumuloClusterImplTest {
     testDir.mkdir();
 
     MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(testDir, "superSecret").setJDWPEnabled(true);
+    // expressly set number of tservers since we assert it later, in case the default changes
+    config.setNumTservers(NUM_TSERVERS);
     accumulo = new MiniAccumuloClusterImpl(config);
     accumulo.start();
+    // create a table to ensure there are some entries in the !0 table
+    TableOperations tableops = accumulo.getConnector("root","superSecret").tableOperations();
+    tableops.create(TEST_TABLE);
+    testTableID = tableops.tableIdMap().get(TEST_TABLE);
+
+    Scanner s = accumulo.getConnector("root", "superSecret").createScanner(TEST_TABLE, Authorizations.EMPTY);
+    for (@SuppressWarnings("unused") Entry<Key,Value> e : s) {}
   }
 
   @Test(timeout = 10000)
@@ -65,6 +91,27 @@ public class MiniAccumuloClusterImplTest {
         Assert.assertNotNull(procRef);
       }
     }
+  }
+
+  @Test(timeout = 60000)
+  public void saneMonitorInfo() throws Exception {
+    MasterMonitorInfo stats;
+    while (true) {
+      stats = accumulo.getMasterMonitorInfo();
+      if (null != stats.tServerInfo && stats.tServerInfo.size() == NUM_TSERVERS) {
+        break;
+      }
+    }
+    List<MasterState> validStates = Arrays.asList(MasterState.values());
+    List<MasterGoalState> validGoals = Arrays.asList(MasterGoalState.values());
+    Assert.assertTrue("master state should be valid.", validStates.contains(stats.state));
+    Assert.assertTrue("master goal state should be in " + validGoals + ". is " + stats.goalState, validGoals.contains(stats.goalState));
+    Assert.assertNotNull("should have a table map.", stats.tableMap);
+    Assert.assertTrue("root table should exist in " + stats.tableMap.keySet(), stats.tableMap.keySet().contains(RootTable.ID));
+    Assert.assertTrue("meta table should exist in " + stats.tableMap.keySet(), stats.tableMap.keySet().contains(MetadataTable.ID));
+    Assert.assertTrue("our test table should exist in " + stats.tableMap.keySet(), stats.tableMap.keySet().contains(testTableID));
+    Assert.assertNotNull("there should be tservers.", stats.tServerInfo);
+    Assert.assertEquals(NUM_TSERVERS, stats.tServerInfo.size());
   }
 
   @AfterClass

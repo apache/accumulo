@@ -26,8 +26,8 @@ import org.apache.accumulo.core.security.Credentials;
 
 public class BatchWriterImpl implements BatchWriter {
   
-  private String table;
-  private TabletServerBatchWriter bw;
+  private final String table;
+  private final TabletServerBatchWriter bw;
   
   public BatchWriterImpl(Instance instance, Credentials credentials, String table, BatchWriterConfig config) {
     checkArgument(instance != null, "instance is null");

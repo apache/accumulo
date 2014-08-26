@@ -20,6 +20,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
@@ -31,6 +32,8 @@ import jline.console.ConsoleReader;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -41,6 +44,8 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
+import org.apache.accumulo.core.iterators.Combiner;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
@@ -50,6 +55,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
@@ -60,15 +66,16 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.constraints.MetadataConstraints;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.iterators.MetadataBulkLoadFilter;
+import org.apache.accumulo.server.replication.StatusCombiner;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tablets.TabletTime;
+import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.conf.Configuration;
@@ -84,7 +91,7 @@ import com.beust.jcommander.Parameter;
 
 /**
  * This class is used to setup the directory structure and the root tablet to get an instance started
- * 
+ *
  */
 public class Initialize {
   private static final Logger log = Logger.getLogger(Initialize.class);
@@ -102,7 +109,7 @@ public class Initialize {
 
   /**
    * Sets this class's ZooKeeper reader/writer.
-   * 
+   *
    * @param izoo
    *          reader/writer
    */
@@ -112,7 +119,7 @@ public class Initialize {
 
   /**
    * Gets this class's ZooKeeper reader/writer.
-   * 
+   *
    * @return reader/writer
    */
   static IZooReaderWriter getZooReaderWriter() {
@@ -151,7 +158,7 @@ public class Initialize {
     if (fsUri.equals(""))
       fsUri = FileSystem.getDefaultUri(conf).toString();
     log.info("Hadoop Filesystem is " + fsUri);
-    log.info("Accumulo data dirs are " + Arrays.asList(VolumeConfiguration.getVolumeUris(ServerConfiguration.getSiteConfiguration())));
+    log.info("Accumulo data dirs are " + Arrays.asList(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance())));
     log.info("Zookeeper server is " + sconf.get(Property.INSTANCE_ZK_HOST));
     log.info("Checking if Zookeeper is available. If this hangs, then you need to make sure zookeeper is running");
     if (!zookeeperAvailable()) {
@@ -185,7 +192,7 @@ public class Initialize {
   @SuppressWarnings("deprecation")
   static void printInitializeFailureMessages(SiteConfiguration sconf) {
     String instanceDfsDir = sconf.get(Property.INSTANCE_DFS_DIR);
-    log.fatal("It appears the directories " + Arrays.asList(VolumeConfiguration.getVolumeUris(ServerConfiguration.getSiteConfiguration()))
+    log.fatal("It appears the directories " + Arrays.asList(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance()))
         + " were previously initialized.");
     String instanceVolumes = sconf.get(Property.INSTANCE_VOLUMES);
     String instanceDfsUri = sconf.get(Property.INSTANCE_DFS_URI);
@@ -204,7 +211,7 @@ public class Initialize {
   }
 
   public static boolean doInit(Opts opts, Configuration conf, VolumeManager fs) throws IOException {
-    if (!checkInit(conf, fs, ServerConfiguration.getSiteConfiguration())) {
+    if (!checkInit(conf, fs, SiteConfiguration.getInstance())) {
       return false;
     }
 
@@ -225,7 +232,7 @@ public class Initialize {
 
     UUID uuid = UUID.randomUUID();
     // the actual disk locations of the root table and tablets
-    String[] configuredTableDirs = VolumeConfiguration.prefix(VolumeConfiguration.getVolumeUris(ServerConfiguration.getSiteConfiguration()),
+    String[] configuredTableDirs = VolumeConfiguration.prefix(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance()),
         ServerConstants.TABLE_DIR);
     final Path rootTablet = new Path(fs.choose(configuredTableDirs) + "/" + RootTable.ID + RootTable.ROOT_TABLET_LOCATION);
     try {
@@ -240,7 +247,7 @@ public class Initialize {
     } catch (Exception e) {
       log.fatal("Failed to initialize filesystem", e);
 
-      if (ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_VOLUMES).trim().equals("")) {
+      if (SiteConfiguration.getInstance().get(Property.INSTANCE_VOLUMES).trim().equals("")) {
         Configuration fsConf = CachedConfiguration.getInstance();
 
         final String defaultFsUri = "file:///";
@@ -301,7 +308,7 @@ public class Initialize {
   private static void initFileSystem(Opts opts, VolumeManager fs, UUID uuid, Path rootTablet) throws IOException {
     FileStatus fstat;
 
-    initDirs(fs, uuid, VolumeConfiguration.getVolumeUris(ServerConfiguration.getSiteConfiguration()), false);
+    initDirs(fs, uuid, VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance()), false);
 
     // the actual disk locations of the metadata table and tablets
     final Path[] metadataTableDirs = paths(ServerConstants.getMetadataTableDirs());
@@ -345,50 +352,16 @@ public class Initialize {
     // populate the root tablet with info about the default tablet
     // the root tablet contains the key extent and locations of all the
     // metadata tablets
-    String initRootTabFile = rootTablet + "/00000_00000." + FileOperations.getNewFileExtension(AccumuloConfiguration.getDefaultConfiguration());
-    FileSystem ns = fs.getVolumeByPath(new Path(initRootTabFile)).getFileSystem();
-    FileSKVWriter mfw = FileOperations.getInstance().openWriter(initRootTabFile, ns, ns.getConf(), AccumuloConfiguration.getDefaultConfiguration());
-    mfw.startDefaultLocalityGroup();
+    initializeTableData(fs, MetadataTable.ID, rootTablet.toString(), tableMetadataTabletDir, defaultMetadataTabletDir);
 
-    Text tableExtent = new Text(KeyExtent.getMetadataEntry(new Text(MetadataTable.ID), MetadataSchema.TabletsSection.getRange().getEndKey().getRow()));
+    createDirectories(fs, tableMetadataTabletDir, defaultMetadataTabletDir);
+  }
 
-    // table tablet's directory
-    Key tableDirKey = new Key(tableExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
-        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
-    mfw.append(tableDirKey, new Value(tableMetadataTabletDir.getBytes(StandardCharsets.UTF_8)));
-
-    // table tablet time
-    Key tableTimeKey = new Key(tableExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
-        TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
-    mfw.append(tableTimeKey, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes(StandardCharsets.UTF_8)));
-
-    // table tablet's prevrow
-    Key tablePrevRowKey = new Key(tableExtent, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
-        TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
-    mfw.append(tablePrevRowKey, KeyExtent.encodePrevEndRow(null));
-
-    // ----------] default tablet info
-    Text defaultExtent = new Text(KeyExtent.getMetadataEntry(new Text(MetadataTable.ID), null));
-
-    // default's directory
-    Key defaultDirKey = new Key(defaultExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
-        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
-    mfw.append(defaultDirKey, new Value(defaultMetadataTabletDir.getBytes(StandardCharsets.UTF_8)));
-
-    // default's time
-    Key defaultTimeKey = new Key(defaultExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
-        TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
-    mfw.append(defaultTimeKey, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes(StandardCharsets.UTF_8)));
-
-    // default's prevrow
-    Key defaultPrevRowKey = new Key(defaultExtent, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
-        TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
-    mfw.append(defaultPrevRowKey, KeyExtent.encodePrevEndRow(MetadataSchema.TabletsSection.getRange().getEndKey().getRow()));
-
-    mfw.close();
-
+  @SuppressWarnings("deprecation")
+  private static void createDirectories(VolumeManager fs, String... directories) throws IOException {
     // create table and default tablets directories
-    for (String s : Arrays.asList(tableMetadataTabletDir, defaultMetadataTabletDir)) {
+    FileStatus fstat;
+    for (String s : directories) {
       Path dir = new Path(s);
       try {
         fstat = fs.getFileStatus(dir);
@@ -418,6 +391,61 @@ public class Initialize {
         }
       }
     }
+  }
+  /**
+   * Create an rfile in the default tablet's directory for a new table
+   * @param volmanager The VolumeManager
+   * @param tableId TableID that is being "created"
+   * @param targetTabletDir Directory where the rfile should created in
+   * @param tableTabletDir The table_info directory for the new table
+   * @param defaultTabletDir The default_tablet directory for the new table
+   * @throws IOException
+   */
+  private static void initializeTableData(VolumeManager volmanager, String tableId, String targetTabletDir, String tableTabletDir, String defaultTabletDir) throws IOException {
+    // populate the root tablet with info about the default tablet
+    // the root tablet contains the key extent and locations of all the
+    // metadata tablets
+    String initTabFile = targetTabletDir + "/00000_00000." + FileOperations.getNewFileExtension(AccumuloConfiguration.getDefaultConfiguration());
+    FileSystem fs = volmanager.getVolumeByPath(new Path(initTabFile)).getFileSystem();
+    FileSKVWriter tabletWriter = FileOperations.getInstance().openWriter(initTabFile, fs, fs.getConf(), AccumuloConfiguration.getDefaultConfiguration());
+    tabletWriter.startDefaultLocalityGroup();
+
+    Text tableExtent = new Text(KeyExtent.getMetadataEntry(new Text(tableId), MetadataSchema.TabletsSection.getRange().getEndKey().getRow()));
+
+    // table tablet's directory
+    Key tableDirKey = new Key(tableExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
+        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
+    tabletWriter.append(tableDirKey, new Value(defaultTabletDir.getBytes(StandardCharsets.UTF_8)));
+
+    // table tablet time
+    Key tableTimeKey = new Key(tableExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
+        TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
+    tabletWriter.append(tableTimeKey, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes(StandardCharsets.UTF_8)));
+
+    // table tablet's prevrow
+    Key tablePrevRowKey = new Key(tableExtent, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
+        TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
+    tabletWriter.append(tablePrevRowKey, KeyExtent.encodePrevEndRow(null));
+
+    // ----------] default tablet info
+    Text defaultExtent = new Text(KeyExtent.getMetadataEntry(new Text(tableId), null));
+
+    // default's directory
+    Key defaultDirKey = new Key(defaultExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
+        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
+    tabletWriter.append(defaultDirKey, new Value(defaultTabletDir.getBytes(StandardCharsets.UTF_8)));
+
+    // default's time
+    Key defaultTimeKey = new Key(defaultExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
+        TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
+    tabletWriter.append(defaultTimeKey, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes(StandardCharsets.UTF_8)));
+
+    // default's prevrow
+    Key defaultPrevRowKey = new Key(defaultExtent, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
+        TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
+    tabletWriter.append(defaultPrevRowKey, KeyExtent.encodePrevEndRow(MetadataSchema.TabletsSection.getRange().getEndKey().getRow()));
+
+    tabletWriter.close();
   }
 
   private static void initZooKeeper(Opts opts, String uuid, String instanceNamePath, Path rootTablet) throws KeeperException, InterruptedException {
@@ -459,6 +487,8 @@ public class Initialize {
     zoo.putPersistentData(zkInstanceRoot + Constants.ZRECOVERY, ZERO_CHAR_ARRAY, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZMONITOR, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZMONITOR_LOCK, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
+    zoo.putPersistentData(zkInstanceRoot + ReplicationConstants.ZOO_BASE, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
+    zoo.putPersistentData(zkInstanceRoot + ReplicationConstants.ZOO_TSERVERS, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
   }
 
   private static String getInstanceNamePath(Opts opts) throws IOException, KeeperException, InterruptedException {
@@ -543,6 +573,23 @@ public class Initialize {
   protected static void initMetadataConfig() throws IOException {
     initMetadataConfig(RootTable.ID);
     initMetadataConfig(MetadataTable.ID);
+
+    // ACCUMULO-3077 Set the combiner on accumulo.metadata during init to reduce the likelihood of a race
+    // condition where a tserver compacts away Status updates because it didn't see the Combiner configured
+    IteratorSetting setting = new IteratorSetting(9, ReplicationTableUtil.COMBINER_NAME, StatusCombiner.class);
+    Combiner.setColumns(setting, Collections.singletonList(new Column(MetadataSchema.ReplicationSection.COLF)));
+    try {
+      for (IteratorScope scope : IteratorScope.values()) {
+        String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), setting.getName());
+        for (Entry<String,String> prop : setting.getOptions().entrySet()) {
+          TablePropUtil.setTableProperty(MetadataTable.ID, root + ".opt." + prop.getKey(), prop.getValue());
+        }
+        TablePropUtil.setTableProperty(MetadataTable.ID, root, setting.getPriority() + "," + setting.getIteratorClass());
+      }
+    } catch (Exception e) {
+      log.fatal("Error talking to ZooKeeper", e);
+      throw new IOException(e);
+    }
   }
 
   private static void setMetadataReplication(int replication, String reason) throws IOException {
@@ -558,7 +605,7 @@ public class Initialize {
   }
 
   public static boolean isInitialized(VolumeManager fs) throws IOException {
-    for (String baseDir : VolumeConfiguration.getVolumeUris(ServerConfiguration.getSiteConfiguration())) {
+    for (String baseDir : VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance())) {
       if (fs.exists(new Path(baseDir, ServerConstants.INSTANCE_ID_DIR)) || fs.exists(new Path(baseDir, ServerConstants.VERSION_DIR)))
         return true;
     }
@@ -569,17 +616,17 @@ public class Initialize {
   private static void addVolumes(VolumeManager fs) throws IOException {
     HashSet<String> initializedDirs = new HashSet<String>();
     initializedDirs
-        .addAll(Arrays.asList(ServerConstants.checkBaseUris(VolumeConfiguration.getVolumeUris(ServerConfiguration.getSiteConfiguration()), true)));
+        .addAll(Arrays.asList(ServerConstants.checkBaseUris(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance()), true)));
 
     HashSet<String> uinitializedDirs = new HashSet<String>();
-    uinitializedDirs.addAll(Arrays.asList(VolumeConfiguration.getVolumeUris(ServerConfiguration.getSiteConfiguration())));
+    uinitializedDirs.addAll(Arrays.asList(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance())));
     uinitializedDirs.removeAll(initializedDirs);
 
     Path aBasePath = new Path(initializedDirs.iterator().next());
     Path iidPath = new Path(aBasePath, ServerConstants.INSTANCE_ID_DIR);
     Path versionPath = new Path(aBasePath, ServerConstants.VERSION_DIR);
 
-    UUID uuid = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(iidPath, ServerConfiguration.getSiteConfiguration()));
+    UUID uuid = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(iidPath, SiteConfiguration.getInstance()));
 
     if (ServerConstants.DATA_VERSION != Accumulo.getAccumuloPersistentVersion(versionPath.getFileSystem(CachedConfiguration.getInstance()), versionPath)) {
       throw new IOException("Accumulo " + Constants.VERSION + " cannot initialize data version " + Accumulo.getAccumuloPersistentVersion(fs));
@@ -608,7 +655,7 @@ public class Initialize {
     opts.parseArgs(Initialize.class.getName(), args);
 
     try {
-      AccumuloConfiguration acuConf = ServerConfiguration.getSiteConfiguration();
+      AccumuloConfiguration acuConf = SiteConfiguration.getInstance();
       SecurityUtil.serverLogin(acuConf);
       Configuration conf = CachedConfiguration.getInstance();
 

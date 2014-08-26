@@ -22,6 +22,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.MetaIndexEntry;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.hadoop.conf.Configuration;
@@ -55,8 +57,7 @@ public class PrintInfo {
   
   public static void main(String[] args) throws Exception {
     Configuration conf = new Configuration();
-    @SuppressWarnings("deprecation")
-    AccumuloConfiguration siteConf = AccumuloConfiguration.getSiteConfiguration();
+    AccumuloConfiguration siteConf = SiteConfiguration.getInstance(DefaultConfiguration.getInstance());
     // TODO ACCUMULO-2462 not going to operate as expected with volumes when a path, not URI, is given
     FileSystem hadoopFs = VolumeConfiguration.getDefaultVolume(conf, siteConf).getFileSystem();
     FileSystem localFs = FileSystem.getLocal(conf);

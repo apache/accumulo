@@ -51,7 +51,9 @@ public class ContextManager {
     
     synchronized void close() {
       closed = true;
-      loader.close();
+      if (loader != null) {
+        loader.close();
+      }
       loader = null;
     }
   }
@@ -171,7 +173,7 @@ public class ContextManager {
     
     ClassLoader loader = context.getClassLoader();
     if (loader == null) {
-      // ooppss, context was closed by another thread, try again
+      // oops, context was closed by another thread, try again
       return getClassLoader(contextName);
     }
     

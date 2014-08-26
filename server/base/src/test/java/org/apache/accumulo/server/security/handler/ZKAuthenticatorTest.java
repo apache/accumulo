@@ -24,11 +24,13 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.ByteArraySet;
-import org.apache.accumulo.server.security.handler.ZKSecurityTool;
 
 import junit.framework.TestCase;
+import org.apache.log4j.Logger;
 
 public class ZKAuthenticatorTest extends TestCase {
+  private static final Logger log = Logger.getLogger(ZKAuthenticatorTest.class);
+  
   public void testPermissionIdConversions() {
     for (SystemPermission s : SystemPermission.values())
       assertTrue(s.equals(SystemPermission.getPermissionById(s.getId())));
@@ -80,7 +82,7 @@ public class ZKAuthenticatorTest extends TestCase {
       storedBytes = ZKSecurityTool.createPass(rawPass);
       assertTrue(ZKSecurityTool.checkPass(rawPass, storedBytes));
     } catch (AccumuloException e) {
-      e.printStackTrace();
+      log.error(e);
       assertTrue(false);
     }
   }

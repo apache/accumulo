@@ -44,6 +44,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
@@ -60,6 +61,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
+import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
+import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.SecurityUtil;
@@ -73,18 +76,21 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
+import org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.fs.VolumeUtil;
+import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.Halt;
+import org.apache.accumulo.server.util.RpcWrapper;
 import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.util.TabletIterator;
 import org.apache.accumulo.server.zookeeper.ZooLock;
@@ -92,7 +98,6 @@ import org.apache.accumulo.trace.instrument.CountSampler;
 import org.apache.accumulo.trace.instrument.Sampler;
 import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
-import org.apache.accumulo.trace.instrument.thrift.TraceWrap;
 import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -103,7 +108,9 @@ import org.apache.zookeeper.KeeperException;
 import com.beust.jcommander.Parameter;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Maps;
 import com.google.common.net.HostAndPort;
+import com.google.protobuf.InvalidProtocolBufferException;
 
 public class SimpleGarbageCollector implements Iface {
   private static final Text EMPTY_TEXT = new Text();
@@ -119,37 +126,34 @@ public class SimpleGarbageCollector implements Iface {
   }
 
   /**
-   * A fraction representing how much of the JVM's available memory should be
-   * used for gathering candidates.
+   * A fraction representing how much of the JVM's available memory should be used for gathering candidates.
    */
   static final float CANDIDATE_MEMORY_PERCENTAGE = 0.75f;
 
   private static final Logger log = Logger.getLogger(SimpleGarbageCollector.class);
 
   private Credentials credentials;
-  private long gcStartDelay;
   private VolumeManager fs;
-  private boolean useTrash = true;
+  private AccumuloConfiguration config;
   private Opts opts = new Opts();
   private ZooLock lock;
 
   private GCStatus status = new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
 
-  private int numDeleteThreads;
-
   private Instance instance;
 
   public static void main(String[] args) throws UnknownHostException, IOException {
-    SecurityUtil.serverLogin(ServerConfiguration.getSiteConfiguration());
+    SecurityUtil.serverLogin(SiteConfiguration.getInstance());
     Instance instance = HdfsZooInstance.getInstance();
-    ServerConfiguration serverConf = new ServerConfiguration(instance);
+    ServerConfigurationFactory conf = new ServerConfigurationFactory(instance);
     final VolumeManager fs = VolumeManagerImpl.get();
-    Accumulo.init(fs, serverConf, "gc");
+    Accumulo.init(fs, conf, "gc");
     Opts opts = new Opts();
     opts.parseArgs("gc", args);
     SimpleGarbageCollector gc = new SimpleGarbageCollector(opts);
+    AccumuloConfiguration config = conf.getConfiguration();
 
-    gc.init(fs, instance, SystemCredentials.get(), serverConf.getConfiguration().getBoolean(Property.GC_TRASH_IGNORE));
+    gc.init(fs, instance, SystemCredentials.get(), config);
     Accumulo.enableTracing(opts.getAddress(), "gc");
     gc.run();
   }
@@ -157,7 +161,8 @@ public class SimpleGarbageCollector implements Iface {
   /**
    * Creates a new garbage collector.
    *
-   * @param opts options
+   * @param opts
+   *          options
    */
   public SimpleGarbageCollector(Opts opts) {
     this.opts = opts;
@@ -171,14 +176,16 @@ public class SimpleGarbageCollector implements Iface {
   Credentials getCredentials() {
     return credentials;
   }
+
   /**
    * Gets the delay before the first collection.
    *
    * @return start delay, in milliseconds
    */
   long getStartDelay() {
-    return gcStartDelay;
+    return config.getTimeInMillis(Property.GC_CYCLE_START);
   }
+
   /**
    * Gets the volume manager used by this GC.
    *
@@ -187,29 +194,32 @@ public class SimpleGarbageCollector implements Iface {
   VolumeManager getVolumeManager() {
     return fs;
   }
+
   /**
-   * Checks if the volume manager should move files to the trash rather than
-   * delete them.
+   * Checks if the volume manager should move files to the trash rather than delete them.
    *
    * @return true if trash is used
    */
   boolean isUsingTrash() {
-    return useTrash;
+    return !config.getBoolean(Property.GC_TRASH_IGNORE);
   }
+
   /**
    * Gets the options for this garbage collector.
    */
   Opts getOpts() {
     return opts;
   }
+
   /**
    * Gets the number of threads used for deleting files.
    *
    * @return number of delete threads
    */
   int getNumDeleteThreads() {
-    return numDeleteThreads;
+    return config.getCount(Property.GC_DELETE_THREADS);
   }
+
   /**
    * Gets the instance used by this GC.
    *
@@ -220,41 +230,29 @@ public class SimpleGarbageCollector implements Iface {
   }
 
   /**
-   * Initializes this garbage collector with the current system configuration.
-   *
-   * @param fs volume manager
-   * @param instance instance
-   * @param credentials credentials
-   * @param noTrash true to not move files to trash instead of deleting
-   */
-  public void init(VolumeManager fs, Instance instance, Credentials credentials, boolean noTrash) {
-    init(fs, instance, credentials, noTrash, ServerConfiguration.getSystemConfiguration(instance));
-  }
-
-  /**
    * Initializes this garbage collector.
    *
-   * @param fs volume manager
-   * @param instance instance
-   * @param credentials credentials
-   * @param noTrash true to not move files to trash instead of deleting
-   * @param systemConfig system configuration
+   * @param fs
+   *          volume manager
+   * @param instance
+   *          instance
+   * @param credentials
+   *          credentials
+   * @param config
+   *          system configuration
    */
-  public void init(VolumeManager fs, Instance instance, Credentials credentials, boolean noTrash, AccumuloConfiguration systemConfig) {
+  public void init(VolumeManager fs, Instance instance, Credentials credentials, AccumuloConfiguration config) {
     this.fs = fs;
     this.credentials = credentials;
     this.instance = instance;
-
-    gcStartDelay = systemConfig.getTimeInMillis(Property.GC_CYCLE_START);
-    long gcDelay = systemConfig.getTimeInMillis(Property.GC_CYCLE_DELAY);
-    numDeleteThreads = systemConfig.getCount(Property.GC_DELETE_THREADS);
-    log.info("start delay: " + gcStartDelay + " milliseconds");
+    this.config = config;
+    long gcDelay = config.getTimeInMillis(Property.GC_CYCLE_DELAY);
+    log.info("start delay: " + getStartDelay() + " milliseconds");
     log.info("time delay: " + gcDelay + " milliseconds");
     log.info("safemode: " + opts.safeMode);
     log.info("verbose: " + opts.verbose);
     log.info("memory threshold: " + CANDIDATE_MEMORY_PERCENTAGE + " of " + Runtime.getRuntime().maxMemory() + " bytes");
-    log.info("delete threads: " + numDeleteThreads);
-    useTrash = !noTrash;
+    log.info("delete threads: " + getNumDeleteThreads());
   }
 
   private class GCEnv implements GarbageCollectionEnvironment {
@@ -376,7 +374,7 @@ public class SimpleGarbageCollector implements Iface {
 
       final BatchWriter finalWriter = writer;
 
-      ExecutorService deleteThreadPool = Executors.newFixedThreadPool(numDeleteThreads, new NamingThreadFactory("deleting"));
+      ExecutorService deleteThreadPool = Executors.newFixedThreadPool(getNumDeleteThreads(), new NamingThreadFactory("deleting"));
 
       final List<Pair<Path,Path>> replacements = ServerConstants.getVolumeReplacements();
 
@@ -431,7 +429,7 @@ public class SimpleGarbageCollector implements Iface {
                   if (tableState != null && tableState != TableState.DELETING) {
                     // clone directories don't always exist
                     if (!tabletDir.startsWith("c-"))
-                      log.warn("File doesn't exist: " + fullPath);
+                      log.debug("File doesn't exist: " + fullPath);
                   }
                 } else {
                   log.warn("Very strange path name: " + delete);
@@ -505,6 +503,34 @@ public class SimpleGarbageCollector implements Iface {
       status.current.inUse += i;
     }
 
+    @Override
+    public Iterator<Entry<String,Status>> getReplicationNeededIterator() throws AccumuloException, AccumuloSecurityException {
+      Connector conn = instance.getConnector(credentials.getPrincipal(), credentials.getToken());
+      try {
+        Scanner s = ReplicationTable.getScanner(conn);
+        StatusSection.limit(s);
+        return Iterators.transform(s.iterator(), new Function<Entry<Key,Value>,Entry<String,Status>>() {
+
+          @Override
+          public Entry<String,Status> apply(Entry<Key,Value> input) {
+            String file = input.getKey().getRow().toString();
+            Status stat;
+            try {
+              stat = Status.parseFrom(input.getValue().get());
+            } catch (InvalidProtocolBufferException e) {
+              log.warn("Could not deserialize protobuf for: " + input.getKey());
+              stat = null;
+            }
+            return Maps.immutableEntry(file, stat);
+          }
+
+        });
+      } catch (TableNotFoundException e) {
+        // No elements that we need to preclude
+        return Iterators.emptyIterator();
+      }
+    }
+
   }
 
   private void run() {
@@ -521,8 +547,9 @@ public class SimpleGarbageCollector implements Iface {
     }
 
     try {
-      log.debug("Sleeping for " + gcStartDelay + " milliseconds before beginning garbage collection cycles");
-      Thread.sleep(gcStartDelay);
+      long delay = getStartDelay();
+      log.debug("Sleeping for " + delay + " milliseconds before beginning garbage collection cycles");
+      Thread.sleep(delay);
     } catch (InterruptedException e) {
       log.warn(e, e);
       return;
@@ -560,10 +587,22 @@ public class SimpleGarbageCollector implements Iface {
       tStop = System.currentTimeMillis();
       log.info(String.format("Collect cycle took %.2f seconds", ((tStop - tStart) / 1000.0)));
 
+      // We want to prune references to fully-replicated WALs from the replication table which are no longer referenced in the metadata table
+      // before running GarbageCollectWriteAheadLogs to ensure we delete as many files as possible.
+      Span replSpan = Trace.start("replicationClose");
+      try {
+        CloseWriteAheadLogReferences closeWals = new CloseWriteAheadLogReferences(instance, credentials);
+        closeWals.run();
+      } catch (Exception e) {
+        log.error("Error trying to close write-ahead logs for replication table", e);
+      } finally {
+        replSpan.stop();
+      }
+
       // Clean up any unused write-ahead logs
       Span waLogs = Trace.start("walogs");
       try {
-        GarbageCollectWriteAheadLogs walogCollector = new GarbageCollectWriteAheadLogs(instance, fs, useTrash);
+        GarbageCollectWriteAheadLogs walogCollector = new GarbageCollectWriteAheadLogs(instance, fs, isUsingTrash());
         log.info("Beginning garbage collection of write-ahead logs");
         walogCollector.collect(status);
       } catch (Exception e) {
@@ -584,7 +623,7 @@ public class SimpleGarbageCollector implements Iface {
 
       Trace.offNoFlush();
       try {
-        long gcDelay = ServerConfiguration.getSystemConfiguration(instance).getTimeInMillis(Property.GC_CYCLE_DELAY);
+        long gcDelay = config.getTimeInMillis(Property.GC_CYCLE_DELAY);
         log.debug("Sleeping for " + gcDelay + " milliseconds");
         Thread.sleep(gcDelay);
       } catch (InterruptedException e) {
@@ -595,16 +634,16 @@ public class SimpleGarbageCollector implements Iface {
   }
 
   /**
-   * Moves a file to trash. If this garbage collector is not using trash, this
-   * method returns false and leaves the file alone. If the file is missing,
-   * this method returns false as opposed to throwing an exception.
+   * Moves a file to trash. If this garbage collector is not using trash, this method returns false and leaves the file alone. If the file is missing, this
+   * method returns false as opposed to throwing an exception.
    *
    * @param path
    * @return true if the file was moved to trash
-   * @throws IOException if the volume manager encountered a problem
+   * @throws IOException
+   *           if the volume manager encountered a problem
    */
   boolean moveToTrash(Path path) throws IOException {
-    if (!useTrash)
+    if (!isUsingTrash())
       return false;
     try {
       return fs.moveToTrash(path);
@@ -645,15 +684,14 @@ public class SimpleGarbageCollector implements Iface {
   }
 
   private HostAndPort startStatsService() throws UnknownHostException {
-    Processor<Iface> processor = new Processor<Iface>(TraceWrap.service(this));
-    AccumuloConfiguration conf = ServerConfiguration.getSystemConfiguration(instance);
-    int port = conf.getPort(Property.GC_PORT);
-    long maxMessageSize = conf.getMemoryInBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
+    Processor<Iface> processor = new Processor<Iface>(RpcWrapper.service(this));
+    int port = config.getPort(Property.GC_PORT);
+    long maxMessageSize = config.getMemoryInBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
     HostAndPort result = HostAndPort.fromParts(opts.getAddress(), port);
     log.debug("Starting garbage collector listening on " + result);
     try {
-      return TServerUtils.startTServer(result, processor, this.getClass().getSimpleName(), "GC Monitor Service", 2,
-          conf.getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), 1000, maxMessageSize, SslConnectionParams.forServer(conf), 0).address;
+      return TServerUtils.startTServer(result, processor, this.getClass().getSimpleName(), "GC Monitor Service", 2, 
+          config.getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), 1000, maxMessageSize, SslConnectionParams.forServer(config), 0).address;
     } catch (Exception ex) {
       log.fatal(ex, ex);
       throw new RuntimeException(ex);
@@ -663,7 +701,8 @@ public class SimpleGarbageCollector implements Iface {
   /**
    * Checks if the system is almost out of memory.
    *
-   * @param runtime Java runtime
+   * @param runtime
+   *          Java runtime
    * @return true if system is almost out of memory
    * @see #CANDIDATE_MEMORY_PERCENTAGE
    */
@@ -682,11 +721,14 @@ public class SimpleGarbageCollector implements Iface {
   /**
    * Checks if the given string is a directory.
    *
-   * @param delete possible directory
+   * @param delete
+   *          possible directory
    * @return true if string is a directory
    */
   static boolean isDir(String delete) {
-    if (delete == null) { return false; }
+    if (delete == null) {
+      return false;
+    }
     int slashCount = 0;
     for (int i = 0; i < delete.length(); i++)
       if (delete.charAt(i) == '/')

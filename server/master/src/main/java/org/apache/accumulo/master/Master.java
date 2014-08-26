@@ -48,6 +48,7 @@ import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
@@ -60,6 +61,7 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.NamespacePermission;
@@ -75,13 +77,17 @@ import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.master.metrics.ReplicationMetrics;
 import org.apache.accumulo.master.recovery.RecoveryManager;
+import org.apache.accumulo.master.replication.MasterReplicationCoordinator;
+import org.apache.accumulo.master.replication.ReplicationDriver;
+import org.apache.accumulo.master.replication.WorkDriver;
 import org.apache.accumulo.master.state.TableCounts;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -102,6 +108,7 @@ import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.master.state.ZooStore;
 import org.apache.accumulo.server.master.state.ZooTabletStateStore;
+import org.apache.accumulo.server.replication.ZooKeeperInitialization;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.SystemCredentials;
@@ -111,6 +118,7 @@ import org.apache.accumulo.server.tables.TableObserver;
 import org.apache.accumulo.server.util.DefaultMap;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.MetadataTableUtil;
+import org.apache.accumulo.server.util.RpcWrapper;
 import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.util.TServerUtils.ServerAddress;
 import org.apache.accumulo.server.util.time.SimpleTimer;
@@ -118,7 +126,7 @@ import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.start.classloader.vfs.ContextManager;
-import org.apache.accumulo.trace.instrument.thrift.TraceWrap;
+import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -158,6 +166,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   final VolumeManager fs;
   final private Instance instance;
   final private String hostname;
+  final private Object balancedNotifier = new Object();
   final LiveTServerSet tserverSet;
   final private List<TabletGroupWatcher> watchers = new ArrayList<TabletGroupWatcher>();
   final SecurityOperation security;
@@ -166,6 +175,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   final SortedMap<KeyExtent,TServerInstance> migrations = Collections.synchronizedSortedMap(new TreeMap<KeyExtent,TServerInstance>());
   final EventCoordinator nextEvent = new EventCoordinator();
   final private Object mergeLock = new Object();
+  private ReplicationDriver replicationWorkDriver;
+  private WorkDriver replicationWorkAssigner;
   RecoveryManager recoveryManager = null;
 
   ZooLock masterLock = null;
@@ -211,7 +222,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     if (newState == MasterState.STOP) {
       // Give the server a little time before shutdown so the client
       // thread requesting the stop can return
-      SimpleTimer.getInstance(serverConfig.getConfiguration()).schedule(new Runnable() {
+      SimpleTimer.getInstance(getConfiguration()).schedule(new Runnable() {
         @Override
         public void run() {
           // This frees the main thread and will cause the master to exit
@@ -275,7 +286,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     // introduce unnecessary complexity to try to make the master do it), but be aware
     // that the master is not the only thing that may alter zookeeper before starting.
 
-    if (Accumulo.getAccumuloPersistentVersion(fs) == ServerConstants.PREV_DATA_VERSION) {
+    final int accumuloPersistentVersion = Accumulo.getAccumuloPersistentVersion(fs);
+    if (Accumulo.persistentVersionNeedsUpgrade(accumuloPersistentVersion)) {
       // This Master hasn't started Fate yet, so any outstanding transactions must be from before the upgrade.
       // Change to Guava's Verify once we use Guava 17.
       if (null != fate) {
@@ -286,6 +298,24 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         log.info("Upgrading zookeeper");
 
         IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+        final String zooRoot = ZooUtil.getRoot(instance);
+
+        if (accumuloPersistentVersion == ServerConstants.TWO_DATA_VERSIONS_AGO) {
+          log.debug("Handling updates for version " + ServerConstants.TWO_DATA_VERSIONS_AGO);
+
+          log.debug("Cleaning out remnants of logger role.");
+          zoo.recursiveDelete(zooRoot + "/loggers", NodeMissingPolicy.SKIP);
+          zoo.recursiveDelete(zooRoot + "/dead/loggers", NodeMissingPolicy.SKIP);
+
+          final byte[] zero = new byte[] {'0'};
+          log.debug("Initializing recovery area.");
+          zoo.putPersistentData(zooRoot + Constants.ZRECOVERY, zero, NodeExistsPolicy.SKIP);
+
+          for (String id : zoo.getChildren(zooRoot + Constants.ZTABLES)) {
+            log.debug("Prepping table " + id + " for compaction cancellations.");
+            zoo.putPersistentData(zooRoot + Constants.ZTABLES + "/" + id + Constants.ZTABLE_COMPACT_CANCEL_ID, zero, NodeExistsPolicy.SKIP);
+          }
+        }
 
         // create initial namespaces
         String namespaces = ZooUtil.getRoot(instance) + Constants.ZNAMESPACES;
@@ -345,16 +375,17 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   private final AtomicBoolean upgradeMetadataRunning = new AtomicBoolean(false);
   private final CountDownLatch waitForMetadataUpgrade = new CountDownLatch(1);
 
-  private final ServerConfiguration serverConfig;
+  private final ServerConfigurationFactory serverConfig;
 
   private void upgradeMetadata() {
     // we make sure we're only doing the rest of this method once so that we can signal to other threads that an upgrade wasn't needed.
     if (upgradeMetadataRunning.compareAndSet(false, true)) {
-      if (Accumulo.getAccumuloPersistentVersion(fs) == ServerConstants.PREV_DATA_VERSION) {
+      final int accumuloPersistentVersion = Accumulo.getAccumuloPersistentVersion(fs);
+      if (Accumulo.persistentVersionNeedsUpgrade(accumuloPersistentVersion)) {
         // sanity check that we passed the Fate verification prior to ZooKeeper upgrade, and that Fate still hasn't been started.
         // Change both to use Guava's Verify once we use Guava 17.
         if (!haveUpgradedZooKeeper) {
-          throw new IllegalStateException("We should only attempt to upgrade Accumulo's !METADATA table if we've already upgraded ZooKeeper. Please save all logs and file a bug.");
+          throw new IllegalStateException("We should only attempt to upgrade Accumulo's metadata table if we've already upgraded ZooKeeper. Please save all logs and file a bug.");
         }
         if (null != fate) {
           throw new IllegalStateException("Access to Fate should not have been initialized prior to the Master finishing upgrades. Please save all logs and file a bug.");
@@ -363,10 +394,16 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           @Override
           public void run() {
             try {
-              log.info("Starting to upgrade !METADATA table.");
-              MetadataTableUtil.moveMetaDeleteMarkers(instance, SystemCredentials.get());
+              log.info("Starting to upgrade metadata table.");
+              if (accumuloPersistentVersion == ServerConstants.TWO_DATA_VERSIONS_AGO) {
+                log.info("Updating Delete Markers in metadata table for version 1.4");
+                MetadataTableUtil.moveMetaDeleteMarkersFrom14(instance, SystemCredentials.get());
+              } else {
+                log.info("Updating Delete Markers in metadata table.");
+                MetadataTableUtil.moveMetaDeleteMarkers(instance, SystemCredentials.get());
+              }
               log.info("Updating persistent data version.");
-              Accumulo.updateAccumuloVersion(fs);
+              Accumulo.updateAccumuloVersion(fs, accumuloPersistentVersion);
               log.info("Upgrade complete");
               waitForMetadataUpgrade.countDown();
             } catch (Exception ex) {
@@ -465,7 +502,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     return instance.getConnector(SystemCredentials.get().getPrincipal(), SystemCredentials.get().getToken());
   }
 
-  private Master(ServerConfiguration config, VolumeManager fs, String hostname) throws IOException {
+  private Master(ServerConfigurationFactory config, VolumeManager fs, String hostname) throws IOException {
     this.serverConfig = config;
     this.instance = config.getInstance();
     this.fs = fs;
@@ -485,7 +522,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       AccumuloVFSClassLoader.getContextManager().setContextConfig(new ContextManager.DefaultContextsConfig(new Iterable<Entry<String,String>>() {
         @Override
         public Iterator<Entry<String,String>> iterator() {
-          return getSystemConfiguration().iterator();
+          return getConfiguration().iterator();
         }
       }));
     } catch (IOException e) {
@@ -690,7 +727,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       while (stillMaster()) {
         if (!migrations.isEmpty()) {
           try {
-            cleanupMutations();
+            cleanupOfflineMigrations();
+            cleanupNonexistentMigrations(getConnector());
           } catch (Exception ex) {
             log.error("Error cleaning up migrations", ex);
           }
@@ -699,12 +737,13 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       }
     }
 
-    // If a migrating tablet splits, and the tablet dies before sending the
-    // master a message, the migration will refer to a non-existing tablet,
-    // so it can never complete. Periodically scan the metadata table and
-    // remove any migrating tablets that no longer exist.
-    private void cleanupMutations() throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-      Connector connector = getConnector();
+    /**
+     * If a migrating tablet splits, and the tablet dies before sending the
+     * master a message, the migration will refer to a non-existing tablet,
+     * so it can never complete. Periodically scan the metadata table and
+     * remove any migrating tablets that no longer exist.
+     */
+    private void cleanupNonexistentMigrations(final Connector connector) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
       Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
       TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       Set<KeyExtent> found = new HashSet<KeyExtent>();
@@ -715,6 +754,21 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         }
       }
       migrations.keySet().retainAll(found);
+    }
+
+    /**
+     * If migrating a tablet for a table that is offline, the migration
+     * can never succeed because no tablet server will load the tablet.
+     * check for offline tables and remove their migrations.
+     */
+    private void cleanupOfflineMigrations() {
+      TableManager manager = TableManager.getInstance();
+      for (String tableId : Tables.getIdToNameMap(instance).keySet()) {
+        TableState state = manager.getTableState(tableId);
+        if (TableState.OFFLINE == state) {
+          clearMigrations(tableId);
+        }
+      }
     }
   }
 
@@ -820,7 +874,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       TServerInstance instance = null;
       int crazyHoldTime = 0;
       int someHoldTime = 0;
-      final long maxWait = getSystemConfiguration().getTimeInMillis(Property.TSERV_HOLD_TIME_SUICIDE);
+      final long maxWait = getConfiguration().getTimeInMillis(Property.TSERV_HOLD_TIME_SUICIDE);
       for (Entry<TServerInstance,TabletServerStatus> entry : tserverStatus.entrySet()) {
         if (entry.getValue().getHoldTime() > 0) {
           someHoldTime++;
@@ -861,6 +915,10 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       }
       if (migrationsOut.size() > 0) {
         nextEvent.event("Migrating %d more tablets, %d total", migrationsOut.size(), migrations.size());
+      } else {
+        synchronized (balancedNotifier) {
+          balancedNotifier.notifyAll();
+        }
       }
       return wait;
     }
@@ -929,7 +987,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
     tserverSet.startListeningForTabletServerChanges();
 
-    ZooReaderWriter.getInstance().getChildren(zroot + Constants.ZRECOVERY, new Watcher() {
+    ZooReaderWriter zReaderWriter = ZooReaderWriter.getInstance();
+
+    zReaderWriter.getChildren(zroot + Constants.ZRECOVERY, new Watcher() {
       @Override
       public void process(WatchedEvent event) {
         nextEvent.event("Noticed recovery changes", event.getType());
@@ -957,12 +1017,12 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       final AgeOffStore<Master> store = new AgeOffStore<Master>(new org.apache.accumulo.fate.ZooStore<Master>(ZooUtil.getRoot(instance) + Constants.ZFATE,
           ZooReaderWriter.getRetryingInstance()), 1000 * 60 * 60 * 8);
 
-      int threads = this.getConfiguration().getConfiguration().getCount(Property.MASTER_FATE_THREADPOOL_SIZE);
+      int threads = getConfiguration().getCount(Property.MASTER_FATE_THREADPOOL_SIZE);
 
       fate = new Fate<Master>(this, store);
       fate.startTransactionRunners(threads);
 
-      SimpleTimer.getInstance(serverConfig.getConfiguration()).schedule(new Runnable() {
+      SimpleTimer.getInstance(getConfiguration()).schedule(new Runnable() {
 
         @Override
         public void run() {
@@ -975,8 +1035,10 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       throw new IOException(e);
     }
 
-    Processor<Iface> processor = new Processor<Iface>(TraceWrap.service(new MasterClientServiceHandler(this)));
-    ServerAddress sa = TServerUtils.startServer(getSystemConfiguration(), hostname, Property.MASTER_CLIENTPORT, processor, "Master",
+    ZooKeeperInitialization.ensureZooKeeperInitialized(zReaderWriter, zroot);
+
+    Processor<Iface> processor = new Processor<Iface>(RpcWrapper.service(new MasterClientServiceHandler(this)));
+    ServerAddress sa = TServerUtils.startServer(getConfiguration(), hostname, Property.MASTER_CLIENTPORT, processor, "Master",
         "Master Client Service Handler", null, Property.MASTER_MINTHREADS, Property.MASTER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
     clientService = sa.server;
     String address = sa.address.toString();
@@ -986,6 +1048,41 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     while (!clientService.isServing()) {
       UtilWaitThread.sleep(100);
     }
+
+    // Start the daemon to scan the replication table and make units of work
+    replicationWorkDriver = new ReplicationDriver(this);
+    replicationWorkDriver.start();
+
+    // Start the daemon to assign work to tservers to replicate to our peers
+    try {
+      replicationWorkAssigner = new WorkDriver(this, getConnector());
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      log.error("Caught exception trying to initialize replication WorkDriver", e);
+      throw new RuntimeException(e);
+    }
+    replicationWorkAssigner.start();
+
+    // Start the replication coordinator which assigns tservers to service replication requests
+    ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor = new ReplicationCoordinator.Processor<ReplicationCoordinator.Iface>(
+        RpcWrapper.service(new MasterReplicationCoordinator(this)));
+    ServerAddress replAddress = TServerUtils.startServer(getConfiguration(), hostname, Property.MASTER_REPLICATION_COORDINATOR_PORT,
+        replicationCoordinatorProcessor, "Master Replication Coordinator", "Replication Coordinator", null, Property.MASTER_REPLICATION_COORDINATOR_MINTHREADS,
+        Property.MASTER_REPLICATION_COORDINATOR_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
+
+    log.info("Started replication coordinator service at " + replAddress.address);
+
+    // Advertise that port we used so peers don't have to be told what it is
+    ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instance) + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR,
+        replAddress.address.toString().getBytes(StandardCharsets.UTF_8), NodeExistsPolicy.OVERWRITE);
+
+    final SystemCredentials creds = SystemCredentials.get();
+    try {
+      ReplicationMetrics beanImpl = new ReplicationMetrics(this.instance.getConnector(creds.getPrincipal(), creds.getToken()));
+      beanImpl.register();
+    } catch (Exception e) {
+      log.error("Error registering Replication metrics with JMX", e);
+    }
+
     while (clientService.isServing()) {
       UtilWaitThread.sleep(500);
     }
@@ -994,6 +1091,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
     final long deadline = System.currentTimeMillis() + MAX_CLEANUP_WAIT_TIME;
     statusThread.join(remaining(deadline));
+    replicationWorkAssigner.join(remaining(deadline));
+    replicationWorkDriver.join(remaining(deadline));
+    replAddress.server.stop();
 
     // quit, even if the tablet servers somehow jam up and the watchers
     // don't stop
@@ -1068,7 +1168,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   private void getMasterLock(final String zMasterLoc) throws KeeperException, InterruptedException {
     log.info("trying to get master lock");
 
-    final String masterClientAddress = hostname + ":" + getSystemConfiguration().getPort(Property.MASTER_CLIENTPORT);
+    final String masterClientAddress = hostname + ":" + getConfiguration().getPort(Property.MASTER_CLIENTPORT);
 
     while (true) {
 
@@ -1096,14 +1196,14 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
   public static void main(String[] args) throws Exception {
     try {
-      SecurityUtil.serverLogin(ServerConfiguration.getSiteConfiguration());
+      SecurityUtil.serverLogin(SiteConfiguration.getInstance());
 
       VolumeManager fs = VolumeManagerImpl.get();
       ServerOpts opts = new ServerOpts();
       opts.parseArgs("master", args);
       String hostname = opts.getAddress();
       Instance instance = HdfsZooInstance.getInstance();
-      ServerConfiguration conf = new ServerConfiguration(instance);
+      ServerConfigurationFactory conf = new ServerConfigurationFactory(instance);
       Accumulo.init(fs, conf, "master");
       Master master = new Master(conf, fs, hostname);
       Accumulo.enableTracing(hostname, "master");
@@ -1182,6 +1282,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   @Override
   public void stateChanged(String tableId, TableState state) {
     nextEvent.event("Table state in zookeeper changed for %s to %s", tableId, state);
+    if (TableState.OFFLINE == state) {
+      clearMigrations(tableId);
+    }
   }
 
   @Override
@@ -1240,11 +1343,11 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     return this.instance;
   }
 
-  public AccumuloConfiguration getSystemConfiguration() {
+  public AccumuloConfiguration getConfiguration() {
     return serverConfig.getConfiguration();
   }
 
-  public ServerConfiguration getConfiguration() {
+  public ServerConfigurationFactory getConfigurationFactory() {
     return serverConfig;
   }
 
@@ -1263,6 +1366,20 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       if (getMasterState().equals(MasterState.STOP)) {
         setMasterState(MasterState.UNLOAD_ROOT_TABLET);
       }
+    }
+  }
+
+  public void waitForBalance(TInfo tinfo) {
+    synchronized (balancedNotifier) {
+      long eventCounter;
+      do {
+        eventCounter = nextEvent.waitForEvents(0, 0);
+        try {
+          balancedNotifier.wait();
+        } catch (InterruptedException e) {
+          log.debug(e.toString(), e);
+        }
+      } while (displayUnassigned() > 0 || migrations.size() > 0 || eventCounter != nextEvent.waitForEvents(0, 0));
     }
   }
 }

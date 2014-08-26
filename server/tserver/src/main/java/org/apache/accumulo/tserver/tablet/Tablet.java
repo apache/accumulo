@@ -73,6 +73,10 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
+import org.apache.accumulo.core.protobuf.ProtobufUtil;
+import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
+import org.apache.accumulo.core.replication.StatusUtil;
+import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.Credentials;
@@ -99,6 +103,7 @@ import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.accumulo.server.util.FileUtil;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
+import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.server.util.TabletOperations;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
@@ -209,6 +214,7 @@ public class Tablet implements TabletCommitter {
 
   private byte[] defaultSecurityLabel = new byte[0];
 
+
   private long lastMinorCompactionFinishTime = 0;
   private long lastMapFileImportTime = 0;
 
@@ -261,7 +267,7 @@ public class Tablet implements TabletCommitter {
   }
 
   /**
-   * Only visibile for testing
+   * Only visible for testing
    */
   @VisibleForTesting
   protected Tablet(TabletTime tabletTime, String tabletDirectory, int logId, Path location, DatafileManager datafileManager, TabletServer tabletServer,
@@ -346,7 +352,6 @@ public class Tablet implements TabletCommitter {
       mdScanner.setRange(new Range(rowName));
 
       for (Entry<Key,Value> entry : mdScanner) {
-
         if (entry.getKey().compareRow(rowName) != 0) {
           break;
         }
@@ -430,8 +435,8 @@ public class Tablet implements TabletCommitter {
   }
   
   public Tablet(TabletServer tabletServer, KeyExtent extent, Text location, TabletResourceManager trm, SortedMap<Key,Value> tabletsKeyValues) throws IOException {
-    this(tabletServer, extent, location, trm, lookupLogEntries(extent, tabletsKeyValues), lookupDatafiles(tabletServer.getSystemConfiguration(), tabletServer.getFileSystem(),
-        extent, tabletsKeyValues), lookupTime(tabletServer.getSystemConfiguration(), extent, tabletsKeyValues), lookupLastServer(extent, tabletsKeyValues),
+    this(tabletServer, extent, location, trm, lookupLogEntries(extent, tabletsKeyValues), lookupDatafiles(tabletServer.getConfiguration(), tabletServer.getFileSystem(),
+        extent, tabletsKeyValues), lookupTime(tabletServer.getConfiguration(), extent, tabletsKeyValues), lookupLastServer(extent, tabletsKeyValues),
         lookupScanFiles(extent, tabletsKeyValues, tabletServer.getFileSystem()), lookupFlushID(extent, tabletsKeyValues), lookupCompactID(extent, tabletsKeyValues));
   }
 
@@ -442,7 +447,7 @@ public class Tablet implements TabletCommitter {
       final TServerInstance lastLocation, Set<FileRef> scanFiles, long initFlushID, long initCompactID) throws IOException {
 
     TabletFiles tabletPaths = VolumeUtil.updateTabletVolumes(tabletServer.getLock(), tabletServer.getFileSystem(), extent, new TabletFiles(location.toString(), rawLogEntries,
-        rawDatafiles));
+        rawDatafiles), ReplicationConfigurationUtil.isEnabled(extent, tabletServer.getTableConfiguration(extent)));
 
     Path locationPath;
 
@@ -549,7 +554,9 @@ public class Tablet implements TabletCommitter {
     configObserver.propertiesChanged();
 
     if (!logEntries.isEmpty()) {
-      log.info("Starting Write-Ahead Log recovery for " + extent);
+      log.info("Starting Write-Ahead Log recovery for " + this.extent);
+      // count[0] = entries used on tablet
+      // count[1] = track max time from walog entries wihtout timestamps
       final long[] count = new long[2];
       final CommitSession commitSession = getTabletMemory().getCommitSession();
       count[1] = Long.MIN_VALUE;
@@ -581,8 +588,27 @@ public class Tablet implements TabletCommitter {
         commitSession.updateMaxCommittedTime(tabletTime.getTime());
 
         if (count[0] == 0) {
+          log.debug("No replayed mutations applied, removing unused entries for " + extent);
           MetadataTableUtil.removeUnusedWALEntries(extent, logEntries, tabletServer.getLock());
+
+          // Ensure that we write a record marking each WAL as requiring replication to make sure we don't abandon the data
+          if (ReplicationConfigurationUtil.isEnabled(extent, tabletServer.getTableConfiguration(extent))) {
+            Status status = StatusUtil.fileClosed();
+            for (LogEntry logEntry : logEntries) {
+              log.debug("Writing closed status to metadata table for " + logEntry.logSet + " " + ProtobufUtil.toString(status));
+              ReplicationTableUtil.updateFiles(SystemCredentials.get(), extent, logEntry.logSet, status);
+            }
+          }
+
           logEntries.clear();
+        } else if (ReplicationConfigurationUtil.isEnabled(extent, tabletServer.getTableConfiguration(extent))) {
+          // The logs are about to be re-used, we need to record that they have data for this extent,
+          // but that they may get more data
+          Status status = StatusUtil.openWithUnknownLength();
+          for (LogEntry logEntry : logEntries) {
+            log.debug("Writing updated status to metadata table for " + logEntry.logSet + " " + ProtobufUtil.toString(status));
+            ReplicationTableUtil.updateFiles(SystemCredentials.get(), extent, logEntry.logSet, status);
+          }
         }
 
       } catch (Throwable t) {
@@ -596,7 +622,7 @@ public class Tablet implements TabletCommitter {
       currentLogs = new HashSet<DfsLogger>();
       for (LogEntry logEntry : logEntries) {
         for (String log : logEntry.logSet) {
-          currentLogs.add(new DfsLogger(tabletServer.getServerConfig(), log));
+          currentLogs.add(new DfsLogger(tabletServer.getServerConfig(), log, logEntry.getColumnQualifier().toString()));
         }
       }
 
@@ -946,7 +972,10 @@ public class Tablet implements TabletCommitter {
     otherLogs = currentLogs;
     currentLogs = new HashSet<DfsLogger>();
 
-    FileRef mergeFile = getDatafileManager().reserveMergingMinorCompactionFile();
+    FileRef mergeFile = null;
+    if (mincReason != MinorCompactionReason.RECOVERY) {
+      mergeFile = getDatafileManager().reserveMergingMinorCompactionFile();
+    }
 
     return new MinorCompactionTask(this, mergeFile, oldCommitSession, flushId, mincReason);
 
@@ -1061,13 +1090,6 @@ public class Tablet implements TabletCommitter {
             logMessage.append(" tabletMemory.getMemTable().getNumEntries() " + getTabletMemory().getMemTable().getNumEntries());
           logMessage.append(" updatingFlushID " + updatingFlushID);
 
-          return null;
-        }
-        // We're still recovering log entries
-        if (getDatafileManager() == null) {
-          logMessage = new StringBuilder();
-          logMessage.append(extent.toString());
-          logMessage.append(" datafileManager " + getDatafileManager());
           return null;
         }
 
@@ -1319,12 +1341,12 @@ public class Tablet implements TabletCommitter {
 
       // determines if inserts and queries can still continue while minor compacting
       if (disableWrites) {
-        closeState = CloseState.CLOSING;
+        closeState = CloseState.CLOSED;
       }
 
       // wait for major compactions to finish, setting closing to
       // true should cause any running major compactions to abort
-      while (majorCompactionRunning()) {
+      while (isMajorCompactionRunning()) {
         try {
           this.wait(50);
         } catch (InterruptedException e) {
@@ -1510,7 +1532,7 @@ public class Tablet implements TabletCommitter {
 
   public synchronized boolean initiateMajorCompaction(MajorCompactionReason reason) {
 
-    if (isClosing() || isClosed() || !needsMajorCompaction(reason) || majorCompactionRunning() || majorCompactionQueued.contains(reason)) {
+    if (isClosing() || isClosed() || !needsMajorCompaction(reason) || isMajorCompactionRunning() || majorCompactionQueued.contains(reason)) {
       return false;
     }
 
@@ -1526,7 +1548,7 @@ public class Tablet implements TabletCommitter {
    * 
    */
   public boolean needsMajorCompaction(MajorCompactionReason reason) {
-    if (majorCompactionRunning())
+    if (isMajorCompactionRunning())
       return false;
     if (reason == MajorCompactionReason.CHOP || reason == MajorCompactionReason.USER)
       return true;
@@ -1534,7 +1556,7 @@ public class Tablet implements TabletCommitter {
   }
 
   /**
-   * Returns an int representing the total block size of the f served by this tablet.
+   * Returns an int representing the total block size of the files served by this tablet.
    * 
    * @return size
    */
@@ -1560,6 +1582,8 @@ public class Tablet implements TabletCommitter {
     // check to see if we're big enough to split
 
     long splitThreshold = tableConfiguration.getMemoryInBytes(Property.TABLE_SPLIT_THRESHOLD);
+    long maxEndRow = tableConfiguration.getMemoryInBytes(Property.TABLE_MAX_END_ROW_SIZE);
+
     if (extent.isRootTablet() || estimateTabletSize() <= splitThreshold) {
       return null;
     }
@@ -1579,7 +1603,8 @@ public class Tablet implements TabletCommitter {
 
     try {
       // we should make .25 below configurable
-      keys = FileUtil.findMidPoint(getTabletServer().getFileSystem(), getTabletServer().getSystemConfiguration(), extent.getPrevEndRow(), extent.getEndRow(), FileUtil.toPathStrings(files), .25);
+      keys = FileUtil.findMidPoint(getTabletServer().getFileSystem(), getTabletServer().getConfiguration(), extent.getPrevEndRow(), extent.getEndRow(),
+          FileUtil.toPathStrings(files), .25);
     } catch (IOException e) {
       log.error("Failed to find midpoint " + e.getMessage());
       return null;
@@ -1590,16 +1615,31 @@ public class Tablet implements TabletCommitter {
 
       Text lastRow;
       if (extent.getEndRow() == null) {
-        Key lastKey = (Key) FileUtil.findLastKey(getTabletServer().getFileSystem(), getTabletServer().getSystemConfiguration(), files);
+        Key lastKey = (Key) FileUtil.findLastKey(getTabletServer().getFileSystem(), getTabletServer().getConfiguration(), files);
         lastRow = lastKey.getRow();
       } else {
         lastRow = extent.getEndRow();
       }
 
+      // We expect to get a midPoint for this set of files. If we don't get one, we have a problem.
+      final Key mid = keys.get(.5);
+      if (null == mid) {
+        throw new IllegalStateException("Could not determine midpoint for files");
+      }
+
       // check to see that the midPoint is not equal to the end key
-      if (keys.get(.5).compareRow(lastRow) == 0) {
+      if (mid.compareRow(lastRow) == 0) {
         if (keys.firstKey() < .5) {
           Key candidate = keys.get(keys.firstKey());
+          if (candidate.getLength() > maxEndRow) {
+            log.warn("Cannot split tablet " + extent + ", selected split point too long.  Length :  " + candidate.getLength());
+
+            sawBigRow = true;
+            timeOfLastMinCWhenBigFreakinRowWasSeen = lastMinorCompactionFinishTime;
+            timeOfLastImportWhenBigFreakinRowWasSeen = lastMapFileImportTime;
+
+            return null;
+          }
           if (candidate.compareRow(lastRow) != 0) {
             // we should use this ratio in split size estimations
             if (log.isTraceEnabled())
@@ -1617,8 +1657,8 @@ public class Tablet implements TabletCommitter {
 
         return null;
       }
-      Key mid = keys.get(.5);
-      Text text = (mid == null) ? null : mid.getRow();
+
+      Text text = mid.getRow();
       SortedMap<Double,Key> firstHalf = keys.headMap(.5);
       if (firstHalf.size() > 0) {
         Text beforeMid = firstHalf.get(firstHalf.lastKey()).getRow();
@@ -1627,12 +1667,24 @@ public class Tablet implements TabletCommitter {
         shorter.set(text.getBytes(), 0, Math.min(text.getLength(), trunc + 1));
         text = shorter;
       }
+
+      if (text.getLength() > maxEndRow) {
+        log.warn("Cannot split tablet " + extent + ", selected split point too long.  Length :  " + text.getLength());
+
+        sawBigRow = true;
+        timeOfLastMinCWhenBigFreakinRowWasSeen = lastMinorCompactionFinishTime;
+        timeOfLastImportWhenBigFreakinRowWasSeen = lastMapFileImportTime;
+
+        return null;
+      }
+
       return new SplitRowSpec(.5, text);
     } catch (IOException e) {
       // don't split now, but check again later
       log.error("Failed to find lastkey " + e.getMessage());
       return null;
     }
+
   }
 
   private static int longestCommonLength(Text text, Text beforeMid) {
@@ -1695,14 +1747,9 @@ public class Tablet implements TabletCommitter {
    * 
    */
   public synchronized boolean needsSplit() {
-    boolean ret;
-
     if (isClosing() || isClosed())
-      ret = false;
-    else
-      ret = findSplitRow(getDatafileManager().getFiles()) != null;
-
-    return ret;
+      return false;
+    return findSplitRow(getDatafileManager().getFiles()) != null;
   }
 
   // BEGIN PRIVATE METHODS RELATED TO MAJOR COMPACTION
@@ -1972,7 +2019,7 @@ public class Tablet implements TabletCommitter {
         // check that compaction is still needed - defer to splitting
         majorCompactionQueued.remove(reason);
 
-        if (isClosing() || isClosed ()|| !needsMajorCompaction(reason) || majorCompactionRunning() || needsSplit()) {
+        if (isClosing() || isClosed ()|| !needsMajorCompaction(reason) || isMajorCompactionRunning() || needsSplit()) {
           return null;
         }
 
@@ -1988,11 +2035,9 @@ public class Tablet implements TabletCommitter {
         success = true;
       } catch (CompactionCanceledException mcce) {
         log.debug("Major compaction canceled, extent = " + getExtent());
-        throw new RuntimeException(mcce);
       } catch (Throwable t) {
         log.error("MajC Failed, extent = " + getExtent());
         log.error("MajC Failed, message = " + (t.getMessage() == null ? t.getClass().getName() : t.getMessage()), t);
-        throw new RuntimeException(t);
       } finally {
         // ensure we always reset boolean, even
         // when an exception is thrown
@@ -2063,8 +2108,8 @@ public class Tablet implements TabletCommitter {
     return closeState == CloseState.COMPLETE;
   }
 
-  public boolean majorCompactionRunning() {
-    return majorCompactionState == CompactionState.IN_PROGRESS;
+  public boolean isMajorCompactionRunning() {
+    return majorCompactionState != null;
   }
 
   public boolean isMinorCompactionQueued() {
@@ -2080,9 +2125,15 @@ public class Tablet implements TabletCommitter {
   }
 
   public TreeMap<KeyExtent,SplitInfo> split(byte[] sp) throws IOException {
-
+	  
     if (sp != null && extent.getEndRow() != null && extent.getEndRow().equals(new Text(sp))) {
       throw new IllegalArgumentException();
+    }
+    
+    if (sp != null && sp.length > tableConfiguration.getMemoryInBytes(Property.TABLE_MAX_END_ROW_SIZE)) {
+      String msg = "Cannot split tablet " + extent + ", selected split point too long.  Length :  " + sp.length;
+      log.warn(msg);
+      throw new IOException(msg);
     }
 
     if (extent.isRootTablet()) {
@@ -2103,21 +2154,20 @@ public class Tablet implements TabletCommitter {
     // this info is used for optimization... it is ok if map files are missing
     // from the set... can still query and insert into the tablet while this
     // map file operation is happening
-    Map<FileRef,FileUtil.FileInfo> firstAndLastRows = FileUtil.tryToGetFirstAndLastRows(getTabletServer().getFileSystem(), getTabletServer().getSystemConfiguration(), getDatafileManager().getFiles());
+    Map<FileRef,FileUtil.FileInfo> firstAndLastRows = FileUtil.tryToGetFirstAndLastRows(getTabletServer().getFileSystem(), getTabletServer().getConfiguration(), getDatafileManager().getFiles());
 
     synchronized (this) {
       // java needs tuples ...
       TreeMap<KeyExtent,SplitInfo> newTablets = new TreeMap<KeyExtent,SplitInfo>();
 
       long t1 = System.currentTimeMillis();
-
       // choose a split point
       SplitRowSpec splitPoint;
       if (sp == null)
         splitPoint = findSplitRow(getDatafileManager().getFiles());
       else {
         Text tsp = new Text(sp);
-        splitPoint = new SplitRowSpec(FileUtil.estimatePercentageLTE(getTabletServer().getFileSystem(), getTabletServer().getSystemConfiguration(), extent.getPrevEndRow(), extent.getEndRow(),
+        splitPoint = new SplitRowSpec(FileUtil.estimatePercentageLTE(getTabletServer().getFileSystem(), getTabletServer().getConfiguration(), extent.getPrevEndRow(), extent.getEndRow(),
             FileUtil.toPathStrings(getDatafileManager().getFiles()), tsp), tsp);
       }
 
@@ -2126,7 +2176,7 @@ public class Tablet implements TabletCommitter {
         closeState = CloseState.OPEN;
         return null;
       }
-
+      
       closeState = CloseState.CLOSING;
       completeClose(true, false);
 
@@ -2237,7 +2287,7 @@ public class Tablet implements TabletCommitter {
 
       // TODO check seems uneeded now - ACCUMULO-1291
       long lockWait = System.currentTimeMillis() - now;
-      if (lockWait > getTabletServer().getSystemConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT)) {
+      if (lockWait > getTabletServer().getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT)) {
         throw new IOException("Timeout waiting " + (lockWait / 1000.) + " seconds to get tablet lock");
       }
 
@@ -2270,12 +2320,10 @@ public class Tablet implements TabletCommitter {
 
   private Set<DfsLogger> currentLogs = new HashSet<DfsLogger>();
 
-  public Set<String> getCurrentLogFiles() {
+  public synchronized Set<String> getCurrentLogFiles() {
     Set<String> result = new HashSet<String>();
-    synchronized (currentLogs) {
-      for (DfsLogger log : currentLogs) {
-        result.add(log.getFileName());
-      }
+    for (DfsLogger log : currentLogs) {
+      result.add(log.getFileName());
     }
     return result;
   }
@@ -2295,12 +2343,12 @@ public class Tablet implements TabletCommitter {
 
       for (DfsLogger logger : otherLogs) {
         otherLogsCopy.add(logger.toString());
-        doomed.add(logger.toString());
+        doomed.add(logger.getMeta());
       }
 
       for (DfsLogger logger : currentLogs) {
         currentLogsCopy.add(logger.toString());
-        doomed.remove(logger.toString());
+        doomed.remove(logger.getMeta());
       }
 
       otherLogs = Collections.emptySet();
@@ -2316,6 +2364,10 @@ public class Tablet implements TabletCommitter {
 
     for (String logger : currentLogsCopy) {
       log.debug("Logs for current memory: " + getExtent() + " " + logger);
+    }
+
+    for (String logger : doomed) {
+      log.debug("Logs to be destroyed: " + getExtent() + " " + logger);
     }
 
     return doomed;
@@ -2427,7 +2479,7 @@ public class Tablet implements TabletCommitter {
       if (lastCompactID >= compactionId)
         return;
 
-      if (isClosing() || isClosed() || majorCompactionQueued.contains(MajorCompactionReason.USER) || majorCompactionRunning())
+      if (isClosing() || isClosed() || majorCompactionQueued.contains(MajorCompactionReason.USER) || isMajorCompactionRunning())
         return;
 
       if (getDatafileManager().getDatafileSizes().size() == 0) {
@@ -2542,7 +2594,7 @@ public class Tablet implements TabletCommitter {
     return activeScans.size();
   }
 
-  public void setLastCompactionID(Long compactionId) {
+  synchronized public void setLastCompactionID(Long compactionId) {
     if (compactionId != null)
       this.lastCompactID = compactionId;
   }
@@ -2562,10 +2614,6 @@ public class Tablet implements TabletCommitter {
 
   public void minorCompactionComplete() {
     minorCompactionState = null;
-  }
-
-  public boolean isMajorCompactionRunning() {
-    return majorCompactionState == CompactionState.IN_PROGRESS;
   }
 
   public TabletStats getTabletStats() {

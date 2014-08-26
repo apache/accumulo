@@ -32,8 +32,11 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
+import org.apache.commons.lang.NotImplementedException;
+import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 
 /**
@@ -41,6 +44,8 @@ import org.apache.thrift.TException;
  * designed for performance, do not use on production systems. I'm calling it the LokiLoadBalancer.
  */
 public class ChaoticLoadBalancer extends TabletBalancer {
+  private static final Logger log = Logger.getLogger(ChaoticLoadBalancer.class);
+  
   Random r = new Random();
   
   @Override
@@ -75,6 +80,8 @@ public class ChaoticLoadBalancer extends TabletBalancer {
     }
   }
   
+  protected final OutstandingMigrations outstandingMigrations = new OutstandingMigrations(log);
+
   /**
    * Will balance randomly, maintaining distribution
    */
@@ -82,10 +89,14 @@ public class ChaoticLoadBalancer extends TabletBalancer {
   public long balance(SortedMap<TServerInstance,TabletServerStatus> current, Set<KeyExtent> migrations, List<TabletMigration> migrationsOut) {
     Map<TServerInstance,Long> numTablets = new HashMap<TServerInstance,Long>();
     List<TServerInstance> underCapacityTServer = new ArrayList<TServerInstance>();
-    
-    if (!migrations.isEmpty())
+
+    if (!migrations.isEmpty()) {
+      outstandingMigrations.migrations = migrations;
+      constraintNotMet(outstandingMigrations);
       return 100;
-    
+    }
+    resetBalancerErrors();
+
     boolean moveMetadata = r.nextInt(4) == 0;
     long totalTablets = 0;
     for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
@@ -124,10 +135,10 @@ public class ChaoticLoadBalancer extends TabletBalancer {
           }
         } catch (ThriftSecurityException e1) {
           // Shouldn't happen, but carry on if it does
-          e1.printStackTrace();
+          log.debug("Encountered ThriftSecurityException.  This should not happen.  Carrying on anyway.", e1);
         } catch (TException e1) {
           // Shouldn't happen, but carry on if it does
-          e1.printStackTrace();
+          log.debug("Encountered TException.  This should not happen.  Carrying on anyway.", e1);
         }
       }
     }
@@ -137,7 +148,11 @@ public class ChaoticLoadBalancer extends TabletBalancer {
   
   @Override
   public void init(ServerConfiguration conf) {
-    super.init(conf);
+    throw new NotImplementedException();
+  }
+
+  @Override
+  public void init(ServerConfigurationFactory conf) {
   }
   
 }

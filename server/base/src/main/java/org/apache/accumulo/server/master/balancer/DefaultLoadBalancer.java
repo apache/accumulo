@@ -86,7 +86,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
   
   static class ServerCounts implements Comparable<ServerCounts> {
     public final TServerInstance server;
-    public final int count;
+    public int count;
     public final TabletServerStatus status;
     
     ServerCounts(int count, TServerInstance server, TabletServerStatus status) {
@@ -110,6 +110,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
       if (current.size() < 2) {
         return false;
       }
+      final Map<String,Map<KeyExtent,TabletStats>> donerTabletStats = new HashMap<String,Map<KeyExtent,TabletStats>>();
       
       // Sort by total number of online tablets, per server
       int total = 0;
@@ -143,7 +144,8 @@ public class DefaultLoadBalancer extends TabletBalancer {
       // under-loaded servers.
       int end = totals.size() - 1;
       int movedAlready = 0;
-      for (int tooManyIndex = 0; tooManyIndex < totals.size(); tooManyIndex++) {
+      int tooManyIndex = 0;
+      while (tooManyIndex < end) {
         ServerCounts tooMany = totals.get(tooManyIndex);
         int goal = even;
         if (tooManyIndex < numServersOverEven) {
@@ -156,15 +158,19 @@ public class DefaultLoadBalancer extends TabletBalancer {
           break;
         }
         if (needToUnload >= needToLoad) {
-          result.addAll(move(tooMany, tooLittle, needToLoad));
+          result.addAll(move(tooMany, tooLittle, needToLoad, donerTabletStats));
           end--;
           movedAlready = 0;
         } else {
-          result.addAll(move(tooMany, tooLittle, needToUnload));
+          result.addAll(move(tooMany, tooLittle, needToUnload, donerTabletStats));
           movedAlready += needToUnload;
         }
-        if (needToUnload > needToLoad)
+        if (needToUnload > needToLoad) {
           moreBalancingNeeded = true;
+        } else {
+          tooManyIndex++;
+          donerTabletStats.clear();
+        }
       }
       
     } finally {
@@ -186,13 +192,12 @@ public class DefaultLoadBalancer extends TabletBalancer {
   /**
    * Select a tablet based on differences between table loads; if the loads are even, use the busiest table
    */
-  List<TabletMigration> move(ServerCounts tooMuch, ServerCounts tooLittle, int count) {
+  List<TabletMigration> move(ServerCounts tooMuch, ServerCounts tooLittle, int count, Map<String,Map<KeyExtent,TabletStats>> donerTabletStats) {
     
     List<TabletMigration> result = new ArrayList<TabletMigration>();
     if (count == 0)
       return result;
     
-    Map<String,Map<KeyExtent,TabletStats>> onlineTablets = new HashMap<String,Map<KeyExtent,TabletStats>>();
     // Copy counts so we can update them as we propose migrations
     Map<String,Integer> tooMuchMap = tabletCountsPerTable(tooMuch.status);
     Map<String,Integer> tooLittleMap = tabletCountsPerTable(tooLittle.status);
@@ -224,13 +229,13 @@ public class DefaultLoadBalancer extends TabletBalancer {
         // just balance the given table
         table = tableToBalance;
       }
-      Map<KeyExtent,TabletStats> onlineTabletsForTable = onlineTablets.get(table);
+      Map<KeyExtent,TabletStats> onlineTabletsForTable = donerTabletStats.get(table);
       try {
         if (onlineTabletsForTable == null) {
           onlineTabletsForTable = new HashMap<KeyExtent,TabletStats>();
           for (TabletStats stat : getOnlineTabletsForTable(tooMuch.server, table))
             onlineTabletsForTable.put(new KeyExtent(stat.extent), stat);
-          onlineTablets.put(table, onlineTabletsForTable);
+          donerTabletStats.put(table, onlineTabletsForTable);
         }
       } catch (Exception ex) {
         log.error("Unable to select a tablet to move", ex);
@@ -250,7 +255,8 @@ public class DefaultLoadBalancer extends TabletBalancer {
         tooLittleCount = 0;
       }
       tooLittleMap.put(table, tooLittleCount + 1);
-      
+      tooMuch.count--;
+      tooLittle.count++;
       result.add(new TabletMigration(extent, tooMuch.server, tooLittle.server));
     }
     return result;
@@ -302,16 +308,26 @@ public class DefaultLoadBalancer extends TabletBalancer {
       assignments.put(entry.getKey(), getAssignment(current, entry.getKey(), entry.getValue()));
     }
   }
-  
+
+  private static final NoTservers NO_SERVERS = new NoTservers(log);
+
+  protected final OutstandingMigrations outstandingMigrations = new OutstandingMigrations(log);
+
   @Override
   public long balance(SortedMap<TServerInstance,TabletServerStatus> current, Set<KeyExtent> migrations, List<TabletMigration> migrationsOut) {
     // do we have any servers?
     if (current.size() > 0) {
       // Don't migrate if we have migrations in progress
       if (migrations.size() == 0) {
+        resetBalancerErrors();
         if (getMigrations(current, migrationsOut))
           return 1 * 1000;
+      } else {
+        outstandingMigrations.migrations = migrations;
+        constraintNotMet(outstandingMigrations);
       }
+    } else {
+      constraintNotMet(NO_SERVERS);
     }
     return 5 * 1000;
   }

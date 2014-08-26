@@ -125,6 +125,7 @@
     <!-- overwritten in profiles hadoop-1 or hadoop-2 -->
     <hadoop.version>2.2.0</hadoop.version>
     <httpclient.version>3.1</httpclient.version>
+    <jetty.version>9.1.5.v20140505</jetty.version>
     <!-- the maven-release-plugin makes this recommendation, due to plugin bugs -->
     <maven.min-version>3.0.4</maven.min-version>
     <!-- surefire/failsafe plugin option -->
@@ -135,6 +136,8 @@
     <sealJars>false</sealJars>
     <!-- overwritten in profiles hadoop-1 or hadoop-2 -->
     <slf4j.version>1.7.5</slf4j.version>
+    <!-- Thrift version -->
+    <thrift.version>0.9.1</thrift.version>
     <!-- ZooKeeper 3.4.x works also, but we're not using new features yet; this ensures 3.3.x compatibility. -->
     <zookeeper.version>3.3.6</zookeeper.version>
   </properties>
@@ -154,6 +157,11 @@
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
         <version>15.0</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java</artifactId>
+        <version>2.5.0</version>
       </dependency>
       <dependency>
         <groupId>commons-cli</groupId>
@@ -197,8 +205,8 @@
       </dependency>
       <dependency>
         <groupId>javax.servlet</groupId>
-        <artifactId>servlet-api</artifactId>
-        <version>2.5</version>
+        <artifactId>javax.servlet-api</artifactId>
+        <version>3.1.0</version>
       </dependency>
       <dependency>
         <groupId>javax.ws.rs</groupId>
@@ -391,7 +399,7 @@
       <dependency>
         <groupId>org.apache.thrift</groupId>
         <artifactId>libthrift</artifactId>
-        <version>0.9.0</version>
+        <version>${thrift.version}</version>
         <exclusions>
           <exclusion>
             <groupId>org.apache.httpcomponents</groupId>
@@ -422,6 +430,36 @@
         <groupId>org.easymock</groupId>
         <artifactId>easymock</artifactId>
         <version>3.1</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-http</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-io</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-security</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-server</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-servlet</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-util</artifactId>
+        <version>${jetty.version}</version>
       </dependency>
       <dependency>
         <groupId>org.mortbay.jetty</groupId>
@@ -579,6 +617,8 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-release-plugin</artifactId>
+          <!-- Work around MRELEASE-812 -->
+          <version>2.5</version>
           <configuration>
             <arguments>-P apache-release,thrift,assemble,docs,sunny -Dtimeout.factor=2</arguments>
             <autoVersionSubmodules>true</autoVersionSubmodules>
@@ -644,6 +684,20 @@
           <configuration>
             <lifecycleMappingMetadata>
               <pluginExecutions>
+                <pluginExecution>
+                  <pluginExecutionFilter>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-plugin-plugin</artifactId>
+                    <versionRange>[3.2,)</versionRange>
+                    <goals>
+                      <goal>helpmojo</goal>
+                      <goal>descriptor</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <ignore />
+                  </action>
+                </pluginExecution>
                 <pluginExecution>
                   <pluginExecutionFilter>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -769,6 +823,29 @@
             </lifecycleMappingMetadata>
           </configuration>
         </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-enforcer-plugin</artifactId>
+          <configuration>
+            <rules>
+              <requireMavenVersion>
+                <version>[${maven.min-version},)</version>
+              </requireMavenVersion>
+              <requireProperty>
+                <property>hadoop.profile</property>
+                <regex>(1|2)</regex>
+                <regexMessage>You should specify the Hadoop profile by major Hadoop generation, i.e. 1 or 2, not by a version number.
+  Use hadoop.version to use a particular Hadoop version within that generation. See README for more details.</regexMessage>
+              </requireProperty>
+              <requireProperty>
+                <property>thrift.version</property>
+                <regex>0[.]9[.]1</regex>
+                <regexMessage>Thrift version must be 0.9.1; Any alteration requires a review of ACCUMULO-1691
+                  (See server/base/src/main/java/org/apache/accumulo/server/util/CustomNonBlockingServer.java)</regexMessage>
+              </requireProperty>
+            </rules>
+          </configuration>
+        </plugin>
       </plugins>
     </pluginManagement>
     <plugins>
@@ -795,19 +872,6 @@
             <goals>
               <goal>enforce</goal>
             </goals>
-            <configuration>
-              <rules>
-                <requireMavenVersion>
-                  <version>[${maven.min-version},)</version>
-                </requireMavenVersion>
-                <requireProperty>
-                  <property>hadoop.profile</property>
-                  <regex>(1|2)</regex>
-                  <regexMessage>You should specify the Hadoop profile by major Hadoop generation, i.e. 1 or 2, not by a version number.
-    Use hadoop.version to use a particular Hadoop version within that generation. See README for more details.</regexMessage>
-                </requireProperty>
-              </rules>
-            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -1125,7 +1189,7 @@
       <properties>
         <hadoop.version>1.2.1</hadoop.version>
         <httpclient.version>3.0.1</httpclient.version>
-        <slf4j.version>1.4.3</slf4j.version>
+        <slf4j.version>1.7.5</slf4j.version>
       </properties>
     </profile>
     <!-- profile for building against Hadoop 2.x

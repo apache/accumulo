@@ -94,6 +94,7 @@ import org.apache.zookeeper.KeeperException;
 public class MetadataTableUtil {
 
   private static final Text EMPTY_TEXT = new Text();
+  private static final byte[] EMPTY_BYTES = new byte[0];
   private static Map<Credentials,Writer> root_tables = new HashMap<Credentials,Writer>();
   private static Map<Credentials,Writer> metadata_tables = new HashMap<Credentials,Writer>();
   private static final Logger log = Logger.getLogger(MetadataTableUtil.class);
@@ -965,30 +966,53 @@ public class MetadataTableUtil {
    * During an upgrade we need to move deletion requests for files under the !METADATA table to the root tablet.
    */
   public static void moveMetaDeleteMarkers(Instance instance, Credentials creds) {
-    // move old delete markers to new location, to standardize table schema between all metadata tables
-    byte[] EMPTY_BYTES = new byte[0];
-    Scanner scanner = new ScannerImpl(instance, creds, RootTable.ID, Authorizations.EMPTY);
     String oldDeletesPrefix = "!!~del";
     Range oldDeletesRange = new Range(oldDeletesPrefix, true, "!!~dem", false);
+
+    // move old delete markers to new location, to standardize table schema between all metadata tables
+    Scanner scanner = new ScannerImpl(instance, creds, RootTable.ID, Authorizations.EMPTY);
     scanner.setRange(oldDeletesRange);
     for (Entry<Key,Value> entry : scanner) {
       String row = entry.getKey().getRow().toString();
       if (row.startsWith(oldDeletesPrefix)) {
-        String filename = row.substring(oldDeletesPrefix.length());
-        // add the new entry first
-        log.info("Moving " + filename + " marker in " + RootTable.NAME);
-        Mutation m = new Mutation(MetadataSchema.DeletesSection.getRowPrefix() + filename);
-        m.put(EMPTY_BYTES, EMPTY_BYTES, EMPTY_BYTES);
-        update(creds, m, RootTable.EXTENT);
-        // remove the old entry
-        m = new Mutation(entry.getKey().getRow());
-        m.putDelete(EMPTY_BYTES, EMPTY_BYTES);
-        update(creds, m, RootTable.OLD_EXTENT);
+        moveDeleteEntry(creds, RootTable.OLD_EXTENT, entry, row, oldDeletesPrefix);
       } else {
         break;
       }
     }
 
+  }
+
+  public static void moveMetaDeleteMarkersFrom14(Instance instance, Credentials creds) {
+    // new KeyExtent is only added to force update to write to the metadata table, not the root table
+    KeyExtent notMetadata = new KeyExtent(new Text("anythingNotMetadata"), null, null);
+
+    // move delete markers from the normal delete keyspace to the root tablet delete keyspace if the files are for the !METADATA table
+    Scanner scanner = new ScannerImpl(instance, creds, MetadataTable.ID, Authorizations.EMPTY);
+    scanner.setRange(MetadataSchema.DeletesSection.getRange());
+    for (Entry<Key,Value> entry : scanner) {
+      String row = entry.getKey().getRow().toString();
+      if (row.startsWith(MetadataSchema.DeletesSection.getRowPrefix() + "/" + MetadataTable.ID)) {
+        moveDeleteEntry(creds, notMetadata, entry, row, MetadataSchema.DeletesSection.getRowPrefix());
+      } else {
+        break;
+      }
+    }
+  }
+
+  private static void moveDeleteEntry(Credentials creds, KeyExtent oldExtent, Entry<Key,Value> entry, String rowID, String prefix) {
+    String filename = rowID.substring(prefix.length());
+
+    // add the new entry first
+    log.info("Moving " + filename + " marker in " + RootTable.NAME);
+    Mutation m = new Mutation(MetadataSchema.DeletesSection.getRowPrefix() + filename);
+    m.put(EMPTY_BYTES, EMPTY_BYTES, EMPTY_BYTES);
+    update(creds, m, RootTable.EXTENT);
+
+    // then remove the old entry
+    m = new Mutation(entry.getKey().getRow());
+    m.putDelete(EMPTY_BYTES, EMPTY_BYTES);
+    update(creds, m, oldExtent);
   }
 
   public static SortedMap<Text,SortedMap<ColumnFQ,Value>> getTabletEntries(SortedMap<Key,Value> tabletKeyValues, List<ColumnFQ> columns) {
@@ -1018,4 +1042,5 @@ public class MetadataTableUtil {
 
     return tabletEntries;
   }
+
 }

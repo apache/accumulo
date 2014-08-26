@@ -30,12 +30,12 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.hadoop.io.Writable;
 
 /**
@@ -58,14 +58,29 @@ public final class SystemCredentials extends Credentials {
   }
 
   public static SystemCredentials get() {
-    SecurityManager sm = System.getSecurityManager();
-    if (sm != null) {
-      sm.checkPermission(SYSTEM_CREDENTIALS_PERMISSION);
-    }
+    check_permission();
     if (SYSTEM_CREDS == null) {
       SYSTEM_CREDS = new SystemCredentials(HdfsZooInstance.getInstance());
     }
     return SYSTEM_CREDS;
+  }
+
+  private static void check_permission() {
+    SecurityManager sm = System.getSecurityManager();
+    if (sm != null) {
+      sm.checkPermission(SYSTEM_CREDENTIALS_PERMISSION);
+    }
+  }
+
+  public static SystemCredentials get(Instance instance) {
+    check_permission();
+    /* Special case to avoid duplicating SYSTEM_CREDS */
+    if (null != SYSTEM_CREDS) {
+      if (SYSTEM_CREDS.AS_THRIFT.getInstanceId().equals(instance.getInstanceID())) {
+        return SYSTEM_CREDS;
+      }
+    }
+    return new SystemCredentials(instance);
   }
 
   @Override
@@ -105,7 +120,7 @@ public final class SystemCredentials extends Credentials {
       md.update(ServerConstants.WIRE_VERSION.toString().getBytes(StandardCharsets.UTF_8));
       md.update(instanceIdBytes);
 
-      for (Entry<String,String> entry : ServerConfiguration.getSiteConfiguration()) {
+      for (Entry<String,String> entry : SiteConfiguration.getInstance()) {
         // only include instance properties
         if (entry.getKey().startsWith(Property.INSTANCE_PREFIX.toString())) {
           md.update(entry.getKey().getBytes(StandardCharsets.UTF_8));

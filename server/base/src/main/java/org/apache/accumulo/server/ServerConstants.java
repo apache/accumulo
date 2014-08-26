@@ -24,13 +24,13 @@ import java.util.HashSet;
 import java.util.List;
 
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.hadoop.fs.Path;
 
@@ -51,6 +51,7 @@ public class ServerConstants {
    */
   public static final int DATA_VERSION = 6;
   public static final int PREV_DATA_VERSION = 5;
+  public static final int TWO_DATA_VERSIONS_AGO = 4;
 
   private static String[] baseUris = null;
 
@@ -59,7 +60,7 @@ public class ServerConstants {
   // these are functions to delay loading the Accumulo configuration unless we must
   public static synchronized String[] getBaseUris() {
     if (baseUris == null) {
-      baseUris = checkBaseUris(VolumeConfiguration.getVolumeUris(ServerConfiguration.getSiteConfiguration()), false);
+      baseUris = checkBaseUris(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance()), false);
     }
 
     return baseUris;
@@ -76,7 +77,7 @@ public class ServerConstants {
       String currentIid;
       Integer currentVersion;
       try {
-        currentIid = ZooUtil.getInstanceIDFromHdfs(path, ServerConfiguration.getSiteConfiguration());
+        currentIid = ZooUtil.getInstanceIDFromHdfs(path, SiteConfiguration.getInstance());
         Path vpath = new Path(baseDir, VERSION_DIR);
         currentVersion = Accumulo.getAccumuloPersistentVersion(vpath.getFileSystem(CachedConfiguration.getInstance()), vpath);
       } catch (Exception e) {
@@ -149,7 +150,7 @@ public class ServerConstants {
   public static synchronized List<Pair<Path,Path>> getVolumeReplacements() {
 
     if (replacementsList == null) {
-      String replacements = ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_VOLUMES_REPLACEMENTS);
+      String replacements = SiteConfiguration.getInstance().get(Property.INSTANCE_VOLUMES_REPLACEMENTS);
 
       replacements = replacements.trim();
 

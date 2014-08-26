@@ -1432,7 +1432,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
         throw new AccumuloSecurityException(e.getUser(), e.getCode());
       } catch (TTransportException e) {
         // some sort of communication error occurred, retry
-        log.debug("disk usage request failed " + pair.getFirst() + ", retrying ... ", e);
+	if (pair == null) {
+          log.debug("Disk usage request failed.  Pair is null.  Retrying request...", e);
+	} else {
+          log.debug("Disk usage request failed " + pair.getFirst() + ", retrying ... ", e);
+	}
         UtilWaitThread.sleep(100);
       } catch (TException e) {
         // may be a TApplicationException which indicates error on the server side

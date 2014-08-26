@@ -53,6 +53,14 @@ public class MiniAccumuloConfigImplTest {
     assertTrue(config.getZooKeeperPort() > 0);
   }
 
+  @Test
+  public void testZooKeeperStartupTime() {
+
+    // set specific zookeeper startup time
+    MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password").setZooKeeperStartupTime(5000).initialize();
+    assertEquals(5000, config.getZooKeeperStartupTime());
+  }
+
   @SuppressWarnings("deprecation")
   @Test
   public void testSiteConfig() {

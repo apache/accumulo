@@ -62,15 +62,15 @@ public class MetadataConstraints implements Constraint {
     }
   }
   
-  private static final HashSet<ColumnFQ> validColumnQuals = new HashSet<ColumnFQ>(Arrays.asList(new ColumnFQ[] {
+  private static final HashSet<ColumnFQ> validColumnQuals = new HashSet<ColumnFQ>(Arrays.asList(
       TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN, TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN,
       TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN, TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN, TabletsSection.ServerColumnFamily.TIME_COLUMN,
-      TabletsSection.ServerColumnFamily.LOCK_COLUMN, TabletsSection.ServerColumnFamily.FLUSH_COLUMN, TabletsSection.ServerColumnFamily.COMPACT_COLUMN}));
+      TabletsSection.ServerColumnFamily.LOCK_COLUMN, TabletsSection.ServerColumnFamily.FLUSH_COLUMN, TabletsSection.ServerColumnFamily.COMPACT_COLUMN));
   
-  private static final HashSet<Text> validColumnFams = new HashSet<Text>(Arrays.asList(new Text[] {TabletsSection.BulkFileColumnFamily.NAME,
+  private static final HashSet<Text> validColumnFams = new HashSet<Text>(Arrays.asList(TabletsSection.BulkFileColumnFamily.NAME,
       LogColumnFamily.NAME, ScanFileColumnFamily.NAME, DataFileColumnFamily.NAME,
       TabletsSection.CurrentLocationColumnFamily.NAME, TabletsSection.LastLocationColumnFamily.NAME, TabletsSection.FutureLocationColumnFamily.NAME,
-      ChoppedColumnFamily.NAME, ClonedColumnFamily.NAME}));
+      ChoppedColumnFamily.NAME, ClonedColumnFamily.NAME));
   
   private static boolean isValidColumn(ColumnUpdate cu) {
     

@@ -20,11 +20,15 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.Predicate;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -58,9 +62,29 @@ public class ShardedTableDistributionFormatterTest {
 
     formatter.initialize(data.entrySet(), false);
 
-    String[] result = formatter.next().split("\n");
-    assertTrue(result[2].endsWith("\t1"));
-    assertTrue(result[3].endsWith("\t2"));
+    String[] resultLines = formatter.next().split("\n");
+    List<String> results = Arrays.asList(resultLines).subList(2, 4);
+
+    assertTrue(CollectionUtils.exists(results, new AggregateReportChecker("NULL", 1)));
+    assertTrue(CollectionUtils.exists(results, new AggregateReportChecker("19700101", 2)));
+
     assertFalse(formatter.hasNext());
+  }
+
+  private static class AggregateReportChecker implements Predicate {
+    private String day;
+    private int count;
+
+    AggregateReportChecker(String day, int count) {
+      this.day = day;
+      this.count = count;
+    }
+
+    @Override
+    public boolean evaluate(Object arg) {
+      String resLine = (String) arg;
+      return resLine.startsWith(this.day) && resLine.endsWith("" + this.count);
+    }
+
   }
 }

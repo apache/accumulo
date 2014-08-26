@@ -211,4 +211,20 @@ public class InstanceOperationsImpl implements InstanceOperations {
       }
     }
   }
+
+  @Override
+  public void waitForBalance() throws AccumuloException {
+    try {
+      MasterClient.execute(instance, new ClientExec<MasterClientService.Client>() {
+        @Override
+        public void execute(MasterClientService.Client client) throws Exception {
+          client.waitForBalance(Tracer.traceInfo());
+        }
+      });
+    } catch (AccumuloSecurityException ex) {
+      // should never happen
+      throw new RuntimeException("Unexpected exception thrown", ex);
+    }
+    
+  }
 }

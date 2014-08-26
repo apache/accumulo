@@ -49,6 +49,8 @@ include::chapters/analytics.txt[]
 
 include::chapters/security.txt[]
 
+include::chapters/replication.txt[]
+
 include::chapters/administration.txt[]
 
 include::chapters/multivolume.txt[]

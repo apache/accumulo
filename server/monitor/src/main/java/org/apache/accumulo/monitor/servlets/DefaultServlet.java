@@ -31,6 +31,7 @@ import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.util.Duration;
 import org.apache.accumulo.core.util.NumUtil;
@@ -40,7 +41,6 @@ import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.ZooKeeperStatus;
 import org.apache.accumulo.monitor.ZooKeeperStatus.ZooKeeperState;
 import org.apache.accumulo.monitor.util.celltypes.NumberType;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.fs.ContentSummary;
@@ -239,7 +239,7 @@ public class DefaultServlet extends BasicServlet {
 
   private void doAccumuloTable(StringBuilder sb) throws IOException {
     // Accumulo
-    VolumeManager vm = VolumeManagerImpl.get(ServerConfiguration.getSiteConfiguration());
+    VolumeManager vm = VolumeManagerImpl.get(SiteConfiguration.getInstance());
     MasterMonitorInfo info = Monitor.getMmi();
     sb.append("<table>\n");
     sb.append("<tr><th colspan='2'><a href='/master'>Accumulo Master</a></th></tr>\n");
@@ -250,7 +250,7 @@ public class DefaultServlet extends BasicServlet {
       long totalHdfsBytesUsed = 0l;
 
       try {
-        for (String baseDir : VolumeConfiguration.getVolumeUris(ServerConfiguration.getSiteConfiguration())) {
+        for (String baseDir : VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance())) {
           final Path basePath = new Path(baseDir);
           final FileSystem fs = vm.getVolumeByPath(basePath).getFileSystem();
 

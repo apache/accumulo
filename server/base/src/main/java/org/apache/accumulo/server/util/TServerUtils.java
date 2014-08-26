@@ -22,7 +22,6 @@ import java.net.BindException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
-import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.channels.ServerSocketChannel;
 import java.util.Random;
@@ -47,7 +46,6 @@ import org.apache.thrift.TProcessorFactory;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TThreadPoolServer;
-import org.apache.thrift.transport.TNonblockingSocket;
 import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
@@ -168,12 +166,7 @@ public class TServerUtils {
         metrics.add(ThriftMetrics.idle, (now - idleStart));
       }
       try {
-        try {
-          return other.process(in, out);
-        } catch (NullPointerException ex) {
-          // THRIFT-1447 - remove with thrift 0.9
-          return true;
-        }
+        return other.process(in, out);
       } finally {
         if (metrics.isEnabled()) {
           idleStart = System.currentTimeMillis();
@@ -204,40 +197,10 @@ public class TServerUtils {
     }
   }
 
-  public static class THsHaServer extends org.apache.thrift.server.THsHaServer {
-    public THsHaServer(Args args) {
-      super(args);
-    }
-
-    @Override
-    protected Runnable getRunnable(FrameBuffer frameBuffer) {
-      return new Invocation(frameBuffer);
-    }
-
-    private class Invocation implements Runnable {
-
-      private final FrameBuffer frameBuffer;
-
-      public Invocation(final FrameBuffer frameBuffer) {
-        this.frameBuffer = frameBuffer;
-      }
-
-      @Override
-      public void run() {
-        if (frameBuffer.trans_ instanceof TNonblockingSocket) {
-          TNonblockingSocket tsock = (TNonblockingSocket) frameBuffer.trans_;
-          Socket sock = tsock.getSocketChannel().socket();
-          clientAddress.set(sock.getInetAddress().getHostAddress() + ":" + sock.getPort());
-        }
-        frameBuffer.invoke();
-      }
-    }
-  }
-
-  public static ServerAddress createHsHaServer(HostAndPort address, TProcessor processor, final String serverName, String threadName, final int numThreads,
-    final int numSTThreads, long timeBetweenThreadChecks, long maxMessageSize) throws TTransportException {
+  public static ServerAddress createNonBlockingServer(HostAndPort address, TProcessor processor, final String serverName, String threadName,
+      final int numThreads, final int numSTThreads, long timeBetweenThreadChecks, long maxMessageSize) throws TTransportException {
     TNonblockingServerSocket transport = new TNonblockingServerSocket(new InetSocketAddress(address.getHostText(), address.getPort()));
-    THsHaServer.Args options = new THsHaServer.Args(transport);
+    CustomNonBlockingServer.Args options = new CustomNonBlockingServer.Args(transport);
     options.protocolFactory(ThriftUtil.protocolFactory());
     options.transportFactory(ThriftUtil.transportFactory(maxMessageSize));
     options.maxReadBufferBytes = maxMessageSize;
@@ -259,7 +222,7 @@ public class TServerUtils {
           if (pool.getCorePoolSize() > pool.getActiveCount() + 3) {
             int smaller = Math.max(numThreads, pool.getCorePoolSize() - 1);
             if (smaller != pool.getCorePoolSize()) {
-              // there is a race condition here... the active count could be higher by the time
+              // ACCUMULO-2997 there is a race condition here... the active count could be higher by the time
               // we decrease the core pool size... so the active count could end up higher than
               // the core pool size, in which case everything will be queued... the increase case
               // should handle this and prevent deadlock
@@ -275,7 +238,7 @@ public class TServerUtils {
     if (address.getPort() == 0) {
       address = HostAndPort.fromParts(address.getHostText(), transport.getPort());
     }
-    return new ServerAddress(new THsHaServer(options), address);
+    return new ServerAddress(new CustomNonBlockingServer(options), address);
   }
 
   public static ServerAddress createThreadPoolServer(HostAndPort address, TProcessor processor, String serverName, String threadName, int numThreads)
@@ -330,7 +293,7 @@ public class TServerUtils {
     if (sslParams != null) {
       serverAddress = createSslThreadPoolServer(address, processor, sslSocketTimeout, sslParams);
     } else {
-      serverAddress = createHsHaServer(address, processor, serverName, threadName, numThreads, numSTThreads, timeBetweenThreadChecks, maxMessageSize);
+      serverAddress = createNonBlockingServer(address, processor, serverName, threadName, numThreads, numSTThreads, timeBetweenThreadChecks, maxMessageSize);
     }
     final TServer finalServer = serverAddress.server;
     Runnable serveTask = new Runnable() {

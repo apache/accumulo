@@ -55,6 +55,8 @@ their value in conf/accumulo-site.xml.
 |42424 | Accumulo Proxy Server | n/a
 |50091 | Accumulo GC | gc.port.client
 |50095 | Accumulo HTTP monitor | monitor.port.client
+|10001 | Master Replication service | master.replication.coordinator.port
+|10002 | TabletServer Replication service | replication.receipt.service.port
 |====
 
 In addition, the user can provide +0+ and an ephemeral port will be chosen instead. This
@@ -178,6 +180,8 @@ settings between processes and helps finalize TabletServer failure.
 
 The instance needs a secret to enable secure communication between servers. Configure your
 secret and make sure that the +accumulo-site.xml+ file is not readable to other users.
+For alternatives to storing the +instance.secret+ in plaintext, please read the
++Sensitive Configuration Values+ section.
 
 Some settings can be modified via the Accumulo shell and take effect immediately, but
 some settings require a process restart to take effect. See the configuration documentation
@@ -188,6 +192,51 @@ some settings require a process restart to take effect. See the configuration do
 Copy the masters, slaves, accumulo-env.sh, and if necessary, accumulo-site.xml
 from the +$ACCUMULO_HOME/conf/+ directory on the master to all the machines
 specified in the slaves file.
+
+==== Sensitive Configuration Values
+
+Accumulo has a number of properties that can be specified via the accumulo-site.xml
+file which are sensitive in nature, instance.secret and trace.token.property.password
+are two common examples. Both of these properties, if compromised, have the ability
+to result in data being leaked to users who should not have access to that data.
+
+In Hadoop-2.6.0, a new CredentialProvider class was introduced which serves as a common
+implementation to abstract away the storage and retrieval of passwords from plaintext
+storage in configuration files. Any Property marked with the +Sensitive+ annotation
+is a candidate for use with these CredentialProviders. For version of Hadoop which lack
+these classes, the feature will just be unavailable for use.
+
+A comma separated list of CredentialProviders can be configured using the Accumulo Property
++general.security.credential.provider.paths+. Each configured URL will be consulted
+when the Configuration object for accumulo-site.xml is accessed.
+
+==== Using a JavaKeyStoreCredentialProvider for storage
+
+One of the implementations provided in Hadoop-2.6.0 is a Java KeyStore CredentialProvider.
+Each entry in the KeyStore is the Accumulo Property key name. For example, to store the
+\texttt{instance.secret}, the following command can be used:
+
+  hadoop credential create instance.secret --provider jceks://file/etc/accumulo/conf/accumulo.jceks
+
+The command will then prompt you to enter the secret to use and create a keystore in: 
+
+  /etc/accumulo/conf/accumulo.jceks
+
+Then, accumulo-site.xml must be configured to use this KeyStore as a CredentialProvider:
+
+[source,xml]
+<property>
+    <name>general.security.credential.provider.paths</name>
+    <value>jceks://file/etc/accumulo/conf/accumulo.jceks</value>
+</property>
+
+This configuration will then transparently extract the +instance.secret+ from
+the configured KeyStore and alleviates a human readable storage of the sensitive
+property.
+
+A KeyStore can also be stored in HDFS, which will make the KeyStore readily available to
+all Accumulo servers. If the local filesystem is used, be aware that each Accumulo server
+will expect the KeyStore in the same location.
 
 === Initialization
 
@@ -214,8 +263,8 @@ Make sure ZooKeeper is configured and running on at least one machine in the
 cluster.
 Start Accumulo using the +bin/start-all.sh+ script.
 
-To verify that Accumulo is running, check the Status page as described under
-_Monitoring_. In addition, the Shell can provide some information about the status of
+To verify that Accumulo is running, check the Status page as described in
+<<monitoring>>. In addition, the Shell can provide some information about the status of
 tables via reading the metadata tables.
 
 ==== Stopping Accumulo
@@ -254,12 +303,58 @@ account for the removal of these hosts. Bear in mind that the monitor will not r
 slaves file automatically, so it will report the decomissioned servers as down; it's
 recommended that you restart the monitor so that the node list is up to date.
 
+[[monitoring]]
 === Monitoring
 
 The Accumulo Master provides an interface for monitoring the status and health of
-Accumulo components. This interface can be accessed by pointing a web browser to
-+http://accumulomaster:50095/status+
+Accumulo components. The Accumulo Monitor provides a web UI for accessing this information at
++http://_monitorhost_:50095/+.
 
+Things highlighted in yellow may be in need of attention.
+If anything is highlighted in red on the monitor page, it is something that definitely needs attention.
+
+The Overview page contains some summary information about the Accumulo instance, including the version, instance name, and instance ID.
+There is a table labeled Accumulo Master with current status, a table listing the active Zookeeper servers, and graphs displaying various metrics over time.
+These include ingest and scan performance and other useful measurements.
+
+The Master Server, Tablet Servers, and Tables pages display metrics grouped in different ways (e.g. by tablet server or by table).
+Metrics typically include number of entries (key/value pairs), ingest and query rates.
+The number of running scans, major and minor compactions are in the form _number_running_ (_number_queued_).
+Another important metric is hold time, which is the amount of time a tablet has been waiting but unable to flush its memory in a minor compaction.
+
+The Server Activity page graphically displays tablet server status, with each server represented as a circle or square.
+Different metrics may be assigned to the nodes' color and speed of oscillation.
+The Overall Avg metric is only used on the Server Activity page, and represents the average of all the other metrics (after normalization).
+Similarly, the Overall Max metric picks the metric with the maximum normalized value.
+
+The Garbage Collector page displays a list of garbage collection cycles, the number of files found of each type (including deletion candidates in use and files actually deleted), and the length of the deletion cycle.
+The Traces page displays data for recent traces performed (see the following section for information on <<tracing>>).
+The Recent Logs page displays warning and error logs forwarded to the monitor from all Accumulo processes.
+Also, the XML and JSON links provide metrics in XML and JSON formats, respectively.
+
+==== SSL
+SSL may be enabled for the monitor page by setting the following properties in the +accumulo-site.xml+ file:
+
+  monitor.ssl.keyStore
+  monitor.ssl.keyStorePassword
+  monitor.ssl.trustStore
+  monitor.ssl.trustStorePassword
+
+If the Accumulo conf directory has been configured (in particular the +accumulo-env.sh+ file must be set up), the +generate_monitor_certificate.sh+ script in the Accumulo +bin+ directory can be used to create the keystore and truststore files with random passwords.
+The script will print out the properties that need to be added to the +accumulo-site.xml+ file.
+The stores can also be generated manually with the Java +keytool+ command, whose usage can be seen in the +generate_monitor_certificate.sh+ script.
+
+If desired, the SSL ciphers allowed for connections can be controlled via the following properties in +accumulo-site.xml+:
+
+  monitor.ssl.include.ciphers
+  monitor.ssl.exclude.ciphers
+
+If SSL is enabled, the monitor URL can only be accessed via https.
+This also allows you to access the Accumulo shell through the monitor page.
+The left navigation bar will have a new link to Shell.
+An Accumulo user name and password must be entered for access to the shell.
+
+[[tracing]]
 === Tracing
 It can be difficult to determine why some operations are taking longer
 than expected. For example, you may be looking up items with very low

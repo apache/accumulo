@@ -168,7 +168,7 @@ public class SplitRecoveryIT extends ConfigurableMacIT {
     Writer writer = new Writer(HdfsZooInstance.getInstance(), SystemCredentials.get(), MetadataTable.ID);
     Assignment assignment = new Assignment(high, instance);
     Mutation m = new Mutation(assignment.tablet.getMetadataEntry());
-    m.put(TabletsSection.FutureLocationColumnFamily.NAME, assignment.server.asColumnQualifier(), assignment.server.asMutationValue());
+    assignment.server.putFutureLocation(m);
     writer.update(m);
     
     if (steps >= 1) {

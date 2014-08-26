@@ -15,20 +15,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Edit the credentials to match your system
-USERPASS='-u root -p secret'
-INSTANCE='-z localhost -i inst'
+# Start: Resolve Script Directory
+# Ref: http://stackoverflow.com/questions/59895/
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "${SOURCE}" ]; do # resolve $SOURCE until the file is no longer a symlink
+   DIR=$( cd -P "$( dirname "${SOURCE}" )" && pwd )
+   SOURCE=$(readlink "${SOURCE}")
+   [[ "${SOURCE}" != /* ]] && SOURCE="${DIR}/${SOURCE}" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+DIR=$( cd -P "$( dirname "${SOURCE}" )" && pwd )
+# Stop: Resolve Script Directory
+LOG_DIR=${DIR}/logs
+mkdir -p "$LOG_DIR"
 
-# This is the seed for the range picking logic used by the scanner.
-SCAN_SEED='--scan-seed 1337'
+# Source environment
+. "${DIR}/stress-env.sh"
 
-# Controls the number of random tablets the scanner will read sequentially
-#SCAN_ITERATIONS='--num-iterations 1024'
-
-# Alternatively, we can just continously scan
-CONTINUOUS_SCAN='--continuous'
-
-# Controls whether or not the scan will be using an isolated scanner. Add this to the execution 
-#SCAN_ISOLATION='--isolate'
-
-../../../bin/accumulo org.apache.accumulo.test.stress.random.Scan $INSTANCE $USERPASS $SCAN_SEED $CONTINUOUS_SCAN
+ts=$(date +%Y%m%d%H%M%S)
+host=$(hostname)
+# We want USERPASS to word split
+"${ACCUMULO_HOME}/bin/accumulo org.apache.accumulo.test.stress.random.Scan" "$INSTANCE" $USERPASS "$SCAN_SEED" "$CONTINUOUS_SCAN" "$SCAN_BATCH_SIZE" \
+    > "$LOG_DIR/${ts}_${host}_reader.out" \
+    2> "$LOG_DIR/${ts}_${host}_reader.err"

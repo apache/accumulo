@@ -76,7 +76,7 @@ public class SourceSwitchingIterator implements SortedKeyValueIterator<Key,Value
   }
   
   @Override
-  public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
+  public synchronized SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     return new SourceSwitchingIterator(source.getDeepCopyDataSource(env), onlySwitchAfterRow, copies, iflag);
   }
   

@@ -33,8 +33,6 @@ import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.util.Validator;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
@@ -42,78 +40,12 @@ import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.log4j.Logger;
 
 public class Tables {
-  public static final String VALID_NAME_REGEX = "^(\\w+\\.)?(\\w+)$";
-  public static final String VALID_ID_REGEX = "^([a-z0-9]+)$"; // BigDecimal base36
-  public static final Validator<String> VALID_NAME = new Validator<String>() {
-    @Override
-    public boolean isValid(String tableName) {
-      return tableName != null && tableName.matches(VALID_NAME_REGEX);
-    }
-
-    @Override
-    public String invalidMessage(String tableName) {
-      if (tableName == null)
-        return "Table name cannot be null";
-      return "Table names must only contain word characters (letters, digits, and underscores): " + tableName;
-    }
-  };
-
-  public static final Validator<String> VALID_ID = new Validator<String>() {
-    @Override
-    public boolean isValid(String tableId) {
-      return tableId != null && (RootTable.ID.equals(tableId) || MetadataTable.ID.equals(tableId) || tableId.matches(VALID_ID_REGEX));
-    }
-
-    @Override
-    public String invalidMessage(String tableId) {
-      if (tableId == null)
-        return "Table id cannot be null";
-      return "Table IDs are base-36 numbers, represented with lowercase alphanumeric digits: " + tableId;
-    }
-  };
-
-  public static final Validator<String> NOT_SYSTEM = new Validator<String>() {
-
-    @Override
-    public boolean isValid(String tableName) {
-      return !Namespaces.ACCUMULO_NAMESPACE.equals(Tables.qualify(tableName).getFirst());
-    }
-
-    @Override
-    public String invalidMessage(String tableName) {
-      return "Table cannot be in the " + Namespaces.ACCUMULO_NAMESPACE + " namespace";
-    }
-  };
-
-  public static final Validator<String> NOT_ROOT = new Validator<String>() {
-
-    @Override
-    public boolean isValid(String tableName) {
-      return !RootTable.NAME.equals(tableName);
-    }
-
-    @Override
-    public String invalidMessage(String tableName) {
-      return "Table cannot be the " + RootTable.NAME + "(Id: " + RootTable.ID + ") table";
-    }
-  };
-
-  public static final Validator<String> NOT_ROOT_ID = new Validator<String>() {
-
-    @Override
-    public boolean isValid(String tableId) {
-      return !RootTable.ID.equals(tableId);
-    }
-
-    @Override
-    public String invalidMessage(String tableId) {
-      return "Table cannot be the " + RootTable.NAME + "(Id: " + RootTable.ID + ") table";
-    }
-  };
-
-  private static SecurityPermission TABLES_PERMISSION = new SecurityPermission("tablesPermission");
-  private static AtomicLong cacheResetCount = new AtomicLong(0);
   private static final Logger log = Logger.getLogger(Tables.class);
+
+  public static final String VALID_NAME_REGEX = "^(\\w+\\.)?(\\w+)$";
+  
+  private static final SecurityPermission TABLES_PERMISSION = new SecurityPermission("tablesPermission");
+  private static final AtomicLong cacheResetCount = new AtomicLong(0);
 
   private static ZooCache getZooCache(Instance instance) {
     SecurityManager sm = System.getSecurityManager();
@@ -265,7 +197,7 @@ public class Tables {
   }
 
   public static String qualified(String tableName, String defaultNamespace) {
-    Pair<String,String> qualifiedTableName = Tables.qualify(tableName, defaultNamespace);
+    Pair<String,String> qualifiedTableName = qualify(tableName, defaultNamespace);
     if (Namespaces.DEFAULT_NAMESPACE.equals(qualifiedTableName.getFirst()))
       return qualifiedTableName.getSecond();
     else
@@ -277,7 +209,7 @@ public class Tables {
   }
 
   public static Pair<String,String> qualify(String tableName, String defaultNamespace) {
-    if (!tableName.matches(Tables.VALID_NAME_REGEX))
+    if (!tableName.matches(VALID_NAME_REGEX))
       throw new IllegalArgumentException("Invalid table name '" + tableName + "'");
     if (MetadataTable.OLD_NAME.equals(tableName))
       tableName = MetadataTable.NAME;

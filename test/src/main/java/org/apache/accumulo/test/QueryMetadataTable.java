@@ -43,8 +43,11 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;
+import org.apache.log4j.Logger;
 
 public class QueryMetadataTable {
+  private static final Logger log = Logger.getLogger(QueryMetadataTable.class);
+  
   private static String principal;
   private static AuthenticationToken token;
   
@@ -74,13 +77,13 @@ public class QueryMetadataTable {
         }
         
       } catch (TableNotFoundException e) {
-        e.printStackTrace();
+        log.error("Table '"+MetadataTable.NAME+"' not found.", e);
         throw new RuntimeException(e);
       } catch (AccumuloException e) {
-        e.printStackTrace();
+        log.error("AccumuloException encountered.", e);
         throw new RuntimeException(e);
       } catch (AccumuloSecurityException e) {
-        e.printStackTrace();
+        log.error("AccumuloSecurityException encountered.", e);
         throw new RuntimeException(e);
       }
     }
@@ -143,7 +146,7 @@ public class QueryMetadataTable {
     try {
       tp.awaitTermination(1, TimeUnit.HOURS);
     } catch (InterruptedException e) {
-      e.printStackTrace();
+      log.error("Failed while awaiting the ExcecutorService to terminate.", e);
       throw new RuntimeException(e);
     }
     

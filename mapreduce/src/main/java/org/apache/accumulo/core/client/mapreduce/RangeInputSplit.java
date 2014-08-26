@@ -233,6 +233,14 @@ public class RangeInputSplit extends InputSplit implements Writable {
     }
 
     if (in.readBoolean()) {
+      int numIterators = in.readInt();
+      iterators = new ArrayList<IteratorSetting>(numIterators);
+      for (int i = 0; i < numIterators; i++) {
+        iterators.add(new IteratorSetting(in));
+      }
+    }
+
+    if (in.readBoolean()) {
       level = Level.toLevel(in.readInt());
     }
   }
@@ -309,6 +317,14 @@ public class RangeInputSplit extends InputSplit implements Writable {
       out.writeUTF(zooKeepers);
     }
 
+    out.writeBoolean(null != iterators);
+    if (null != iterators) {
+      out.writeInt(iterators.size());
+      for (IteratorSetting iterator : iterators) {
+        iterator.write(out);
+      }
+    }
+
     out.writeBoolean(null != level);
     if (null != level) {
       out.writeInt(level.toInt());
@@ -339,8 +355,24 @@ public class RangeInputSplit extends InputSplit implements Writable {
     return sb.toString();
   }
 
+  /**
+   * Use {@link #getTableName}
+   */
+  @Deprecated
+  public String getTable() {
+    return getTableName();
+  }
+
   public String getTableName() {
     return tableName;
+  }
+
+  /**
+   * Use {@link #setTableName}
+   */
+  @Deprecated
+  public void setTable(String table) {
+    setTableName(table);
   }
 
   public void setTableName(String table) {

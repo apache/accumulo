@@ -116,4 +116,9 @@ public interface InstanceOperations {
    */
   boolean testClassLoad(final String className, final String asTypeName) throws AccumuloException, AccumuloSecurityException;
   
+  /**
+   *  Waits for the tablet balancer to run and return no migrations.
+   *  @since 1.7.0
+   */
+  void waitForBalance() throws AccumuloException;
 }

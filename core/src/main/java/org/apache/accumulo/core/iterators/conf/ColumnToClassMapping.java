@@ -46,7 +46,6 @@ public class ColumnToClassMapping<K> {
 	  this(objectStrings, c, null);
   }
 
-  @SuppressWarnings("unchecked")
   public ColumnToClassMapping(Map<String,String> objectStrings, Class<? extends K> c, String context) throws InstantiationException, IllegalAccessException,
   ClassNotFoundException, IOException {
 	  this();
@@ -57,16 +56,18 @@ public class ColumnToClassMapping<K> {
       
       Pair<Text,Text> pcic = ColumnSet.decodeColumns(column);
       
-      Class<? extends K> clazz;
+      Class<?> clazz;
       if (context != null && !context.equals(""))
-        clazz = (Class<? extends K>) AccumuloVFSClassLoader.getContextManager().getClassLoader(context).loadClass(className);
+        clazz = AccumuloVFSClassLoader.getContextManager().getClassLoader(context).loadClass(className);
       else
         clazz = AccumuloVFSClassLoader.loadClass(className, c);
       
+      @SuppressWarnings("unchecked")
+      K inst = (K) clazz.newInstance();
       if (pcic.getSecond() == null) {
-        addObject(pcic.getFirst(), clazz.newInstance());
+        addObject(pcic.getFirst(), inst);
       } else {
-        addObject(pcic.getFirst(), pcic.getSecond(), clazz.newInstance());
+        addObject(pcic.getFirst(), pcic.getSecond(), inst);
       }
     }
   }

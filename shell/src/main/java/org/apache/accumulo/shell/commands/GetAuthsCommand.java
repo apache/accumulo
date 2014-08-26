@@ -25,6 +25,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
+import org.apache.accumulo.shell.ShellOptions;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -54,7 +55,7 @@ public class GetAuthsCommand extends Command {
   @Override
   public Options getOptions() {
     final Options o = new Options();
-    userOpt = new Option(Shell.userOption, "user", true, "user to operate on");
+    userOpt = new Option(ShellOptions.userOption, "user", true, "user to operate on");
     userOpt.setArgName("user");
     o.addOption(userOpt);
     return o;

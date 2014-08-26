@@ -56,7 +56,7 @@ import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -258,7 +258,8 @@ class WriteExportFiles extends MasterRepo {
     Map<String,String> siteConfig = conn.instanceOperations().getSiteConfiguration();
     Map<String,String> systemConfig = conn.instanceOperations().getSystemConfiguration();
     
-    TableConfiguration tableConfig = ServerConfiguration.getTableConfiguration(conn.getInstance(), tableID);
+    ServerConfigurationFactory factory = new ServerConfigurationFactory(conn.getInstance());
+    TableConfiguration tableConfig = factory.getTableConfiguration(tableID);
     
     OutputStreamWriter osw = new OutputStreamWriter(dataOut, StandardCharsets.UTF_8);
     

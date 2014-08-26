@@ -18,16 +18,16 @@
 
 # Start: Resolve Script Directory
 SOURCE="${BASH_SOURCE[0]}"
-while [ -h "${SOURCE}" ]; do # resolve $SOURCE until the file is no longer a symlink
-   bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
+while [[ -h "${SOURCE}" ]]; do # resolve $SOURCE until the file is no longer a symlink
+   bin=$( cd -P "$( dirname "${SOURCE}" )" && pwd )
    SOURCE="$(readlink "${SOURCE}")"
    [[ "${SOURCE}" != /* ]] && SOURCE="${bin}/${SOURCE}" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
-bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
+bin=$( cd -P "$( dirname "${SOURCE}" )" && pwd )
 script=$( basename "${SOURCE}" )
 # Stop: Resolve Script Directory
 
-. ${bin}/mapred-setup.sh
+. "${bin}/mapred-setup.sh"
 
-$ACCUMULO_HOME/bin/tool.sh "$SERVER_LIBJAR" org.apache.accumulo.test.continuous.ContinuousMoru -libjars "$SERVER_LIBJAR" -i $INSTANCE_NAME -z $ZOO_KEEPERS -u $USER -p $PASS --table $TABLE --min $MIN --max $MAX --maxColF $MAX_CF --maxColQ $MAX_CQ --batchMemory $MAX_MEM --batchLatency $MAX_LATENCY --batchThreads $NUM_THREADS --maxMappers $VERIFY_MAX_MAPS
+"$ACCUMULO_HOME/bin/tool.sh" "$SERVER_LIBJAR" org.apache.accumulo.test.continuous.ContinuousMoru -libjars "$SERVER_LIBJAR" -i "$INSTANCE_NAME" -z "$ZOO_KEEPERS" -u "$USER" -p "$PASS" --table "$TABLE" --min "$MIN" --max "$MAX" --maxColF "$MAX_CF" --maxColQ "$MAX_CQ" --batchMemory "$MAX_MEM" --batchLatency "$MAX_LATENCY" --batchThreads "$NUM_THREADS" --maxMappers "$VERIFY_MAX_MAPS"
 

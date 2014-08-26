@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.core;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+
 import org.apache.accumulo.core.security.Authorizations;
 
 public class Constants {
@@ -43,6 +47,7 @@ public class Constants {
   public static final String ZMASTERS = "/masters";
   public static final String ZMASTER_LOCK = ZMASTERS + "/lock";
   public static final String ZMASTER_GOAL_STATE = ZMASTERS + "/goal_state";
+  public static final String ZMASTER_REPLICATION_COORDINATOR_ADDR = ZMASTERS + "/repl_coord_addr";
 
   public static final String ZGC = "/gc";
   public static final String ZGC_LOCK = ZGC + "/lock";
@@ -110,7 +115,7 @@ public class Constants {
   public static final String EXPORT_INFO_FILE = "accumulo_export_info.txt";
 
   // Variables that will be substituted with environment vars in PropertyType.PATH values
-  public static final String[] PATH_PROPERTY_ENV_VARS = new String[] {"ACCUMULO_HOME", "ACCUMULO_CONF_DIR"};
+  public static final Collection<String> PATH_PROPERTY_ENV_VARS = Collections.unmodifiableCollection(Arrays.asList("ACCUMULO_HOME", "ACCUMULO_CONF_DIR"));
 
   public static final String HDFS_TABLES_DIR = "/tables";
 

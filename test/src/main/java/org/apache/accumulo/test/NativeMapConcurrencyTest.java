@@ -29,8 +29,11 @@ import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import org.apache.log4j.Logger;
 
 public class NativeMapConcurrencyTest {
+  
+  private static final Logger log = Logger.getLogger(NativeMapConcurrencyTest.class);
   
   private static final byte ROW_PREFIX[] = new byte[] {'r'};
   private static final byte COL_PREFIX[] = new byte[] {'c'};
@@ -177,7 +180,7 @@ public class NativeMapConcurrencyTest {
       try {
         thread.join();
       } catch (InterruptedException e) {
-        e.printStackTrace();
+        log.error("Could not join thread '"+thread.getName()+"'", e);
       }
     }
     

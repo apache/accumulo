@@ -17,29 +17,25 @@
 
 # Start: Resolve Script Directory
 SOURCE="${BASH_SOURCE[0]}"
-while [ -h "${SOURCE}" ]; do # resolve $SOURCE until the file is no longer a symlink
-   bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
-   SOURCE="$(readlink "${SOURCE}")"
+while [[ -h "${SOURCE}" ]]; do # resolve $SOURCE until the file is no longer a symlink
+   bin=$( cd -P "$( dirname "${SOURCE}" )" && pwd )
+   SOURCE=$(readlink "${SOURCE}")
    [[ "${SOURCE}" != /* ]] && SOURCE="${bin}/${SOURCE}" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
-bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
+bin=$( cd -P "$( dirname "${SOURCE}" )" && pwd )
 script=$( basename "${SOURCE}" )
 # Stop: Resolve Script Directory
 
 CONTINUOUS_CONF_DIR=${CONTINUOUS_CONF_DIR:-${bin}}
-. $CONTINUOUS_CONF_DIR/continuous-env.sh
+. "$CONTINUOUS_CONF_DIR/continuous-env.sh"
 
-DEBUG_OPT="";
-AUTH_OPT="";
-
-if [ "$DEBUG_WALKER" = "on" ] ; then
-	DEBUG_OPT="--debug $CONTINUOUS_LOG_DIR/\`date +%Y%m%d%H%M%S\`_\`hostname\`_walk.log";
+DEBUG_OPT=''
+if [[ "$DEBUG_WALKER" == "on" ]] ; then
+   DEBUG_OPT="--debug $CONTINUOUS_LOG_DIR/\`date +%Y%m%d%H%M%S\`_\`hostname\`_walk.log";
 fi
 
-if [ -n "$AUTHS" ] ; then
-	AUTH_OPT="--auths \"$AUTHS\"";
-fi
+AUTH_OPT=''
+[[ -n "$AUTHS" ]] && AUTH_OPT="--auths \"$AUTHS\""
 
-
-pssh -h $CONTINUOUS_CONF_DIR/walkers.txt "mkdir -p $CONTINUOUS_LOG_DIR; nohup $ACCUMULO_HOME/bin/accumulo org.apache.accumulo.test.continuous.ContinuousWalk $DEBUG_OPT $AUTH_OPT -i $INSTANCE_NAME -z $ZOO_KEEPERS -u $USER -p $PASS --table $TABLE --min $MIN --max $MAX --sleep $SLEEP_TIME >$CONTINUOUS_LOG_DIR/\`date +%Y%m%d%H%M%S\`_\`hostname\`_walk.out 2>$CONTINUOUS_LOG_DIR/\`date +%Y%m%d%H%M%S\`_\`hostname\`_walk.err &" < /dev/null
+pssh -h "$CONTINUOUS_CONF_DIR/walkers.txt" "mkdir -p $CONTINUOUS_LOG_DIR; nohup $ACCUMULO_HOME/bin/accumulo org.apache.accumulo.test.continuous.ContinuousWalk $DEBUG_OPT $AUTH_OPT -i $INSTANCE_NAME -z $ZOO_KEEPERS -u $USER -p $PASS --table $TABLE --min $MIN --max $MAX --sleep $SLEEP_TIME >$CONTINUOUS_LOG_DIR/\`date +%Y%m%d%H%M%S\`_\`hostname\`_walk.out 2>$CONTINUOUS_LOG_DIR/\`date +%Y%m%d%H%M%S\`_\`hostname\`_walk.err &" < /dev/null
 

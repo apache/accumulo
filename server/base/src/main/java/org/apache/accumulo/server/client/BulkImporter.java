@@ -60,7 +60,7 @@ import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.StopWatch;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.util.FileUtil;
@@ -114,6 +114,7 @@ public class BulkImporter {
     
     int numThreads = acuConf.getCount(Property.TSERV_BULK_PROCESS_THREADS);
     int numAssignThreads = acuConf.getCount(Property.TSERV_BULK_ASSIGNMENT_THREADS);
+    final ServerConfigurationFactory confFactory = new ServerConfigurationFactory(instance);
     
     timer = new StopWatch<Timers>(Timers.class);
     timer.start(Timers.TOTAL);
@@ -146,7 +147,7 @@ public class BulkImporter {
           public void run() {
             List<TabletLocation> tabletsToAssignMapFileTo = Collections.emptyList();
             try {
-              tabletsToAssignMapFileTo = findOverlappingTablets(ServerConfiguration.getSystemConfiguration(instance), fs, locator, mapFile, credentials);
+              tabletsToAssignMapFileTo = findOverlappingTablets(confFactory.getConfiguration(), fs, locator, mapFile, credentials);
             } catch (Exception ex) {
               log.warn("Unable to find tablets that overlap file " + mapFile.toString());
             }
@@ -209,7 +210,7 @@ public class BulkImporter {
             
             try {
               timer.start(Timers.QUERY_METADATA);
-              tabletsToAssignMapFileTo.addAll(findOverlappingTablets(ServerConfiguration.getSystemConfiguration(instance), fs, locator, entry.getKey(), ke,
+              tabletsToAssignMapFileTo.addAll(findOverlappingTablets(confFactory.getConfiguration(), fs, locator, entry.getKey(), ke,
                   credentials));
               timer.stop(Timers.QUERY_METADATA);
               keListIter.remove();
@@ -399,7 +400,7 @@ public class BulkImporter {
       try {
         threadPool.awaitTermination(60, TimeUnit.SECONDS);
       } catch (InterruptedException e) {
-        e.printStackTrace();
+        log.error("Encountered InterruptedException while waiting for the threadPool to terminate.", e);
         throw new RuntimeException(e);
       }
     }
@@ -430,7 +431,7 @@ public class BulkImporter {
     Map<Path,List<KeyExtent>> ret;
     
     timer.start(Timers.IMPORT_MAP_FILES);
-    ret = assignMapFiles(credentials, tableId, assignInfo, locationsOf(assignments), numThreads);
+    ret = assignMapFiles(acuConf, credentials, tableId, assignInfo, locationsOf(assignments), numThreads);
     timer.stop(Timers.IMPORT_MAP_FILES);
     
     return ret;
@@ -441,9 +442,11 @@ public class BulkImporter {
     String location;
     Credentials credentials;
     private Map<KeyExtent,List<PathSize>> assignmentsPerTablet;
+    private final AccumuloConfiguration acuConf;
     
-    public AssignmentTask(Credentials credentials, Map<Path,List<KeyExtent>> assignmentFailures, String tableName, String location,
+    public AssignmentTask(AccumuloConfiguration acuConf, Credentials credentials, Map<Path,List<KeyExtent>> assignmentFailures, String tableName, String location,
         Map<KeyExtent,List<PathSize>> assignmentsPerTablet) {
+      this.acuConf = acuConf;
       this.assignmentFailures = assignmentFailures;
       this.location = location;
       this.assignmentsPerTablet = assignmentsPerTablet;
@@ -479,7 +482,7 @@ public class BulkImporter {
       log.debug("Assigning " + uniqMapFiles.size() + " map files to " + assignmentsPerTablet.size() + " tablets at " + location);
       
       try {
-        List<KeyExtent> failures = assignMapFiles(credentials, location, assignmentsPerTablet);
+        List<KeyExtent> failures = assignMapFiles(acuConf, credentials, location, assignmentsPerTablet);
         handleFailures(failures, "Not Serving Tablet");
       } catch (AccumuloException e) {
         handleFailures(assignmentsPerTablet.keySet(), e.getMessage());
@@ -505,7 +508,7 @@ public class BulkImporter {
     }
   }
   
-  private Map<Path,List<KeyExtent>> assignMapFiles(Credentials credentials, String tableName, Map<Path,List<AssignmentInfo>> assignments,
+  private Map<Path,List<KeyExtent>> assignMapFiles(AccumuloConfiguration acuConf, Credentials credentials, String tableName, Map<Path,List<AssignmentInfo>> assignments,
       Map<KeyExtent,String> locations, int numThreads) {
     
     // group assignments by tablet
@@ -566,7 +569,7 @@ public class BulkImporter {
     
     for (Entry<String,Map<KeyExtent,List<PathSize>>> entry : assignmentsPerTabletServer.entrySet()) {
       String location = entry.getKey();
-      threadPool.submit(new AssignmentTask(credentials, assignmentFailures, tableName, location, entry.getValue()));
+      threadPool.submit(new AssignmentTask(acuConf, credentials, assignmentFailures, tableName, location, entry.getValue()));
     }
     
     threadPool.shutdown();
@@ -575,7 +578,7 @@ public class BulkImporter {
       try {
         threadPool.awaitTermination(60, TimeUnit.SECONDS);
       } catch (InterruptedException e) {
-        e.printStackTrace();
+        log.error("Encountered InterruptedException while waiting for the thread pool to terminate.", e);
         throw new RuntimeException(e);
       }
     }
@@ -583,11 +586,11 @@ public class BulkImporter {
     return assignmentFailures;
   }
   
-  private List<KeyExtent> assignMapFiles(Credentials credentials, String location, Map<KeyExtent,List<PathSize>> assignmentsPerTablet)
+  private List<KeyExtent> assignMapFiles(AccumuloConfiguration acuConf, Credentials credentials, String location, Map<KeyExtent,List<PathSize>> assignmentsPerTablet)
       throws AccumuloException, AccumuloSecurityException {
     try {
-      long timeInMillis = ServerConfiguration.getSystemConfiguration(instance).getTimeInMillis(Property.TSERV_BULK_TIMEOUT);
-      TabletClientService.Iface client = ThriftUtil.getTServerClient(location, ServerConfiguration.getSystemConfiguration(instance), timeInMillis);
+      long timeInMillis = acuConf.getTimeInMillis(Property.TSERV_BULK_TIMEOUT);
+      TabletClientService.Iface client = ThriftUtil.getTServerClient(location, acuConf, timeInMillis);
       try {
         HashMap<KeyExtent,Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>> files = new HashMap<KeyExtent,Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>>();
         for (Entry<KeyExtent,List<PathSize>> entry : assignmentsPerTablet.entrySet()) {
@@ -611,7 +614,7 @@ public class BulkImporter {
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code, e);
     } catch (Throwable t) {
-      t.printStackTrace();
+      log.error("Encountered unknown exception in assignMapFiles.", t);
       throw new AccumuloException(t);
     }
   }

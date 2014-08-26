@@ -54,7 +54,7 @@ import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
@@ -253,13 +253,14 @@ public class ClientServiceHandler implements ClientService.Iface {
 
   @Override
   public Map<String,String> getConfiguration(TInfo tinfo, TCredentials credentials, ConfigurationType type) throws TException {
+    ServerConfigurationFactory factory = new ServerConfigurationFactory(instance);
     switch (type) {
       case CURRENT:
-        return conf(credentials, new ServerConfiguration(instance).getConfiguration());
+        return conf(credentials, factory.getConfiguration());
       case SITE:
-        return conf(credentials, ServerConfiguration.getSiteConfiguration());
+        return conf(credentials, factory.getSiteConfiguration());
       case DEFAULT:
-        return conf(credentials, AccumuloConfiguration.getDefaultConfiguration());
+        return conf(credentials, factory.getDefaultConfiguration());
     }
     throw new RuntimeException("Unexpected configuration type " + type);
   }
@@ -267,7 +268,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   @Override
   public Map<String,String> getTableConfiguration(TInfo tinfo, TCredentials credentials, String tableName) throws TException, ThriftTableOperationException {
     String tableId = checkTableId(instance, tableName, null);
-    AccumuloConfiguration config = ServerConfiguration.getTableConfiguration(instance, tableId);
+    AccumuloConfiguration config = new ServerConfigurationFactory(instance).getTableConfiguration(tableId);
     return conf(credentials, config);
   }
 
@@ -280,7 +281,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       return transactionWatcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, new Callable<List<String>>() {
         @Override
         public List<String> call() throws Exception {
-          return BulkImporter.bulkLoad(new ServerConfiguration(instance).getConfiguration(), instance, Credentials.fromThrift(credentials), tid, tableId, files, errorDir, setTime);
+          return BulkImporter.bulkLoad(new ServerConfigurationFactory(instance).getConfiguration(), instance, Credentials.fromThrift(credentials), tid, tableId, files, errorDir, setTime);
         }
       });
     } catch (AccumuloSecurityException e) {
@@ -335,9 +336,9 @@ public class ClientServiceHandler implements ClientService.Iface {
     try {
       shouldMatch = loader.loadClass(interfaceMatch);
 
-      new ServerConfiguration(instance).getTableConfiguration(tableId);
+      AccumuloConfiguration conf = new ServerConfigurationFactory(instance).getTableConfiguration(tableId);
 
-      String context = new ServerConfiguration(instance).getTableConfiguration(tableId).get(Property.TABLE_CLASSPATH);
+      String context = conf.get(Property.TABLE_CLASSPATH);
 
       ClassLoader currentLoader;
 
@@ -369,9 +370,9 @@ public class ClientServiceHandler implements ClientService.Iface {
     try {
       shouldMatch = loader.loadClass(interfaceMatch);
 
-      new ServerConfiguration(instance).getNamespaceConfiguration(namespaceId);
+      AccumuloConfiguration conf = new ServerConfigurationFactory(instance).getNamespaceConfiguration(namespaceId);
 
-      String context = new ServerConfiguration(instance).getNamespaceConfiguration(namespaceId).get(Property.TABLE_CLASSPATH);
+      String context = conf.get(Property.TABLE_CLASSPATH);
 
       ClassLoader currentLoader;
 
@@ -408,7 +409,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       }
 
       // use the same set of tableIds that were validated above to avoid race conditions
-      Map<TreeSet<String>,Long> diskUsage = TableDiskUsage.getDiskUsage(new ServerConfiguration(instance).getConfiguration(), tableIds, fs, conn);
+      Map<TreeSet<String>,Long> diskUsage = TableDiskUsage.getDiskUsage(new ServerConfigurationFactory(instance).getConfiguration(), tableIds, fs, conn);
       List<TDiskUsage> retUsages = new ArrayList<TDiskUsage>();
       for (Map.Entry<TreeSet<String>,Long> usageItem : diskUsage.entrySet()) {
         retUsages.add(new TDiskUsage(new ArrayList<String>(usageItem.getKey()), usageItem.getValue()));
@@ -433,7 +434,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       String why = "Could not find namespace while getting configuration.";
       throw new ThriftTableOperationException(null, ns, null, TableOperationExceptionType.NAMESPACE_NOTFOUND, why);
     }
-    AccumuloConfiguration config = ServerConfiguration.getNamespaceConfiguration(instance, namespaceId);
+    AccumuloConfiguration config = new ServerConfigurationFactory(instance).getNamespaceConfiguration(namespaceId);
     return conf(credentials, config);
   }
 }

@@ -18,25 +18,21 @@
 
 # Start: Resolve Script Directory
 SOURCE="${BASH_SOURCE[0]}"
-while [ -h "${SOURCE}" ]; do # resolve $SOURCE until the file is no longer a symlink
-   bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
-   SOURCE="$(readlink "${SOURCE}")"
+while [[ -h "${SOURCE}" ]]; do # resolve $SOURCE until the file is no longer a symlink
+   bin=$( cd -P "$( dirname "${SOURCE}" )" && pwd )
+   SOURCE=$(readlink "${SOURCE}")
    [[ "${SOURCE}" != /* ]] && SOURCE="${bin}/${SOURCE}" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
-bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
+bin=$( cd -P "$( dirname "${SOURCE}" )" && pwd )
 script=$( basename "${SOURCE}" )
 # Stop: Resolve Script Directory
 
-. ${bin}/mapred-setup.sh
+. "${bin}/mapred-setup.sh"
 
 AUTH_OPT="";
+[[ -n $VERIFY_AUTHS ]] && AUTH_OPT="--auths $VERIFY_AUTHS"
 
-if [ -n "$VERIFY_AUTHS" ] ; then
-	AUTH_OPT="--auths $VERIFY_AUTHS";
-fi
 SCAN_OPT=--offline
-if [ "$SCAN_OFFLINE" == "false" ] ; then
-       SCAN_OPT=
-fi
+[[ $SCAN_OFFLINE == false ]] && SCAN_OPT=
 
-$ACCUMULO_HOME/bin/tool.sh "$SERVER_LIBJAR" org.apache.accumulo.test.continuous.ContinuousVerify -libjars "$SERVER_LIBJAR" $AUTH_OPT -i $INSTANCE_NAME -z $ZOO_KEEPERS -u $USER -p $PASS --table $TABLE --output $VERIFY_OUT --maxMappers $VERIFY_MAX_MAPS --reducers $VERIFY_REDUCERS $SCAN_OPT
+"$ACCUMULO_HOME/bin/tool.sh" "$SERVER_LIBJAR" org.apache.accumulo.test.continuous.ContinuousVerify -libjars "$SERVER_LIBJAR" "$AUTH_OPT" -i "$INSTANCE_NAME" -z "$ZOO_KEEPERS" -u "$USER" -p "$PASS" --table "$TABLE" --output "$VERIFY_OUT" --maxMappers "$VERIFY_MAX_MAPS" --reducers "$VERIFY_REDUCERS" "$SCAN_OPT"

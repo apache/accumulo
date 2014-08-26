@@ -16,10 +16,13 @@
  */
 package org.apache.accumulo.test;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.MasterClient;
+import org.apache.accumulo.core.master.thrift.DeadServer;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
@@ -57,6 +60,12 @@ public class GetMasterStats {
       for (Entry<String,Byte> entry : stats.badTServers.entrySet()) {
         out(1, "%s: %d", entry.getKey(), (int) entry.getValue());
       }
+    }
+    out(0, "Dead tablet servers count: %s", stats.deadTabletServers.size());
+    for (DeadServer dead : stats.deadTabletServers) {
+      out(1, "Dead tablet server: %s", dead.server);
+      out(2, "Last report: %s", new SimpleDateFormat().format(new Date(dead.lastStatus)));
+      out(2, "Cause: %s", dead.status);
     }
     if (stats.tableMap != null && stats.tableMap.size() > 0) {
       out(0, "Tables");

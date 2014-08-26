@@ -34,6 +34,7 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
 import com.beust.jcommander.Parameter;
+import org.apache.log4j.Logger;
 
 /**
  * A simple map reduce job that inserts word counts into accumulo. See the README for instructions on how to run this.
@@ -41,6 +42,8 @@ import com.beust.jcommander.Parameter;
  */
 public class WordCount extends Configured implements Tool {
 
+  private static final Logger log = Logger.getLogger(WordCount.class);
+  
   static class Opts extends MapReduceClientOnRequiredTable {
     @Parameter(names = "--input", description = "input directory")
     String inputDirectory;
@@ -59,7 +62,7 @@ public class WordCount extends Configured implements Tool {
         try {
           output.write(null, mutation);
         } catch (InterruptedException e) {
-          e.printStackTrace();
+          log.error("Could not write mutation to Context.", e);
         }
       }
     }

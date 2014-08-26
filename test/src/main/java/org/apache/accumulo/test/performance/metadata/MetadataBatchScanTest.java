@@ -47,6 +47,7 @@ import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.net.HostAndPort;
+import org.apache.log4j.Logger;
 
 /**
  * This little program can be used to write a lot of metadata entries and measure the performance of varying numbers of threads doing metadata
@@ -56,6 +57,8 @@ import com.google.common.net.HostAndPort;
  */
 
 public class MetadataBatchScanTest {
+  
+  private static final Logger log = Logger.getLogger(MetadataBatchScanTest.class);
   
   public static void main(String[] args) throws Exception {
     
@@ -140,7 +143,7 @@ public class MetadataBatchScanTest {
             try {
               System.out.println(runScanTest(connector, numLoop, ranges));
             } catch (Exception e) {
-              e.printStackTrace();
+              log.error("Exception while running scan test.", e);
             }
           }
         });

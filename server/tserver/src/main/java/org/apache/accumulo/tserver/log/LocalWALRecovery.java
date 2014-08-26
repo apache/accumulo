@@ -28,7 +28,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
@@ -108,7 +107,7 @@ public class LocalWALRecovery implements Runnable {
 
   @Override
   public void run() {
-    SecurityUtil.serverLogin(ServerConfiguration.getSiteConfiguration());
+    SecurityUtil.serverLogin(SiteConfiguration.getInstance());
 
     try {
       recoverLocalWriteAheadLogs(VolumeManagerImpl.get().getDefaultVolume().getFileSystem());

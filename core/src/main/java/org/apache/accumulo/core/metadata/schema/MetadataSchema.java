@@ -17,28 +17,22 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.hadoop.io.Text;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Describes the table schema used for metadata tables
  */
 public class MetadataSchema {
   
-  private static final String RESERVED_PREFIX = "~";
-  
-  private static class Section {
-    private String rowPrefix;
-    private Range range;
-    
-    private Section(String startRow, boolean startInclusive, String endRow, boolean endInclusive) {
-      rowPrefix = startRow;
-      range = new Range(startRow, startInclusive, endRow, endInclusive);
-    }
-  }
+  public static final String RESERVED_PREFIX = "~";
   
   /**
    * Used for storing information about tablets
@@ -47,7 +41,7 @@ public class MetadataSchema {
     private static final Section section = new Section(null, false, RESERVED_PREFIX, false);
     
     public static Range getRange() {
-      return section.range;
+      return section.getRange();
     }
     
     public static Range getRange(String tableId) {
@@ -192,11 +186,11 @@ public class MetadataSchema {
     private static final Section section = new Section(RESERVED_PREFIX, true, null, false);
     
     public static Range getRange() {
-      return section.range;
+      return section.getRange();
     }
     
     public static String getRowPrefix() {
-      return section.rowPrefix;
+      return section.getRowPrefix();
     }
     
   }
@@ -208,11 +202,11 @@ public class MetadataSchema {
     private static final Section section = new Section(RESERVED_PREFIX + "del", true, RESERVED_PREFIX + "dem", false);
     
     public static Range getRange() {
-      return section.range;
+      return section.getRange();
     }
     
     public static String getRowPrefix() {
-      return section.rowPrefix;
+      return section.getRowPrefix();
     }
     
   }
@@ -224,13 +218,78 @@ public class MetadataSchema {
     private static final Section section = new Section(RESERVED_PREFIX + "blip", true, RESERVED_PREFIX + "bliq", false);
     
     public static Range getRange() {
-      return section.range;
+      return section.getRange();
     }
     
     public static String getRowPrefix() {
-      return section.rowPrefix;
+      return section.getRowPrefix();
     }
     
   }
-  
+
+  /**
+   * Holds references to files that need replication
+   * <p>
+   * <code>~replhdfs://localhost:8020/accumulo/wal/tserver+port/WAL stat:local_table_id [] -> protobuf</code>
+   */
+  public static class ReplicationSection {
+    public static final Text COLF = new Text("stat");
+    private static final ArrayByteSequence COLF_BYTE_SEQ = new ArrayByteSequence(COLF.toString());
+    private static final Section section = new Section(RESERVED_PREFIX + "repl", true, RESERVED_PREFIX + "repm", false);
+
+    public static Range getRange() {
+      return section.getRange();
+    }
+
+    public static String getRowPrefix() {
+      return section.getRowPrefix();
+    }
+
+    /**
+     * Extract the table ID from the colfam (inefficiently if called repeatedly)
+     * 
+     * @param k
+     *          Key to extract from
+     * @return The table ID
+     * @see #getTableId(Key,Text)
+     */
+    public static String getTableId(Key k) {
+      Text buff = new Text();
+      getTableId(k, buff);
+      return buff.toString();
+    }
+
+    /**
+     * Extract the table ID from the colfam into the given {@link Text}
+     * 
+     * @param k
+     *          Key to extract from
+     * @param buff
+     *          Text to place table ID into
+     */
+    public static void getTableId(Key k, Text buff) {
+      Preconditions.checkNotNull(k);
+      Preconditions.checkNotNull(buff);
+
+      k.getColumnQualifier(buff);
+    }
+
+    /**
+     * Extract the file name from the row suffix into the given {@link Text}
+     * 
+     * @param k
+     *          Key to extract from
+     * @param buff
+     *          Text to place file name into
+     */
+    public static void getFile(Key k, Text buff) {
+      Preconditions.checkNotNull(k);
+      Preconditions.checkNotNull(buff);
+      Preconditions.checkArgument(COLF_BYTE_SEQ.equals(k.getColumnFamilyData()), "Given metadata replication status key with incorrect colfam");
+
+      k.getRow(buff);
+
+      buff.set(buff.getBytes(), section.getRowPrefix().length(), buff.getLength() - section.getRowPrefix().length());
+    }
+  }
 }

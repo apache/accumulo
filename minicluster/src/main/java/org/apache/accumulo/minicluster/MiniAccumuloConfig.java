@@ -95,6 +95,20 @@ public class MiniAccumuloConfig {
   }
 
   /**
+   * Configure the time to wait for ZooKeeper to startup.
+   * Calling this method is optional. The default is 20000 milliseconds
+   * 
+   * @param zooKeeperStartupTime
+   *          Time to wait for ZooKeeper to startup, in milliseconds
+   * 
+   * @since 1.6.1
+   */
+  public MiniAccumuloConfig setZooKeeperStartupTime(long zooKeeperStartupTime) {
+    impl.setZooKeeperStartupTime(zooKeeperStartupTime);
+    return this;
+  }
+
+  /**
    * Sets the amount of memory to use in the master process. Calling this method is optional. Default memory is 128M
    * 
    * @param serverType
@@ -151,7 +165,7 @@ public class MiniAccumuloConfig {
    * @since 1.6.0
    */
   public int getZooKeeperPort() {
-    return impl.getConfiguredZookeeperPort();
+    return impl.getConfiguredZooKeeperPort();
   }
 
   /**

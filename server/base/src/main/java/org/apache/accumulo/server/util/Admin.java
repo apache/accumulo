@@ -49,7 +49,7 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.server.cli.ClientOpts;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.hadoop.conf.Configuration;
@@ -159,6 +159,7 @@ public class Admin {
       return;
     }
     Instance instance = opts.getInstance();
+    AccumuloConfiguration conf = new ServerConfigurationFactory(instance).getConfiguration();
 
     try {
       String principal;
@@ -192,7 +193,7 @@ public class Admin {
         }
 
       } else if (cl.getParsedCommand().equals("stop")) {
-        stopTabletServer(instance, new Credentials(principal, token), stopOpts.args, opts.force);
+        stopTabletServer(conf, instance, new Credentials(principal, token), stopOpts.args, opts.force);
       } else if (cl.getParsedCommand().equals("dumpConfig")) {
         printConfig(instance, principal, token, dumpConfigCommand);
       } else if (cl.getParsedCommand().equals("volumes")) {
@@ -308,14 +309,14 @@ public class Admin {
     });
   }
 
-  private static void stopTabletServer(final Instance instance, final Credentials creds, List<String> servers, final boolean force) throws AccumuloException,
+  private static void stopTabletServer(final AccumuloConfiguration conf, final Instance instance, final Credentials creds, List<String> servers, final boolean force) throws AccumuloException,
       AccumuloSecurityException {
     if (instance.getMasterLocations().size() == 0) {
       log.info("No masters running. Not attempting safe unload of tserver.");
       return;
     }
     for (String server : servers) {
-      HostAndPort address = AddressUtil.parseAddress(server, ServerConfiguration.getDefaultConfiguration().getPort(Property.TSERV_CLIENTPORT));
+      HostAndPort address = AddressUtil.parseAddress(server, conf.getPort(Property.TSERV_CLIENTPORT));
       final String finalServer = address.toString();
       log.info("Stopping server " + finalServer);
       MasterClient.execute(instance, new ClientExec<MasterClientService.Client>() {

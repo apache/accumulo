@@ -34,28 +34,28 @@ public class SslIT extends ConfigurableMacIT {
     configureForSsl(cfg, createSharedTestDir(this.getClass().getName() + "-ssl"));
   }
 
-  @Test(timeout = 60 * 1000)
+  @Test(timeout = 4 * 60 * 1000)
   public void binary() throws AccumuloException, AccumuloSecurityException, Exception {
     getConnector().tableOperations().create("bt");
     BinaryIT.runTest(getConnector());
   }
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Test(timeout = 4 * 60 * 1000)
   public void concurrency() throws Exception {
     ConcurrencyIT.runTest(getConnector());
   }
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Test(timeout = 4 * 60 * 1000)
   public void adminStop() throws Exception {
     ShutdownIT.runAdminStopTest(getConnector(), getCluster());
   }
 
-  @Test(timeout = 5 * 60 * 1000)
+  @Test(timeout = 6 * 60 * 1000)
   public void bulk() throws Exception {
     BulkIT.runTest(getConnector(), getUniqueNames(1)[0], this.getClass().getName(), testName.getMethodName());
   }
 
-  @Test(timeout = 60 * 1000)
+  @Test(timeout = 2 * 60 * 1000)
   public void mapReduce() throws Exception {
     MapReduceIT.runTest(getConnector(), getCluster());
   }

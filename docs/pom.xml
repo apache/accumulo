@@ -104,7 +104,7 @@
                 </goals>
                 <phase>compile</phase>
                 <configuration>
-                  <mainClass>org.apache.accumulo.core.conf.DefaultConfiguration</mainClass>
+                  <mainClass>org.apache.accumulo.core.conf.ConfigurationDocGen</mainClass>
                   <classpathScope>compile</classpathScope>
                   <arguments>
                     <argument>--generate-html</argument>
@@ -119,7 +119,7 @@
                 </goals>
                 <phase>compile</phase>
                 <configuration>
-                  <mainClass>org.apache.accumulo.core.conf.DefaultConfiguration</mainClass>
+                  <mainClass>org.apache.accumulo.core.conf.ConfigurationDocGen</mainClass>
                   <classpathScope>compile</classpathScope>
                   <arguments>
                     <argument>--generate-asciidoc</argument>

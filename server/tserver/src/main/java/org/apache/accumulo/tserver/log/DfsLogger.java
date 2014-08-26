@@ -221,13 +221,21 @@ public class DfsLogger {
   private String logPath;
   private Daemon syncThread;
 
+  /* Track what's actually in +r/!0 for this logger ref */
+  private String metaReference;
+
   public DfsLogger(ServerResources conf) throws IOException {
     this.conf = conf;
   }
 
-  public DfsLogger(ServerResources conf, String filename) throws IOException {
+  /**
+   * Reference a pre-existing log file.
+   * @param meta the cq for the "log" entry in +r/!0
+   */
+  public DfsLogger(ServerResources conf, String filename, String meta) throws IOException {
     this.conf = conf;
     this.logPath = filename;
+    metaReference = meta;
   }
 
   public static DFSLoggerInputStreams readHeaderAndReturnStream(VolumeManager fs, Path path, AccumuloConfiguration conf) throws IOException {
@@ -316,6 +324,7 @@ public class DfsLogger {
     VolumeManager fs = conf.getFileSystem();
 
     logPath = fs.choose(ServerConstants.getWalDirs()) + "/" + logger + "/" + filename;
+    metaReference = toString();
     try {
       short replication = (short) conf.getConfiguration().getCount(Property.TSERV_WAL_REPLICATION);
       if (replication == 0)
@@ -399,6 +408,16 @@ public class DfsLogger {
     if (fileName.contains(":"))
       return getLogger() + "/" + getFileName();
     return fileName;
+  }
+
+  /**
+   * get the cq needed to reference this logger's entry in +r/!0
+   */
+  public String getMeta() {
+    if (null == metaReference) {
+      throw new IllegalStateException("logger doesn't have meta reference. " + this);
+    }
+    return metaReference;
   }
 
   public String getFileName() {

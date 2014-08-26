@@ -16,9 +16,11 @@
  */
 package org.apache.accumulo.core.conf;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.TreeMap;
@@ -291,7 +293,7 @@ class ConfigurationDocGen {
     }
   }
 
-  private static Logger log = Logger.getLogger(DefaultConfiguration.class);
+  private static Logger log = Logger.getLogger(ConfigurationDocGen.class);
 
   private PrintStream doc;
 
@@ -316,7 +318,7 @@ class ConfigurationDocGen {
   }
 
   private void appendResource(String resourceName) {
-    InputStream data = DefaultConfiguration.class.getResourceAsStream(resourceName);
+    InputStream data = ConfigurationDocGen.class.getResourceAsStream(resourceName);
     if (data != null) {
       byte[] buffer = new byte[1024];
       int n;
@@ -324,7 +326,7 @@ class ConfigurationDocGen {
         while ((n = data.read(buffer)) > 0)
           doc.print(new String(buffer, 0, n, StandardCharsets.UTF_8));
       } catch (IOException e) {
-        e.printStackTrace();
+        log.debug("Encountered IOException while reading InputStream in appendResource().", e);
         return;
       } finally {
         try {
@@ -350,6 +352,23 @@ class ConfigurationDocGen {
 
   void generateAsciidoc() {
     new Asciidoc().generate();
+  }
+
+  /*
+   * Generates documentation for conf/accumulo-site.xml file usage. Arguments
+   * are: "--generate-doc", file to write to.
+   *
+   * @param args command-line arguments
+   * @throws IllegalArgumentException if args is invalid
+   */
+  public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException {
+    if (args.length == 2 && args[0].equals("--generate-html")) {
+      new ConfigurationDocGen(new PrintStream(args[1], StandardCharsets.UTF_8.name())).generateHtml();
+    } else if (args.length == 2 && args[0].equals("--generate-asciidoc")) {
+      new ConfigurationDocGen(new PrintStream(args[1], StandardCharsets.UTF_8.name())).generateAsciidoc();
+    } else {
+      throw new IllegalArgumentException("Usage: " + ConfigurationDocGen.class.getName() + " --generate-html <filename> | --generate-asciidoc <filename>");
+    }
   }
 
 }

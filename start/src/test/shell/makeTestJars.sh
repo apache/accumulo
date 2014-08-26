@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /usr/bin/env bash
 
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -16,7 +16,7 @@
 # limitations under the License.
 
 
-cd $ACCUMULO_HOME/src/start
+cd "$ACCUMULO_HOME/src/start"
 for x in A B C
 do
     sed "s/testX/test$x/" < src/test/java/test/TestTemplate > src/test/java/test/TestObject.java
