@@ -124,8 +124,12 @@ public class PasswordToken implements AuthenticationToken {
       throw new RuntimeException(e);
     }
   }
-  
-  private void setPassword(CharBuffer charBuffer) {
+
+  protected void setPassword(byte[] password) {
+    this.password = Arrays.copyOf(password, password.length);
+  }
+
+  protected void setPassword(CharBuffer charBuffer) {
     // encode() kicks back a C-string, which is not compatible with the old passwording system
     ByteBuffer bb = Constants.UTF8.encode(charBuffer);
     // create array using byter buffer length

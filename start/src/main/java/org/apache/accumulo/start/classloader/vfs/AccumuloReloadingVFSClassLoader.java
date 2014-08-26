@@ -138,13 +138,13 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
 
   public void fileDeleted(FileChangeEvent event) throws Exception {
     if (log.isDebugEnabled())
-      log.debug(event.getFile().getURL().toString() + " changed, recreating classloader");
+      log.debug(event.getFile().getURL().toString() + " deleted, recreating classloader");
     setClassloader(null);
   }
 
   public void fileChanged(FileChangeEvent event) throws Exception {
     if (log.isDebugEnabled())
-      log.debug(event.getFile().getURL().toString() + " deleted, recreating classloader");
+      log.debug(event.getFile().getURL().toString() + " changed, recreating classloader");
     setClassloader(null);
   }
 

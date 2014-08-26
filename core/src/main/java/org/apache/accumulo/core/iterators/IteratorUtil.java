@@ -48,12 +48,32 @@ import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TBinaryProtocol;
+
+import com.google.common.base.Preconditions;
 public class IteratorUtil {
   
   private static final Logger log = Logger.getLogger(IteratorUtil.class);
   
   public static enum IteratorScope {
     majc, minc, scan;
+
+    /**
+     * Fetch the correct configuration key prefix for the given scope. Throws an
+     * IllegalArgumentException if no property exists for the given scope.
+     */
+    public static Property getProperty(IteratorScope scope) {
+      Preconditions.checkNotNull(scope);
+      switch (scope) {
+        case scan:
+          return Property.TABLE_ITERATOR_SCAN_PREFIX;
+        case minc:
+          return Property.TABLE_ITERATOR_MINC_PREFIX;
+        case majc:
+          return Property.TABLE_ITERATOR_MAJC_PREFIX;
+        default:
+          throw new IllegalStateException("Could not find configuration property for IteratorScope");
+      }
+    }
   }
   
   public static class IterInfoComparator implements Comparator<IterInfo>, Serializable {
@@ -101,45 +121,31 @@ public class IteratorUtil {
     return max;
   }
   
-  private static void parseIterConf(IteratorScope scope, List<IterInfo> iters, Map<String,Map<String,String>> allOptions, AccumuloConfiguration conf) {
-    for (Entry<String,String> entry : conf.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_PREFIX).entrySet()) {
+  protected static void parseIterConf(IteratorScope scope, List<IterInfo> iters, Map<String,Map<String,String>> allOptions, AccumuloConfiguration conf) {
+    final Property scopeProperty = IteratorScope.getProperty(scope);
+    final String scopePropertyKey = scopeProperty.getKey();
 
-      String suffix = entry.getKey().substring(Property.TABLE_ITERATOR_PREFIX.getKey().length());
-      String suffixSplit[] = suffix.split("\\.", 4);
-
-      if (!suffixSplit[0].equals(scope.name())) {
-
-        // do a sanity check to see if this is a valid scope
-        boolean found = false;
-        IteratorScope[] scopes = IteratorScope.values();
-        for (IteratorScope s : scopes) {
-          found = found || suffixSplit[0].equals(s.name());
-        }
-
-        if (!found) {
-          log.warn("Option contains unknown scope: " + entry.getKey());
-        }
-
-        continue;
-      }
-
-      if (suffixSplit.length == 2) {
+    for (Entry<String,String> entry : conf.getAllPropertiesWithPrefix(scopeProperty).entrySet()) {
+      String suffix = entry.getKey().substring(scopePropertyKey.length());
+      String suffixSplit[] = suffix.split("\\.", 3);
+      
+      if (suffixSplit.length == 1) {
         String sa[] = entry.getValue().split(",");
         int prio = Integer.parseInt(sa[0]);
         String className = sa[1];
-        iters.add(new IterInfo(prio, className, suffixSplit[1]));
-      } else if (suffixSplit.length == 4 && suffixSplit[2].equals("opt")) {
-        String iterName = suffixSplit[1];
-        String optName = suffixSplit[3];
-
+        iters.add(new IterInfo(prio, className, suffixSplit[0]));
+      } else if (suffixSplit.length == 3 && suffixSplit[1].equals("opt")) {
+        String iterName = suffixSplit[0];
+        String optName = suffixSplit[2];
+        
         Map<String,String> options = allOptions.get(iterName);
         if (options == null) {
           options = new HashMap<String,String>();
           allOptions.put(iterName, options);
         }
-
+        
         options.put(optName, entry.getValue());
-
+        
       } else {
         log.warn("Unrecognizable option: " + entry.getKey());
       }

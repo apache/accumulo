@@ -21,6 +21,8 @@ import java.util.List;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -50,8 +52,7 @@ public class PrintInfo {
   public static void main(String[] args) throws Exception {
     Configuration conf = new Configuration();
 
-    @SuppressWarnings("deprecation")
-    AccumuloConfiguration aconf = AccumuloConfiguration.getSiteConfiguration();
+    AccumuloConfiguration aconf = SiteConfiguration.getInstance(DefaultConfiguration.getInstance());
     // TODO ACCUMULO-2462 This will only work for RFiles (path only, not URI) in HDFS when the correct filesystem for the given file
     // is on Property.INSTANCE_DFS_DIR or, when INSTANCE_DFS_DIR is not defined, is on the default filesystem 
     // defined in the Hadoop's core-site.xml

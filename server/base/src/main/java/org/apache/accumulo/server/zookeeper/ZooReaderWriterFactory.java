@@ -18,13 +18,13 @@ package org.apache.accumulo.server.zookeeper;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.RetryingInvocationHandler;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 
 /**

@@ -31,26 +31,40 @@ class NamespaceConfWatcher implements Watcher {
   }
 
   private static final Logger log = Logger.getLogger(NamespaceConfWatcher.class);
-  private Instance instance = null;
+  private final Instance instance;
+  private final String namespacesPrefix;
+  private final int namespacesPrefixLength;
+  private ServerConfigurationFactory scf;
 
   NamespaceConfWatcher(Instance instance) {
     this.instance = instance;
+    namespacesPrefix = ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/";
+    namespacesPrefixLength = namespacesPrefix.length();
+    scf = new ServerConfigurationFactory(instance);
+  }
+
+  void setServerConfigurationFactory(ServerConfigurationFactory scf) {
+    this.scf = scf;
+  }
+
+  static String toString(WatchedEvent event) {
+    return new StringBuilder("{path=").append(event.getPath()).append(",state=")
+      .append(event.getState()).append(",type=").append(event.getType())
+      .append("}").toString();
   }
 
   @Override
   public void process(WatchedEvent event) {
     String path = event.getPath();
     if (log.isTraceEnabled())
-      log.trace("WatchEvent : " + path + " " + event.getState() + " " + event.getType());
-
-    String namespacesPrefix = ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/";
+      log.trace("WatchedEvent : " + toString(event));
 
     String namespaceId = null;
     String key = null;
 
     if (path != null) {
       if (path.startsWith(namespacesPrefix)) {
-        namespaceId = path.substring(namespacesPrefix.length());
+        namespaceId = path.substring(namespacesPrefixLength);
         if (namespaceId.contains("/")) {
           namespaceId = namespaceId.substring(0, namespaceId.indexOf('/'));
           if (path.startsWith(namespacesPrefix + namespaceId + Constants.ZNAMESPACE_CONF + "/"))
@@ -59,7 +73,7 @@ class NamespaceConfWatcher implements Watcher {
       }
 
       if (namespaceId == null) {
-        log.warn("Zookeeper told me about a path I was not watching " + path + " state=" + event.getState() + " type=" + event.getType());
+        log.warn("Zookeeper told me about a path I was not watching: " + path + ", event " + toString(event));
         return;
       }
     }
@@ -69,27 +83,27 @@ class NamespaceConfWatcher implements Watcher {
         if (log.isTraceEnabled())
           log.trace("EventNodeDataChanged " + event.getPath());
         if (key != null)
-          ServerConfiguration.getNamespaceConfiguration(instance, namespaceId).propertyChanged(key);
+          scf.getNamespaceConfiguration(namespaceId).propertyChanged(key);
         break;
       case NodeChildrenChanged:
-        ServerConfiguration.getNamespaceConfiguration(instance, namespaceId).propertiesChanged(key);
+        scf.getNamespaceConfiguration(namespaceId).propertiesChanged();
         break;
       case NodeDeleted:
         if (key == null) {
-          ServerConfiguration.removeNamespaceIdInstance(namespaceId);
+          ServerConfigurationFactory.removeCachedNamespaceConfiguration(instance.getInstanceID(), namespaceId);
         }
         break;
       case None:
         switch (event.getState()) {
           case Expired:
-            ServerConfiguration.expireAllTableObservers();
+            ServerConfigurationFactory.expireAllTableObservers();
             break;
           case SyncConnected:
             break;
           case Disconnected:
             break;
           default:
-            log.warn("EventNone event not handled path = " + event.getPath() + " state=" + event.getState());
+            log.warn("EventNone event not handled " + toString(event));
         }
         break;
       case NodeCreated:
@@ -97,11 +111,11 @@ class NamespaceConfWatcher implements Watcher {
           case SyncConnected:
             break;
           default:
-            log.warn("Event NodeCreated event not handled path = " + event.getPath() + " state=" + event.getState());
+            log.warn("Event NodeCreated event not handled " + toString(event));
         }
         break;
       default:
-        log.warn("Event not handled path = " + event.getPath() + " state=" + event.getState() + " type = " + event.getType());
+        log.warn("Event not handled " + toString(event));
     }
   }
 }

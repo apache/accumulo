@@ -47,6 +47,7 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.security.handler.Authenticator;
 import org.apache.accumulo.server.security.handler.Authorizor;
 import org.apache.accumulo.server.security.handler.PermissionHandler;
+import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -120,7 +121,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   private void audit(TCredentials credentials, boolean permitted, String template, Object... args) {
     if (shouldAudit(credentials)) {
       String prefix = permitted ? "permitted" : "denied";
-      audit.info("operation: " + prefix + "; user: " + credentials.getPrincipal() + "; " + String.format(template, args));
+      audit.info("operation: " + prefix + "; user: " + credentials.getPrincipal() + "; client: "  + TServerUtils.clientAddress.get() + "; " + String.format(template, args));
     }
   }
 
@@ -432,6 +433,20 @@ public class AuditedSecurityOperation extends SecurityOperation {
     } catch (ThriftSecurityException ex) {
       audit(credentials, ex, CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE, operation, tableName, tableId);
       throw ex;
+    }
+  }
+
+  // The audit log is already logging the principal, so we don't have anything else to audit
+  public static final String AUTHENICATE_AUDIT_TEMPLATE =  "";
+
+  @Override
+  protected void authenticate(TCredentials credentials) throws ThriftSecurityException {
+    try {
+      super.authenticate(credentials);
+      audit(credentials, true, AUTHENICATE_AUDIT_TEMPLATE);
+    } catch (ThriftSecurityException e) {
+      audit(credentials, false, AUTHENICATE_AUDIT_TEMPLATE);
+      throw e;
     }
   }
 }

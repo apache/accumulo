@@ -22,6 +22,7 @@ import java.net.URL;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.apache.thrift.transport.TSSLTransportFactory.TSSLTransportParameters;
 
@@ -40,6 +41,8 @@ public class SslConnectionParams  {
   private String trustStorePath;
   private String trustStorePass;
   private String trustStoreType;
+
+  private String[] cipherSuites;
 
   public static SslConnectionParams forConfig(AccumuloConfiguration conf, boolean server) {
     if (!conf.getBoolean(Property.INSTANCE_RPC_SSL_ENABLED))
@@ -64,6 +67,11 @@ public class SslConnectionParams  {
       }
     } catch (FileNotFoundException e) {
       throw new IllegalArgumentException("Could not load configured keystore file", e);
+    }
+
+    String ciphers = conf.get(Property.RPC_SSL_CIPHER_SUITES);
+    if (null != ciphers && !ciphers.isEmpty()) {
+      result.cipherSuites = StringUtils.split(ciphers, ',');
     }
 
     return result;
@@ -145,7 +153,14 @@ public class SslConnectionParams  {
   public TSSLTransportParameters getTTransportParams() {
     if (useJsse)
       throw new IllegalStateException("Cannot get TTransportParams for JSEE configuration.");
-    TSSLTransportParameters params = new TSSLTransportParameters();
+    TSSLTransportParameters params;
+    if (null != cipherSuites) {
+      // TLS is the default value used in thrift 0.9.1
+      params = new TSSLTransportParameters("TLS", cipherSuites);
+    } else {
+      params = new TSSLTransportParameters();
+    }
+
     params.requireClientAuth(clientAuth);
     if (keyStoreSet) {
       params.setKeyStore(keyStorePath, keyStorePass, null, keyStoreType);

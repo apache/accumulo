@@ -20,13 +20,24 @@ import java.util.Map.Entry;
 
 import org.apache.log4j.Logger;
 
+/**
+ * A utility class for checking over configuration entries.
+ */
 public class ConfigSanityCheck {
   
   private static final Logger log = Logger.getLogger(ConfigSanityCheck.class);
   private static final String PREFIX = "BAD CONFIG ";
   
-  public static void validate(AccumuloConfiguration acuconf) {
-    for (Entry<String,String> entry : acuconf) {
+  /**
+   * Validates the given configuration entries.
+   *
+   * @param entries iterable through configuration keys and values
+   * @throws SanityCheckException if a fatal configuration error is found
+   */
+  public static void validate(Iterable<Entry<String,String>> entries) {
+    String instanceZkTimeoutKey = Property.INSTANCE_ZK_TIMEOUT.getKey();
+    String instanceZkTimeoutValue = null;
+    for (Entry<String,String> entry : entries) {
       String key = entry.getKey();
       String value = entry.getValue();
       Property prop = Property.getPropertyByKey(entry.getKey());
@@ -38,9 +49,16 @@ public class ConfigSanityCheck {
         fatal(PREFIX + "incomplete property key (" + key + ")");
       else if (!prop.getType().isValidFormat(value))
         fatal(PREFIX + "improperly formatted value for key (" + key + ", type=" + prop.getType() + ")");
+
+      if (key.equals(instanceZkTimeoutKey)) {
+        instanceZkTimeoutValue = value;
+      }
     }
-    
-    checkTimeDuration(acuconf, Property.INSTANCE_ZK_TIMEOUT, new CheckTimeDurationBetween(1000, 300000));
+
+    if (instanceZkTimeoutValue != null) {
+      checkTimeDuration(Property.INSTANCE_ZK_TIMEOUT, instanceZkTimeoutValue,
+                        new CheckTimeDurationBetween(1000, 300000));
+    }
   }
   
   private interface CheckTimeDuration {
@@ -68,9 +86,9 @@ public class ConfigSanityCheck {
     }
   }
   
-  private static void checkTimeDuration(AccumuloConfiguration acuconf, Property prop, CheckTimeDuration chk) {
+  private static void checkTimeDuration(Property prop, String value, CheckTimeDuration chk) {
     verifyPropertyTypes(PropertyType.TIMEDURATION, prop);
-    if (!chk.check(acuconf.getTimeInMillis(prop)))
+    if (!chk.check(AccumuloConfiguration.getTimeInMillis(value)))
       fatal(PREFIX + chk.getDescription(prop));
   }
   
@@ -79,9 +97,21 @@ public class ConfigSanityCheck {
       if (prop.getType() != type)
         fatal("Unexpected property type (" + prop.getType() + " != " + type + ")");
   }
-  
+
+  /**
+   * The exception thrown when {@link ConfigSanityCheck#validate(Iterable)} fails.
+   */
+  public static class SanityCheckException extends RuntimeException {
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * Creates a new exception with the given message.
+     */
+    public SanityCheckException(String msg) { super(msg); }
+  }
+
   private static void fatal(String msg) {
     log.fatal(msg);
-    throw new RuntimeException(msg);
+    throw new SanityCheckException(msg);
   }
 }

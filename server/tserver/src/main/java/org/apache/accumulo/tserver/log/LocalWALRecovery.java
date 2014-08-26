@@ -30,8 +30,6 @@ import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
-import org.apache.accumulo.server.logger.LogFileKey;
-import org.apache.accumulo.server.logger.LogFileValue;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -138,9 +136,9 @@ public class LocalWALRecovery implements Runnable {
         }
 
         @SuppressWarnings("deprecation")
-        LogFileKey key = new LogFileKey();
+        org.apache.accumulo.server.logger.LogFileKey key = new org.apache.accumulo.server.logger.LogFileKey();
         @SuppressWarnings("deprecation")
-        LogFileValue value = new LogFileValue();
+        org.apache.accumulo.server.logger.LogFileValue value = new org.apache.accumulo.server.logger.LogFileValue();
 
         log.info("Openning local log " + file.getAbsolutePath());
 

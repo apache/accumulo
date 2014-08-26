@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.conf;
 
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 
@@ -30,6 +31,15 @@ public class TableParentConfiguration extends NamespaceConfiguration {
     super(null, parent);
     this.tableId = tableId;
     this.namespaceId = getNamespaceId();
+  }
+  public TableParentConfiguration(String tableId, Instance inst, AccumuloConfiguration parent) {
+    super(null, inst, parent);
+    this.tableId = tableId;
+    this.namespaceId = getNamespaceId();
+  }
+
+  String getTableId() {
+    return tableId;
   }
 
   @Override

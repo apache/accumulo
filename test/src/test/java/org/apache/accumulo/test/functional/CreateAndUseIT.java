@@ -17,6 +17,7 @@
 package org.apache.accumulo.test.functional;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -32,7 +33,11 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
+import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.google.common.collect.Iterators;
 
 public class CreateAndUseIT extends SimpleMacIT {
 
@@ -41,21 +46,23 @@ public class CreateAndUseIT extends SimpleMacIT {
     return 2 * 60;
   }
 
-  @Test
-  public void run() throws Exception {
-    SortedSet<Text> splits = new TreeSet<Text>();
+  private static SortedSet<Text> splits;
+
+  @BeforeClass
+  public static void createData() throws Exception {
+    splits = new TreeSet<Text>();
 
     for (int i = 1; i < 256; i++) {
       splits.add(new Text(String.format("%08x", i << 8)));
     }
+  }
 
-    // TEST 1 create a table and immediately batch write to it
-
+  @Test(timeout = 2 * 60 * 1000)
+  public void verifyDataIsPresent() throws Exception {
     Text cf = new Text("cf1");
     Text cq = new Text("cq1");
 
-    String[] tableNames = getUniqueNames(3);
-    String tableName = tableNames[0];
+    String tableName = getUniqueNames(1)[0];
     getConnector().tableOperations().create(tableName);
     getConnector().tableOperations().addSplits(tableName, splits);
     BatchWriter bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
@@ -68,30 +75,23 @@ public class CreateAndUseIT extends SimpleMacIT {
     }
 
     bw.close();
-
-    // verify data is there
     Scanner scanner1 = getConnector().createScanner(tableName, Authorizations.EMPTY);
 
     int ei = 1;
 
     for (Entry<Key,Value> entry : scanner1) {
-      if (!entry.getKey().getRow().toString().equals(String.format("%08x", (ei << 8) - 16))) {
-        throw new Exception("Expected row " + String.format("%08x", (ei << 8) - 16) + " saw " + entry.getKey().getRow());
-      }
-
-      if (!entry.getValue().toString().equals("" + ei)) {
-        throw new Exception("Expected value " + ei + " saw " + entry.getValue());
-      }
+      Assert.assertEquals(String.format("%08x", (ei << 8) - 16), entry.getKey().getRow().toString());
+      Assert.assertEquals(Integer.toString(ei), entry.getValue().toString());
 
       ei++;
     }
 
-    if (ei != 257) {
-      throw new Exception("Did not see expected number of rows, ei = " + ei);
-    }
+    Assert.assertEquals("Did not see expected number of rows", 257, ei);
+  }
 
-    // TEST 2 create a table and immediately scan it
-    String table2 = tableNames[1];
+  @Test(timeout = 2 * 60 * 1000)
+  public void createTableAndScan() throws Exception {
+    String table2 = getUniqueNames(1)[0];
     getConnector().tableOperations().create(table2);
     getConnector().tableOperations().addSplits(table2, splits);
     Scanner scanner2 = getConnector().createScanner(table2, Authorizations.EMPTY);
@@ -104,31 +104,25 @@ public class CreateAndUseIT extends SimpleMacIT {
     if (count != 0) {
       throw new Exception("Did not see expected number of entries, count = " + count);
     }
+  }
 
-    // TEST 3 create a table and immediately batch scan it
-
+  @Test(timeout = 2 * 60 * 1000)
+  public void createTableAndBatchScan() throws Exception {
     ArrayList<Range> ranges = new ArrayList<Range>();
     for (int i = 1; i < 257; i++) {
       ranges.add(new Range(new Text(String.format("%08x", (i << 8) - 16))));
     }
 
-    String table3 = tableNames[2];
+    String table3 = getUniqueNames(1)[0];
     getConnector().tableOperations().create(table3);
     getConnector().tableOperations().addSplits(table3, splits);
     BatchScanner bs = getConnector().createBatchScanner(table3, Authorizations.EMPTY, 3);
     bs.setRanges(ranges);
-    count = 0;
-    for (Entry<Key,Value> entry : bs) {
-      if (entry != null)
-        count++;
-    }
-
-    if (count != 0) {
-      throw new Exception("Did not see expected number of entries, count = " + count);
-    }
-
+    Iterator<Entry<Key,Value>> iter = bs.iterator();
+    int count = Iterators.size(iter);
     bs.close();
 
+    Assert.assertEquals("Did not expect to find any entries", 0, count);
   }
 
 }

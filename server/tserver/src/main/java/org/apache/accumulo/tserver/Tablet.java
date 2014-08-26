@@ -172,7 +172,7 @@ import com.google.common.annotations.VisibleForTesting;
 public class Tablet {
 
   enum MinorCompactionReason {
-    USER, SYSTEM, CLOSE
+    USER, SYSTEM, CLOSE, RECOVERY
   }
 
   public class CommitSession {
@@ -1357,6 +1357,8 @@ public class Tablet {
     tabletResources.setTablet(this, acuTableConf);
     if (!logEntries.isEmpty()) {
       log.info("Starting Write-Ahead Log recovery for " + this.extent);
+      // count[0] = entries used on tablet
+      // count[1] = track max time from walog entries wihtout timestamps
       final long[] count = new long[2];
       final CommitSession commitSession = tabletMemory.getCommitSession();
       count[1] = Long.MIN_VALUE;
@@ -1388,6 +1390,7 @@ public class Tablet {
         commitSession.updateMaxCommittedTime(tabletTime.getTime());
 
         if (count[0] == 0) {
+          log.debug("No replayed mutations applied, removing unused entries for " + extent);
           MetadataTableUtil.removeUnusedWALEntries(extent, logEntries, tabletServer.getLock());
           logEntries.clear();
         }
@@ -1403,7 +1406,7 @@ public class Tablet {
       currentLogs = new HashSet<DfsLogger>();
       for (LogEntry logEntry : logEntries) {
         for (String log : logEntry.logSet) {
-          currentLogs.add(new DfsLogger(tabletServer.getServerConfig(), log));
+          currentLogs.add(new DfsLogger(tabletServer.getServerConfig(), log, logEntry.getColumnQualifier().toString()));
         }
       }
 
@@ -2167,7 +2170,10 @@ public class Tablet {
     otherLogs = currentLogs;
     currentLogs = new HashSet<DfsLogger>();
 
-    FileRef mergeFile = datafileManager.reserveMergingMinorCompactionFile();
+    FileRef mergeFile = null;
+    if (mincReason != MinorCompactionReason.RECOVERY) {
+      mergeFile = datafileManager.reserveMergingMinorCompactionFile();
+    }
 
     return new MinorCompactionTask(mergeFile, oldCommitSession, flushId, mincReason);
 
@@ -2283,13 +2289,6 @@ public class Tablet {
             logMessage.append(" tabletMemory.getMemTable().getNumEntries() " + tabletMemory.getMemTable().getNumEntries());
           logMessage.append(" updatingFlushID " + updatingFlushID);
 
-          return null;
-        }
-        // We're still recovering log entries
-        if (datafileManager == null) {
-          logMessage = new StringBuilder();
-          logMessage.append(extent.toString());
-          logMessage.append(" datafileManager " + datafileManager);
           return null;
         }
 
@@ -2937,8 +2936,14 @@ public class Tablet {
         lastRow = extent.getEndRow();
       }
 
+      // We expect to get a midPoint for this set of files. If we don't get one, we have a problem.
+      final Key mid = keys.get(.5);
+      if (null == mid) {
+        throw new IllegalStateException("Could not determine midpoint for files");
+      }
+
       // check to see that the midPoint is not equal to the end key
-      if (keys.get(.5).compareRow(lastRow) == 0) {
+      if (mid.compareRow(lastRow) == 0) {
         if (keys.firstKey() < .5) {
           Key candidate = keys.get(keys.firstKey());
           if (candidate.compareRow(lastRow) != 0) {
@@ -2958,8 +2963,7 @@ public class Tablet {
 
         return null;
       }
-      Key mid = keys.get(.5);
-      Text text = (mid == null) ? null : mid.getRow();
+      Text text = mid.getRow();
       SortedMap<Double,Key> firstHalf = keys.headMap(.5);
       if (firstHalf.size() > 0) {
         Text beforeMid = firstHalf.get(firstHalf.lastKey()).getRow();
@@ -3661,12 +3665,12 @@ public class Tablet {
 
       for (DfsLogger logger : otherLogs) {
         otherLogsCopy.add(logger.toString());
-        doomed.add(logger.toString());
+        doomed.add(logger.getMeta());
       }
 
       for (DfsLogger logger : currentLogs) {
         currentLogsCopy.add(logger.toString());
-        doomed.remove(logger.toString());
+        doomed.remove(logger.getMeta());
       }
 
       otherLogs = Collections.emptySet();
@@ -3682,6 +3686,10 @@ public class Tablet {
 
     for (String logger : currentLogsCopy) {
       log.debug("Logs for current memory: " + getExtent() + " " + logger);
+    }
+
+    for (String logger : doomed) {
+      log.debug("Logs to be destroyed: " + getExtent() + " " + logger);
     }
 
     return doomed;

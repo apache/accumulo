@@ -16,12 +16,19 @@
  */
 package org.apache.accumulo.core.conf;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
 
+/**
+ * A configuration drawn from an XML configuration file specified by the system property
+ * org.apache.accumulo.config.file, which points to the file as a resource. The default value is
+ * "accumulo-site.xml". <b>Note</b>: Client code should not use this class, and it may be deprecated in the
+ * future.
+ */
 public class SiteConfiguration extends AccumuloConfiguration {
   private static final Logger log = Logger.getLogger(SiteConfiguration.class);
   
@@ -29,8 +36,11 @@ public class SiteConfiguration extends AccumuloConfiguration {
   private static SiteConfiguration instance = null;
   
   private static Configuration xmlConfig;
-  
-  private SiteConfiguration(AccumuloConfiguration parent) {
+
+  /**
+   * Not for consumers. Call {@link SiteConfiguration#getInstance(AccumuloConfiguration)} instead
+   */
+  SiteConfiguration(AccumuloConfiguration parent) {
     SiteConfiguration.parent = parent;
   }
   
@@ -58,7 +68,23 @@ public class SiteConfiguration extends AccumuloConfiguration {
   @Override
   public String get(Property property) {
     String key = property.getKey();
-    
+
+    // If the property is sensitive, see if CredentialProvider was configured.
+    if (property.isSensitive()) {
+      Configuration hadoopConf = getHadoopConfiguration();
+      if (null != hadoopConf) {
+        // Try to find the sensitive value from the CredentialProvider
+        try {
+          char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf, key);
+          if (null != value) {
+            return new String(value);
+          }
+        } catch (IOException e) {
+          log.warn("Failed to extract sensitive property (" + key + ") from Hadoop CredentialProvider, falling back to accumulo-site.xml", e);
+        }
+      }
+    }
+
     String value = getXmlConfig().get(key);
     
     if (value == null || !property.getType().isValidFormat(value)) {
@@ -76,6 +102,42 @@ public class SiteConfiguration extends AccumuloConfiguration {
     for (Entry<String,String> entry : getXmlConfig())
       if (filter.accept(entry.getKey()))
         props.put(entry.getKey(), entry.getValue());
+
+    // CredentialProvider should take precedence over site
+    Configuration hadoopConf = getHadoopConfiguration();
+    if (null != hadoopConf) {
+      try {
+        for (String key : CredentialProviderFactoryShim.getKeys(hadoopConf)) {
+          if (!Property.isValidPropertyKey(key) || !Property.isSensitive(key)) { 
+            continue;
+          }
+
+          if (filter.accept(key)) {
+            char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf, key);
+            if (null != value) {
+              props.put(key, new String(value));
+            }
+          }
+        }
+      } catch (IOException e) {
+        log.warn("Failed to extract sensitive properties from Hadoop CredentialProvider, falling back to accumulo-site.xml", e);
+      }
+    }
+  }
+
+  protected Configuration getHadoopConfiguration() {
+    String credProviderPathsKey = Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey();
+    String credProviderPathsValue = getXmlConfig().get(credProviderPathsKey);
+
+    if (null != credProviderPathsValue) {
+      // We have configuration for a CredentialProvider
+      // Try to pull the sensitive password from there
+      Configuration conf = new Configuration();
+      conf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, credProviderPathsValue);
+      return conf;
+    }
+
+    return null;
   }
 
   /**

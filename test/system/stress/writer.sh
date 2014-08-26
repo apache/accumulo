@@ -15,26 +15,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Edit the credentials to match your system
-USERPASS='-u root -p secret'
-INSTANCE='-z localhost -i inst'
+# Start: Resolve Script Directory
+# Ref: http://stackoverflow.com/questions/59895/
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "${SOURCE}" ]; do # resolve $SOURCE until the file is no longer a symlink
+   DIR="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
+   SOURCE="$(readlink "${SOURCE}")"
+   [[ "${SOURCE}" != /* ]] && SOURCE="${DIR}/${SOURCE}" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+DIR="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
+# Stop: Resolve Script Directory
+LOG_DIR=${DIR}/logs
+mkdir -p $LOG_DIR
 
-# Edit these to change the range of each cell component. The size is in bytes.
-ROW_RANGE='--min-row-size 128 --max-row-size 128'
-CF_RANGE='--min-cf-size 128 --max-cf-size 128'
-CQ_RANGE='--min-cq-size 128 --max-cq-size 128'
-VALUE_RANGE='--min-value-size 1024 --max-value-size 2048'
-ROW_WIDTH='--min-row-width 1 --max-row-width 10'
+# Source environment
+. ${DIR}/stress-env.sh
 
-# These are the seeds for the random number generates used to generate each cell component.
-ROW_SEED='--row-seed 1'
-CF_SEED='--cf-seed 2'
-CQ_SEED='--cq-seed 3'
-VALUE_SEED='--value-seed 4'
-ROW_WIDTH_SEED='--row-width-seed 5'
+ts=$(date +%Y%m%d%H%M%S)
+host=$(hostname)
 
-# Let's reset the table, for good measure
-../../../bin/accumulo shell $USERPASS -e 'deletetable -f stress_test'
-../../../bin/accumulo shell $USERPASS -e 'createtable stress_test'
+# TBD - --clear-table option
 
-../../../bin/accumulo org.apache.accumulo.test.stress.random.Write $INSTANCE $USERPASS $ROW_RANGE $CF_RANGE $CQ_RANGE $VALUE_RANGE $ROW_SEED $CF_SEED $CQ_SEED $VALUE_SEED $ROW_WIDTH $ROW_WIDTH_SEED
+${ACCUMULO_HOME}/bin/accumulo org.apache.accumulo.test.stress.random.Write $INSTANCE $USERPASS $ROW_RANGE $CF_RANGE $CQ_RANGE $VALUE_RANGE \
+  $ROW_SEED $CF_SEED $CQ_SEED $VALUE_SEED $ROW_WIDTH $ROW_WIDTH_SEED $MAX_CELLS_PER_MUTATION $WRITE_DELAY \
+    > $LOG_DIR/${ts}_${host}_writer.out \
+    2> $LOG_DIR/${ts}_${host}_writer.err

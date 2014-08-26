@@ -64,7 +64,7 @@ public class VolumeImpl implements Volume {
 
   @Override
   public Path prefixChild(Path p) {
-    return new Path(basePath, p);
+    return fs.makeQualified(new Path(basePath, p));
   }
 
   @Override
@@ -99,7 +99,7 @@ public class VolumeImpl implements Volume {
 
   @Override
   public Path prefixChild(String p) {
-    return new Path(basePath, p);
+    return prefixChild(new Path(basePath, p));
   }
 
 }

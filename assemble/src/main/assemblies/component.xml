@@ -27,13 +27,23 @@
       <useTransitiveDependencies>false</useTransitiveDependencies>
       <includes>
         <include>${groupId}:${artifactId}-*</include>
-        <include>org.apache.commons:commons-math</include>
-        <include>org.apache.commons:commons-vfs2</include>
         <include>com.beust:jcommander</include>
         <include>com.google.code.gson:gson</include>
         <include>com.google.guava:guava</include>
+        <include>javax.servlet:javax.servlet-api</include>
         <include>jline:jline</include>
+        <include>org.apache.commons:commons-math</include>
+        <include>org.apache.commons:commons-vfs2</include>
         <include>org.apache.thrift:libthrift</include>
+        <include>org.eclipse.jetty:jetty-continuation</include>
+        <include>org.eclipse.jetty:jetty-http</include>
+        <include>org.eclipse.jetty:jetty-io</include>
+        <include>org.eclipse.jetty:jetty-security</include>
+        <include>org.eclipse.jetty:jetty-server</include>
+        <include>org.eclipse.jetty:jetty-servlet</include>
+        <include>org.eclipse.jetty:jetty-util</include>
+        <include>org.slf4j:slf4j-api</include>
+        <include>org.slf4j:slf4j-log4j12</include>
       </includes>
       <excludes>
         <exclude>${groupId}:${artifactId}-docs</exclude>
@@ -53,7 +63,7 @@
   </dependencySets>
   <fileSets>
     <fileSet>
-      <directory>../bin</directory>
+      <directory>bin</directory>
       <directoryMode>0755</directoryMode>
       <fileMode>0755</fileMode>
     </fileSet>
@@ -65,24 +75,6 @@
       <includes>
         <include>src/main/**</include>
       </includes>
-    </fileSet>
-    <fileSet>
-      <directory>../lib/native</directory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0644</fileMode>
-      <includes>
-        <include>**/*.so</include>
-        <include>**/*.jnilib</include>
-      </includes>
-    </fileSet>
-    <fileSet>
-      <directory>../server/src/main/c++</directory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0644</fileMode>
-      <excludes>
-        <exclude>**/*.so</exclude>
-        <exclude>**/*.jnilib</exclude>
-      </excludes>
     </fileSet>
     <fileSet>
       <directory>./</directory>
@@ -121,26 +113,47 @@
       </includes>
     </fileSet>
     <fileSet>
-      <directory>../conf</directory>
+      <directory>conf</directory>
       <directoryMode>0755</directoryMode>
       <fileMode>0755</fileMode>
       <includes>
-        <include>examples/**/*.sh</include>
-        <include>templates/*.sh</include>
+        <include>**/*.sh</include>
       </includes>
     </fileSet>
     <fileSet>
-      <directory>../conf</directory>
+      <directory>conf</directory>
+      <directoryMode>0755</directoryMode>
+      <fileMode>0644</fileMode>
+      <excludes>
+        <exclude>**/*.sh</exclude>
+      </excludes>
+    </fileSet>
+    <fileSet>
+      <!-- preserve old behavior of extra copy in conf -->
+      <directory>conf/templates</directory>
+      <outputDirectory>/conf</outputDirectory>
       <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
       <includes>
         <include>accumulo.policy.example</include>
-        <include>examples/**</include>
-        <include>templates/**</include>
       </includes>
+    </fileSet>
+    <fileSet>
+      <directory>target/example-configs</directory>
+      <outputDirectory>/conf/examples</outputDirectory>
+      <directoryMode>0755</directoryMode>
+      <fileMode>0755</fileMode>
+      <includes>
+        <include>**/*.sh</include>
+      </includes>
+    </fileSet>
+    <fileSet>
+      <directory>target/example-configs</directory>
+      <outputDirectory>/conf/examples</outputDirectory>
+      <directoryMode>0755</directoryMode>
+      <fileMode>0644</fileMode>
       <excludes>
-        <exclude>examples/**/*.sh</exclude>
-        <exclude>templates/*.sh</exclude>
+        <exclude>**/*.sh</exclude>
       </excludes>
     </fileSet>
     <fileSet>

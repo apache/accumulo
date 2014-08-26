@@ -38,10 +38,12 @@ large mutations.
     username@instance test_ingest>
 
 
-Now the table will reject any mutation that is larger than 1/256th of the
-working memory of the tablet server. The following command attempts to ingest
-a single row with 10000 columns, which exceeds the memory limit:
+Now the table will reject any mutation that is larger than 1/256th of the 
+working memory of the tablet server.  The following command attempts to ingest 
+a single row with 10000 columns, which exceeds the memory limit. Depending on the
+amount of Java heap your tserver(s) are given, you may have to increase the number
+of columns provided to see the failure.
 
-    $ ./bin/accumulo org.apache.accumulo.test.TestIngest -i instance -z zookeepers -u username -p password --rows 1 --cols 10000
-ERROR : Constraint violates : ConstraintViolationSummary(constrainClass:org.apache.accumulo.examples.simple.constraints.MaxMutationSize, violationCode:0, violationDescription:mutation exceeded maximum size of 188160, numberOfViolatingMutations:1)
+    $ ./bin/accumulo org.apache.accumulo.test.TestIngest -i instance -z zookeepers -u username -p password --rows 1 --cols 10000 
+    ERROR : Constraint violates : ConstraintViolationSummary(constrainClass:org.apache.accumulo.examples.simple.constraints.MaxMutationSize, violationCode:0, violationDescription:mutation exceeded maximum size of 188160, numberOfViolatingMutations:1)
 

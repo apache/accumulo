@@ -80,6 +80,7 @@ import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.util.MetadataTableUtil;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 
@@ -512,7 +513,14 @@ class TabletGroupWatcher extends Daemon {
         } else if (key.compareColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME) == 0) {
           throw new IllegalStateException("Tablet " + key.getRow() + " is assigned during a merge!");
         } else if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-          datafiles.add(new FileRef(entry.getValue().toString(), this.master.fs.getFullPath(FileType.TABLE, entry.getValue().toString())));
+          // ACCUMULO-2974 Need to include the TableID when converting a relative path to an absolute path.
+          // The value has the leading path separator already included so it doesn't need it included.
+          String path = entry.getValue().toString();
+          if (path.contains(":")) {
+            datafiles.add(new FileRef(path));
+          } else {
+            datafiles.add(new FileRef(path, this.master.fs.getFullPath(FileType.TABLE, Path.SEPARATOR + extent.getTableId() + path)));
+          }
           if (datafiles.size() > 1000) {
             MetadataTableUtil.addDeleteEntries(extent, datafiles, SystemCredentials.get());
             datafiles.clear();

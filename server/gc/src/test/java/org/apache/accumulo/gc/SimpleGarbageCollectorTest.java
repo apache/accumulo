@@ -17,18 +17,23 @@
 package org.apache.accumulo.gc;
 
 import java.io.FileNotFoundException;
+
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.gc.SimpleGarbageCollector.Opts;
+
 import static org.apache.accumulo.gc.SimpleGarbageCollector.CANDIDATE_MEMORY_PERCENTAGE;
+
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.hadoop.fs.Path;
+import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -69,14 +74,21 @@ public class SimpleGarbageCollectorTest {
     AccumuloConfiguration systemConfig = createMock(AccumuloConfiguration.class);
     expect(systemConfig.getTimeInMillis(Property.GC_CYCLE_START)).andReturn(1000L);
     expect(systemConfig.getTimeInMillis(Property.GC_CYCLE_DELAY)).andReturn(20000L);
-    expect(systemConfig.getCount(Property.GC_DELETE_THREADS)).andReturn(2);
+    expect(systemConfig.getCount(Property.GC_DELETE_THREADS)).andReturn(2).times(2);
+    expect(systemConfig.getBoolean(Property.GC_TRASH_IGNORE)).andReturn(false);
     replay(systemConfig);
     return systemConfig;
   }
 
   @Test
   public void testInit() throws Exception {
-    gc.init(volMgr, instance, credentials, false, systemConfig);
+    EasyMock.reset(systemConfig);
+    expect(systemConfig.getTimeInMillis(Property.GC_CYCLE_START)).andReturn(1000L).times(2);
+    expect(systemConfig.getTimeInMillis(Property.GC_CYCLE_DELAY)).andReturn(20000L);
+    expect(systemConfig.getCount(Property.GC_DELETE_THREADS)).andReturn(2).times(2);
+    expect(systemConfig.getBoolean(Property.GC_TRASH_IGNORE)).andReturn(false);
+    replay(systemConfig);
+    gc.init(volMgr, instance, credentials, systemConfig);
     assertSame(volMgr, gc.getVolumeManager());
     assertSame(instance, gc.getInstance());
     assertSame(credentials, gc.getCredentials());
@@ -87,7 +99,7 @@ public class SimpleGarbageCollectorTest {
 
   @Test
   public void testMoveToTrash_UsingTrash() throws Exception {
-    gc.init(volMgr, instance, credentials, false, systemConfig);
+    gc.init(volMgr, instance, credentials, systemConfig);
     Path path = createMock(Path.class);
     expect(volMgr.moveToTrash(path)).andReturn(true);
     replay(volMgr);
@@ -97,7 +109,7 @@ public class SimpleGarbageCollectorTest {
 
   @Test
   public void testMoveToTrash_UsingTrash_VolMgrFailure() throws Exception {
-    gc.init(volMgr, instance, credentials, false, systemConfig);
+    gc.init(volMgr, instance, credentials, systemConfig);
     Path path = createMock(Path.class);
     expect(volMgr.moveToTrash(path)).andThrow(new FileNotFoundException());
     replay(volMgr);
@@ -107,7 +119,13 @@ public class SimpleGarbageCollectorTest {
 
   @Test
   public void testMoveToTrash_NotUsingTrash() throws Exception {
-    gc.init(volMgr, instance, credentials, true, systemConfig);
+    AccumuloConfiguration systemConfig = createMock(AccumuloConfiguration.class);
+    expect(systemConfig.getTimeInMillis(Property.GC_CYCLE_START)).andReturn(1000L);
+    expect(systemConfig.getTimeInMillis(Property.GC_CYCLE_DELAY)).andReturn(20000L);
+    expect(systemConfig.getCount(Property.GC_DELETE_THREADS)).andReturn(2);
+    expect(systemConfig.getBoolean(Property.GC_TRASH_IGNORE)).andReturn(true);
+    replay(systemConfig);
+    gc.init(volMgr, instance, credentials, systemConfig);
     Path path = createMock(Path.class);
     assertFalse(gc.moveToTrash(path));
   }

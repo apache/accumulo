@@ -51,7 +51,9 @@ public class ContextManager {
     
     synchronized void close() {
       closed = true;
-      loader.close();
+      if (loader != null) {
+        loader.close();
+      }
       loader = null;
     }
   }

@@ -31,19 +31,31 @@ class TableConfWatcher implements Watcher {
   }
   
   private static final Logger log = Logger.getLogger(TableConfWatcher.class);
-  private Instance instance = null;
-  
+  private final Instance instance;
+  private final String tablesPrefix;
+  private ServerConfigurationFactory scf;
+
   TableConfWatcher(Instance instance) {
     this.instance = instance;
+    tablesPrefix = ZooUtil.getRoot(instance) + Constants.ZTABLES + "/";
+    scf = new ServerConfigurationFactory(instance);
   }
-  
+
+  void setServerConfigurationFactory(ServerConfigurationFactory scf) {
+    this.scf = scf;
+  }
+
+  static String toString(WatchedEvent event) {
+    return new StringBuilder("{path=").append(event.getPath()).append(",state=")
+      .append(event.getState()).append(",type=").append(event.getType())
+      .append("}").toString();
+  }
+
   @Override
   public void process(WatchedEvent event) {
     String path = event.getPath();
     if (log.isTraceEnabled())
-      log.trace("WatchEvent : " + path + " " + event.getState() + " " + event.getType());
-    
-    String tablesPrefix = ZooUtil.getRoot(instance) + Constants.ZTABLES + "/";
+      log.trace("WatchedEvent : " + toString(event));
     
     String tableId = null;
     String key = null;
@@ -59,7 +71,7 @@ class TableConfWatcher implements Watcher {
       }
       
       if (tableId == null) {
-        log.warn("Zookeeper told me about a path I was not watching " + path + " state=" + event.getState() + " type=" + event.getType());
+        log.warn("Zookeeper told me about a path I was not watching: " + path + ", event " + toString(event));
         return;
       }
     }
@@ -69,30 +81,30 @@ class TableConfWatcher implements Watcher {
         if (log.isTraceEnabled())
           log.trace("EventNodeDataChanged " + event.getPath());
         if (key != null)
-          ServerConfiguration.getTableConfiguration(instance, tableId).propertyChanged(key);
+          scf.getTableConfiguration(tableId).propertyChanged(key);
         break;
       case NodeChildrenChanged:
-        ServerConfiguration.getTableConfiguration(instance, tableId).propertiesChanged(key);
+        scf.getTableConfiguration(tableId).propertiesChanged();
         break;
       case NodeDeleted:
         if (key == null) {
           // only remove the AccumuloConfiguration object when a
           // table node is deleted, not when a tables property is
           // deleted.
-          ServerConfiguration.removeTableIdInstance(tableId);
+          ServerConfigurationFactory.removeCachedTableConfiguration(instance.getInstanceID(), tableId);
         }
         break;
       case None:
         switch (event.getState()) {
           case Expired:
-            ServerConfiguration.expireAllTableObservers();
+            ServerConfigurationFactory.expireAllTableObservers();
             break;
           case SyncConnected:
             break;
           case Disconnected:
             break;
           default:
-            log.warn("EventNone event not handled path = " + event.getPath() + " state=" + event.getState());
+            log.warn("EventNone event not handled " + toString(event));
         }
         break;
       case NodeCreated:
@@ -100,11 +112,11 @@ class TableConfWatcher implements Watcher {
           case SyncConnected:
             break;
           default:
-            log.warn("Event NodeCreated event not handled path = " + event.getPath() + " state=" + event.getState());
+            log.warn("Event NodeCreated event not handled " + toString(event));
         }
         break;
       default:
-        log.warn("Event not handled path = " + event.getPath() + " state=" + event.getState() + " type = " + event.getType());
+        log.warn("Event not handled " + toString(event));
     }
   }
 }

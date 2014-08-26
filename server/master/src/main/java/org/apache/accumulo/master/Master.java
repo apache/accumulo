@@ -110,6 +110,7 @@ import org.apache.accumulo.server.tables.TableObserver;
 import org.apache.accumulo.server.util.DefaultMap;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.MetadataTableUtil;
+import org.apache.accumulo.server.util.RpcWrapper;
 import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.util.TServerUtils.ServerAddress;
 import org.apache.accumulo.server.util.time.SimpleTimer;
@@ -117,7 +118,6 @@ import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.start.classloader.vfs.ContextManager;
-import org.apache.accumulo.trace.instrument.thrift.TraceWrap;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -274,7 +274,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     // introduce unnecessary complexity to try to make the master do it), but be aware
     // that the master is not the only thing that may alter zookeeper before starting.
 
-    if (Accumulo.getAccumuloPersistentVersion(fs) == ServerConstants.PREV_DATA_VERSION) {
+    final int accumuloPersistentVersion = Accumulo.getAccumuloPersistentVersion(fs);
+    if (Accumulo.persistentVersionNeedsUpgrade(accumuloPersistentVersion)) {
       // This Master hasn't started Fate yet, so any outstanding transactions must be from before the upgrade.
       // Change to Guava's Verify once we use Guava 17.
       if (null != fate) {
@@ -285,6 +286,24 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         log.info("Upgrading zookeeper");
 
         IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+        final String zooRoot = ZooUtil.getRoot(instance);
+
+        if (accumuloPersistentVersion == ServerConstants.TWO_DATA_VERSIONS_AGO) {
+          log.debug("Handling updates for version " + ServerConstants.TWO_DATA_VERSIONS_AGO);
+
+          log.debug("Cleaning out remnants of logger role.");
+          zoo.recursiveDelete(zooRoot + "/loggers", NodeMissingPolicy.SKIP);
+          zoo.recursiveDelete(zooRoot + "/dead/loggers", NodeMissingPolicy.SKIP);
+
+          final byte[] zero = new byte[] {'0'};
+          log.debug("Initializing recovery area.");
+          zoo.putPersistentData(zooRoot + Constants.ZRECOVERY, zero, NodeExistsPolicy.SKIP);
+
+          for (String id : zoo.getChildren(zooRoot + Constants.ZTABLES)) {
+            log.debug("Prepping table " + id + " for compaction cancellations.");
+            zoo.putPersistentData(zooRoot + Constants.ZTABLES + "/" + id + Constants.ZTABLE_COMPACT_CANCEL_ID, zero, NodeExistsPolicy.SKIP);
+          }
+        }
 
         // create initial namespaces
         String namespaces = ZooUtil.getRoot(instance) + Constants.ZNAMESPACES;
@@ -349,11 +368,12 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   private void upgradeMetadata() {
     // we make sure we're only doing the rest of this method once so that we can signal to other threads that an upgrade wasn't needed.
     if (upgradeMetadataRunning.compareAndSet(false, true)) {
-      if (Accumulo.getAccumuloPersistentVersion(fs) == ServerConstants.PREV_DATA_VERSION) {
+      final int accumuloPersistentVersion = Accumulo.getAccumuloPersistentVersion(fs);
+      if (Accumulo.persistentVersionNeedsUpgrade(accumuloPersistentVersion)) {
         // sanity check that we passed the Fate verification prior to ZooKeeper upgrade, and that Fate still hasn't been started.
         // Change both to use Guava's Verify once we use Guava 17.
         if (!haveUpgradedZooKeeper) {
-          throw new IllegalStateException("We should only attempt to upgrade Accumulo's !METADATA table if we've already upgraded ZooKeeper. Please save all logs and file a bug.");
+          throw new IllegalStateException("We should only attempt to upgrade Accumulo's metadata table if we've already upgraded ZooKeeper. Please save all logs and file a bug.");
         }
         if (null != fate) {
           throw new IllegalStateException("Access to Fate should not have been initialized prior to the Master finishing upgrades. Please save all logs and file a bug.");
@@ -362,10 +382,16 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           @Override
           public void run() {
             try {
-              log.info("Starting to upgrade !METADATA table.");
-              MetadataTableUtil.moveMetaDeleteMarkers(instance, SystemCredentials.get());
+              log.info("Starting to upgrade metadata table.");
+              if (accumuloPersistentVersion == ServerConstants.TWO_DATA_VERSIONS_AGO) {
+                log.info("Updating Delete Markers in metadata table for version 1.4");
+                MetadataTableUtil.moveMetaDeleteMarkersFrom14(instance, SystemCredentials.get());
+              } else {
+                log.info("Updating Delete Markers in metadata table.");
+                MetadataTableUtil.moveMetaDeleteMarkers(instance, SystemCredentials.get());
+              }
               log.info("Updating persistent data version.");
-              Accumulo.updateAccumuloVersion(fs);
+              Accumulo.updateAccumuloVersion(fs, accumuloPersistentVersion);
               log.info("Upgrade complete");
               waitForMetadataUpgrade.countDown();
             } catch (Exception ex) {
@@ -689,7 +715,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       while (stillMaster()) {
         if (!migrations.isEmpty()) {
           try {
-            cleanupMutations();
+            cleanupOfflineMigrations();
+            cleanupNonexistentMigrations(getConnector());
           } catch (Exception ex) {
             log.error("Error cleaning up migrations", ex);
           }
@@ -698,12 +725,13 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       }
     }
 
-    // If a migrating tablet splits, and the tablet dies before sending the
-    // master a message, the migration will refer to a non-existing tablet,
-    // so it can never complete. Periodically scan the metadata table and
-    // remove any migrating tablets that no longer exist.
-    private void cleanupMutations() throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-      Connector connector = getConnector();
+    /**
+     * If a migrating tablet splits, and the tablet dies before sending the
+     * master a message, the migration will refer to a non-existing tablet,
+     * so it can never complete. Periodically scan the metadata table and
+     * remove any migrating tablets that no longer exist.
+     */
+    private void cleanupNonexistentMigrations(final Connector connector) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
       Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
       TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       Set<KeyExtent> found = new HashSet<KeyExtent>();
@@ -714,6 +742,21 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         }
       }
       migrations.keySet().retainAll(found);
+    }
+
+    /**
+     * If migrating a tablet for a table that is offline, the migration
+     * can never succeed because no tablet server will load the tablet.
+     * check for offline tables and remove their migrations.
+     */
+    private void cleanupOfflineMigrations() {
+      TableManager manager = TableManager.getInstance();
+      for (String tableId : Tables.getIdToNameMap(instance).keySet()) {
+        TableState state = manager.getTableState(tableId);
+        if (TableState.OFFLINE == state) {
+          clearMigrations(tableId);
+        }
+      }
     }
   }
 
@@ -973,7 +1016,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       throw new IOException(e);
     }
 
-    Processor<Iface> processor = new Processor<Iface>(TraceWrap.service(new MasterClientServiceHandler(this)));
+    Processor<Iface> processor = new Processor<Iface>(RpcWrapper.service(new MasterClientServiceHandler(this)));
     ServerAddress sa = TServerUtils.startServer(getSystemConfiguration(), hostname, Property.MASTER_CLIENTPORT, processor, "Master",
         "Master Client Service Handler", null, Property.MASTER_MINTHREADS, Property.MASTER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
     clientService = sa.server;
@@ -1180,6 +1223,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   @Override
   public void stateChanged(String tableId, TableState state) {
     nextEvent.event("Table state in zookeeper changed for %s to %s", tableId, state);
+    if (TableState.OFFLINE == state) {
+      clearMigrations(tableId);
+    }
   }
 
   @Override

@@ -213,16 +213,6 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     return DefaultConfiguration.getInstance();
   }
   
-  /**
-   * Only here for Shell option-free start-up
-   * 
-   * @deprecated not for client use
-   */
-  @Deprecated
-  public static synchronized AccumuloConfiguration getSiteConfiguration() {
-    return SiteConfiguration.getInstance(getDefaultConfiguration());
-  }
-  
   public static AccumuloConfiguration getTableConfiguration(Connector conn, String tableId) throws TableNotFoundException, AccumuloException {
     String tableName = Tables.getTableName(conn.getInstance(), tableId);
     return new ConfigurationCopy(conn.tableOperations().getProperties(tableName));

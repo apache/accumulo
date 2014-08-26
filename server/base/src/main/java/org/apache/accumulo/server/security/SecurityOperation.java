@@ -149,7 +149,7 @@ public class SecurityOperation {
     return SystemCredentials.get().getToken().getClass().getName().equals(credentials.getTokenClassName());
   }
 
-  private void authenticate(TCredentials credentials) throws ThriftSecurityException {
+  protected void authenticate(TCredentials credentials) throws ThriftSecurityException {
     if (!credentials.getInstanceId().equals(HdfsZooInstance.getInstance().getInstanceID()))
       throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.INVALID_INSTANCEID);
 

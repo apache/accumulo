@@ -16,14 +16,14 @@
  */
 package org.apache.accumulo.server.watcher;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
-
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.*;
-import org.easymock.Capture;
-import static org.easymock.EasyMock.*;
 
 public class MonitorLog4jWatcherTest {
   private static final String INSTANCE = "instance";

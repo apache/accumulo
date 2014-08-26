@@ -16,37 +16,32 @@
  */
 package org.apache.accumulo.server.conf;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
+import org.apache.accumulo.core.conf.ObservableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.conf.ZooCachePropertyAccessor.PropCacheKey;
 import org.apache.log4j.Logger;
 
-public class TableConfiguration extends AccumuloConfiguration {
+public class TableConfiguration extends ObservableConfiguration {
   private static final Logger log = Logger.getLogger(TableConfiguration.class);
 
-  // Need volatile keyword to ensure double-checked locking works as intended
-  private static volatile ZooCache tablePropCache = null;
-  private static final Object initLock = new Object();
+  private static final Map<PropCacheKey,ZooCache> propCaches = new java.util.HashMap<PropCacheKey,ZooCache>();
 
+  private ZooCachePropertyAccessor propCacheAccessor = null;
   private final String instanceId;
   private final Instance instance;
   private final NamespaceConfiguration parent;
+  private ZooCacheFactory zcf = new ZooCacheFactory();
 
   private String table = null;
-  private Set<ConfigurationObserver> observers;
 
   public TableConfiguration(String instanceId, String table, NamespaceConfiguration parent) {
     this(instanceId, HdfsZooInstance.getInstance(), table, parent);
@@ -57,25 +52,28 @@ public class TableConfiguration extends AccumuloConfiguration {
     this.instance = instance;
     this.table = table;
     this.parent = parent;
-
-    this.observers = Collections.synchronizedSet(new HashSet<ConfigurationObserver>());
   }
 
-  private void initializeZooCache() {
-    synchronized (initLock) {
-      if (null == tablePropCache) {
-        tablePropCache = new ZooCacheFactory().getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), new TableConfWatcher(instance));
+  void setZooCacheFactory(ZooCacheFactory zcf) {
+    this.zcf = zcf;
+  }
+
+  private synchronized ZooCachePropertyAccessor getPropCacheAccessor() {
+    if (propCacheAccessor == null) {
+      synchronized (propCaches) {
+        PropCacheKey key = new PropCacheKey(instance.getInstanceID(), table);
+        ZooCache propCache = propCaches.get(key);
+        if (propCache == null) {
+          propCache = zcf.getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), new TableConfWatcher(instance));
+          propCaches.put(key, propCache);
+        }
+        propCacheAccessor = new ZooCachePropertyAccessor(propCache);
       }
     }
+    return propCacheAccessor;
   }
 
-  private ZooCache getTablePropCache() {
-    if (null == tablePropCache) {
-      initializeZooCache();
-    }
-    return tablePropCache;
-  }
-
+  @Override
   public void addObserver(ConfigurationObserver co) {
     if (table == null) {
       String err = "Attempt to add observer for non-table configuration";
@@ -83,74 +81,31 @@ public class TableConfiguration extends AccumuloConfiguration {
       throw new RuntimeException(err);
     }
     iterator();
-    observers.add(co);
+    super.addObserver(co);
   }
 
-  public void removeObserver(ConfigurationObserver configObserver) {
+  @Override
+  public void removeObserver(ConfigurationObserver co) {
     if (table == null) {
       String err = "Attempt to remove observer for non-table configuration";
       log.error(err);
       throw new RuntimeException(err);
     }
-    observers.remove(configObserver);
+    super.removeObserver(co);
   }
 
-  public void expireAllObservers() {
-    Collection<ConfigurationObserver> copy = Collections.unmodifiableCollection(observers);
-    for (ConfigurationObserver co : copy)
-      co.sessionExpired();
-  }
-
-  public void propertyChanged(String key) {
-    Collection<ConfigurationObserver> copy = Collections.unmodifiableCollection(observers);
-    for (ConfigurationObserver co : copy)
-      co.propertyChanged(key);
-  }
-
-  public void propertiesChanged(String key) {
-    Collection<ConfigurationObserver> copy = Collections.unmodifiableCollection(observers);
-    for (ConfigurationObserver co : copy)
-      co.propertiesChanged();
+  private String getPath() {
+    return ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + table + Constants.ZTABLE_CONF;
   }
 
   @Override
   public String get(Property property) {
-    String key = property.getKey();
-    String value = get(getTablePropCache(), key);
-
-    if (value == null || !property.getType().isValidFormat(value)) {
-      if (value != null)
-        log.error("Using default value for " + key + " due to improperly formatted " + property.getType() + ": " + value);
-      value = parent.get(property);
-    }
-    return value;
-  }
-
-  private String get(ZooCache zc, String key) {
-    String zPath = ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + table + Constants.ZTABLE_CONF + "/" + key;
-    byte[] v = zc.get(zPath);
-    String value = null;
-    if (v != null)
-      value = new String(v, Constants.UTF8);
-    return value;
+    return getPropCacheAccessor().get(property, getPath(), parent);
   }
 
   @Override
   public void getProperties(Map<String,String> props, PropertyFilter filter) {
-    parent.getProperties(props, filter);
-
-    ZooCache zc = getTablePropCache();
-
-    List<String> children = zc.getChildren(ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + table + Constants.ZTABLE_CONF);
-    if (children != null) {
-      for (String child : children) {
-        if (child != null && filter.accept(child)) {
-          String value = get(zc, child);
-          if (value != null)
-            props.put(child, value);
-        }
-      }
-    }
+    getPropCacheAccessor().getProperties(props, getPath(), filter, parent, null);
   }
 
   public String getTableId() {
@@ -161,23 +116,29 @@ public class TableConfiguration extends AccumuloConfiguration {
    * returns the actual NamespaceConfiguration that corresponds to the current parent namespace.
    */
   public NamespaceConfiguration getNamespaceConfiguration() {
-    return ServerConfiguration.getNamespaceConfiguration(parent.inst, parent.namespaceId);
+    return new ServerConfigurationFactory(parent.inst).getNamespaceConfiguration(parent.namespaceId);
   }
 
   /**
-   * returns the parent, which is actually a TableParentConfiguration that can change which namespace it references
+   * Gets the parent configuration of this configuration. The parent is actually a {@link TableParentConfiguration} that can change which namespace it
+   * references.
+   *
+   * @return parent configuration
    */
   public NamespaceConfiguration getParentConfiguration() {
     return parent;
   }
 
+  /**
+   * Invalidates the <code>ZooCache</code> used for storage and quick retrieval of properties for this table configuration.
+   */
   @Override
-  public void invalidateCache() {
-    if (null != tablePropCache) {
-      tablePropCache.clear();
+  public synchronized void invalidateCache() {
+    if (null != propCacheAccessor) {
+      propCacheAccessor.invalidateCache();
     }
-    // Else, if the cache is null, we could lock and double-check
-    // to see if it happened to be created so we could invalidate it
+    // Else, if the accessor is null, we could lock and double-check
+    // to see if it happened to be created so we could invalidate its cache
     // but I don't see much benefit coming from that extra check.
   }
 
