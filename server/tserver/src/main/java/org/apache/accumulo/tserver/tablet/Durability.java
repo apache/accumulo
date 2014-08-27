@@ -14,40 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.tserver;
+package org.apache.accumulo.tserver.tablet;
 
-import java.util.List;
-
-import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.tserver.tablet.Durability;
-
-public class TabletMutations {
-  private final int tid; 
-  private final int seq; 
-  private final List<Mutation> mutations;
-  private final Durability durability;
-
-  public TabletMutations(int tid, int seq, List<Mutation> mutations, Durability durability) {
-    this.tid = tid;
-    this.seq = seq;
-    this.mutations = mutations;
-    this.durability = durability;
-  }
-
-  public List<Mutation> getMutations() {
-    return mutations;
-  }
-
-  public int getTid() {
-    return tid;
-  }
+public enum Durability {
+  NONE,
+  LOG,
+  FLUSH,
+  SYNC;
   
-  public int getSeq() {
-    return seq;
-  }
-  
-  public Durability getDurability() {
-    return durability;
+  static public Durability fromString(String value) {
+    try {
+      return Durability.valueOf(value.toUpperCase());
+    } catch (IllegalArgumentException ex) {
+      return Durability.SYNC;
+    }
   }
   
 }

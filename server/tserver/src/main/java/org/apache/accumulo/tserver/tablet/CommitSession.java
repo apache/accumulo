@@ -111,8 +111,8 @@ public class CommitSession {
     return maxCommittedTime;
   }
 
-  public boolean getUseWAL() {
-    return committer.getUseWAL();
+  public Durability getDurabilty() {
+    return committer.getDurability();
   }
 
   public void mutate(List<Mutation> mutations) {

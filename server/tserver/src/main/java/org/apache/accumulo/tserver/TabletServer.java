@@ -215,6 +215,7 @@ import org.apache.accumulo.tserver.tablet.CommitSession;
 import org.apache.accumulo.tserver.tablet.CompactionInfo;
 import org.apache.accumulo.tserver.tablet.CompactionWatcher;
 import org.apache.accumulo.tserver.tablet.Compactor;
+import org.apache.accumulo.tserver.tablet.Durability;
 import org.apache.accumulo.tserver.tablet.KVEntry;
 import org.apache.accumulo.tserver.tablet.ScanBatch;
 import org.apache.accumulo.tserver.tablet.Scanner;
@@ -2899,7 +2900,7 @@ public class TabletServer implements Runnable {
 
   public int createLogId(KeyExtent tablet) {
     AccumuloConfiguration acuTableConf = getTableConfiguration(tablet);
-    if (acuTableConf.getBoolean(Property.TABLE_WALOG_ENABLED)) {
+    if (Durability.fromString(acuTableConf.get(Property.TABLE_DURABILITY)) != Durability.NONE) {
       return logIdGenerator.incrementAndGet();
     }
     return -1;

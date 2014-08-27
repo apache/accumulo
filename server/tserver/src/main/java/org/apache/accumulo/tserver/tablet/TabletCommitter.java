@@ -44,7 +44,7 @@ public interface TabletCommitter {
 
   int getLogId();
 
-  boolean getUseWAL();
+  Durability getDurability();
 
   void updateMemoryUsageStats(long estimatedSizeInBytes, long estimatedSizeInBytes2);
   

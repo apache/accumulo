@@ -2510,8 +2510,8 @@ public class Tablet implements TabletCommitter {
   }
 
   @Override
-  public boolean getUseWAL() {
-    return getTableConfiguration().getBoolean(Property.TABLE_WALOG_ENABLED);
+  public Durability getDurability() {
+    return Durability.fromString(getTableConfiguration().get(Property.TABLE_DURABILITY));
   }
 
   @Override

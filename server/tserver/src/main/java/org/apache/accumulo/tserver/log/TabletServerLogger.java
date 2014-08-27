@@ -47,6 +47,7 @@ import org.apache.accumulo.tserver.TabletMutations;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.log.DfsLogger.LoggerOperation;
 import org.apache.accumulo.tserver.tablet.CommitSession;
+import org.apache.accumulo.tserver.tablet.Durability;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 
@@ -82,14 +83,6 @@ public class TabletServerLogger {
   private final ReentrantReadWriteLock logSetLock = new ReentrantReadWriteLock();
 
   private final AtomicInteger seqGen = new AtomicInteger();
-
-  private static boolean enabled(TableConfiguration tconf) {
-    return tconf.getBoolean(Property.TABLE_WALOG_ENABLED);
-  }
-
-  private static boolean enabled(CommitSession commitSession) {
-    return commitSession.getUseWAL();
-  }
 
   static private abstract class TestCallWithWriteLock {
     abstract boolean test();
@@ -369,13 +362,17 @@ public class TabletServerLogger {
     });
   }
 
+  private boolean enabled(CommitSession commitSession) {
+    return commitSession.getDurabilty() != Durability.NONE;
+  }
+
   public int log(final CommitSession commitSession, final int tabletSeq, final Mutation m) throws IOException {
     if (!enabled(commitSession))
       return -1;
     int seq = write(commitSession, false, new Writer() {
       @Override
       public LoggerOperation write(DfsLogger logger, int ignored) throws Exception {
-        return logger.log(tabletSeq, commitSession.getLogId(), m);
+        return logger.log(tabletSeq, commitSession.getLogId(), m, commitSession.getDurabilty());
       }
     });
     logSizeEstimate.addAndGet(m.numBytes());
@@ -398,7 +395,7 @@ public class TabletServerLogger {
         List<TabletMutations> copy = new ArrayList<TabletMutations>(loggables.size());
         for (Entry<CommitSession,List<Mutation>> entry : loggables.entrySet()) {
           CommitSession cs = entry.getKey();
-          copy.add(new TabletMutations(cs.getLogId(), cs.getWALogSeq(), entry.getValue()));
+          copy.add(new TabletMutations(cs.getLogId(), cs.getWALogSeq(), entry.getValue(), cs.getDurabilty()));
         }
         return logger.logManyTablets(copy);
       }
@@ -448,7 +445,7 @@ public class TabletServerLogger {
 
   public void recover(VolumeManager fs, KeyExtent extent, TableConfiguration tconf, List<Path> logs, Set<String> tabletFiles, MutationReceiver mr)
       throws IOException {
-    if (!enabled(tconf))
+    if (Durability.fromString(tconf.get(Property.TABLE_DURABILITY)) == Durability.NONE)
       return;
     try {
       SortedLogRecovery recovery = new SortedLogRecovery(fs);

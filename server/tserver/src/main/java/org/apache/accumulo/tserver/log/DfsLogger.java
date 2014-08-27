@@ -59,6 +59,7 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.tserver.TabletMutations;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
+import org.apache.accumulo.tserver.tablet.Durability;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
@@ -124,7 +125,7 @@ public class DfsLogger {
 
   private final Object closeLock = new Object();
 
-  private static final DfsLogger.LogWork CLOSED_MARKER = new DfsLogger.LogWork(null);
+  private static final DfsLogger.LogWork CLOSED_MARKER = new DfsLogger.LogWork(null, Durability.FLUSH);
 
   private static final LogFileValue EMPTY = new LogFileValue();
 
@@ -145,9 +146,31 @@ public class DfsLogger {
           continue;
         }
         workQueue.drainTo(work);
+        
+        Method durabilityMethod = null;
+        loop:
+        for (LogWork logWork : work) {
+          switch (logWork.durability) {
+            case NONE:
+              // shouldn't make it to the work queue
+              break;
+            case LOG:
+              // do nothing
+              break;
+            case SYNC:
+              durabilityMethod = sync;
+              break loop;
+            case FLUSH:
+              if (durabilityMethod == null) {
+                durabilityMethod = flush;
+              }
+              break;
+          }
+        }
 
         try {
-          sync.invoke(logFile);
+          if (durabilityMethod != null)
+            durabilityMethod.invoke(logFile);
         } catch (Exception ex) {
           log.warn("Exception syncing " + ex);
           for (DfsLogger.LogWork logWork : work) {
@@ -165,11 +188,13 @@ public class DfsLogger {
   }
 
   static class LogWork {
-    CountDownLatch latch;
+    final CountDownLatch latch;
+    final Durability durability;
     volatile Exception exception;
 
-    public LogWork(CountDownLatch latch) {
+    public LogWork(CountDownLatch latch, Durability durability) {
       this.latch = latch;
+      this.durability = durability;
     }
   }
 
@@ -213,11 +238,12 @@ public class DfsLogger {
     // filename is unique
     return getFileName().hashCode();
   }
-
+  
   private final ServerResources conf;
   private FSDataOutputStream logFile;
   private DataOutputStream encryptingLogFile = null;
   private Method sync;
+  private Method flush;
   private String logPath;
   private Daemon syncThread;
 
@@ -337,16 +363,13 @@ public class DfsLogger {
       else
         logFile = fs.create(new Path(logPath), true, 0, replication, blockSize);
 
-      String syncMethod = conf.getConfiguration().get(Property.TSERV_WAL_SYNC_METHOD);
       try {
-        // hsync: send data to datanodes and sync the data to disk
-        sync = logFile.getClass().getMethod(syncMethod);
+        sync = logFile.getClass().getMethod("hsync");
+        flush = logFile.getClass().getMethod("hflush");
       } catch (Exception ex) {
-        log.warn("Could not find configured " + syncMethod + " method, trying to fall back to old Hadoop sync method", ex);
-
         try {
-          // sync: send data to datanodes
-          sync = logFile.getClass().getMethod("sync");
+          // fall back to sync: send data to datanodes
+          flush = sync = logFile.getClass().getMethod("sync");
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
@@ -387,7 +410,6 @@ public class DfsLogger {
       key.tserverSession = filename;
       key.filename = filename;
       write(key, EMPTY);
-      sync.invoke(logFile);
       log.debug("Got new write-ahead log: " + this);
     } catch (Exception ex) {
       if (logFile != null)
@@ -499,12 +521,12 @@ public class DfsLogger {
     encryptingLogFile.flush();
   }
 
-  public LoggerOperation log(int seq, int tid, Mutation mutation) throws IOException {
-    return logManyTablets(Collections.singletonList(new TabletMutations(tid, seq, Collections.singletonList(mutation))));
+  public LoggerOperation log(int seq, int tid, Mutation mutation, Durability durability) throws IOException {
+    return logManyTablets(Collections.singletonList(new TabletMutations(tid, seq, Collections.singletonList(mutation), durability)));
   }
 
-  private LoggerOperation logFileData(List<Pair<LogFileKey,LogFileValue>> keys) throws IOException {
-    DfsLogger.LogWork work = new DfsLogger.LogWork(new CountDownLatch(1));
+  private LoggerOperation logFileData(List<Pair<LogFileKey,LogFileValue>> keys, Durability durability) throws IOException {
+    DfsLogger.LogWork work = new DfsLogger.LogWork(new CountDownLatch(1), durability);
     synchronized (DfsLogger.this) {
       try {
         for (Pair<LogFileKey,LogFileValue> pair : keys) {
@@ -531,6 +553,7 @@ public class DfsLogger {
   }
 
   public LoggerOperation logManyTablets(List<TabletMutations> mutations) throws IOException {
+    Durability durability = Durability.NONE;
     List<Pair<LogFileKey,LogFileValue>> data = new ArrayList<Pair<LogFileKey,LogFileValue>>();
     for (TabletMutations tabletMutations : mutations) {
       LogFileKey key = new LogFileKey();
@@ -540,8 +563,10 @@ public class DfsLogger {
       LogFileValue value = new LogFileValue();
       value.mutations = tabletMutations.getMutations();
       data.add(new Pair<LogFileKey,LogFileValue>(key, value));
+      if (tabletMutations.getDurability().ordinal() > durability.ordinal())
+        durability = tabletMutations.getDurability();
     }
-    return logFileData(data);
+    return logFileData(data, durability);
   }
 
   public LoggerOperation minorCompactionFinished(int seq, int tid, String fqfn) throws IOException {
@@ -549,7 +574,7 @@ public class DfsLogger {
     key.event = COMPACTION_FINISH;
     key.seq = seq;
     key.tid = tid;
-    return logFileData(Collections.singletonList(new Pair<LogFileKey,LogFileValue>(key, EMPTY)));
+    return logFileData(Collections.singletonList(new Pair<LogFileKey,LogFileValue>(key, EMPTY)), Durability.SYNC);
   }
 
   public LoggerOperation minorCompactionStarted(int seq, int tid, String fqfn) throws IOException {
@@ -558,7 +583,7 @@ public class DfsLogger {
     key.seq = seq;
     key.tid = tid;
     key.filename = fqfn;
-    return logFileData(Collections.singletonList(new Pair<LogFileKey,LogFileValue>(key, EMPTY)));
+    return logFileData(Collections.singletonList(new Pair<LogFileKey,LogFileValue>(key, EMPTY)), Durability.SYNC);
   }
 
   public String getLogger() {

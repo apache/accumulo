@@ -276,10 +276,8 @@ public enum Property {
       "The number of threads for the distributed work queue. These threads are used for copying failed bulk files."),
   TSERV_WAL_SYNC("tserver.wal.sync", "true", PropertyType.BOOLEAN,
       "Use the SYNC_BLOCK create flag to sync WAL writes to disk. Prevents problems recovering from sudden system resets."),
-  TSERV_WAL_SYNC_METHOD("tserver.wal.sync.method", "hsync", PropertyType.STRING, "The method to invoke when sync'ing WALs. HSync will provide " +
-      "resiliency in the face of unexpected power outages, at the cost of speed. If method is not available, the legacy 'sync' method " +
-      "will be used to ensure backwards compatibility with older Hadoop versions. A value of 'hflush' is the alternative to the default value " +
-      "of 'hsync' which will result in faster writes, but with less durability"),
+  @Deprecated
+  TSERV_WAL_SYNC_METHOD("tserver.wal.sync.method", "hsync", PropertyType.STRING, "This property is deprecated. Use table.durability instead."),
   TSERV_REPLICATION_REPLAYERS("tserver.replication.replayer.", null, PropertyType.PREFIX, "Allows configuration of implementation used to apply replicated data"),
   TSERV_REPLICATION_DEFAULT_HANDLER("tserver.replication.default.replayer", "org.apache.accumulo.tserver.replication.BatchWriterReplicationReplayer",
       PropertyType.CLASSNAME, "Default AccumuloReplicationReplayer implementation"),
@@ -379,7 +377,8 @@ public enum Property {
       "Determines the max # of files each tablet in a table can have. When adjusting this property you may want to consider adjusting"
           + " table.compaction.major.ratio also. Setting this property to 0 will make it default to tserver.scan.files.open.max-1, this will prevent a"
           + " tablet from having more files than can be opened. Setting this property low may throttle ingest and increase query performance."),
-  TABLE_WALOG_ENABLED("table.walog.enabled", "true", PropertyType.BOOLEAN, "Use the write-ahead log to prevent the loss of data."),
+  @Deprecated
+  TABLE_WALOG_ENABLED("table.walog.enabled", "true", PropertyType.BOOLEAN, "This setting is deprecated.  Use table.durability=none instead."),
   TABLE_BLOOM_ENABLED("table.bloom.enabled", "false", PropertyType.BOOLEAN, "Use bloom filters on this table."),
   TABLE_BLOOM_LOAD_THRESHOLD("table.bloom.load.threshold", "1", PropertyType.COUNT,
       "This number of seeks that would actually use a bloom filter must occur before a file's bloom filter is loaded."
@@ -391,6 +390,10 @@ public enum Property {
           + ",org.apache.accumulo.core.file.keyfunctor.ColumnFamilyFunctor, and org.apache.accumulo.core.file.keyfunctor.ColumnQualifierFunctor are"
           + " allowable values. One can extend any of the above mentioned classes to perform specialized parsing of the key. "),
   TABLE_BLOOM_HASHTYPE("table.bloom.hash.type", "murmur", PropertyType.STRING, "The bloom filter hash type"),
+  TABLE_DURABILITY("table.durability", "sync", PropertyType.DURABILITY, "The durability used to write to the write-ahead log." + 
+      " Legal values are: none, which skips the write-ahead log; " + 
+      "flush, which pushes data to the file system; and " + 
+      "sync, which ensures the data is written to disk."),
   TABLE_FAILURES_IGNORE("table.failures.ignore", "false", PropertyType.BOOLEAN,
       "If you want queries for your table to hang or fail when data is missing from the system, "
           + "then set this to false. When this set to true missing data will be reported but queries "
