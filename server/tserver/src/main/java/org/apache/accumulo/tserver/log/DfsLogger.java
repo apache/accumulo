@@ -69,7 +69,7 @@ import com.google.common.base.Joiner;
 
 /**
  * Wrap a connection to a logger.
- * 
+ *
  */
 public class DfsLogger {
   // Package private so that LogSorter can find this
@@ -146,7 +146,7 @@ public class DfsLogger {
           continue;
         }
         workQueue.drainTo(work);
-        
+
         Method durabilityMethod = null;
         loop:
         for (LogWork logWork : work) {
@@ -238,7 +238,7 @@ public class DfsLogger {
     // filename is unique
     return getFileName().hashCode();
   }
-  
+
   private final ServerResources conf;
   private FSDataOutputStream logFile;
   private DataOutputStream encryptingLogFile = null;
@@ -474,7 +474,7 @@ public class DfsLogger {
       log.error("WAL work queue not empty after sync thread exited");
       throw new IllegalStateException("WAL work queue not empty after sync thread exited");
     }
-    
+
     if (encryptingLogFile != null)
       try {
         logFile.close();

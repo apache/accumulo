@@ -390,9 +390,9 @@ public enum Property {
           + ",org.apache.accumulo.core.file.keyfunctor.ColumnFamilyFunctor, and org.apache.accumulo.core.file.keyfunctor.ColumnQualifierFunctor are"
           + " allowable values. One can extend any of the above mentioned classes to perform specialized parsing of the key. "),
   TABLE_BLOOM_HASHTYPE("table.bloom.hash.type", "murmur", PropertyType.STRING, "The bloom filter hash type"),
-  TABLE_DURABILITY("table.durability", "sync", PropertyType.DURABILITY, "The durability used to write to the write-ahead log." + 
-      " Legal values are: none, which skips the write-ahead log; " + 
-      "flush, which pushes data to the file system; and " + 
+  TABLE_DURABILITY("table.durability", "sync", PropertyType.DURABILITY, "The durability used to write to the write-ahead log." +
+      " Legal values are: none, which skips the write-ahead log; " +
+      "flush, which pushes data to the file system; and " +
       "sync, which ensures the data is written to disk."),
   TABLE_FAILURES_IGNORE("table.failures.ignore", "false", PropertyType.BOOLEAN,
       "If you want queries for your table to hang or fail when data is missing from the system, "

@@ -21,7 +21,7 @@ public enum Durability {
   LOG,
   FLUSH,
   SYNC;
-  
+
   static public Durability fromString(String value) {
     try {
       return Durability.valueOf(value.toUpperCase());
@@ -29,5 +29,5 @@ public enum Durability {
       return Durability.SYNC;
     }
   }
-  
+
 }

@@ -41,13 +41,13 @@ public class TabletMutations {
   public int getTid() {
     return tid;
   }
-  
+
   public int getSeq() {
     return seq;
   }
-  
+
   public Durability getDurability() {
     return durability;
   }
-  
+
 }

@@ -67,7 +67,7 @@ public enum PropertyType {
 
   CLASSNAME("java class", "[\\w$.]*", "A fully qualified java class name representing a class on the classpath.\n"
       + "An example is 'java.lang.String', rather than 'String'"),
-      
+
   DURABILITY("durability", "(?:none|log|flush|sync)", "One of 'none', 'flush' or 'sync'."),
 
   STRING("string", ".*",

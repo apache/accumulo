@@ -37,24 +37,24 @@ import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
 public class DurabilityIT extends ConfigurableMacIT {
-  
+
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.useMiniDFS(true);
     cfg.setNumTservers(1);
   }
-  
+
   static final long N = 100000;
-  
+
   String tableNames[] = null;
-  
+
   void init() throws Exception {
     synchronized (this) {
       if (tableNames == null) {
         tableNames = getUniqueNames(4);
         Connector c = getConnector();
         TableOperations tableOps = c.tableOperations();
-        tableOps.create(tableNames[0]); 
+        tableOps.create(tableNames[0]);
         tableOps.create(tableNames[1]);
         tableOps.create(tableNames[2]);
         tableOps.create(tableNames[3]);
@@ -81,7 +81,7 @@ public class DurabilityIT extends ConfigurableMacIT {
     assertTrue(t1 > t2);
     assertTrue(t2 > t3);
   }
-  
+
   @Test(timeout = 4 * 60 * 1000)
   public void testSync() throws Exception {
     init();
@@ -96,7 +96,7 @@ public class DurabilityIT extends ConfigurableMacIT {
   public void testFlush() throws Exception {
     init();
     // flush table won't lose anything since we're not losing power/dfs
-    getConnector().tableOperations().deleteRows(tableNames[1], null, null); 
+    getConnector().tableOperations().deleteRows(tableNames[1], null, null);
     writeSome(tableNames[1], N);
     restartTServer();
     assertEquals(N, readSome(tableNames[1], N));
@@ -106,12 +106,12 @@ public class DurabilityIT extends ConfigurableMacIT {
   public void testLog() throws Exception {
     init();
     // we're probably going to lose something the the log setting
-    getConnector().tableOperations().deleteRows(tableNames[2], null, null); 
+    getConnector().tableOperations().deleteRows(tableNames[2], null, null);
     writeSome(tableNames[2], N);
     restartTServer();
     assertTrue(N > readSome(tableNames[2], N));
   }
-  
+
   @Test(timeout = 4 * 60 * 1000)
   public void testNone() throws Exception {
     init();
@@ -159,5 +159,5 @@ public class DurabilityIT extends ConfigurableMacIT {
     c.tableOperations().flush(table, null, null, true);
     return result;
   }
-  
+
 }
