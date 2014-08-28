@@ -48,18 +48,25 @@ if [ ! -x $IFCONFIG ]; then
    IFCONFIG='/bin/netstat -ie'
 fi
 
-# ACCUMULO-1985 Allow monitor to bind on all interfaces
-if [ ${SERVICE} == "monitor" -a ${ACCUMULO_MONITOR_BIND_ALL} == "true" ]; then
-    ADDRESS="0.0.0.0"
-fi
-
 ip=$($IFCONFIG 2>/dev/null| grep inet[^6] | awk '{print $2}' | sed 's/addr://' | grep -v 0.0.0.0 | grep -v 127.0.0.1 | head -n 1)
 if [ $? != 0 ]
 then
    ip=$(python -c 'import socket as s; print s.gethostbyname(s.getfqdn())')
 fi
 
-if [ "$HOST" = "localhost" -o "$HOST" = "`hostname`" -o "$HOST" = "$ip" ]; then
+# When the hostname provided is the alias/shortname, try to use the FQDN to make
+# sure we send the right address to the Accumulo process.
+if [ "$HOST" = "`hostname -s`" ]; then
+    HOST="`hostname -f`"
+    ADDRESS="$HOST"
+fi
+
+# ACCUMULO-1985 Allow monitor to bind on all interfaces
+if [ ${SERVICE} == "monitor" -a ${ACCUMULO_MONITOR_BIND_ALL} == "true" ]; then
+    ADDRESS="0.0.0.0"
+fi
+
+if [ "$HOST" = "localhost" -o "$HOST" = "`hostname -f`" -o "$HOST" = "$ip" ]; then
    PID=$(ps -ef | egrep ${ACCUMULO_HOME}/.*/accumulo.*.jar | grep "Main $SERVICE" | grep -v grep | awk {'print $2'} | head -1)
 else
    PID=$($SSH $HOST ps -ef | egrep ${ACCUMULO_HOME}/.*/accumulo.*.jar | grep "Main $SERVICE" | grep -v grep | awk {'print $2'} | head -1)
@@ -67,7 +74,7 @@ fi
 
 if [ -z "$PID" ]; then
    echo "Starting $LONGNAME on $HOST"
-   if [ "$HOST" = "localhost" -o "$HOST" = "`hostname`" -o "$HOST" = "$ip" ]; then
+   if [ "$HOST" = "localhost" -o "$HOST" = "`hostname -f`" -o "$HOST" = "$ip" ]; then
       ${bin}/accumulo ${SERVICE} --address ${ADDRESS} >${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out 2>${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err & 
       MAX_FILES_OPEN=$(ulimit -n)
    else
