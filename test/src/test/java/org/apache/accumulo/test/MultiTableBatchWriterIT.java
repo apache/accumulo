@@ -60,7 +60,7 @@ public class MultiTableBatchWriterIT extends SimpleMacIT {
   }
 
   public MultiTableBatchWriter getMultiTableBatchWriter(long cacheTimeoutInSeconds) {
-    return new MultiTableBatchWriterImpl(connector.getInstance(), new Credentials("root", new PasswordToken(getStaticCluster().getConfig().getRootPassword())),
+    return new MultiTableBatchWriterImpl(connector.getInstance(), new Credentials("root", new PasswordToken(ROOT_PASSWORD)),
         new BatchWriterConfig(), cacheTimeoutInSeconds, TimeUnit.SECONDS);
   }
 

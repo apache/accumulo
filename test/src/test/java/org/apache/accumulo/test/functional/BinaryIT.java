@@ -26,7 +26,7 @@ import org.apache.accumulo.test.TestBinaryRows;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class BinaryIT extends ConfigurableMacIT {
+public class BinaryIT extends SimpleMacIT {
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -42,20 +42,25 @@ public class BinaryIT extends ConfigurableMacIT {
 
   @Test
   public void testPreSplit() throws Exception {
+    String tableName = "bt2";
     Connector c = getConnector();
-    c.tableOperations().create("bt");
+    c.tableOperations().create(tableName);
     SortedSet<Text> splits = new TreeSet<Text>();
     splits.add(new Text("8"));
     splits.add(new Text("256"));
-    c.tableOperations().addSplits("bt", splits);
-    runTest(c);
+    c.tableOperations().addSplits(tableName, splits);
+    runTest(c, tableName);
   }
 
   public static void runTest(Connector c) throws Exception {
+    runTest(c, "bt");
+  }
+
+  public static void runTest(Connector c, String tableName) throws Exception {
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     ScannerOpts scanOpts = new ScannerOpts();
     TestBinaryRows.Opts opts = new TestBinaryRows.Opts();
-    opts.tableName = "bt";
+    opts.tableName = tableName;
     opts.start = 0;
     opts.num = 100000;
     opts.mode = "ingest";
