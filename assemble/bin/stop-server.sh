@@ -39,7 +39,7 @@ then
 fi
 
 # only stop if there's not one already running
-if [[ $HOST == localhost || $HOST = "$(hostname)" || $HOST = "$IP" ]] ; then
+if [[ $HOST == localhost || $HOST = "$(hostname -s)" || $HOST = "$(hostname -f)" || $HOST = "$IP" ]] ; then
    PID=$(ps -ef | grep "$ACCUMULO_HOME" | egrep ${2} | grep "Main ${3}" | grep -v grep | grep -v ssh | grep -v stop-server.sh | awk {'print $2'} | head -1)
    if [[ -n $PID ]]; then
       echo "Stopping ${3} on $1";
