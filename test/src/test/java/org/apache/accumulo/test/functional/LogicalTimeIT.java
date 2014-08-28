@@ -29,7 +29,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class LogicalTimeIT extends ConfigurableMacIT {
+public class LogicalTimeIT extends SimpleMacIT {
 
   @Override
   protected int defaultTimeoutSeconds() {

@@ -50,6 +50,7 @@ public class SimpleMacIT extends AbstractMacIT {
   @BeforeClass
   public static synchronized void setUp() throws Exception {
     if (getInstanceOneConnector() == null && cluster == null) {
+      log.info("No shared instance available, falling back to creating MAC");
       folder = createSharedTestDir(SimpleMacIT.class.getName());
       MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(folder, ROOT_PASSWORD);
       cfg.setNativeLibPaths(NativeMapIT.nativeMapLocation().getAbsolutePath());

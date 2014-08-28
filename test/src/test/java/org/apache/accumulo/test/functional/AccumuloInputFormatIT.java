@@ -29,6 +29,8 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
@@ -57,25 +59,26 @@ public class AccumuloInputFormatIT extends SimpleMacIT {
    */
   @Test
   public void testGetSplits() throws IOException, AccumuloSecurityException, AccumuloException, TableNotFoundException, TableExistsException {
+    Connector conn = getConnector();
     String table = getUniqueNames(1)[0];
-    getConnector().tableOperations().create(table);
+    conn.tableOperations().create(table);
     insertData(table, currentTimeMillis());
 
-    @SuppressWarnings("deprecation")
     Job job = new Job();
     AccumuloInputFormat.setInputTableName(job, table);
-    AccumuloInputFormat.setZooKeeperInstance(job, getStaticCluster().getClientConfig());
+    AccumuloInputFormat.setZooKeeperInstance(job, new ClientConfiguration().withInstance(conn.getInstance().getInstanceName())
+        .withZkHosts(conn.getInstance().getZooKeepers()));
     AccumuloInputFormat.setConnectorInfo(job, "root", new PasswordToken(ROOT_PASSWORD));
 
     // split table
     TreeSet<Text> splitsToAdd = new TreeSet<Text>();
     for (int i = 0; i < 10000; i += 1000)
       splitsToAdd.add(new Text(String.format("%09d", i)));
-    getConnector().tableOperations().addSplits(table, splitsToAdd);
+    conn.tableOperations().addSplits(table, splitsToAdd);
     UtilWaitThread.sleep(500); // wait for splits to be propagated
 
     // get splits without setting any range
-    Collection<Text> actualSplits = getConnector().tableOperations().listSplits(table);
+    Collection<Text> actualSplits = conn.tableOperations().listSplits(table);
     List<InputSplit> splits = inputFormat.getSplits(job);
     assertEquals(actualSplits.size() + 1, splits.size()); // No ranges set on the job so it'll start with -inf
 
@@ -94,7 +97,7 @@ public class AccumuloInputFormatIT extends SimpleMacIT {
       fail("An exception should have been thrown");
     } catch (Exception e) {}
 
-    getConnector().tableOperations().offline(table);
+    conn.tableOperations().offline(table);
     splits = inputFormat.getSplits(job);
     assertEquals(actualSplits.size(), splits.size());
 
