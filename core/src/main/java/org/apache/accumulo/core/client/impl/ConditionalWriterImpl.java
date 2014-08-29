@@ -40,6 +40,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
+import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -109,6 +110,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
   private TabletLocator locator;
   private String tableId;
   private long timeout;
+  private final Durability durability;
   
   private static class ServerQueue {
     BlockingQueue<TabletServerMutations<QCMutation>> queue = new LinkedBlockingQueue<TabletServerMutations<QCMutation>>();
@@ -380,6 +382,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     this.serverQueues = new HashMap<String,ServerQueue>();
     this.tableId = tableId;
     this.timeout = config.getTimeout(TimeUnit.MILLISECONDS);
+    this.durability = config.getDurability();
     
     Runnable failureHandler = new Runnable() {
       
@@ -497,7 +500,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     }
     
     TConditionalSession tcs = client.startConditionalUpdate(tinfo, credentials.toThrift(instance), ByteBufferUtil.toByteBuffers(auths.getAuthorizations()),
-        tableId);
+        tableId, durability.toThrift());
     
     synchronized (cachedSessionIDs) {
       SessionID sid = new SessionID();

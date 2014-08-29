@@ -76,7 +76,7 @@ import org.slf4j.LoggerFactory;
 
     public MasterMonitorInfo getMasterStats(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public void waitForBalance(org.apache.accumulo.trace.thrift.TInfo tinfo) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public void waitForBalance(org.apache.accumulo.trace.thrift.TInfo tinfo) throws org.apache.thrift.TException;
 
     public void reportSplitExtent(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String serverName, TabletSplit split) throws org.apache.thrift.TException;
 
@@ -473,7 +473,7 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getMasterStats failed: unknown result");
     }
 
-    public void waitForBalance(org.apache.accumulo.trace.thrift.TInfo tinfo) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public void waitForBalance(org.apache.accumulo.trace.thrift.TInfo tinfo) throws org.apache.thrift.TException
     {
       send_waitForBalance(tinfo);
       recv_waitForBalance();
@@ -486,13 +486,10 @@ import org.slf4j.LoggerFactory;
       sendBase("waitForBalance", args);
     }
 
-    public void recv_waitForBalance() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public void recv_waitForBalance() throws org.apache.thrift.TException
     {
       waitForBalance_result result = new waitForBalance_result();
       receiveBase(result, "waitForBalance");
-      if (result.sec != null) {
-        throw result.sec;
-      }
       return;
     }
 
@@ -1056,7 +1053,7 @@ import org.slf4j.LoggerFactory;
         prot.writeMessageEnd();
       }
 
-      public void getResult() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException {
+      public void getResult() throws org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
@@ -1496,11 +1493,7 @@ import org.slf4j.LoggerFactory;
 
       public waitForBalance_result getResult(I iface, waitForBalance_args args) throws org.apache.thrift.TException {
         waitForBalance_result result = new waitForBalance_result();
-        try {
-          iface.waitForBalance(args.tinfo);
-        } catch (org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
-          result.sec = sec;
-        }
+        iface.waitForBalance(args.tinfo);
         return result;
       }
     }
@@ -2305,12 +2298,6 @@ import org.slf4j.LoggerFactory;
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TBase msg;
             waitForBalance_result result = new waitForBalance_result();
-            if (e instanceof org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException) {
-                        result.sec = (org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException) e;
-                        result.setSecIsSet(true);
-                        msg = result;
-            }
-             else 
             {
               msgType = org.apache.thrift.protocol.TMessageType.EXCEPTION;
               msg = (org.apache.thrift.TBase)new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.INTERNAL_ERROR, e.getMessage());
@@ -15738,7 +15725,6 @@ import org.slf4j.LoggerFactory;
   public static class waitForBalance_result implements org.apache.thrift.TBase<waitForBalance_result, waitForBalance_result._Fields>, java.io.Serializable, Cloneable, Comparable<waitForBalance_result>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("waitForBalance_result");
 
-    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -15746,11 +15732,10 @@ import org.slf4j.LoggerFactory;
       schemes.put(TupleScheme.class, new waitForBalance_resultTupleSchemeFactory());
     }
 
-    public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      SEC((short)1, "sec");
+;
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -15765,8 +15750,6 @@ import org.slf4j.LoggerFactory;
        */
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 1: // SEC
-            return SEC;
           default:
             return null;
         }
@@ -15805,13 +15788,9 @@ import org.slf4j.LoggerFactory;
         return _fieldName;
       }
     }
-
-    // isset id assignments
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(waitForBalance_result.class, metaDataMap);
     }
@@ -15819,20 +15798,10 @@ import org.slf4j.LoggerFactory;
     public waitForBalance_result() {
     }
 
-    public waitForBalance_result(
-      org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec)
-    {
-      this();
-      this.sec = sec;
-    }
-
     /**
      * Performs a deep copy on <i>other</i>.
      */
     public waitForBalance_result(waitForBalance_result other) {
-      if (other.isSetSec()) {
-        this.sec = new org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException(other.sec);
-      }
     }
 
     public waitForBalance_result deepCopy() {
@@ -15841,51 +15810,15 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      this.sec = null;
-    }
-
-    public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException getSec() {
-      return this.sec;
-    }
-
-    public waitForBalance_result setSec(org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
-      this.sec = sec;
-      return this;
-    }
-
-    public void unsetSec() {
-      this.sec = null;
-    }
-
-    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
-    public boolean isSetSec() {
-      return this.sec != null;
-    }
-
-    public void setSecIsSet(boolean value) {
-      if (!value) {
-        this.sec = null;
-      }
     }
 
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case SEC:
-        if (value == null) {
-          unsetSec();
-        } else {
-          setSec((org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException)value);
-        }
-        break;
-
       }
     }
 
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case SEC:
-        return getSec();
-
       }
       throw new IllegalStateException();
     }
@@ -15897,8 +15830,6 @@ import org.slf4j.LoggerFactory;
       }
 
       switch (field) {
-      case SEC:
-        return isSetSec();
       }
       throw new IllegalStateException();
     }
@@ -15916,15 +15847,6 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_sec = true && this.isSetSec();
-      boolean that_present_sec = true && that.isSetSec();
-      if (this_present_sec || that_present_sec) {
-        if (!(this_present_sec && that_present_sec))
-          return false;
-        if (!this.sec.equals(that.sec))
-          return false;
-      }
-
       return true;
     }
 
@@ -15941,16 +15863,6 @@ import org.slf4j.LoggerFactory;
 
       int lastComparison = 0;
 
-      lastComparison = Boolean.valueOf(isSetSec()).compareTo(other.isSetSec());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetSec()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
       return 0;
     }
 
@@ -15971,13 +15883,6 @@ import org.slf4j.LoggerFactory;
       StringBuilder sb = new StringBuilder("waitForBalance_result(");
       boolean first = true;
 
-      sb.append("sec:");
-      if (this.sec == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.sec);
-      }
-      first = false;
       sb.append(")");
       return sb.toString();
     }
@@ -16021,15 +15926,6 @@ import org.slf4j.LoggerFactory;
             break;
           }
           switch (schemeField.id) {
-            case 1: // SEC
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.sec = new org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException();
-                struct.sec.read(iprot);
-                struct.setSecIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -16045,11 +15941,6 @@ import org.slf4j.LoggerFactory;
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.sec != null) {
-          oprot.writeFieldBegin(SEC_FIELD_DESC);
-          struct.sec.write(oprot);
-          oprot.writeFieldEnd();
-        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -16067,25 +15958,11 @@ import org.slf4j.LoggerFactory;
       @Override
       public void write(org.apache.thrift.protocol.TProtocol prot, waitForBalance_result struct) throws org.apache.thrift.TException {
         TTupleProtocol oprot = (TTupleProtocol) prot;
-        BitSet optionals = new BitSet();
-        if (struct.isSetSec()) {
-          optionals.set(0);
-        }
-        oprot.writeBitSet(optionals, 1);
-        if (struct.isSetSec()) {
-          struct.sec.write(oprot);
-        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, waitForBalance_result struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(1);
-        if (incoming.get(0)) {
-          struct.sec = new org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException();
-          struct.sec.read(iprot);
-          struct.setSecIsSet(true);
-        }
       }
     }
 

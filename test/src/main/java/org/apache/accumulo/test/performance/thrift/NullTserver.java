@@ -54,6 +54,7 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
+import org.apache.accumulo.core.tabletserver.thrift.TDurability;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processor;
@@ -93,7 +94,7 @@ public class NullTserver {
     }
     
     @Override
-    public long startUpdate(TInfo tinfo, TCredentials credentials) {
+    public long startUpdate(TInfo tinfo, TCredentials credentials, TDurability durability) {
       return updateSession++;
     }
     
@@ -144,7 +145,7 @@ public class NullTserver {
     }
     
     @Override
-    public void update(TInfo tinfo, TCredentials credentials, TKeyExtent keyExtent, TMutation mutation) {
+    public void update(TInfo tinfo, TCredentials credentials, TKeyExtent keyExtent, TMutation mutation, TDurability durability) {
       
     }
     
@@ -207,7 +208,7 @@ public class NullTserver {
     }
     
     @Override
-    public TConditionalSession startConditionalUpdate(TInfo tinfo, TCredentials credentials, List<ByteBuffer> authorizations, String tableID)
+    public TConditionalSession startConditionalUpdate(TInfo tinfo, TCredentials credentials, List<ByteBuffer> authorizations, String tableID, TDurability durability)
         throws ThriftSecurityException, TException {
       return null;
     }

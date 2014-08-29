@@ -102,6 +102,14 @@ enum CompactionReason {
    CLOSE
 }
 
+enum TDurability {
+  DEFAULT = 0,
+  SYNC = 1,
+  FLUSH = 2,
+  LOG = 3,
+  NONE = 4
+}
+
 struct ActiveCompaction {
     1:data.TKeyExtent extent
     2:i64 age
@@ -158,17 +166,17 @@ service TabletClientService extends client.ClientService {
   void closeMultiScan(2:trace.TInfo tinfo, 1:data.ScanID scanID) throws (1:NoSuchScanIDException nssi),
   
   //the following calls support a batch update to multiple tablets on a tablet server
-  data.UpdateID startUpdate(2:trace.TInfo tinfo, 1:security.TCredentials credentials) throws (1:client.ThriftSecurityException sec),
+  data.UpdateID startUpdate(2:trace.TInfo tinfo, 1:security.TCredentials credentials, 3:TDurability durability) throws (1:client.ThriftSecurityException sec),
   oneway void applyUpdates(1:trace.TInfo tinfo, 2:data.UpdateID updateID, 3:data.TKeyExtent keyExtent, 4:list<data.TMutation> mutations),
   data.UpdateErrors closeUpdate(2:trace.TInfo tinfo, 1:data.UpdateID updateID) throws (1:NoSuchScanIDException nssi),
 
   //the following call supports making a single update to a tablet
-  void update(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:data.TKeyExtent keyExtent, 3:data.TMutation mutation)
+  void update(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:data.TKeyExtent keyExtent, 3:data.TMutation mutation, 5:TDurability durability)
     throws (1:client.ThriftSecurityException sec, 
             2:NotServingTabletException nste, 
             3:ConstraintViolationException cve),
 
-  data.TConditionalSession startConditionalUpdate(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:list<binary> authorizations, 4:string tableID)
+  data.TConditionalSession startConditionalUpdate(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:list<binary> authorizations, 4:string tableID, 5:TDurability durability)
      throws (1:client.ThriftSecurityException sec);
   
   list<data.TCMResult> conditionalUpdate(1:trace.TInfo tinfo, 2:data.UpdateID sessID, 3:data.CMBatch mutations, 4:list<string> symbols)

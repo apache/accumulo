@@ -46,6 +46,8 @@ public class BatchWriterConfig implements Writable {
 
   private static final Integer DEFAULT_MAX_WRITE_THREADS = 3;
   private Integer maxWriteThreads = null;
+  
+  private Durability durability = Durability.DEFAULT;
 
   /**
    * Sets the maximum memory to batch before writing. The smaller this value, the more frequently the {@link BatchWriter} will write.<br />
@@ -166,7 +168,24 @@ public class BatchWriterConfig implements Writable {
   public int getMaxWriteThreads() {
     return maxWriteThreads != null ? maxWriteThreads : DEFAULT_MAX_WRITE_THREADS;
   }
-
+  
+  /**
+   * @since 1.7.0
+   * @return the durability to be used by the BatchWriter
+   */
+  public Durability getDurability() {
+    return durability;
+  }
+ 
+  /**
+   * @param durability the Durability to be used by the BatchWriter
+   * @since 1.7.0
+   * 
+   */
+  public void setDurability(Durability durability) {
+    this.durability = durability;
+  }
+ 
   @Override
   public void write(DataOutput out) throws IOException {
     // write this out in a human-readable way
@@ -179,6 +198,8 @@ public class BatchWriterConfig implements Writable {
       addField(fields, "maxWriteThreads", maxWriteThreads);
     if (timeout != null)
       addField(fields, "timeout", timeout);
+    if (durability != Durability.DEFAULT)
+      addField(fields, "durability", durability);
     String output = StringUtils.join(",", fields);
 
     byte[] bytes = output.getBytes(StandardCharsets.UTF_8);
@@ -219,6 +240,8 @@ public class BatchWriterConfig implements Writable {
         maxWriteThreads = Integer.valueOf(value);
       } else if ("timeout".equals(key)) {
         timeout = Long.valueOf(value);
+      } else if ("durability".equals(key)) {
+        durability = Durability.fromString(value);
       } else {
         /* ignore any other properties */
       }
@@ -269,6 +292,9 @@ public class BatchWriterConfig implements Writable {
           return false;
         }
       }
+      if (durability != other.durability) {
+        return false;
+      }
 
       return true;
     }
@@ -279,7 +305,7 @@ public class BatchWriterConfig implements Writable {
   @Override
   public int hashCode() {
     HashCodeBuilder hcb = new HashCodeBuilder();
-    hcb.append(maxMemory).append(maxLatency).append(maxWriteThreads).append(timeout);
+    hcb.append(maxMemory).append(maxLatency).append(maxWriteThreads).append(timeout).append(durability);
     return hcb.toHashCode();
   }
 
@@ -287,7 +313,8 @@ public class BatchWriterConfig implements Writable {
   public String toString() {
     StringBuilder sb = new StringBuilder(32);
     sb.append("[maxMemory=").append(getMaxMemory()).append(", maxLatency=").append(getMaxLatency(TimeUnit.MILLISECONDS)).append(", maxWriteThreads=")
-        .append(getMaxWriteThreads()).append(", timeout=").append(getTimeout(TimeUnit.MILLISECONDS)).append("]");
+        .append(getMaxWriteThreads()).append(", timeout=").append(getTimeout(TimeUnit.MILLISECONDS))
+        .append(", durability=").append(durability).append("]");
     return sb.toString();
   }
 }

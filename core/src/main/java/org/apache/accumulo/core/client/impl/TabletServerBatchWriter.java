@@ -38,6 +38,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableDeletedException;
@@ -106,6 +107,7 @@ public class TabletServerBatchWriter {
   private final long maxMem;
   private final long maxLatency;
   private final long timeout;
+  private final Durability durability;
   
   // state
   private boolean flushing;
@@ -149,9 +151,9 @@ public class TabletServerBatchWriter {
   private int unknownErrors = 0;
   private boolean somethingFailed = false;
   private Throwable lastUnknownError = null;
-  
+
   private static class TimeoutTracker {
-    
+
     final String server;
     final long timeOut;
     long activityTime;
@@ -196,6 +198,7 @@ public class TabletServerBatchWriter {
     this.timeout = config.getTimeout(TimeUnit.MILLISECONDS);
     this.mutations = new MutationSet();
     this.lastProcessingStartTime = System.currentTimeMillis();
+    this.durability = config.getDurability();
     
     this.writer = new MutationWriter(config.getMaxWriteThreads());
     
@@ -857,7 +860,7 @@ public class TabletServerBatchWriter {
             Entry<KeyExtent,List<Mutation>> entry = tabMuts.entrySet().iterator().next();
             
             try {
-              client.update(tinfo, credentials.toThrift(instance), entry.getKey().toThrift(), entry.getValue().get(0).toThrift());
+              client.update(tinfo, credentials.toThrift(instance), entry.getKey().toThrift(), entry.getValue().get(0).toThrift(), durability.toThrift());
             } catch (NotServingTabletException e) {
               allFailures.addAll(entry.getKey().getTableId().toString(), entry.getValue());
               TabletLocator.getLocator(instance, new Text(entry.getKey().getTableId())).invalidateCache(entry.getKey());
@@ -867,7 +870,7 @@ public class TabletServerBatchWriter {
             timeoutTracker.madeProgress();
           } else {
             
-            long usid = client.startUpdate(tinfo, credentials.toThrift(instance));
+            long usid = client.startUpdate(tinfo, credentials.toThrift(instance), durability.toThrift());
             
             List<TMutation> updates = new ArrayList<TMutation>();
             for (Entry<KeyExtent,List<Mutation>> entry : tabMuts.entrySet()) {

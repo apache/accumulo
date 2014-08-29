@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.client;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.security.Authorizations;
@@ -34,6 +35,8 @@ public class ConditionalWriterConfig {
   private Integer maxWriteThreads = null;
   
   private Authorizations auths = Authorizations.EMPTY;
+  
+  private Durability durability = Durability.DEFAULT;
   
   /**
    * A set of authorization labels that will be checked against the column visibility of each key in order to filter data. The authorizations passed in must be
@@ -102,6 +105,19 @@ public class ConditionalWriterConfig {
     return this;
   }
   
+  /**
+   * Sets the Durability for the mutation, if applied.
+   * <p>
+   * <b>Default:</b> Durability.DEFAULT: use the table's durability configuration.
+   * @param durability
+   * @return {@code this} to allow chaining of set methods
+   * @since 1.7.0
+   */
+  public ConditionalWriterConfig setDurability(Durability durability) {
+    this.durability = durability;
+    return this;
+  }
+  
   public Authorizations getAuthorizations() {
     return auths;
   }
@@ -112,5 +128,9 @@ public class ConditionalWriterConfig {
   
   public int getMaxWriteThreads() {
     return maxWriteThreads != null ? maxWriteThreads : DEFAULT_MAX_WRITE_THREADS;
+  }
+  
+  public Durability getDurability() {
+    return durability;
   }
 }

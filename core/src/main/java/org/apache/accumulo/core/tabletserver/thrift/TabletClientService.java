@@ -64,15 +64,15 @@ import org.slf4j.LoggerFactory;
 
     public void closeMultiScan(org.apache.accumulo.trace.thrift.TInfo tinfo, long scanID) throws NoSuchScanIDException, org.apache.thrift.TException;
 
-    public long startUpdate(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public long startUpdate(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, TDurability durability) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
     public void applyUpdates(org.apache.accumulo.trace.thrift.TInfo tinfo, long updateID, org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent, List<org.apache.accumulo.core.data.thrift.TMutation> mutations) throws org.apache.thrift.TException;
 
     public org.apache.accumulo.core.data.thrift.UpdateErrors closeUpdate(org.apache.accumulo.trace.thrift.TInfo tinfo, long updateID) throws NoSuchScanIDException, org.apache.thrift.TException;
 
-    public void update(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.data.thrift.TMutation mutation) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, NotServingTabletException, ConstraintViolationException, org.apache.thrift.TException;
+    public void update(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.data.thrift.TMutation mutation, TDurability durability) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, NotServingTabletException, ConstraintViolationException, org.apache.thrift.TException;
 
-    public org.apache.accumulo.core.data.thrift.TConditionalSession startConditionalUpdate(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, List<ByteBuffer> authorizations, String tableID) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public org.apache.accumulo.core.data.thrift.TConditionalSession startConditionalUpdate(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, List<ByteBuffer> authorizations, String tableID, TDurability durability) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
     public List<org.apache.accumulo.core.data.thrift.TCMResult> conditionalUpdate(org.apache.accumulo.trace.thrift.TInfo tinfo, long sessID, Map<org.apache.accumulo.core.data.thrift.TKeyExtent,List<org.apache.accumulo.core.data.thrift.TConditionalMutation>> mutations, List<String> symbols) throws NoSuchScanIDException, org.apache.thrift.TException;
 
@@ -128,15 +128,15 @@ import org.slf4j.LoggerFactory;
 
     public void closeMultiScan(org.apache.accumulo.trace.thrift.TInfo tinfo, long scanID, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
-    public void startUpdate(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
+    public void startUpdate(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, TDurability durability, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
     public void applyUpdates(org.apache.accumulo.trace.thrift.TInfo tinfo, long updateID, org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent, List<org.apache.accumulo.core.data.thrift.TMutation> mutations, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
     public void closeUpdate(org.apache.accumulo.trace.thrift.TInfo tinfo, long updateID, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
-    public void update(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.data.thrift.TMutation mutation, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
+    public void update(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.data.thrift.TMutation mutation, TDurability durability, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
-    public void startConditionalUpdate(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, List<ByteBuffer> authorizations, String tableID, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
+    public void startConditionalUpdate(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, List<ByteBuffer> authorizations, String tableID, TDurability durability, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
     public void conditionalUpdate(org.apache.accumulo.trace.thrift.TInfo tinfo, long sessID, Map<org.apache.accumulo.core.data.thrift.TKeyExtent,List<org.apache.accumulo.core.data.thrift.TConditionalMutation>> mutations, List<String> symbols, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
@@ -371,17 +371,18 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public long startUpdate(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public long startUpdate(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, TDurability durability) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
-      send_startUpdate(tinfo, credentials);
+      send_startUpdate(tinfo, credentials, durability);
       return recv_startUpdate();
     }
 
-    public void send_startUpdate(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.thrift.TException
+    public void send_startUpdate(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, TDurability durability) throws org.apache.thrift.TException
     {
       startUpdate_args args = new startUpdate_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
+      args.setDurability(durability);
       sendBase("startUpdate", args);
     }
 
@@ -440,19 +441,20 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "closeUpdate failed: unknown result");
     }
 
-    public void update(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.data.thrift.TMutation mutation) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, NotServingTabletException, ConstraintViolationException, org.apache.thrift.TException
+    public void update(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.data.thrift.TMutation mutation, TDurability durability) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, NotServingTabletException, ConstraintViolationException, org.apache.thrift.TException
     {
-      send_update(tinfo, credentials, keyExtent, mutation);
+      send_update(tinfo, credentials, keyExtent, mutation, durability);
       recv_update();
     }
 
-    public void send_update(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.data.thrift.TMutation mutation) throws org.apache.thrift.TException
+    public void send_update(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.data.thrift.TMutation mutation, TDurability durability) throws org.apache.thrift.TException
     {
       update_args args = new update_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
       args.setKeyExtent(keyExtent);
       args.setMutation(mutation);
+      args.setDurability(durability);
       sendBase("update", args);
     }
 
@@ -472,19 +474,20 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public org.apache.accumulo.core.data.thrift.TConditionalSession startConditionalUpdate(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, List<ByteBuffer> authorizations, String tableID) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public org.apache.accumulo.core.data.thrift.TConditionalSession startConditionalUpdate(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, List<ByteBuffer> authorizations, String tableID, TDurability durability) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
-      send_startConditionalUpdate(tinfo, credentials, authorizations, tableID);
+      send_startConditionalUpdate(tinfo, credentials, authorizations, tableID, durability);
       return recv_startConditionalUpdate();
     }
 
-    public void send_startConditionalUpdate(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, List<ByteBuffer> authorizations, String tableID) throws org.apache.thrift.TException
+    public void send_startConditionalUpdate(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, List<ByteBuffer> authorizations, String tableID, TDurability durability) throws org.apache.thrift.TException
     {
       startConditionalUpdate_args args = new startConditionalUpdate_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
       args.setAuthorizations(authorizations);
       args.setTableID(tableID);
+      args.setDurability(durability);
       sendBase("startConditionalUpdate", args);
     }
 
@@ -1182,9 +1185,9 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void startUpdate(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
+    public void startUpdate(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, TDurability durability, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      startUpdate_call method_call = new startUpdate_call(tinfo, credentials, resultHandler, this, ___protocolFactory, ___transport);
+      startUpdate_call method_call = new startUpdate_call(tinfo, credentials, durability, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
@@ -1192,10 +1195,12 @@ import org.slf4j.LoggerFactory;
     public static class startUpdate_call extends org.apache.thrift.async.TAsyncMethodCall {
       private org.apache.accumulo.trace.thrift.TInfo tinfo;
       private org.apache.accumulo.core.security.thrift.TCredentials credentials;
-      public startUpdate_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private TDurability durability;
+      public startUpdate_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, TDurability durability, org.apache.thrift.async.AsyncMethodCallback resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
+        this.durability = durability;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
@@ -1203,6 +1208,7 @@ import org.slf4j.LoggerFactory;
         startUpdate_args args = new startUpdate_args();
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
+        args.setDurability(durability);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -1292,9 +1298,9 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void update(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.data.thrift.TMutation mutation, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
+    public void update(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.data.thrift.TMutation mutation, TDurability durability, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      update_call method_call = new update_call(tinfo, credentials, keyExtent, mutation, resultHandler, this, ___protocolFactory, ___transport);
+      update_call method_call = new update_call(tinfo, credentials, keyExtent, mutation, durability, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
@@ -1304,12 +1310,14 @@ import org.slf4j.LoggerFactory;
       private org.apache.accumulo.core.security.thrift.TCredentials credentials;
       private org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent;
       private org.apache.accumulo.core.data.thrift.TMutation mutation;
-      public update_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.data.thrift.TMutation mutation, org.apache.thrift.async.AsyncMethodCallback resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private TDurability durability;
+      public update_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.data.thrift.TMutation mutation, TDurability durability, org.apache.thrift.async.AsyncMethodCallback resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
         this.keyExtent = keyExtent;
         this.mutation = mutation;
+        this.durability = durability;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
@@ -1319,6 +1327,7 @@ import org.slf4j.LoggerFactory;
         args.setCredentials(credentials);
         args.setKeyExtent(keyExtent);
         args.setMutation(mutation);
+        args.setDurability(durability);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -1333,9 +1342,9 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void startConditionalUpdate(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, List<ByteBuffer> authorizations, String tableID, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
+    public void startConditionalUpdate(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, List<ByteBuffer> authorizations, String tableID, TDurability durability, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      startConditionalUpdate_call method_call = new startConditionalUpdate_call(tinfo, credentials, authorizations, tableID, resultHandler, this, ___protocolFactory, ___transport);
+      startConditionalUpdate_call method_call = new startConditionalUpdate_call(tinfo, credentials, authorizations, tableID, durability, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
@@ -1345,12 +1354,14 @@ import org.slf4j.LoggerFactory;
       private org.apache.accumulo.core.security.thrift.TCredentials credentials;
       private List<ByteBuffer> authorizations;
       private String tableID;
-      public startConditionalUpdate_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, List<ByteBuffer> authorizations, String tableID, org.apache.thrift.async.AsyncMethodCallback resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private TDurability durability;
+      public startConditionalUpdate_call(org.apache.accumulo.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, List<ByteBuffer> authorizations, String tableID, TDurability durability, org.apache.thrift.async.AsyncMethodCallback resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
         this.authorizations = authorizations;
         this.tableID = tableID;
+        this.durability = durability;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
@@ -1360,6 +1371,7 @@ import org.slf4j.LoggerFactory;
         args.setCredentials(credentials);
         args.setAuthorizations(authorizations);
         args.setTableID(tableID);
+        args.setDurability(durability);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -2323,7 +2335,7 @@ import org.slf4j.LoggerFactory;
       public startUpdate_result getResult(I iface, startUpdate_args args) throws org.apache.thrift.TException {
         startUpdate_result result = new startUpdate_result();
         try {
-          result.success = iface.startUpdate(args.tinfo, args.credentials);
+          result.success = iface.startUpdate(args.tinfo, args.credentials, args.durability);
           result.setSuccessIsSet(true);
         } catch (org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
@@ -2391,7 +2403,7 @@ import org.slf4j.LoggerFactory;
       public update_result getResult(I iface, update_args args) throws org.apache.thrift.TException {
         update_result result = new update_result();
         try {
-          iface.update(args.tinfo, args.credentials, args.keyExtent, args.mutation);
+          iface.update(args.tinfo, args.credentials, args.keyExtent, args.mutation, args.durability);
         } catch (org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         } catch (NotServingTabletException nste) {
@@ -2419,7 +2431,7 @@ import org.slf4j.LoggerFactory;
       public startConditionalUpdate_result getResult(I iface, startConditionalUpdate_args args) throws org.apache.thrift.TException {
         startConditionalUpdate_result result = new startConditionalUpdate_result();
         try {
-          result.success = iface.startConditionalUpdate(args.tinfo, args.credentials, args.authorizations, args.tableID);
+          result.success = iface.startConditionalUpdate(args.tinfo, args.credentials, args.authorizations, args.tableID, args.durability);
         } catch (org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         }
@@ -3268,7 +3280,7 @@ import org.slf4j.LoggerFactory;
       }
 
       public void start(I iface, startUpdate_args args, org.apache.thrift.async.AsyncMethodCallback<Long> resultHandler) throws TException {
-        iface.startUpdate(args.tinfo, args.credentials,resultHandler);
+        iface.startUpdate(args.tinfo, args.credentials, args.durability,resultHandler);
       }
     }
 
@@ -3419,7 +3431,7 @@ import org.slf4j.LoggerFactory;
       }
 
       public void start(I iface, update_args args, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws TException {
-        iface.update(args.tinfo, args.credentials, args.keyExtent, args.mutation,resultHandler);
+        iface.update(args.tinfo, args.credentials, args.keyExtent, args.mutation, args.durability,resultHandler);
       }
     }
 
@@ -3476,7 +3488,7 @@ import org.slf4j.LoggerFactory;
       }
 
       public void start(I iface, startConditionalUpdate_args args, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.data.thrift.TConditionalSession> resultHandler) throws TException {
-        iface.startConditionalUpdate(args.tinfo, args.credentials, args.authorizations, args.tableID,resultHandler);
+        iface.startConditionalUpdate(args.tinfo, args.credentials, args.authorizations, args.tableID, args.durability,resultHandler);
       }
     }
 
@@ -11862,6 +11874,7 @@ import org.slf4j.LoggerFactory;
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)2);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField DURABILITY_FIELD_DESC = new org.apache.thrift.protocol.TField("durability", org.apache.thrift.protocol.TType.I32, (short)3);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -11871,11 +11884,21 @@ import org.slf4j.LoggerFactory;
 
     public org.apache.accumulo.trace.thrift.TInfo tinfo; // required
     public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
+    /**
+     * 
+     * @see TDurability
+     */
+    public TDurability durability; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)2, "tinfo"),
-      CREDENTIALS((short)1, "credentials");
+      CREDENTIALS((short)1, "credentials"),
+      /**
+       * 
+       * @see TDurability
+       */
+      DURABILITY((short)3, "durability");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -11894,6 +11917,8 @@ import org.slf4j.LoggerFactory;
             return TINFO;
           case 1: // CREDENTIALS
             return CREDENTIALS;
+          case 3: // DURABILITY
+            return DURABILITY;
           default:
             return null;
         }
@@ -11941,6 +11966,8 @@ import org.slf4j.LoggerFactory;
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.trace.thrift.TInfo.class)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
+      tmpMap.put(_Fields.DURABILITY, new org.apache.thrift.meta_data.FieldMetaData("durability", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, TDurability.class)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(startUpdate_args.class, metaDataMap);
     }
@@ -11950,11 +11977,13 @@ import org.slf4j.LoggerFactory;
 
     public startUpdate_args(
       org.apache.accumulo.trace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.TCredentials credentials)
+      org.apache.accumulo.core.security.thrift.TCredentials credentials,
+      TDurability durability)
     {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
+      this.durability = durability;
     }
 
     /**
@@ -11967,6 +11996,9 @@ import org.slf4j.LoggerFactory;
       if (other.isSetCredentials()) {
         this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
       }
+      if (other.isSetDurability()) {
+        this.durability = other.durability;
+      }
     }
 
     public startUpdate_args deepCopy() {
@@ -11977,6 +12009,7 @@ import org.slf4j.LoggerFactory;
     public void clear() {
       this.tinfo = null;
       this.credentials = null;
+      this.durability = null;
     }
 
     public org.apache.accumulo.trace.thrift.TInfo getTinfo() {
@@ -12027,6 +12060,38 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    /**
+     * 
+     * @see TDurability
+     */
+    public TDurability getDurability() {
+      return this.durability;
+    }
+
+    /**
+     * 
+     * @see TDurability
+     */
+    public startUpdate_args setDurability(TDurability durability) {
+      this.durability = durability;
+      return this;
+    }
+
+    public void unsetDurability() {
+      this.durability = null;
+    }
+
+    /** Returns true if field durability is set (has been assigned a value) and false otherwise */
+    public boolean isSetDurability() {
+      return this.durability != null;
+    }
+
+    public void setDurabilityIsSet(boolean value) {
+      if (!value) {
+        this.durability = null;
+      }
+    }
+
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case TINFO:
@@ -12045,6 +12110,14 @@ import org.slf4j.LoggerFactory;
         }
         break;
 
+      case DURABILITY:
+        if (value == null) {
+          unsetDurability();
+        } else {
+          setDurability((TDurability)value);
+        }
+        break;
+
       }
     }
 
@@ -12055,6 +12128,9 @@ import org.slf4j.LoggerFactory;
 
       case CREDENTIALS:
         return getCredentials();
+
+      case DURABILITY:
+        return getDurability();
 
       }
       throw new IllegalStateException();
@@ -12071,6 +12147,8 @@ import org.slf4j.LoggerFactory;
         return isSetTinfo();
       case CREDENTIALS:
         return isSetCredentials();
+      case DURABILITY:
+        return isSetDurability();
       }
       throw new IllegalStateException();
     }
@@ -12103,6 +12181,15 @@ import org.slf4j.LoggerFactory;
         if (!(this_present_credentials && that_present_credentials))
           return false;
         if (!this.credentials.equals(that.credentials))
+          return false;
+      }
+
+      boolean this_present_durability = true && this.isSetDurability();
+      boolean that_present_durability = true && that.isSetDurability();
+      if (this_present_durability || that_present_durability) {
+        if (!(this_present_durability && that_present_durability))
+          return false;
+        if (!this.durability.equals(that.durability))
           return false;
       }
 
@@ -12142,6 +12229,16 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
+      lastComparison = Boolean.valueOf(isSetDurability()).compareTo(other.isSetDurability());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetDurability()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.durability, other.durability);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
       return 0;
     }
 
@@ -12175,6 +12272,14 @@ import org.slf4j.LoggerFactory;
         sb.append("null");
       } else {
         sb.append(this.credentials);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("durability:");
+      if (this.durability == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.durability);
       }
       first = false;
       sb.append(")");
@@ -12244,6 +12349,14 @@ import org.slf4j.LoggerFactory;
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
+            case 3: // DURABILITY
+              if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
+                struct.durability = TDurability.findByValue(iprot.readI32());
+                struct.setDurabilityIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -12267,6 +12380,11 @@ import org.slf4j.LoggerFactory;
         if (struct.tinfo != null) {
           oprot.writeFieldBegin(TINFO_FIELD_DESC);
           struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.durability != null) {
+          oprot.writeFieldBegin(DURABILITY_FIELD_DESC);
+          oprot.writeI32(struct.durability.getValue());
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -12293,19 +12411,25 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetCredentials()) {
           optionals.set(1);
         }
-        oprot.writeBitSet(optionals, 2);
+        if (struct.isSetDurability()) {
+          optionals.set(2);
+        }
+        oprot.writeBitSet(optionals, 3);
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
         if (struct.isSetCredentials()) {
           struct.credentials.write(oprot);
         }
+        if (struct.isSetDurability()) {
+          oprot.writeI32(struct.durability.getValue());
+        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, startUpdate_args struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(2);
+        BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           struct.tinfo = new org.apache.accumulo.trace.thrift.TInfo();
           struct.tinfo.read(iprot);
@@ -12315,6 +12439,10 @@ import org.slf4j.LoggerFactory;
           struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
           struct.credentials.read(iprot);
           struct.setCredentialsIsSet(true);
+        }
+        if (incoming.get(2)) {
+          struct.durability = TDurability.findByValue(iprot.readI32());
+          struct.setDurabilityIsSet(true);
         }
       }
     }
@@ -14418,6 +14546,7 @@ import org.slf4j.LoggerFactory;
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField KEY_EXTENT_FIELD_DESC = new org.apache.thrift.protocol.TField("keyExtent", org.apache.thrift.protocol.TType.STRUCT, (short)2);
     private static final org.apache.thrift.protocol.TField MUTATION_FIELD_DESC = new org.apache.thrift.protocol.TField("mutation", org.apache.thrift.protocol.TType.STRUCT, (short)3);
+    private static final org.apache.thrift.protocol.TField DURABILITY_FIELD_DESC = new org.apache.thrift.protocol.TField("durability", org.apache.thrift.protocol.TType.I32, (short)5);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -14429,13 +14558,23 @@ import org.slf4j.LoggerFactory;
     public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
     public org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent; // required
     public org.apache.accumulo.core.data.thrift.TMutation mutation; // required
+    /**
+     * 
+     * @see TDurability
+     */
+    public TDurability durability; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)4, "tinfo"),
       CREDENTIALS((short)1, "credentials"),
       KEY_EXTENT((short)2, "keyExtent"),
-      MUTATION((short)3, "mutation");
+      MUTATION((short)3, "mutation"),
+      /**
+       * 
+       * @see TDurability
+       */
+      DURABILITY((short)5, "durability");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -14458,6 +14597,8 @@ import org.slf4j.LoggerFactory;
             return KEY_EXTENT;
           case 3: // MUTATION
             return MUTATION;
+          case 5: // DURABILITY
+            return DURABILITY;
           default:
             return null;
         }
@@ -14509,6 +14650,8 @@ import org.slf4j.LoggerFactory;
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.data.thrift.TKeyExtent.class)));
       tmpMap.put(_Fields.MUTATION, new org.apache.thrift.meta_data.FieldMetaData("mutation", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.data.thrift.TMutation.class)));
+      tmpMap.put(_Fields.DURABILITY, new org.apache.thrift.meta_data.FieldMetaData("durability", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, TDurability.class)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(update_args.class, metaDataMap);
     }
@@ -14520,13 +14663,15 @@ import org.slf4j.LoggerFactory;
       org.apache.accumulo.trace.thrift.TInfo tinfo,
       org.apache.accumulo.core.security.thrift.TCredentials credentials,
       org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent,
-      org.apache.accumulo.core.data.thrift.TMutation mutation)
+      org.apache.accumulo.core.data.thrift.TMutation mutation,
+      TDurability durability)
     {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
       this.keyExtent = keyExtent;
       this.mutation = mutation;
+      this.durability = durability;
     }
 
     /**
@@ -14545,6 +14690,9 @@ import org.slf4j.LoggerFactory;
       if (other.isSetMutation()) {
         this.mutation = new org.apache.accumulo.core.data.thrift.TMutation(other.mutation);
       }
+      if (other.isSetDurability()) {
+        this.durability = other.durability;
+      }
     }
 
     public update_args deepCopy() {
@@ -14557,6 +14705,7 @@ import org.slf4j.LoggerFactory;
       this.credentials = null;
       this.keyExtent = null;
       this.mutation = null;
+      this.durability = null;
     }
 
     public org.apache.accumulo.trace.thrift.TInfo getTinfo() {
@@ -14655,6 +14804,38 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    /**
+     * 
+     * @see TDurability
+     */
+    public TDurability getDurability() {
+      return this.durability;
+    }
+
+    /**
+     * 
+     * @see TDurability
+     */
+    public update_args setDurability(TDurability durability) {
+      this.durability = durability;
+      return this;
+    }
+
+    public void unsetDurability() {
+      this.durability = null;
+    }
+
+    /** Returns true if field durability is set (has been assigned a value) and false otherwise */
+    public boolean isSetDurability() {
+      return this.durability != null;
+    }
+
+    public void setDurabilityIsSet(boolean value) {
+      if (!value) {
+        this.durability = null;
+      }
+    }
+
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case TINFO:
@@ -14689,6 +14870,14 @@ import org.slf4j.LoggerFactory;
         }
         break;
 
+      case DURABILITY:
+        if (value == null) {
+          unsetDurability();
+        } else {
+          setDurability((TDurability)value);
+        }
+        break;
+
       }
     }
 
@@ -14705,6 +14894,9 @@ import org.slf4j.LoggerFactory;
 
       case MUTATION:
         return getMutation();
+
+      case DURABILITY:
+        return getDurability();
 
       }
       throw new IllegalStateException();
@@ -14725,6 +14917,8 @@ import org.slf4j.LoggerFactory;
         return isSetKeyExtent();
       case MUTATION:
         return isSetMutation();
+      case DURABILITY:
+        return isSetDurability();
       }
       throw new IllegalStateException();
     }
@@ -14775,6 +14969,15 @@ import org.slf4j.LoggerFactory;
         if (!(this_present_mutation && that_present_mutation))
           return false;
         if (!this.mutation.equals(that.mutation))
+          return false;
+      }
+
+      boolean this_present_durability = true && this.isSetDurability();
+      boolean that_present_durability = true && that.isSetDurability();
+      if (this_present_durability || that_present_durability) {
+        if (!(this_present_durability && that_present_durability))
+          return false;
+        if (!this.durability.equals(that.durability))
           return false;
       }
 
@@ -14834,6 +15037,16 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
+      lastComparison = Boolean.valueOf(isSetDurability()).compareTo(other.isSetDurability());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetDurability()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.durability, other.durability);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
       return 0;
     }
 
@@ -14883,6 +15096,14 @@ import org.slf4j.LoggerFactory;
         sb.append("null");
       } else {
         sb.append(this.mutation);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("durability:");
+      if (this.durability == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.durability);
       }
       first = false;
       sb.append(")");
@@ -14976,6 +15197,14 @@ import org.slf4j.LoggerFactory;
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
+            case 5: // DURABILITY
+              if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
+                struct.durability = TDurability.findByValue(iprot.readI32());
+                struct.setDurabilityIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -15011,6 +15240,11 @@ import org.slf4j.LoggerFactory;
           struct.tinfo.write(oprot);
           oprot.writeFieldEnd();
         }
+        if (struct.durability != null) {
+          oprot.writeFieldBegin(DURABILITY_FIELD_DESC);
+          oprot.writeI32(struct.durability.getValue());
+          oprot.writeFieldEnd();
+        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -15041,7 +15275,10 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetMutation()) {
           optionals.set(3);
         }
-        oprot.writeBitSet(optionals, 4);
+        if (struct.isSetDurability()) {
+          optionals.set(4);
+        }
+        oprot.writeBitSet(optionals, 5);
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
@@ -15054,12 +15291,15 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetMutation()) {
           struct.mutation.write(oprot);
         }
+        if (struct.isSetDurability()) {
+          oprot.writeI32(struct.durability.getValue());
+        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, update_args struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(4);
+        BitSet incoming = iprot.readBitSet(5);
         if (incoming.get(0)) {
           struct.tinfo = new org.apache.accumulo.trace.thrift.TInfo();
           struct.tinfo.read(iprot);
@@ -15079,6 +15319,10 @@ import org.slf4j.LoggerFactory;
           struct.mutation = new org.apache.accumulo.core.data.thrift.TMutation();
           struct.mutation.read(iprot);
           struct.setMutationIsSet(true);
+        }
+        if (incoming.get(4)) {
+          struct.durability = TDurability.findByValue(iprot.readI32());
+          struct.setDurabilityIsSet(true);
         }
       }
     }
@@ -15652,6 +15896,7 @@ import org.slf4j.LoggerFactory;
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
     private static final org.apache.thrift.protocol.TField AUTHORIZATIONS_FIELD_DESC = new org.apache.thrift.protocol.TField("authorizations", org.apache.thrift.protocol.TType.LIST, (short)3);
     private static final org.apache.thrift.protocol.TField TABLE_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("tableID", org.apache.thrift.protocol.TType.STRING, (short)4);
+    private static final org.apache.thrift.protocol.TField DURABILITY_FIELD_DESC = new org.apache.thrift.protocol.TField("durability", org.apache.thrift.protocol.TType.I32, (short)5);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -15663,13 +15908,23 @@ import org.slf4j.LoggerFactory;
     public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
     public List<ByteBuffer> authorizations; // required
     public String tableID; // required
+    /**
+     * 
+     * @see TDurability
+     */
+    public TDurability durability; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)1, "tinfo"),
       CREDENTIALS((short)2, "credentials"),
       AUTHORIZATIONS((short)3, "authorizations"),
-      TABLE_ID((short)4, "tableID");
+      TABLE_ID((short)4, "tableID"),
+      /**
+       * 
+       * @see TDurability
+       */
+      DURABILITY((short)5, "durability");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -15692,6 +15947,8 @@ import org.slf4j.LoggerFactory;
             return AUTHORIZATIONS;
           case 4: // TABLE_ID
             return TABLE_ID;
+          case 5: // DURABILITY
+            return DURABILITY;
           default:
             return null;
         }
@@ -15744,6 +16001,8 @@ import org.slf4j.LoggerFactory;
               new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING              , true))));
       tmpMap.put(_Fields.TABLE_ID, new org.apache.thrift.meta_data.FieldMetaData("tableID", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.DURABILITY, new org.apache.thrift.meta_data.FieldMetaData("durability", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, TDurability.class)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(startConditionalUpdate_args.class, metaDataMap);
     }
@@ -15755,13 +16014,15 @@ import org.slf4j.LoggerFactory;
       org.apache.accumulo.trace.thrift.TInfo tinfo,
       org.apache.accumulo.core.security.thrift.TCredentials credentials,
       List<ByteBuffer> authorizations,
-      String tableID)
+      String tableID,
+      TDurability durability)
     {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
       this.authorizations = authorizations;
       this.tableID = tableID;
+      this.durability = durability;
     }
 
     /**
@@ -15781,6 +16042,9 @@ import org.slf4j.LoggerFactory;
       if (other.isSetTableID()) {
         this.tableID = other.tableID;
       }
+      if (other.isSetDurability()) {
+        this.durability = other.durability;
+      }
     }
 
     public startConditionalUpdate_args deepCopy() {
@@ -15793,6 +16057,7 @@ import org.slf4j.LoggerFactory;
       this.credentials = null;
       this.authorizations = null;
       this.tableID = null;
+      this.durability = null;
     }
 
     public org.apache.accumulo.trace.thrift.TInfo getTinfo() {
@@ -15906,6 +16171,38 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    /**
+     * 
+     * @see TDurability
+     */
+    public TDurability getDurability() {
+      return this.durability;
+    }
+
+    /**
+     * 
+     * @see TDurability
+     */
+    public startConditionalUpdate_args setDurability(TDurability durability) {
+      this.durability = durability;
+      return this;
+    }
+
+    public void unsetDurability() {
+      this.durability = null;
+    }
+
+    /** Returns true if field durability is set (has been assigned a value) and false otherwise */
+    public boolean isSetDurability() {
+      return this.durability != null;
+    }
+
+    public void setDurabilityIsSet(boolean value) {
+      if (!value) {
+        this.durability = null;
+      }
+    }
+
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case TINFO:
@@ -15940,6 +16237,14 @@ import org.slf4j.LoggerFactory;
         }
         break;
 
+      case DURABILITY:
+        if (value == null) {
+          unsetDurability();
+        } else {
+          setDurability((TDurability)value);
+        }
+        break;
+
       }
     }
 
@@ -15956,6 +16261,9 @@ import org.slf4j.LoggerFactory;
 
       case TABLE_ID:
         return getTableID();
+
+      case DURABILITY:
+        return getDurability();
 
       }
       throw new IllegalStateException();
@@ -15976,6 +16284,8 @@ import org.slf4j.LoggerFactory;
         return isSetAuthorizations();
       case TABLE_ID:
         return isSetTableID();
+      case DURABILITY:
+        return isSetDurability();
       }
       throw new IllegalStateException();
     }
@@ -16026,6 +16336,15 @@ import org.slf4j.LoggerFactory;
         if (!(this_present_tableID && that_present_tableID))
           return false;
         if (!this.tableID.equals(that.tableID))
+          return false;
+      }
+
+      boolean this_present_durability = true && this.isSetDurability();
+      boolean that_present_durability = true && that.isSetDurability();
+      if (this_present_durability || that_present_durability) {
+        if (!(this_present_durability && that_present_durability))
+          return false;
+        if (!this.durability.equals(that.durability))
           return false;
       }
 
@@ -16085,6 +16404,16 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
+      lastComparison = Boolean.valueOf(isSetDurability()).compareTo(other.isSetDurability());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetDurability()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.durability, other.durability);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
       return 0;
     }
 
@@ -16134,6 +16463,14 @@ import org.slf4j.LoggerFactory;
         sb.append("null");
       } else {
         sb.append(this.tableID);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("durability:");
+      if (this.durability == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.durability);
       }
       first = false;
       sb.append(")");
@@ -16229,6 +16566,14 @@ import org.slf4j.LoggerFactory;
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
+            case 5: // DURABILITY
+              if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
+                struct.durability = TDurability.findByValue(iprot.readI32());
+                struct.setDurabilityIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -16271,6 +16616,11 @@ import org.slf4j.LoggerFactory;
           oprot.writeString(struct.tableID);
           oprot.writeFieldEnd();
         }
+        if (struct.durability != null) {
+          oprot.writeFieldBegin(DURABILITY_FIELD_DESC);
+          oprot.writeI32(struct.durability.getValue());
+          oprot.writeFieldEnd();
+        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -16301,7 +16651,10 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTableID()) {
           optionals.set(3);
         }
-        oprot.writeBitSet(optionals, 4);
+        if (struct.isSetDurability()) {
+          optionals.set(4);
+        }
+        oprot.writeBitSet(optionals, 5);
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
@@ -16320,12 +16673,15 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTableID()) {
           oprot.writeString(struct.tableID);
         }
+        if (struct.isSetDurability()) {
+          oprot.writeI32(struct.durability.getValue());
+        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, startConditionalUpdate_args struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(4);
+        BitSet incoming = iprot.readBitSet(5);
         if (incoming.get(0)) {
           struct.tinfo = new org.apache.accumulo.trace.thrift.TInfo();
           struct.tinfo.read(iprot);
@@ -16352,6 +16708,10 @@ import org.slf4j.LoggerFactory;
         if (incoming.get(3)) {
           struct.tableID = iprot.readString();
           struct.setTableIDIsSet(true);
+        }
+        if (incoming.get(4)) {
+          struct.durability = TDurability.findByValue(iprot.readI32());
+          struct.setDurabilityIsSet(true);
         }
       }
     }

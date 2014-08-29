@@ -19,7 +19,7 @@ package org.apache.accumulo.tserver;
 import java.util.List;
 
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.tserver.tablet.Durability;
+import org.apache.accumulo.core.client.Durability;
 
 public class TabletMutations {
   private final int tid; 

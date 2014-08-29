@@ -26,7 +26,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.channels.ClosedChannelException;
 import java.nio.charset.StandardCharsets;
@@ -41,6 +40,7 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -59,7 +59,6 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.tserver.TabletMutations;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
-import org.apache.accumulo.tserver.tablet.Durability;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
@@ -147,30 +146,39 @@ public class DfsLogger {
         }
         workQueue.drainTo(work);
 
+        String durability = null;
         Method durabilityMethod = null;
         loop:
         for (LogWork logWork : work) {
           switch (logWork.durability) {
+            case DEFAULT:
             case NONE:
               // shouldn't make it to the work queue
+              log.warn("unexpected durability " + logWork.durability, new Throwable());
               break;
             case LOG:
               // do nothing
               break;
             case SYNC:
               durabilityMethod = sync;
+              durability = logWork.durability.toString();
               break loop;
             case FLUSH:
               if (durabilityMethod == null) {
                 durabilityMethod = flush;
+                durability = logWork.durability.toString();
               }
               break;
           }
         }
 
         try {
-          if (durabilityMethod != null)
+          if (durabilityMethod != null) {
+            log.debug("durability method " + durability);
             durabilityMethod.invoke(logFile);
+          } else {
+            log.debug("skipping flush/sync");
+          }
         } catch (Exception ex) {
           log.warn("Exception syncing " + ex);
           for (DfsLogger.LogWork logWork : work) {
@@ -493,25 +501,9 @@ public class DfsLogger {
     key.tablet = tablet;
     try {
       write(key, EMPTY);
-      sync.invoke(logFile);
     } catch (IllegalArgumentException e) {
       log.error("Signature of sync method changed. Accumulo is likely incompatible with this version of Hadoop.");
       throw new RuntimeException(e);
-    } catch (IllegalAccessException e) {
-      log.error("Could not invoke sync method due to permission error.");
-      throw new RuntimeException(e);
-    } catch (InvocationTargetException e) {
-      Throwable cause = e.getCause();
-      if (cause instanceof IOException) {
-        throw (IOException) cause;
-      } else if (cause instanceof RuntimeException) {
-        throw (RuntimeException) cause;
-      } else if (cause instanceof Error) {
-        throw (Error) cause;
-      } else {
-        // Cause is null, or some other checked exception that was added later.
-        throw new RuntimeException(e);
-      }
     }
   }
 
@@ -563,6 +555,7 @@ public class DfsLogger {
       LogFileValue value = new LogFileValue();
       value.mutations = tabletMutations.getMutations();
       data.add(new Pair<LogFileKey,LogFileValue>(key, value));
+      log.debug("Durability for " + tabletMutations.getDurability() + " (ordinal) " + tabletMutations.getDurability().ordinal() + " durability " + durability + " (ordinal) " + durability.ordinal());
       if (tabletMutations.getDurability().ordinal() > durability.ordinal())
         durability = tabletMutations.getDurability();
     }

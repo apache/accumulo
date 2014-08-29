@@ -28,6 +28,7 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.tserver.TservConstraintEnv;
+import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.tserver.tablet.Tablet;
 
 public class UpdateSession extends Session {
@@ -46,11 +47,12 @@ public class UpdateSession extends Session {
   public long totalUpdates = 0;
   public long flushTime = 0;
   public long queuedMutationSize = 0;
+  public final Durability durability;
   
-  public UpdateSession(TservConstraintEnv env, TCredentials credentials) {
+  public UpdateSession(TservConstraintEnv env, TCredentials credentials, Durability durability) {
     super(credentials);
     this.cenv = env;
     this.violations = new Violations();
+    this.durability = durability;
   }
-
 }

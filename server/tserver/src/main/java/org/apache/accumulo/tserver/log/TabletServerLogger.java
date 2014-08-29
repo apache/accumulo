@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
@@ -43,11 +43,11 @@ import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
+import org.apache.accumulo.tserver.Mutations;
 import org.apache.accumulo.tserver.TabletMutations;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.log.DfsLogger.LoggerOperation;
 import org.apache.accumulo.tserver.tablet.CommitSession;
-import org.apache.accumulo.tserver.tablet.Durability;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 
@@ -351,8 +351,6 @@ public class TabletServerLogger {
 
   public int defineTablet(final CommitSession commitSession) throws IOException {
     // scribble this into the metadata tablet, too.
-    if (!enabled(commitSession))
-      return -1;
     return write(commitSession, false, new Writer() {
       @Override
       public LoggerOperation write(DfsLogger logger, int ignored) throws Exception {
@@ -362,29 +360,29 @@ public class TabletServerLogger {
     });
   }
 
-  private boolean enabled(CommitSession commitSession) {
-    return commitSession.getDurabilty() != Durability.NONE;
-  }
-
-  public int log(final CommitSession commitSession, final int tabletSeq, final Mutation m) throws IOException {
-    if (!enabled(commitSession))
+  public int log(final CommitSession commitSession, final int tabletSeq, final Mutation m, final Durability durability) throws IOException {
+    if (durability == Durability.NONE)
       return -1;
+    if (durability == Durability.DEFAULT)
+      log.warn("Unexpected durability " + durability, new Throwable());
     int seq = write(commitSession, false, new Writer() {
       @Override
       public LoggerOperation write(DfsLogger logger, int ignored) throws Exception {
-        return logger.log(tabletSeq, commitSession.getLogId(), m, commitSession.getDurabilty());
+        return logger.log(tabletSeq, commitSession.getLogId(), m, durability);
       }
     });
     logSizeEstimate.addAndGet(m.numBytes());
     return seq;
   }
 
-  public int logManyTablets(Map<CommitSession,List<Mutation>> mutations) throws IOException {
+  public int logManyTablets(Map<CommitSession,Mutations> mutations) throws IOException {
 
-    final Map<CommitSession,List<Mutation>> loggables = new HashMap<CommitSession,List<Mutation>>(mutations);
-    for (CommitSession t : mutations.keySet()) {
-      if (!enabled(t))
-        loggables.remove(t);
+    final Map<CommitSession,Mutations> loggables = new HashMap<CommitSession,Mutations>(mutations);
+    for (Entry<CommitSession,Mutations> entry : mutations.entrySet()) {
+      Durability durability = entry.getValue().getDurability();
+      if (durability == Durability.NONE) {
+        loggables.remove(entry.getKey());
+      }
     }
     if (loggables.size() == 0)
       return -1;
@@ -393,17 +391,18 @@ public class TabletServerLogger {
       @Override
       public LoggerOperation write(DfsLogger logger, int ignored) throws Exception {
         List<TabletMutations> copy = new ArrayList<TabletMutations>(loggables.size());
-        for (Entry<CommitSession,List<Mutation>> entry : loggables.entrySet()) {
+        for (Entry<CommitSession,Mutations> entry : loggables.entrySet()) {
           CommitSession cs = entry.getKey();
-          copy.add(new TabletMutations(cs.getLogId(), cs.getWALogSeq(), entry.getValue(), cs.getDurabilty()));
+          Durability durability = entry.getValue().getDurability();
+          copy.add(new TabletMutations(cs.getLogId(), cs.getWALogSeq(), entry.getValue().getMutations(), durability));
         }
         return logger.logManyTablets(copy);
       }
     });
-    for (List<Mutation> entry : loggables.values()) {
-      if (entry.size() < 1)
+    for (Mutations entry : loggables.values()) {
+      if (entry.getMutations().size() < 1)
         throw new IllegalArgumentException("logManyTablets: logging empty mutation list");
-      for (Mutation m : entry) {
+      for (Mutation m : entry.getMutations()) {
         logSizeEstimate.addAndGet(m.numBytes());
       }
     }
@@ -411,9 +410,6 @@ public class TabletServerLogger {
   }
 
   public void minorCompactionFinished(final CommitSession commitSession, final String fullyQualifiedFileName, final int walogSeq) throws IOException {
-
-    if (!enabled(commitSession))
-      return;
 
     long t1 = System.currentTimeMillis();
 
@@ -431,8 +427,6 @@ public class TabletServerLogger {
   }
 
   public int minorCompactionStarted(final CommitSession commitSession, final int seq, final String fullyQualifiedFileName) throws IOException {
-    if (!enabled(commitSession))
-      return -1;
     write(commitSession, false, new Writer() {
       @Override
       public LoggerOperation write(DfsLogger logger, int ignored) throws Exception {
@@ -445,8 +439,6 @@ public class TabletServerLogger {
 
   public void recover(VolumeManager fs, KeyExtent extent, TableConfiguration tconf, List<Path> logs, Set<String> tabletFiles, MutationReceiver mr)
       throws IOException {
-    if (Durability.fromString(tconf.get(Property.TABLE_DURABILITY)) == Durability.NONE)
-      return;
     try {
       SortedLogRecovery recovery = new SortedLogRecovery(fs);
       recovery.recover(extent, logs, tabletFiles, mr);

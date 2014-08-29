@@ -20,18 +20,21 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.client.Durability;
 
 public class ConditionalSession extends Session {
   public final TCredentials credentials;
   public final Authorizations auths;
   public final String tableId;
   public final AtomicBoolean interruptFlag = new AtomicBoolean();
+  public final Durability durability;
   
-  public ConditionalSession(TCredentials credentials, Authorizations authorizations, String tableId) {
+  public ConditionalSession(TCredentials credentials, Authorizations authorizations, String tableId, Durability durability) {
     super(credentials);
     this.credentials = credentials;
     this.auths = authorizations;
     this.tableId = tableId;
+    this.durability = durability;
   }
 
   @Override

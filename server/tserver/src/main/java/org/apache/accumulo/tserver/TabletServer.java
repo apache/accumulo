@@ -56,6 +56,7 @@ import javax.management.StandardMBean;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.CompressedIterators;
 import org.apache.accumulo.core.client.impl.CompressedIterators.IterConfig;
@@ -115,6 +116,7 @@ import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
+import org.apache.accumulo.core.tabletserver.thrift.TDurability;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processor;
@@ -215,7 +217,6 @@ import org.apache.accumulo.tserver.tablet.CommitSession;
 import org.apache.accumulo.tserver.tablet.CompactionInfo;
 import org.apache.accumulo.tserver.tablet.CompactionWatcher;
 import org.apache.accumulo.tserver.tablet.Compactor;
-import org.apache.accumulo.tserver.tablet.Durability;
 import org.apache.accumulo.tserver.tablet.KVEntry;
 import org.apache.accumulo.tserver.tablet.ScanBatch;
 import org.apache.accumulo.tserver.tablet.Scanner;
@@ -652,14 +653,14 @@ public class TabletServer implements Runnable {
     }
 
     @Override
-    public long startUpdate(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException {
+    public long startUpdate(TInfo tinfo, TCredentials credentials, TDurability tdurabilty) throws ThriftSecurityException {
       // Make sure user is real
-
+      Durability durability = Durability.fromThrift(tdurabilty);
       security.authenticateUser(credentials, credentials);
       if (updateMetrics.isEnabled())
         updateMetrics.add(TabletServerUpdateMetrics.permissionErrors, 0);
 
-      UpdateSession us = new UpdateSession(new TservConstraintEnv(security, credentials), credentials);
+      UpdateSession us = new UpdateSession(new TservConstraintEnv(security, credentials), credentials, durability);
       long sid = sessionManager.createSession(us, false);
       return sid;
     }
@@ -738,11 +739,11 @@ public class TabletServer implements Runnable {
         sessionManager.unreserveSession(us);
       }
     }
-
+    
     private void flush(UpdateSession us) {
 
       int mutationCount = 0;
-      Map<CommitSession,List<Mutation>> sendables = new HashMap<CommitSession,List<Mutation>>();
+      Map<CommitSession,Mutations> sendables = new HashMap<CommitSession,Mutations>();
       Throwable error = null;
 
       long pt1 = System.currentTimeMillis();
@@ -760,6 +761,7 @@ public class TabletServer implements Runnable {
         for (Entry<Tablet,? extends List<Mutation>> entry : us.queuedMutations.entrySet()) {
 
           Tablet tablet = entry.getKey();
+          Durability tabletDurability = tablet.getDurability();
           List<Mutation> mutations = entry.getValue();
           if (mutations.size() > 0) {
             try {
@@ -773,7 +775,8 @@ public class TabletServer implements Runnable {
                 }
                 us.failures.put(tablet.getExtent(), us.successfulCommits.get(tablet));
               } else {
-                sendables.put(commitSession, mutations);
+                log.debug("Durablity for " + tablet.getExtent() + " durability " + us.durability + " table durability " + tabletDurability + " using " + us.durability.resolveDurability(tabletDurability));
+                sendables.put(commitSession, new Mutations(us.durability.resolveDurability(tabletDurability), mutations));
                 mutationCount += mutations.size();
               }
 
@@ -788,7 +791,7 @@ public class TabletServer implements Runnable {
                 // violate constraints... this is what
                 // prepareMutationsForCommit()
                 // expects
-                sendables.put(e.getCommitSession(), e.getNonViolators());
+                sendables.put(e.getCommitSession(), new Mutations(us.durability.resolveDurability(tabletDurability), e.getNonViolators()));
               }
 
               mutationCount += mutations.size();
@@ -813,8 +816,8 @@ public class TabletServer implements Runnable {
       updateAvgPrepTime(pt2 - pt1, us.queuedMutations.size());
 
       if (error != null) {
-        for (Entry<CommitSession,List<Mutation>> e : sendables.entrySet()) {
-          e.getKey().abortCommit(e.getValue());
+        for (Entry<CommitSession,Mutations> e : sendables.entrySet()) {
+          e.getKey().abortCommit(e.getValue().getMutations());
         }
         throw new RuntimeException(error);
       }
@@ -847,9 +850,9 @@ public class TabletServer implements Runnable {
         Span commit = Trace.start("commit");
         try {
           long t1 = System.currentTimeMillis();
-          for (Entry<CommitSession,? extends List<Mutation>> entry : sendables.entrySet()) {
+          for (Entry<CommitSession,Mutations> entry : sendables.entrySet()) {
             CommitSession commitSession = entry.getKey();
-            List<Mutation> mutations = entry.getValue();
+            List<Mutation> mutations = entry.getValue().getMutations();
 
             commitSession.commit(mutations);
 
@@ -937,7 +940,7 @@ public class TabletServer implements Runnable {
     }
 
     @Override
-    public void update(TInfo tinfo, TCredentials credentials, TKeyExtent tkeyExtent, TMutation tmutation) throws NotServingTabletException,
+    public void update(TInfo tinfo, TCredentials credentials, TKeyExtent tkeyExtent, TMutation tmutation, TDurability tdurability) throws NotServingTabletException,
         ConstraintViolationException, ThriftSecurityException {
 
       final String tableId = new String(tkeyExtent.getTable(), StandardCharsets.UTF_8);
@@ -948,6 +951,7 @@ public class TabletServer implements Runnable {
       if (tablet == null) {
         throw new NotServingTabletException(tkeyExtent);
       }
+      Durability tabletDurability = tablet.getDurability();
 
       if (!keyExtent.isMeta())
         TabletServer.this.resourceManager.waitUntilCommitsAreEnabled();
@@ -973,7 +977,7 @@ public class TabletServer implements Runnable {
           try {
             final Span wal = Trace.start("wal");
             try {
-              logger.log(cs, cs.getWALogSeq(), mutation);
+              logger.log(cs, cs.getWALogSeq(), mutation, Durability.fromThrift(tdurability).resolveDurability(tabletDurability));
             } finally {
               wal.stop();
             }
@@ -1076,7 +1080,7 @@ public class TabletServer implements Runnable {
     private void writeConditionalMutations(Map<KeyExtent,List<ServerConditionalMutation>> updates, ArrayList<TCMResult> results, ConditionalSession sess) {
       Set<Entry<KeyExtent,List<ServerConditionalMutation>>> es = updates.entrySet();
 
-      Map<CommitSession,List<Mutation>> sendables = new HashMap<CommitSession,List<Mutation>>();
+      Map<CommitSession,Mutations> sendables = new HashMap<CommitSession,Mutations>();
 
       boolean sessionCanceled = sess.interruptFlag.get();
 
@@ -1085,6 +1089,7 @@ public class TabletServer implements Runnable {
         long t1 = System.currentTimeMillis();
         for (Entry<KeyExtent,List<ServerConditionalMutation>> entry : es) {
           Tablet tablet = onlineTablets.get(entry.getKey());
+          Durability tabletDurability = tablet.getDurability();
           if (tablet == null || tablet.isClosed() || sessionCanceled) {
             for (ServerConditionalMutation scm : entry.getValue())
               results.add(new TCMResult(scm.getID(), TCMStatus.IGNORED));
@@ -1096,19 +1101,19 @@ public class TabletServer implements Runnable {
               if (mutations.size() > 0) {
 
                 CommitSession cs = tablet.prepareMutationsForCommit(new TservConstraintEnv(security, sess.credentials), mutations);
-
+                
                 if (cs == null) {
                   for (ServerConditionalMutation scm : entry.getValue())
                     results.add(new TCMResult(scm.getID(), TCMStatus.IGNORED));
                 } else {
                   for (ServerConditionalMutation scm : entry.getValue())
                     results.add(new TCMResult(scm.getID(), TCMStatus.ACCEPTED));
-                  sendables.put(cs, mutations);
+                  sendables.put(cs, new Mutations(sess.durability.resolveDurability(tabletDurability), mutations));
                 }
               }
             } catch (TConstraintViolationException e) {
               if (e.getNonViolators().size() > 0) {
-                sendables.put(e.getCommitSession(), e.getNonViolators());
+                sendables.put(e.getCommitSession(), new Mutations(sess.durability.resolveDurability(tabletDurability), e.getNonViolators()));
                 for (Mutation m : e.getNonViolators())
                   results.add(new TCMResult(((ServerConditionalMutation) m).getID(), TCMStatus.ACCEPTED));
               }
@@ -1150,9 +1155,9 @@ public class TabletServer implements Runnable {
       Span commitSpan = Trace.start("commit");
       try {
         long t1 = System.currentTimeMillis();
-        for (Entry<CommitSession,? extends List<Mutation>> entry : sendables.entrySet()) {
+        for (Entry<CommitSession,Mutations> entry : sendables.entrySet()) {
           CommitSession commitSession = entry.getKey();
-          List<Mutation> mutations = entry.getValue();
+          List<Mutation> mutations = entry.getValue().getMutations();
 
           commitSession.commit(mutations);
         }
@@ -1197,7 +1202,7 @@ public class TabletServer implements Runnable {
     }
 
     @Override
-    public TConditionalSession startConditionalUpdate(TInfo tinfo, TCredentials credentials, List<ByteBuffer> authorizations, String tableId)
+    public TConditionalSession startConditionalUpdate(TInfo tinfo, TCredentials credentials, List<ByteBuffer> authorizations, String tableId, TDurability tdurabilty)
         throws ThriftSecurityException, TException {
 
       Authorizations userauths = null;
@@ -1209,7 +1214,7 @@ public class TabletServer implements Runnable {
         if (!userauths.contains(ByteBufferUtil.toBytes(auth)))
           throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.BAD_AUTHORIZATIONS);
 
-      ConditionalSession cs = new ConditionalSession(credentials, new Authorizations(authorizations), tableId);
+      ConditionalSession cs = new ConditionalSession(credentials, new Authorizations(authorizations), tableId, Durability.fromThrift(tdurabilty));
 
       long sid = sessionManager.createSession(cs, false);
       return new TConditionalSession(sid, lockID, sessionManager.getMaxIdleTime());

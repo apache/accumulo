@@ -111,10 +111,6 @@ public class CommitSession {
     return maxCommittedTime;
   }
 
-  public Durability getDurabilty() {
-    return committer.getDurability();
-  }
-
   public void mutate(List<Mutation> mutations) {
     memTable.mutate(mutations);
   }

@@ -34,49 +34,58 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ProcessReference;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.Test;
 
 public class DurabilityIT extends ConfigurableMacIT {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.useMiniDFS(true);
+    hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
+    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
     cfg.setNumTservers(1);
   }
 
   static final long N = 100000;
 
-  String tableNames[] = null;
-
-  void init() throws Exception {
-    synchronized (this) {
-      if (tableNames == null) {
-        tableNames = getUniqueNames(4);
-        Connector c = getConnector();
-        TableOperations tableOps = c.tableOperations();
-        tableOps.create(tableNames[0]);
-        tableOps.create(tableNames[1]);
-        tableOps.create(tableNames[2]);
-        tableOps.create(tableNames[3]);
-        // default is sync
-        tableOps.setProperty(tableNames[1], Property.TABLE_DURABILITY.getKey(), "flush");
-        tableOps.setProperty(tableNames[2], Property.TABLE_DURABILITY.getKey(), "log");
-        tableOps.setProperty(tableNames[3], Property.TABLE_DURABILITY.getKey(), "none");
-        // zookeeper propagation
-        UtilWaitThread.sleep(2 * 1000);
-      }
+  private String[] init() throws Exception {
+    String[] tableNames = getUniqueNames(4);
+    Connector c = getConnector();
+    TableOperations tableOps = c.tableOperations();
+    createTable(tableNames[0]);
+    createTable(tableNames[1]);
+    createTable(tableNames[2]);
+    createTable(tableNames[3]);
+    // default is sync
+    tableOps.setProperty(tableNames[1], Property.TABLE_DURABILITY.getKey(), "flush");
+    tableOps.setProperty(tableNames[2], Property.TABLE_DURABILITY.getKey(), "log");
+    tableOps.setProperty(tableNames[3], Property.TABLE_DURABILITY.getKey(), "none");
+    UtilWaitThread.sleep(1000);
+    return tableNames;
+  }
+  
+  private void cleanup(String[] tableNames) throws Exception {
+    Connector c = getConnector();
+    for (String tableName : tableNames) {
+      c.tableOperations().delete(tableName);
     }
+  }
+  
+  private void createTable(String tableName) throws Exception {
+    TableOperations tableOps = getConnector().tableOperations();
+    tableOps.create(tableName);
   }
 
   @Test(timeout = 2 * 60 * 1000)
   public void testWriteSpeed() throws Exception {
-    init();
-    // write some gunk
-    long t0 = writeSome(tableNames[0], N); flush(tableNames[0]);
-    long t1 = writeSome(tableNames[1], N); flush(tableNames[1]);
-    long t2 = writeSome(tableNames[2], N); flush(tableNames[2]);
-    long t3 = writeSome(tableNames[3], N); flush(tableNames[3]);
-    System.out.println(String.format("t0 %d t1 %d t2 %d t3 %d", t0, t1, t2, t3));
+    TableOperations tableOps = getConnector().tableOperations();
+    String tableNames[] = init();
+    // write some gunk, delete the table to keep that table from messing with the performance numbers of successive calls
+    long t0 = writeSome(tableNames[0], N); tableOps.delete(tableNames[0]);
+    long t1 = writeSome(tableNames[1], N); tableOps.delete(tableNames[1]);
+    long t2 = writeSome(tableNames[2], N); tableOps.delete(tableNames[2]);
+    long t3 = writeSome(tableNames[3], N); tableOps.delete(tableNames[3]);
+    System.out.println(String.format("sync %d flush %d log %d none %d", t0, t1, t2, t3));
     assertTrue(t0 > t1);
     assertTrue(t1 > t2);
     assertTrue(t2 > t3);
@@ -84,42 +93,42 @@ public class DurabilityIT extends ConfigurableMacIT {
 
   @Test(timeout = 4 * 60 * 1000)
   public void testSync() throws Exception {
-    init();
+    String tableNames[] = init();
     // sync table should lose nothing
-    getConnector().tableOperations().deleteRows(tableNames[0], null, null);
     writeSome(tableNames[0], N);
     restartTServer();
     assertEquals(N, readSome(tableNames[0], N));
+    cleanup(tableNames);
   }
 
   @Test(timeout = 4 * 60 * 1000)
   public void testFlush() throws Exception {
-    init();
+    String tableNames[] = init();
     // flush table won't lose anything since we're not losing power/dfs
-    getConnector().tableOperations().deleteRows(tableNames[1], null, null);
     writeSome(tableNames[1], N);
     restartTServer();
     assertEquals(N, readSome(tableNames[1], N));
+    cleanup(tableNames);
   }
 
   @Test(timeout = 4 * 60 * 1000)
   public void testLog() throws Exception {
-    init();
+    String tableNames[] = init();
     // we're probably going to lose something the the log setting
-    getConnector().tableOperations().deleteRows(tableNames[2], null, null);
     writeSome(tableNames[2], N);
     restartTServer();
-    assertTrue(N > readSome(tableNames[2], N));
+    assertTrue(N >= readSome(tableNames[2], N));
+    cleanup(tableNames);
   }
 
   @Test(timeout = 4 * 60 * 1000)
   public void testNone() throws Exception {
-    init();
+    String tableNames[] = init();
     // probably won't get any data back without logging
-    getConnector().tableOperations().deleteRows(tableNames[3], null, null);
     writeSome(tableNames[3], N);
     restartTServer();
     assertTrue(N > readSome(tableNames[3], N));
+    cleanup(tableNames);
   }
 
   private long readSome(String table, long n) throws Exception {
@@ -137,26 +146,21 @@ public class DurabilityIT extends ConfigurableMacIT {
     cluster.start();
   }
 
-  private void flush(String table) throws Exception {
-    getConnector().tableOperations().flush(table, null, null, true);
-  }
-
   private long writeSome(String table, long count) throws Exception {
     long now = System.currentTimeMillis();
     Connector c = getConnector();
     BatchWriter bw = c.createBatchWriter(table, null);
     for (int i = 1; i < count + 1; i++) {
-      String data = "" + i;
       Mutation m = new Mutation("" + i);
-      m.put(data, data, data);
+      m.put("", "", "");
       bw.addMutation(m);
-      if (i % (count/100) == 0) {
+      if (i % (Math.max(1, count/100)) == 0) {
         bw.flush();
       }
     }
     bw.close();
     long result = System.currentTimeMillis() - now;
-    c.tableOperations().flush(table, null, null, true);
+    //c.tableOperations().flush(table, null, null, true);
     return result;
   }
 
