@@ -131,6 +131,8 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
         log.error(e, e);
       } catch (ConstraintViolationException e) {
         log.error(e, e);
+        // retrying when a CVE occurs is probably futile and can cause problems, see ACCUMULO-3096
+        throw new RuntimeException(e);
       } catch (TableNotFoundException e) {
         log.error(e, e);
       }
