@@ -532,6 +532,9 @@ public class DfsLogger {
       }
     }
 
+    if (durability == Durability.LOG)
+      return null;
+    
     synchronized (closeLock) {
       // use a different lock for close check so that adding to work queue does not need
       // to wait on walog I/O operations

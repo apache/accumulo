@@ -44,6 +44,19 @@ public class SessionDurabilityIT extends ConfigurableMacIT {
     assertEquals(10, count(tableName));
   }
   
+  @Test
+  public void durableTableLosesNonDurableWrites() throws Exception {
+    Connector c = getConnector();
+    String tableName = getUniqueNames(1)[0];
+    c.tableOperations().create(tableName);
+    c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "sync");
+    BatchWriterConfig cfg = new BatchWriterConfig();
+    cfg.setDurability(Durability.NONE);
+    write(tableName, 10, cfg);
+    restartTServer();
+    assertTrue(10 > count(tableName));
+  }
+  
   private int count(String tableName) throws Exception {
     Connector c = getConnector();
     Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);

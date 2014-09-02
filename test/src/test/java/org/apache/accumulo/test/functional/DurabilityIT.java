@@ -19,6 +19,8 @@ package org.apache.accumulo.test.functional;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -28,6 +30,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.ServerType;
@@ -60,7 +63,6 @@ public class DurabilityIT extends ConfigurableMacIT {
     tableOps.setProperty(tableNames[1], Property.TABLE_DURABILITY.getKey(), "flush");
     tableOps.setProperty(tableNames[2], Property.TABLE_DURABILITY.getKey(), "log");
     tableOps.setProperty(tableNames[3], Property.TABLE_DURABILITY.getKey(), "none");
-    UtilWaitThread.sleep(1000);
     return tableNames;
   }
   
@@ -129,6 +131,43 @@ public class DurabilityIT extends ConfigurableMacIT {
     restartTServer();
     assertTrue(N > readSome(tableNames[3], N));
     cleanup(tableNames);
+  }
+  
+  @Test(timeout = 4 * 60 * 1000)
+  public void testIncreaseDurability() throws Exception {
+    Connector c = getConnector();
+    String tableName = getUniqueNames(1)[0];
+    c.tableOperations().create(tableName);
+    c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "none");
+    UtilWaitThread.sleep(1000);
+    writeSome(tableName, N);
+    restartTServer();
+    assertTrue(N > readSome(tableName, N));
+    c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "sync");
+    writeSome(tableName, N);
+    restartTServer();
+    assertTrue(N == readSome(tableName, N));
+  }
+  
+  private static Map<String, String> map(Iterable<Entry<String, String>> entries) {
+    Map<String, String> result = new HashMap<String,String>();
+    for (Entry<String,String> entry : entries) {
+      result.put(entry.getKey(), entry.getValue());
+    }
+    return result;
+  }
+
+  @Test(timeout = 4 * 60 * 1000)
+  public void testMetaDurability() throws Exception {
+    Connector c = getConnector();
+    String tableName = getUniqueNames(1)[0];
+    c.instanceOperations().setProperty(Property.TABLE_DURABILITY.getKey(), "none");
+    Map<String, String> props = map(c.tableOperations().getProperties(MetadataTable.NAME));
+    assertEquals("sync", props.get(Property.TABLE_DURABILITY.getKey()));
+    c.tableOperations().create(tableName);
+    props = map(c.tableOperations().getProperties(tableName));
+    assertEquals("none", props.get(Property.TABLE_DURABILITY.getKey()));
+    
   }
 
   private long readSome(String table, long n) throws Exception {
