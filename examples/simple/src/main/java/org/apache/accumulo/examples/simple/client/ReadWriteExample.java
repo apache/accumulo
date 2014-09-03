@@ -25,6 +25,7 @@ import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -34,6 +35,7 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.ByteArraySet;
 import org.apache.hadoop.io.Text;
 
+import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
 
 public class ReadWriteExample {
@@ -42,6 +44,13 @@ public class ReadWriteExample {
   private static final String DEFAULT_TABLE_NAME = "test";
   
   private Connector conn;
+  
+  static class DurabilityConverter implements IStringConverter<Durability> {
+    @Override
+    public Durability convert(String value) {
+      return Durability.fromString(value);
+    }    
+  }
   
   static class Opts extends ClientOnDefaultTable {
     @Parameter(names = {"-C", "--createtable"}, description = "create table before doing anything")
@@ -54,6 +63,8 @@ public class ReadWriteExample {
     boolean readEntries = false;
     @Parameter(names = {"-d", "--delete"}, description = "delete entries after any creates")
     boolean deleteEntries = false;
+    @Parameter(names = {"--durability"}, description = "durabilty used for writes (none, log, flush or sync)", converter=DurabilityConverter.class)
+    Durability durability = Durability.DEFAULT;
     
     public Opts() {
       super(DEFAULT_TABLE_NAME);
@@ -103,7 +114,9 @@ public class ReadWriteExample {
   
   private void createEntries(Opts opts) throws Exception {
     if (opts.createEntries || opts.deleteEntries) {
-      BatchWriter writer = conn.createBatchWriter(opts.getTableName(), new BatchWriterConfig());
+      BatchWriterConfig cfg = new BatchWriterConfig();
+      cfg.setDurability(opts.durability);
+      BatchWriter writer = conn.createBatchWriter(opts.getTableName(), cfg);
       ColumnVisibility cv = new ColumnVisibility(opts.auths.toString().replace(',', '|'));
       
       Text cf = new Text("datatypes");
