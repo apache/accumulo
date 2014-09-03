@@ -24,6 +24,10 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
+/**
+ * Constructs a {@link PriorityQueue} of multiple SortedKeyValueIterators. Provides a simple way to interact with multiple SortedKeyValueIterators in sorted
+ * order.
+ */
 public abstract class HeapIterator implements SortedKeyValueIterator<Key,Value> {
   private PriorityQueue<SortedKeyValueIterator<Key,Value>> heap;
   private SortedKeyValueIterator<Key,Value> topIdx = null;
