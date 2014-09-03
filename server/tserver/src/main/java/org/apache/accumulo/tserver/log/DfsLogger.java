@@ -146,7 +146,6 @@ public class DfsLogger {
         }
         workQueue.drainTo(work);
 
-        String durability = null;
         Method durabilityMethod = null;
         loop:
         for (LogWork logWork : work) {
@@ -161,12 +160,10 @@ public class DfsLogger {
               break;
             case SYNC:
               durabilityMethod = sync;
-              durability = logWork.durability.toString();
               break loop;
             case FLUSH:
               if (durabilityMethod == null) {
                 durabilityMethod = flush;
-                durability = logWork.durability.toString();
               }
               break;
           }
@@ -174,10 +171,7 @@ public class DfsLogger {
 
         try {
           if (durabilityMethod != null) {
-            log.debug("durability method " + durability);
             durabilityMethod.invoke(logFile);
-          } else {
-            log.debug("skipping flush/sync");
           }
         } catch (Exception ex) {
           log.warn("Exception syncing " + ex);
@@ -534,7 +528,7 @@ public class DfsLogger {
 
     if (durability == Durability.LOG)
       return null;
-    
+
     synchronized (closeLock) {
       // use a different lock for close check so that adding to work queue does not need
       // to wait on walog I/O operations
@@ -558,9 +552,9 @@ public class DfsLogger {
       LogFileValue value = new LogFileValue();
       value.mutations = tabletMutations.getMutations();
       data.add(new Pair<LogFileKey,LogFileValue>(key, value));
-      log.debug("Durability for " + tabletMutations.getDurability() + " (ordinal) " + tabletMutations.getDurability().ordinal() + " durability " + durability + " (ordinal) " + durability.ordinal());
-      if (tabletMutations.getDurability().ordinal() > durability.ordinal())
+      if (tabletMutations.getDurability().ordinal() > durability.ordinal()) {
         durability = tabletMutations.getDurability();
+      }
     }
     return logFileData(data, durability);
   }

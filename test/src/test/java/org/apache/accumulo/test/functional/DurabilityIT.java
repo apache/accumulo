@@ -63,14 +63,14 @@ public class DurabilityIT extends ConfigurableMacIT {
     tableOps.setProperty(tableNames[3], Property.TABLE_DURABILITY.getKey(), "none");
     return tableNames;
   }
-  
+
   private void cleanup(String[] tableNames) throws Exception {
     Connector c = getConnector();
     for (String tableName : tableNames) {
       c.tableOperations().delete(tableName);
     }
   }
-  
+
   private void createTable(String tableName) throws Exception {
     TableOperations tableOps = getConnector().tableOperations();
     tableOps.create(tableName);
@@ -130,7 +130,7 @@ public class DurabilityIT extends ConfigurableMacIT {
     assertTrue(N > readSome(tableNames[3]));
     cleanup(tableNames);
   }
-  
+
   @Test(timeout = 4 * 60 * 1000)
   public void testIncreaseDurability() throws Exception {
     Connector c = getConnector();
@@ -146,7 +146,7 @@ public class DurabilityIT extends ConfigurableMacIT {
     restartTServer();
     assertTrue(N == readSome(tableName));
   }
-  
+
   private static Map<String, String> map(Iterable<Entry<String, String>> entries) {
     Map<String, String> result = new HashMap<String,String>();
     for (Entry<String,String> entry : entries) {
@@ -165,7 +165,7 @@ public class DurabilityIT extends ConfigurableMacIT {
     c.tableOperations().create(tableName);
     props = map(c.tableOperations().getProperties(tableName));
     assertEquals("none", props.get(Property.TABLE_DURABILITY.getKey()));
-    
+
   }
 
   private long readSome(String table) throws Exception {

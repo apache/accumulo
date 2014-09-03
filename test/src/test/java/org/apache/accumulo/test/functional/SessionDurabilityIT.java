@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
@@ -23,14 +39,14 @@ import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.Test;
 
 public class SessionDurabilityIT extends ConfigurableMacIT {
-  
+
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
   }
-  
+
   @Test(timeout = 3 * 60 * 1000)
   public void nondurableTableHasDurableWrites() throws Exception {
     Connector c = getConnector();
@@ -47,7 +63,7 @@ public class SessionDurabilityIT extends ConfigurableMacIT {
     restartTServer();
     assertEquals(10, count(tableName));
   }
-  
+
   @Test(timeout = 3 * 60 * 1000)
   public void durableTableLosesNonDurableWrites() throws Exception {
     Connector c = getConnector();
@@ -63,7 +79,7 @@ public class SessionDurabilityIT extends ConfigurableMacIT {
     restartTServer();
     assertTrue(10 > count(tableName));
   }
-  
+
   private int count(String tableName) throws Exception {
     return FunctionalTestUtils.count(getConnector().createScanner(tableName, Authorizations.EMPTY));
   }
@@ -78,7 +94,7 @@ public class SessionDurabilityIT extends ConfigurableMacIT {
     }
     bw.close();
   }
-  
+
   @Test(timeout = 3 * 60 * 1000)
   public void testConditionDurability() throws Exception {
     Connector c = getConnector();
@@ -96,7 +112,7 @@ public class SessionDurabilityIT extends ConfigurableMacIT {
     restartTServer();
     assertEquals(0, count(tableName));
   }
-  
+
   @Test(timeout = 3 * 60 * 1000)
   public void testConditionDurability2() throws Exception {
     Connector c = getConnector();
@@ -114,7 +130,7 @@ public class SessionDurabilityIT extends ConfigurableMacIT {
     restartTServer();
     assertEquals(10, count(tableName));
   }
-  
+
   private void conditionWriteSome(String tableName, int n, ConditionalWriterConfig cfg) throws Exception {
     Connector c = getConnector();
     ConditionalWriter cw = c.createConditionalWriter(tableName, cfg);
@@ -124,7 +140,7 @@ public class SessionDurabilityIT extends ConfigurableMacIT {
       assertEquals(Status.ACCEPTED, cw.write(m).getStatus());
     }
   }
-  
+
   private void restartTServer() throws Exception {
     for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
       cluster.killProcess(ServerType.TABLET_SERVER, proc);
