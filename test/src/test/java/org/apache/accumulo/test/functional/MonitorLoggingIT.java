@@ -49,14 +49,14 @@ public class MonitorLoggingIT extends ConfigurableMacIT {
   }
 
   private static final int NUM_LOCATION_PASSES = 5;
-  private static final int LOCATION_DELAY = 5000;
+  private static final int LOCATION_DELAY_SECS = 5;
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return (NUM_LOCATION_PASSES + 2) * LOCATION_DELAY;
+    return 30 + ((NUM_LOCATION_PASSES + 2) * LOCATION_DELAY_SECS);
   }
 
-  @Test(timeout = (NUM_LOCATION_PASSES + 2) * LOCATION_DELAY)
+  @Test(timeout = 30 + ((NUM_LOCATION_PASSES + 2) * LOCATION_DELAY_SECS * 1000))
   public void logToMonitor() throws Exception {
     // Start the monitor.
     log.debug("Starting Monitor");
@@ -65,15 +65,15 @@ public class MonitorLoggingIT extends ConfigurableMacIT {
     // Get monitor location to ensure it is running.
     String monitorLocation = null;
     for (int i = 0; i < NUM_LOCATION_PASSES; i++) {
-      Thread.sleep(LOCATION_DELAY);
+      Thread.sleep(LOCATION_DELAY_SECS * 1000);
       try {
         monitorLocation = getMonitor();
         break;
       } catch (KeeperException e) {
-        log.debug("Monitor not up yet, trying again in " + LOCATION_DELAY + " ms");
+        log.debug("Monitor not up yet, trying again in " + LOCATION_DELAY_SECS + " secs");
       }
     }
-    assertNotNull("Monitor failed to start within " + (LOCATION_DELAY * NUM_LOCATION_PASSES) + " ms", monitorLocation);
+    assertNotNull("Monitor failed to start within " + (LOCATION_DELAY_SECS * NUM_LOCATION_PASSES) + " secs", monitorLocation);
     log.debug("Monitor running at " + monitorLocation);
 
     // Attempt a scan with an invalid iterator to force a log message in the monitor.
@@ -89,7 +89,7 @@ public class MonitorLoggingIT extends ConfigurableMacIT {
 
     String result = "";
     while(true) {
-      Thread.sleep(LOCATION_DELAY);  // extra precaution to ensure monitor has opportunity to log
+      Thread.sleep(LOCATION_DELAY_SECS * 1000);  // extra precaution to ensure monitor has opportunity to log
 
       // Verify messages were received at the monitor.
       URL url = new URL("http://" + monitorLocation + "/log");
