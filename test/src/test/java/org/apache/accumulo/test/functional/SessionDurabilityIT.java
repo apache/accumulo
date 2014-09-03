@@ -1,18 +1,14 @@
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.*;
-
-import java.util.Map.Entry;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Durability;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
@@ -30,44 +26,44 @@ public class SessionDurabilityIT extends ConfigurableMacIT {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
   }
   
-  @Test
+  @Test(timeout = 3 * 60 * 1000)
   public void nondurableTableHasDurableWrites() throws Exception {
     Connector c = getConnector();
     String tableName = getUniqueNames(1)[0];
+    // table default has no durability
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "none");
+    // send durable writes
     BatchWriterConfig cfg = new BatchWriterConfig();
     cfg.setDurability(Durability.SYNC);
-    write(tableName, 10, cfg);
+    writeSome(tableName, 10, cfg);
     assertEquals(10, count(tableName));
+    // verify writes servive restart
     restartTServer();
     assertEquals(10, count(tableName));
   }
   
-  @Test
+  @Test(timeout = 3 * 60 * 1000)
   public void durableTableLosesNonDurableWrites() throws Exception {
     Connector c = getConnector();
     String tableName = getUniqueNames(1)[0];
+    // table default is durable writes
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "sync");
+    // write with no durability
     BatchWriterConfig cfg = new BatchWriterConfig();
     cfg.setDurability(Durability.NONE);
-    write(tableName, 10, cfg);
+    writeSome(tableName, 10, cfg);
+    // verify writes are lost on restart
     restartTServer();
     assertTrue(10 > count(tableName));
   }
   
   private int count(String tableName) throws Exception {
-    Connector c = getConnector();
-    Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
-    int result = 0;
-    for (@SuppressWarnings("unused") Entry<Key,Value> entry :scanner) {
-      result++;
-    }
-    return result;
+    return FunctionalTestUtils.count(getConnector().createScanner(tableName, Authorizations.EMPTY));
   }
 
-  private void write(String tableName, int n, BatchWriterConfig cfg) throws Exception {
+  private void writeSome(String tableName, int n, BatchWriterConfig cfg) throws Exception {
     Connector c = getConnector();
     BatchWriter bw = c.createBatchWriter(tableName, cfg);
     for (int i = 0; i < 10; i++) {

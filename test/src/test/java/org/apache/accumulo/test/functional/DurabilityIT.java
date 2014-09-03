@@ -27,9 +27,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -99,7 +97,7 @@ public class DurabilityIT extends ConfigurableMacIT {
     // sync table should lose nothing
     writeSome(tableNames[0], N);
     restartTServer();
-    assertEquals(N, readSome(tableNames[0], N));
+    assertEquals(N, readSome(tableNames[0]));
     cleanup(tableNames);
   }
 
@@ -109,7 +107,7 @@ public class DurabilityIT extends ConfigurableMacIT {
     // flush table won't lose anything since we're not losing power/dfs
     writeSome(tableNames[1], N);
     restartTServer();
-    assertEquals(N, readSome(tableNames[1], N));
+    assertEquals(N, readSome(tableNames[1]));
     cleanup(tableNames);
   }
 
@@ -119,7 +117,7 @@ public class DurabilityIT extends ConfigurableMacIT {
     // we're probably going to lose something the the log setting
     writeSome(tableNames[2], N);
     restartTServer();
-    assertTrue(N >= readSome(tableNames[2], N));
+    assertTrue(N >= readSome(tableNames[2]));
     cleanup(tableNames);
   }
 
@@ -129,7 +127,7 @@ public class DurabilityIT extends ConfigurableMacIT {
     // probably won't get any data back without logging
     writeSome(tableNames[3], N);
     restartTServer();
-    assertTrue(N > readSome(tableNames[3], N));
+    assertTrue(N > readSome(tableNames[3]));
     cleanup(tableNames);
   }
   
@@ -142,11 +140,11 @@ public class DurabilityIT extends ConfigurableMacIT {
     UtilWaitThread.sleep(1000);
     writeSome(tableName, N);
     restartTServer();
-    assertTrue(N > readSome(tableName, N));
+    assertTrue(N > readSome(tableName));
     c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "sync");
     writeSome(tableName, N);
     restartTServer();
-    assertTrue(N == readSome(tableName, N));
+    assertTrue(N == readSome(tableName));
   }
   
   private static Map<String, String> map(Iterable<Entry<String, String>> entries) {
@@ -170,12 +168,8 @@ public class DurabilityIT extends ConfigurableMacIT {
     
   }
 
-  private long readSome(String table, long n) throws Exception {
-    long count = 0;
-    for (@SuppressWarnings("unused") Entry<Key,Value> entry : getConnector().createScanner(table, Authorizations.EMPTY)) {
-      count++;
-    }
-    return count;
+  private long readSome(String table) throws Exception {
+    return FunctionalTestUtils.count(getConnector().createScanner(table, Authorizations.EMPTY));
   }
 
   private void restartTServer() throws Exception {
