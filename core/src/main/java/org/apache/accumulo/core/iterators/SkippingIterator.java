@@ -22,20 +22,25 @@ import java.util.Collection;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Range;
 
+/**
+ * Every call to {@link #next()} and {@link #seek(Range, Collection, boolean)} calls the parent's implementation and then calls the implementation's
+ * {@link #consume()}. This provides a cleaner way for implementers to write code that will read one to many key-value pairs, as opposed to returning every
+ * key-value pair seen.
+ */
 public abstract class SkippingIterator extends WrappingIterator {
-  
+
   @Override
   public void next() throws IOException {
     super.next();
     consume();
   }
-  
+
   protected abstract void consume() throws IOException;
-  
+
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     super.seek(range, columnFamilies, inclusive);
     consume();
   }
-  
+
 }
