@@ -23,26 +23,26 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.security.Authorizations;
 
 /**
- * 
+ *
  * @since 1.6.0
  */
 public class ConditionalWriterConfig {
-  
+
   private static final Long DEFAULT_TIMEOUT = Long.MAX_VALUE;
   private Long timeout = null;
-  
+
   private static final Integer DEFAULT_MAX_WRITE_THREADS = 3;
   private Integer maxWriteThreads = null;
-  
+
   private Authorizations auths = Authorizations.EMPTY;
-  
+
   private Durability durability = Durability.DEFAULT;
-  
+
   /**
    * A set of authorization labels that will be checked against the column visibility of each key in order to filter data. The authorizations passed in must be
    * a subset of the accumulo user's set of authorizations. If the accumulo user has authorizations (A1, A2) and authorizations (A2, A3) are passed, then an
    * exception will be thrown.
-   * 
+   *
    * <p>
    * Any condition that is not visible with this set of authorizations will fail.
    */
@@ -51,20 +51,20 @@ public class ConditionalWriterConfig {
     this.auths = auths;
     return this;
   }
-  
+
   /**
    * Sets the maximum amount of time an unresponsive server will be re-tried. When this timeout is exceeded, the {@link ConditionalWriter} should return the
    * mutation with an exception.<br />
    * For no timeout, set to zero, or {@link Long#MAX_VALUE} with {@link TimeUnit#MILLISECONDS}.
-   * 
+   *
    * <p>
    * {@link TimeUnit#MICROSECONDS} or {@link TimeUnit#NANOSECONDS} will be truncated to the nearest {@link TimeUnit#MILLISECONDS}.<br />
    * If this truncation would result in making the value zero when it was specified as non-zero, then a minimum value of one {@link TimeUnit#MILLISECONDS} will
    * be used.
-   * 
+   *
    * <p>
    * <b>Default:</b> {@link Long#MAX_VALUE} (no timeout)
-   * 
+   *
    * @param timeout
    *          the timeout, in the unit specified by the value of {@code timeUnit}
    * @param timeUnit
@@ -76,7 +76,7 @@ public class ConditionalWriterConfig {
   public ConditionalWriterConfig setTimeout(long timeout, TimeUnit timeUnit) {
     if (timeout < 0)
       throw new IllegalArgumentException("Negative timeout not allowed " + timeout);
-    
+
     if (timeout == 0)
       this.timeout = Long.MAX_VALUE;
     else
@@ -84,13 +84,13 @@ public class ConditionalWriterConfig {
       this.timeout = Math.max(1, timeUnit.toMillis(timeout));
     return this;
   }
-  
+
   /**
    * Sets the maximum number of threads to use for writing data to the tablet servers.
-   * 
+   *
    * <p>
    * <b>Default:</b> 3
-   * 
+   *
    * @param maxWriteThreads
    *          the maximum threads to use
    * @throws IllegalArgumentException
@@ -100,11 +100,11 @@ public class ConditionalWriterConfig {
   public ConditionalWriterConfig setMaxWriteThreads(int maxWriteThreads) {
     if (maxWriteThreads <= 0)
       throw new IllegalArgumentException("Max threads must be positive " + maxWriteThreads);
-    
+
     this.maxWriteThreads = maxWriteThreads;
     return this;
   }
-  
+
   /**
    * Sets the Durability for the mutation, if applied.
    * <p>
@@ -117,7 +117,7 @@ public class ConditionalWriterConfig {
     this.durability = durability;
     return this;
   }
-  
+
   public Authorizations getAuthorizations() {
     return auths;
   }
@@ -125,11 +125,11 @@ public class ConditionalWriterConfig {
   public long getTimeout(TimeUnit timeUnit) {
     return timeUnit.convert(timeout != null ? timeout : DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS);
   }
-  
+
   public int getMaxWriteThreads() {
     return maxWriteThreads != null ? maxWriteThreads : DEFAULT_MAX_WRITE_THREADS;
   }
-  
+
   public Durability getDurability() {
     return durability;
   }

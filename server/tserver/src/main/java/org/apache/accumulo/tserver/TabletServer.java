@@ -261,7 +261,7 @@ public class TabletServer implements Runnable {
   private ReplicationWorker replWorker = null;
   private final TabletStatsKeeper statsKeeper;
   private final AtomicInteger logIdGenerator = new AtomicInteger();
-  
+
   private final VolumeManager fs;
   public Instance getInstance() {
     return serverConfig.getInstance();
@@ -297,7 +297,7 @@ public class TabletServer implements Runnable {
   private String lockID;
 
   public static final AtomicLong seekCount = new AtomicLong(0);
-  
+
   private final AtomicLong totalMinorCompactions = new AtomicLong(0);
 
   public TabletServer(ServerConfigurationFactory conf, VolumeManager fs) {
@@ -739,7 +739,7 @@ public class TabletServer implements Runnable {
         sessionManager.unreserveSession(us);
       }
     }
-    
+
     private void flush(UpdateSession us) {
 
       int mutationCount = 0;
@@ -860,8 +860,8 @@ public class TabletServer implements Runnable {
 
             if (us.currentTablet != null && extent == us.currentTablet.getExtent()) {
               // because constraint violations may filter out some
-              // mutations, for proper accounting with the client code, 
-              // need to increment the count based on the original 
+              // mutations, for proper accounting with the client code,
+              // need to increment the count based on the original
               // number of mutations from the client NOT the filtered number
               us.successfulCommits.increment(us.currentTablet, us.queuedMutations.get(us.currentTablet).size());
             }
@@ -1101,7 +1101,7 @@ public class TabletServer implements Runnable {
               if (mutations.size() > 0) {
 
                 CommitSession cs = tablet.prepareMutationsForCommit(new TservConstraintEnv(security, sess.credentials), mutations);
-                
+
                 if (cs == null) {
                   for (ServerConditionalMutation scm : entry.getValue())
                     results.add(new TCMResult(scm.getID(), TCMStatus.IGNORED));

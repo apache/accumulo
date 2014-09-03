@@ -4,7 +4,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TDurability;
 
 /**
  * The value for the durability of a BatchWriter or ConditionalWriter.
- * @since 1.7.0 
+ * @since 1.7.0
  */
 public enum Durability {
   // Note, the order of these is important; the "highest" Durability is used in group commits.
@@ -44,7 +44,7 @@ public enum Durability {
         return TDurability.NONE;
     }
   }
-  
+
   // for internal use only
   static public Durability fromString(String value) {
     try {
