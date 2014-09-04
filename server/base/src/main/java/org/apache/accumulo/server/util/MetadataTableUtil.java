@@ -130,6 +130,10 @@ public class MetadataTableUtil {
 
   public static void update(Credentials credentials, ZooLock zooLock, Mutation m, KeyExtent extent) {
     Writer t = extent.isMeta() ? getRootTable(credentials) : getMetadataTable(credentials);
+    update(t, credentials, zooLock, m);
+  }
+
+  public static void update(Writer t, Credentials credentials, ZooLock zooLock, Mutation m) {
     if (zooLock != null)
       putLockID(zooLock, m);
     while (true) {
@@ -142,12 +146,13 @@ public class MetadataTableUtil {
         log.error(e, e);
       } catch (ConstraintViolationException e) {
         log.error(e, e);
+        // retrying when a CVE occurs is probably futile and can cause problems, see ACCUMULO-3096
+        throw new RuntimeException(e);
       } catch (TableNotFoundException e) {
         log.error(e, e);
       }
       UtilWaitThread.sleep(1000);
     }
-
   }
 
   public static void updateTabletFlushID(KeyExtent extent, long flushID, Credentials credentials, ZooLock zooLock) {

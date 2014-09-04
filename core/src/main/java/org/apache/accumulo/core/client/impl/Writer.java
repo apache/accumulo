@@ -102,6 +102,11 @@ public class Writer {
       } catch (NotServingTabletException e) {
         log.trace("Not serving tablet, server = " + tabLoc.tablet_location);
         TabletLocator.getLocator(instance, table).invalidateCache(tabLoc.tablet_extent);
+      } catch (ConstraintViolationException cve) {
+        log.error("error sending update to " + tabLoc.tablet_location + ": " + cve);
+        // probably do not need to invalidate cache, but it does not hurt
+        TabletLocator.getLocator(instance, table).invalidateCache(tabLoc.tablet_extent);
+        throw cve;
       } catch (TException e) {
         log.error("error sending update to " + tabLoc.tablet_location + ": " + e);
         TabletLocator.getLocator(instance, table).invalidateCache(tabLoc.tablet_extent);
