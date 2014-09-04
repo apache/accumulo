@@ -22,8 +22,8 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.client.Durability;
 
 public class TabletMutations {
-  private final int tid; 
-  private final int seq; 
+  private final int tid;
+  private final int seq;
   private final List<Mutation> mutations;
   private final Durability durability;
 

@@ -315,6 +315,41 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
             log.debug("Prepping table " + id + " for compaction cancellations.");
             zoo.putPersistentData(zooRoot + Constants.ZTABLES + "/" + id + Constants.ZTABLE_COMPACT_CANCEL_ID, zero, NodeExistsPolicy.SKIP);
           }
+
+          @SuppressWarnings("deprecation")
+          String zpath = zooRoot + Constants.ZCONFIG + "/" + Property.TSERV_WAL_SYNC_METHOD.getKey();
+          boolean flushDefault = false;
+          try {
+            byte data[] = zoo.getData(zpath, null);
+            if (new String(data, StandardCharsets.UTF_8).endsWith("flush")) {
+              flushDefault = true;
+            }
+          } catch (KeeperException.NoNodeException ex) {
+            // skip
+          } 
+          for (String id : zoo.getChildren(zooRoot + Constants.ZTABLES)) {
+            log.debug("Converting table " + id + " WALog setting to Durability");
+            try {
+              @SuppressWarnings("deprecation")
+              String path = zooRoot + Constants.ZTABLES + "/" + id + Constants.ZTABLE_CONF + "/" + Property.TABLE_WALOG_ENABLED.getKey();
+              byte[] data = zoo.getData(path, null);
+              boolean useWAL = Boolean.parseBoolean(new String(data, StandardCharsets.UTF_8));
+              zoo.recursiveDelete(path, NodeMissingPolicy.FAIL);
+              path = zooRoot + Constants.ZTABLES + "/" + id + Constants.ZTABLE_CONF + "/" + Property.TABLE_DURABILITY.getKey();
+              if (useWAL) {
+                if (flushDefault) {
+                  zoo.putPersistentData(path, "flush".getBytes(), NodeExistsPolicy.SKIP);
+                } else {
+                  zoo.putPersistentData(path, "sync".getBytes(), NodeExistsPolicy.SKIP);
+                }
+              } else {
+                zoo.putPersistentData(path, "none".getBytes(), NodeExistsPolicy.SKIP);
+              }
+            } catch (KeeperException.NoNodeException ex) {
+              // skip it
+            }
+          }
+        
         }
 
         // create initial namespaces

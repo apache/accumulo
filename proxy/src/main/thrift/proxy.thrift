@@ -179,12 +179,23 @@ enum ConditionalStatus {
   INVISIBLE_VISIBILITY
 }
 
+//since 1.7.0
+enum Durability {
+	DEFAULT,
+	NONE,
+	LOG,
+	FLUSH,
+	SYNC
+}
+
 //since 1.6.0
 struct ConditionalWriterOptions {
    1:optional i64 maxMemory
    2:optional i64 timeoutMs
    3:optional i32 threads
    4:optional set<binary> authorizations;
+   //since 1.7.0
+   5:optional Durability durability;
 }
 
 struct ActiveScan {
@@ -234,6 +245,8 @@ struct WriterOptions {
  2:i64 latencyMs
  3:i64 timeoutMs
  4:i32 threads
+ //since 1.7.0
+ 5:optional Durability durability
 }
 
 enum IteratorScope {

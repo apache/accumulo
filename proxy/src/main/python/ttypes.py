@@ -168,6 +168,29 @@ class ConditionalStatus:
     "INVISIBLE_VISIBILITY": 4,
   }
 
+class Durability:
+  DEFAULT = 0
+  NONE = 1
+  LOG = 2
+  FLUSH = 3
+  SYNC = 4
+
+  _VALUES_TO_NAMES = {
+    0: "DEFAULT",
+    1: "NONE",
+    2: "LOG",
+    3: "FLUSH",
+    4: "SYNC",
+  }
+
+  _NAMES_TO_VALUES = {
+    "DEFAULT": 0,
+    "NONE": 1,
+    "LOG": 2,
+    "FLUSH": 3,
+    "SYNC": 4,
+  }
+
 class CompactionType:
   MINOR = 0
   MERGE = 1
@@ -1704,6 +1727,7 @@ class ConditionalWriterOptions:
    - timeoutMs
    - threads
    - authorizations
+   - durability
   """
 
   thrift_spec = (
@@ -1712,13 +1736,15 @@ class ConditionalWriterOptions:
     (2, TType.I64, 'timeoutMs', None, None, ), # 2
     (3, TType.I32, 'threads', None, None, ), # 3
     (4, TType.SET, 'authorizations', (TType.STRING,None), None, ), # 4
+    (5, TType.I32, 'durability', None, None, ), # 5
   )
 
-  def __init__(self, maxMemory=None, timeoutMs=None, threads=None, authorizations=None,):
+  def __init__(self, maxMemory=None, timeoutMs=None, threads=None, authorizations=None, durability=None,):
     self.maxMemory = maxMemory
     self.timeoutMs = timeoutMs
     self.threads = threads
     self.authorizations = authorizations
+    self.durability = durability
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -1754,6 +1780,11 @@ class ConditionalWriterOptions:
           iprot.readSetEnd()
         else:
           iprot.skip(ftype)
+      elif fid == 5:
+        if ftype == TType.I32:
+          self.durability = iprot.readI32();
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -1782,6 +1813,10 @@ class ConditionalWriterOptions:
       for iter99 in self.authorizations:
         oprot.writeString(iter99)
       oprot.writeSetEnd()
+      oprot.writeFieldEnd()
+    if self.durability is not None:
+      oprot.writeFieldBegin('durability', TType.I32, 5)
+      oprot.writeI32(self.durability)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
@@ -2201,6 +2236,7 @@ class WriterOptions:
    - latencyMs
    - timeoutMs
    - threads
+   - durability
   """
 
   thrift_spec = (
@@ -2209,13 +2245,15 @@ class WriterOptions:
     (2, TType.I64, 'latencyMs', None, None, ), # 2
     (3, TType.I64, 'timeoutMs', None, None, ), # 3
     (4, TType.I32, 'threads', None, None, ), # 4
+    (5, TType.I32, 'durability', None, None, ), # 5
   )
 
-  def __init__(self, maxMemory=None, latencyMs=None, timeoutMs=None, threads=None,):
+  def __init__(self, maxMemory=None, latencyMs=None, timeoutMs=None, threads=None, durability=None,):
     self.maxMemory = maxMemory
     self.latencyMs = latencyMs
     self.timeoutMs = timeoutMs
     self.threads = threads
+    self.durability = durability
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -2246,6 +2284,11 @@ class WriterOptions:
           self.threads = iprot.readI32();
         else:
           iprot.skip(ftype)
+      elif fid == 5:
+        if ftype == TType.I32:
+          self.durability = iprot.readI32();
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -2271,6 +2314,10 @@ class WriterOptions:
     if self.threads is not None:
       oprot.writeFieldBegin('threads', TType.I32, 4)
       oprot.writeI32(self.threads)
+      oprot.writeFieldEnd()
+    if self.durability is not None:
+      oprot.writeFieldBegin('durability', TType.I32, 5)
+      oprot.writeI32(self.durability)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()

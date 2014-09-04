@@ -152,12 +152,9 @@ public class DfsLogger {
           switch (logWork.durability) {
             case DEFAULT:
             case NONE:
-              // shouldn't make it to the work queue
-              log.warn("unexpected durability " + logWork.durability, new Throwable());
-              break;
             case LOG:
-              // do nothing
-              break;
+              // shouldn't make it to the work queue
+              throw new IllegalArgumentException("unexpected durability " + logWork.durability);
             case SYNC:
               durabilityMethod = sync;
               break loop;
@@ -556,7 +553,17 @@ public class DfsLogger {
         durability = tabletMutations.getDurability();
       }
     }
-    return logFileData(data, durability);
+    return logFileData(data, chooseDurabilityForGroupCommit(mutations));
+  }
+
+  static Durability chooseDurabilityForGroupCommit(List<TabletMutations> mutations) {
+    Durability result = Durability.NONE;
+    for (TabletMutations tabletMutations : mutations) {
+      if (tabletMutations.getDurability().ordinal() > result.ordinal()) {
+        result = tabletMutations.getDurability();
+      }
+    }
+    return result;
   }
 
   public LoggerOperation minorCompactionFinished(int seq, int tid, String fqfn) throws IOException {

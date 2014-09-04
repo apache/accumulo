@@ -55,6 +55,7 @@ import org.slf4j.LoggerFactory;
   private static final org.apache.thrift.protocol.TField TIMEOUT_MS_FIELD_DESC = new org.apache.thrift.protocol.TField("timeoutMs", org.apache.thrift.protocol.TType.I64, (short)2);
   private static final org.apache.thrift.protocol.TField THREADS_FIELD_DESC = new org.apache.thrift.protocol.TField("threads", org.apache.thrift.protocol.TType.I32, (short)3);
   private static final org.apache.thrift.protocol.TField AUTHORIZATIONS_FIELD_DESC = new org.apache.thrift.protocol.TField("authorizations", org.apache.thrift.protocol.TType.SET, (short)4);
+  private static final org.apache.thrift.protocol.TField DURABILITY_FIELD_DESC = new org.apache.thrift.protocol.TField("durability", org.apache.thrift.protocol.TType.I32, (short)5);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
@@ -66,13 +67,23 @@ import org.slf4j.LoggerFactory;
   public long timeoutMs; // optional
   public int threads; // optional
   public Set<ByteBuffer> authorizations; // optional
+  /**
+   * 
+   * @see Durability
+   */
+  public Durability durability; // optional
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     MAX_MEMORY((short)1, "maxMemory"),
     TIMEOUT_MS((short)2, "timeoutMs"),
     THREADS((short)3, "threads"),
-    AUTHORIZATIONS((short)4, "authorizations");
+    AUTHORIZATIONS((short)4, "authorizations"),
+    /**
+     * 
+     * @see Durability
+     */
+    DURABILITY((short)5, "durability");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -95,6 +106,8 @@ import org.slf4j.LoggerFactory;
           return THREADS;
         case 4: // AUTHORIZATIONS
           return AUTHORIZATIONS;
+        case 5: // DURABILITY
+          return DURABILITY;
         default:
           return null;
       }
@@ -139,7 +152,7 @@ import org.slf4j.LoggerFactory;
   private static final int __TIMEOUTMS_ISSET_ID = 1;
   private static final int __THREADS_ISSET_ID = 2;
   private byte __isset_bitfield = 0;
-  private _Fields optionals[] = {_Fields.MAX_MEMORY,_Fields.TIMEOUT_MS,_Fields.THREADS,_Fields.AUTHORIZATIONS};
+  private _Fields optionals[] = {_Fields.MAX_MEMORY,_Fields.TIMEOUT_MS,_Fields.THREADS,_Fields.AUTHORIZATIONS,_Fields.DURABILITY};
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
@@ -152,6 +165,8 @@ import org.slf4j.LoggerFactory;
     tmpMap.put(_Fields.AUTHORIZATIONS, new org.apache.thrift.meta_data.FieldMetaData("authorizations", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.SetMetaData(org.apache.thrift.protocol.TType.SET, 
             new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING            , true))));
+    tmpMap.put(_Fields.DURABILITY, new org.apache.thrift.meta_data.FieldMetaData("durability", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, Durability.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ConditionalWriterOptions.class, metaDataMap);
   }
@@ -171,6 +186,9 @@ import org.slf4j.LoggerFactory;
       Set<ByteBuffer> __this__authorizations = new HashSet<ByteBuffer>(other.authorizations);
       this.authorizations = __this__authorizations;
     }
+    if (other.isSetDurability()) {
+      this.durability = other.durability;
+    }
   }
 
   public ConditionalWriterOptions deepCopy() {
@@ -186,6 +204,7 @@ import org.slf4j.LoggerFactory;
     setThreadsIsSet(false);
     this.threads = 0;
     this.authorizations = null;
+    this.durability = null;
   }
 
   public long getMaxMemory() {
@@ -296,6 +315,38 @@ import org.slf4j.LoggerFactory;
     }
   }
 
+  /**
+   * 
+   * @see Durability
+   */
+  public Durability getDurability() {
+    return this.durability;
+  }
+
+  /**
+   * 
+   * @see Durability
+   */
+  public ConditionalWriterOptions setDurability(Durability durability) {
+    this.durability = durability;
+    return this;
+  }
+
+  public void unsetDurability() {
+    this.durability = null;
+  }
+
+  /** Returns true if field durability is set (has been assigned a value) and false otherwise */
+  public boolean isSetDurability() {
+    return this.durability != null;
+  }
+
+  public void setDurabilityIsSet(boolean value) {
+    if (!value) {
+      this.durability = null;
+    }
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case MAX_MEMORY:
@@ -330,6 +381,14 @@ import org.slf4j.LoggerFactory;
       }
       break;
 
+    case DURABILITY:
+      if (value == null) {
+        unsetDurability();
+      } else {
+        setDurability((Durability)value);
+      }
+      break;
+
     }
   }
 
@@ -346,6 +405,9 @@ import org.slf4j.LoggerFactory;
 
     case AUTHORIZATIONS:
       return getAuthorizations();
+
+    case DURABILITY:
+      return getDurability();
 
     }
     throw new IllegalStateException();
@@ -366,6 +428,8 @@ import org.slf4j.LoggerFactory;
       return isSetThreads();
     case AUTHORIZATIONS:
       return isSetAuthorizations();
+    case DURABILITY:
+      return isSetDurability();
     }
     throw new IllegalStateException();
   }
@@ -416,6 +480,15 @@ import org.slf4j.LoggerFactory;
       if (!(this_present_authorizations && that_present_authorizations))
         return false;
       if (!this.authorizations.equals(that.authorizations))
+        return false;
+    }
+
+    boolean this_present_durability = true && this.isSetDurability();
+    boolean that_present_durability = true && that.isSetDurability();
+    if (this_present_durability || that_present_durability) {
+      if (!(this_present_durability && that_present_durability))
+        return false;
+      if (!this.durability.equals(that.durability))
         return false;
     }
 
@@ -475,6 +548,16 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
     }
+    lastComparison = Boolean.valueOf(isSetDurability()).compareTo(other.isSetDurability());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetDurability()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.durability, other.durability);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -519,6 +602,16 @@ import org.slf4j.LoggerFactory;
         sb.append("null");
       } else {
         sb.append(this.authorizations);
+      }
+      first = false;
+    }
+    if (isSetDurability()) {
+      if (!first) sb.append(", ");
+      sb.append("durability:");
+      if (this.durability == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.durability);
       }
       first = false;
     }
@@ -609,6 +702,14 @@ import org.slf4j.LoggerFactory;
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
+          case 5: // DURABILITY
+            if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
+              struct.durability = Durability.findByValue(iprot.readI32());
+              struct.setDurabilityIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -653,6 +754,13 @@ import org.slf4j.LoggerFactory;
           oprot.writeFieldEnd();
         }
       }
+      if (struct.durability != null) {
+        if (struct.isSetDurability()) {
+          oprot.writeFieldBegin(DURABILITY_FIELD_DESC);
+          oprot.writeI32(struct.durability.getValue());
+          oprot.writeFieldEnd();
+        }
+      }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
@@ -683,7 +791,10 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetAuthorizations()) {
         optionals.set(3);
       }
-      oprot.writeBitSet(optionals, 4);
+      if (struct.isSetDurability()) {
+        optionals.set(4);
+      }
+      oprot.writeBitSet(optionals, 5);
       if (struct.isSetMaxMemory()) {
         oprot.writeI64(struct.maxMemory);
       }
@@ -702,12 +813,15 @@ import org.slf4j.LoggerFactory;
           }
         }
       }
+      if (struct.isSetDurability()) {
+        oprot.writeI32(struct.durability.getValue());
+      }
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, ConditionalWriterOptions struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
-      BitSet incoming = iprot.readBitSet(4);
+      BitSet incoming = iprot.readBitSet(5);
       if (incoming.get(0)) {
         struct.maxMemory = iprot.readI64();
         struct.setMaxMemoryIsSet(true);
@@ -732,6 +846,10 @@ import org.slf4j.LoggerFactory;
           }
         }
         struct.setAuthorizationsIsSet(true);
+      }
+      if (incoming.get(4)) {
+        struct.durability = Durability.findByValue(iprot.readI32());
+        struct.setDurabilityIsSet(true);
       }
     }
   }

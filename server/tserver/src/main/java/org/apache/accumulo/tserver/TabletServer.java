@@ -60,6 +60,7 @@ import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.CompressedIterators;
 import org.apache.accumulo.core.client.impl.CompressedIterators.IterConfig;
+import org.apache.accumulo.core.client.impl.DurabilityImpl;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletType;
@@ -349,6 +350,8 @@ public class TabletServer implements Runnable {
   private final WriteTracker writeTracker = new WriteTracker();
 
   private final RowLocks rowLocks = new RowLocks();
+  
+  private final AtomicLong totalQueuedMutationSize = new AtomicLong(0);
 
   private class ThriftClientHandler extends ClientServiceHandler implements TabletClientService.Iface {
 
@@ -655,7 +658,7 @@ public class TabletServer implements Runnable {
     @Override
     public long startUpdate(TInfo tinfo, TCredentials credentials, TDurability tdurabilty) throws ThriftSecurityException {
       // Make sure user is real
-      Durability durability = Durability.fromThrift(tdurabilty);
+      Durability durability = DurabilityImpl.fromThrift(tdurabilty);
       security.authenticateUser(credentials, credentials);
       if (updateMetrics.isEnabled())
         updateMetrics.add(TabletServerUpdateMetrics.permissionErrors, 0);
@@ -726,14 +729,18 @@ public class TabletServer implements Runnable {
         setUpdateTablet(us, keyExtent);
 
         if (us.currentTablet != null) {
+          long additionalMutationSize = 0;
           List<Mutation> mutations = us.queuedMutations.get(us.currentTablet);
           for (TMutation tmutation : tmutations) {
             Mutation mutation = new ServerMutation(tmutation);
             mutations.add(mutation);
-            us.queuedMutationSize += mutation.numBytes();
+            additionalMutationSize += mutation.numBytes();
           }
-          if (us.queuedMutationSize > TabletServer.this.getConfiguration().getMemoryInBytes(Property.TSERV_MUTATION_QUEUE_MAX))
+          us.queuedMutationSize += additionalMutationSize;
+          long totalQueued = TabletServer.this.updateTotalQueuedMutationSize(additionalMutationSize);
+          if (totalQueued > TabletServer.this.getConfiguration().getMemoryInBytes(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX)) {
             flush(us);
+          }
         }
       } finally {
         sessionManager.unreserveSession(us);
@@ -775,8 +782,8 @@ public class TabletServer implements Runnable {
                 }
                 us.failures.put(tablet.getExtent(), us.successfulCommits.get(tablet));
               } else {
-                log.debug("Durablity for " + tablet.getExtent() + " durability " + us.durability + " table durability " + tabletDurability + " using " + us.durability.resolveDurability(tabletDurability));
-                sendables.put(commitSession, new Mutations(us.durability.resolveDurability(tabletDurability), mutations));
+                log.debug("Durablity for " + tablet.getExtent() + " durability " + us.durability + " table durability " + tabletDurability + " using " + DurabilityImpl.resolveDurabilty(us.durability, tabletDurability));
+                sendables.put(commitSession, new Mutations(DurabilityImpl.resolveDurabilty(us.durability, tabletDurability), mutations));
                 mutationCount += mutations.size();
               }
 
@@ -791,7 +798,7 @@ public class TabletServer implements Runnable {
                 // violate constraints... this is what
                 // prepareMutationsForCommit()
                 // expects
-                sendables.put(e.getCommitSession(), new Mutations(us.durability.resolveDurability(tabletDurability), e.getNonViolators()));
+                sendables.put(e.getCommitSession(), new Mutations(DurabilityImpl.resolveDurabilty(us.durability, tabletDurability), e.getNonViolators()));
               }
 
               mutationCount += mutations.size();
@@ -880,6 +887,7 @@ public class TabletServer implements Runnable {
         if (us.currentTablet != null) {
           us.queuedMutations.put(us.currentTablet, new ArrayList<Mutation>());
         }
+        TabletServer.this.updateTotalQueuedMutationSize(-us.queuedMutationSize);
         us.queuedMutationSize = 0;
       }
       us.totalUpdates += mutationCount;
@@ -977,7 +985,7 @@ public class TabletServer implements Runnable {
           try {
             final Span wal = Trace.start("wal");
             try {
-              logger.log(cs, cs.getWALogSeq(), mutation, Durability.fromThrift(tdurability).resolveDurability(tabletDurability));
+              logger.log(cs, cs.getWALogSeq(), mutation, DurabilityImpl.resolveDurabilty(DurabilityImpl.fromThrift(tdurability), tabletDurability));
             } finally {
               wal.stop();
             }
@@ -1108,12 +1116,12 @@ public class TabletServer implements Runnable {
                 } else {
                   for (ServerConditionalMutation scm : entry.getValue())
                     results.add(new TCMResult(scm.getID(), TCMStatus.ACCEPTED));
-                  sendables.put(cs, new Mutations(sess.durability.resolveDurability(tabletDurability), mutations));
+                  sendables.put(cs, new Mutations(DurabilityImpl.resolveDurabilty(sess.durability, tabletDurability), mutations));
                 }
               }
             } catch (TConstraintViolationException e) {
               if (e.getNonViolators().size() > 0) {
-                sendables.put(e.getCommitSession(), new Mutations(sess.durability.resolveDurability(tabletDurability), e.getNonViolators()));
+                sendables.put(e.getCommitSession(), new Mutations(DurabilityImpl.resolveDurabilty(sess.durability, tabletDurability), e.getNonViolators()));
                 for (Mutation m : e.getNonViolators())
                   results.add(new TCMResult(((ServerConditionalMutation) m).getID(), TCMStatus.ACCEPTED));
               }
@@ -1214,7 +1222,7 @@ public class TabletServer implements Runnable {
         if (!userauths.contains(ByteBufferUtil.toBytes(auth)))
           throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.BAD_AUTHORIZATIONS);
 
-      ConditionalSession cs = new ConditionalSession(credentials, new Authorizations(authorizations), tableId, Durability.fromThrift(tdurabilty));
+      ConditionalSession cs = new ConditionalSession(credentials, new Authorizations(authorizations), tableId, DurabilityImpl.fromThrift(tdurabilty));
 
       long sid = sessionManager.createSession(cs, false);
       return new TConditionalSession(sid, lockID, sessionManager.getMaxIdleTime());
@@ -1754,6 +1762,10 @@ public class TabletServer implements Runnable {
 
   public boolean isMajorCompactionDisabled() {
     return majorCompactorDisabled;
+  }
+
+  public long updateTotalQueuedMutationSize(long additionalMutationSize) {
+    return totalQueuedMutationSize .addAndGet(additionalMutationSize);
   }
 
   public Tablet getOnlineTablet(KeyExtent extent) {
@@ -2905,7 +2917,7 @@ public class TabletServer implements Runnable {
 
   public int createLogId(KeyExtent tablet) {
     AccumuloConfiguration acuTableConf = getTableConfiguration(tablet);
-    if (Durability.fromString(acuTableConf.get(Property.TABLE_DURABILITY)) != Durability.NONE) {
+    if (DurabilityImpl.fromString(acuTableConf.get(Property.TABLE_DURABILITY)) != Durability.NONE) {
       return logIdGenerator.incrementAndGet();
     }
     return -1;

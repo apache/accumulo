@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.impl.DurabilityImpl;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.util.StringUtils;
@@ -178,6 +179,10 @@ public class BatchWriterConfig implements Writable {
   }
 
   /**
+   * Change the durability for the BatchWriter session. The default durability is "default" which 
+   * is the table's durability setting.  If the durability is set to something other than the default,
+   * it will override the durability setting of the table.
+   * 
    * @param durability the Durability to be used by the BatchWriter
    * @since 1.7.0
    *
@@ -241,7 +246,7 @@ public class BatchWriterConfig implements Writable {
       } else if ("timeout".equals(key)) {
         timeout = Long.valueOf(value);
       } else if ("durability".equals(key)) {
-        durability = Durability.fromString(value);
+        durability = DurabilityImpl.fromString(value);
       } else {
         /* ignore any other properties */
       }

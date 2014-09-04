@@ -361,10 +361,12 @@ public class TabletServerLogger {
   }
 
   public int log(final CommitSession commitSession, final int tabletSeq, final Mutation m, final Durability durability) throws IOException {
-    if (durability == Durability.NONE)
+    if (durability == Durability.NONE) {
       return -1;
-    if (durability == Durability.DEFAULT)
-      log.warn("Unexpected durability " + durability, new Throwable());
+    }
+    if (durability == Durability.DEFAULT) {
+      throw new IllegalArgumentException("Unexpected durability " + durability);
+    }
     int seq = write(commitSession, false, new Writer() {
       @Override
       public LoggerOperation write(DfsLogger logger, int ignored) throws Exception {

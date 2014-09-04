@@ -165,7 +165,8 @@ public class DurabilityIT extends ConfigurableMacIT {
     c.tableOperations().create(tableName);
     props = map(c.tableOperations().getProperties(tableName));
     assertEquals("none", props.get(Property.TABLE_DURABILITY.getKey()));
-
+    restartTServer();
+    assertTrue(c.tableOperations().exists(tableName));
   }
 
   private long readSome(String table) throws Exception {

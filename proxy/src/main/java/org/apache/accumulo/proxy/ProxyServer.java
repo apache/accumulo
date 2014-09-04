@@ -88,6 +88,7 @@ import org.apache.accumulo.proxy.thrift.ConditionalStatus;
 import org.apache.accumulo.proxy.thrift.ConditionalUpdates;
 import org.apache.accumulo.proxy.thrift.ConditionalWriterOptions;
 import org.apache.accumulo.proxy.thrift.DiskUsage;
+import org.apache.accumulo.proxy.thrift.Durability;
 import org.apache.accumulo.proxy.thrift.KeyValue;
 import org.apache.accumulo.proxy.thrift.KeyValueAndPeek;
 import org.apache.accumulo.proxy.thrift.NoMoreEntriesException;
@@ -1285,12 +1286,31 @@ public class ProxyServer implements AccumuloProxy.Iface {
         cfg.setTimeout(opts.timeoutMs, TimeUnit.MILLISECONDS);
       if (opts.latencyMs != 0)
         cfg.setMaxLatency(opts.latencyMs, TimeUnit.MILLISECONDS);
+      if (opts.isSetDurability()) {
+        cfg.setDurability(getDurability(opts.getDurability()));
+      }
     }
     BatchWriterPlusException result = new BatchWriterPlusException();
     result.writer = getConnector(login).createBatchWriter(tableName, cfg);
     return result;
   }
   
+  private org.apache.accumulo.core.client.Durability getDurability(Durability durability) {
+    switch (durability) {
+      case DEFAULT:
+        return org.apache.accumulo.core.client.Durability.DEFAULT;
+      case FLUSH:
+        return org.apache.accumulo.core.client.Durability.FLUSH;
+      case LOG:
+        return org.apache.accumulo.core.client.Durability.LOG;
+      case NONE:
+        return org.apache.accumulo.core.client.Durability.NONE;
+      case SYNC:
+        return org.apache.accumulo.core.client.Durability.SYNC;
+    }
+    return org.apache.accumulo.core.client.Durability.DEFAULT;
+  }
+
   private IteratorSetting getIteratorSetting(org.apache.accumulo.proxy.thrift.IteratorSetting setting) {
     return new IteratorSetting(setting.priority, setting.name, setting.iteratorClass, setting.getProperties());
   }
@@ -1541,6 +1561,8 @@ public class ProxyServer implements AccumuloProxy.Iface {
         cwc.setTimeout(options.getTimeoutMs(), TimeUnit.MILLISECONDS);
       if (options.isSetAuthorizations() && options.getAuthorizations() != null)
         cwc.setAuthorizations(getAuthorizations(options.getAuthorizations()));
+      if (options.isSetDurability() && options.getDurability() != null)
+        cwc.setDurability(getDurability(options.getDurability()));
       
       ConditionalWriter cw = getConnector(login).createConditionalWriter(tableName, cwc);
       

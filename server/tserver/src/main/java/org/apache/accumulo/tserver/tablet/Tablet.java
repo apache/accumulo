@@ -44,6 +44,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Durability;
+import org.apache.accumulo.core.client.impl.DurabilityImpl;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -2384,6 +2385,7 @@ public class Tablet implements TabletCommitter {
 
   // this lock is basically used to synchronize writing of log info to metadata
   private final ReentrantLock logLock = new ReentrantLock();
+  private AtomicLong totalQueuedMutationSize = new AtomicLong(0);
 
   public synchronized int getLogCount() {
     return currentLogs.size();
@@ -2512,7 +2514,7 @@ public class Tablet implements TabletCommitter {
 
   @Override
   public Durability getDurability() {
-    return Durability.fromString(getTableConfiguration().get(Property.TABLE_DURABILITY));
+    return DurabilityImpl.fromString(getTableConfiguration().get(Property.TABLE_DURABILITY));
   }
 
   @Override

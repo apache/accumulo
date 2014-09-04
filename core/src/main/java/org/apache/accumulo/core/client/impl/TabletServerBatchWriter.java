@@ -860,7 +860,7 @@ public class TabletServerBatchWriter {
             Entry<KeyExtent,List<Mutation>> entry = tabMuts.entrySet().iterator().next();
             
             try {
-              client.update(tinfo, credentials.toThrift(instance), entry.getKey().toThrift(), entry.getValue().get(0).toThrift(), durability.toThrift());
+              client.update(tinfo, credentials.toThrift(instance), entry.getKey().toThrift(), entry.getValue().get(0).toThrift(), DurabilityImpl.toThrift(durability));
             } catch (NotServingTabletException e) {
               allFailures.addAll(entry.getKey().getTableId().toString(), entry.getValue());
               TabletLocator.getLocator(instance, new Text(entry.getKey().getTableId())).invalidateCache(entry.getKey());
@@ -870,7 +870,7 @@ public class TabletServerBatchWriter {
             timeoutTracker.madeProgress();
           } else {
             
-            long usid = client.startUpdate(tinfo, credentials.toThrift(instance), durability.toThrift());
+            long usid = client.startUpdate(tinfo, credentials.toThrift(instance), DurabilityImpl.toThrift(durability));
             
             List<TMutation> updates = new ArrayList<TMutation>();
             for (Entry<KeyExtent,List<Mutation>> entry : tabMuts.entrySet()) {

@@ -57,7 +57,7 @@ public class BloomFilterIT extends ConfigurableMacIT {
     siteConfig.put(Property.TABLE_BLOOM_SIZE.getKey(), "2000000");
     siteConfig.put(Property.TABLE_BLOOM_ERRORRATE.getKey(), "1%");
     siteConfig.put(Property.TABLE_BLOOM_LOAD_THRESHOLD.getKey(), "0");
-    siteConfig.put(Property.TSERV_MUTATION_QUEUE_MAX.getKey(), "10M");
+    siteConfig.put(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(), "10M");
     siteConfig.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "64K");
     cfg.setSiteConfig(siteConfig );
   }

@@ -500,7 +500,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     }
     
     TConditionalSession tcs = client.startConditionalUpdate(tinfo, credentials.toThrift(instance), ByteBufferUtil.toByteBuffers(auths.getAuthorizations()),
-        tableId, durability.toThrift());
+        tableId, DurabilityImpl.toThrift(durability));
     
     synchronized (cachedSessionIDs) {
       SessionID sid = new SessionID();

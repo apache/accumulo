@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.core.client;
 
-import org.apache.accumulo.core.tabletserver.thrift.TDurability;
-
 /**
  * The value for the durability of a BatchWriter or ConditionalWriter.
  * @since 1.7.0
@@ -43,57 +41,5 @@ public enum Durability {
   /**
    * Write mutations to the write-ahead log, and ensure the data is saved to persistent storage.
    */
-  SYNC;
-
-  // for internal use only
-  public TDurability toThrift() {
-    switch (this) {
-      case DEFAULT:
-        return TDurability.DEFAULT;
-      case SYNC:
-        return TDurability.SYNC;
-      case FLUSH:
-        return TDurability.FLUSH;
-      case LOG:
-        return TDurability.LOG;
-      default:
-        return TDurability.NONE;
-    }
-  }
-
-  // for internal use only
-  static public Durability fromString(String value) {
-    try {
-      return Durability.valueOf(value.toUpperCase());
-    } catch (IllegalArgumentException ex) {
-      return Durability.SYNC;
-    }
-  }
-
-  // for internal use only
-  public static Durability fromThrift(TDurability tdurabilty) {
-    if (tdurabilty == null) {
-      return Durability.DEFAULT;
-    }
-    switch (tdurabilty) {
-      case DEFAULT:
-        return Durability.DEFAULT;
-      case SYNC:
-        return Durability.SYNC;
-      case FLUSH:
-        return Durability.FLUSH;
-      case LOG:
-        return Durability.LOG;
-      default:
-        return Durability.NONE;
-    }
-  }
-
-  // for internal use only
-  public Durability resolveDurability(Durability tabletDurability) {
-    if (this == Durability.DEFAULT) {
-      return tabletDurability;
-    }
-    return this;
-  }
+  SYNC
 }

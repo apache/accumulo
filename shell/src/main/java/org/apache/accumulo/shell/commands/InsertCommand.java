@@ -26,6 +26,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
@@ -46,6 +47,7 @@ import org.apache.hadoop.io.Text;
 public class InsertCommand extends Command {
   private Option insertOptAuths, timestampOpt;
   private Option timeoutOption;
+  private Option durabilityOption;
   
   protected long getTimeout(final CommandLine cl) {
     if (cl.hasOption(timeoutOption.getLongOpt())) {
@@ -78,8 +80,27 @@ public class InsertCommand extends Command {
     else
       m.put(colf, colq, val);
     
-    final BatchWriter bw = shellState.getConnector().createBatchWriter(shellState.getTableName(),
-        new BatchWriterConfig().setMaxMemory(Math.max(m.estimatedMemoryUsed(), 1024)).setMaxWriteThreads(1).setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS));
+    final BatchWriterConfig cfg = new BatchWriterConfig().setMaxMemory(Math.max(m.estimatedMemoryUsed(), 1024)).setMaxWriteThreads(1).setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
+    if (cl.hasOption(durabilityOption.getOpt())) {
+      String userDurability = cl.getOptionValue(durabilityOption.getOpt());
+      switch (userDurability) {
+        case "sync":
+          cfg.setDurability(Durability.SYNC); 
+          break;
+        case "flush":
+          cfg.setDurability(Durability.FLUSH);
+          break;
+        case "none":
+          cfg.setDurability(Durability.NONE);
+          break;
+        case "log":
+          cfg.setDurability(Durability.NONE);
+          break;
+        default:
+          throw new IllegalArgumentException("Unknown durability: " + userDurability);
+      }
+    }
+    final BatchWriter bw = shellState.getConnector().createBatchWriter(shellState.getTableName(), cfg);
     bw.addMutation(m);
     try {
       bw.close();
@@ -137,6 +158,8 @@ public class InsertCommand extends Command {
         "time before insert should fail if no data is written. If no unit is given assumes seconds.  Units d,h,m,s,and ms are supported.  e.g. 30s or 100ms");
     timeoutOption.setArgName("timeout");
     o.addOption(timeoutOption);
+    
+    durabilityOption = new Option("d", "durability", true, "durability to use for insert, should be one of \"none\" \"log\" \"flush\" or \"sync\"");
     
     return o;
   }

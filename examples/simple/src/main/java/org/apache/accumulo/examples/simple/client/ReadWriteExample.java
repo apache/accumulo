@@ -27,6 +27,7 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.impl.DurabilityImpl;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -42,16 +43,16 @@ public class ReadWriteExample {
   // defaults
   private static final String DEFAULT_AUTHS = "LEVEL1,GROUP1";
   private static final String DEFAULT_TABLE_NAME = "test";
-  
+
   private Connector conn;
-  
+
   static class DurabilityConverter implements IStringConverter<Durability> {
     @Override
     public Durability convert(String value) {
-      return Durability.fromString(value);
-    }    
+      return DurabilityImpl.fromString(value);
+    }
   }
-  
+
   static class Opts extends ClientOnDefaultTable {
     @Parameter(names = {"-C", "--createtable"}, description = "create table before doing anything")
     boolean createtable = false;
@@ -65,26 +66,26 @@ public class ReadWriteExample {
     boolean deleteEntries = false;
     @Parameter(names = {"--durability"}, description = "durabilty used for writes (none, log, flush or sync)", converter=DurabilityConverter.class)
     Durability durability = Durability.DEFAULT;
-    
+
     public Opts() {
       super(DEFAULT_TABLE_NAME);
       auths = new Authorizations(DEFAULT_AUTHS.split(","));
     }
   }
-  
+
   // hidden constructor
   private ReadWriteExample() {}
-  
+
   private void execute(Opts opts, ScannerOpts scanOpts) throws Exception {
     conn = opts.getConnector();
-    
+
     // add the authorizations to the user
     Authorizations userAuthorizations = conn.securityOperations().getUserAuthorizations(opts.principal);
     ByteArraySet auths = new ByteArraySet(userAuthorizations.getAuthorizations());
     auths.addAll(opts.auths.getAuthorizations());
     if (!auths.isEmpty())
       conn.securityOperations().changeUserAuthorizations(opts.principal, new Authorizations(auths));
-    
+
     // create table
     if (opts.createtable) {
       SortedSet<Text> partitionKeys = new TreeSet<Text>();
@@ -93,10 +94,10 @@ public class ReadWriteExample {
       conn.tableOperations().create(opts.getTableName());
       conn.tableOperations().addSplits(opts.getTableName(), partitionKeys);
     }
-    
+
     // send mutations
     createEntries(opts);
-    
+
     // read entries
     if (opts.readEntries) {
       // Note that the user needs to have the authorizations for the specified scan authorizations
@@ -106,24 +107,24 @@ public class ReadWriteExample {
       for (Entry<Key,Value> entry : scanner)
         System.out.println(entry.getKey().toString() + " -> " + entry.getValue().toString());
     }
-    
+
     // delete table
     if (opts.deletetable)
       conn.tableOperations().delete(opts.getTableName());
   }
-  
+
   private void createEntries(Opts opts) throws Exception {
     if (opts.createEntries || opts.deleteEntries) {
       BatchWriterConfig cfg = new BatchWriterConfig();
       cfg.setDurability(opts.durability);
       BatchWriter writer = conn.createBatchWriter(opts.getTableName(), cfg);
       ColumnVisibility cv = new ColumnVisibility(opts.auths.toString().replace(',', '|'));
-      
+
       Text cf = new Text("datatypes");
       Text cq = new Text("xml");
       byte[] row = {'h', 'e', 'l', 'l', 'o', '\0'};
       byte[] value = {'w', 'o', 'r', 'l', 'd', '\0'};
-      
+
       for (int i = 0; i < 10; i++) {
         row[row.length - 1] = (byte) i;
         Mutation m = new Mutation(new Text(row));
@@ -139,7 +140,7 @@ public class ReadWriteExample {
       writer.close();
     }
   }
-  
+
   public static void main(String[] args) throws Exception {
     ReadWriteExample rwe = new ReadWriteExample();
     Opts opts = new Opts();

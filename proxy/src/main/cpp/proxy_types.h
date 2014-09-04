@@ -105,6 +105,18 @@ struct ConditionalStatus {
 
 extern const std::map<int, const char*> _ConditionalStatus_VALUES_TO_NAMES;
 
+struct Durability {
+  enum type {
+    DEFAULT = 0,
+    NONE = 1,
+    LOG = 2,
+    FLUSH = 3,
+    SYNC = 4
+  };
+};
+
+extern const std::map<int, const char*> _Durability_VALUES_TO_NAMES;
+
 struct CompactionType {
   enum type {
     MINOR = 0,
@@ -1138,20 +1150,21 @@ class ConditionalUpdates {
 void swap(ConditionalUpdates &a, ConditionalUpdates &b);
 
 typedef struct _ConditionalWriterOptions__isset {
-  _ConditionalWriterOptions__isset() : maxMemory(false), timeoutMs(false), threads(false), authorizations(false) {}
+  _ConditionalWriterOptions__isset() : maxMemory(false), timeoutMs(false), threads(false), authorizations(false), durability(false) {}
   bool maxMemory;
   bool timeoutMs;
   bool threads;
   bool authorizations;
+  bool durability;
 } _ConditionalWriterOptions__isset;
 
 class ConditionalWriterOptions {
  public:
 
-  static const char* ascii_fingerprint; // = "2A7184C7CE319A61E12C337D8EAB3FB9";
-  static const uint8_t binary_fingerprint[16]; // = {0x2A,0x71,0x84,0xC7,0xCE,0x31,0x9A,0x61,0xE1,0x2C,0x33,0x7D,0x8E,0xAB,0x3F,0xB9};
+  static const char* ascii_fingerprint; // = "C345C04E84A351638B6EACB741BD600E";
+  static const uint8_t binary_fingerprint[16]; // = {0xC3,0x45,0xC0,0x4E,0x84,0xA3,0x51,0x63,0x8B,0x6E,0xAC,0xB7,0x41,0xBD,0x60,0x0E};
 
-  ConditionalWriterOptions() : maxMemory(0), timeoutMs(0), threads(0) {
+  ConditionalWriterOptions() : maxMemory(0), timeoutMs(0), threads(0), durability((Durability::type)0) {
   }
 
   virtual ~ConditionalWriterOptions() throw() {}
@@ -1160,6 +1173,7 @@ class ConditionalWriterOptions {
   int64_t timeoutMs;
   int32_t threads;
   std::set<std::string>  authorizations;
+  Durability::type durability;
 
   _ConditionalWriterOptions__isset __isset;
 
@@ -1183,6 +1197,11 @@ class ConditionalWriterOptions {
     __isset.authorizations = true;
   }
 
+  void __set_durability(const Durability::type val) {
+    durability = val;
+    __isset.durability = true;
+  }
+
   bool operator == (const ConditionalWriterOptions & rhs) const
   {
     if (__isset.maxMemory != rhs.__isset.maxMemory)
@@ -1200,6 +1219,10 @@ class ConditionalWriterOptions {
     if (__isset.authorizations != rhs.__isset.authorizations)
       return false;
     else if (__isset.authorizations && !(authorizations == rhs.authorizations))
+      return false;
+    if (__isset.durability != rhs.__isset.durability)
+      return false;
+    else if (__isset.durability && !(durability == rhs.durability))
       return false;
     return true;
   }
@@ -1455,20 +1478,21 @@ class ActiveCompaction {
 void swap(ActiveCompaction &a, ActiveCompaction &b);
 
 typedef struct _WriterOptions__isset {
-  _WriterOptions__isset() : maxMemory(false), latencyMs(false), timeoutMs(false), threads(false) {}
+  _WriterOptions__isset() : maxMemory(false), latencyMs(false), timeoutMs(false), threads(false), durability(false) {}
   bool maxMemory;
   bool latencyMs;
   bool timeoutMs;
   bool threads;
+  bool durability;
 } _WriterOptions__isset;
 
 class WriterOptions {
  public:
 
-  static const char* ascii_fingerprint; // = "D6FB71C9973666B9F6B5C20D5B7B19EF";
-  static const uint8_t binary_fingerprint[16]; // = {0xD6,0xFB,0x71,0xC9,0x97,0x36,0x66,0xB9,0xF6,0xB5,0xC2,0x0D,0x5B,0x7B,0x19,0xEF};
+  static const char* ascii_fingerprint; // = "6640C55D2C0D4C8C2E7589456EA0C61A";
+  static const uint8_t binary_fingerprint[16]; // = {0x66,0x40,0xC5,0x5D,0x2C,0x0D,0x4C,0x8C,0x2E,0x75,0x89,0x45,0x6E,0xA0,0xC6,0x1A};
 
-  WriterOptions() : maxMemory(0), latencyMs(0), timeoutMs(0), threads(0) {
+  WriterOptions() : maxMemory(0), latencyMs(0), timeoutMs(0), threads(0), durability((Durability::type)0) {
   }
 
   virtual ~WriterOptions() throw() {}
@@ -1477,6 +1501,7 @@ class WriterOptions {
   int64_t latencyMs;
   int64_t timeoutMs;
   int32_t threads;
+  Durability::type durability;
 
   _WriterOptions__isset __isset;
 
@@ -1496,6 +1521,11 @@ class WriterOptions {
     threads = val;
   }
 
+  void __set_durability(const Durability::type val) {
+    durability = val;
+    __isset.durability = true;
+  }
+
   bool operator == (const WriterOptions & rhs) const
   {
     if (!(maxMemory == rhs.maxMemory))
@@ -1505,6 +1535,10 @@ class WriterOptions {
     if (!(timeoutMs == rhs.timeoutMs))
       return false;
     if (!(threads == rhs.threads))
+      return false;
+    if (__isset.durability != rhs.__isset.durability)
+      return false;
+    else if (__isset.durability && !(durability == rhs.durability))
       return false;
     return true;
   }

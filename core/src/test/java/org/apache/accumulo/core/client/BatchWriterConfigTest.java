@@ -40,12 +40,14 @@ public class BatchWriterConfigTest {
     long expectedMaxLatency = 120000l;
     long expectedTimeout = Long.MAX_VALUE;
     int expectedMaxWriteThreads = 3;
+    Durability expectedDurability = Durability.DEFAULT;
     
     BatchWriterConfig defaults = new BatchWriterConfig();
     assertEquals(expectedMaxMemory, defaults.getMaxMemory());
     assertEquals(expectedMaxLatency, defaults.getMaxLatency(TimeUnit.MILLISECONDS));
     assertEquals(expectedTimeout, defaults.getTimeout(TimeUnit.MILLISECONDS));
     assertEquals(expectedMaxWriteThreads, defaults.getMaxWriteThreads());
+    assertEquals(expectedDurability, defaults.getDurability());
   }
   
   @Test
@@ -55,11 +57,13 @@ public class BatchWriterConfigTest {
     bwConfig.setMaxLatency(22, TimeUnit.HOURS);
     bwConfig.setTimeout(33, TimeUnit.DAYS);
     bwConfig.setMaxWriteThreads(42);
+    bwConfig.setDurability(Durability.NONE);
     
     assertEquals(1123581321l, bwConfig.getMaxMemory());
     assertEquals(22 * 60 * 60 * 1000l, bwConfig.getMaxLatency(TimeUnit.MILLISECONDS));
     assertEquals(33 * 24 * 60 * 60 * 1000l, bwConfig.getTimeout(TimeUnit.MILLISECONDS));
     assertEquals(42, bwConfig.getMaxWriteThreads());
+    assertEquals(Durability.NONE, bwConfig.getDurability());
   }
   
   @Test
@@ -133,6 +137,7 @@ public class BatchWriterConfigTest {
     assertNotEquals(9898989l, bwDefaults.getTimeout(TimeUnit.MILLISECONDS));
     assertNotEquals(42, bwDefaults.getMaxWriteThreads());
     assertNotEquals(1123581321l, bwDefaults.getMaxMemory());
+    assertNotEquals(Durability.FLUSH, bwDefaults.getDurability());
     
     // test setting all fields
     BatchWriterConfig bwConfig = new BatchWriterConfig();
@@ -140,6 +145,7 @@ public class BatchWriterConfigTest {
     bwConfig.setTimeout(9898989l, TimeUnit.MILLISECONDS);
     bwConfig.setMaxWriteThreads(42);
     bwConfig.setMaxMemory(1123581321l);
+    bwConfig.setDurability(Durability.FLUSH);
     byte[] bytes = createBytes(bwConfig);
     checkBytes(bwConfig, bytes);
     
@@ -157,6 +163,12 @@ public class BatchWriterConfigTest {
     bytes = createBytes(bwConfig);
     assertEquals("     v#maxWriteThreads=24,timeout=3000", new String(bytes, StandardCharsets.UTF_8));
     checkBytes(bwConfig, bytes);
+    
+    // test human-readable durability
+    bwConfig = new BatchWriterConfig();
+    bwConfig.setDurability(Durability.LOG);
+    bytes = createBytes(bwConfig);
+    assertEquals("     e#durability=LOG", new String(bytes, StandardCharsets.UTF_8));
   }
 
   @Test
@@ -166,6 +178,10 @@ public class BatchWriterConfigTest {
     assertEquals(cfg1.hashCode(), cfg2.hashCode());
     cfg2.setMaxMemory(1);
     assertNotEquals(cfg1, cfg2);
+    cfg2 = new BatchWriterConfig();
+    cfg2.setDurability(Durability.FLUSH);
+    assertNotEquals(cfg1, cfg2);
+    assertNotEquals(cfg1.hashCode(), cfg2.hashCode());
   }
 
   @Test

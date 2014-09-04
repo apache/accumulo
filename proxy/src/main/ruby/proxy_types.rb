@@ -81,6 +81,16 @@ module Accumulo
     VALID_VALUES = Set.new([ACCEPTED, REJECTED, VIOLATED, UNKNOWN, INVISIBLE_VISIBILITY]).freeze
   end
 
+  module Durability
+    DEFAULT = 0
+    NONE = 1
+    LOG = 2
+    FLUSH = 3
+    SYNC = 4
+    VALUE_MAP = {0 => "DEFAULT", 1 => "NONE", 2 => "LOG", 3 => "FLUSH", 4 => "SYNC"}
+    VALID_VALUES = Set.new([DEFAULT, NONE, LOG, FLUSH, SYNC]).freeze
+  end
+
   module CompactionType
     MINOR = 0
     MERGE = 1
@@ -433,17 +443,22 @@ module Accumulo
     TIMEOUTMS = 2
     THREADS = 3
     AUTHORIZATIONS = 4
+    DURABILITY = 5
 
     FIELDS = {
       MAXMEMORY => {:type => ::Thrift::Types::I64, :name => 'maxMemory', :optional => true},
       TIMEOUTMS => {:type => ::Thrift::Types::I64, :name => 'timeoutMs', :optional => true},
       THREADS => {:type => ::Thrift::Types::I32, :name => 'threads', :optional => true},
-      AUTHORIZATIONS => {:type => ::Thrift::Types::SET, :name => 'authorizations', :element => {:type => ::Thrift::Types::STRING, :binary => true}, :optional => true}
+      AUTHORIZATIONS => {:type => ::Thrift::Types::SET, :name => 'authorizations', :element => {:type => ::Thrift::Types::STRING, :binary => true}, :optional => true},
+      DURABILITY => {:type => ::Thrift::Types::I32, :name => 'durability', :optional => true, :enum_class => ::Accumulo::Durability}
     }
 
     def struct_fields; FIELDS; end
 
     def validate
+      unless @durability.nil? || ::Accumulo::Durability::VALID_VALUES.include?(@durability)
+        raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Invalid value of field durability!')
+      end
     end
 
     ::Thrift::Struct.generate_accessors self
@@ -537,17 +552,22 @@ module Accumulo
     LATENCYMS = 2
     TIMEOUTMS = 3
     THREADS = 4
+    DURABILITY = 5
 
     FIELDS = {
       MAXMEMORY => {:type => ::Thrift::Types::I64, :name => 'maxMemory'},
       LATENCYMS => {:type => ::Thrift::Types::I64, :name => 'latencyMs'},
       TIMEOUTMS => {:type => ::Thrift::Types::I64, :name => 'timeoutMs'},
-      THREADS => {:type => ::Thrift::Types::I32, :name => 'threads'}
+      THREADS => {:type => ::Thrift::Types::I32, :name => 'threads'},
+      DURABILITY => {:type => ::Thrift::Types::I32, :name => 'durability', :optional => true, :enum_class => ::Accumulo::Durability}
     }
 
     def struct_fields; FIELDS; end
 
     def validate
+      unless @durability.nil? || ::Accumulo::Durability::VALID_VALUES.include?(@durability)
+        raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Invalid value of field durability!')
+      end
     end
 
     ::Thrift::Struct.generate_accessors self
