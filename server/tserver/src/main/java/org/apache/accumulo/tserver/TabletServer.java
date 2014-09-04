@@ -351,8 +351,6 @@ public class TabletServer implements Runnable {
 
   private final RowLocks rowLocks = new RowLocks();
   
-  private final AtomicLong totalQueuedMutationSize = new AtomicLong(0);
-
   private class ThriftClientHandler extends ClientServiceHandler implements TabletClientService.Iface {
 
     ThriftClientHandler() {
@@ -729,16 +727,13 @@ public class TabletServer implements Runnable {
         setUpdateTablet(us, keyExtent);
 
         if (us.currentTablet != null) {
-          long additionalMutationSize = 0;
           List<Mutation> mutations = us.queuedMutations.get(us.currentTablet);
           for (TMutation tmutation : tmutations) {
             Mutation mutation = new ServerMutation(tmutation);
             mutations.add(mutation);
-            additionalMutationSize += mutation.numBytes();
+            us.queuedMutationSize += mutation.numBytes();
           }
-          us.queuedMutationSize += additionalMutationSize;
-          long totalQueued = TabletServer.this.updateTotalQueuedMutationSize(additionalMutationSize);
-          if (totalQueued > TabletServer.this.getConfiguration().getMemoryInBytes(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX)) {
+          if (us.queuedMutationSize > TabletServer.this.getConfiguration().getMemoryInBytes(Property.TSERV_MUTATION_QUEUE_MAX)) {
             flush(us);
           }
         }
@@ -887,7 +882,6 @@ public class TabletServer implements Runnable {
         if (us.currentTablet != null) {
           us.queuedMutations.put(us.currentTablet, new ArrayList<Mutation>());
         }
-        TabletServer.this.updateTotalQueuedMutationSize(-us.queuedMutationSize);
         us.queuedMutationSize = 0;
       }
       us.totalUpdates += mutationCount;
@@ -1762,10 +1756,6 @@ public class TabletServer implements Runnable {
 
   public boolean isMajorCompactionDisabled() {
     return majorCompactorDisabled;
-  }
-
-  public long updateTotalQueuedMutationSize(long additionalMutationSize) {
-    return totalQueuedMutationSize .addAndGet(additionalMutationSize);
   }
 
   public Tablet getOnlineTablet(KeyExtent extent) {

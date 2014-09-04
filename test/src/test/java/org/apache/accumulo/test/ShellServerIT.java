@@ -421,6 +421,16 @@ public class ShellServerIT extends SimpleMacIT {
     ts.exec("deleteuser -f xyzzy", true);
     ts.exec("users", true, "xyzzy", false);
   }
+  
+  @Test(timeout = 60 * 1000)
+  public void durability() throws Exception {
+    final String table = name.getMethodName();
+    ts.exec("createtable " + table);
+    ts.exec("insert -d none a cf cq randomGunkaASDFWEAQRd");
+    ts.exec("insert -d foo a cf cq2 2", false, "foo", true);
+    ts.exec("scan -r a", true, "randomGunkaASDFWEAQRd", true);
+    ts.exec("scan -r a", true, "foo", false);
+  }  
 
   @Test(timeout = 45000)
   public void iter() throws Exception {

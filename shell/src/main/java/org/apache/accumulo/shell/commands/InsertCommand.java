@@ -85,7 +85,7 @@ public class InsertCommand extends Command {
       String userDurability = cl.getOptionValue(durabilityOption.getOpt());
       switch (userDurability) {
         case "sync":
-          cfg.setDurability(Durability.SYNC); 
+          cfg.setDurability(Durability.SYNC);
           break;
         case "flush":
           cfg.setDurability(Durability.FLUSH);
@@ -160,6 +160,7 @@ public class InsertCommand extends Command {
     o.addOption(timeoutOption);
     
     durabilityOption = new Option("d", "durability", true, "durability to use for insert, should be one of \"none\" \"log\" \"flush\" or \"sync\"");
+    o.addOption(durabilityOption);
     
     return o;
   }

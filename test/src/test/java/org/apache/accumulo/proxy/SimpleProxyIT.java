@@ -632,7 +632,7 @@ public class SimpleProxyIT {
       client.createConditionalWriter(creds, doesNotExist, new ConditionalWriterOptions());
     } catch (TableNotFoundException ex) {}
   }
-  
+
   @Test(timeout = 10 * 1000)
   public void testExists() throws Exception {
     client.createTable(creds, "ett1", false, TimeType.MILLIS);
@@ -806,7 +806,7 @@ public class SimpleProxyIT {
     };
     t.start();
 
-    // look for the scan many times 
+    // look for the scan many times
     List<ActiveScan> scans = new ArrayList<ActiveScan>();
     for (int i = 0; i < 100 && scans.isEmpty(); i++) {
       for (String tserver : client.getTabletServers(creds)) {
@@ -1012,7 +1012,7 @@ public class SimpleProxyIT {
     assertScan(new String[][] {}, TABLE_TEST);
 
     UtilWaitThread.sleep(2000);
-    
+
     writerOptions = new WriterOptions();
     writerOptions.setLatencyMs(10000);
     writerOptions.setMaxMemory(3000);
@@ -1551,11 +1551,11 @@ public class SimpleProxyIT {
   static private ByteBuffer t2bb(Text t) {
     return ByteBuffer.wrap(t.getBytes());
   }
-  
+
   @Test
   public void testGetRowRange() throws Exception {
     Range range = client.getRowRange(s2bb("xyzzy"));
-    org.apache.accumulo.core.data.Range range2 = new org.apache.accumulo.core.data.Range(new Text("xyzzy")); 
+    org.apache.accumulo.core.data.Range range2 = new org.apache.accumulo.core.data.Range(new Text("xyzzy"));
     assertEquals(0, range.start.row.compareTo(t2bb(range2.getStartKey().getRow())));
     assertEquals(0, range.stop.row.compareTo(t2bb(range2.getEndKey().getRow())));
     assertEquals(range.startInclusive, range2.isStartKeyInclusive());
@@ -1567,7 +1567,7 @@ public class SimpleProxyIT {
     assertEquals(range.start.timestamp, range.start.timestamp);
     assertEquals(range.stop.timestamp, range.stop.timestamp);
   }
-  
+
   @AfterClass
   public static void tearDownMiniCluster() throws Exception {
     accumulo.stop();

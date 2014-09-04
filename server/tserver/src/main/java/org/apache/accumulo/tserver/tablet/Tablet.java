@@ -2385,7 +2385,6 @@ public class Tablet implements TabletCommitter {
 
   // this lock is basically used to synchronize writing of log info to metadata
   private final ReentrantLock logLock = new ReentrantLock();
-  private AtomicLong totalQueuedMutationSize = new AtomicLong(0);
 
   public synchronized int getLogCount() {
     return currentLogs.size();
