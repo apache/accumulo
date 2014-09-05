@@ -351,7 +351,7 @@ public class ExamplesIT extends AbstractMacIT {
     goodExec(InterferenceTest.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", "itest1", "--iterations", "100000", "--isolated");
   }
 
-  @Test(timeout = 3 * 60 * 1000)
+  @Test(timeout = 6 * 60 * 1000)
   public void testScansWithInterference() throws Exception {
     goodExec(InterferenceTest.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", "itest2", "--iterations", "100000");
   }
@@ -369,7 +369,7 @@ public class ExamplesIT extends AbstractMacIT {
 
   }
 
-  @Test(timeout = 45 * 1000)
+  @Test(timeout = 135 * 1000)
   public void testReadWriteAndDelete() throws Exception {
     String test2 = "test2";
     goodExec(ReadWriteExample.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--auths", auths, "--table", test2, "--createtable", "-c",
