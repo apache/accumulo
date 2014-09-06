@@ -70,7 +70,7 @@ public class SplitRecoveryIT extends ConfigurableMacIT {
   
   @Override
   protected int defaultTimeoutSeconds() {
-    return 30;
+    return 60;
   }
   
   private KeyExtent nke(String table, String endRow, String prevEndRow) {
