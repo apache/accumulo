@@ -263,6 +263,9 @@ public class TabletServer implements Runnable {
   private final TabletStatsKeeper statsKeeper;
   private final AtomicInteger logIdGenerator = new AtomicInteger();
 
+  private final AtomicLong flushCounter = new AtomicLong(0);
+  private final AtomicLong syncCounter = new AtomicLong(0);
+  
   private final VolumeManager fs;
   public Instance getInstance() {
     return serverConfig.getInstance();
@@ -333,7 +336,7 @@ public class TabletServer implements Runnable {
     if (minBlockSize != 0 && minBlockSize > walogMaxSize)
       throw new RuntimeException("Unable to start TabletServer. Logger is set to use blocksize " + walogMaxSize + " but hdfs minimum block size is "
           + minBlockSize + ". Either increase the " + Property.TSERV_WALOG_MAX_SIZE + " or decrease dfs.namenode.fs-limits.min-block-size in hdfs-site.xml.");
-    logger = new TabletServerLogger(this, walogMaxSize);
+    logger = new TabletServerLogger(this, walogMaxSize, syncCounter, flushCounter);
     this.resourceManager = new TabletServerResourceManager(getInstance(), fs);
   }
 
@@ -351,6 +354,8 @@ public class TabletServer implements Runnable {
 
   private final RowLocks rowLocks = new RowLocks();
   
+  private final AtomicLong totalQueuedMutationSize = new AtomicLong(0);
+
   private class ThriftClientHandler extends ClientServiceHandler implements TabletClientService.Iface {
 
     ThriftClientHandler() {
@@ -727,13 +732,17 @@ public class TabletServer implements Runnable {
         setUpdateTablet(us, keyExtent);
 
         if (us.currentTablet != null) {
+          long additionalMutationSize = 0;
           List<Mutation> mutations = us.queuedMutations.get(us.currentTablet);
           for (TMutation tmutation : tmutations) {
             Mutation mutation = new ServerMutation(tmutation);
             mutations.add(mutation);
-            us.queuedMutationSize += mutation.numBytes();
+            additionalMutationSize += mutation.numBytes();
           }
-          if (us.queuedMutationSize > TabletServer.this.getConfiguration().getMemoryInBytes(Property.TSERV_MUTATION_QUEUE_MAX)) {
+          us.queuedMutationSize += additionalMutationSize;
+          long totalQueued = updateTotalQueuedMutationSize(additionalMutationSize);
+          long total = TabletServer.this.getConfiguration().getMemoryInBytes(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX);
+          if (totalQueued > total) {
             flush(us);
           }
         }
@@ -777,7 +786,6 @@ public class TabletServer implements Runnable {
                 }
                 us.failures.put(tablet.getExtent(), us.successfulCommits.get(tablet));
               } else {
-                log.debug("Durablity for " + tablet.getExtent() + " durability " + us.durability + " table durability " + tabletDurability + " using " + DurabilityImpl.resolveDurabilty(us.durability, tabletDurability));
                 sendables.put(commitSession, new Mutations(DurabilityImpl.resolveDurabilty(us.durability, tabletDurability), mutations));
                 mutationCount += mutations.size();
               }
@@ -789,10 +797,8 @@ public class TabletServer implements Runnable {
 
               if (e.getNonViolators().size() > 0) {
                 // only log and commit mutations if there were some
-                // that did not
-                // violate constraints... this is what
-                // prepareMutationsForCommit()
-                // expects
+                // that did not violate constraints... this is what
+                // prepareMutationsForCommit() expects
                 sendables.put(e.getCommitSession(), new Mutations(DurabilityImpl.resolveDurabilty(us.durability, tabletDurability), e.getNonViolators()));
               }
 
@@ -882,6 +888,7 @@ public class TabletServer implements Runnable {
         if (us.currentTablet != null) {
           us.queuedMutations.put(us.currentTablet, new ArrayList<Mutation>());
         }
+        updateTotalQueuedMutationSize(-us.queuedMutationSize);
         us.queuedMutationSize = 0;
       }
       us.totalUpdates += mutationCount;
@@ -1756,6 +1763,10 @@ public class TabletServer implements Runnable {
 
   public boolean isMajorCompactionDisabled() {
     return majorCompactorDisabled;
+  }
+
+  public long updateTotalQueuedMutationSize(long additionalMutationSize) {
+    return totalQueuedMutationSize.addAndGet(additionalMutationSize);
   }
 
   public Tablet getOnlineTablet(KeyExtent extent) {
@@ -2845,6 +2856,8 @@ public class TabletServer implements Runnable {
     result.dataCacheHits = resourceManager.getDataCache().getStats().getHitCount();
     result.dataCacheRequest = resourceManager.getDataCache().getStats().getRequestCount();
     result.logSorts = logSorter.getLogSorts();
+    result.flushs = flushCounter.get();
+    result.syncs = syncCounter.get();
     return result;
   }
 
@@ -2961,5 +2974,4 @@ public class TabletServer implements Runnable {
   public double getHoldTimeMillis() {
     return resourceManager.holdTime();
   }
-
 }

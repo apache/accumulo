@@ -84,6 +84,9 @@ public class TabletServerLogger {
 
   private final AtomicInteger seqGen = new AtomicInteger();
 
+  private final AtomicLong syncCounter;
+  private final AtomicLong flushCounter;
+
   static private abstract class TestCallWithWriteLock {
     abstract boolean test();
 
@@ -128,9 +131,11 @@ public class TabletServerLogger {
     }
   }
 
-  public TabletServerLogger(TabletServer tserver, long maxSize) {
+  public TabletServerLogger(TabletServer tserver, long maxSize, AtomicLong syncCounter, AtomicLong flushCounter) {
     this.tserver = tserver;
     this.maxSize = maxSize;
+    this.syncCounter = syncCounter;
+    this.flushCounter = flushCounter;
   }
 
   private int initializeLoggers(final List<DfsLogger> copy) throws IOException {
@@ -184,7 +189,7 @@ public class TabletServerLogger {
     }
 
     try {
-      DfsLogger alog = new DfsLogger(tserver.getServerConfig());
+      DfsLogger alog = new DfsLogger(tserver.getServerConfig(), syncCounter, flushCounter);
       alog.open(tserver.getClientAddressString());
       loggers.add(alog);
       logSetId.incrementAndGet();
@@ -381,8 +386,7 @@ public class TabletServerLogger {
 
     final Map<CommitSession,Mutations> loggables = new HashMap<CommitSession,Mutations>(mutations);
     for (Entry<CommitSession,Mutations> entry : mutations.entrySet()) {
-      Durability durability = entry.getValue().getDurability();
-      if (durability == Durability.NONE) {
+      if (entry.getValue().getDurability() == Durability.NONE) {
         loggables.remove(entry.getKey());
       }
     }
@@ -402,8 +406,9 @@ public class TabletServerLogger {
       }
     });
     for (Mutations entry : loggables.values()) {
-      if (entry.getMutations().size() < 1)
+      if (entry.getMutations().size() < 1) {
         throw new IllegalArgumentException("logManyTablets: logging empty mutation list");
+      }
       for (Mutation m : entry.getMutations()) {
         logSizeEstimate.addAndGet(m.numBytes());
       }

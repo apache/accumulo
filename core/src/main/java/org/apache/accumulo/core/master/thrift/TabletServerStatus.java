@@ -62,6 +62,8 @@ import org.slf4j.LoggerFactory;
   private static final org.apache.thrift.protocol.TField DATA_CACHE_HITS_FIELD_DESC = new org.apache.thrift.protocol.TField("dataCacheHits", org.apache.thrift.protocol.TType.I64, (short)12);
   private static final org.apache.thrift.protocol.TField DATA_CACHE_REQUEST_FIELD_DESC = new org.apache.thrift.protocol.TField("dataCacheRequest", org.apache.thrift.protocol.TType.I64, (short)13);
   private static final org.apache.thrift.protocol.TField LOG_SORTS_FIELD_DESC = new org.apache.thrift.protocol.TField("logSorts", org.apache.thrift.protocol.TType.LIST, (short)14);
+  private static final org.apache.thrift.protocol.TField FLUSHS_FIELD_DESC = new org.apache.thrift.protocol.TField("flushs", org.apache.thrift.protocol.TType.I64, (short)15);
+  private static final org.apache.thrift.protocol.TField SYNCS_FIELD_DESC = new org.apache.thrift.protocol.TField("syncs", org.apache.thrift.protocol.TType.I64, (short)16);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
@@ -80,6 +82,8 @@ import org.slf4j.LoggerFactory;
   public long dataCacheHits; // required
   public long dataCacheRequest; // required
   public List<RecoveryStatus> logSorts; // required
+  public long flushs; // required
+  public long syncs; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -93,7 +97,9 @@ import org.slf4j.LoggerFactory;
     INDEX_CACHE_REQUEST((short)11, "indexCacheRequest"),
     DATA_CACHE_HITS((short)12, "dataCacheHits"),
     DATA_CACHE_REQUEST((short)13, "dataCacheRequest"),
-    LOG_SORTS((short)14, "logSorts");
+    LOG_SORTS((short)14, "logSorts"),
+    FLUSHS((short)15, "flushs"),
+    SYNCS((short)16, "syncs");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -130,6 +136,10 @@ import org.slf4j.LoggerFactory;
           return DATA_CACHE_REQUEST;
         case 14: // LOG_SORTS
           return LOG_SORTS;
+        case 15: // FLUSHS
+          return FLUSHS;
+        case 16: // SYNCS
+          return SYNCS;
         default:
           return null;
       }
@@ -178,7 +188,9 @@ import org.slf4j.LoggerFactory;
   private static final int __INDEXCACHEREQUEST_ISSET_ID = 5;
   private static final int __DATACACHEHITS_ISSET_ID = 6;
   private static final int __DATACACHEREQUEST_ISSET_ID = 7;
-  private byte __isset_bitfield = 0;
+  private static final int __FLUSHS_ISSET_ID = 8;
+  private static final int __SYNCS_ISSET_ID = 9;
+  private short __isset_bitfield = 0;
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
@@ -207,6 +219,10 @@ import org.slf4j.LoggerFactory;
     tmpMap.put(_Fields.LOG_SORTS, new org.apache.thrift.meta_data.FieldMetaData("logSorts", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
             new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, RecoveryStatus.class))));
+    tmpMap.put(_Fields.FLUSHS, new org.apache.thrift.meta_data.FieldMetaData("flushs", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
+    tmpMap.put(_Fields.SYNCS, new org.apache.thrift.meta_data.FieldMetaData("syncs", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TabletServerStatus.class, metaDataMap);
   }
@@ -225,7 +241,9 @@ import org.slf4j.LoggerFactory;
     long indexCacheRequest,
     long dataCacheHits,
     long dataCacheRequest,
-    List<RecoveryStatus> logSorts)
+    List<RecoveryStatus> logSorts,
+    long flushs,
+    long syncs)
   {
     this();
     this.tableMap = tableMap;
@@ -247,6 +265,10 @@ import org.slf4j.LoggerFactory;
     this.dataCacheRequest = dataCacheRequest;
     setDataCacheRequestIsSet(true);
     this.logSorts = logSorts;
+    this.flushs = flushs;
+    setFlushsIsSet(true);
+    this.syncs = syncs;
+    setSyncsIsSet(true);
   }
 
   /**
@@ -287,6 +309,8 @@ import org.slf4j.LoggerFactory;
       }
       this.logSorts = __this__logSorts;
     }
+    this.flushs = other.flushs;
+    this.syncs = other.syncs;
   }
 
   public TabletServerStatus deepCopy() {
@@ -314,6 +338,10 @@ import org.slf4j.LoggerFactory;
     setDataCacheRequestIsSet(false);
     this.dataCacheRequest = 0;
     this.logSorts = null;
+    setFlushsIsSet(false);
+    this.flushs = 0;
+    setSyncsIsSet(false);
+    this.syncs = 0;
   }
 
   public int getTableMapSize() {
@@ -598,6 +626,52 @@ import org.slf4j.LoggerFactory;
     }
   }
 
+  public long getFlushs() {
+    return this.flushs;
+  }
+
+  public TabletServerStatus setFlushs(long flushs) {
+    this.flushs = flushs;
+    setFlushsIsSet(true);
+    return this;
+  }
+
+  public void unsetFlushs() {
+    __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __FLUSHS_ISSET_ID);
+  }
+
+  /** Returns true if field flushs is set (has been assigned a value) and false otherwise */
+  public boolean isSetFlushs() {
+    return EncodingUtils.testBit(__isset_bitfield, __FLUSHS_ISSET_ID);
+  }
+
+  public void setFlushsIsSet(boolean value) {
+    __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __FLUSHS_ISSET_ID, value);
+  }
+
+  public long getSyncs() {
+    return this.syncs;
+  }
+
+  public TabletServerStatus setSyncs(long syncs) {
+    this.syncs = syncs;
+    setSyncsIsSet(true);
+    return this;
+  }
+
+  public void unsetSyncs() {
+    __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __SYNCS_ISSET_ID);
+  }
+
+  /** Returns true if field syncs is set (has been assigned a value) and false otherwise */
+  public boolean isSetSyncs() {
+    return EncodingUtils.testBit(__isset_bitfield, __SYNCS_ISSET_ID);
+  }
+
+  public void setSyncsIsSet(boolean value) {
+    __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __SYNCS_ISSET_ID, value);
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case TABLE_MAP:
@@ -688,6 +762,22 @@ import org.slf4j.LoggerFactory;
       }
       break;
 
+    case FLUSHS:
+      if (value == null) {
+        unsetFlushs();
+      } else {
+        setFlushs((Long)value);
+      }
+      break;
+
+    case SYNCS:
+      if (value == null) {
+        unsetSyncs();
+      } else {
+        setSyncs((Long)value);
+      }
+      break;
+
     }
   }
 
@@ -726,6 +816,12 @@ import org.slf4j.LoggerFactory;
     case LOG_SORTS:
       return getLogSorts();
 
+    case FLUSHS:
+      return Long.valueOf(getFlushs());
+
+    case SYNCS:
+      return Long.valueOf(getSyncs());
+
     }
     throw new IllegalStateException();
   }
@@ -759,6 +855,10 @@ import org.slf4j.LoggerFactory;
       return isSetDataCacheRequest();
     case LOG_SORTS:
       return isSetLogSorts();
+    case FLUSHS:
+      return isSetFlushs();
+    case SYNCS:
+      return isSetSyncs();
     }
     throw new IllegalStateException();
   }
@@ -872,6 +972,24 @@ import org.slf4j.LoggerFactory;
       if (!(this_present_logSorts && that_present_logSorts))
         return false;
       if (!this.logSorts.equals(that.logSorts))
+        return false;
+    }
+
+    boolean this_present_flushs = true;
+    boolean that_present_flushs = true;
+    if (this_present_flushs || that_present_flushs) {
+      if (!(this_present_flushs && that_present_flushs))
+        return false;
+      if (this.flushs != that.flushs)
+        return false;
+    }
+
+    boolean this_present_syncs = true;
+    boolean that_present_syncs = true;
+    if (this_present_syncs || that_present_syncs) {
+      if (!(this_present_syncs && that_present_syncs))
+        return false;
+      if (this.syncs != that.syncs)
         return false;
     }
 
@@ -1001,6 +1119,26 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
     }
+    lastComparison = Boolean.valueOf(isSetFlushs()).compareTo(other.isSetFlushs());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetFlushs()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.flushs, other.flushs);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(isSetSyncs()).compareTo(other.isSetSyncs());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetSyncs()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.syncs, other.syncs);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -1075,6 +1213,14 @@ import org.slf4j.LoggerFactory;
     } else {
       sb.append(this.logSorts);
     }
+    first = false;
+    if (!first) sb.append(", ");
+    sb.append("flushs:");
+    sb.append(this.flushs);
+    first = false;
+    if (!first) sb.append(", ");
+    sb.append("syncs:");
+    sb.append(this.syncs);
     first = false;
     sb.append(")");
     return sb.toString();
@@ -1233,6 +1379,22 @@ import org.slf4j.LoggerFactory;
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
+          case 15: // FLUSHS
+            if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
+              struct.flushs = iprot.readI64();
+              struct.setFlushsIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
+          case 16: // SYNCS
+            if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
+              struct.syncs = iprot.readI64();
+              struct.setSyncsIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -1302,6 +1464,12 @@ import org.slf4j.LoggerFactory;
         }
         oprot.writeFieldEnd();
       }
+      oprot.writeFieldBegin(FLUSHS_FIELD_DESC);
+      oprot.writeI64(struct.flushs);
+      oprot.writeFieldEnd();
+      oprot.writeFieldBegin(SYNCS_FIELD_DESC);
+      oprot.writeI64(struct.syncs);
+      oprot.writeFieldEnd();
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
@@ -1353,7 +1521,13 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetLogSorts()) {
         optionals.set(10);
       }
-      oprot.writeBitSet(optionals, 11);
+      if (struct.isSetFlushs()) {
+        optionals.set(11);
+      }
+      if (struct.isSetSyncs()) {
+        optionals.set(12);
+      }
+      oprot.writeBitSet(optionals, 13);
       if (struct.isSetTableMap()) {
         {
           oprot.writeI32(struct.tableMap.size());
@@ -1400,12 +1574,18 @@ import org.slf4j.LoggerFactory;
           }
         }
       }
+      if (struct.isSetFlushs()) {
+        oprot.writeI64(struct.flushs);
+      }
+      if (struct.isSetSyncs()) {
+        oprot.writeI64(struct.syncs);
+      }
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, TabletServerStatus struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
-      BitSet incoming = iprot.readBitSet(11);
+      BitSet incoming = iprot.readBitSet(13);
       if (incoming.get(0)) {
         {
           org.apache.thrift.protocol.TMap _map11 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
@@ -1471,6 +1651,14 @@ import org.slf4j.LoggerFactory;
           }
         }
         struct.setLogSortsIsSet(true);
+      }
+      if (incoming.get(11)) {
+        struct.flushs = iprot.readI64();
+        struct.setFlushsIsSet(true);
+      }
+      if (incoming.get(12)) {
+        struct.syncs = iprot.readI64();
+        struct.setSyncsIsSet(true);
       }
     }
   }

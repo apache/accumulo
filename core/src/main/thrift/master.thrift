@@ -60,6 +60,8 @@ struct TabletServerStatus {
   12:i64 dataCacheHits
   13:i64 dataCacheRequest
   14:list<RecoveryStatus> logSorts
+  15:i64 flushs
+  16:i64 syncs
 }
 
 enum MasterState {

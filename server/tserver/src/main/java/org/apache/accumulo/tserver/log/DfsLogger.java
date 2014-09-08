@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -169,6 +170,11 @@ public class DfsLogger {
         try {
           if (durabilityMethod != null) {
             durabilityMethod.invoke(logFile);
+            if (durabilityMethod == sync) {
+              syncCounter.incrementAndGet();
+            } else {
+              flushCounter.incrementAndGet();
+            }
           }
         } catch (Exception ex) {
           log.warn("Exception syncing " + ex);
@@ -248,9 +254,13 @@ public class DfsLogger {
 
   /* Track what's actually in +r/!0 for this logger ref */
   private String metaReference;
+  private AtomicLong syncCounter;
+  private AtomicLong flushCounter;
 
-  public DfsLogger(ServerResources conf) throws IOException {
+  public DfsLogger(ServerResources conf, AtomicLong syncCounter, AtomicLong flushCounter) throws IOException {
     this.conf = conf;
+    this.syncCounter = syncCounter;
+    this.flushCounter = flushCounter;
   }
 
   /**

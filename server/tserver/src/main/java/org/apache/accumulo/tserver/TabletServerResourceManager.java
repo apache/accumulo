@@ -156,7 +156,7 @@ public class TabletServerResourceManager {
     long blockSize = acuConf.getMemoryInBytes(Property.TSERV_DEFAULT_BLOCKSIZE);
     long dCacheSize = acuConf.getMemoryInBytes(Property.TSERV_DATACACHE_SIZE);
     long iCacheSize = acuConf.getMemoryInBytes(Property.TSERV_INDEXCACHE_SIZE);
-    long totalQueueSize = acuConf.getMemoryInBytes(Property.TSERV_MUTATION_QUEUE_MAX);
+    long totalQueueSize = acuConf.getMemoryInBytes(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX);
 
     _iCache = new LruBlockCache(iCacheSize, blockSize);
     _dCache = new LruBlockCache(dCacheSize, blockSize);
