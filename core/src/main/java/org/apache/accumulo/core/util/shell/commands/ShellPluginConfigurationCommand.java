@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
@@ -25,11 +26,12 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
+import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
 public abstract class ShellPluginConfigurationCommand extends Command {
@@ -101,10 +103,25 @@ public abstract class ShellPluginConfigurationCommand extends Command {
       final Entry<String,String> ent = props.next();
       if (ent.getKey().equals(pluginProp.toString())) {
         Class<? extends T> pluginClazz;
+        String[] args = new String[2];
         try {
-          pluginClazz = AccumuloVFSClassLoader.loadClass(ent.getValue(), clazz);
+          Options o = new Options();
+          o.addOption(OptUtil.tableOpt());
+          args[0] = "-t";
+          args[1] = tableName;
+          CommandLine cl = new BasicParser().parse(o, args);
+          pluginClazz = shellState.getClassLoader(cl, shellState).loadClass(ent.getValue()).asSubclass(clazz);
         } catch (ClassNotFoundException e) {
-          Logger.getLogger(ShellPluginConfigurationCommand.class).warn("Class not found" + e.getMessage());
+          Logger.getLogger(ShellPluginConfigurationCommand.class).error("Class not found" + e.getMessage());
+          return null;
+        } catch (ParseException e) {
+          Logger.getLogger(ShellPluginConfigurationCommand.class).error("Error parsing table: " + Arrays.toString(args) + e.getMessage());
+          return null;
+        } catch (TableNotFoundException e) {
+          Logger.getLogger(ShellPluginConfigurationCommand.class).error("Table not found: " + tableName + e.getMessage());
+          return null;
+        } catch (Exception e) {
+          Logger.getLogger(ShellPluginConfigurationCommand.class).error("Error: " + e.getMessage());
           return null;
         }
         

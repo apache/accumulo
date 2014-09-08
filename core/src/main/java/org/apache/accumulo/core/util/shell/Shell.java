@@ -49,6 +49,7 @@ import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.ServerConfigurationUtil;
@@ -130,6 +131,7 @@ import org.apache.accumulo.core.util.shell.commands.NamespacesCommand;
 import org.apache.accumulo.core.util.shell.commands.NoTableCommand;
 import org.apache.accumulo.core.util.shell.commands.OfflineCommand;
 import org.apache.accumulo.core.util.shell.commands.OnlineCommand;
+import org.apache.accumulo.core.util.shell.commands.OptUtil;
 import org.apache.accumulo.core.util.shell.commands.PasswdCommand;
 import org.apache.accumulo.core.util.shell.commands.PingCommand;
 import org.apache.accumulo.core.util.shell.commands.QuestionCommand;
@@ -158,6 +160,8 @@ import org.apache.accumulo.core.util.shell.commands.WhoAmICommand;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
+import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.HelpFormatter;
@@ -165,6 +169,7 @@ import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.vfs2.FileSystemException;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -452,6 +457,59 @@ public class Shell extends ShellOptions {
 
   public Instance getInstance() {
     return instance;
+  }
+
+  public ClassLoader getClassLoader(final CommandLine cl, final Shell shellState) throws AccumuloException, TableNotFoundException, AccumuloSecurityException,
+      IOException, FileSystemException {
+
+    boolean tables = cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty();
+    boolean namespaces = cl.hasOption(OptUtil.namespaceOpt().getOpt());
+
+    String classpath = null;
+    Iterable<Entry<String,String>> tableProps;
+
+    if (namespaces) {
+      try {
+        tableProps = shellState.getConnector().namespaceOperations().getProperties(OptUtil.getNamespaceOpt(cl, shellState));
+      } catch (NamespaceNotFoundException e) {
+        throw new IllegalArgumentException(e);
+      }
+    } else if (tables) {
+      tableProps = shellState.getConnector().tableOperations().getProperties(OptUtil.getTableOpt(cl, shellState));
+    } else {
+      throw new IllegalArgumentException("No table or namespace specified");
+    }
+    for (Entry<String,String> entry : tableProps) {
+      if (entry.getKey().equals(Property.TABLE_CLASSPATH.getKey())) {
+        classpath = entry.getValue();
+      }
+    }
+
+    ClassLoader classloader;
+
+    if (classpath != null && !classpath.equals("")) {
+      shellState.getConnector().instanceOperations().getSystemConfiguration().get(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + classpath);
+
+      try {
+        AccumuloVFSClassLoader.getContextManager().setContextConfig(new ContextManager.DefaultContextsConfig(new Iterable<Map.Entry<String,String>>() {
+          @Override
+          public Iterator<Entry<String,String>> iterator() {
+            try {
+              return shellState.getConnector().instanceOperations().getSystemConfiguration().entrySet().iterator();
+            } catch (AccumuloException e) {
+              throw new RuntimeException(e);
+            } catch (AccumuloSecurityException e) {
+              throw new RuntimeException(e);
+            }
+          }
+        }));
+      } catch (IllegalStateException ise) {}
+
+      classloader = AccumuloVFSClassLoader.getContextManager().getClassLoader(classpath);
+    } else {
+      classloader = AccumuloVFSClassLoader.getClassLoader();
+    }
+    return classloader;
   }
 
   public static void main(String args[]) throws IOException {
