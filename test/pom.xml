@@ -34,12 +34,8 @@
       <artifactId>jcommander</artifactId>
     </dependency>
     <dependency>
-      <!-- Hadoop-2.4.0 MiniDFSCluster uses classes from <Guava-15.0 -->
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <?SORTPOM IGNORE?>
-      <version>14.0.1</version><!--$NO-MVN-MAN-VER$-->
-      <?SORTPOM RESUME?>
     </dependency>
     <dependency>
       <groupId>commons-codec</groupId>
