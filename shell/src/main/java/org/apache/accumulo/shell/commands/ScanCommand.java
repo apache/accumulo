@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -199,12 +200,11 @@ public class ScanCommand extends Command {
     
     try {
       if (cl.hasOption(formatterOpt.getOpt())) {
-        return AccumuloVFSClassLoader.loadClass(cl.getOptionValue(formatterOpt.getOpt()), Formatter.class);
-        
+        return shellState.getClassLoader(cl, shellState).loadClass(cl.getOptionValue(formatterOpt.getOpt())).asSubclass(Formatter.class);
       } else if (cl.hasOption(formatterInterpeterOpt.getOpt())) {
-        return AccumuloVFSClassLoader.loadClass(cl.getOptionValue(formatterInterpeterOpt.getOpt()), Formatter.class);
+        return shellState.getClassLoader(cl, shellState).loadClass(cl.getOptionValue(formatterInterpeterOpt.getOpt())).asSubclass(Formatter.class);
       }
-    } catch (ClassNotFoundException e) {
+    } catch (Exception e) {
       shellState.getReader().println("Formatter class could not be loaded.\n" + e.getMessage());
     }
     

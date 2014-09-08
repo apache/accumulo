@@ -85,7 +85,7 @@ public class SetIterCommand extends Command {
       classname = ReqVisFilter.class.getName();
     }
 
-    ClassLoader classloader = getClassLoader(cl, shellState);
+    ClassLoader classloader = shellState.getClassLoader(cl, shellState);
 
     // Get the iterator options, with potentially a name provided by the OptionDescriber impl or through user input
     String configuredName = setUpOptions(classloader, shellState.getReader(), classname, options);
@@ -113,59 +113,6 @@ public class SetIterCommand extends Command {
       throw new IllegalArgumentException("No table or namespace specified");
     }
     return 0;
-  }
-
-  private ClassLoader getClassLoader(final CommandLine cl, final Shell shellState) throws AccumuloException, TableNotFoundException, AccumuloSecurityException,
-      IOException, FileSystemException {
-
-    boolean tables = cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty();
-    boolean namespaces = cl.hasOption(OptUtil.namespaceOpt().getOpt());
-
-    String classpath = null;
-    Iterable<Entry<String,String>> tableProps;
-
-    if (namespaces) {
-      try {
-        tableProps = shellState.getConnector().namespaceOperations().getProperties(OptUtil.getNamespaceOpt(cl, shellState));
-      } catch (NamespaceNotFoundException e) {
-        throw new IllegalArgumentException(e);
-      }
-    } else if (tables) {
-      tableProps = shellState.getConnector().tableOperations().getProperties(OptUtil.getTableOpt(cl, shellState));
-    } else {
-      throw new IllegalArgumentException("No table or namespace specified");
-    }
-    for (Entry<String,String> entry : tableProps) {
-      if (entry.getKey().equals(Property.TABLE_CLASSPATH.getKey())) {
-        classpath = entry.getValue();
-      }
-    }
-
-    ClassLoader classloader;
-
-    if (classpath != null && !classpath.equals("")) {
-      shellState.getConnector().instanceOperations().getSystemConfiguration().get(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + classpath);
-
-      try {
-        AccumuloVFSClassLoader.getContextManager().setContextConfig(new ContextManager.DefaultContextsConfig(new Iterable<Map.Entry<String,String>>() {
-          @Override
-          public Iterator<Entry<String,String>> iterator() {
-            try {
-              return shellState.getConnector().instanceOperations().getSystemConfiguration().entrySet().iterator();
-            } catch (AccumuloException e) {
-              throw new RuntimeException(e);
-            } catch (AccumuloSecurityException e) {
-              throw new RuntimeException(e);
-            }
-          }
-        }));
-      } catch (IllegalStateException ise) {}
-
-      classloader = AccumuloVFSClassLoader.getContextManager().getClassLoader(classpath);
-    } else {
-      classloader = AccumuloVFSClassLoader.getClassLoader();
-    }
-    return classloader;
   }
 
   protected void setTableProperties(final CommandLine cl, final Shell shellState, final int priority, final Map<String,String> options, final String classname,
