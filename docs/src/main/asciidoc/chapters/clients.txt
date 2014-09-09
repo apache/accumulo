@@ -140,6 +140,39 @@ information within a row.
 An example of using the batch writer can be found at
 +accumulo/docs/examples/README.reservations+.
 
+==== Durability
+
+By default, Accumulo writes out any updates to the Write-Ahead Log (WAL). Every change
+goes into a file in HDFS and is sync'd to disk for maximum durability. In
+the event of a failure, writes held in memory are replayed from the WAL. Like
+all files in HDFS, this file is also replicated. Sending updates to the
+replicas, and waiting for a permanent sync to disk can significantly write speeds.
+
+Accumulo allows users to use less tolerant forms of durability when writing.
+These levels are:
+
+* none: no durability guarantees are made, the WAL is not used
+* log: the WAL is used, but not flushed; loss of the server probably means recent writes are lost
+* flush: updates are written to the WAL, and flushed out to replicas; loss of a single server is unlikely to result in data loss.
+* sync: updates are written to the WAL, and synced to disk on all replicas before the write is acknowledge. Data will not be lost even if the entire cluster suddenly loses power.
+
+The user can set the default durability of a table in the shell.  When
+writing, the user can configure the BatchWriter or ConditionalWriter to use
+a different level of durability for the session. This will override the
+default durability setting.
+
+[source,java]
+----
+BatchWriterConfig cfg = new BatchWriterConfig();
+// We don't care about data loss with these writes:
+// This is DANGEROUS:
+cfg.setDurability(Durability.NONE);
+
+Connection conn = ... ;
+BatchWriter bw = conn.createBatchWriter(table, cfg);
+
+----
+
 === Reading Data
 
 Accumulo is optimized to quickly retrieve the value associated with a given key, and
