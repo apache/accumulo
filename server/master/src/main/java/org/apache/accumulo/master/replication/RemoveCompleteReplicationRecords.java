@@ -80,7 +80,6 @@ public class RemoveCompleteReplicationRecords implements Runnable {
     WorkSection.limit(bs);
     bs.addScanIterator(cfg);
 
-    @SuppressWarnings("deprecation")
     Stopwatch sw = new Stopwatch();
     long recordsRemoved = 0;
     try {
