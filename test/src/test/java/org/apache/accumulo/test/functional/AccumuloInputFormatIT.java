@@ -64,7 +64,7 @@ public class AccumuloInputFormatIT extends SimpleMacIT {
     conn.tableOperations().create(table);
     insertData(table, currentTimeMillis());
 
-    Job job = new Job();
+    Job job = Job.getInstance();
     AccumuloInputFormat.setInputTableName(job, table);
     AccumuloInputFormat.setZooKeeperInstance(job, new ClientConfiguration().withInstance(conn.getInstance().getInstanceName())
         .withZkHosts(conn.getInstance().getZooKeepers()));
