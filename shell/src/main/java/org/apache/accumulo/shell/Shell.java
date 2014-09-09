@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.InetAddress;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
@@ -185,7 +186,7 @@ public class Shell extends ShellOptions {
   public static final Logger log = Logger.getLogger(Shell.class);
   private static final Logger audit = Logger.getLogger(Shell.class.getName() + ".audit");
 
-  public static final String CHARSET = "ISO-8859-1";
+  public static final Charset CHARSET = StandardCharsets.ISO_8859_1;
   public static final int NO_FIXED_ARG_LENGTH_CHECK = -1;
   public static final String COMMENT_PREFIX = "#";
   public static final String HISTORY_DIR_NAME = ".accumulo";
