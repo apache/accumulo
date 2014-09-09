@@ -1286,7 +1286,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
         cfg.setTimeout(opts.timeoutMs, TimeUnit.MILLISECONDS);
       if (opts.latencyMs != 0)
         cfg.setMaxLatency(opts.latencyMs, TimeUnit.MILLISECONDS);
-      if (opts.isSetDurability()) {
+      if (opts.isSetDurability() && opts.durability != null) {
         cfg.setDurability(getDurability(opts.getDurability()));
       }
     }
@@ -1308,7 +1308,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       case SYNC:
         return org.apache.accumulo.core.client.Durability.SYNC;
     }
-    return org.apache.accumulo.core.client.Durability.DEFAULT;
+    throw new IllegalArgumentException("Invalid durability value: " + durability.ordinal());
   }
 
   private IteratorSetting getIteratorSetting(org.apache.accumulo.proxy.thrift.IteratorSetting setting) {
