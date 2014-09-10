@@ -49,6 +49,11 @@ public class AccumuloInputFormatIT extends SimpleMacIT {
 
   AccumuloInputFormat inputFormat;
 
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 4 * 60;
+  }
+
   @Before
   public void before() {
     inputFormat = new AccumuloInputFormat();
