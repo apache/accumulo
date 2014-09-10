@@ -43,7 +43,7 @@ public class CreateAndUseIT extends SimpleMacIT {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 2 * 60;
+    return 4 * 60;
   }
 
   private static SortedSet<Text> splits;
@@ -57,7 +57,7 @@ public class CreateAndUseIT extends SimpleMacIT {
     }
   }
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Test
   public void verifyDataIsPresent() throws Exception {
     Text cf = new Text("cf1");
     Text cq = new Text("cq1");
@@ -89,7 +89,7 @@ public class CreateAndUseIT extends SimpleMacIT {
     Assert.assertEquals("Did not see expected number of rows", 257, ei);
   }
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Test
   public void createTableAndScan() throws Exception {
     String table2 = getUniqueNames(1)[0];
     getConnector().tableOperations().create(table2);
@@ -106,7 +106,7 @@ public class CreateAndUseIT extends SimpleMacIT {
     }
   }
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Test
   public void createTableAndBatchScan() throws Exception {
     ArrayList<Range> ranges = new ArrayList<Range>();
     for (int i = 1; i < 257; i++) {
