@@ -345,6 +345,7 @@ public enum Property {
       + "in zookeeper. Restarting accumulo tablet servers after setting these properties in the site file "
       + "will cause the global setting to take effect. However, you must use the API or the shell to change "
       + "properties in zookeeper that are set on a table."),
+  TABLE_ARBITRARY_PROP_PREFIX("table.custom.", null, PropertyType.PREFIX, "Prefix to be used for user defined arbitrary properties."),
   TABLE_MAJC_RATIO("table.compaction.major.ratio", "3", PropertyType.FRACTION,
       "minimum ratio of total input size to maximum input file size for running a major compactionWhen adjusting this property you may want to also "
           + "adjust table.file.max. Want to avoid the situation where only merging minor compactions occur."),
@@ -699,7 +700,8 @@ public enum Property {
 
     return validTableProperties.contains(key) || key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())
         || key.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey()) || key.startsWith(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey())
-        || key.startsWith(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey()) || key.startsWith(Property.TABLE_REPLICATION_TARGET.getKey());
+        || key.startsWith(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey()) || key.startsWith(Property.TABLE_REPLICATION_TARGET.getKey())
+        || key.startsWith(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey());
   }
 
   private static final EnumSet<Property> fixedProperties = EnumSet.of(Property.TSERV_CLIENTPORT, Property.TSERV_NATIVEMAP_ENABLED,
