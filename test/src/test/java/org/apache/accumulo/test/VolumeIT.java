@@ -81,6 +81,11 @@ public class VolumeIT extends ConfigurableMacIT {
   private File volDirBase;
   private Path v1, v2;
 
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 5 * 60;
+  }
+
   @SuppressWarnings("deprecation")
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -105,7 +110,7 @@ public class VolumeIT extends ConfigurableMacIT {
     super.configure(cfg, hadoopCoreSite);
   }
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Test
   public void test() throws Exception {
     // create a table
     Connector connector = getConnector();
@@ -167,7 +172,7 @@ public class VolumeIT extends ConfigurableMacIT {
     Assert.assertEquals(expected, actual);
   }
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Test
   public void testRelativePaths() throws Exception {
 
     List<String> expected = new ArrayList<String>();
@@ -433,7 +438,7 @@ public class VolumeIT extends ConfigurableMacIT {
     Assert.assertEquals(200, sum);
   }
 
-  @Test(timeout = 5 * 60 * 1000)
+  @Test
   public void testRemoveVolumes() throws Exception {
     String[] tableNames = getUniqueNames(2);
 
@@ -537,12 +542,12 @@ public class VolumeIT extends ConfigurableMacIT {
     verifyVolumesUsed(tableNames[2], true, v8, v9);
   }
 
-  @Test(timeout = 5 * 60 * 1000)
+  @Test
   public void testCleanReplaceVolumes() throws Exception {
     testReplaceVolume(true);
   }
 
-  @Test(timeout = 5 * 60 * 1000)
+  @Test
   public void testDirtyReplaceVolumes() throws Exception {
     testReplaceVolume(false);
   }
