@@ -39,6 +39,7 @@ public class MonitorLoggingIT extends ConfigurableMacIT {
 
   @Override
   public void beforeClusterStart(MiniAccumuloConfigImpl cfg) throws Exception {
+    cfg.setNumTservers(1);
     File confDir = cfg.getConfDir();
     try {
       FileUtils.copyFileToDirectory(new File(MonitorLoggingIT.class.getResource("/conf/generic_logger.xml").toURI()), confDir);
@@ -56,7 +57,7 @@ public class MonitorLoggingIT extends ConfigurableMacIT {
     return 30 + ((NUM_LOCATION_PASSES + 2) * LOCATION_DELAY_SECS);
   }
 
-  @Test(timeout = 30 + ((NUM_LOCATION_PASSES + 2) * LOCATION_DELAY_SECS * 1000))
+  @Test
   public void logToMonitor() throws Exception {
     // Start the monitor.
     log.debug("Starting Monitor");
@@ -75,6 +76,11 @@ public class MonitorLoggingIT extends ConfigurableMacIT {
     }
     assertNotNull("Monitor failed to start within " + (LOCATION_DELAY_SECS * NUM_LOCATION_PASSES) + " secs", monitorLocation);
     log.debug("Monitor running at " + monitorLocation);
+
+    // The tserver has to observe that the log-forwarding address
+    // changed in ZooKeeper. If we cause the error before the tserver
+    // updates, we'll never see the error on the monitor.
+    Thread.sleep(10000);
 
     // Attempt a scan with an invalid iterator to force a log message in the monitor.
     try {
