@@ -22,13 +22,18 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeMap;
 
+import org.apache.accumulo.monitor.servlets.ScanServlet;
+import com.google.common.net.HostAndPort;
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -41,6 +46,8 @@ import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.security.SecurityUtil;
+import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
+import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.Pair;
@@ -85,8 +92,6 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
-
-import com.google.common.net.HostAndPort;
 
 /**
  * Serve master statistics with an embedded web server.
@@ -439,6 +444,7 @@ public class Monitor {
     server.addServlet(XMLServlet.class, "/xml");
     server.addServlet(JSONServlet.class, "/json");
     server.addServlet(VisServlet.class, "/vis");
+    server.addServlet(ScanServlet.class, "/scans");
     server.addServlet(Summary.class, "/trace/summary");
     server.addServlet(ListType.class, "/trace/listType");
     server.addServlet(ShowTrace.class, "/trace/show");
@@ -486,6 +492,61 @@ public class Monitor {
 
       }
     }), "Data fetcher").start();
+    
+    new Daemon(new LoggingRunnable(log, new Runnable() {
+      @Override
+      public void run() {
+        while (true) {
+          try {
+            Monitor.fetchScans();
+          } catch (Exception e) {
+            log.warn(e.getMessage(), e);
+          }
+          UtilWaitThread.sleep(5000);
+        }
+      }
+    }), "Scan scanner").start();
+  }
+  
+  public static class ScanStats {
+    public final List<ActiveScan> scans;
+    public final long fetched;
+    ScanStats(List<ActiveScan> active) {
+      this.scans = active;
+      this.fetched = System.currentTimeMillis();
+    }
+  }
+  static final Map<String, ScanStats> allScans = new HashMap<String, ScanStats>();
+  public static Map<String, ScanStats> getScans() {
+    synchronized (allScans) {
+      return new TreeMap<String, ScanStats>(allScans);
+    }
+  }
+
+  protected static void fetchScans() throws Exception {
+    if (instance == null)
+      return;
+    Connector c = instance.getConnector(SystemCredentials.get().getPrincipal(), SystemCredentials.get().getToken());
+    for (String server : c.instanceOperations().getTabletServers()) {
+      Client tserver = ThriftUtil.getTServerClient(server, Monitor.getSystemConfiguration());
+      try {
+        List<ActiveScan> scans = tserver.getActiveScans(null, SystemCredentials.get().toThrift(instance));
+        synchronized (allScans) {
+          allScans.put(server, new ScanStats(scans));
+        }
+      } catch (Exception ex) {
+        log.debug(ex, ex);
+      }
+    }
+    // Age off old scan information
+    Iterator<Entry<String,ScanStats>> entryIter = allScans.entrySet().iterator();
+    long now = System.currentTimeMillis();
+    while (entryIter.hasNext()) {
+      Entry<String,ScanStats> entry = entryIter.next();
+      if (now - entry.getValue().fetched > 5 * 60 * 1000) {
+        entryIter.remove();
+      }
+    }
   }
 
   /**
