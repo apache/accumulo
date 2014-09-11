@@ -61,8 +61,7 @@ public class ReadWriteIT extends ConfigurableMacIT {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    // class level timeout
-    return 7 * 6 * 60;
+    return 6 * 60;
   }
 
   @Test
