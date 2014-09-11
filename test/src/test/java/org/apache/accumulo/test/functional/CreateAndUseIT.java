@@ -43,8 +43,7 @@ public class CreateAndUseIT extends SimpleMacIT {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    // class level timeout
-    return 3 * 4 * 60;
+    return 4 * 60;
   }
 
   private static SortedSet<Text> splits;

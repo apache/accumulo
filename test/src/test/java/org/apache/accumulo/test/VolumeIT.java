@@ -83,8 +83,7 @@ public class VolumeIT extends ConfigurableMacIT {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    // class level timeout
-    return 7 * 5 * 60;
+    return 5 * 60;
   }
 
   @SuppressWarnings("deprecation")
