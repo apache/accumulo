@@ -61,7 +61,7 @@ public class ReadWriteIT extends ConfigurableMacIT {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 4 * 60;
+    return 6 * 60;
   }
 
   @Test
@@ -232,7 +232,7 @@ public class ReadWriteIT extends ConfigurableMacIT {
     assertTrue(foundFile);
   }
   
-  @Test(timeout = 6 * 60 * 1000)
+  @Test
   public void localityGroupChange() throws Exception {
     // Make changes to locality groups and ensure nothing is lostssh
     final Connector connector = getConnector();
