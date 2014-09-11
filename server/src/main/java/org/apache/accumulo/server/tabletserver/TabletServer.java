@@ -329,7 +329,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     if (lastMemoryCheckTime > 0 && lastMemoryCheckTime < now) {
       long diff = now - lastMemoryCheckTime;
       if (diff > 2 * TIME_BETWEEN_GC_CHECKS) {
-        log.warn(String.format("Check for long GC pauses not called in a timely fashion %.1f", diff / 1000.));
+        log.warn(String.format("Check for long GC pauses not called in a timely fashion. Expected every %.1f seconds but was %.1f seconds since last check",
+                    TIME_BETWEEN_GC_CHECKS / 1000., diff / 1000.));
       }
       lastMemoryCheckTime = now;
       return;
