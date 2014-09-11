@@ -22,6 +22,8 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -53,24 +55,36 @@ public class MetaSplitIT extends SimpleMacIT {
     opts.addSplits(MetadataTable.NAME, splits);
   }
 
-  @Test(timeout = 60000)
+  @Test(timeout = 180000)
   public void testMetadataTableSplit() throws Exception {
     TableOperations opts = getConnector().tableOperations();
     for (int i = 1; i <= 10; i++) {
       opts.create("" + i);
     }
     opts.merge(MetadataTable.NAME, new Text("01"), new Text("02"));
-    assertEquals(1, opts.listSplits(MetadataTable.NAME).size());
+    checkMetadataSplits(1, opts);
     addSplits(opts, "4 5 6 7 8".split(" "));
-    assertEquals(6, opts.listSplits(MetadataTable.NAME).size());
+    checkMetadataSplits(6, opts);
     opts.merge(MetadataTable.NAME, new Text("6"), new Text("9"));
-    assertEquals(4, opts.listSplits(MetadataTable.NAME).size());
+    checkMetadataSplits(4, opts);
     addSplits(opts, "44 55 66 77 88".split(" "));
-    assertEquals(9, opts.listSplits(MetadataTable.NAME).size());
+    checkMetadataSplits(9, opts);
     opts.merge(MetadataTable.NAME, new Text("5"), new Text("7"));
-    assertEquals(6, opts.listSplits(MetadataTable.NAME).size());
+    checkMetadataSplits(6, opts);
     opts.merge(MetadataTable.NAME, null, null);
-    assertEquals(0, opts.listSplits(MetadataTable.NAME).size());
+    checkMetadataSplits(0, opts);
+  }
+
+  private static void checkMetadataSplits(int numSplits, TableOperations opts)
+      throws AccumuloSecurityException, TableNotFoundException,
+      AccumuloException, InterruptedException {
+    for (int i = 0; i < 10; i++) {
+      if (opts.listSplits(MetadataTable.NAME).size() == numSplits) {
+        break;
+      }
+      Thread.sleep(2000);
+    }
+    assertEquals(numSplits, opts.listSplits(MetadataTable.NAME).size());
   }
 
 }
