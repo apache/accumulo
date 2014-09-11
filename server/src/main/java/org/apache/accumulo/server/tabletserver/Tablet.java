@@ -2139,6 +2139,11 @@ public class Tablet {
     public DataSource getDeepCopyDataSource(IteratorEnvironment env) {
       throw new UnsupportedOperationException();
     }
+
+    @Override
+    public void setInterruptFlag(AtomicBoolean flag) {
+      throw new UnsupportedOperationException();
+    }
     
   }
   

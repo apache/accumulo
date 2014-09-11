@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -379,6 +380,7 @@ public class FileManager {
     private boolean current = true;
     private IteratorEnvironment env;
     private String file;
+    private AtomicBoolean iflag;
     
     FileDataSource(String file, SortedKeyValueIterator<Key,Value> iter) {
       this.file = file;
@@ -411,6 +413,8 @@ public class FileManager {
     
     @Override
     public SortedKeyValueIterator<Key,Value> iterator() throws IOException {
+      if (iflag != null)
+        ((InterruptibleIterator) this.iter).setInterruptFlag(iflag);
       return iter;
     }
     
@@ -426,10 +430,19 @@ public class FileManager {
     void setIterator(SortedKeyValueIterator<Key,Value> iter) {
       current = false;
       this.iter = iter;
+
+      if (iflag != null)
+        ((InterruptibleIterator) this.iter).setInterruptFlag(iflag);
+
       for (FileDataSource fds : deepCopies) {
         fds.current = false;
         fds.iter = iter.deepCopy(fds.env);
       }
+    }
+
+    @Override
+    public void setInterruptFlag(AtomicBoolean flag) {
+      this.iflag = flag;
     }
     
   }
