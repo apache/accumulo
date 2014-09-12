@@ -1210,7 +1210,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     Process tracer = null;
     Connector conn = getConnector();
     if (!conn.tableOperations().exists("trace")) {
-      getStaticCluster().exec(TraceServer.class);
+      tracer = getStaticCluster().exec(TraceServer.class);
     }
     while (!conn.tableOperations().exists("trace")) {
       UtilWaitThread.sleep(1000);
