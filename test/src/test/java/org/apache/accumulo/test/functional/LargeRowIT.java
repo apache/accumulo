@@ -77,6 +77,8 @@ public class LargeRowIT extends ConfigurableMacIT {
     Connector c = getConnector();
     c.tableOperations().create(REG_TABLE_NAME);
     c.tableOperations().create(PRE_SPLIT_TABLE_NAME);
+    c.tableOperations().setProperty(PRE_SPLIT_TABLE_NAME, Property.TABLE_MAX_END_ROW_SIZE.getKey(), "256K");
+    UtilWaitThread.sleep(3 * 1000);
     c.tableOperations().addSplits(PRE_SPLIT_TABLE_NAME, splitPoints);
     test1(c);
     test2(c);
