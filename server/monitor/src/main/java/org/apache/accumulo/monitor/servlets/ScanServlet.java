@@ -18,21 +18,18 @@ package org.apache.accumulo.monitor.servlets;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-
-import org.apache.accumulo.monitor.util.celltypes.TServerLinkType;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.Monitor.ScanStats;
 import org.apache.accumulo.monitor.util.Table;
 import org.apache.accumulo.monitor.util.TableRow;
 import org.apache.accumulo.monitor.util.celltypes.DurationType;
-import org.apache.accumulo.monitor.util.celltypes.StringType;
+import org.apache.accumulo.monitor.util.celltypes.TServerLinkType;
 
 public class ScanServlet extends BasicServlet {
 
