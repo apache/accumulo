@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.test;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -26,25 +24,18 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.test.functional.ConfigurableMacIT;
-import org.apache.hadoop.conf.Configuration;
+import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class ArbitraryTablePropertiesIT extends ConfigurableMacIT {
+public class ArbitraryTablePropertiesIT extends SimpleMacIT {
 
-  @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setNumTservers(1);
-
-    Map<String,String> siteConfig = new HashMap<String,String>();
-    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "50ms");
-    cfg.setSiteConfig(siteConfig);
-  }
+  protected int defaultTimeoutSeconds() {
+    return 30;
+  };
 
   // Test set, get, and remove arbitrary table properties on the root account
-  @Test(timeout = 60 * 1000)
+  @Test
   public void setGetRemoveTablePropertyRoot() throws Exception {
     log.debug("Starting setGetRemoveTablePropertyRoot test ------------------------");
 
@@ -95,7 +86,7 @@ public class ArbitraryTablePropertiesIT extends ConfigurableMacIT {
   }
 
   // Tests set, get, and remove of user added arbitrary properties using a non-root account with permissions to alter tables
-  @Test(timeout = 60 * 1000)
+  @Test
   public void userSetGetRemoveTablePropertyWithPermission() throws Exception {
     log.debug("Starting userSetGetRemoveTablePropertyWithPermission test ------------------------");
 
@@ -155,7 +146,7 @@ public class ArbitraryTablePropertiesIT extends ConfigurableMacIT {
   }
 
   // Tests set and get of user added arbitrary properties using a non-root account without permissions to alter tables
-  @Test(timeout = 60 * 1000)
+  @Test
   public void userSetGetTablePropertyWithoutPermission() throws Exception {
     log.debug("Starting userSetGetTablePropertyWithoutPermission test ------------------------");
 
