@@ -543,9 +543,6 @@ public class TabletServerBatchWriter {
   
   /**
    * Add mutations that previously failed back into the mix
-   * 
-   * @param mutationsprivate
-   *          static final Logger log = Logger.getLogger(TabletServerBatchWriter.class);
    */
   private synchronized void addFailedMutations(MutationSet failedMutations) throws Exception {
     mutations.addAll(failedMutations);

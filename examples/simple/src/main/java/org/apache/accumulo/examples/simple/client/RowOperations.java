@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.examples.simple.client;
 
-import java.io.IOException;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
@@ -166,12 +165,6 @@ public class RowOperations {
   
   /**
    * Deletes a row given a text object
-   * @param opts 
-   * 
-   * @param row
-   * @throws TableNotFoundException
-   * @throws AccumuloSecurityException
-   * @throws AccumuloException
    */
   private static void deleteRow(ClientOpts opts, ScannerOpts scanOpts, Text row) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     deleteRow(getRow(opts, scanOpts, row));
@@ -179,8 +172,6 @@ public class RowOperations {
   
   /**
    * Deletes a row, given a Scanner of JUST that row
-   * 
-   * @param scanner
    */
   private static void deleteRow(Scanner scanner) throws MutationsRejectedException {
     Mutation deleter = null;
@@ -198,8 +189,6 @@ public class RowOperations {
   
   /**
    * Just a generic print function given an iterator. Not necessarily just for printing a single row
-   * 
-   * @param scanner
    */
   private static void printRow(Scanner scanner) {
     // iterates through and prints
@@ -209,14 +198,6 @@ public class RowOperations {
   
   /**
    * Gets a scanner over one row
-   * @param opts 
-   * 
-   * @param row
-   * @return
-   * @throws TableNotFoundException
-   * @throws AccumuloSecurityException
-   * @throws AccumuloException
-   * @throws IOException
    */
   private static Scanner getRow(ClientOpts opts, ScannerOpts scanOpts, Text row) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     // Create a scanner

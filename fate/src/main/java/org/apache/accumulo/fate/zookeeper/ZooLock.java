@@ -47,8 +47,6 @@ public class ZooLock implements Watcher {
     
     /**
      * lost the ability to monitor the lock node, and its status is unknown
-     * 
-     * @param e
      */
     void unableToMonitorLockNode(Throwable e);
   }

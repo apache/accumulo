@@ -145,7 +145,6 @@ public final class BCFile {
        * Get the current position in file.
        * 
        * @return The current byte offset in underlying file.
-       * @throws IOException
        */
       long getCurrentPos() throws IOException {
         return fsOut.getPos() + fsBufferedOutput.size();
@@ -157,8 +156,6 @@ public final class BCFile {
       
       /**
        * Current size of compressed data.
-       * 
-       * @throws IOException
        */
       long getCompressedSize() throws IOException {
         long ret = getCurrentPos() - posStart;

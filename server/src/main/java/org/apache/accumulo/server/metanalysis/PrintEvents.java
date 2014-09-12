@@ -61,13 +61,6 @@ public class PrintEvents {
     printEvents(conn, opts.tableId, opts.endRow, opts.time);
   }
   
-  /**
-   * @param conn
-   * @param tablePrefix
-   * @param tableId
-   * @param endRow
-   * @param time
-   */
   private static void printEvents(Connector conn, String tableId, String endRow, Long time) throws Exception {
     Scanner scanner = conn.createScanner("tabletEvents", new Authorizations());
     String metaRow = tableId + (endRow == null ? "<" : ";" + endRow);

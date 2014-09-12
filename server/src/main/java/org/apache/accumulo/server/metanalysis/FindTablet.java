@@ -49,12 +49,6 @@ public class FindTablet {
     findContainingTablets(opts);
   }
 
-  /**
-   * @param conn
-   * @param tablePrefix
-   * @param tableID
-   * @param option
-   */
   private static void findContainingTablets(Opts opts) throws Exception {
     Range range = new KeyExtent(new Text(opts.tableId), null, null).toMetadataRange();
 

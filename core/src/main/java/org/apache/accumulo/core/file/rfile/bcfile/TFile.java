@@ -544,8 +544,6 @@ public class TFile {
     
     /**
      * Check if we need to start a new data block.
-     * 
-     * @throws IOException
      */
     private void initDataBlock() throws IOException {
       // for each new block, get a new appender
@@ -559,7 +557,6 @@ public class TFile {
      * 
      * @param bForceFinish
      *          Force the closure regardless of the block size.
-     * @throws IOException
      */
     void finishDataBlock(boolean bForceFinish) throws IOException {
       if (blkAppender == null) {
@@ -777,8 +774,6 @@ public class TFile {
     
     /**
      * Lazily loading the TFile index.
-     * 
-     * @throws IOException
      */
     synchronized void checkTFileDataIndex() throws IOException {
       if (tfileIndex == null) {
@@ -866,7 +861,6 @@ public class TFile {
      *          the input key
      * @param greater
      *          boolean flag
-     * @throws IOException
      */
     Location getBlockContainsKey(RawComparable key, boolean greater) throws IOException {
       if (!isSorted()) {
@@ -1040,7 +1034,6 @@ public class TFile {
        *          Begin location of the scan.
        * @param end
        *          End location of the scan.
-       * @throws IOException
        */
       Scanner(Reader reader, Location begin, Location end) throws IOException {
         this.reader = reader;
@@ -1139,7 +1132,6 @@ public class TFile {
        * 
        * @param l
        *          new cursor location. It must fall between the begin and end location of the scanner.
-       * @throws IOException
        */
       private void seekTo(Location l) throws IOException {
         if (l.compareTo(beginLocation) < 0) {
@@ -1268,8 +1260,6 @@ public class TFile {
       
       /**
        * Load a compressed block for reading. Expecting blockIndex is valid.
-       * 
-       * @throws IOException
        */
       private void initBlock(int blockIndex) throws IOException {
         klen = -1;
@@ -1350,7 +1340,6 @@ public class TFile {
        * @param other
        *          user-specified key.
        * @return negative if key at cursor is smaller than user key; 0 if equal; and positive if key at cursor greater than user key.
-       * @throws IOException
        */
       int compareCursorKeyTo(RawComparable other) throws IOException {
         checkKey();
@@ -1641,7 +1630,6 @@ public class TFile {
        * 
        * @param n
        *          Number of key-value pairs to skip in block.
-       * @throws IOException
        */
       private void inBlockAdvance(long n) throws IOException {
         for (long i = 0; i < n; ++i) {
@@ -1662,7 +1650,6 @@ public class TFile {
        * @param greater
        *          advance until we find a key greater than the input key.
        * @return true if we find a equal key.
-       * @throws IOException
        */
       private boolean inBlockAdvance(RawComparable key, boolean greater) throws IOException {
         int curBid = currentLocation.getBlockIndex();

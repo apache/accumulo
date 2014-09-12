@@ -260,8 +260,6 @@ public class MockConnectorTest {
    *          Table to check
    * @param count
    *          number of entries to expect in the table
-   * @param count
-   *          number of rows the table should contain
    */
   private void checkRemaining(Connector c, String tableName, int count) throws Exception {
     Scanner scanner = c.createScanner(tableName, Constants.NO_AUTHS);

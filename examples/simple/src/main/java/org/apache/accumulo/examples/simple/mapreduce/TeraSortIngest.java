@@ -299,8 +299,6 @@ public class TeraSortIngest extends Configured implements Tool {
     
     /**
      * Add the rowid to the row.
-     * 
-     * @param rowId
      */
     private Text getRowIdString(long rowId) {
       Text paddedRowIdString = new Text();

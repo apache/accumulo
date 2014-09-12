@@ -239,7 +239,6 @@ final class Chunk {
      *          The chunk buffer.
      * @param offset
      *          Offset to chunk buffer for the beginning of chunk.
-     * @param len
      * @param last
      *          Is this the last call to flushBuffer?
      */
@@ -280,8 +279,6 @@ final class Chunk {
      * Flush the internal buffer.
      * 
      * Is this the last call to flushBuffer?
-     * 
-     * @throws java.io.IOException
      */
     private void flushBuffer() throws IOException {
       if (count > 0) {

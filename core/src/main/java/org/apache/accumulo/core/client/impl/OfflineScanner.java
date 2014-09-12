@@ -167,12 +167,6 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     }
   }
   
-  /**
-   * @throws TableNotFoundException
-   * @throws IOException
-   * @throws AccumuloException
-   * 
-   */
   private void nextTablet() throws TableNotFoundException, AccumuloException, IOException {
     
     Range nextRange = null;
@@ -274,13 +268,6 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     return new Pair<KeyExtent,String>(extent, location);
   }
   
-  /**
-   * @param absFiles
-   * @return
-   * @throws AccumuloException
-   * @throws TableNotFoundException
-   * @throws IOException
-   */
   private SortedKeyValueIterator<Key,Value> createIterator(KeyExtent extent, List<String> absFiles) throws TableNotFoundException, AccumuloException,
       IOException {
     

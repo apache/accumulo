@@ -33,8 +33,6 @@ public interface MemoryManager {
   
   /**
    * Initialize the memory manager.
-   * 
-   * @param conf
    */
   void init(ServerConfiguration conf);
 

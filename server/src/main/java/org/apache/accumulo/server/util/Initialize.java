@@ -238,9 +238,6 @@ public class Initialize {
     return true;
   }
 
-  /**
-   * @return
-   */
   private static boolean zookeeperAvailable() {
     try {
       return zoo.exists("/");

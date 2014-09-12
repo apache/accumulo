@@ -178,11 +178,6 @@ public class SecurityOperation {
     }
   }
 
-  /**
-   * @param toAuth
-   * @return
-   * @throws AccumuloSecurityException
-   */
   private AuthenticationToken reassembleToken(TCredentials toAuth) throws AccumuloSecurityException {
     String tokenClass = toAuth.getTokenClassName();
     if (authenticator.validTokenClass(tokenClass)) {
