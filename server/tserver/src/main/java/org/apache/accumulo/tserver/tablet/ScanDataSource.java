@@ -219,4 +219,9 @@ class ScanDataSource implements DataSource {
       fileManager.detach();
   }
 
+  @Override
+  public void setInterruptFlag(AtomicBoolean flag) {
+    throw new UnsupportedOperationException();
+  }
+
 }

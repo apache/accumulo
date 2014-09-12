@@ -19,6 +19,7 @@ package org.apache.accumulo.tserver;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,6 +34,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -40,6 +42,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
@@ -264,8 +267,8 @@ public class InMemoryMapTest {
 
     ski1.close();
   }
-
-  private void deepCopyAndDelete(int interleaving) throws Exception {
+  
+  private void deepCopyAndDelete(int interleaving, boolean interrupt) throws Exception {
     // interleaving == 0 intentionally omitted, this runs the test w/o deleting in mem map
 
     InMemoryMap imm = new InMemoryMap(false, tempFolder.newFolder().getAbsolutePath());
@@ -275,38 +278,62 @@ public class InMemoryMapTest {
     
     MemoryIterator ski1 = imm.skvIterator();
     
-    if (interleaving == 1)
+    AtomicBoolean iflag = new AtomicBoolean(false);
+    ski1.setInterruptFlag(iflag);
+
+    if (interleaving == 1) {
       imm.delete(0);
+      if (interrupt)
+        iflag.set(true);
+    }
     
     SortedKeyValueIterator<Key,Value> dc = ski1.deepCopy(null);
 
-    if (interleaving == 2)
+    if (interleaving == 2) {
       imm.delete(0);
+      if (interrupt)
+        iflag.set(true);
+    }
 
     dc.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
     ski1.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
 
-    if (interleaving == 3)
+    if (interleaving == 3) {
       imm.delete(0);
+      if (interrupt)
+        iflag.set(true);
+    }
 
     ae(dc, "r1", "foo:cq1", 3, "bar1");
     ae(ski1, "r1", "foo:cq1", 3, "bar1");
     dc.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
 
-    if (interleaving == 4)
+    if (interleaving == 4) {
       imm.delete(0);
+      if (interrupt)
+        iflag.set(true);
+    }
 
     ae(ski1, "r1", "foo:cq2", 3, "bar2");
     ae(dc, "r1", "foo:cq1", 3, "bar1");
     ae(dc, "r1", "foo:cq2", 3, "bar2");
     assertFalse(dc.hasTop());
     assertFalse(ski1.hasTop());
+
+    if (interrupt)
+      dc.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
   }
 
   @Test
   public void testDeepCopyAndDelete() throws Exception {
     for (int i = 0; i <= 4; i++)
-      deepCopyAndDelete(i);
+      deepCopyAndDelete(i, false);
+
+    for (int i = 1; i <= 4; i++)
+      try {
+        deepCopyAndDelete(i, true);
+        fail("i = " + i);
+      } catch (IterationInterruptedException iie) {}
   }
    
   @Test
