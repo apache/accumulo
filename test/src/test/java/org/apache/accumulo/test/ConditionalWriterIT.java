@@ -17,7 +17,7 @@
 
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -86,7 +86,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class ConditionalWriterIT extends SimpleMacIT {
 
@@ -96,7 +96,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
   }
 
   public static long abs(long l) {
-    l = Math.abs(l);  // abs(Long.MIN_VALUE) == Long.MIN_VALUE... 
+    l = Math.abs(l);  // abs(Long.MIN_VALUE) == Long.MIN_VALUE...
     if (l < 0)
       return 0;
     return l;
@@ -111,7 +111,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     conn.tableOperations().create(tableName);
 
     ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig());
-    
+
     // mutation conditional on column tx:seq not existing
     ConditionalMutation cm0 = new ConditionalMutation("99006", new Condition("tx", "seq"));
     cm0.put("name", "last", "doe");
@@ -1058,7 +1058,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
 
     conn.tableOperations().create(table);
 
-    ConditionalWriter cw = conn.createConditionalWriter(table, new ConditionalWriterConfig().setTimeout(1, TimeUnit.SECONDS));
+    ConditionalWriter cw = conn.createConditionalWriter(table, new ConditionalWriterConfig().setTimeout(3, TimeUnit.SECONDS));
 
     ConditionalMutation cm1 = new ConditionalMutation("r1", new Condition("tx", "seq"));
     cm1.put("tx", "seq", "1");
@@ -1067,7 +1067,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     Assert.assertEquals(cw.write(cm1).getStatus(), Status.ACCEPTED);
 
     IteratorSetting is = new IteratorSetting(5, SlowIterator.class);
-    SlowIterator.setSeekSleepTime(is, 1500);
+    SlowIterator.setSeekSleepTime(is, 5000);
 
     ConditionalMutation cm2 = new ConditionalMutation("r1", new Condition("tx", "seq").setValue("1").setIterators(is));
     cm2.put("tx", "seq", "2");
@@ -1203,7 +1203,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
 
     cw.write(cm1);
   }
-  
+
   @Test
   public void testTrace() throws Exception {
 
@@ -1214,7 +1214,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     while (!conn.tableOperations().exists("trace")) {
       UtilWaitThread.sleep(1000);
     }
-    
+
     String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
     conn.tableOperations().deleteRows("trace", null, null);
@@ -1230,7 +1230,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     cm0.put("tx", "seq", "1");
     Assert.assertEquals(Status.ACCEPTED, cw.write(cm0).getStatus());
     root.stop();
-    
+
     final Scanner scanner = conn.createScanner("trace", Authorizations.EMPTY);
     scanner.setRange(new Range(new Text(Long.toHexString(root.traceId()))));
     while (true) {
