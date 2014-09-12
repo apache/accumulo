@@ -512,15 +512,17 @@ public class InMemoryMap {
     private FileSKVIterator reader;
     private MemoryDataSource parent;
     private IteratorEnvironment env;
+    private AtomicBoolean iflag;
     
     MemoryDataSource() {
-      this(null, false, null);
+      this(null, false, null, null);
     }
     
-    public MemoryDataSource(MemoryDataSource parent, boolean switched, IteratorEnvironment env) {
+    public MemoryDataSource(MemoryDataSource parent, boolean switched, IteratorEnvironment env, AtomicBoolean iflag) {
       this.parent = parent;
       this.switched = switched;
       this.env = env;
+      this.iflag = iflag;
     }
     
     @Override
@@ -556,6 +558,8 @@ public class InMemoryMap {
         FileSystem fs = TraceFileSystem.wrap(FileSystem.getLocal(conf));
         
         reader = new RFileOperations().openReader(memDumpFile, true, fs, conf, ServerConfiguration.getSiteConfiguration());
+        if (iflag != null)
+          reader.setInterruptFlag(iflag);
       }
 
       return reader;
@@ -564,9 +568,11 @@ public class InMemoryMap {
     @Override
     public SortedKeyValueIterator<Key,Value> iterator() throws IOException {
       if (iter == null)
-        if (!switched)
+        if (!switched) {
           iter = map.skvIterator();
-        else {
+          if (iflag != null)
+            iter.setInterruptFlag(iflag);
+        } else {
           if (parent == null)
             iter = new MemKeyConversionIterator(getReader());
           else
@@ -582,7 +588,12 @@ public class InMemoryMap {
     
     @Override
     public DataSource getDeepCopyDataSource(IteratorEnvironment env) {
-      return new MemoryDataSource(parent == null ? this : parent, switched, env);
+      return new MemoryDataSource(parent == null ? this : parent, switched, env, iflag);
+    }
+
+    @Override
+    public void setInterruptFlag(AtomicBoolean flag) {
+      this.iflag = flag;
     }
     
   }

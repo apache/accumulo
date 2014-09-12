@@ -19,6 +19,7 @@ package org.apache.accumulo.core.iterators.system;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import junit.framework.TestCase;
 
@@ -26,6 +27,7 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
@@ -59,6 +61,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
     DataSource next;
     SortedKeyValueIterator<Key,Value> iter;
     List<TestDataSource> copies = new ArrayList<TestDataSource>();
+    AtomicBoolean iflag;
     
     TestDataSource(SortedKeyValueIterator<Key,Value> iter) {
       this(iter, new ArrayList<TestDataSource>());
@@ -82,6 +85,8 @@ public class SourceSwitchingIteratorTest extends TestCase {
     
     @Override
     public SortedKeyValueIterator<Key,Value> iterator() {
+      if (iflag != null)
+        ((InterruptibleIterator) iter).setInterruptFlag(iflag);
       return iter;
     }
     
@@ -98,7 +103,11 @@ public class SourceSwitchingIteratorTest extends TestCase {
           tds.next = new TestDataSource(next.iter.deepCopy(null), next.copies);
       }
     }
-    
+
+    @Override
+    public void setInterruptFlag(AtomicBoolean flag) {
+      this.iflag = flag;
+    }
   }
   
   public void test1() throws Exception {
@@ -235,5 +244,32 @@ public class SourceSwitchingIteratorTest extends TestCase {
     assertFalse(ssi.hasTop());
     ane(dc1, "r2", "cf1", "cq2", 6, "v4", true);
     assertFalse(dc1.hasTop());
+  }
+
+  public void testSetInterrupt() throws Exception {
+
+    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    put(tm1, "r1", "cf1", "cq1", 5, "v1");
+
+    SortedMapIterator smi = new SortedMapIterator(tm1);
+    TestDataSource tds = new TestDataSource(smi);
+    SourceSwitchingIterator ssi = new SourceSwitchingIterator(tds, false);
+
+    AtomicBoolean flag = new AtomicBoolean();
+    ssi.setInterruptFlag(flag);
+
+    assertSame(flag, tds.iflag);
+
+    ssi.seek(new Range("r1"), new ArrayList<ByteSequence>(), false);
+    ane(ssi, "r1", "cf1", "cq1", 5, "v1", true);
+    assertFalse(ssi.hasTop());
+
+    flag.set(true);
+
+    try {
+      ssi.seek(new Range("r1"), new ArrayList<ByteSequence>(), false);
+      fail("expected to see IterationInterruptedException");
+    } catch (IterationInterruptedException iie) {}
+
   }
 }

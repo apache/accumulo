@@ -2035,6 +2035,11 @@ public class Tablet {
       throw new UnsupportedOperationException();
     }
 
+    @Override
+    public void setInterruptFlag(AtomicBoolean flag) {
+      throw new UnsupportedOperationException();
+    }
+    
   }
 
   private DataFileValue minorCompact(Configuration conf, VolumeManager fs, InMemoryMap memTable, FileRef tmpDatafile, FileRef newDatafile, FileRef mergeFile,

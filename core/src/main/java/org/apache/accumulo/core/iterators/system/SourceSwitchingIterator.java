@@ -47,6 +47,8 @@ public class SourceSwitchingIterator implements SortedKeyValueIterator<Key,Value
     DataSource getDeepCopyDataSource(IteratorEnvironment env);
 
     SortedKeyValueIterator<Key,Value> iterator() throws IOException;
+
+    void setInterruptFlag(AtomicBoolean flag);
   }
 
   private DataSource source;
@@ -60,20 +62,18 @@ public class SourceSwitchingIterator implements SortedKeyValueIterator<Key,Value
   private Collection<ByteSequence> columnFamilies;
 
   private boolean onlySwitchAfterRow;
-  private AtomicBoolean iflag;
 
   private final List<SourceSwitchingIterator> copies;
 
-  private SourceSwitchingIterator(DataSource source, boolean onlySwitchAfterRow, List<SourceSwitchingIterator> copies, AtomicBoolean iflag) {
+  private SourceSwitchingIterator(DataSource source, boolean onlySwitchAfterRow, List<SourceSwitchingIterator> copies) {
     this.source = source;
     this.onlySwitchAfterRow = onlySwitchAfterRow;
     this.copies = copies;
-    this.iflag = iflag;
     copies.add(this);
   }
 
   public SourceSwitchingIterator(DataSource source, boolean onlySwitchAfterRow) {
-    this(source, onlySwitchAfterRow, Collections.synchronizedList(new ArrayList<SourceSwitchingIterator>()), null);
+    this(source, onlySwitchAfterRow, Collections.synchronizedList(new ArrayList<SourceSwitchingIterator>()));
   }
 
   public SourceSwitchingIterator(DataSource source) {
@@ -82,7 +82,7 @@ public class SourceSwitchingIterator implements SortedKeyValueIterator<Key,Value
 
   @Override
   public synchronized SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    return new SourceSwitchingIterator(source.getDeepCopyDataSource(env), onlySwitchAfterRow, copies, iflag);
+    return new SourceSwitchingIterator(source.getDeepCopyDataSource(env), onlySwitchAfterRow, copies);
   }
 
   @Override
@@ -149,9 +149,6 @@ public class SourceSwitchingIterator implements SortedKeyValueIterator<Key,Value
     while (!source.isCurrent()) {
       source = source.getNewDataSource();
       iter = source.iterator();
-      if (iflag != null)
-        ((InterruptibleIterator) iter).setInterruptFlag(iflag);
-
       return true;
     }
 
@@ -164,11 +161,8 @@ public class SourceSwitchingIterator implements SortedKeyValueIterator<Key,Value
     this.inclusive = inclusive;
     this.columnFamilies = columnFamilies;
 
-    if (iter == null) {
+    if (iter == null)
       iter = source.iterator();
-      if (iflag != null)
-        ((InterruptibleIterator) iter).setInterruptFlag(iflag);
-    }
 
     readNext(true);
   }
@@ -196,10 +190,10 @@ public class SourceSwitchingIterator implements SortedKeyValueIterator<Key,Value
     if (copies.size() != 1)
       throw new IllegalStateException("setInterruptFlag() called after deep copies made " + copies.size());
 
-    this.iflag = flag;
     if (iter != null)
       ((InterruptibleIterator) iter).setInterruptFlag(flag);
 
+    source.setInterruptFlag(flag);
   }
 
 }
