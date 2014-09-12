@@ -134,7 +134,6 @@ public class Module extends Node {
      * Chooses a random neighbor node
      * 
      * @return Node or null if no edges
-     * @throws Exception
      */
     private String randomNeighbor() throws Exception {
       

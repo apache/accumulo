@@ -41,10 +41,6 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
   private static final Collection<ByteSequence> EMPTY_CF_SET = Collections.emptySet();
 
   public static class LocalityGroup {
-    /**
-     * @param localityGroup
-     * @param env
-     */
     private LocalityGroup(LocalityGroup localityGroup, IteratorEnvironment env) {
       this(localityGroup.columnFamilies, localityGroup.isDefaultLocalityGroup);
       this.iterator = (InterruptibleIterator) localityGroup.iterator.deepCopy(env);

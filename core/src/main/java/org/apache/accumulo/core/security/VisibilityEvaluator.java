@@ -82,7 +82,7 @@ public class VisibilityEvaluator {
    * Creates a new evaluator for the authorizations found in the given
    * environment.
    *
-   * @param environment environment containing authorizations
+   * @param env environment containing authorizations
    */
   VisibilityEvaluator(Environment env) {
     this.auths = env.getAuthorizationsContainer();

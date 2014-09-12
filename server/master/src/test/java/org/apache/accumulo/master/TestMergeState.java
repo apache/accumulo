@@ -179,12 +179,6 @@ public class TestMergeState {
 
   }
 
-  /**
-   * @param state
-   * @param metaDataStateStore
-   * @param locations
-   * @return
-   */
   private MergeStats scan(MockCurrentState state, MetaDataStateStore metaDataStateStore) {
     MergeStats stats = new MergeStats(state.mergeInfo);
     stats.getMergeInfo().setState(MergeState.WAITING_FOR_OFFLINE);

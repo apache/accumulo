@@ -46,9 +46,6 @@ public interface GarbageCollectionEnvironment {
    *          A row to resume from if a previous invocation was stopped due to finding an extremely large number of candidates to remove which would have
    *          exceeded memory limitations
    * @return A collection of candidates files for deletion, may not be the complete collection of files for deletion at this point in time
-   * @throws TableNotFoundException
-   * @throws AccumuloException
-   * @throws AccumuloSecurityException
    */
   List<String> getCandidates(String continuePoint) throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
 
@@ -56,9 +53,6 @@ public interface GarbageCollectionEnvironment {
    * Fetch a list of paths for all bulk loads in progress (blip) from a given table, {@link RootTable#NAME} or {@link MetadataTable#NAME}
    * 
    * @return The list of files for each bulk load currently in progress.
-   * @throws TableNotFoundException
-   * @throws AccumuloException
-   * @throws AccumuloSecurityException
    */
   Iterator<String> getBlipIterator() throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
 
@@ -66,9 +60,6 @@ public interface GarbageCollectionEnvironment {
    * Fetches the references to files, {@link DataFileColumnFamily#NAME} or {@link ScanFileColumnFamily#NAME}, from tablets
    * 
    * @return An {@link Iterator} of {@link Entry}&lt;{@link Key}, {@link Value}&gt; which constitute a reference to a file.
-   * @throws TableNotFoundException
-   * @throws AccumuloException
-   * @throws AccumuloSecurityException
    */
   Iterator<Entry<Key,Value>> getReferenceIterator() throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
 
@@ -84,10 +75,6 @@ public interface GarbageCollectionEnvironment {
    * 
    * @param candidateMap
    *          A Map from relative path to absolute path for files to be deleted.
-   * @throws IOException
-   * @throws AccumuloSecurityException
-   * @throws AccumuloException
-   * @throws TableNotFoundException
    */
   void delete(SortedMap<String,String> candidateMap) throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
@@ -96,7 +83,6 @@ public interface GarbageCollectionEnvironment {
    * 
    * @param tableID
    *          The id of the table whose directory we are to operate on
-   * @throws IOException
    */
   void deleteTableDirIfEmpty(String tableID) throws IOException;
 

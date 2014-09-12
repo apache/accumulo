@@ -547,9 +547,6 @@ public class Monitor {
 
   /**
    * Get the monitor lock in ZooKeeper
-   * 
-   * @throws KeeperException
-   * @throws InterruptedException
    */
   private void getMonitorLock() throws KeeperException, InterruptedException {
     final String zRoot = ZooUtil.getRoot(instance);

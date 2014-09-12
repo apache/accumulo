@@ -138,10 +138,6 @@ public class Verify extends Test {
     }
   }
   
-  /**
-   * @param startBadEntry
-   * @param lastBadEntry
-   */
   private static void report(Text startBadRow, Text lastBadRow, Value value) {
     System.out.println("Bad value " + new String(value.get(), Constants.UTF8));
     System.out.println(" Range [" + startBadRow + " -> " + lastBadRow + "]");

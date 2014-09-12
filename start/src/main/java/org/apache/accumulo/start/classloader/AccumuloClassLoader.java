@@ -96,7 +96,6 @@ public class AccumuloClassLoader {
    * 
    * @param d
    *          XMLDocument to search through
-   * @param propertyName
    */
   private static String getAccumuloClassPathStrings(Document d, String propertyName) {
     NodeList pnodes = d.getElementsByTagName("property");
@@ -165,10 +164,6 @@ public class AccumuloClassLoader {
   
   /**
    * Populate the list of URLs with the items in the classpath string
-   * 
-   * @param classpath
-   * @param urls
-   * @throws MalformedURLException
    */
   private static void addUrl(String classpath, ArrayList<URL> urls) throws MalformedURLException {
     classpath = classpath.trim();

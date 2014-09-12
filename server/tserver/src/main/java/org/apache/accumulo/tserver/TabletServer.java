@@ -412,10 +412,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
     /**
      * while a session is reserved, it cannot be canceled or removed
-     *
-     * @param sessionId
      */
-
     synchronized Session reserveSession(long sessionId) {
       Session session = sessions.get(sessionId);
       if (session != null) {
