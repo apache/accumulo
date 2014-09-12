@@ -48,7 +48,6 @@ public interface CryptoModule {
    *          the {@link CryptoModuleParameters} object that specifies how to set up the encrypted stream.
    * @return the same {@link CryptoModuleParameters} object with the {@link CryptoModuleParameters#getEncryptedOutputStream()} set to a stream that is not null.
    *         That stream may be exactly the same stream as {@link CryptoModuleParameters#getPlaintextInputStream()} if the params object specifies no cryptography.
-   * @throws IOException
    */
   CryptoModuleParameters getEncryptingOutputStream(CryptoModuleParameters params) throws IOException;
   
@@ -70,7 +69,6 @@ public interface CryptoModule {
    *          the {@link CryptoModuleParameters} object that specifies how to set up the encrypted stream.
    * @return the same {@link CryptoModuleParameters} object with the {@link CryptoModuleParameters#getPlaintextInputStream()} set to a stream that is not null.
    *         That stream may be exactly the same stream as {@link CryptoModuleParameters#getEncryptedInputStream()} if the params object specifies no cryptography.
-   * @throws IOException
    */
   CryptoModuleParameters getDecryptingInputStream(CryptoModuleParameters params) throws IOException;
 

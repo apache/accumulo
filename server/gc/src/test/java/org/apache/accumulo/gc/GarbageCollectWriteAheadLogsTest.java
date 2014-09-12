@@ -308,12 +308,6 @@ public class GarbageCollectWriteAheadLogsTest {
 
     private List<Entry<Key,Value>> replData;
 
-    /**
-     * @param instance
-     * @param fs
-     * @param useTrash
-     * @throws IOException
-     */
     ReplicationGCWAL(Instance instance, VolumeManager fs, boolean useTrash, List<Entry<Key,Value>> replData) throws IOException {
       super(instance, fs, useTrash);
       this.replData = replData;

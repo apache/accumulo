@@ -1207,9 +1207,10 @@ public class ConditionalWriterIT extends SimpleMacIT {
   @Test
   public void testTrace() throws Exception {
 
+    Process tracer = null;
     Connector conn = getConnector();
     if (!conn.tableOperations().exists("trace")) {
-      getStaticCluster().exec(TraceServer.class);
+      tracer = getStaticCluster().exec(TraceServer.class);
     }
     while (!conn.tableOperations().exists("trace")) {
       UtilWaitThread.sleep(1000);
@@ -1256,6 +1257,9 @@ public class ConditionalWriterIT extends SimpleMacIT {
         }
         break;
       }
+    }
+    if (tracer != null) {
+      tracer.destroy();
     }
   }
 }

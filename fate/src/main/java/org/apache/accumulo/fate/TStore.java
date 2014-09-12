@@ -56,8 +56,6 @@ public interface TStore<T> extends ReadOnlyTStore<T> {
 
   /**
    * Remove the last pushed operation from the given transaction.
-   * 
-   * @param tid
    */
   void pop(long tid);
 

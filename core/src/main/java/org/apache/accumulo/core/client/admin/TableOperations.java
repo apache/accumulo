@@ -525,7 +525,6 @@ public interface TableOperations {
    *           when there is a general accumulo error
    * @throws AccumuloSecurityException
    *           when the user does not have the proper permissions
-   * @throws TableNotFoundException
    * @since 1.6.0
    */
   void offline(String tableName, boolean wait) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
@@ -552,7 +551,6 @@ public interface TableOperations {
    *           when there is a general accumulo error
    * @throws AccumuloSecurityException
    *           when the user does not have the proper permissions
-   * @throws TableNotFoundException
    * @since 1.6.0
    */
   void online(String tableName, boolean wait) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
@@ -659,8 +657,6 @@ public interface TableOperations {
    *          the name of the table
    * @param setting
    *          object specifying the properties of the iterator
-   * @throws AccumuloException
-   * @throws TableNotFoundException
    */
   void checkIteratorConflicts(String tableName, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException, TableNotFoundException;
 
@@ -711,8 +707,6 @@ public interface TableOperations {
    * @param tables
    *          a set of tables
    * @return a list of disk usage objects containing linked table names and sizes
-   * @throws AccumuloException
-   * @throws AccumuloSecurityException
    * @since 1.6.0
    */
   List<DiskUsage> getDiskUsage(Set<String> tables) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;

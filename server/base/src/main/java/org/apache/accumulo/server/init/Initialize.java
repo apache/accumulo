@@ -399,7 +399,6 @@ public class Initialize {
    * @param targetTabletDir Directory where the rfile should created in
    * @param tableTabletDir The table_info directory for the new table
    * @param defaultTabletDir The default_tablet directory for the new table
-   * @throws IOException
    */
   private static void initializeTableData(VolumeManager volmanager, String tableId, String targetTabletDir, String tableTabletDir, String defaultTabletDir) throws IOException {
     // populate the root tablet with info about the default tablet

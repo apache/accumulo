@@ -637,7 +637,6 @@ public class SimpleGarbageCollector implements Iface {
    * Moves a file to trash. If this garbage collector is not using trash, this method returns false and leaves the file alone. If the file is missing, this
    * method returns false as opposed to throwing an exception.
    *
-   * @param path
    * @return true if the file was moved to trash
    * @throws IOException
    *           if the volume manager encountered a problem

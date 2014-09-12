@@ -34,9 +34,6 @@ public class ZooZap {
   
   static boolean verbose = false;
   
-  /**
-   * @param args
-   */
   private static void message(String msg) {
     if (verbose)
       System.out.println(msg);

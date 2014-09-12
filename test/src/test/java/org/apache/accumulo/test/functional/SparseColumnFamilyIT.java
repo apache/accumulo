@@ -89,12 +89,6 @@ public class SparseColumnFamilyIT extends SimpleMacIT {
     }
   }
 
-  /**
-   * @param i
-   * @param j
-   * @param k
-   * @return
-   */
   private Mutation nm(int row, int cf, int val) {
     Mutation m = new Mutation(String.format("%06d", row));
     m.put(String.format("%03d", cf), "", "" + val);

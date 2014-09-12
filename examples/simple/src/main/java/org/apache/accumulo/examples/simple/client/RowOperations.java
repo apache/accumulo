@@ -165,13 +165,6 @@ public class RowOperations {
   
   /**
    * Deletes a row given a text object
-   * 
-   * @param opts
-   * 
-   * @param row
-   * @throws TableNotFoundException
-   * @throws AccumuloSecurityException
-   * @throws AccumuloException
    */
   private static void deleteRow(ScannerOpts scanOpts, Text row) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     deleteRow(getRow(scanOpts, row));
@@ -179,8 +172,6 @@ public class RowOperations {
   
   /**
    * Deletes a row, given a Scanner of JUST that row
-   * 
-   * @param scanner
    */
   private static void deleteRow(Scanner scanner) throws MutationsRejectedException {
     Mutation deleter = null;
@@ -198,8 +189,6 @@ public class RowOperations {
   
   /**
    * Just a generic print function given an iterator. Not necessarily just for printing a single row
-   * 
-   * @param scanner
    */
   private static void printRow(Scanner scanner) {
     // iterates through and prints

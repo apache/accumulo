@@ -116,7 +116,6 @@ public class RandomBatchScanner {
   /**
    * Prints a count of the number of rows mapped to false.
    * 
-   * @param expectedRows
    * @return boolean indicating "were all the rows found?"
    */
   private static boolean checkAllRowsFound(HashMap<Text,Boolean> expectedRows) {

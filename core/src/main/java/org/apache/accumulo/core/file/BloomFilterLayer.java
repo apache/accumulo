@@ -300,7 +300,6 @@ public class BloomFilterLayer {
      * @param range
      *          range of keys to check
      * @return false iff key doesn't exist, true if key probably exists.
-     * @throws IOException
      */
     boolean probablyHasKey(Range range) throws IOException {
       if (bloomFilter == null) {

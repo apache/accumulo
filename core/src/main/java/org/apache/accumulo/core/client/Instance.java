@@ -127,7 +127,7 @@ public interface Instance {
    *
    * @return the AccumuloConfiguration that specifies properties related to interacting with this instance
    * @deprecated since 1.6.0. This method makes very little sense in the context of the client API and never should have been exposed.
-   * @see {@link InstanceOperations#getSystemConfiguration()} for client-side reading of the server-side configuration.
+   * @see InstanceOperations#getSystemConfiguration() for client-side reading of the server-side configuration.
    */
   @Deprecated
   AccumuloConfiguration getConfiguration();
@@ -138,7 +138,7 @@ public interface Instance {
    * @param conf
    *          accumulo configuration
    * @deprecated since 1.6.0. This method makes very little sense in the context of the client API and never should have been exposed.
-   * @see {@link InstanceOperations#setProperty(String, String)}
+   * @see InstanceOperations#setProperty(String, String)
    */
   @Deprecated
   void setConfiguration(AccumuloConfiguration conf);

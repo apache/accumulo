@@ -54,7 +54,6 @@ public interface BatchScanner extends ScannerBase {
    * <p>
    * If not set, there is not timeout. The BatchScanner will retry forever.
    * 
-   * @param timeout
    * @param timeUnit
    *          determines how timeout is interpreted
    * @since 1.5.0

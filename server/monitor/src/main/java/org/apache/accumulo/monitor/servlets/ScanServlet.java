@@ -39,7 +39,7 @@ public class ScanServlet extends BasicServlet {
   protected String getTitle(HttpServletRequest req) {
     return "Scans";
   }
-  
+
   @Override
   protected void pageBody(HttpServletRequest req, HttpServletResponse response, StringBuilder sb) throws IOException {
     Map<String,ScanStats> scans = Monitor.getScans();
@@ -65,5 +65,5 @@ public class ScanServlet extends BasicServlet {
     }
     scanTable.generate(req, sb);
   }
-  
+
 }

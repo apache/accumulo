@@ -116,7 +116,6 @@ public interface ConditionalWriter {
    * This method returns one result for each mutation passed to it. This method is thread safe. Multiple threads can safely use a single conditional writer.
    * Sharing a conditional writer between multiple threads may result in batching of request to tablet servers.
    * 
-   * @param mutations
    * @return Result for each mutation submitted. The mutations may still be processing in the background when this method returns, if so the iterator will
    *         block.
    */
@@ -125,8 +124,6 @@ public interface ConditionalWriter {
   /**
    * This method has the same thread safety guarantees as @link {@link #write(Iterator)}
    * 
-   * 
-   * @param mutation
    * @return Result for the submitted mutation
    */
 

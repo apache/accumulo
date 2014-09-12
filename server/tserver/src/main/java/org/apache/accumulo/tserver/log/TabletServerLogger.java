@@ -100,7 +100,6 @@ public class TabletServerLogger {
    *          lock to use
    * @param code
    *          a test/work pair
-   * @throws IOException
    */
   private static void testLockAndRun(final ReadWriteLock rwlock, TestCallWithWriteLock code) throws IOException {
     // Get a read lock
