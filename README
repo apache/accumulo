@@ -279,8 +279,9 @@ instances are also time sensitive and should be on machines that will not be
 heavily loaded, or over-subscribed for memory.
 
 Edit conf/accumulo-site.xml.  You must set the zookeeper servers in this
-file (instance.zookeeper.host).  Look at docs/config.html to see what
-additional variables you can modify and what the defaults are.
+file (instance.zookeeper.host).  Look at the "Configuration Management" section
+of the user manual to see what additional variables you can modify and what
+the defaults are.
 
 It is advisable to change the instance secret (instance.secret) to some new
 value.  Also ensure that the accumulo-site.xml file is not readable by other
@@ -453,7 +454,7 @@ packages and classes mentioned above.
 
 Apache Accumulo has exposed several configuration properties that can be 
 changed.  These properties and configuration management are described in detail 
-in docs/config.html.  While the default value is usually optimal, there are 
+in the user manual. While the default value is usually optimal, there are
 cases where a change can increase query and ingest performance.
 
 Before changing a property from its default in a production system, you should 
