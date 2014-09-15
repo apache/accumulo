@@ -86,9 +86,9 @@ public class DurabilityIT extends ConfigurableMacIT {
     long t2 = writeSome(tableNames[2], N); tableOps.delete(tableNames[2]);
     long t3 = writeSome(tableNames[3], N); tableOps.delete(tableNames[3]);
     System.out.println(String.format("sync %d flush %d log %d none %d", t0, t1, t2, t3));
-    assertTrue(t0 > t1);
-    assertTrue(t1 > t2);
-    assertTrue(t2 > t3);
+    assertTrue("flush-only should be faster than sync",   t0 > t1);
+    assertTrue("sync should be faster than log",          t1 > t2);
+    assertTrue("no durability should be faster than log", t2 > t3);
   }
 
   @Test(timeout = 4 * 60 * 1000)
