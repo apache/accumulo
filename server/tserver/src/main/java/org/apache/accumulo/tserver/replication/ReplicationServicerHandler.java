@@ -42,7 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * 
+ *
  */
 public class ReplicationServicerHandler implements Iface {
   private static final Logger log = LoggerFactory.getLogger(ReplicationServicerHandler.class);
@@ -112,6 +112,8 @@ public class ReplicationServicerHandler implements Iface {
     }
 
     long entriesReplicated = replayer.replicateLog(conn, new ServerConfigurationFactory(HdfsZooInstance.getInstance()).getConfiguration(), tableName, data);
+
+    log.debug("Replicated {} mutations to {}", entriesReplicated, tableName);
 
     return entriesReplicated;
   }

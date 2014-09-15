@@ -184,9 +184,10 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
       WorkSection.limit(workScanner);
       workScanner.setRange(Range.exact(file));
 
-      int newReplicationTasksSubmitted = 0;
+      int newReplicationTasksSubmitted = 0, workEntriesRead = 0;
       // For a file, we can concurrently replicate it to multiple targets
       for (Entry<Key,Value> workEntry : workScanner) {
+        workEntriesRead++;
         Status status;
         try {
           status = StatusUtil.fromValue(workEntry.getValue());
@@ -229,6 +230,7 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
         }
       }
 
+      log.debug("Read {} replication entries from the WorkSection of the replication table", workEntriesRead);
       log.info("Assigned {} replication work entries for {}", newReplicationTasksSubmitted, file);
     }
   }

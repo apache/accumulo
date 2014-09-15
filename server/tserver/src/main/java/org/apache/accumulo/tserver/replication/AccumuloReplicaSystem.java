@@ -73,7 +73,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 /**
- * 
+ *
  */
 public class AccumuloReplicaSystem implements ReplicaSystem {
   private static final Logger log = LoggerFactory.getLogger(AccumuloReplicaSystem.class);
@@ -324,6 +324,9 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         // Read and send a batch of mutations
         replResult = ReplicationClient.executeServicerWithReturn(peerInstance, peerTserver, new WalClientExecReturn(target, input, p, currentStatus, sizeLimit,
             remoteTableId, tcreds, tids));
+      } catch (Exception e) {
+        log.error("Caught exception replicating data to {} at {}", peerInstance.getInstanceName(), peerTserver, e);
+        throw e;
       } finally {
         span.stop();
       }

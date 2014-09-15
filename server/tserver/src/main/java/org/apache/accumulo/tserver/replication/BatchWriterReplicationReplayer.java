@@ -138,7 +138,9 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
           throw new RemoteReplicationException(RemoteReplicationErrorCode.COULD_NOT_APPLY, "Could not apply mutations to " + tableName);
         }
 
-        mutationsApplied += value.mutations.size();
+        log.debug("{} mutations added to the BatchScanner", mutationsCopy.size());
+
+        mutationsApplied += mutationsCopy.size();
       }
     } finally {
       if (null != bw) {
