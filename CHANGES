@@ -23,8 +23,10 @@ Release Notes - Accumulo - Version 1.5.2
     * [ACCUMULO-2438] - deleting all table rows caused tablet load failure
     * [ACCUMULO-2551] - Add read-only access to Fate
     * [ACCUMULO-3058] - Javadoc comment added to balancer describes non-existent methods
+    * [ACCUMULO-3012] - Simplify DefaultConfiguration
 
 ** Bug
+    * [ACCUMULO-1628] - NPE on deep copied dumped memory iterator
     * [ACCUMULO-1897] - Bug in MemKeyConversionIterator constructor
     * [ACCUMULO-1936] - SimpleTest test cases occasionally fail
     * [ACCUMULO-1951] - start-here.sh and stop-here.sh throw errors on OS X
@@ -94,6 +96,10 @@ Release Notes - Accumulo - Version 1.5.2
     * [ACCUMULO-3015] - RangeInputSplit doesn't serialize table name
     * [ACCUMULO-3016] - Glob for accumulo-examples-simple jar fails
     * [ACCUMULO-3055] - calling MiniAccumuloCluster.stop multiple times fails with NPE
+    * [ACCUMULO-3084] - Delays between calls to logGC cause tserver to fail
+    * [ACCUMULO-3096] - Scans stuck and seeing error message about constraint violation
+    * [ACCUMULO-3119] - Javadoc cleanup
+    * [ACCUMULO-3120] - README references docs/config.html but this file no longer exists in codebase
 
 ** Improvement
     * [ACCUMULO-1669] - User manual examples use two argument Mutation.put
@@ -115,6 +121,9 @@ Release Notes - Accumulo - Version 1.5.2
     * [ACCUMULO-2947] - Support configurable changes per mutation for size-based stress test
     * [ACCUMULO-2994] - IteratorUtil.parseIterConf loops over each iterator scope repeatedly
     * [ACCUMULO-3018] - Increase tserver.mutation.queue.max default for 1.5
+    * [ACCUMULO-3087] - start-server.sh should check fqdn and shortname to determine if SSH is needed
+    * [ACCUMULO-3097] - Missing documentation on some system iterators
+    * [ACCUMULO-3106] - "Check for long GC pauses" warning message needs improvement
 
 ** Task
     * [ACCUMULO-2411] - Remove warnings in 1.5 branch
