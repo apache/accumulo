@@ -36,7 +36,8 @@ import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class Accumulo3047IT extends ConfigurableMacIT {
+// Accumulo3047
+public class BadDeleteMarkersCreatedIT extends ConfigurableMacIT {
   
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {

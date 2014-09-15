@@ -32,7 +32,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class Accumulo3030IT extends ConfigurableMacIT {
+// Accumulo3030
+public class AllowScansToBeInterruptedIT extends ConfigurableMacIT {
   
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
