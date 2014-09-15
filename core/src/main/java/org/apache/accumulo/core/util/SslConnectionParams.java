@@ -79,8 +79,9 @@ public class SslConnectionParams  {
 
   private static String passwordFromConf(AccumuloConfiguration conf, String defaultPassword, Property passwordOverrideProperty) {
     String keystorePassword = conf.get(passwordOverrideProperty);
-    if (log.isTraceEnabled() && !keystorePassword.isEmpty()) {
-      log.trace("Using explicit SSL private key password from " + passwordOverrideProperty.getKey());
+    if (!keystorePassword.isEmpty()) {
+      if (log.isTraceEnabled())
+        log.trace("Using explicit SSL private key password from " + passwordOverrideProperty.getKey());
     } else {
       keystorePassword = defaultPassword;
     }
