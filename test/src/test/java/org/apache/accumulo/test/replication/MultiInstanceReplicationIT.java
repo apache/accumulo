@@ -253,6 +253,8 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
       } catch (TimeoutException e) {
         future.cancel(true);
         Assert.fail("Drain did not finish within 60 seconds");
+      } finally {
+        executor.shutdownNow();
       }
 
       log.info("drain completed");
@@ -546,7 +548,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
     peerCfg.setNumTservers(1);
     peerCfg.setInstanceName("peer");
     peerCfg.setProperty(Property.REPLICATION_NAME, "peer");
-    
+
     updatePeerConfigFromPrimary(getCluster().getConfig(), peerCfg);
 
     MiniAccumuloClusterImpl peer1Cluster = peerCfg.build();
