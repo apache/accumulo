@@ -34,7 +34,7 @@ import org.apache.commons.configuration.PropertiesConfiguration;
 
 /**
  * Contains a list of property keys recognized by the Accumulo client and convenience methods for setting them.
- * 
+ *
  * @since 1.6.0
  */
 public class ClientConfiguration extends CompositeConfiguration {
@@ -50,6 +50,7 @@ public class ClientConfiguration extends CompositeConfiguration {
     RPC_SSL_KEYSTORE_PASSWORD(Property.RPC_SSL_KEYSTORE_PASSWORD),
     RPC_SSL_KEYSTORE_TYPE(Property.RPC_SSL_KEYSTORE_TYPE),
     RPC_USE_JSSE(Property.RPC_USE_JSSE),
+    GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS),
     INSTANCE_RPC_SSL_CLIENT_AUTH(Property.INSTANCE_RPC_SSL_CLIENT_AUTH),
     INSTANCE_RPC_SSL_ENABLED(Property.INSTANCE_RPC_SSL_ENABLED),
     INSTANCE_ZK_HOST(Property.INSTANCE_ZK_HOST),
@@ -110,7 +111,7 @@ public class ClientConfiguration extends CompositeConfiguration {
 
   /**
    * Iterates through the Configuration objects, populating this object.
-   * 
+   *
    * @see PropertiesConfiguration
    * @see #loadDefault()
    */
@@ -123,10 +124,10 @@ public class ClientConfiguration extends CompositeConfiguration {
    * Attempts to load a configuration file from the system. Uses the "ACCUMULO_CLIENT_CONF_PATH" environment variable, split on File.pathSeparator, for a list
    * of target files. If not set, uses the following in this order- ~/.accumulo/config $ACCUMULO_CONF_DIR/client.conf -OR- $ACCUMULO_HOME/conf/client.conf
    * (depending on whether $ACCUMULO_CONF_DIR is set) /etc/accumulo/client.conf
-   * 
+   *
    * A client configuration will then be read from each location using PropertiesConfiguration to construct a configuration. That means the latest item will be
    * the one in the configuration.
-   * 
+   *
    * @see PropertiesConfiguration
    * @see File#pathSeparator
    */
@@ -196,7 +197,7 @@ public class ClientConfiguration extends CompositeConfiguration {
 
   /**
    * Returns the value for prop, the default value if not present.
-   * 
+   *
    */
   public String get(ClientProperty prop) {
     if (this.containsKey(prop.getKey()))
@@ -207,7 +208,7 @@ public class ClientConfiguration extends CompositeConfiguration {
 
   /**
    * Sets the value of property to value
-   * 
+   *
    */
   public void setProperty(ClientProperty prop, String value) {
     this.setProperty(prop.getKey(), value);
@@ -223,7 +224,7 @@ public class ClientConfiguration extends CompositeConfiguration {
 
   /**
    * Same as {@link #with(ClientProperty, String)} for ClientProperty.INSTANCE_NAME
-   * 
+   *
    */
   public ClientConfiguration withInstance(String instanceName) {
     checkArgument(instanceName != null, "instanceName is null");
@@ -232,7 +233,7 @@ public class ClientConfiguration extends CompositeConfiguration {
 
   /**
    * Same as {@link #with(ClientProperty, String)} for ClientProperty.INSTANCE_ID
-   * 
+   *
    */
   public ClientConfiguration withInstance(UUID instanceId) {
     checkArgument(instanceId != null, "instanceId is null");
@@ -241,7 +242,7 @@ public class ClientConfiguration extends CompositeConfiguration {
 
   /**
    * Same as {@link #with(ClientProperty, String)} for ClientProperty.INSTANCE_ZK_HOST
-   * 
+   *
    */
   public ClientConfiguration withZkHosts(String zooKeepers) {
     checkArgument(zooKeepers != null, "zooKeepers is null");
@@ -250,7 +251,7 @@ public class ClientConfiguration extends CompositeConfiguration {
 
   /**
    * Same as {@link #with(ClientProperty, String)} for ClientProperty.INSTANCE_ZK_TIMEOUT
-   * 
+   *
    */
   public ClientConfiguration withZkTimeout(int timeout) {
     return with(ClientProperty.INSTANCE_ZK_TIMEOUT, String.valueOf(timeout));
@@ -258,7 +259,7 @@ public class ClientConfiguration extends CompositeConfiguration {
 
   /**
    * Same as {@link #withSsl(boolean, boolean)} with useJsseConfig set to false
-   * 
+   *
    */
   public ClientConfiguration withSsl(boolean sslEnabled) {
     return withSsl(sslEnabled, false);
@@ -266,7 +267,7 @@ public class ClientConfiguration extends CompositeConfiguration {
 
   /**
    * Same as {@link #with(ClientProperty, String)} for ClientProperty.INSTANCE_RPC_SSL_ENABLED and ClientProperty.RPC_USE_JSSE
-   * 
+   *
    */
   public ClientConfiguration withSsl(boolean sslEnabled, boolean useJsseConfig) {
     return with(ClientProperty.INSTANCE_RPC_SSL_ENABLED, String.valueOf(sslEnabled)).with(ClientProperty.RPC_USE_JSSE, String.valueOf(useJsseConfig));
@@ -274,7 +275,7 @@ public class ClientConfiguration extends CompositeConfiguration {
 
   /**
    * Same as {@link #withTruststore(String)} with password null and type null
-   * 
+   *
    */
   public ClientConfiguration withTruststore(String path) {
     return withTruststore(path, null, null);
@@ -283,7 +284,7 @@ public class ClientConfiguration extends CompositeConfiguration {
   /**
    * Same as {@link #with(ClientProperty, String)} for ClientProperty.RPC_SSL_TRUSTORE_PATH, ClientProperty.RPC_SSL_TRUSTORE_PASSWORD, and
    * ClientProperty.RPC_SSL_TRUSTORE_TYPE
-   * 
+   *
    */
   public ClientConfiguration withTruststore(String path, String password, String type) {
     checkArgument(path != null, "path is null");
@@ -297,7 +298,7 @@ public class ClientConfiguration extends CompositeConfiguration {
 
   /**
    * Same as {@link #withKeystore(String, String, String)} with password null and type null
-   * 
+   *
    */
   public ClientConfiguration withKeystore(String path) {
     return withKeystore(path, null, null);
@@ -306,7 +307,7 @@ public class ClientConfiguration extends CompositeConfiguration {
   /**
    * Same as {@link #with(ClientProperty, String)} for ClientProperty.INSTANCE_RPC_SSL_CLIENT_AUTH, ClientProperty.RPC_SSL_KEYSTORE_PATH,
    * ClientProperty.RPC_SSL_KEYSTORE_PASSWORD, and ClientProperty.RPC_SSL_KEYSTORE_TYPE
-   * 
+   *
    */
   public ClientConfiguration withKeystore(String path, String password, String type) {
     checkArgument(path != null, "path is null");
