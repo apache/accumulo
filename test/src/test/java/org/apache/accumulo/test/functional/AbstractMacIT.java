@@ -81,7 +81,7 @@ public abstract class AbstractMacIT {
     return names;
   }
 
-  protected static void configureForEnvironment(MiniAccumuloConfigImpl cfg, Class<?> testClass, File folder) {
+  protected static void configureForEnvironment(MiniAccumuloConfigImpl cfg, File folder) {
     if ("true".equals(System.getProperty("org.apache.accumulo.test.functional.useSslForIT"))) {
       configureForSsl(cfg, folder);
     }

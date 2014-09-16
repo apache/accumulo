@@ -114,7 +114,7 @@ public class ExamplesIT extends AbstractMacIT {
     cfg.setDefaultMemory(cfg.getDefaultMemory() * 2, MemoryUnit.BYTE);
 
     cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.TRUE.toString());
-    configureForEnvironment(cfg, ExamplesIT.class, createSharedTestDir(ExamplesIT.class.getName() + "-ssl"));
+    configureForEnvironment(cfg, createSharedTestDir(ExamplesIT.class.getName() + "-ssl"));
     cluster = new MiniAccumuloClusterImpl(cfg);
     cluster.start();
 
@@ -228,18 +228,18 @@ public class ExamplesIT extends AbstractMacIT {
     bw.addMutation(m);
     bw.flush();
 
-    
+
     Iterator<Entry<Key, Value>> iter = c.createScanner(table, Authorizations.EMPTY).iterator();
     assertTrue("Iterator had no results", iter.hasNext());
     Entry<Key, Value> e = iter.next();
     assertEquals("Results ", "1,3,4,2", e.getValue().toString());
     assertFalse("Iterator had additional results", iter.hasNext());
-    
+
     m = new Mutation("foo");
     m.put("a", "b", "0,20,20,2");
     bw.addMutation(m);
     bw.close();
-    
+
     iter = c.createScanner(table, Authorizations.EMPTY).iterator();
     assertTrue("Iterator had no results", iter.hasNext());
     e = iter.next();

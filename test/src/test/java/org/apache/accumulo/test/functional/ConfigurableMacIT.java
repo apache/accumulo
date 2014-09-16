@@ -54,7 +54,7 @@ public class ConfigurableMacIT extends AbstractMacIT {
     Configuration coreSite = new Configuration(false);
     configure(cfg, coreSite);
     cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.TRUE.toString());
-    configureForEnvironment(cfg, getClass(), createSharedTestDir(this.getClass().getName() + "-ssl"));
+    configureForEnvironment(cfg, createSharedTestDir(this.getClass().getName() + "-ssl"));
     cluster = new MiniAccumuloClusterImpl(cfg);
     if (coreSite.size() > 0) {
       File csFile = new File(cluster.getConfig().getConfDir(), "core-site.xml");
