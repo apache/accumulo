@@ -16,7 +16,9 @@
  */
 package org.apache.accumulo.test.replication;
 
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -96,17 +98,53 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
+  /**
+   * Use the same SSL and credential provider configuration that is set up by AbstractMacIT for the other MAC used for replication
+   */
+  private void updatePeerConfigFromPrimary(MiniAccumuloConfigImpl primaryCfg, MiniAccumuloConfigImpl peerCfg) {
+    // Set the same SSL information from the primary when present
+    Map<String,String> primarySiteConfig = primaryCfg.getSiteConfig();
+    if ("true".equals(primarySiteConfig.get(Property.INSTANCE_RPC_SSL_ENABLED.getKey()))) {
+      Map<String,String> peerSiteConfig = new HashMap<String,String>();
+      peerSiteConfig.put(Property.INSTANCE_RPC_SSL_ENABLED.getKey(), "true");
+      String keystorePath = primarySiteConfig.get(Property.RPC_SSL_KEYSTORE_PATH.getKey());
+      Assert.assertNotNull("Keystore Path was null", keystorePath);
+      peerSiteConfig.put(Property.RPC_SSL_KEYSTORE_PATH.getKey(), keystorePath);
+      String truststorePath = primarySiteConfig.get(Property.RPC_SSL_TRUSTSTORE_PATH.getKey());
+      Assert.assertNotNull("Truststore Path was null", truststorePath);
+      peerSiteConfig.put(Property.RPC_SSL_TRUSTSTORE_PATH.getKey(), truststorePath);
+
+      // Passwords might be stored in CredentialProvider
+      String keystorePassword = primarySiteConfig.get(Property.RPC_SSL_KEYSTORE_PASSWORD.getKey());
+      if (null != keystorePassword) {
+        peerSiteConfig.put(Property.RPC_SSL_KEYSTORE_PASSWORD.getKey(), keystorePassword);
+      }
+      String truststorePassword = primarySiteConfig.get(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey());
+      if (null != truststorePassword) {
+        peerSiteConfig.put(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey(), truststorePassword);
+      }
+
+      System.out.println("Setting site configuration for peer " + peerSiteConfig);
+      peerCfg.setSiteConfig(peerSiteConfig);
+    }
+
+    // Use the CredentialProvider if the primary also uses one
+    String credProvider = primarySiteConfig.get(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
+    if (null != credProvider) {
+      Map<String,String> peerSiteConfig = peerCfg.getSiteConfig();
+      peerSiteConfig.put(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), credProvider);
+      peerCfg.setSiteConfig(peerSiteConfig);
+    }
+  }
+
   @Test(timeout = 60 * 5000)
   public void dataWasReplicatedToThePeer() throws Exception {
     MiniAccumuloConfigImpl peerCfg = new MiniAccumuloConfigImpl(createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName() + "_peer"),
         ROOT_PASSWORD);
     peerCfg.setNumTservers(1);
     peerCfg.setInstanceName("peer");
-    peerCfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
-    peerCfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
-    peerCfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
+    updatePeerConfigFromPrimary(getCluster().getConfig(), peerCfg);
     peerCfg.setProperty(Property.REPLICATION_NAME, "peer");
-    peerCfg.setProperty(Property.REPLICATION_WORK_ASSIGNER, UnorderedWorkAssigner.class.getName());
     MiniAccumuloClusterImpl peerCluster = peerCfg.build();
 
     peerCluster.start();
@@ -257,11 +295,8 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
         ROOT_PASSWORD);
     peerCfg.setNumTservers(1);
     peerCfg.setInstanceName("peer");
-    peerCfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
-    peerCfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
-    peerCfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
+    updatePeerConfigFromPrimary(getCluster().getConfig(), peerCfg);
     peerCfg.setProperty(Property.REPLICATION_NAME, "peer");
-    peerCfg.setProperty(Property.REPLICATION_WORK_ASSIGNER, UnorderedWorkAssigner.class.getName());
     MiniAccumuloClusterImpl peer1Cluster = peerCfg.build();
 
     peer1Cluster.start();
@@ -422,9 +457,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
         ROOT_PASSWORD);
     peerCfg.setNumTservers(1);
     peerCfg.setInstanceName("peer");
-    peerCfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
-    peerCfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
-    peerCfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
+    updatePeerConfigFromPrimary(getCluster().getConfig(), peerCfg);
     peerCfg.setProperty(Property.REPLICATION_NAME, "peer");
     MiniAccumuloClusterImpl peerCluster = peerCfg.build();
 
@@ -521,9 +554,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
         ROOT_PASSWORD);
     peerCfg.setNumTservers(1);
     peerCfg.setInstanceName("peer");
-    peerCfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
-    peerCfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
-    peerCfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
+    updatePeerConfigFromPrimary(getCluster().getConfig(), peerCfg);
     peerCfg.setProperty(Property.REPLICATION_NAME, "peer");
     MiniAccumuloClusterImpl peer1Cluster = peerCfg.build();
 
