@@ -99,8 +99,6 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
     cfg.setProperty(Property.REPLICATION_NAME, "master");
     cfg.setProperty(Property.REPLICATION_WORK_ASSIGNER, SequentialWorkAssigner.class.getName());
     cfg.setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX, "1M");
-    cfg.setMemory(ServerType.MASTER, 1, MemoryUnit.GIGABYTE);
-    cfg.setMemory(ServerType.TABLET_SERVER, 256, MemoryUnit.MEGABYTE);
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
