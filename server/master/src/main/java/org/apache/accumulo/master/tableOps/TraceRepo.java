@@ -29,17 +29,20 @@ public class TraceRepo<T> implements Repo<T> {
   
   private static final long serialVersionUID = 1L;
   
-  TInfo tinfo;
+  long traceId;
+  long parentId;
   Repo<T> repo;
   
   public TraceRepo(Repo<T> repo) {
     this.repo = repo;
-    tinfo = Tracer.traceInfo();
+    TInfo tinfo = Tracer.traceInfo();
+    traceId = tinfo.traceId;
+    parentId = tinfo.parentId;
   }
   
   @Override
   public long isReady(long tid, T environment) throws Exception {
-    Span span = Trace.trace(tinfo, repo.getDescription());
+    Span span = Trace.trace(new TInfo(traceId, parentId), repo.getDescription());
     try {
       return repo.isReady(tid, environment);
     } finally {
@@ -49,7 +52,7 @@ public class TraceRepo<T> implements Repo<T> {
   
   @Override
   public Repo<T> call(long tid, T environment) throws Exception {
-    Span span = Trace.trace(tinfo, repo.getDescription());
+    Span span = Trace.trace(new TInfo(traceId, parentId), repo.getDescription());
     try {
       Repo<T> result = repo.call(tid, environment);
       if (result == null)
@@ -62,7 +65,7 @@ public class TraceRepo<T> implements Repo<T> {
   
   @Override
   public void undo(long tid, T environment) throws Exception {
-    Span span = Trace.trace(tinfo, repo.getDescription());
+    Span span = Trace.trace(new TInfo(traceId, parentId), repo.getDescription());
     try {
       repo.undo(tid, environment);
     } finally {
