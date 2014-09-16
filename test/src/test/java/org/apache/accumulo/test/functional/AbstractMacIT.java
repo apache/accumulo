@@ -52,7 +52,7 @@ public abstract class AbstractMacIT {
       } catch (Exception e) {}
   }
 
-  protected static File createSharedTestDir(String name) {
+  public static File createSharedTestDir(String name) {
     File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
     baseDir.mkdirs();
     if (name != null)
@@ -63,7 +63,7 @@ public abstract class AbstractMacIT {
     return testDir;
   }
 
-  protected static File createTestDir(String name) {
+  public static File createTestDir(String name) {
     File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
     baseDir.mkdirs();
     if (name == null)
@@ -81,7 +81,7 @@ public abstract class AbstractMacIT {
     return names;
   }
 
-  protected static void configureForEnvironment(MiniAccumuloConfigImpl cfg, File folder) {
+  public static void configureForEnvironment(MiniAccumuloConfigImpl cfg, File folder) {
     if ("true".equals(System.getProperty("org.apache.accumulo.test.functional.useSslForIT"))) {
       configureForSsl(cfg, folder);
     }
@@ -90,7 +90,7 @@ public abstract class AbstractMacIT {
     }
   }
 
-  protected static void configureForSsl(MiniAccumuloConfigImpl cfg, File folder) {
+  public static void configureForSsl(MiniAccumuloConfigImpl cfg, File folder) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     if ("true".equals(siteConfig.get(Property.INSTANCE_RPC_SSL_ENABLED.getKey()))) {
       // already enabled; don't mess with it

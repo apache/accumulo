@@ -20,6 +20,8 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -42,6 +44,7 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ProcessReference;
+import org.apache.accumulo.test.functional.AbstractMacIT;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem;
 import org.apache.commons.io.FileUtils;
@@ -51,16 +54,20 @@ import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
+import org.junit.rules.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 
 /**
- * 
+ *
  */
 public class CyclicReplicationIT {
   private static final Logger log = LoggerFactory.getLogger(CyclicReplicationIT.class);
+
+  @Rule
+  public Timeout timeout = new Timeout(5 * 60 * 1000);
 
   @Rule
   public TestName testName = new TestName();
@@ -86,7 +93,46 @@ public class CyclicReplicationIT {
     out.close();
   }
 
-  @Test(timeout = 5 * 60 * 1000)
+  /**
+   * Use the same SSL and credential provider configuration that is set up by AbstractMacIT for the other MAC used for replication
+   */
+  private void updatePeerConfigFromPrimary(MiniAccumuloConfigImpl primaryCfg, MiniAccumuloConfigImpl peerCfg) {
+    // Set the same SSL information from the primary when present
+    Map<String,String> primarySiteConfig = primaryCfg.getSiteConfig();
+    if ("true".equals(primarySiteConfig.get(Property.INSTANCE_RPC_SSL_ENABLED.getKey()))) {
+      Map<String,String> peerSiteConfig = new HashMap<String,String>();
+      peerSiteConfig.put(Property.INSTANCE_RPC_SSL_ENABLED.getKey(), "true");
+      String keystorePath = primarySiteConfig.get(Property.RPC_SSL_KEYSTORE_PATH.getKey());
+      Assert.assertNotNull("Keystore Path was null", keystorePath);
+      peerSiteConfig.put(Property.RPC_SSL_KEYSTORE_PATH.getKey(), keystorePath);
+      String truststorePath = primarySiteConfig.get(Property.RPC_SSL_TRUSTSTORE_PATH.getKey());
+      Assert.assertNotNull("Truststore Path was null", truststorePath);
+      peerSiteConfig.put(Property.RPC_SSL_TRUSTSTORE_PATH.getKey(), truststorePath);
+
+      // Passwords might be stored in CredentialProvider
+      String keystorePassword = primarySiteConfig.get(Property.RPC_SSL_KEYSTORE_PASSWORD.getKey());
+      if (null != keystorePassword) {
+        peerSiteConfig.put(Property.RPC_SSL_KEYSTORE_PASSWORD.getKey(), keystorePassword);
+      }
+      String truststorePassword = primarySiteConfig.get(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey());
+      if (null != truststorePassword) {
+        peerSiteConfig.put(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey(), truststorePassword);
+      }
+
+      System.out.println("Setting site configuration for peer " + peerSiteConfig);
+      peerCfg.setSiteConfig(peerSiteConfig);
+    }
+
+    // Use the CredentialProvider if the primary also uses one
+    String credProvider = primarySiteConfig.get(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
+    if (null != credProvider) {
+      Map<String,String> peerSiteConfig = peerCfg.getSiteConfig();
+      peerSiteConfig.put(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), credProvider);
+      peerCfg.setSiteConfig(peerSiteConfig);
+    }
+  }
+
+  @Test
   public void dataIsNotOverReplicated() throws Exception {
     File master1Dir = createTestDir("master1"), master2Dir = createTestDir("master2");
     String password = "password";
@@ -94,6 +140,10 @@ public class CyclicReplicationIT {
     MiniAccumuloConfigImpl master1Cfg = new MiniAccumuloConfigImpl(master1Dir, password);
     master1Cfg.setNumTservers(1);
     master1Cfg.setInstanceName("master1");
+
+    // Set up SSL if needed
+    AbstractMacIT.configureForEnvironment(master1Cfg, AbstractMacIT.createSharedTestDir(this.getClass().getName() + "-ssl"));
+
     master1Cfg.setProperty(Property.REPLICATION_NAME, master1Cfg.getInstanceName());
     master1Cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
     master1Cfg.setProperty(Property.REPLICATION_THREADCHECK, "5m");
@@ -105,6 +155,10 @@ public class CyclicReplicationIT {
     MiniAccumuloConfigImpl master2Cfg = new MiniAccumuloConfigImpl(master2Dir, password);
     master2Cfg.setNumTservers(1);
     master2Cfg.setInstanceName("master2");
+
+    // Set up SSL if needed. Need to share the same SSL truststore as master1
+    this.updatePeerConfigFromPrimary(master1Cfg, master2Cfg);
+
     master2Cfg.setProperty(Property.REPLICATION_NAME, master2Cfg.getInstanceName());
     master2Cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
     master2Cfg.setProperty(Property.REPLICATION_THREADCHECK, "5m");
@@ -129,7 +183,7 @@ public class CyclicReplicationIT {
       // Configure the credentials we should use to authenticate ourselves to the peer for replication
       connMaster1.instanceOperations().setProperty(Property.REPLICATION_PEER_USER.getKey() + master2Cluster.getInstanceName(), master2UserName);
       connMaster1.instanceOperations().setProperty(Property.REPLICATION_PEER_PASSWORD.getKey() + master2Cluster.getInstanceName(), master2Password);
-      
+
       connMaster2.instanceOperations().setProperty(Property.REPLICATION_PEER_USER.getKey() + master1Cluster.getInstanceName(), master1UserName);
       connMaster2.instanceOperations().setProperty(Property.REPLICATION_PEER_PASSWORD.getKey() + master1Cluster.getInstanceName(), master1Password);
 
