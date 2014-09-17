@@ -35,6 +35,7 @@ import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.ServerType;
@@ -44,6 +45,8 @@ import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+
+import com.google.common.collect.Iterables;
 
 public class BalanceAfterCommsFailureIT extends ConfigurableMacIT {
 
@@ -87,6 +90,8 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacIT {
       splits.add(new Text(split));
     }
     c.tableOperations().addSplits("test", splits);
+    // Ensure all of the tablets are actually assigned
+    assertEquals(0, Iterables.size(c.createScanner("test", Authorizations.EMPTY)));
     UtilWaitThread.sleep(10 * 1000);
     checkBalance(c);
   }
@@ -111,8 +116,10 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacIT {
       }
       counts.add(count);
     }
-    assertTrue(counts.size() > 1);
-    for (int i = 1; i < counts.size(); i++)
-      assertTrue(Math.abs(counts.get(0) - counts.get(i)) <= counts.size());
+    assertTrue("Expected to have at least two TabletServers", counts.size() > 1);
+    for (int i = 1; i < counts.size(); i++) {
+      int diff = Math.abs(counts.get(0) - counts.get(i));
+      assertTrue("Expected difference in tablets to be less than or equal to " + counts.size() + " but was " + diff, diff <= counts.size());
+    }
   }
 }
