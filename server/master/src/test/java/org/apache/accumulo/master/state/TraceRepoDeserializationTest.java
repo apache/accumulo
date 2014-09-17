@@ -20,7 +20,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ObjectInputStream;
 
 import org.apache.accumulo.core.util.Base64;
-import org.apache.accumulo.fate.ZooStore;
 import org.junit.Test;
 
 public class TraceRepoDeserializationTest {
@@ -46,11 +45,14 @@ public class TraceRepoDeserializationTest {
       "dWxvLnRyYWNlLnRocmlmdC5USW5mb79UcL31bhZ9AwADQgAQX19pc3NldF9iaXRmaWVs" +
       "ZEoACHBhcmVudElkSgAHdHJhY2VJZHhwdwUWABYAAHg=";
   
+  // If this test fails add:
+  // private static final long serialVersionUID = -4659975753252858243l;
+  // back into org.apache.accumulo.trace.thrift.TInfo
   @Test
   public void test() throws Exception {
     byte bytes[] = Base64.decodeBase64(oldValue);
     ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-    ObjectInputStream ois = new ZooStore.KludgeInputStream(bais);
+    ObjectInputStream ois = new ObjectInputStream(bais);
     ois.readObject();
     ois.close();
   }

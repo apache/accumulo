@@ -19,10 +19,8 @@ package org.apache.accumulo.fate;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.ObjectStreamClass;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.security.SecureRandom;
@@ -72,25 +70,10 @@ public class ZooStore<T> implements TStore<T> {
     }
   }
 
-  public static class KludgeInputStream extends ObjectInputStream {
-    @Override
-    protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
-      // hack to recover serialized TInfo objects stored in zookeeper between releases
-      if (desc.getName().equals("org.apache.accumulo.trace.thrift.TInfo")) {
-        return Class.forName("org.apache.accumulo.master.state.TInfo");
-      }
-      return super.resolveClass(desc);
-    }
-
-    public KludgeInputStream(InputStream in) throws IOException {
-      super(in);
-    }
-  }
-  
   private Object deserialize(byte ser[]) {
     try {
       ByteArrayInputStream bais = new ByteArrayInputStream(ser);
-      ObjectInputStream ois = new KludgeInputStream(bais);
+      ObjectInputStream ois = new ObjectInputStream(bais);
       try {
         return ois.readObject();
       } finally {
