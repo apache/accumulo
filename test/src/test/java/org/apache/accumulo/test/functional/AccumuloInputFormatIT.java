@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -69,11 +70,27 @@ public class AccumuloInputFormatIT extends SimpleMacIT {
     conn.tableOperations().create(table);
     insertData(table, currentTimeMillis());
 
+    ClientConfiguration clientConf = new ClientConfiguration().withInstance(conn.getInstance().getInstanceName()).withZkHosts(
+        conn.getInstance().getZooKeepers()), clusterClientConf = getStaticCluster().getClientConfig();
+
+    // Pass SSL and CredentialProvider options into the ClientConfiguration given to AccumuloInputFormat
+    boolean sslEnabled = Boolean.valueOf(clusterClientConf.get(ClientProperty.INSTANCE_RPC_SSL_ENABLED));
+    if (sslEnabled) {
+      ClientProperty[] sslProperties = new ClientProperty[] {ClientProperty.INSTANCE_RPC_SSL_ENABLED, ClientProperty.INSTANCE_RPC_SSL_CLIENT_AUTH,
+          ClientProperty.RPC_SSL_KEYSTORE_PATH, ClientProperty.RPC_SSL_KEYSTORE_TYPE, ClientProperty.RPC_SSL_KEYSTORE_PASSWORD,
+          ClientProperty.RPC_SSL_TRUSTSTORE_PATH, ClientProperty.RPC_SSL_TRUSTSTORE_TYPE, ClientProperty.RPC_SSL_TRUSTSTORE_PASSWORD,
+          ClientProperty.RPC_USE_JSSE, ClientProperty.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS};
+
+      for (ClientProperty prop : sslProperties) {
+        // The default property is returned if it's not in the ClientConfiguration so we don't have to check if the value is actually defined
+        clientConf.setProperty(prop, clusterClientConf.get(prop));
+      }
+    }
+
     @SuppressWarnings("deprecation")
     Job job = new Job();
     AccumuloInputFormat.setInputTableName(job, table);
-    AccumuloInputFormat.setZooKeeperInstance(job, new ClientConfiguration().withInstance(conn.getInstance().getInstanceName())
-        .withZkHosts(conn.getInstance().getZooKeepers()));
+    AccumuloInputFormat.setZooKeeperInstance(job, clientConf);
     AccumuloInputFormat.setConnectorInfo(job, "root", new PasswordToken(ROOT_PASSWORD));
 
     // split table
