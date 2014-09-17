@@ -19,7 +19,9 @@ package org.apache.accumulo.test.functional;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.SortedSet;
@@ -35,19 +37,21 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.fate.util.UtilWaitThread;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.minicluster.impl.ProcessReference;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class BalanceAfterCommsFailureIT extends ConfigurableMacIT {
-  
+
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setSiteConfig(Collections.singletonMap(Property.GENERAL_RPC_TIMEOUT.getKey(), "2s"));
   }
-  
+
   @Override
   protected int defaultTimeoutSeconds() {
     return 2 * 60;
@@ -57,9 +61,27 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacIT {
   public void test() throws Exception {
     Connector c = this.getConnector();
     c.tableOperations().create("test");
-    assertEquals(0, Runtime.getRuntime().exec(new String[]{"pkill", "-SIGSTOP", "-f", "TabletServer"}).waitFor());
+    Collection<ProcessReference> tservers = getCluster().getProcesses().get(ServerType.TABLET_SERVER);
+    ArrayList<Integer> tserverPids = new ArrayList<Integer>(tservers.size());
+    for (ProcessReference tserver : tservers) {
+      Process p = tserver.getProcess();
+      if (!p.getClass().getName().equals("java.lang.UNIXProcess")) {
+        log.info("Found process that was not UNIXProcess, exiting test");
+        return;
+      }
+
+      Field f = p.getClass().getDeclaredField("pid");
+      f.setAccessible(true);
+      tserverPids.add(f.getInt(p));
+    }
+
+    for (int pid : tserverPids) {
+      assertEquals(0, Runtime.getRuntime().exec(new String[] {"kill", "-SIGSTOP", Integer.toString(pid)}).waitFor());
+    }
     UtilWaitThread.sleep(20 * 1000);
-    assertEquals(0, Runtime.getRuntime().exec(new String[]{"pkill", "-SIGCONT", "-f", "TabletServer"}).waitFor());
+    for (int pid : tserverPids) {
+      assertEquals(0, Runtime.getRuntime().exec(new String[] {"kill", "-SIGCONT", Integer.toString(pid)}).waitFor());
+    }
     SortedSet<Text> splits = new TreeSet<Text>();
     for (String split : "a b c d e f g h i j k l m n o p q r s t u v w x y z".split(" ")) {
       splits.add(new Text(split));
@@ -71,7 +93,7 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacIT {
 
   private void checkBalance(Connector c) throws Exception {
     Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
-    
+
     MasterClientService.Iface client = null;
     MasterMonitorInfo stats = null;
     try {
