@@ -300,56 +300,54 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         IZooReaderWriter zoo = ZooReaderWriter.getInstance();
         final String zooRoot = ZooUtil.getRoot(instance);
 
-        if (accumuloPersistentVersion == ServerConstants.TWO_DATA_VERSIONS_AGO) {
-          log.debug("Handling updates for version " + ServerConstants.TWO_DATA_VERSIONS_AGO);
+        log.debug("Handling updates for version " + accumuloPersistentVersion);
 
-          log.debug("Cleaning out remnants of logger role.");
-          zoo.recursiveDelete(zooRoot + "/loggers", NodeMissingPolicy.SKIP);
-          zoo.recursiveDelete(zooRoot + "/dead/loggers", NodeMissingPolicy.SKIP);
+        log.debug("Cleaning out remnants of logger role.");
+        zoo.recursiveDelete(zooRoot + "/loggers", NodeMissingPolicy.SKIP);
+        zoo.recursiveDelete(zooRoot + "/dead/loggers", NodeMissingPolicy.SKIP);
 
-          final byte[] zero = new byte[] {'0'};
-          log.debug("Initializing recovery area.");
-          zoo.putPersistentData(zooRoot + Constants.ZRECOVERY, zero, NodeExistsPolicy.SKIP);
+        final byte[] zero = new byte[] {'0'};
+        log.debug("Initializing recovery area.");
+        zoo.putPersistentData(zooRoot + Constants.ZRECOVERY, zero, NodeExistsPolicy.SKIP);
 
-          for (String id : zoo.getChildren(zooRoot + Constants.ZTABLES)) {
-            log.debug("Prepping table " + id + " for compaction cancellations.");
-            zoo.putPersistentData(zooRoot + Constants.ZTABLES + "/" + id + Constants.ZTABLE_COMPACT_CANCEL_ID, zero, NodeExistsPolicy.SKIP);
+        for (String id : zoo.getChildren(zooRoot + Constants.ZTABLES)) {
+          log.debug("Prepping table " + id + " for compaction cancellations.");
+          zoo.putPersistentData(zooRoot + Constants.ZTABLES + "/" + id + Constants.ZTABLE_COMPACT_CANCEL_ID, zero, NodeExistsPolicy.SKIP);
+        }
+
+        @SuppressWarnings("deprecation")
+        String zpath = zooRoot + Constants.ZCONFIG + "/" + Property.TSERV_WAL_SYNC_METHOD.getKey();
+        // is the entire instance set to use flushing vs sync?
+        boolean flushDefault = false;
+        try {
+          byte data[] = zoo.getData(zpath, null);
+          if (new String(data, StandardCharsets.UTF_8).endsWith("flush")) {
+            flushDefault = true;
           }
-
-          @SuppressWarnings("deprecation")
-          String zpath = zooRoot + Constants.ZCONFIG + "/" + Property.TSERV_WAL_SYNC_METHOD.getKey();
-          boolean flushDefault = false;
+        } catch (KeeperException.NoNodeException ex) {
+          // skip
+        } 
+        for (String id : zoo.getChildren(zooRoot + Constants.ZTABLES)) {
+          log.debug("Converting table " + id + " WALog setting to Durability");
           try {
-            byte data[] = zoo.getData(zpath, null);
-            if (new String(data, StandardCharsets.UTF_8).endsWith("flush")) {
-              flushDefault = true;
+            @SuppressWarnings("deprecation")
+            String path = zooRoot + Constants.ZTABLES + "/" + id + Constants.ZTABLE_CONF + "/" + Property.TABLE_WALOG_ENABLED.getKey();
+            byte[] data = zoo.getData(path, null);
+            boolean useWAL = Boolean.parseBoolean(new String(data, StandardCharsets.UTF_8));
+            zoo.recursiveDelete(path, NodeMissingPolicy.FAIL);
+            path = zooRoot + Constants.ZTABLES + "/" + id + Constants.ZTABLE_CONF + "/" + Property.TABLE_DURABILITY.getKey();
+            if (useWAL) {
+              if (flushDefault) {
+                zoo.putPersistentData(path, "flush".getBytes(), NodeExistsPolicy.SKIP);
+              } else {
+                zoo.putPersistentData(path, "sync".getBytes(), NodeExistsPolicy.SKIP);
+              }
+            } else {
+              zoo.putPersistentData(path, "none".getBytes(), NodeExistsPolicy.SKIP);
             }
           } catch (KeeperException.NoNodeException ex) {
-            // skip
-          } 
-          for (String id : zoo.getChildren(zooRoot + Constants.ZTABLES)) {
-            log.debug("Converting table " + id + " WALog setting to Durability");
-            try {
-              @SuppressWarnings("deprecation")
-              String path = zooRoot + Constants.ZTABLES + "/" + id + Constants.ZTABLE_CONF + "/" + Property.TABLE_WALOG_ENABLED.getKey();
-              byte[] data = zoo.getData(path, null);
-              boolean useWAL = Boolean.parseBoolean(new String(data, StandardCharsets.UTF_8));
-              zoo.recursiveDelete(path, NodeMissingPolicy.FAIL);
-              path = zooRoot + Constants.ZTABLES + "/" + id + Constants.ZTABLE_CONF + "/" + Property.TABLE_DURABILITY.getKey();
-              if (useWAL) {
-                if (flushDefault) {
-                  zoo.putPersistentData(path, "flush".getBytes(), NodeExistsPolicy.SKIP);
-                } else {
-                  zoo.putPersistentData(path, "sync".getBytes(), NodeExistsPolicy.SKIP);
-                }
-              } else {
-                zoo.putPersistentData(path, "none".getBytes(), NodeExistsPolicy.SKIP);
-              }
-            } catch (KeeperException.NoNodeException ex) {
-              // skip it
-            }
+            // skip it
           }
-        
         }
 
         // create initial namespaces
@@ -426,16 +424,20 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           throw new IllegalStateException("Access to Fate should not have been initialized prior to the Master finishing upgrades. Please save all logs and file a bug.");
         }
         Runnable upgradeTask = new Runnable() {
+          int version = accumuloPersistentVersion;
           @Override
           public void run() {
             try {
               log.info("Starting to upgrade metadata table.");
-              if (accumuloPersistentVersion == ServerConstants.TWO_DATA_VERSIONS_AGO) {
+              if (version == ServerConstants.MOVE_DELETE_MARKERS - 1) {
                 log.info("Updating Delete Markers in metadata table for version 1.4");
                 MetadataTableUtil.moveMetaDeleteMarkersFrom14(instance, SystemCredentials.get());
-              } else {
+                version++;
+              }
+              if (version == ServerConstants.MOVE_TO_ROOT_TABLE - 1){
                 log.info("Updating Delete Markers in metadata table.");
                 MetadataTableUtil.moveMetaDeleteMarkers(instance, SystemCredentials.get());
+                version++;
               }
               log.info("Updating persistent data version.");
               Accumulo.updateAccumuloVersion(fs, accumuloPersistentVersion);

@@ -19,6 +19,7 @@ package org.apache.accumulo.server;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -47,11 +48,32 @@ public class ServerConstants {
   public static final Integer WIRE_VERSION = 3;
 
   /**
-   * current version (6) reflects the addition of a separate root table (ACCUMULO-1481) in version 1.6.0
+   * version (7) reflects the change in the representation of trace information in TraceRepo
    */
-  public static final int DATA_VERSION = 6;
-  public static final int PREV_DATA_VERSION = 5;
-  public static final int TWO_DATA_VERSIONS_AGO = 4;
+  public static final int DATA_VERSION = 7;
+  /**
+   * version (6) reflects the addition of a separate root table (ACCUMULO-1481) in version 1.6.0
+   */
+  public static final int MOVE_TO_ROOT_TABLE = 6;
+  /**
+   * version (5) moves delete file markers for the metadata table into the root tablet
+   */
+  public static final int MOVE_DELETE_MARKERS = 5;
+  /**
+   * version (4) moves logging to HDFS in 1.5.0
+   */
+  public static final int LOGGING_TO_HDFS = 4;
+  public static final BitSet CAN_UPGRADE = new BitSet(); 
+  static {
+    for (int i : new int[]{DATA_VERSION, MOVE_TO_ROOT_TABLE, MOVE_DELETE_MARKERS, LOGGING_TO_HDFS}) {
+      CAN_UPGRADE.set(i);
+    }
+  }
+  public static final BitSet NEEDS_UPGRADE = new BitSet();
+  static {
+    NEEDS_UPGRADE.xor(CAN_UPGRADE);
+    NEEDS_UPGRADE.clear(DATA_VERSION);
+  }
 
   private static String[] baseUris = null;
 
