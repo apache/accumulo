@@ -27,6 +27,13 @@ public class ProcessReference {
     this.process = process;
   }
 
+  /**
+   * Visible for testing, not intended for client consumption
+   */
+  public Process getProcess() {
+    return process;
+  }
+
   @Override
   public String toString() {
     return process.toString();
