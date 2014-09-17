@@ -16,15 +16,17 @@
  */
 package org.apache.accumulo.test;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.accumulo.test.functional.SlowIterator;
@@ -33,7 +35,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class Accumulo3030IT extends ConfigurableMacIT {
-  
+
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
@@ -58,9 +60,22 @@ public class Accumulo3030IT extends ConfigurableMacIT {
         try {
           // ensure the scan is running: not perfect, the metadata tables could be scanned, too.
           String tserver = conn.instanceOperations().getTabletServers().iterator().next();
-          while (conn.instanceOperations().getActiveScans(tserver).size() < 1) {
-            UtilWaitThread.sleep(1000);
-          }
+          do {
+            ArrayList<ActiveScan> scans = new ArrayList<ActiveScan>(conn.instanceOperations().getActiveScans(tserver));
+            Iterator<ActiveScan> iter = scans.iterator();
+            while (iter.hasNext()) {
+              ActiveScan scan = iter.next();
+              // Remove scans not against our table and not owned by us
+              if (!"root".equals(scan.getUser()) || !tableName.equals(scan.getTable())) {
+                iter.remove();
+              }
+            }
+
+            if (!scans.isEmpty()) {
+              // We found our scan
+              break;
+            }
+          } while (true);
         } catch (Exception e) {
           e.printStackTrace();
         }
@@ -79,5 +94,5 @@ public class Accumulo3030IT extends ConfigurableMacIT {
       thread.join();
     }
   }
-  
+
 }
