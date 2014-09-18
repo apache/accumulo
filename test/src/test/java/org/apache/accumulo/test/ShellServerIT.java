@@ -94,7 +94,7 @@ public class ShellServerIT extends SimpleMacIT {
       sb.setLength(0);
     }
   }
-  
+
   private static final Logger log = Logger.getLogger(ShellServerIT.class);
 
   public static class StringInputStream extends InputStream {
@@ -118,10 +118,11 @@ public class ShellServerIT extends SimpleMacIT {
   private static abstract class ErrorMessageCallback {
     public abstract String getErrorMessage();
   }
-  
+
   private static class NoOpErrorMessageCallback extends ErrorMessageCallback {
     private static final String empty = "";
-    public String getErrorMessage() { 
+    @Override
+    public String getErrorMessage() {
       return empty;
     }
   }
@@ -235,7 +236,7 @@ public class ShellServerIT extends SimpleMacIT {
     // give the tracer some time to start
     UtilWaitThread.sleep(1000);
   }
-  
+
   @Before
   public void setupShell() throws Exception {
     ts = new TestShell(ROOT_PASSWORD, getStaticCluster().getConfig().getInstanceName(), getStaticCluster().getConfig().getZooKeepers(),
@@ -268,7 +269,7 @@ public class ShellServerIT extends SimpleMacIT {
   @Test(timeout = 60000)
   public void exporttableImporttable() throws Exception {
     final String table = name.getMethodName(), table2 = table + "2";
-    
+
     // exporttable / importtable
     ts.exec("createtable " + table + " -evc", true);
     make10();
@@ -312,7 +313,7 @@ public class ShellServerIT extends SimpleMacIT {
   @Test(timeout = 45000)
   public void setscaniterDeletescaniter() throws Exception {
     final String table = name.getMethodName();
-    
+
     // setscaniter, deletescaniter
     ts.exec("createtable " + table);
     ts.exec("insert a cf cq 1");
@@ -341,7 +342,7 @@ public class ShellServerIT extends SimpleMacIT {
   @Test(timeout = 45000)
   public void egrep() throws Exception {
     final String table = name.getMethodName();
-    
+
     // egrep
     ts.exec("createtable " + table);
     make10();
@@ -353,7 +354,7 @@ public class ShellServerIT extends SimpleMacIT {
   @Test(timeout = 45000)
   public void du() throws Exception {
     final String table = name.getMethodName();
-    
+
     // create and delete a table so we get out of a table context in the shell
     ts.exec("notable", true);
 
@@ -388,7 +389,7 @@ public class ShellServerIT extends SimpleMacIT {
   @Test(timeout = 45000)
   public void user() throws Exception {
     final String table = name.getMethodName();
-    
+
     // createuser, deleteuser, user, users, droptable, grant, revoke
     ts.input.set("secret\nsecret\n");
     ts.exec("createuser xyzzy", true);
@@ -424,7 +425,7 @@ public class ShellServerIT extends SimpleMacIT {
   @Test(timeout = 45000)
   public void iter() throws Exception {
     final String table = name.getMethodName();
-    
+
     // setshelliter, listshelliter, deleteshelliter
     ts.exec("createtable " + table);
     ts.exec("insert a cf cq 1");
@@ -557,7 +558,7 @@ public class ShellServerIT extends SimpleMacIT {
   @Test(timeout = 45000)
   public void notable() throws Exception {
     final String table = name.getMethodName();
-    
+
     // notable
     ts.exec("createtable " + table, true);
     ts.exec("scan", true, " " + table + ">", true);
@@ -587,6 +588,7 @@ public class ShellServerIT extends SimpleMacIT {
     for (int i = 0; i < 9 && !success; i++) {
       try {
         ts.exec("insert a b c d -l foo", false, "does not have authorization", true, new ErrorMessageCallback() {
+          @Override
           public String getErrorMessage() {
             try {
               Connector c = getConnector();
@@ -602,6 +604,7 @@ public class ShellServerIT extends SimpleMacIT {
     }
     if (!success) {
       ts.exec("insert a b c d -l foo", false, "does not have authorization", true, new ErrorMessageCallback() {
+        @Override
         public String getErrorMessage() {
           try {
             Connector c = getConnector();
@@ -662,7 +665,7 @@ public class ShellServerIT extends SimpleMacIT {
   @Test(timeout = 45000)
   public void clonetable() throws Exception {
     final String table = name.getMethodName(), clone = table + "_clone";
-    
+
     // clonetable
     ts.exec("createtable " + table + " -evc");
     ts.exec("config -t " + table + " -s table.split.threshold=123M", true);
@@ -677,16 +680,16 @@ public class ShellServerIT extends SimpleMacIT {
     ts.exec("deletetable -f " + table);
     ts.exec("deletetable -f " + clone);
   }
-  
+
   @Test(timeout = 45000)
   public void testCompactions() throws Exception {
     final String table = name.getMethodName();
-    
+
     // compact
     ts.exec("createtable " + table);
-    
+
     String tableId = getTableId(table);
-    
+
     // make two files
     ts.exec("insert a b c d");
     ts.exec("flush -w");
@@ -706,7 +709,7 @@ public class ShellServerIT extends SimpleMacIT {
 
     // at this point there are 4 files in the default tablet
     assertEquals("Files that were found: " + oldFiles, 4, oldFiles.size());
-    
+
     // compact some data:
     ts.exec("compact -b g -e z -w");
     assertEquals(2, countFiles(tableId));
@@ -721,7 +724,7 @@ public class ShellServerIT extends SimpleMacIT {
   @Test(timeout = 45000)
   public void constraint() throws Exception {
     final String table = name.getMethodName();
-    
+
     // constraint
     ts.exec("constraint -l -t " + MetadataTable.NAME + "", true, "MetadataConstraints=1", true);
     ts.exec("createtable " + table + " -evc");
@@ -740,7 +743,7 @@ public class ShellServerIT extends SimpleMacIT {
   @Test(timeout = 45000)
   public void deletemany() throws Exception {
     final String table = name.getMethodName();
-    
+
     // deletemany
     ts.exec("createtable " + table);
     make10();
@@ -772,11 +775,11 @@ public class ShellServerIT extends SimpleMacIT {
 
     ts.exec("createtable " + table);
     final String tableId = getTableId(table);
-    
+
     // deleterows
     int base = countFiles(tableId);
     assertEquals(0, base);
-    
+
     ts.exec("addsplits row5 row7");
     make10();
     ts.exec("flush -w -t " + table);
@@ -801,7 +804,7 @@ public class ShellServerIT extends SimpleMacIT {
   @Test(timeout = 45000)
   public void groups() throws Exception {
     final String table = name.getMethodName();
-    
+
     ts.exec("createtable " + table);
     ts.exec("setgroups -t " + table + " alpha=a,b,c num=3,2,1");
     ts.exec("getgroups -t " + table, true, "alpha=a,b,c", true);
@@ -812,7 +815,7 @@ public class ShellServerIT extends SimpleMacIT {
   @Test(timeout = 45000)
   public void grep() throws Exception {
     final String table = name.getMethodName();
-    
+
     ts.exec("createtable " + table, true);
     make10();
     ts.exec("grep row[123]", true, "row1", false);
@@ -836,7 +839,7 @@ public class ShellServerIT extends SimpleMacIT {
   // @Test(timeout = 45000)
   public void history() throws Exception {
     final String table = name.getMethodName();
-    
+
     ts.exec("history -c", true);
     ts.exec("createtable " + table);
     ts.exec("deletetable -f " + table);
@@ -847,7 +850,7 @@ public class ShellServerIT extends SimpleMacIT {
   @Test(timeout = 45000)
   public void importDirectory() throws Exception {
     final String table = name.getMethodName();
-    
+
     Configuration conf = new Configuration();
     FileSystem fs = FileSystem.get(conf);
     File importDir = new File(getFolder(), "import");
@@ -890,7 +893,7 @@ public class ShellServerIT extends SimpleMacIT {
   @Test(timeout = 45000)
   public void interpreter() throws Exception {
     final String table = name.getMethodName();
-    
+
     ts.exec("createtable " + table, true);
     ts.exec("interpreter -l", true, "HexScan", false);
     ts.exec("insert \\x02 cf cq value", true);
@@ -907,7 +910,7 @@ public class ShellServerIT extends SimpleMacIT {
   @Test(timeout = 45000)
   public void listcompactions() throws Exception {
     final String table = name.getMethodName();
-    
+
     ts.exec("createtable " + table, true);
     ts.exec("config -t " + table + " -s table.iterator.minc.slow=30,org.apache.accumulo.test.functional.SlowIterator", true);
     ts.exec("config -t " + table + " -s table.iterator.minc.slow.opt.sleepTime=1000", true);
@@ -928,7 +931,7 @@ public class ShellServerIT extends SimpleMacIT {
   @Test(timeout = 45000)
   public void maxrow() throws Exception {
     final String table = name.getMethodName();
-    
+
     ts.exec("createtable " + table, true);
     ts.exec("insert a cf cq value", true);
     ts.exec("insert b cf cq value", true);
@@ -943,7 +946,7 @@ public class ShellServerIT extends SimpleMacIT {
   @Test(timeout = 45000)
   public void merge() throws Exception {
     final String table = name.getMethodName();
-    
+
     ts.exec("createtable " + table);
     ts.exec("addsplits a m z");
     ts.exec("getsplits", true, "z", true);
@@ -975,7 +978,7 @@ public class ShellServerIT extends SimpleMacIT {
   @Test(timeout = 45000)
   public void renametable() throws Exception {
     final String table = name.getMethodName() + "1", rename = name.getMethodName() + "2";
-    
+
     ts.exec("createtable " + table);
     ts.exec("insert this is a value");
     ts.exec("renametable " + table + " " + rename);
@@ -1008,7 +1011,7 @@ public class ShellServerIT extends SimpleMacIT {
   @Test(timeout = 45000)
   public void listscans() throws Exception {
     final String table = name.getMethodName();
-    
+
     ts.exec("createtable " + table, true);
 
     // Should be about a 3 second scan
@@ -1037,11 +1040,15 @@ public class ShellServerIT extends SimpleMacIT {
     // Try to find the active scan for about 15seconds
     for (int i = 0; i < 50 && scans.isEmpty(); i++) {
       String currentScans = ts.exec("listscans", true);
+      log.info("Got output from listscans:\n" + currentScans);
       String[] lines = currentScans.split("\n");
-      for (int scanOffset = 2; i < lines.length; i++) {
+      for (int scanOffset = 2; scanOffset < lines.length; scanOffset++) {
         String currentScan = lines[scanOffset];
         if (currentScan.contains(table)) {
+          log.info("Retaining scan: " + currentScan);
           scans.add(currentScan);
+        } else {
+          log.info("Ignoring scan because of wrong table: " + currentScan);
         }
       }
       UtilWaitThread.sleep(300);
@@ -1062,7 +1069,7 @@ public class ShellServerIT extends SimpleMacIT {
       String client = parts[1].trim();
       assertTrue(client.matches(hostPortPattern));
     }
-    
+
     ts.exec("deletetable -f " + table, true);
   }
 
@@ -1071,7 +1078,7 @@ public class ShellServerIT extends SimpleMacIT {
     final String table = name.getMethodName();
 
     File fooFilterJar = File.createTempFile("FooFilter", ".jar", getFolder());
-    
+
     FileUtils.copyURLToFile(this.getClass().getResource("/FooFilter.jar"), fooFilterJar);
     fooFilterJar.deleteOnExit();
 
@@ -1117,7 +1124,7 @@ public class ShellServerIT extends SimpleMacIT {
   public void trace() throws Exception {
     // Make sure to not collide with the "trace" table
     final String table = name.getMethodName() + "Test";
-    
+
     ts.exec("trace on", true);
     ts.exec("createtable " + table, true);
     ts.exec("insert a b c value", true);
@@ -1253,14 +1260,14 @@ public class ShellServerIT extends SimpleMacIT {
       ts.exec(String.format("insert row%d cf col%d value", i, i));
     }
   }
-  
+
   private List<String> getFiles(String tableId) throws IOException {
     ts.output.clear();
 
     ts.exec("scan -t " + MetadataTable.NAME + " -np -c file -b " + tableId + " -e " + tableId + "~");
-    
+
     log.debug("countFiles(): " + ts.output.get());
-    
+
     String[] lines = StringUtils.split(ts.output.get(), "\n");
     ts.output.clear();
 
@@ -1274,10 +1281,10 @@ public class ShellServerIT extends SimpleMacIT {
   private int countFiles(String tableId) throws IOException {
     return getFiles(tableId).size();
   }
-  
+
   private String getTableId(String tableName) throws Exception {
     Connector conn = getConnector();
-    
+
     for (int i = 0; i < 5; i++) {
       Map<String,String> nameToId = conn.tableOperations().tableIdMap();
       if (nameToId.containsKey(tableName)) {
@@ -1286,7 +1293,7 @@ public class ShellServerIT extends SimpleMacIT {
         Thread.sleep(1000);
       }
     }
-    
+
     fail("Could not find ID for table: " + tableName);
     // Will never get here
     return null;
