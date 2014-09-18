@@ -92,22 +92,33 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacIT {
     c.tableOperations().addSplits("test", splits);
     // Ensure all of the tablets are actually assigned
     assertEquals(0, Iterables.size(c.createScanner("test", Authorizations.EMPTY)));
-    UtilWaitThread.sleep(10 * 1000);
+    UtilWaitThread.sleep(30 * 1000);
     checkBalance(c);
   }
 
   private void checkBalance(Connector c) throws Exception {
     Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
 
-    MasterClientService.Iface client = null;
     MasterMonitorInfo stats = null;
-    try {
-      client = MasterClient.getConnectionWithRetry(c.getInstance());
-      stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(c.getInstance()));
-    } finally {
-      if (client != null)
-        MasterClient.close(client);
+    int unassignedTablets = 1;
+    for (int i = 0; unassignedTablets > 0 && i < 10; i++) {
+      MasterClientService.Iface client = null;
+      try {
+        client = MasterClient.getConnectionWithRetry(c.getInstance());
+        stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(c.getInstance()));
+      } finally {
+        if (client != null)
+          MasterClient.close(client);
+      }
+      unassignedTablets = stats.getUnassignedTablets();
+      if (unassignedTablets > 0) {
+        log.info("Found " + unassignedTablets + " unassigned tablets, sleeping 3 seconds for tablet assignment");
+        Thread.sleep(3000);
+      }
     }
+
+    assertEquals("Unassigned tablets were not assigned within 30 seconds", 0, unassignedTablets);
+
     List<Integer> counts = new ArrayList<Integer>();
     for (TabletServerStatus server : stats.tServerInfo) {
       int count = 0;
@@ -119,7 +130,8 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacIT {
     assertTrue("Expected to have at least two TabletServers", counts.size() > 1);
     for (int i = 1; i < counts.size(); i++) {
       int diff = Math.abs(counts.get(0) - counts.get(i));
-      assertTrue("Expected difference in tablets to be less than or equal to " + counts.size() + " but was " + diff, diff <= counts.size());
+      assertTrue("Expected difference in tablets to be less than or equal to " + counts.size() + " but was " + diff + ". Counts " + counts,
+          diff <= counts.size());
     }
   }
 }
