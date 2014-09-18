@@ -70,7 +70,8 @@ public class AuditMessageIT extends ConfigurableMacIT {
   private static final String NEW_TEST_TABLE_NAME = "oranges";
   private static final String THIRD_TEST_TABLE_NAME = "pears";
   private static final Authorizations auths = new Authorizations("private", "public");
-  
+
+  @Override
   public void beforeClusterStart(MiniAccumuloConfigImpl cfg) throws Exception {
     new File(cfg.getConfDir(), "auditLog.xml").delete();
   }
@@ -91,12 +92,19 @@ public class AuditMessageIT extends ConfigurableMacIT {
 
   /**
    * Returns a List of Audit messages that have been grep'd out of the MiniAccumuloCluster output.
-   * 
+   *
    * @param stepName
    *          A unique name for the test being executed, to identify the System.out messages.
    * @return A List of the Audit messages, sorted (so in chronological order).
    */
   private ArrayList<String> getAuditMessages(String stepName) throws IOException {
+    // ACCUMULO-3144 Make sure we give the processes enough time to flush the write buffer
+    try {
+      Thread.sleep(2000);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IOException("Interrupted waiting for data to be flushed to output streams");
+    }
 
     for (MiniAccumuloClusterImpl.LogWriter lw : getCluster().getLogWriters()) {
       lw.flush();
