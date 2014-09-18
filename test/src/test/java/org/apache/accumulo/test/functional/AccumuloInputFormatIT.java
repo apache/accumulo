@@ -36,6 +36,8 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -71,10 +73,11 @@ public class AccumuloInputFormatIT extends SimpleMacIT {
     insertData(table, currentTimeMillis());
 
     ClientConfiguration clientConf = new ClientConfiguration().withInstance(conn.getInstance().getInstanceName()).withZkHosts(
-        conn.getInstance().getZooKeepers()), clusterClientConf = getStaticCluster().getClientConfig();
+        conn.getInstance().getZooKeepers());
+    AccumuloConfiguration clusterClientConf = conn.getInstance().getConfiguration();
 
     // Pass SSL and CredentialProvider options into the ClientConfiguration given to AccumuloInputFormat
-    boolean sslEnabled = Boolean.valueOf(clusterClientConf.get(ClientProperty.INSTANCE_RPC_SSL_ENABLED));
+    boolean sslEnabled = Boolean.valueOf(clusterClientConf.get(Property.INSTANCE_RPC_SSL_ENABLED));
     if (sslEnabled) {
       ClientProperty[] sslProperties = new ClientProperty[] {ClientProperty.INSTANCE_RPC_SSL_ENABLED, ClientProperty.INSTANCE_RPC_SSL_CLIENT_AUTH,
           ClientProperty.RPC_SSL_KEYSTORE_PATH, ClientProperty.RPC_SSL_KEYSTORE_TYPE, ClientProperty.RPC_SSL_KEYSTORE_PASSWORD,
@@ -83,7 +86,7 @@ public class AccumuloInputFormatIT extends SimpleMacIT {
 
       for (ClientProperty prop : sslProperties) {
         // The default property is returned if it's not in the ClientConfiguration so we don't have to check if the value is actually defined
-        clientConf.setProperty(prop, clusterClientConf.get(prop));
+        clientConf.setProperty(prop, clusterClientConf.get(prop.getAccumuloProperty()));
       }
     }
 
