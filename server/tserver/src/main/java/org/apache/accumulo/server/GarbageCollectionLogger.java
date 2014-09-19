@@ -98,7 +98,7 @@ public class GarbageCollectionLogger {
     if (lastMemoryCheckTime > 0 && lastMemoryCheckTime < now) {
       final long diff = now - lastMemoryCheckTime;
       if (diff > keepAliveTimeout) {
-        log.warn(String.format("Check for long GC pauses not called in a timely fashion. Expected every %.1f seconds but was %.1f seconds since last check",
+        log.warn(String.format("GC pause checker not called in a timely fashion. Expected every %.1f seconds but was %.1f seconds since last check",
                     keepAliveTimeout / 1000., diff / 1000.));
       }
       lastMemoryCheckTime = now;
