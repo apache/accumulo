@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.core.client.mapreduce;
 
-import static org.junit.Assert.assertEquals;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -29,12 +27,13 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.mapreduce.InputTableConfig;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
 
 public class InputTableConfigTest {
   
@@ -52,7 +51,20 @@ public class InputTableConfigTest {
     
     assertEquals(tableQueryConfig, actualConfig);
   }
-  
+
+  @Test
+  public void testSerialization_allBooleans() throws IOException {
+    tableQueryConfig.setAutoAdjustRanges(false);
+    tableQueryConfig.setOfflineScan(true);
+    tableQueryConfig.setUseIsolatedScanners(true);
+    tableQueryConfig.setUseLocalIterators(true);
+    byte[] serialized = serialize(tableQueryConfig);
+    InputTableConfig actualConfig = deserialize(serialized);
+
+    assertEquals(tableQueryConfig, actualConfig);
+  }
+
+
   @Test
   public void testSerialization_ranges() throws IOException {
     List<Range> ranges = new ArrayList<Range>();

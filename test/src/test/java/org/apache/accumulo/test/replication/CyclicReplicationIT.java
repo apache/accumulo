@@ -248,6 +248,9 @@ public class CyclicReplicationIT {
 
       log.info("Restarted tserver on master1");
 
+      // Try to avoid ACCUMULO-2964
+      Thread.sleep(1000);
+
       // Sanity check that the element is there on master1
       Scanner s = connMaster1.createScanner(master1Table, Authorizations.EMPTY);
       Entry<Key,Value> entry = Iterables.getOnlyElement(s);
@@ -272,6 +275,9 @@ public class CyclicReplicationIT {
       }
 
       master2Cluster.exec(TabletServer.class);
+
+      // Try to avoid ACCUMULO-2964
+      Thread.sleep(1000);
 
       // Check that the element made it to master2 only once
       s = connMaster2.createScanner(master2Table, Authorizations.EMPTY);
