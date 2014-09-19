@@ -281,6 +281,7 @@ public class InputTableConfig implements Writable {
     dataOutput.writeBoolean(autoAdjustRanges);
     dataOutput.writeBoolean(useLocalIterators);
     dataOutput.writeBoolean(useIsolatedScanners);
+    dataOutput.writeBoolean(offlineScan);
   }
 
   /**
@@ -325,6 +326,7 @@ public class InputTableConfig implements Writable {
     autoAdjustRanges = dataInput.readBoolean();
     useLocalIterators = dataInput.readBoolean();
     useIsolatedScanners = dataInput.readBoolean();
+    offlineScan = dataInput.readBoolean();
   }
 
   @Override
