@@ -422,6 +422,14 @@ public class Tablet {
 
   private long lastFlushID = -1;
   private long lastCompactID = -1;
+  
+  private static class CompactionWaitInfo {
+    long flushID = -1;
+    long compactionID = -1;
+  }
+
+  // stores info about user initiated major compaction that is waiting on a minor compaction to finish
+  private CompactionWaitInfo compactionWaitInfo = new CompactionWaitInfo();
 
   private KeyExtent extent;
 
@@ -3805,6 +3813,18 @@ public class Tablet {
     synchronized (this) {
       if (lastCompactID >= compactionId)
         return;
+
+      if (minorCompactionInProgress) {
+        // want to wait for running minc to finish before starting majc, see ACCUMULO-3041
+        if (compactionWaitInfo.compactionID == compactionId) {
+          if (lastFlushID == compactionWaitInfo.flushID)
+            return;
+        } else {
+          compactionWaitInfo.compactionID = compactionId;
+          compactionWaitInfo.flushID = lastFlushID;
+          return;
+        }
+      }
 
       if (closing || closed || majorCompactionQueued.contains(MajorCompactionReason.USER) || majorCompactionInProgress)
         return;
