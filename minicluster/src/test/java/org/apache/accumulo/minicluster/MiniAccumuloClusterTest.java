@@ -38,6 +38,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.commons.io.FileUtils;
+import org.apache.hadoop.conf.Configuration;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -45,61 +46,61 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class MiniAccumuloClusterTest {
-  
+
   public static TemporaryFolder folder = new TemporaryFolder();
-  
+
   private static MiniAccumuloCluster accumulo;
-  
+
   @BeforeClass
   public static void setupMiniCluster() throws Exception {
-    
+
     folder.create();
-    
+
     accumulo = new MiniAccumuloCluster(folder.getRoot(), "superSecret");
-    
+
     accumulo.start();
-    
+
   }
-  
+
   @Test(timeout = 30000)
   public void test() throws Exception {
     Connector conn = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers()).getConnector("root", new PasswordToken("superSecret"));
-    
+
     conn.tableOperations().create("table1");
-    
+
     conn.securityOperations().createLocalUser("user1", new PasswordToken("pass1"));
     conn.securityOperations().changeUserAuthorizations("user1", new Authorizations("A", "B"));
     conn.securityOperations().grantTablePermission("user1", "table1", TablePermission.WRITE);
     conn.securityOperations().grantTablePermission("user1", "table1", TablePermission.READ);
-    
+
     IteratorSetting is = new IteratorSetting(10, SummingCombiner.class);
     SummingCombiner.setEncodingType(is, LongCombiner.Type.STRING);
     SummingCombiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("META", "COUNT")));
-    
+
     conn.tableOperations().attachIterator("table1", is);
-    
+
     Connector uconn = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers()).getConnector("user1", new PasswordToken("pass1"));
-    
+
     BatchWriter bw = uconn.createBatchWriter("table1", new BatchWriterConfig());
-    
+
     UUID uuid = UUID.randomUUID();
-    
+
     Mutation m = new Mutation(uuid.toString());
     m.put("META", "SIZE", new ColumnVisibility("A|B"), "8");
     m.put("META", "CRC", new ColumnVisibility("A|B"), "456");
     m.put("META", "COUNT", new ColumnVisibility("A|B"), "1");
     m.put("DATA", "IMG", new ColumnVisibility("A&B"), "ABCDEFGH");
-    
+
     bw.addMutation(m);
     bw.flush();
-    
+
     m = new Mutation(uuid.toString());
     m.put("META", "COUNT", new ColumnVisibility("A|B"), "1");
     m.put("META", "CRC", new ColumnVisibility("A|B"), "123");
     bw.addMutation(m);
-    
+
     bw.close();
-    
+
     int count = 0;
     Scanner scanner = uconn.createScanner("table1", new Authorizations("A"));
     for (Entry<Key,Value> entry : scanner) {
@@ -114,9 +115,9 @@ public class MiniAccumuloClusterTest {
       }
       count++;
     }
-    
+
     Assert.assertEquals(3, count);
-    
+
     count = 0;
     scanner = uconn.createScanner("table1", new Authorizations("A", "B"));
     for (Entry<Key,Value> entry : scanner) {
@@ -125,62 +126,76 @@ public class MiniAccumuloClusterTest {
       }
       count++;
     }
-    
+
     Assert.assertEquals(4, count);
-    
+
     conn.tableOperations().delete("table1");
   }
-  
+
   @Test(timeout = 60000)
   public void testPerTableClasspath() throws Exception {
-    
+
     Connector conn = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers()).getConnector("root", new PasswordToken("superSecret"));
-    
+
     conn.tableOperations().create("table2");
-    
+
     File jarFile = File.createTempFile("iterator", ".jar");
     FileUtils.copyURLToFile(this.getClass().getResource("/FooFilter.jar"), jarFile);
     jarFile.deleteOnExit();
-    
+
     conn.instanceOperations().setProperty(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1", jarFile.toURI().toString());
     conn.tableOperations().setProperty("table2", Property.TABLE_CLASSPATH.getKey(), "cx1");
     conn.tableOperations().attachIterator("table2", new IteratorSetting(100, "foocensor", "org.apache.accumulo.test.FooFilter"));
-    
+
     BatchWriter bw = conn.createBatchWriter("table2", new BatchWriterConfig());
-    
+
     Mutation m1 = new Mutation("foo");
     m1.put("cf1", "cq1", "v2");
     m1.put("cf1", "cq2", "v3");
-    
+
     bw.addMutation(m1);
-    
+
     Mutation m2 = new Mutation("bar");
     m2.put("cf1", "cq1", "v6");
     m2.put("cf1", "cq2", "v7");
-    
+
     bw.addMutation(m2);
-    
+
     bw.close();
-    
+
     Scanner scanner = conn.createScanner("table2", new Authorizations());
-    
+
     int count = 0;
     for (Entry<Key,Value> entry : scanner) {
       Assert.assertFalse(entry.getKey().getRowData().toString().toLowerCase().contains("foo"));
       count++;
     }
-    
+
     Assert.assertEquals(2, count);
-    
+
     conn.instanceOperations().removeProperty(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
     conn.tableOperations().delete("table2");
-    
+
   }
-  
+
+  @Test
+  public void testRandomPorts() throws Exception {
+    File confDir = new File(folder.getRoot(), "conf");
+    File accumuloSite = new File(confDir, "accumulo-site.xml");
+    Configuration conf = new Configuration(false);
+    conf.addResource(accumuloSite.toURI().toURL());
+    for (Property randomPortProp : new Property[] {Property.TSERV_CLIENTPORT, Property.MONITOR_PORT, Property.MONITOR_LOG4J_PORT, Property.MASTER_CLIENTPORT,
+        Property.TRACE_PORT, Property.GC_PORT}) {
+      String value = conf.get(randomPortProp.getKey());
+      Assert.assertNotNull("Found no value for " + randomPortProp, value);
+      Assert.assertEquals("0", value);
+    }
+  }
+
   @AfterClass
   public static void tearDownMiniCluster() throws Exception {
     accumulo.stop();
     // folder.delete();
   }
-  
+
 }

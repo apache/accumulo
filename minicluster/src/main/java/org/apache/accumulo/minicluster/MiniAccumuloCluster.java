@@ -270,6 +270,7 @@ public class MiniAccumuloCluster {
     mergePropWithRandomPort(siteConfig, Property.TSERV_CLIENTPORT.getKey());
     mergePropWithRandomPort(siteConfig, Property.MONITOR_PORT.getKey());
     mergePropWithRandomPort(siteConfig, Property.GC_PORT.getKey());
+    mergePropWithRandomPort(siteConfig, Property.MONITOR_LOG4J_PORT.getKey());
     
     // since there is a small amount of memory, check more frequently for majc... setting may not be needed in 1.5
     appendProp(fileWriter, Property.TSERV_MAJC_DELAY, "3", siteConfig);
