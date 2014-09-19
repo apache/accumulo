@@ -16,7 +16,9 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -42,7 +44,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
 public class HalfDeadTServerIT extends ConfigurableMacIT {
-  
+
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
@@ -52,22 +54,22 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
     cfg.setSiteConfig(siteConfig);
     cfg.useMiniDFS(true);
   }
-  
+
   @Override
   protected int defaultTimeoutSeconds() {
     return 4 * 60;
   }
 
   class DumpOutput extends Daemon {
-    
+
     private final BufferedReader rdr;
     private final StringBuilder output;
-    
+
     DumpOutput(InputStream is) {
       rdr = new BufferedReader(new InputStreamReader(is));
       output = new StringBuilder();
     }
-    
+
     @Override
     public void run() {
       try {
@@ -83,36 +85,38 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
         log.error(ex, ex);
       }
     }
-    
+
     @Override
     public String toString() {
       return output.toString();
     }
   }
-  
+
   @Test
   public void testRecover() throws Exception {
     test(10);
   }
-  
+
   @Test
   public void testTimeout() throws Exception {
-    String results = test(20);
+    String results = test(20, true);
     if (results != null) {
     	if (!results.contains("Session expired")) {
-    		System.out.println("Failed to find Session expired in");
-    		System.out.println(results);
-    		fail("zookeeper session failed to expire");
+        log.info("Failed to find 'Session expired' in output, but TServer did die which is expected");
     	}
     }
   }
-  
+
   public String test(int seconds) throws Exception {
+    return test(seconds, false);
+  }
+
+  public String test(int seconds, boolean expectTserverDied) throws Exception {
     if (!makeDiskFailureLibrary())
       return null;
     Connector c = getConnector();
     assertEquals(1, c.instanceOperations().getTabletServers().size());
-    
+
     // create our own tablet server with the special test library
     String javaHome = System.getProperty("java.home");
     String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
@@ -147,7 +151,7 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
       ingest = cluster.exec(TestIngest.class, "-u", "root", "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "-p", ROOT_PASSWORD, "--rows", rows
           + "");
       UtilWaitThread.sleep(500);
-      
+
       // block I/O with some side-channel trickiness
       File trickFile = new File(trickFilename);
       try {
@@ -156,7 +160,7 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
       } finally {
         trickFile.delete();
       }
-      
+
       if (seconds <= 10) {
         assertEquals(0, ingest.waitFor());
         VerifyIngest.Opts vopts = new VerifyIngest.Opts();
@@ -178,13 +182,23 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
         ingest.waitFor();
       }
       if (tserver != null) {
-        tserver.destroy();
-        tserver.waitFor();
-        t.join();
+        try {
+          if (expectTserverDied) {
+            try {
+              tserver.exitValue();
+            } catch (IllegalThreadStateException e) {
+              fail("Expected TServer to kill itself, but it is still running");
+            }
+          }
+        } finally {
+          tserver.destroy();
+          tserver.waitFor();
+          t.join();
+        }
       }
     }
   }
-  
+
   private boolean makeDiskFailureLibrary() throws Exception {
     String root = System.getProperty("user.dir");
     String source = root + "/src/test/c/fake_disk_failure.c";
@@ -199,5 +213,5 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
     Process gcc = Runtime.getRuntime().exec(cmd);
     return gcc.waitFor() == 0;
   }
-  
+
 }
