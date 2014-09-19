@@ -199,10 +199,10 @@ a profile to maven's settings.xml file. Below is an example of $HOME/.m2/setting
 ******************************************************************************
 4. Configuring
 
-Apache Accumulo has two prerequisites, hadoop and zookeeper. Zookeeper must be 
-at least version 3.3.0. Both of these must be installed and configured. Some
-versions of Zookeeper may only allow 10 connections from one computer by default.
-On a single-host install, this number is a little too low. Add the following to
+Apache Accumulo has two prerequisites, hadoop and zookeeper. Zookeeper 3.4.* series is
+preferred. Both zookeeper and hadoop must be installed and configured. Some versions of
+Zookeeper may only allow 10 connections from one computer by default. On a single-host
+install, this number is a little too low. Add the following to
 the $ZOOKEEPER_HOME/conf/zoo.cfg file:
 
    maxClientCnxns=100
