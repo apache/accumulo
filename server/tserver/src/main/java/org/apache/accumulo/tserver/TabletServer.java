@@ -337,17 +337,17 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       log.debug(sb.toString());
     }
     
+    final long keepAliveTimeout = conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
     if (lastMemoryCheckTime > 0 && lastMemoryCheckTime < now) {
       long diff = now - lastMemoryCheckTime;
-      if (diff > 2 * TIME_BETWEEN_GC_CHECKS) {
-        log.warn(String.format("Check for long GC pauses not called in a timely fashion. Expected every %.1f seconds but was %.1f seconds since last check",
+      if (diff > keepAliveTimeout) {
+        log.warn(String.format("GC pause checker not called in a timely fashion. Expected every %.1f seconds but was %.1f seconds since last check",
                     TIME_BETWEEN_GC_CHECKS / 1000., diff / 1000.));
       }
       lastMemoryCheckTime = now;
       return;
     }
     
-    final long keepAliveTimeout = conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
     if (maxIncreaseInCollectionTime > keepAliveTimeout) {
       Halt.halt("Garbage collection may be interfering with lock keep-alive.  Halting.", -1);
     }
