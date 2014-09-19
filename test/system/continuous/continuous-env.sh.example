@@ -121,10 +121,12 @@ SCAN_OFFLINE=false
 VERIFY_AUTHS=''
 
 #settings related to the batch walker
-BATCH_WALKER_SLEEP=180000
+# sleep in seconds
+BATCH_WALKER_SLEEP=1800
 BATCH_WALKER_BATCH_SIZE=10000
-BATCH_WALKER_THREADS=16
+BATCH_WALKER_THREADS=8
 
 #settings related to scanners
+# sleep in seconds
 SCANNER_SLEEP_TIME=10
 SCANNER_ENTRIES=5000
