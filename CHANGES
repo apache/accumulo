@@ -15,7 +15,214 @@
   limitations under the License.
 -->
 
-Release Notes - Accumulo - Version 1.6.0
+Release Notesse Notes - Accumulo - Version 1.6.1
+
+
+** Sub-task
+    * [ACCUMULO-2746] - VolumeIT.testDirtyReplaceVolume failed on AccumuloSecurityException
+    * [ACCUMULO-2760] - HalfDeadTServerIT.testTimeout failed
+    * [ACCUMULO-2773] - Regenerate thrift classes for 0.9.1
+    * [ACCUMULO-2798] - MonitorLoggingIT should retry waiting for log fowarding
+    * [ACCUMULO-2807] - Local WAL Recovery breaks Hadoop 1 Compilation
+    * [ACCUMULO-2814] - LocalWALRecoveryTest.testRecoverLocalWriteAheadLogs:73 Wrong number of WAL files recovered. expected:<1> but was:<0>
+    * [ACCUMULO-2816] - LocalWALRecoveryTest throws IndexOutOfBoundsException
+    * [ACCUMULO-2821] - Document USERFLAGS / build_native_library.sh args
+    * [ACCUMULO-2838] - Use resolved props in DefaultConfiguration.get()
+    * [ACCUMULO-2839] - AuditedSecurityOperation canScan is very slow even when not logging
+    * [ACCUMULO-2840] - Auditing is not disabled by default in MAC
+    * [ACCUMULO-2934] - Use Jetty 8 for 1.6.x
+    * [ACCUMULO-2942] - org.apache.accumulo.core.util.format.ShardedTableDistributionFormatterTest.testAggregate failure
+    * [ACCUMULO-2950] - Fix handling of server-side exceptions
+    * [ACCUMULO-2957] - New WALog file for 1.4.x fails RAT check on OS X
+    * [ACCUMULO-3012] - Simplify DefaultConfiguration
+    * [ACCUMULO-3019] - Fix ServerConfiguration deprecation
+    * [ACCUMULO-3058] - Javadoc comment added to balancer describes non-existent methods
+    * [ACCUMULO-3081] - ServerConfigurationFactoryTest is full of commented out and unused code
+
+
+** Bug
+    * [ACCUMULO-1628] - NPE on deep copied dumped memory iterator
+    * [ACCUMULO-2410] - TServerUtils no longer needs to catch NPE as a thrift bug workaround
+    * [ACCUMULO-2455] - overnight integration tests sometimes fails
+    * [ACCUMULO-2549] - ShellTest sometimes fails because of order of authentication strings returned
+    * [ACCUMULO-2645] - tablet stuck unloading, and problem is hard to diagnose
+    * [ACCUMULO-2658] - Thrift Proxy crashes with OOM on bad input
+    * [ACCUMULO-2694] - Offline tables block balancing for online tables
+    * [ACCUMULO-2704] - GetMasterStats does not print all elements
+    * [ACCUMULO-2719] - Shell fails to find instance_id when using viewfs
+    * [ACCUMULO-2722] - Classes outside of shell shouldn't be using commons-cli
+    * [ACCUMULO-2747] - Scan "show few" long option contains a space
+    * [ACCUMULO-2758] - LocalityGroupUtil.encodeColumnFamily() ignores offset parameter
+    * [ACCUMULO-2761] - bootstrap_hdfs.sh inconsistent with accumulo-site.xml
+    * [ACCUMULO-2764] - Stopping MAC before it's processes have fully started causes an indefinite hang
+    * [ACCUMULO-2765] - FrameworkTest not informative when failing during a build
+    * [ACCUMULO-2766] - Single walog operation may wait for multiple hsync calls
+    * [ACCUMULO-2767] - Documentation of valid Visibility Labels is wrong
+    * [ACCUMULO-2768] - Agitator not restarting all datanodes
+    * [ACCUMULO-2774] - Update pom to ensure enough memory for tests
+    * [ACCUMULO-2785] - ShellServlet vulnerable to CSRF
+    * [ACCUMULO-2786] - Jetty / servlet JARs not packaged for monitor
+    * [ACCUMULO-2787] - Accumulo too strict about max files
+    * [ACCUMULO-2790] - generate_monitor_certificate.sh fails on OSX
+    * [ACCUMULO-2791] - Behavior and binary compatibility mismatch of Commons Codec version provided by Hadoop
+    * [ACCUMULO-2796] - user manual doesn't mention ordering of iterator application
+    * [ACCUMULO-2811] - UniqueFileReplicator logs many warnings about a directory that exists
+    * [ACCUMULO-2813] - Missing log4j configuration files for tests after module refactor
+    * [ACCUMULO-2818] - generate_monitor_certificate creates bad keystore
+    * [ACCUMULO-2824] - TableOperationsImpl#getDiskUsage() should check pair against null in catch clause
+    * [ACCUMULO-2831] - HDFS Configuration classloader not correct when using VFSClassLoader
+    * [ACCUMULO-2836] - Context classloader not used in all applicable cases
+    * [ACCUMULO-2852] - master-agitator.pl calls Cwd::cwd() but doesn't import the Cwd module
+    * [ACCUMULO-2854] - Bad null check in BulkImport.createNewBulkDir()
+    * [ACCUMULO-2857] - MockTableOperations.tableIdMap always returns tableName as ID
+    * [ACCUMULO-2864] - Multiple calls to ZooSession.shutdown result in NPE
+    * [ACCUMULO-2869] - Wrong method called on WriteParameters in Tablet#createTableConfiguration()
+    * [ACCUMULO-2870] - Potential null pointer dereference in Tablet#longestCommonLength()
+    * [ACCUMULO-2874] - user documentation errors
+    * [ACCUMULO-2888] - BatchWriterOpts doesn't configure the number of threads
+    * [ACCUMULO-2890] - Remove AccumuloNotInitializedException
+    * [ACCUMULO-2891] - bin/config.sh logs error when $ACCUMULO_CONF_DIR/masters is missing
+    * [ACCUMULO-2896] - PATH_PROPERTY_ENV_VARS constant is a mutable array.
+    * [ACCUMULO-2899] - WAL handling fails to deal with 1.4 -> 1.5 -> 1.6
+    * [ACCUMULO-2906] - configuredZookeeperPort is not cased the same way as other mentions of ZooKeeper
+    * [ACCUMULO-2908] - UndefinedAnalyzer does not use batch scanner opts
+    * [ACCUMULO-2919] - metrics documentation and example configs refer to the logger
+    * [ACCUMULO-2926] - Multiple slf4j bindings warning
+    * [ACCUMULO-2928] - Missing toString, hashCode and equals methods on BatchWriterConfig
+    * [ACCUMULO-2930] - AccumuloClassLoader still referenced directly
+    * [ACCUMULO-2935] - Tests consistently hanging after Thrift 0.9.1
+    * [ACCUMULO-2940] - ZooLockTest doesn't wait for connection
+    * [ACCUMULO-2948] - Possible race condition in ZooLockTest
+    * [ACCUMULO-2956] - bootstrap_config.sh relies on GNU getopt for long opts, which doesn't work in OS X
+    * [ACCUMULO-2962] - RangeInputSplit Writable methods don't serialize IteratorSettings
+    * [ACCUMULO-2967] - Unknown Host results in unending wait for clients
+    * [ACCUMULO-2974] - Unable to assign single tablet table migrated to 1.6.0
+    * [ACCUMULO-2985] - MAC doesn't stop cleanly in 1.6.1-SNAPSHOT
+    * [ACCUMULO-2991] - Incorrect character in zookeeper-loss administration section
+    * [ACCUMULO-3003] - accumulo tablet fails to load if the directory name ends with "rf"
+    * [ACCUMULO-3006] - Don't allow viewfs in instance.volumes
+    * [ACCUMULO-3007] - instance.volumes.replacements does not work after 1.6 upgrade
+    * [ACCUMULO-3008] - Update example READMEs for changed argument names
+    * [ACCUMULO-3010] - minor compaction after recovery should not merge
+    * [ACCUMULO-3011] - files moved after bulk import failure
+    * [ACCUMULO-3014] - VolumeChooser returns entries in the default file system
+    * [ACCUMULO-3017] - RangeInputSplit getTable method changed from 1.5 to 1.6 without deprecation
+    * [ACCUMULO-3024] - VFS classloader can randomly fail
+    * [ACCUMULO-3025] - NPE in VFS ContextManager
+    * [ACCUMULO-3026] - VFS is not cleaning up its temp dirs
+    * [ACCUMULO-3030] - scanners cannot be interrupted
+    * [ACCUMULO-3038] - java.lang.RuntimeException: java.io.InvalidClassException: org.apache.accumulo.trace.thrift.TInfo; local class incompatible
+    * [ACCUMULO-3039] - demote "File doesn't exist" warning in the garbage collector
+    * [ACCUMULO-3043] - Only add sensitive, valid Accumulo Properties from CredentialProviders
+    * [ACCUMULO-3046] - AccumuloReloadingVFSClassloader log message incorrect
+    * [ACCUMULO-3047] - Invalid URI in delete marker in accumulo.metadata
+    * [ACCUMULO-3055] - calling MiniAccumuloCluster.stop multiple times fails with NPE
+    * [ACCUMULO-3061] - Can't release Accumulo using >=Git-1.8
+    * [ACCUMULO-3062] - Use MiniAccumuloCluster.getConnector in MiniAccumuloClusterStartStopTest
+    * [ACCUMULO-3069] - MiniAccumuloClusterImplTest.saneMonitorInfo fails intermittently 
+    * [ACCUMULO-3070] - generic_logger.properties hard-codes log4j port
+    * [ACCUMULO-3074] - MergeIT fails on timeout
+    * [ACCUMULO-3075] - SSL IT timeouts
+    * [ACCUMULO-3076] - SimpleBalancerFairnessIT times out
+    * [ACCUMULO-3078] - Some SimpleMacITs aren't simple
+    * [ACCUMULO-3084] - Delays between calls to logGC causes tserver to fail
+    * [ACCUMULO-3093] - Shell scan command does not find formatter
+    * [ACCUMULO-3096] - Scans stuck and seeing error message about constraint violation
+    * [ACCUMULO-3098] - MonitorLoggingIT has an extremely long timeout
+    * [ACCUMULO-3100] - Accumulo fails to test against recent Hadoop 2.6.0-SNAPSHOT
+    * [ACCUMULO-3101] - ExamplesIT-testReadWriteAndDelete and testScansWithInterference fail due to timeout.
+    * [ACCUMULO-3102] - SplitRecoveryIT-test fails due to insufficient timeout on multinode cluster.
+    * [ACCUMULO-3104] - AccumuloInputFormatIT has no timeout
+    * [ACCUMULO-3108] - CreateAndUseIT timings too tight
+    * [ACCUMULO-3109] - MonitorLoggingIT sometimes fails
+    * [ACCUMULO-3112] - MiniAccumuloClusterGCTest appears to leak processes
+    * [ACCUMULO-3113] - ConditionalWriterIT failures
+    * [ACCUMULO-3119] - Javadoc cleanup
+    * [ACCUMULO-3136] - AllowScansToBeInterruptedIT might interrupt before the scan started
+    * [ACCUMULO-3138] - AccumuloInputFormatIT doesn't adhere to SSL parameters
+    * [ACCUMULO-3139] - BalanceAfterCommsFailureIT alters other tservers on the system
+    * [ACCUMULO-3140] - Compaction did not run during RW test
+    * [ACCUMULO-3143] - InputTableConfig missing isOfflineScan field in Serializer
+    * [ACCUMULO-3144] - AuditMessageIT failed to find last audit message
+    * [ACCUMULO-3145] - ShellServerIT#listscans can fail with ArrayIndexOutOfBoundsException
+    * [ACCUMULO-3146] - Balance tests don't ensure all tablets are online
+    * [ACCUMULO-3148] - TabletServer didn't get Session expired in HalfDeadTServerIT
+    * [ACCUMULO-3150] - MiniAccumuloConfig doesn't set 0 for monitor log4j port
+    * [ACCUMULO-3151] - scan monitoring shows red after 30 seconds
+    * [ACCUMULO-3152] - GC check message is confusing
+    * [ACCUMULO-3153] - GC pause checker warns too frequently
+    * [ACCUMULO-3155] - BatchWalker appears to run less frequently than intended
+
+
+** Improvement
+    * [ACCUMULO-1919] - Size of visibility cache in AccumuloFileOutputFormat should be configurable
+    * [ACCUMULO-2212] - ZooReaderWriter is a singleton class with a public constructor
+    * [ACCUMULO-2253] - Scalability tests should output quartiles
+    * [ACCUMULO-2343] - Create Appender specifically for log-forwarding
+    * [ACCUMULO-2383] - Allow configuration of logging using properties file also
+    * [ACCUMULO-2464] - Trace user password required in plaintext in accumulo-site.xml
+    * [ACCUMULO-2501] - Add deepCopy to RowFilter
+    * [ACCUMULO-2514] - Continuous Ingestion test should use Logger
+    * [ACCUMULO-2560] - {{gc.threads.delete}} cannot be changed via zookeeper config
+    * [ACCUMULO-2615] - Simplify server configuration caching and ZK watchers
+    * [ACCUMULO-2623] - AbstractMetricsImpl's toString is excessively verbose
+    * [ACCUMULO-2635] - Consolidate ZooCache creation and caching
+    * [ACCUMULO-2646] - Generate example configuration from template in build
+    * [ACCUMULO-2663] - Remove usage of String#split from Combiner#init
+    * [ACCUMULO-2676] - Make minicluster ZooKeeper startup wait time configurable
+    * [ACCUMULO-2762] - Use better compiler optimizations by default for native maps
+    * [ACCUMULO-2770] - Support Local WAL Recovery in 1.6
+    * [ACCUMULO-2789] - Add a system stress test based on key/cell/row size
+    * [ACCUMULO-2803] - Agitator; Set Tablet Server and Datanode min/max kill values independently.
+    * [ACCUMULO-2812] - Support more architectures when compiling native lib
+    * [ACCUMULO-2825] - WholeRowIterator should be extendable
+    * [ACCUMULO-2827] - HeapIterator optimization
+    * [ACCUMULO-2832] - Improve DefaultFormatter for reuse and object creation
+    * [ACCUMULO-2842] - Allow for use of hflush instead of hsync
+    * [ACCUMULO-2849] - Add scan batch size configurability and write delay to memory stress test
+    * [ACCUMULO-2850] - Enhance memory stress test scripts
+    * [ACCUMULO-2887] - Refactor observability in configurations
+    * [ACCUMULO-2905] - Seeing short hold times and no MinC's
+    * [ACCUMULO-2927] - Make 'git clean -df' sufficient when switching between branches
+    * [ACCUMULO-2947] - Support configurable changes per mutation for size-based stress test
+    * [ACCUMULO-2988] - Support upgrades from 1.4 directly to 1.6
+    * [ACCUMULO-2992] - Eliminate (use of) AccumuloConfiguration.getSiteConfiguration()
+    * [ACCUMULO-2994] - IteratorUtil.parseIterConf loops over each iterator scope repeatedly
+    * [ACCUMULO-3045] - Support AuthenticationToken backed by CredentialProvider
+    * [ACCUMULO-3049] - Include user authentication in AuditedSecurityOperation
+    * [ACCUMULO-3050] - Client IP is not included in audit message
+    * [ACCUMULO-3052] - Allow configuration of SSL cipher suites
+    * [ACCUMULO-3053] - Allow control over Monitor SSL ciphers used
+    * [ACCUMULO-3059] - Password arguments not always respected by CertUtils
+    * [ACCUMULO-3064] - Allow SSL to be used for all ITs
+    * [ACCUMULO-3066] - Allow CredentialProviders to be used with ClientConfiguration
+    * [ACCUMULO-3068] - Allow ITs to be run with CredentialProvider
+    * [ACCUMULO-3087] - start-server.sh should check fqdn and shortname to determine if SSH Is needed
+    * [ACCUMULO-3097] - Missing documentation on some system iterators
+    * [ACCUMULO-3106] - "Check for long GC pauses" warning message needs improvement
+
+
+
+** Task
+    * [ACCUMULO-1691] - Update thrift to 0.9.1 / clean up TServerUtils
+    * [ACCUMULO-2804] - Eliminate use of plexus-utils
+    * [ACCUMULO-2805] - Exclude unused HTTP Components from thrift dependency
+    * [ACCUMULO-3060] - Remove Experimental annotations from monitor SSL keystore/truststore
+    * [ACCUMULO-3063] - Plugin execution errors in Eclipse Luna
+    * [ACCUMULO-3072] - Split CreateAndUseIT "tests" into multiple methods
+    * [ACCUMULO-3073] - DeleteTableduringSplitIT fails
+    * [ACCUMULO-3080] - Remove debug logging from maven-invoker-plugin
+
+
+** Test
+    * [ACCUMULO-2649] - Extend test coverage for RangeInputSplit
+    * [ACCUMULO-2754] - Skip generated code in PMD/CPD analysis
+    * [ACCUMULO-2865] - Create unit test for ZooCache
+    * [ACCUMULO-3128] - ZooKeeper spam in test logs
+    * [ACCUMULO-3129] - SslWithClientAuthIT fails with credential provider active
+
+
+ - Accumulo - Version 1.6.0
 
 ** Sub-task
     * [ACCUMULO-656] - move monitor code out of server
