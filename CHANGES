@@ -15,7 +15,7 @@
   limitations under the License.
 -->
 
-Release Notesse Notes - Accumulo - Version 1.6.1
+Release Notes - Accumulo - Version 1.6.1
 
 
 ** Sub-task
@@ -222,7 +222,7 @@ Release Notesse Notes - Accumulo - Version 1.6.1
     * [ACCUMULO-3129] - SslWithClientAuthIT fails with credential provider active
 
 
- - Accumulo - Version 1.6.0
+Release Notes - Accumulo - Version 1.6.0
 
 ** Sub-task
     * [ACCUMULO-656] - move monitor code out of server
