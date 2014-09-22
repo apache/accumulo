@@ -46,26 +46,30 @@ public class FindOfflineTablets {
     Instance instance = opts.getInstance();
     MetaDataTableScanner rootScanner = new MetaDataTableScanner(instance, SecurityConstants.getSystemCredentials(), Constants.METADATA_ROOT_TABLET_KEYSPACE);
     MetaDataTableScanner metaScanner = new MetaDataTableScanner(instance, SecurityConstants.getSystemCredentials(), Constants.NON_ROOT_METADATA_KEYSPACE);
-    @SuppressWarnings("unchecked")
-    Iterator<TabletLocationState> scanner = (Iterator<TabletLocationState>)new IteratorChain(rootScanner, metaScanner);
-    LiveTServerSet tservers = new LiveTServerSet(instance, DefaultConfiguration.getDefaultConfiguration(), new Listener() {
-      @Override
-      public void update(LiveTServerSet current, Set<TServerInstance> deleted, Set<TServerInstance> added) {
-        if (!deleted.isEmpty() && scanning.get())
-          log.warn("Tablet servers deleted while scanning: " + deleted);
-        if (!added.isEmpty() && scanning.get())
-          log.warn("Tablet servers added while scanning: " + added);
+    try {
+      @SuppressWarnings("unchecked")
+      Iterator<TabletLocationState> scanner = (Iterator<TabletLocationState>)new IteratorChain(rootScanner, metaScanner);
+      LiveTServerSet tservers = new LiveTServerSet(instance, DefaultConfiguration.getDefaultConfiguration(), new Listener() {
+        @Override
+        public void update(LiveTServerSet current, Set<TServerInstance> deleted, Set<TServerInstance> added) {
+          if (!deleted.isEmpty() && scanning.get())
+            log.warn("Tablet servers deleted while scanning: " + deleted);
+          if (!added.isEmpty() && scanning.get())
+            log.warn("Tablet servers added while scanning: " + added);
+        }
+      });
+      tservers.startListeningForTabletServerChanges();
+      scanning.set(true);
+      while (scanner.hasNext()) {
+        TabletLocationState locationState = scanner.next();
+        TabletState state = locationState.getState(tservers.getCurrentServers());
+        if (state != null && state != TabletState.HOSTED && TableManager.getInstance().getTableState(locationState.extent.getTableId().toString()) != TableState.OFFLINE)
+          if (!locationState.extent.equals(Constants.ROOT_TABLET_EXTENT))
+            System.out.println(locationState + " is " + state + "  #walogs:" + locationState.walogs.size());
       }
-    });
-    tservers.startListeningForTabletServerChanges();
-    scanning.set(true);
-    while (scanner.hasNext()) {
-      TabletLocationState locationState = scanner.next();
-      TabletState state = locationState.getState(tservers.getCurrentServers());
-      if (state != null && state != TabletState.HOSTED && TableManager.getInstance().getTableState(locationState.extent.getTableId().toString()) != TableState.OFFLINE)
-        if (!locationState.extent.equals(Constants.ROOT_TABLET_EXTENT))
-          System.out.println(locationState + " is " + state + "  #walogs:" + locationState.walogs.size());
+    } finally {
+      rootScanner.close();
+      metaScanner.close();
     }
   }
-  
 }
