@@ -113,17 +113,20 @@ public class FindOfflineTablets {
   private static int checkTablets(Iterator<TabletLocationState> scanner, LiveTServerSet tservers) {
     int offline = 0;
     
-    while (scanner.hasNext() && !System.out.checkError()) {
-      TabletLocationState locationState = scanner.next();
-      TabletState state = locationState.getState(tservers.getCurrentServers());
-      if (state != null && state != TabletState.HOSTED
-          && TableManager.getInstance().getTableState(locationState.extent.getTableId().toString()) != TableState.OFFLINE) {
-        System.out.println(locationState + " is " + state + "  #walogs:" + locationState.walogs.size());
-        offline++;
+    try {
+      while (scanner.hasNext() && !System.out.checkError()) {
+        TabletLocationState locationState = scanner.next();
+        TabletState state = locationState.getState(tservers.getCurrentServers());
+        if (state != null && state != TabletState.HOSTED
+            && TableManager.getInstance().getTableState(locationState.extent.getTableId().toString()) != TableState.OFFLINE) {
+          System.out.println(locationState + " is " + state + "  #walogs:" + locationState.walogs.size());
+          offline++;
+        }
       }
-    }
-
-    return offline;
+  
+      return offline;
+    } finally {
+      scanner.close();
+    } 
   }
-
 }
