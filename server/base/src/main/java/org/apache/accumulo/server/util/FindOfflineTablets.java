@@ -106,27 +106,27 @@ public class FindOfflineTablets {
       range = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
     }
 
-    Iterator<TabletLocationState> metaScanner = new MetaDataTableScanner(instance, creds, range, MetadataTable.NAME);
-    return checkTablets(metaScanner, tservers);
+    MetaDataTableScanner metaScanner = new MetaDataTableScanner(instance, creds, range, MetadataTable.NAME);
+    try {
+      return checkTablets(metaScanner, tservers);
+    } finally {
+      metaScanner.close();
+    }
   }
 
   private static int checkTablets(Iterator<TabletLocationState> scanner, LiveTServerSet tservers) {
     int offline = 0;
-    
-    try {
-      while (scanner.hasNext() && !System.out.checkError()) {
-        TabletLocationState locationState = scanner.next();
-        TabletState state = locationState.getState(tservers.getCurrentServers());
-        if (state != null && state != TabletState.HOSTED
-            && TableManager.getInstance().getTableState(locationState.extent.getTableId().toString()) != TableState.OFFLINE) {
-          System.out.println(locationState + " is " + state + "  #walogs:" + locationState.walogs.size());
-          offline++;
-        }
+
+    while (scanner.hasNext() && !System.out.checkError()) {
+      TabletLocationState locationState = scanner.next();
+      TabletState state = locationState.getState(tservers.getCurrentServers());
+      if (state != null && state != TabletState.HOSTED
+          && TableManager.getInstance().getTableState(locationState.extent.getTableId().toString()) != TableState.OFFLINE) {
+        System.out.println(locationState + " is " + state + "  #walogs:" + locationState.walogs.size());
+        offline++;
       }
-  
-      return offline;
-    } finally {
-      scanner.close();
-    } 
+    }
+
+    return offline;
   }
 }
