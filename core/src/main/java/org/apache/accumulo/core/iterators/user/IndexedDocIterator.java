@@ -32,6 +32,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This iterator facilitates document-partitioned indexing. It is an example of extending the IntersectingIterator to customize the placement of the term and
@@ -53,6 +55,7 @@ import org.apache.hadoop.io.Text;
  * This iterator is commonly used with BatchScanner or AccumuloInputFormat, to parallelize the search over all shardIDs.
  */
 public class IndexedDocIterator extends IntersectingIterator {
+  private static final Logger log = LoggerFactory.getLogger(IndexedDocIterator.class);
   public static final Text DEFAULT_INDEX_COLF = new Text("i");
   public static final Text DEFAULT_DOC_COLF = new Text("e");
   

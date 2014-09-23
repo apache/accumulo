@@ -75,7 +75,7 @@ public class AccumuloClassLoader {
   
   private static URLClassLoader classloader;
   
-  private static Logger log = Logger.getLogger(AccumuloClassLoader.class);
+  private static final Logger log = Logger.getLogger(AccumuloClassLoader.class);
   
   static {
     String configFile = System.getProperty("org.apache.accumulo.config.file", "accumulo-site.xml");

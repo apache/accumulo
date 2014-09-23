@@ -41,7 +41,7 @@ import org.apache.log4j.Logger;
 
 public class CountTest extends TestCase {
   
-  private static Logger log = Logger.getLogger(CountTest.class);
+  private static final Logger log = Logger.getLogger(CountTest.class);
   
   {
     try {

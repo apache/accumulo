@@ -30,7 +30,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 
 /**
  * An iterator that handles "OR" query constructs on the server side. This code has been adapted/merged from Heap and Multi Iterators.
@@ -43,8 +42,6 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value> {
   private PriorityQueue<TermSource> sorted = new PriorityQueue<TermSource>(5);
   private static final Text nullText = new Text();
   private static final Key nullKey = new Key();
-  
-  protected static final Logger log = Logger.getLogger(OrIterator.class);
   
   protected static class TermSource implements Comparable<TermSource> {
     public SortedKeyValueIterator<Key,Value> iter;

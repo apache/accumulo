@@ -495,7 +495,7 @@ public enum Property {
 
   private String key, defaultValue, description;
   private PropertyType type;
-  static Logger log = Logger.getLogger(Property.class);
+  private static final Logger log = Logger.getLogger(Property.class);
 
   private Property(String name, String defaultValue, PropertyType type, String description) {
     this.key = name;

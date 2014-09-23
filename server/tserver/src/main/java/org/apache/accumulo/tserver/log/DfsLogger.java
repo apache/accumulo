@@ -76,7 +76,7 @@ public class DfsLogger {
   static final String LOG_FILE_HEADER_V2 = "--- Log File Header (v2) ---";
   static final String LOG_FILE_HEADER_V3 = "--- Log File Header (v3) ---";
 
-  private static Logger log = Logger.getLogger(DfsLogger.class);
+  private static final Logger log = Logger.getLogger(DfsLogger.class);
 
   public static class LogClosedException extends IOException {
     private static final long serialVersionUID = 1L;

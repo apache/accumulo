@@ -36,7 +36,7 @@ import org.junit.rules.TestName;
 import org.junit.rules.Timeout;
 
 public abstract class AbstractMacIT {
-  public static final Logger log = Logger.getLogger(AbstractMacIT.class);
+  private static final Logger log = Logger.getLogger(AbstractMacIT.class);
 
   public static final String ROOT_PASSWORD = "testRootPassword1";
   public static final ScannerOpts SOPTS = new ScannerOpts();

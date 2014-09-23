@@ -34,7 +34,6 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 
 /**
  * This iterator facilitates document-partitioned indexing. It involves grouping a set of documents together and indexing those documents into a single row of
@@ -83,8 +82,6 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
   protected Key buildFollowingPartitionKey(Key key) {
     return key.followingKey(PartialKey.ROW);
   }
-  
-  protected static final Logger log = Logger.getLogger(IntersectingIterator.class);
   
   public static class TermSource {
     public SortedKeyValueIterator<Key,Value> iter;

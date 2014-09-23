@@ -100,7 +100,7 @@ public class AccumuloVFSClassLoader {
 
   private static ContextManager contextManager;
 
-  private static Logger log = Logger.getLogger(AccumuloVFSClassLoader.class);
+  private static final Logger log = Logger.getLogger(AccumuloVFSClassLoader.class);
 
   static {
     // Register the shutdown hook

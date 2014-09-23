@@ -35,7 +35,7 @@ import org.apache.zookeeper.KeeperException;
 import org.junit.Test;
 
 public class MonitorLoggingIT extends ConfigurableMacIT {
-  public static final Logger log = Logger.getLogger(MonitorLoggingIT.class);
+  private static final Logger log = Logger.getLogger(MonitorLoggingIT.class);
 
   @Override
   public void beforeClusterStart(MiniAccumuloConfigImpl cfg) throws Exception {

@@ -33,7 +33,7 @@ import org.apache.log4j.Logger;
 
 public class HadoopLogCloser implements LogCloser {
 
-  private static Logger log = Logger.getLogger(HadoopLogCloser.class);
+  private static final Logger log = Logger.getLogger(HadoopLogCloser.class);
 
   @Override
   public long close(AccumuloConfiguration conf, VolumeManager fs, Path source) throws IOException {

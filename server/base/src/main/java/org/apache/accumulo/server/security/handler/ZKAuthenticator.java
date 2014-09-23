@@ -38,7 +38,7 @@ import org.apache.zookeeper.KeeperException;
 
 // Utility class for adding all authentication info into ZK
 public final class ZKAuthenticator implements Authenticator {
-  static final Logger log = Logger.getLogger(ZKAuthenticator.class);
+  private static final Logger log = Logger.getLogger(ZKAuthenticator.class);
   private static Authenticator zkAuthenticatorInstance = null;
   
   private String ZKUserPath;

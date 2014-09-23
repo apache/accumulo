@@ -35,7 +35,7 @@ import org.apache.log4j.Logger;
  *
  */
 class WriteTracker {
-  private static Logger log = Logger.getLogger(WriteTracker.class);
+  private static final Logger log = Logger.getLogger(WriteTracker.class);
   
   private static final AtomicLong operationCounter = new AtomicLong(1);
   private final Map<TabletType,TreeSet<Long>> inProgressWrites = new EnumMap<TabletType,TreeSet<Long>>(TabletType.class);

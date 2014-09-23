@@ -36,7 +36,7 @@ import org.apache.log4j.Logger;
  */
 public class RootFiles {
 
-  private static Logger log = Logger.getLogger(RootFiles.class);
+  private static final Logger log = Logger.getLogger(RootFiles.class);
 
   public static void prepareReplacement(VolumeManager fs, Path location, Set<FileRef> oldDatafiles, String compactName) throws IOException {
     for (FileRef ref : oldDatafiles) {

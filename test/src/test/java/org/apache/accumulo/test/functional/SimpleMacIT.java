@@ -38,7 +38,7 @@ import org.junit.BeforeClass;
  * this class should be runnable on any instance of Accumulo, given a root connector.
  */
 public class SimpleMacIT extends AbstractMacIT {
-  public static final Logger log = Logger.getLogger(SimpleMacIT.class);
+  protected static final Logger log = Logger.getLogger(SimpleMacIT.class);
 
   private static File folder;
   private static MiniAccumuloClusterImpl cluster = null;

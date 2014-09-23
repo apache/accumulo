@@ -27,7 +27,7 @@ import org.apache.log4j.Logger;
 
 public class MapRLogCloser implements LogCloser {
 
-  private static Logger log = Logger.getLogger(MapRLogCloser.class);
+  private static final Logger log = Logger.getLogger(MapRLogCloser.class);
 
   @Override
   public long close(AccumuloConfiguration conf, VolumeManager fs, Path path) throws IOException {

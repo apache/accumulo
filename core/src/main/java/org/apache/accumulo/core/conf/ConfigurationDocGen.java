@@ -293,7 +293,7 @@ class ConfigurationDocGen {
     }
   }
 
-  private static Logger log = Logger.getLogger(ConfigurationDocGen.class);
+  private static final Logger log = Logger.getLogger(ConfigurationDocGen.class);
 
   private PrintStream doc;
 

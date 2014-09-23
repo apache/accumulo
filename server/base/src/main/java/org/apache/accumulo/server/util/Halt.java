@@ -21,7 +21,7 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.log4j.Logger;
 
 public class Halt {
-  static private Logger log = Logger.getLogger(Halt.class);
+  static private final Logger log = Logger.getLogger(Halt.class);
   
   public static void halt(final String msg) {
     halt(0, new Runnable() {

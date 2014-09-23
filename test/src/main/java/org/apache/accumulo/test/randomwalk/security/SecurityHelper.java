@@ -30,7 +30,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.log4j.Logger;
 
 public class SecurityHelper {
-  protected final static Logger log = Logger.getLogger(SecurityHelper.class);
+  private static final Logger log = Logger.getLogger(SecurityHelper.class);
   
   private static final String tableName = "secTableName";
   private static final String masterName = "sysUserName";

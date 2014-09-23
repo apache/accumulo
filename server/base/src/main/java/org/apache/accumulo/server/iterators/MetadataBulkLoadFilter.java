@@ -37,7 +37,7 @@ import org.apache.log4j.Logger;
  * 
  */
 public class MetadataBulkLoadFilter extends Filter {
-  private static Logger log = Logger.getLogger(MetadataBulkLoadFilter.class);
+  private static final Logger log = Logger.getLogger(MetadataBulkLoadFilter.class);
   
   enum Status {
     ACTIVE, INACTIVE

@@ -28,7 +28,7 @@ import org.apache.log4j.Logger;
 
 class MinorCompactionTask implements Runnable {
 
-  private static Logger log = Logger.getLogger(MinorCompactionTask.class);
+  private static final Logger log = Logger.getLogger(MinorCompactionTask.class);
 
   private final Tablet tablet;
   private long queued;

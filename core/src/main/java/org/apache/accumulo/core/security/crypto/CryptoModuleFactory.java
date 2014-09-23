@@ -32,9 +32,9 @@ import org.apache.log4j.Logger;
  */
 public class CryptoModuleFactory {
 
-  private static Logger log = Logger.getLogger(CryptoModuleFactory.class);
-  private static Map<String,CryptoModule> cryptoModulesCache = new HashMap<String,CryptoModule>();
-  private static Map<String,SecretKeyEncryptionStrategy> secretKeyEncryptionStrategyCache = new HashMap<String,SecretKeyEncryptionStrategy>();
+  private static final Logger log = Logger.getLogger(CryptoModuleFactory.class);
+  private static final Map<String,CryptoModule> cryptoModulesCache = new HashMap<String,CryptoModule>();
+  private static final Map<String,SecretKeyEncryptionStrategy> secretKeyEncryptionStrategyCache = new HashMap<String,SecretKeyEncryptionStrategy>();
 
   /**
    * This method returns a crypto module based on settings in the given configuration parameter.

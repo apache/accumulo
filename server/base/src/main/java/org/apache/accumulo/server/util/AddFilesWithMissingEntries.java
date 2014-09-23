@@ -46,7 +46,7 @@ import com.beust.jcommander.Parameter;
 
 public class AddFilesWithMissingEntries {
   
-  static final Logger log = Logger.getLogger(AddFilesWithMissingEntries.class);
+  private static final Logger log = Logger.getLogger(AddFilesWithMissingEntries.class);
   
   public static class Opts extends ClientOpts {
     @Parameter(names = "-update", description = "Make changes to the " + MetadataTable.NAME + " table to include missing files")

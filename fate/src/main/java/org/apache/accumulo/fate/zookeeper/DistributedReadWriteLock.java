@@ -96,7 +96,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
     long addEntry(byte[] data);
   }
   
-  public static final Logger log = Logger.getLogger(DistributedReadWriteLock.class);
+  private static final Logger log = Logger.getLogger(DistributedReadWriteLock.class);
   
   static class ReadLock implements Lock {
     

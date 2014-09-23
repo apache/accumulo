@@ -34,7 +34,7 @@ import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.log4j.Logger;
 
 public class TabletServerBatchReader extends ScannerOptions implements BatchScanner {
-  public static final Logger log = Logger.getLogger(TabletServerBatchReader.class);
+  private static final Logger log = Logger.getLogger(TabletServerBatchReader.class);
   
   private String table;
   private int numThreads;

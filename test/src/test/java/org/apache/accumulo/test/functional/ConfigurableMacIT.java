@@ -38,7 +38,7 @@ import org.junit.After;
 import org.junit.Before;
 
 public class ConfigurableMacIT extends AbstractMacIT {
-  public static final Logger log = Logger.getLogger(ConfigurableMacIT.class);
+  protected static final Logger log = Logger.getLogger(ConfigurableMacIT.class);
 
   public MiniAccumuloClusterImpl cluster;
 

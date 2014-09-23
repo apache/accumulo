@@ -89,9 +89,9 @@ public class ZombieTServer {
     }
     
   }
+  private static final Logger log = Logger.getLogger(ZombieTServer.class);
   
   public static void main(String[] args) throws Exception {
-    final Logger log = Logger.getLogger(ZombieTServer.class);
     Random random = new Random(System.currentTimeMillis() % 1000);
     int port = random.nextInt(30000) + 2000;
     Instance instance = HdfsZooInstance.getInstance();

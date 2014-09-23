@@ -51,7 +51,7 @@ public class DefaultCryptoModule implements CryptoModule {
   
   private static final String ENCRYPTION_HEADER_MARKER_V1 = "---Log File Encrypted (v1)---";
   private static final String ENCRYPTION_HEADER_MARKER_V2 = "---Log File Encrypted (v2)---";
-  private static Logger log = Logger.getLogger(DefaultCryptoModule.class);
+  private static final Logger log = Logger.getLogger(DefaultCryptoModule.class);
   
   public DefaultCryptoModule() {}
   

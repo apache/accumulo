@@ -34,7 +34,7 @@ import org.apache.zookeeper.data.Stat;
 
 public class ZooLock implements Watcher {
   private static final Charset UTF8 = Charset.forName("UTF-8");
-  protected static final Logger log = Logger.getLogger(ZooLock.class);
+  private static final Logger log = Logger.getLogger(ZooLock.class);
   
   public static final String LOCK_PREFIX = "zlock-";
   

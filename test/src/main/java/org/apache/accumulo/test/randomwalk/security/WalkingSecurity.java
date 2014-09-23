@@ -55,7 +55,7 @@ import org.apache.log4j.Logger;
 public class WalkingSecurity extends SecurityOperation implements Authorizor, Authenticator, PermissionHandler {
   State state = null;
   Environment env = null;
-  protected final static Logger log = Logger.getLogger(WalkingSecurity.class);
+  private static final Logger log = Logger.getLogger(WalkingSecurity.class);
 
   private static final String tableName = "SecurityTableName";
   private static final String namespaceName = "SecurityNamespaceName";

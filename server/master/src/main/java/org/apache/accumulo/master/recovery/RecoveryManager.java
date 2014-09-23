@@ -50,7 +50,7 @@ import org.apache.zookeeper.KeeperException;
 
 public class RecoveryManager {
 
-  private static Logger log = Logger.getLogger(RecoveryManager.class);
+  private static final Logger log = Logger.getLogger(RecoveryManager.class);
 
   private Map<String,Long> recoveryDelay = new HashMap<String,Long>();
   private Set<String> closeTasksQueued = new HashSet<String>();

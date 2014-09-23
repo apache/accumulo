@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+import com.google.common.base.Splitter;
+import com.google.common.collect.Lists;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.ScannerBase;
@@ -33,10 +35,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.conf.ColumnSet;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
-
-import com.google.common.base.Splitter;
-import com.google.common.collect.Lists;
 
 /**
  * A SortedKeyValueIterator that combines the Values for different versions (timestamp) of a Key within a row into a single Value. Combiner will replace one or
@@ -54,7 +52,6 @@ import com.google.common.collect.Lists;
  * {@link Combiner} implementation with the {@link ScannerBase#fetchColumnFamily(Text)} or {@link ScannerBase#fetchColumn(Text, Text)} methods.
  */
 public abstract class Combiner extends WrappingIterator implements OptionDescriber {
-  static final Logger log = Logger.getLogger(Combiner.class);
   protected static final String COLUMNS_OPTION = "columns";
   protected static final String ALL_OPTION = "all";
 

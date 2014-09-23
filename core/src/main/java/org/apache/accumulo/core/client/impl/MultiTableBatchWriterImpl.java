@@ -46,7 +46,7 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
   public static final long DEFAULT_CACHE_TIME = 200;
   public static final TimeUnit DEFAULT_CACHE_TIME_UNIT = TimeUnit.MILLISECONDS;
 
-  static final Logger log = Logger.getLogger(MultiTableBatchWriterImpl.class);
+  private static final Logger log = Logger.getLogger(MultiTableBatchWriterImpl.class);
   private AtomicBoolean closed;
   private AtomicLong cacheLastState;
 
