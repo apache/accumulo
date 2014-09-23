@@ -26,6 +26,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.conf.ConfigurationCopy;
+
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -74,7 +77,7 @@ public class AccumuloInputFormatIT extends SimpleMacIT {
 
     ClientConfiguration clientConf = new ClientConfiguration().withInstance(conn.getInstance().getInstanceName()).withZkHosts(
         conn.getInstance().getZooKeepers());
-    AccumuloConfiguration clusterClientConf = conn.getInstance().getConfiguration();
+    AccumuloConfiguration clusterClientConf = new ConfigurationCopy(new DefaultConfiguration());
 
     // Pass SSL and CredentialProvider options into the ClientConfiguration given to AccumuloInputFormat
     boolean sslEnabled = Boolean.valueOf(clusterClientConf.get(Property.INSTANCE_RPC_SSL_ENABLED));
