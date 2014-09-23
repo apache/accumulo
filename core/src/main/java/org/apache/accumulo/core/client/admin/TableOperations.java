@@ -103,6 +103,25 @@ public interface TableOperations {
   void create(String tableName, boolean versioningIter, TimeType timeType) throws AccumuloException, AccumuloSecurityException, TableExistsException;
 
   /**
+   * @param tableName
+   *          the name of the table
+   * @param limitVersion
+   *          Enables/disables the versioning iterator, which will limit the number of Key versions kept.
+   * @param timeType
+   *          specifies logical or real-time based time recording for entries in the table
+   * @param properties
+   *          initial table properties the user wants
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission
+   * @throws TableExistsException
+   *           if the table already exists
+   */
+  void create(String tableName, boolean limitVersion, TimeType timeType, Map<String,String> properties) throws AccumuloException, AccumuloSecurityException,
+      TableExistsException;  
+  
+  /**
    * Imports a table exported via exportTable and copied via hadoop distcp.
    * 
    * @param tableName

@@ -98,6 +98,14 @@ class MockTableOperations extends TableOperationsHelper {
 
   @Override
   public void create(String tableName, boolean versioningIter, TimeType timeType) throws AccumuloException, AccumuloSecurityException, TableExistsException {
+    //Call new method with an empty map as the user defined initial properties
+    Map<String, String> opts = Collections.emptyMap();
+    create(tableName, versioningIter, timeType, opts);
+  }
+  
+  @Override
+  public void create(String tableName, boolean versioningIter, TimeType timeType, Map<String,String> properties) throws AccumuloException,
+      AccumuloSecurityException, TableExistsException {
     String namespace = Tables.qualify(tableName).getFirst();
     if (!tableName.matches(Tables.VALID_NAME_REGEX)) {
       throw new IllegalArgumentException();
@@ -108,7 +116,7 @@ class MockTableOperations extends TableOperationsHelper {
     if (!namespaceExists(namespace)) {
       throw new IllegalArgumentException("Namespace (" + namespace + ") does not exist, create it first");
     }
-    acu.createTable(username, tableName, versioningIter, timeType);
+    acu.createTable(username, tableName, versioningIter, timeType, properties);
   }
 
   @Override

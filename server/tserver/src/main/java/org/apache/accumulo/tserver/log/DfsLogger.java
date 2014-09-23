@@ -66,6 +66,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 
 /**
  * Wrap a connection to a logger.
@@ -358,7 +359,7 @@ public class DfsLogger {
     log.debug("DfsLogger.open() begin");
     VolumeManager fs = conf.getFileSystem();
 
-    logPath = fs.choose(ServerConstants.getWalDirs()) + "/" + logger + "/" + filename;
+    logPath = fs.choose(Optional.<String> absent(), ServerConstants.getWalDirs()) + "/wal/" + logger + "/" + filename;
     metaReference = toString();
     try {
       short replication = (short) conf.getConfiguration().getCount(Property.TSERV_WAL_REPLICATION);

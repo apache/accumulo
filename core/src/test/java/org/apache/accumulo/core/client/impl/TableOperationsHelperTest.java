@@ -69,6 +69,10 @@ public class TableOperationsHelperTest {
     public void create(String tableName, boolean versioningIter, TimeType timeType) throws AccumuloException, AccumuloSecurityException, TableExistsException {}
 
     @Override
+    public void create(String tableName, boolean limitVersion, TimeType timeType, Map<String,String> properties) throws AccumuloException,
+        AccumuloSecurityException, TableExistsException {}
+
+    @Override
     public void addSplits(String tableName, SortedSet<Text> partitionKeys) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {}
 
     @Deprecated

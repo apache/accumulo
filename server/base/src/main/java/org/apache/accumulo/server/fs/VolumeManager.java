@@ -28,6 +28,8 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 
+import com.google.common.base.Optional;
+
 /**
  * A wrapper around multiple hadoop FileSystem objects, which are assumed to be different volumes. This also concentrates a bunch of meta-operations like
  * waiting for SAFE_MODE, and closing WALs.
@@ -156,7 +158,7 @@ public interface VolumeManager {
   ContentSummary getContentSummary(Path dir) throws IOException;
 
   // decide on which of the given locations to create a new file
-  String choose(String[] options);
+  String choose(Optional<String> tableId, String[] options);
 
   /**
    * Fetch the default Volume
