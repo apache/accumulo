@@ -38,10 +38,11 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.AlphaNumKeyConstraint;
 import org.apache.accumulo.examples.simple.constraints.NumericValueConstraint;
+import org.apache.accumulo.harness.UnmanagedAccumuloIT;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class ConstraintIT extends SimpleMacIT {
+public class ConstraintIT extends UnmanagedAccumuloIT {
 
   @Override
   protected int defaultTimeoutSeconds() {

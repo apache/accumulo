@@ -27,11 +27,11 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.test.functional.SimpleMacIT;
+import org.apache.accumulo.harness.UnmanagedAccumuloIT;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class KeyValueEqualityTest extends SimpleMacIT {
+public class KeyValueEqualityTest extends UnmanagedAccumuloIT {
 
   @Override
   public int defaultTimeoutSeconds() {
@@ -43,7 +43,8 @@ public class KeyValueEqualityTest extends SimpleMacIT {
     Connector conn = this.getConnector();
     final BatchWriterConfig config = new BatchWriterConfig();
 
-    final String table1 = "table1", table2 = "table2";
+    final String[] tables = getUniqueNames(2);
+    final String table1 = tables[0], table2 = tables[1];
     final TableOperations tops = conn.tableOperations();
     tops.create(table1);
     tops.create(table2);

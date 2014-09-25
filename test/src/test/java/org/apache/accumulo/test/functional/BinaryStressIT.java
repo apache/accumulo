@@ -32,7 +32,7 @@ import org.apache.hadoop.fs.Path;
 import org.junit.Test;
 
 public class BinaryStressIT extends ConfigurableMacIT {
-  
+
   @Override
   protected int defaultTimeoutSeconds() {
     return 4 * 60;
@@ -49,13 +49,14 @@ public class BinaryStressIT extends ConfigurableMacIT {
   @Test
   public void binaryStressTest() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("bt");
-    c.tableOperations().setProperty("bt", Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
-    BinaryIT.runTest(c);
-    String id = c.tableOperations().tableIdMap().get("bt");
+    String tableName = getUniqueNames(1)[0];
+    c.tableOperations().create(tableName);
+    c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
+    BinaryIT.runTest(c, tableName);
+    String id = c.tableOperations().tableIdMap().get(tableName);
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     FileStatus[] dir = fs.listStatus(new Path(cluster.getConfig().getDir() + "/accumulo/tables/" + id));
     assertTrue(dir.length  > 7);
   }
-  
+
 }

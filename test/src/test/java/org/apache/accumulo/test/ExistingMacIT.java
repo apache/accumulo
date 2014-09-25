@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -72,7 +73,7 @@ public class ExistingMacIT extends ConfigurableMacIT {
   @Test
   public void testExistingInstance() throws Exception {
 
-    Connector conn = getCluster().getConnector("root", ROOT_PASSWORD);
+    Connector conn = getCluster().getConnector("root", new PasswordToken(ROOT_PASSWORD));
 
     conn.tableOperations().create("table1");
 
@@ -149,7 +150,7 @@ public class ExistingMacIT extends ConfigurableMacIT {
     MiniAccumuloCluster accumulo2 = new MiniAccumuloCluster(macConfig2);
     try {
       accumulo2.start();
-      Assert.fail();
+      Assert.fail("A 2nd MAC instance should not be able to start over an existing MAC instance");
     } catch (RuntimeException e) {
       // TODO check message or throw more explicit exception
     }

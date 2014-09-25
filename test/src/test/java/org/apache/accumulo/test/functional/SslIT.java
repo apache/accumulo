@@ -41,8 +41,9 @@ public class SslIT extends ConfigurableMacIT {
 
   @Test
   public void binary() throws AccumuloException, AccumuloSecurityException, Exception {
-    getConnector().tableOperations().create("bt");
-    BinaryIT.runTest(getConnector());
+    String tableName = getUniqueNames(1)[0];
+    getConnector().tableOperations().create(tableName);
+    BinaryIT.runTest(getConnector(), tableName);
   }
 
   @Test

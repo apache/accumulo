@@ -29,15 +29,17 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.harness.ManagedAccumuloIT;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class Accumulo3047IT extends ConfigurableMacIT {
+public class Accumulo3047IT extends ManagedAccumuloIT {
+  private static final Logger log = Logger.getLogger(Accumulo3047IT.class);
 
   @Override
   public int defaultTimeoutSeconds() {
@@ -45,7 +47,7 @@ public class Accumulo3047IT extends ConfigurableMacIT {
   }
 
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1s");
     cfg.setProperty(Property.GC_CYCLE_START, "0s");

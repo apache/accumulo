@@ -35,10 +35,11 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.harness.UnmanagedAccumuloIT;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class ScanIteratorIT extends SimpleMacIT {
+public class ScanIteratorIT extends UnmanagedAccumuloIT {
 
   @Override
   protected int defaultTimeoutSeconds() {

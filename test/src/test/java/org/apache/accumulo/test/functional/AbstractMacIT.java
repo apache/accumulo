@@ -74,13 +74,6 @@ public abstract class AbstractMacIT {
     return testDir;
   }
 
-  public String[] getUniqueNames(int num) {
-    String[] names = new String[num];
-    for (int i = 0; i < num; i++)
-      names[i] = this.getClass().getSimpleName() + "_" + testName.getMethodName() + i;
-    return names;
-  }
-
   protected static void configureForEnvironment(MiniAccumuloConfigImpl cfg, Class<?> testClass, File folder) {
     if ("true".equals(System.getProperty("org.apache.accumulo.test.functional.useSslForIT"))) {
       configureForSsl(cfg, folder);
@@ -119,21 +112,25 @@ public abstract class AbstractMacIT {
     cfg.setSiteConfig(siteConfig);
   }
 
+  public String[] getUniqueNames(int num) {
+    String[] names = new String[num];
+    for (int i = 0; i < num; i++)
+      names[i] = this.getClass().getSimpleName() + "_" + testName.getMethodName() + i;
+    return names;
+  }
+
   /**
    * If a given IT test has a method that takes longer than a class-set default timeout, declare it failed.
    *
-   * Note that this provides a upper bound on test times, even in the presence of Test annotations with
-   * a timeout. That is, the Test annotatation can make the timing tighter but will not be able to allow
-   * a timeout that takes longer.
+   * Note that this provides a upper bound on test times, even in the presence of Test annotations with a timeout. That is, the Test annotatation can make the
+   * timing tighter but will not be able to allow a timeout that takes longer.
    *
    * Defaults to no timeout and can be changed via two mechanisms
    *
-   * 1) A given IT class can override the defaultTimeoutSeconds method if test methods in that class should
-   *    have a timeout.
-   * 2) The system property "timeout.factor" is used as a multiplier for the class provided default
+   * 1) A given IT class can override the defaultTimeoutSeconds method if test methods in that class should have a timeout. 2) The system property
+   * "timeout.factor" is used as a multiplier for the class provided default
    *
-   * Note that if either of these values is '0' tests will run with no timeout. The default class level
-   * timeout is set to 0.
+   * Note that if either of these values is '0' tests will run with no timeout. The default class level timeout is set to 0.
    *
    */
   @Rule

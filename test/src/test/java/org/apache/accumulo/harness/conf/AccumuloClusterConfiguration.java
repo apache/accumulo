@@ -14,28 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.test.functional;
+package org.apache.accumulo.harness.conf;
 
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.UnmanagedAccumuloIT;
-import org.junit.Test;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.harness.AccumuloClusterIT.ClusterType;
 
-public class CreateManyScannersIT extends UnmanagedAccumuloIT {
+/**
+ * Base functionality that must be provided as configuration to the test
+ */
+public interface AccumuloClusterConfiguration {
 
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
-  }
+  ClusterType getClusterType();
 
-  @Test
-  public void run() throws Exception {
-    Connector c = getConnector();
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    for (int i = 0; i < 100000; i++) {
-      c.createScanner(tableName, Authorizations.EMPTY);
-    }
-  }
+  String getPrincipal();
+
+  AuthenticationToken getToken();
 
 }

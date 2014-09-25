@@ -14,28 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.test.functional;
+package org.apache.accumulo.harness;
 
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.UnmanagedAccumuloIT;
-import org.junit.Test;
+import org.apache.accumulo.cluster.ManagedAccumuloCluster;
 
-public class CreateManyScannersIT extends UnmanagedAccumuloIT {
+/**
+ * Implementation of {@link AccumuloClusterIT} which asserts that the test case requires a {@link ManagedAccumuloCluster}.
+ */
+public class ManagedAccumuloIT extends AccumuloClusterIT {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
-  }
-
-  @Test
-  public void run() throws Exception {
-    Connector c = getConnector();
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    for (int i = 0; i < 100000; i++) {
-      c.createScanner(tableName, Authorizations.EMPTY);
-    }
+  public boolean needsManagedCluster() {
+    return true;
   }
 
 }

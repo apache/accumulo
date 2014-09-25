@@ -28,12 +28,13 @@ import java.util.concurrent.Future;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.fate.util.UtilWaitThread;
+import org.apache.accumulo.harness.UnmanagedAccumuloIT;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
 // ACCUMULO-2361
-public class DeleteTableDuringSplitIT extends SimpleMacIT {
+public class DeleteTableDuringSplitIT extends UnmanagedAccumuloIT {
 
   @Override
   protected int defaultTimeoutSeconds() {

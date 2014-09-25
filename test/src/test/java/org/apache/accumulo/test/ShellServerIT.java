@@ -29,7 +29,6 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -57,8 +56,8 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.shell.Shell;
+import org.apache.accumulo.harness.SharedMiniClusterIT;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
-import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.tracer.TraceServer;
 import org.apache.commons.io.FileUtils;
@@ -77,7 +76,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
-public class ShellServerIT extends SimpleMacIT {
+public class ShellServerIT extends SharedMiniClusterIT {
   public static class TestOutputStream extends OutputStream {
     StringBuilder sb = new StringBuilder();
 
@@ -121,6 +120,7 @@ public class ShellServerIT extends SimpleMacIT {
 
   private static class NoOpErrorMessageCallback extends ErrorMessageCallback {
     private static final String empty = "";
+
     @Override
     public String getErrorMessage() {
       return empty;
@@ -218,34 +218,42 @@ public class ShellServerIT extends SimpleMacIT {
   private TestShell ts;
 
   private static Process traceProcess;
+  private static String rootPath;
 
   @Rule
   public TestName name = new TestName();
 
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
+    rootPath = getMiniClusterDir().getAbsolutePath();
+
     // history file is updated in $HOME
-    System.setProperty("HOME", getFolder().getAbsolutePath());
+    System.setProperty("HOME", rootPath);
     System.setProperty("hadoop.tmp.dir", System.getProperty("user.dir") + "/target/hadoop-tmp");
 
-    // use reflection to call this method so it does not need to be made public
-    Method method = getStaticCluster().getClass().getDeclaredMethod("exec", Class.class, String[].class);
-    method.setAccessible(true);
-    traceProcess = (Process) method.invoke(getStaticCluster(), TraceServer.class, new String[0]);
+    traceProcess = getCluster().exec(TraceServer.class);
+
+    Connector conn = getCluster().getConnector("root", getToken());
+    TableOperations tops = conn.tableOperations();
 
     // give the tracer some time to start
-    UtilWaitThread.sleep(1000);
+    while (!tops.exists("trace")) {
+      UtilWaitThread.sleep(1000);
+    }
   }
 
   @Before
   public void setupShell() throws Exception {
-    ts = new TestShell(ROOT_PASSWORD, getStaticCluster().getConfig().getInstanceName(), getStaticCluster().getConfig().getZooKeepers(),
-        getStaticCluster().getConfig().getClientConfFile().getAbsolutePath());
+    ts = new TestShell(getRootPassword(), getCluster().getConfig().getInstanceName(), getCluster().getConfig().getZooKeepers(), getCluster().getConfig()
+        .getClientConfFile()
+        .getAbsolutePath());
   }
 
   @AfterClass
   public static void tearDownAfterClass() throws Exception {
-    traceProcess.destroy();
+    if (null != traceProcess) {
+      traceProcess.destroy();
+    }
   }
 
   @After
@@ -281,10 +289,10 @@ public class ShellServerIT extends SimpleMacIT {
     ts.exec("addsplits row5", true);
     ts.exec("config -t " + table + " -s table.split.threshold=345M", true);
     ts.exec("offline " + table, true);
-    String export = "file://" + new File(getFolder(), "ShellServerIT.export").toString();
+    String export = "file://" + new File(rootPath, "ShellServerIT.export").toString();
     ts.exec("exporttable -t " + table + " " + export, true);
     DistCp cp = newDistCp();
-    String import_ = "file://" + new File(getFolder(), "ShellServerIT.import").toString();
+    String import_ = "file://" + new File(rootPath, "ShellServerIT.import").toString();
     cp.run(new String[] {"-f", export + "/distcp.txt", import_});
     ts.exec("importtable " + table2 + " " + import_, true);
     ts.exec("config -t " + table2 + " -np", true, "345M", true);
@@ -336,7 +344,7 @@ public class ShellServerIT extends SimpleMacIT {
   @Test
   public void execfile() throws Exception {
     // execfile
-    File file = File.createTempFile("ShellServerIT.execfile", ".conf", getFolder());
+    File file = File.createTempFile("ShellServerIT.execfile", ".conf", new File(rootPath));
     PrintWriter writer = new PrintWriter(file.getAbsolutePath());
     writer.println("about");
     writer.close();
@@ -415,7 +423,7 @@ public class ShellServerIT extends SimpleMacIT {
     ts.exec("scan", true, "row1", true);
     ts.exec("droptable -f " + table, true);
     ts.exec("deleteuser xyzzy", false, "delete yourself", true);
-    ts.input.set(ROOT_PASSWORD + "\n" + ROOT_PASSWORD + "\n");
+    ts.input.set(getRootPassword() + "\n" + getRootPassword() + "\n");
     ts.exec("user root", true);
     ts.exec("revoke -u xyzzy -s System.CREATE_TABLE", true);
     ts.exec("revoke -u xyzzy -s System.GOOFY", false);
@@ -858,11 +866,11 @@ public class ShellServerIT extends SimpleMacIT {
 
     Configuration conf = new Configuration();
     FileSystem fs = FileSystem.get(conf);
-    File importDir = new File(getFolder(), "import");
+    File importDir = new File(rootPath, "import");
     importDir.mkdir();
     String even = new File(importDir, "even.rf").toString();
     String odd = new File(importDir, "odd.rf").toString();
-    File errorsDir = new File(getFolder(), "errors");
+    File errorsDir = new File(rootPath, "errors");
     errorsDir.mkdir();
     fs.mkdirs(new Path(errorsDir.toString()));
     AccumuloConfiguration aconf = AccumuloConfiguration.getDefaultConfiguration();
@@ -1085,18 +1093,17 @@ public class ShellServerIT extends SimpleMacIT {
   public void testPertableClasspath() throws Exception {
     final String table = name.getMethodName();
 
-    File fooFilterJar = File.createTempFile("FooFilter", ".jar", getFolder());
+    File fooFilterJar = File.createTempFile("FooFilter", ".jar", new File(rootPath));
 
     FileUtils.copyURLToFile(this.getClass().getResource("/FooFilter.jar"), fooFilterJar);
     fooFilterJar.deleteOnExit();
 
-    File fooConstraintJar = File.createTempFile("FooConstraint", ".jar", getFolder());
+    File fooConstraintJar = File.createTempFile("FooConstraint", ".jar", new File(rootPath));
     FileUtils.copyURLToFile(this.getClass().getResource("/FooConstraint.jar"), fooConstraintJar);
     fooConstraintJar.deleteOnExit();
 
-    ts.exec(
-        "config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1=" + fooFilterJar.toURI().toString() + "," + fooConstraintJar.toURI().toString(),
-        true);
+    ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1=" + fooFilterJar.toURI().toString() + ","
+        + fooConstraintJar.toURI().toString(), true);
 
     ts.exec("createtable " + table, true);
     ts.exec("config -t " + table + " -s " + Property.TABLE_CLASSPATH.getKey() + "=cx1", true);
@@ -1148,7 +1155,7 @@ public class ShellServerIT extends SimpleMacIT {
 
   @Test
   public void badLogin() throws Exception {
-    ts.input.set(ROOT_PASSWORD + "\n");
+    ts.input.set(getRootPassword() + "\n");
     String err = ts.exec("user NoSuchUser", false);
     assertTrue(err.contains("BAD_CREDENTIALS for user NoSuchUser"));
   }
@@ -1259,7 +1266,7 @@ public class ShellServerIT extends SimpleMacIT {
     ts.input.set("secret\n");
     ts.exec("user test_user", true);
     assertTrue(ts.exec("whoami", true).contains("test_user"));
-    ts.input.set(ROOT_PASSWORD + "\n");
+    ts.input.set(getRootPassword() + "\n");
     ts.exec("user root", true);
   }
 

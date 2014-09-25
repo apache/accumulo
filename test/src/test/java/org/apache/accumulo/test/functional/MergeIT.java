@@ -35,10 +35,11 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Merge;
+import org.apache.accumulo.harness.UnmanagedAccumuloIT;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class MergeIT extends SimpleMacIT {
+public class MergeIT extends UnmanagedAccumuloIT {
 
   @Override
   public int defaultTimeoutSeconds() {

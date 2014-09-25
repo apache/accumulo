@@ -30,6 +30,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -45,6 +46,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.harness.UnmanagedAccumuloIT;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -52,12 +55,13 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 
 /**
  *
  */
-public class CloneTestIT extends SimpleMacIT {
+public class CloneTestIT extends UnmanagedAccumuloIT {
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -197,6 +201,10 @@ public class CloneTestIT extends SimpleMacIT {
     String table3 = tableNames[2];
 
     Connector c = getConnector();
+    AccumuloCluster cluster = getCluster();
+    Assume.assumeTrue(cluster instanceof MiniAccumuloClusterImpl);
+    MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) cluster;
+    String rootPath = mac.getConfig().getDir().getAbsolutePath();
 
     // verify that deleting a new table removes the files
     c.tableOperations().create(table3);
@@ -205,7 +213,7 @@ public class CloneTestIT extends SimpleMacIT {
     // check for files
     FileSystem fs = FileSystem.get(new Configuration());
     String id = c.tableOperations().tableIdMap().get(table3);
-    FileStatus[] status = fs.listStatus(new Path(rootPath() + "/accumulo/tables/" + id));
+    FileStatus[] status = fs.listStatus(new Path(rootPath + "/accumulo/tables/" + id));
     assertTrue(status.length > 0);
     // verify disk usage
     List<DiskUsage> diskUsage = c.tableOperations().getDiskUsage(Collections.singleton(table3));
@@ -214,7 +222,7 @@ public class CloneTestIT extends SimpleMacIT {
     // delete the table
     c.tableOperations().delete(table3);
     // verify its gone from the file system
-    Path tablePath = new Path(rootPath() + "/accumulo/tables/" + id);
+    Path tablePath = new Path(rootPath + "/accumulo/tables/" + id);
     if (fs.exists(tablePath)) {
       status = fs.listStatus(tablePath);
       assertTrue(status == null || status.length == 0);
@@ -283,7 +291,7 @@ public class CloneTestIT extends SimpleMacIT {
     for (Entry<Key,Value> entry : conn.createScanner(tables[1], Authorizations.EMPTY)) {
       actualRows.add(entry.getKey().getRow().toString());
     }
-    
+
     Assert.assertEquals(rows, actualRows);
   }
 

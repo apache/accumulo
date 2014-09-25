@@ -34,12 +34,13 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.harness.UnmanagedAccumuloIT;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
 // attempt to reproduce ACCUMULO-315
-public class DeleteRowsSplitIT extends SimpleMacIT {
+public class DeleteRowsSplitIT extends UnmanagedAccumuloIT {
 
   @Override
   protected int defaultTimeoutSeconds() {

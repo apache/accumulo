@@ -20,35 +20,43 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 
 /**
- * Defines a minimum required set of methods to run an Accumulo cluster.
  *
- * (Experimental, not guaranteed to stay backwards compatible)
- *
- * @since 1.6.0
  */
+public class StandaloneAccumuloCluster implements AccumuloCluster {
 
-public interface AccumuloCluster {
+  private Instance instance;
 
-  /**
-   * @return Accumulo instance name
-   */
-  public String getInstanceName();
+  public StandaloneAccumuloCluster(String instanceName, String zookeepers) {
+    this.instance = new ZooKeeperInstance(instanceName, zookeepers);
+  }
 
-  /**
-   * @return zookeeper connection string
-   */
-  public String getZooKeepers();
+  public StandaloneAccumuloCluster(Instance instance) {
+    this.instance = instance;
+  }
 
-  /**
-   * Utility method to get a connector to the cluster.
-   */
-  public Connector getConnector(String user, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException;
+  @Override
+  public String getInstanceName() {
+    return instance.getInstanceName();
+  }
 
-  /**
-   * Get the client configuration for the cluster
-   */
-  public ClientConfiguration getClientConfig();
+  @Override
+  public String getZooKeepers() {
+    return instance.getZooKeepers();
+  }
+
+  @Override
+  public Connector getConnector(String user, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
+    return instance.getConnector(user, token);
+  }
+
+  @Override
+  public ClientConfiguration getClientConfig() {
+    return ClientConfiguration.loadDefault().withInstance(getInstanceName()).withZkHosts(getZooKeepers());
+  }
+
 }

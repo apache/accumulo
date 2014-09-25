@@ -14,28 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.test.functional;
+package org.apache.accumulo.harness;
 
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.UnmanagedAccumuloIT;
-import org.junit.Test;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.hadoop.conf.Configuration;
 
-public class CreateManyScannersIT extends UnmanagedAccumuloIT {
+/**
+ * Callback interface to inject configuration into the MiniAccumuloCluster or Hadoop core-site.xml file used by the MiniAccumuloCluster
+ */
+public interface MiniClusterConfigurationCallback {
 
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
-  }
+  public static class NoCallback implements MiniClusterConfigurationCallback {
 
-  @Test
-  public void run() throws Exception {
-    Connector c = getConnector();
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    for (int i = 0; i < 100000; i++) {
-      c.createScanner(tableName, Authorizations.EMPTY);
+    private NoCallback() {}
+
+    @Override
+    public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
+      return;
     }
   }
+
+  public static final MiniClusterConfigurationCallback NO_CALLBACK = new NoCallback();
+
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite);
 
 }

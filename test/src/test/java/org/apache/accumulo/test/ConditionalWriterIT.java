@@ -36,6 +36,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -75,13 +76,15 @@ import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.AlphaNumKeyConstraint;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
+import org.apache.accumulo.harness.ManagedAccumuloIT;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.test.functional.BadIterator;
-import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.accumulo.tracer.TraceServer;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -90,7 +93,8 @@ import com.google.common.collect.Iterables;
 /**
  *
  */
-public class ConditionalWriterIT extends SimpleMacIT {
+public class ConditionalWriterIT extends ManagedAccumuloIT {
+  private static final Logger log = Logger.getLogger(ConditionalWriterIT.class);
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -1028,14 +1032,17 @@ public class ConditionalWriterIT extends SimpleMacIT {
 
     conn.securityOperations().createLocalUser("user1", new PasswordToken("u1p"));
 
-    conn.tableOperations().create("sect1");
-    conn.tableOperations().create("sect2");
-    conn.tableOperations().create("sect3");
+    String[] tables = getUniqueNames(3);
+    String table1 = tables[0], table2 = tables[1], table3 = tables[2];
 
-    conn.securityOperations().grantTablePermission("user1", "sect1", TablePermission.READ);
-    conn.securityOperations().grantTablePermission("user1", "sect2", TablePermission.WRITE);
-    conn.securityOperations().grantTablePermission("user1", "sect3", TablePermission.READ);
-    conn.securityOperations().grantTablePermission("user1", "sect3", TablePermission.WRITE);
+    conn.tableOperations().create(table1);
+    conn.tableOperations().create(table2);
+    conn.tableOperations().create(table3);
+
+    conn.securityOperations().grantTablePermission("user1", table1, TablePermission.READ);
+    conn.securityOperations().grantTablePermission("user1", table2, TablePermission.WRITE);
+    conn.securityOperations().grantTablePermission("user1", table3, TablePermission.READ);
+    conn.securityOperations().grantTablePermission("user1", table3, TablePermission.WRITE);
 
     Connector conn2 = getConnector().getInstance().getConnector("user1", new PasswordToken("u1p"));
 
@@ -1043,9 +1050,9 @@ public class ConditionalWriterIT extends SimpleMacIT {
     cm1.put("tx", "seq", "1");
     cm1.put("data", "x", "a");
 
-    ConditionalWriter cw1 = conn2.createConditionalWriter("sect1", new ConditionalWriterConfig());
-    ConditionalWriter cw2 = conn2.createConditionalWriter("sect2", new ConditionalWriterConfig());
-    ConditionalWriter cw3 = conn2.createConditionalWriter("sect3", new ConditionalWriterConfig());
+    ConditionalWriter cw1 = conn2.createConditionalWriter(table1, new ConditionalWriterConfig());
+    ConditionalWriter cw2 = conn2.createConditionalWriter(table2, new ConditionalWriterConfig());
+    ConditionalWriter cw3 = conn2.createConditionalWriter(table3, new ConditionalWriterConfig());
 
     Assert.assertEquals(Status.ACCEPTED, cw3.write(cm1).getStatus());
 
@@ -1224,7 +1231,9 @@ public class ConditionalWriterIT extends SimpleMacIT {
     Process tracer = null;
     Connector conn = getConnector();
     if (!conn.tableOperations().exists("trace")) {
-      tracer = getStaticCluster().exec(TraceServer.class);
+      AccumuloCluster cluster = getCluster();
+      MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) cluster;
+      tracer = mac.exec(TraceServer.class);
     }
     while (!conn.tableOperations().exists("trace")) {
       UtilWaitThread.sleep(1000);

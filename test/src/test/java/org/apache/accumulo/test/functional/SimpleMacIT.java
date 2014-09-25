@@ -23,6 +23,8 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.harness.UnmanagedAccumuloIT;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloInstance;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
@@ -37,7 +39,10 @@ import org.junit.BeforeClass;
 /**
  * An implementation of {@link AbstractMacIT} for test cases that do not need to know any special details of {@link MiniAccumuloCluster}. Tests which extend
  * this class should be runnable on any instance of Accumulo, given a root connector.
+ *
+ * New tests should be written using {@link AccumuloClusterIT} or a subclass thereof. {@link UnmanagedAccumuloIT} provides the most similar semantics.
  */
+@Deprecated
 public class SimpleMacIT extends AbstractMacIT {
   public static final Logger log = Logger.getLogger(SimpleMacIT.class);
 

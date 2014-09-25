@@ -81,7 +81,7 @@ public class ConfigurableMajorCompactionIT extends ConfigurableMacIT {
   @Test
   public void test() throws Exception {
     Connector conn = getConnector();
-    String tableName = "test";
+    String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
     conn.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY.getKey(), TestCompactionStrategy.class.getName());
     writeFile(conn, tableName);

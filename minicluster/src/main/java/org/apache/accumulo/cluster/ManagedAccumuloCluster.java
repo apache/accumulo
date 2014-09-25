@@ -14,28 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.test.functional;
+package org.apache.accumulo.cluster;
 
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.UnmanagedAccumuloIT;
-import org.junit.Test;
+import java.io.IOException;
 
-public class CreateManyScannersIT extends UnmanagedAccumuloIT {
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
-  }
-
-  @Test
-  public void run() throws Exception {
-    Connector c = getConnector();
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    for (int i = 0; i < 100000; i++) {
-      c.createScanner(tableName, Authorizations.EMPTY);
-    }
-  }
+/**
+ *
+ */
+public interface ManagedAccumuloCluster extends AccumuloCluster {
+  
+  /**
+   * Starts Accumulo and Zookeeper processes. Can only be called once.
+   *
+   * @throws IllegalStateException
+   *           if already started
+   */
+  public void start() throws IOException, InterruptedException;
+  
+  /**
+   * Stops Accumulo and Zookeeper processes. If stop is not called, there is a shutdown hook that is setup to kill the processes. However its probably best to
+   * call stop in a finally block as soon as possible.
+   */
+  public void stop() throws IOException, InterruptedException;
 
 }

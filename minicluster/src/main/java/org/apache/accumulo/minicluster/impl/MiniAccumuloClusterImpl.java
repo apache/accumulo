@@ -51,7 +51,7 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.accumulo.cluster.AccumuloCluster;
+import org.apache.accumulo.cluster.ManagedAccumuloCluster;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -61,6 +61,7 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
@@ -117,7 +118,7 @@ import com.google.common.collect.Maps;
  *
  * @since 1.6.0
  */
-public class MiniAccumuloClusterImpl implements AccumuloCluster {
+public class MiniAccumuloClusterImpl implements ManagedAccumuloCluster {
   private static final Logger log = LoggerFactory.getLogger(MiniAccumuloClusterImpl.class);
 
   public static class LogWriter extends Daemon {
@@ -793,7 +794,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   /**
    * @since 1.6.0
    */
-  @Override
   public MiniAccumuloConfigImpl getConfig() {
     return config;
   }
@@ -803,10 +803,15 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
    *
    * @since 1.6.0
    */
-  @Override
+  @Deprecated
   public Connector getConnector(String user, String passwd) throws AccumuloException, AccumuloSecurityException {
+    return getConnector(user, new PasswordToken(passwd));
+  }
+  
+  @Override
+  public Connector getConnector(String user, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
     Instance instance = new ZooKeeperInstance(getClientConfig());
-    return instance.getConnector(user, new PasswordToken(passwd));
+    return instance.getConnector(user, token);
   }
 
   @Override

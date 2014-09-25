@@ -18,6 +18,7 @@ package org.apache.accumulo.test.functional;
 
 import static com.google.common.base.Charsets.UTF_8;
 
+import java.io.File;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.SortedSet;
@@ -42,7 +43,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class BulkFileIT extends ConfigurableMacIT {
 
@@ -58,6 +61,7 @@ public class BulkFileIT extends ConfigurableMacIT {
 
   @Test
   public void testBulkFile() throws Exception {
+    File tempDir = folder.newFolder();
     Connector c = getConnector();
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
@@ -69,7 +73,7 @@ public class BulkFileIT extends ConfigurableMacIT {
     AccumuloConfiguration aconf = ServerConfiguration.getDefaultConfiguration();
     FileSystem fs = TraceFileSystem.wrap(VolumeConfiguration.getDefaultVolume(conf, aconf).getFileSystem());
 
-    String dir = rootPath() + "/bulk_test_diff_files_89723987592_" + getUniqueNames(1)[0];
+    String dir = tempDir.getAbsolutePath() + "/bulk_test_diff_files_89723987592_" + getUniqueNames(1)[0];
 
     fs.delete(new Path(dir), true);
 

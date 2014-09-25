@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -50,38 +49,27 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.test.functional.SimpleMacIT;
+import org.apache.accumulo.harness.UnmanagedAccumuloIT;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-public class TableOperationsIT extends SimpleMacIT {
+public class TableOperationsIT extends UnmanagedAccumuloIT {
 
   static final String ROOT = "root";
 
   static TabletClientService.Client client;
-  static AtomicInteger tableCounter;
-
-  String makeTableName() {
-    return "table" + tableCounter.getAndIncrement();
-  }
 
   private Connector connector;
 
   @Override
   public int defaultTimeoutSeconds() {
     return 30;
-  }
-
-  @BeforeClass
-  public static void setupClass() {
-    tableCounter = new AtomicInteger(0);
   }
 
   @Before
@@ -91,7 +79,7 @@ public class TableOperationsIT extends SimpleMacIT {
 
   @Test
   public void getDiskUsageErrors() throws TableExistsException, AccumuloException, AccumuloSecurityException, TableNotFoundException, TException {
-    String tableName = makeTableName();
+    String tableName = getUniqueNames(1)[0];
     connector.tableOperations().create(tableName);
     List<DiskUsage> diskUsage = connector.tableOperations().getDiskUsage(Collections.singleton(tableName));
     assertEquals(1, diskUsage.size());
@@ -113,8 +101,8 @@ public class TableOperationsIT extends SimpleMacIT {
 
   @Test
   public void getDiskUsage() throws TableExistsException, AccumuloException, AccumuloSecurityException, TableNotFoundException, TException {
-
-    String tableName = makeTableName();
+    final String[] names = getUniqueNames(2);
+    String tableName = names[0];
     connector.tableOperations().create(tableName);
 
     // verify 0 disk usage
@@ -141,7 +129,7 @@ public class TableOperationsIT extends SimpleMacIT {
     assertTrue(diskUsages.get(0).getUsage() > 0);
     assertEquals(tableName, diskUsages.get(0).getTables().first());
 
-    String newTable = makeTableName();
+    String newTable = names[1];
 
     // clone table
     connector.tableOperations().clone(tableName, newTable, false, null, null);
@@ -171,7 +159,7 @@ public class TableOperationsIT extends SimpleMacIT {
 
   @Test
   public void createTable() throws TableExistsException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    String tableName = makeTableName();
+    String tableName = getUniqueNames(1)[0];
     connector.tableOperations().create(tableName);
     Iterable<Map.Entry<String,String>> itrProps = connector.tableOperations().getProperties(tableName);
     Map<String,String> props = propsToMap(itrProps);
@@ -181,7 +169,8 @@ public class TableOperationsIT extends SimpleMacIT {
 
   @Test
   public void createMergeClonedTable() throws Exception {
-    String originalTable = makeTableName();
+    String[] names = getUniqueNames(2);
+    String originalTable = names[0];
     TableOperations tops = connector.tableOperations();
 
     TreeSet<Text> splits = Sets.newTreeSet(Arrays.asList(new Text("a"), new Text("b"), new Text("c"), new Text("d")));
@@ -203,7 +192,7 @@ public class TableOperationsIT extends SimpleMacIT {
 
     bw.close();
 
-    String clonedTable = makeTableName();
+    String clonedTable = names[1];
 
     tops.clone(originalTable, clonedTable, true, null, null);
     tops.merge(clonedTable, null, new Text("b"));

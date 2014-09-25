@@ -38,15 +38,29 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.harness.UnmanagedAccumuloIT;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.hamcrest.CoreMatchers;
+import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Test;
 
-public class ClassLoaderIT extends SimpleMacIT {
+public class ClassLoaderIT extends UnmanagedAccumuloIT {
 
   @Override
   protected int defaultTimeoutSeconds() {
     return 2 * 60;
+  }
+
+  private String rootPath;
+
+  @Before
+  public void checkCluster() {
+    Assume.assumeThat(getClusterType(), CoreMatchers.is(ClusterType.MINI));
+    MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) getCluster();
+    rootPath = mac.getConfig().getDir().getAbsolutePath();
   }
 
   @Test
@@ -61,7 +75,7 @@ public class ClassLoaderIT extends SimpleMacIT {
     bw.close();
     scanCheck(c, tableName, "Test");
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    Path jarPath = new Path(rootPath() + "/lib/ext/Test.jar");
+    Path jarPath = new Path(rootPath + "/lib/ext/Test.jar");
     fs.copyFromLocalFile(new Path(System.getProperty("user.dir") + "/src/test/resources/TestCombinerX.jar"), jarPath);
     UtilWaitThread.sleep(1000);
     IteratorSetting is = new IteratorSetting(10, "TestCombiner", "org.apache.accumulo.test.functional.TestCombiner");

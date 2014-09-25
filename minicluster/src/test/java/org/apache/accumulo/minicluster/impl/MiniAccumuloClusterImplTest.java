@@ -23,8 +23,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
@@ -68,11 +70,12 @@ public class MiniAccumuloClusterImplTest {
     accumulo = new MiniAccumuloClusterImpl(config);
     accumulo.start();
     // create a table to ensure there are some entries in the !0 table
-    TableOperations tableops = accumulo.getConnector("root","superSecret").tableOperations();
+    Connector conn = accumulo.getConnector("root", new PasswordToken("superSecret"));
+    TableOperations tableops = conn.tableOperations();
     tableops.create(TEST_TABLE);
     testTableID = tableops.tableIdMap().get(TEST_TABLE);
 
-    Scanner s = accumulo.getConnector("root", "superSecret").createScanner(TEST_TABLE, Authorizations.EMPTY);
+    Scanner s = conn.createScanner(TEST_TABLE, Authorizations.EMPTY);
     for (@SuppressWarnings("unused") Entry<Key,Value> e : s) {}
   }
 

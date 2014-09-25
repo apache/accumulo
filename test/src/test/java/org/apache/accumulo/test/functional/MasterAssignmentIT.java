@@ -23,18 +23,18 @@ import static org.junit.Assert.assertNull;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.fate.util.UtilWaitThread;
+import org.apache.accumulo.harness.UnmanagedAccumuloIT;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class MasterAssignmentIT extends SimpleMacIT {
+public class MasterAssignmentIT extends UnmanagedAccumuloIT {
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -86,7 +86,7 @@ public class MasterAssignmentIT extends SimpleMacIT {
   }
 
   private TabletLocationState getTabletLocationState(Connector c, String tableId) {
-    Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
+    Credentials creds = new Credentials(getPrincipal(), getToken());
     MetaDataTableScanner s = new MetaDataTableScanner(c.getInstance(), creds, new Range(KeyExtent.getMetadataEntry(new Text(tableId), null)));
     TabletLocationState tlState = s.next();
     s.close();

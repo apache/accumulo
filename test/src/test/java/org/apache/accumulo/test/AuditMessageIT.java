@@ -37,6 +37,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -52,6 +53,7 @@ import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.hadoop.io.Text;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -158,27 +160,29 @@ public class AuditMessageIT extends ConfigurableMacIT {
   }
 
   @Before
-  public void resetInstance() throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException {
+  public void resetInstance() throws Exception {
     conn = getConnector();
 
-    // I don't want to recreate the instance for every test since it will take ages.
-    // If we run every test as non-root users, I can drop these users every test which should effectively
-    // reset the environment.
-
-    if (conn.securityOperations().listLocalUsers().contains(AUDIT_USER_1))
-      conn.securityOperations().dropLocalUser(AUDIT_USER_1);
-    if (conn.securityOperations().listLocalUsers().contains(AUDIT_USER_2))
-      conn.securityOperations().dropLocalUser(AUDIT_USER_2);
-    if (conn.securityOperations().listLocalUsers().contains(AUDIT_USER_2))
-      conn.securityOperations().dropLocalUser(THIRD_TEST_TABLE_NAME);
-    if (conn.tableOperations().exists(NEW_TEST_TABLE_NAME))
-      conn.tableOperations().delete(NEW_TEST_TABLE_NAME);
-    if (conn.tableOperations().exists(OLD_TEST_TABLE_NAME))
-      conn.tableOperations().delete(OLD_TEST_TABLE_NAME);
+    removeUsersAndTables();
 
     // This will set the lastAuditTimestamp for the first test
     getAuditMessages("setup");
+  }
 
+  @After
+  public void removeUsersAndTables() throws Exception {
+    for (String user : Arrays.asList(AUDIT_USER_1, AUDIT_USER_2)) {
+      if (conn.securityOperations().listLocalUsers().contains(user)) {
+        conn.securityOperations().dropLocalUser(user);
+      }
+    }
+
+    TableOperations tops = conn.tableOperations();
+    for (String table : Arrays.asList(THIRD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME, OLD_TEST_TABLE_NAME)) {
+      if (tops.exists(table)) {
+        tops.delete(table);
+      }
+    }
   }
 
   @Test
@@ -191,7 +195,7 @@ public class AuditMessageIT extends ConfigurableMacIT {
 
     // Connect as Audit User and do a bunch of stuff.
     // Testing activity begins here
-    auditConnector = getCluster().getConnector(AUDIT_USER_1, PASSWORD);
+    auditConnector = getCluster().getConnector(AUDIT_USER_1, new PasswordToken(PASSWORD));
     auditConnector.tableOperations().create(OLD_TEST_TABLE_NAME);
     auditConnector.tableOperations().rename(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME);
     Map<String,String> emptyMap = Collections.emptyMap();
@@ -223,7 +227,7 @@ public class AuditMessageIT extends ConfigurableMacIT {
 
     // Connect as Audit User and do a bunch of stuff.
     // Start testing activities here
-    auditConnector = getCluster().getConnector(AUDIT_USER_1, PASSWORD);
+    auditConnector = getCluster().getConnector(AUDIT_USER_1, new PasswordToken(PASSWORD));
     auditConnector.securityOperations().createLocalUser(AUDIT_USER_2, new PasswordToken(PASSWORD));
 
     // It seems only root can grant stuff.
@@ -273,7 +277,7 @@ public class AuditMessageIT extends ConfigurableMacIT {
 
     // Connect as Audit User and do a bunch of stuff.
     // Start testing activities here
-    auditConnector = getCluster().getConnector(AUDIT_USER_1, PASSWORD);
+    auditConnector = getCluster().getConnector(AUDIT_USER_1, new PasswordToken(PASSWORD));
     auditConnector.tableOperations().create(OLD_TEST_TABLE_NAME);
 
     // Insert some play data
@@ -355,7 +359,7 @@ public class AuditMessageIT extends ConfigurableMacIT {
 
     // Connect as Audit User and do a bunch of stuff.
     // Start testing activities here
-    auditConnector = getCluster().getConnector(AUDIT_USER_1, PASSWORD);
+    auditConnector = getCluster().getConnector(AUDIT_USER_1, new PasswordToken(PASSWORD));
     auditConnector.tableOperations().create(OLD_TEST_TABLE_NAME);
 
     // Insert some play data
@@ -404,7 +408,7 @@ public class AuditMessageIT extends ConfigurableMacIT {
     // Create our user with no privs
     conn.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
     conn.tableOperations().create(OLD_TEST_TABLE_NAME);
-    auditConnector = getCluster().getConnector(AUDIT_USER_1, PASSWORD);
+    auditConnector = getCluster().getConnector(AUDIT_USER_1, new PasswordToken(PASSWORD));
 
     // Start testing activities
     // We should get denied or / failed audit messages here.

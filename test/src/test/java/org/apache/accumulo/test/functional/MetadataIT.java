@@ -37,11 +37,12 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.harness.UnmanagedAccumuloIT;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class MetadataIT extends SimpleMacIT {
+public class MetadataIT extends UnmanagedAccumuloIT {
 
   @Override
   public int defaultTimeoutSeconds() {

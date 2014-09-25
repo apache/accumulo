@@ -50,11 +50,11 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.Namespaces;
-import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -73,14 +73,19 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.NumericValueConstraint;
-import org.apache.accumulo.test.functional.SimpleMacIT;
+import org.apache.accumulo.harness.AccumuloIT;
+import org.apache.accumulo.harness.MiniClusterHarness;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class NamespacesIT extends SimpleMacIT {
+// Testing default namespace configuration with inheritance requires altering the system state and restoring it back to normal
+// Punt on this for now and just let it use a minicluster.
+public class NamespacesIT extends AccumuloIT {
 
+  private MiniAccumuloClusterImpl cluster;
   private Connector c;
   private String namespace;
 
@@ -89,8 +94,24 @@ public class NamespacesIT extends SimpleMacIT {
     return 60;
   }
 
+  private AuthenticationToken getToken() {
+    return new PasswordToken("rootPassword1");
+  }
+
+  private Connector getConnector() {
+    try {
+      return cluster.getConnector("root", getToken());
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   @Before
   public void setUpConnectorAndNamespace() throws Exception {
+    MiniClusterHarness harness = new MiniClusterHarness();
+    cluster = harness.create(getToken());
+    cluster.getConfig().setNumTservers(1);
+    cluster.start();
     // prepare a unique namespace and get a new root connector for each test
     c = getConnector();
     namespace = "ns_" + getUniqueNames(1)[0];
@@ -98,19 +119,8 @@ public class NamespacesIT extends SimpleMacIT {
 
   @After
   public void swingMjölnir() throws Exception {
-    // clean up any added tables, namespaces, and users, after each test
-    for (String t : c.tableOperations().list())
-      if (!Tables.qualify(t).getFirst().equals(Namespaces.ACCUMULO_NAMESPACE))
-        c.tableOperations().delete(t);
-    assertEquals(2, c.tableOperations().list().size());
-    for (String n : c.namespaceOperations().list())
-      if (!n.equals(Namespaces.ACCUMULO_NAMESPACE) && !n.equals(Namespaces.DEFAULT_NAMESPACE))
-        c.namespaceOperations().delete(n);
-    assertEquals(2, c.namespaceOperations().list().size());
-    for (String u : c.securityOperations().listLocalUsers())
-      if (!"root".equals(u))
-        c.securityOperations().dropLocalUser(u);
-    assertEquals(1, c.securityOperations().listLocalUsers().size());
+    // Just making a new MAC is so much less work than hammering things
+    cluster.stop();
   }
 
   @Test

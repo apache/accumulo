@@ -45,6 +45,7 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.DiskUsage;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -457,7 +458,7 @@ public class VolumeIT extends ConfigurableMacIT {
     // start cluster and verify that volume was decommisioned
     cluster.start();
 
-    Connector conn = cluster.getConnector("root", ROOT_PASSWORD);
+    Connector conn = cluster.getConnector("root", new PasswordToken(ROOT_PASSWORD));
     conn.tableOperations().compact(tableNames[0], null, null, true, true);
 
     verifyVolumesUsed(tableNames[0], true, v2);
@@ -485,7 +486,7 @@ public class VolumeIT extends ConfigurableMacIT {
     verifyVolumesUsed(tableNames[0], false, v1, v2);
 
     // write to 2nd table, but do not flush data to disk before shutdown
-    writeData(tableNames[1], cluster.getConnector("root", ROOT_PASSWORD));
+    writeData(tableNames[1], cluster.getConnector("root", new PasswordToken(ROOT_PASSWORD)));
 
     if (cleanShutdown)
       Assert.assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
