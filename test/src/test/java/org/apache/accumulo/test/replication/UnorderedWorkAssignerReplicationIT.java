@@ -70,10 +70,19 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
   private static final Logger log = LoggerFactory.getLogger(UnorderedWorkAssignerReplicationIT.class);
 
   private ExecutorService executor;
+  private int timeoutFactor = 1;
 
   @Before
   public void createExecutor() {
     executor = Executors.newSingleThreadExecutor();
+
+    try {
+      timeoutFactor = Integer.parseInt(System.getProperty("timeout.factor"));
+    } catch (NumberFormatException exception) {
+      log.warn("Could not parse timeout.factor, not increasing timeout.");
+    }
+
+    Assert.assertTrue("The timeout factor must be a positive, non-zero value", timeoutFactor > 0);
   }
 
   @After
@@ -243,11 +252,12 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
 
       });
 
+      long timeoutSeconds = timeoutFactor * 30;
       try {
-        future.get(30, TimeUnit.SECONDS);
+        future.get(timeoutSeconds, TimeUnit.SECONDS);
       } catch (TimeoutException e) {
         future.cancel(true);
-        Assert.fail("Drain did not finish within 30 seconds");
+        Assert.fail("Drain did not finish within " + timeoutSeconds + " seconds");
       }
 
       log.info("drain completed");
