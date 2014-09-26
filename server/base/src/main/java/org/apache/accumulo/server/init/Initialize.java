@@ -88,6 +88,7 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs.Ids;
 
 import com.beust.jcommander.Parameter;
+import com.google.common.base.Optional;
 
 /**
  * This class is used to setup the directory structure and the root tablet to get an instance started
@@ -232,9 +233,8 @@ public class Initialize {
 
     UUID uuid = UUID.randomUUID();
     // the actual disk locations of the root table and tablets
-    String[] configuredTableDirs = VolumeConfiguration.prefix(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance()),
-        ServerConstants.TABLE_DIR);
-    final Path rootTablet = new Path(fs.choose(configuredTableDirs) + "/" + RootTable.ID + RootTable.ROOT_TABLET_LOCATION);
+    String[] configuredTableDirs = VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance());
+    final Path rootTablet = new Path(fs.choose(Optional.<String>absent(), configuredTableDirs) + "/" + ServerConstants.TABLE_DIR+ "/" + RootTable.ID + RootTable.ROOT_TABLET_LOCATION);
     try {
       initZooKeeper(opts, uuid.toString(), instanceNamePath, rootTablet);
     } catch (Exception e) {
@@ -313,8 +313,8 @@ public class Initialize {
     // the actual disk locations of the metadata table and tablets
     final Path[] metadataTableDirs = paths(ServerConstants.getMetadataTableDirs());
 
-    String tableMetadataTabletDir = fs.choose(VolumeConfiguration.prefix(ServerConstants.getMetadataTableDirs(), TABLE_TABLETS_TABLET_DIR));
-    String defaultMetadataTabletDir = fs.choose(VolumeConfiguration.prefix(ServerConstants.getMetadataTableDirs(), Constants.DEFAULT_TABLET_LOCATION));
+    String tableMetadataTabletDir = fs.choose(Optional.<String>absent(), ServerConstants.getMetadataTableDirs()) + "/tables/" + MetadataTable.ID + "/table_info";
+    String defaultMetadataTabletDir = fs.choose(Optional.<String>absent(), ServerConstants.getMetadataTableDirs()) + "/tables/" + MetadataTable.ID + "/default_tablet";
 
     // initialize initial metadata config in zookeeper
     initMetadataConfig();

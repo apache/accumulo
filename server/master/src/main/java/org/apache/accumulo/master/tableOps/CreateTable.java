@@ -45,6 +45,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
+import com.google.common.base.Optional;
+
 class TableInfo implements Serializable {
 
   private static final long serialVersionUID = 1L;
@@ -176,7 +178,7 @@ class ChooseDir extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     // Constants.DEFAULT_TABLET_LOCATION has a leading slash prepended to it so we don't need to add one here
-    tableInfo.dir = master.getFileSystem().choose(ServerConstants.getTablesDirs()) + "/" + tableInfo.tableId + Constants.DEFAULT_TABLET_LOCATION;
+    tableInfo.dir = master.getFileSystem().choose(Optional.of(tableInfo.tableId), ServerConstants.getTablesDirs()) + "/tables/" + tableInfo.tableId + Constants.DEFAULT_TABLET_LOCATION;
     return new CreateDir(tableInfo);
   }
 

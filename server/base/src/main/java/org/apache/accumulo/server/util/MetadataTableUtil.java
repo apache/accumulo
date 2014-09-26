@@ -88,6 +88,8 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 
+import com.google.common.base.Optional;
+
 /**
  * provides a reference to the metadata table for updates by tablet servers
  */
@@ -880,7 +882,7 @@ public class MetadataTableUtil {
       Key k = entry.getKey();
       Mutation m = new Mutation(k.getRow());
       m.putDelete(k.getColumnFamily(), k.getColumnQualifier());
-      String dir = volumeManager.choose(ServerConstants.getTablesDirs()) + "/" + tableId
+      String dir = volumeManager.choose(Optional.of(tableId), ServerConstants.getTablesDirs()) + "/tables/" + tableId
           + new String(FastFormat.toZeroPaddedString(dirCount++, 8, 16, "/c-".getBytes(StandardCharsets.UTF_8)));
       TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(dir.getBytes(StandardCharsets.UTF_8)));
       bw.addMutation(m);

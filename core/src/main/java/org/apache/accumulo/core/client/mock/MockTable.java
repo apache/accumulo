@@ -104,8 +104,12 @@ public class MockTable {
         settings.put(key, entry.getValue());
     }
   }
-  
+
   MockTable(MockNamespace namespace, boolean limitVersion, TimeType timeType, String tableId) {
+    this(namespace, limitVersion, timeType, tableId, new HashMap<String,String>());
+  }
+
+  MockTable(MockNamespace namespace, boolean limitVersion, TimeType timeType, String tableId, Map<String,String> properties) {
     this(limitVersion, timeType, tableId);
     Set<Entry<String,String>> set = namespace.settings.entrySet();
     Iterator<Entry<String,String>> entries = set.iterator();
@@ -115,8 +119,12 @@ public class MockTable {
       if (key.startsWith(Property.TABLE_PREFIX.getKey()))
         settings.put(key, entry.getValue());
     }
+
+    for (Entry<String,String> initialProp : properties.entrySet()) {
+      settings.put(initialProp.getKey(), initialProp.getValue());
+    }
   }
-  
+
   synchronized void addMutation(Mutation m) {
     if (m.size() == 0)
       throw new IllegalArgumentException("Can not add empty mutations");

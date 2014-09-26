@@ -18,5 +18,7 @@ package org.apache.accumulo.server.fs;
 
 
 public interface VolumeChooser {
+  String choose(VolumeChooserEnvironment env, String[] options);
+
   String choose(String[] options);
 }

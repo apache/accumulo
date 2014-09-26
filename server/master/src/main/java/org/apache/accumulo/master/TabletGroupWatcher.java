@@ -84,6 +84,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.Iterators;
 
 class TabletGroupWatcher extends Daemon {
@@ -550,7 +551,7 @@ class TabletGroupWatcher extends Daemon {
       } else {
         // Recreate the default tablet to hold the end of the table
         Master.log.debug("Recreating the last tablet to point to " + extent.getPrevEndRow());
-        String tdir = master.getFileSystem().choose(ServerConstants.getTablesDirs()) + "/" + extent.getTableId() + Constants.DEFAULT_TABLET_LOCATION;
+        String tdir = master.getFileSystem().choose(Optional.of(extent.getTableId().toString()), ServerConstants.getTablesDirs()) + "/tables/" + extent.getTableId() + Constants.DEFAULT_TABLET_LOCATION;
         MetadataTableUtil.addTablet(new KeyExtent(extent.getTableId(), null, extent.getPrevEndRow()), tdir,
             SystemCredentials.get(), timeType, this.master.masterLock);
       }

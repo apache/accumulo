@@ -30,6 +30,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
+import com.google.common.base.Optional;
+
 public class TabletOperations {
   
   private static final Logger log = Logger.getLogger(TabletOperations.class);
@@ -38,7 +40,7 @@ public class TabletOperations {
     String lowDirectory;
     
     UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
-    String volume = fs.choose(ServerConstants.getTablesDirs());
+    String volume = fs.choose(Optional.of(tableId), ServerConstants.getTablesDirs()) + "/tables/";
     
     while (true) {
       try {

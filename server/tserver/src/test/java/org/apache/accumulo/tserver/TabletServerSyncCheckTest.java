@@ -35,6 +35,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.junit.Test;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 
 public class TabletServerSyncCheckTest {
@@ -226,7 +227,7 @@ public class TabletServerSyncCheckTest {
     }
 
     @Override
-    public String choose(String[] options) {
+    public String choose(Optional<String> tableID, String[] options) {
       return null;
     }
 

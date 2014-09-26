@@ -210,16 +210,37 @@ public class TableOperationsImpl extends TableOperationsHelper {
    */
   @Override
   public void create(String tableName, boolean limitVersion, TimeType timeType) throws AccumuloException, AccumuloSecurityException, TableExistsException {
+    // Call new method with an empty map as the user initial properties
+    Map<String,String> opts = Collections.emptyMap();
+    create(tableName, limitVersion, timeType, opts);
+  }
+
+  /**
+   * @param tableName
+   *          the name of the table
+   * @param timeType
+   *          specifies logical or real-time based time recording for entries in the table
+   * @param limitVersion
+   *          Enables/disables the versioning iterator, which will limit the number of Key versions kept.
+   * @param properties
+   *          Initial user properties that a user specifies
+   */
+  @Override
+  public void create(String tableName, boolean limitVersion, TimeType timeType, Map<String,String> properties) throws AccumuloException,
+      AccumuloSecurityException, TableExistsException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(timeType != null, "timeType is null");
+    checkArgument(properties != null, "properties is null");
 
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(StandardCharsets.UTF_8)), ByteBuffer.wrap(timeType.name().getBytes(StandardCharsets.UTF_8)));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(StandardCharsets.UTF_8)),
+        ByteBuffer.wrap(timeType.name().getBytes(StandardCharsets.UTF_8)));
 
     Map<String,String> opts;
-    if (limitVersion)
+    if (limitVersion) {
       opts = IteratorUtil.generateInitialTableProperties(limitVersion);
-    else
-      opts = Collections.emptyMap();
+      opts.putAll(properties);
+    } else
+      opts = properties;
 
     try {
       doTableFateOperation(tableName, AccumuloException.class, FateOperation.TABLE_CREATE, args, opts);

@@ -26,7 +26,6 @@ import java.util.List;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.Volume;
@@ -136,7 +135,7 @@ public class ServerConstants {
   public static final String WAL_DIR = "wal";
 
   public static String[] getTablesDirs() {
-    return VolumeConfiguration.prefix(getBaseUris(), TABLE_DIR);
+    return getBaseUris();
   }
 
   public static String[] getRecoveryDirs() {
@@ -144,7 +143,7 @@ public class ServerConstants {
   }
 
   public static String[] getWalDirs() {
-    return VolumeConfiguration.prefix(getBaseUris(), WAL_DIR);
+    return getBaseUris();
   }
 
   public static String[] getWalogArchives() {
@@ -162,7 +161,7 @@ public class ServerConstants {
   }
 
   public static String[] getMetadataTableDirs() {
-    return VolumeConfiguration.prefix(getTablesDirs(), MetadataTable.ID);
+    return getTablesDirs();
   }
 
   public static String[] getTemporaryDirs() {
