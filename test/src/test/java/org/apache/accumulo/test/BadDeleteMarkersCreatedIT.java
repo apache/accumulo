@@ -34,6 +34,7 @@ import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 // Accumulo3047
@@ -49,6 +50,19 @@ public class BadDeleteMarkersCreatedIT extends ConfigurableMacIT {
     cfg.setNumTservers(1);
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1s");
     cfg.setProperty(Property.GC_CYCLE_START, "0s");
+  }
+
+  private int timeoutFactor = 1;
+
+  @Before
+  public void setup() {
+    try {
+      timeoutFactor = Integer.parseInt(System.getProperty("timeout.factor"));
+    } catch (NumberFormatException e) {
+      log.warn("Could not parse integer from timeout.factor");
+    }
+
+    Assert.assertTrue("timeout.factor must be greater than or equal to 1", timeoutFactor >= 1);
   }
 
   @Test
@@ -68,7 +82,7 @@ public class BadDeleteMarkersCreatedIT extends ConfigurableMacIT {
     // get rid of the table
     c.tableOperations().delete(tableName);
     // let gc run
-    UtilWaitThread.sleep(5 * 1000);
+    UtilWaitThread.sleep(timeoutFactor * 5 * 1000);
     // look for delete markers
     Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.setRange(MetadataSchema.DeletesSection.getRange());
