@@ -554,7 +554,7 @@ public class ReplicationIT extends ConfigurableMacIT {
     Assert.assertEquals(expected, actual);
   }
 
-  @Test(timeout = 60 * 1000)
+  @Test
   public void noDeadlock() throws Exception {
     final Connector conn = getConnector();
 

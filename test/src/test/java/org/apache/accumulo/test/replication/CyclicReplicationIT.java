@@ -67,7 +67,16 @@ public class CyclicReplicationIT {
   private static final Logger log = LoggerFactory.getLogger(CyclicReplicationIT.class);
 
   @Rule
-  public Timeout timeout = new Timeout(5 * 60 * 1000);
+  public Timeout getTimeout() {
+    int scalingFactor = 1;
+    try {
+      scalingFactor = Integer.parseInt(System.getProperty("timeout.factor"));
+    } catch (NumberFormatException exception) {
+      log.warn("Could not parse timeout.factor, not scaling timeout");
+    }
+    
+    return new Timeout(scalingFactor * 5 * 60 * 1000);
+  }
 
   @Rule
   public TestName testName = new TestName();

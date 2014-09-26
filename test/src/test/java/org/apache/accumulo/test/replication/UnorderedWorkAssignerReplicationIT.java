@@ -93,6 +93,11 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
   }
 
   @Override
+  public int defaultTimeoutSeconds() {
+    return 60 * 5;
+  }
+
+  @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
     cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "2M");
@@ -146,7 +151,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
     }
   }
 
-  @Test(timeout = 60 * 5000)
+  @Test
   public void dataWasReplicatedToThePeer() throws Exception {
     MiniAccumuloConfigImpl peerCfg = new MiniAccumuloConfigImpl(createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName() + "_peer"),
         ROOT_PASSWORD);
@@ -195,7 +200,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
       connMaster.tableOperations().setProperty(masterTable, Property.TABLE_REPLICATION.getKey(), "true");
       connMaster.tableOperations().setProperty(masterTable, Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId);
 
-      // Wait for zookeeper updates (configuration) to propogate
+      // Wait for zookeeper updates (configuration) to propagate
       UtilWaitThread.sleep(3 * 1000);
 
       // Write some data to table1
@@ -299,7 +304,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
     }
   }
 
-  @Test(timeout = 60 * 5000)
+  @Test
   public void dataReplicatedToCorrectTable() throws Exception {
     MiniAccumuloConfigImpl peerCfg = new MiniAccumuloConfigImpl(createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName() + "_peer"),
         ROOT_PASSWORD);
@@ -461,7 +466,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
     }
   }
 
-  @Test(timeout = 60 * 5000)
+  @Test
   public void dataWasReplicatedToThePeerWithoutDrain() throws Exception {
     MiniAccumuloConfigImpl peerCfg = new MiniAccumuloConfigImpl(createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName() + "_peer"),
         ROOT_PASSWORD);
@@ -558,7 +563,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
     peerCluster.stop();
   }
 
-  @Test(timeout = 60 * 5000)
+  @Test
   public void dataReplicatedToCorrectTableWithoutDrain() throws Exception {
     MiniAccumuloConfigImpl peerCfg = new MiniAccumuloConfigImpl(createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName() + "_peer"),
         ROOT_PASSWORD);
@@ -621,7 +626,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
       connMaster.tableOperations().setProperty(masterTable2, Property.TABLE_REPLICATION.getKey(), "true");
       connMaster.tableOperations().setProperty(masterTable2, Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId2);
 
-      // Wait for zookeeper updates (configuration) to propogate
+      // Wait for zookeeper updates (configuration) to propagate
       UtilWaitThread.sleep(3 * 1000);
 
       // Write some data to table1
@@ -665,7 +670,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
       // Wait until we fully replicated something
       boolean fullyReplicated = false;
       for (int i = 0; i < 10 && !fullyReplicated; i++) {
-        UtilWaitThread.sleep(2000);
+        UtilWaitThread.sleep(timeoutFactor * 2000);
 
         Scanner s = ReplicationTable.getScanner(connMaster);
         WorkSection.limit(s);
