@@ -55,7 +55,7 @@ public class BadDeleteMarkersCreatedIT extends ConfigurableMacIT {
   private int timeoutFactor = 1;
 
   @Before
-  public void setup() {
+  public void getTimeoutFactor() {
     try {
       timeoutFactor = Integer.parseInt(System.getProperty("timeout.factor"));
     } catch (NumberFormatException e) {
