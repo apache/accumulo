@@ -46,6 +46,11 @@ import org.junit.Test;
 public class ConfigurableMajorCompactionIT extends ConfigurableMacIT {
 
   @Override
+  public int defaultTimeoutSeconds() {
+    return 30;
+  }
+
+  @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = new HashMap<String,String>();
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "1s");
@@ -73,7 +78,7 @@ public class ConfigurableMajorCompactionIT extends ConfigurableMacIT {
     }
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test
   public void test() throws Exception {
     Connector conn = getConnector();
     String tableName = "test";

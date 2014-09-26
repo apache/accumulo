@@ -38,7 +38,12 @@ import org.junit.Test;
 
 // Accumulo3047
 public class BadDeleteMarkersCreatedIT extends ConfigurableMacIT {
-  
+
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 60;
+  }
+
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
@@ -46,7 +51,7 @@ public class BadDeleteMarkersCreatedIT extends ConfigurableMacIT {
     cfg.setProperty(Property.GC_CYCLE_START, "0s");
   }
 
-  @Test(timeout= 60 * 1000)
+  @Test
   public void test() throws Exception {
     // make a table
     String tableName = getUniqueNames(1)[0];
@@ -71,5 +76,5 @@ public class BadDeleteMarkersCreatedIT extends ConfigurableMacIT {
       Assert.fail(entry.getKey().getRow().toString());
     }
   }
-  
+
 }

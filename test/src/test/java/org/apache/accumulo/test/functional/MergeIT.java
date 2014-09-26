@@ -40,6 +40,11 @@ import org.junit.Test;
 
 public class MergeIT extends SimpleMacIT {
 
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 8 * 60;
+  }
+
   SortedSet<Text> splits(String[] points) {
     SortedSet<Text> result = new TreeSet<Text>();
     for (String point : points)
@@ -47,7 +52,7 @@ public class MergeIT extends SimpleMacIT {
     return result;
   }
 
-  @Test(timeout = 60 * 1000)
+  @Test
   public void merge() throws Exception {
     Connector c = getConnector();
     String tableName = getUniqueNames(1)[0];
@@ -65,7 +70,7 @@ public class MergeIT extends SimpleMacIT {
     assertEquals(8, c.tableOperations().listSplits(tableName).size());
   }
 
-  @Test(timeout = 60 * 1000)
+  @Test
   public void mergeSize() throws Exception {
     Connector c = getConnector();
     String tableName = getUniqueNames(1)[0];
@@ -99,7 +104,7 @@ public class MergeIT extends SimpleMacIT {
     return strings;
   }
 
-  @Test(timeout = 8 * 60 * 1000)
+  @Test
   public void mergeTest() throws Exception {
     int tc = 0;
     Connector c = getConnector();
