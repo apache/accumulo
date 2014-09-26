@@ -40,10 +40,12 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 public class LargeRowIT extends ConfigurableMacIT {
-  
+
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setMemory(ServerType.TABLET_SERVER, cfg.getMemory(ServerType.TABLET_SERVER) * 2, MemoryUnit.BYTE);
@@ -62,7 +64,20 @@ public class LargeRowIT extends ConfigurableMacIT {
   private static final int ROW_SIZE = 1 << 17;
   private static final int NUM_PRE_SPLITS = 9;
   private static final int SPLIT_THRESH = ROW_SIZE * NUM_ROWS / NUM_PRE_SPLITS;
-  
+
+  private int timeoutFactor = 1;
+
+  @Before
+  public void setup() {
+    try {
+      timeoutFactor = Integer.parseInt(System.getProperty("timeout.factor"));
+    } catch (NumberFormatException e) {
+      log.warn("Could not parse property value for 'timeout.factor' as integer: " + System.getProperty("timeout.factor"));
+    }
+
+    Assert.assertTrue("Timeout factor must be greater than or equal to 1", timeoutFactor >= 1);
+  }
+
   @Test
   public void run() throws Exception {
     Random r = new Random();
@@ -81,82 +96,82 @@ public class LargeRowIT extends ConfigurableMacIT {
     test1(c);
     test2(c);
   }
-  
+
   private void test1(Connector c) throws Exception {
-    
+
     basicTest(c, REG_TABLE_NAME, 0);
-    
+
     c.tableOperations().setProperty(REG_TABLE_NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), "" + SPLIT_THRESH);
-    
-    UtilWaitThread.sleep(12000);
+
+    UtilWaitThread.sleep(timeoutFactor * 12000);
     Logger.getLogger(LargeRowIT.class).warn("checking splits");
     FunctionalTestUtils.checkSplits(c, REG_TABLE_NAME, NUM_PRE_SPLITS / 2, NUM_PRE_SPLITS * 4);
-    
+
     verify(c, REG_TABLE_NAME);
   }
-  
+
   private void test2(Connector c) throws Exception {
     basicTest(c, PRE_SPLIT_TABLE_NAME, NUM_PRE_SPLITS);
   }
-  
+
   private void basicTest(Connector c, String table, int expectedSplits) throws Exception {
     BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
-    
+
     Random r = new Random();
     byte rowData[] = new byte[ROW_SIZE];
-    
+
     r.setSeed(SEED);
-    
+
     for (int i = 0; i < NUM_ROWS; i++) {
-      
+
       r.nextBytes(rowData);
       TestIngest.toPrintableChars(rowData);
-      
+
       Mutation mut = new Mutation(new Text(rowData));
       mut.put(new Text(""), new Text(""), new Value(Integer.toString(i).getBytes(Constants.UTF8)));
       bw.addMutation(mut);
     }
-    
+
     bw.close();
-    
+
     FunctionalTestUtils.checkSplits(c, table, expectedSplits, expectedSplits);
-    
+
     verify(c, table);
-    
+
     FunctionalTestUtils.checkSplits(c, table, expectedSplits, expectedSplits);
-    
+
     c.tableOperations().flush(table, null, null, false);
-    
+
     // verify while table flush is running
     verify(c, table);
-    
+
     // give split time to complete
     c.tableOperations().flush(table, null, null, true);
-    
+
     FunctionalTestUtils.checkSplits(c, table, expectedSplits, expectedSplits);
-    
+
     verify(c, table);
-    
+
     FunctionalTestUtils.checkSplits(c, table, expectedSplits, expectedSplits);
   }
-  
+
   private void verify(Connector c, String table) throws Exception {
     Random r = new Random();
     byte rowData[] = new byte[ROW_SIZE];
-    
+
     r.setSeed(SEED);
-    
+
     Scanner scanner = c.createScanner(table, Authorizations.EMPTY);
-    
+
     for (int i = 0; i < NUM_ROWS; i++) {
-      
+
       r.nextBytes(rowData);
       TestIngest.toPrintableChars(rowData);
-      
+
       scanner.setRange(new Range(new Text(rowData)));
-      
+
       int count = 0;
-      
+
       for (Entry<Key,Value> entry : scanner) {
         if (!entry.getKey().getRow().equals(new Text(rowData))) {
           throw new Exception("verification failed, unexpected row i =" + i);
@@ -166,13 +181,13 @@ public class LargeRowIT extends ConfigurableMacIT {
         }
         count++;
       }
-      
+
       if (count != 1) {
         throw new Exception("verification failed, unexpected count i =" + i + " count=" + count);
       }
-      
+
     }
-    
+
   }
-  
+
 }
