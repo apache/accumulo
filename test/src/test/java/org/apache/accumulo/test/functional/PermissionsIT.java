@@ -59,7 +59,12 @@ public class PermissionsIT extends SimpleMacIT {
     return "user_" + userId.getAndIncrement();
   }
 
-  @Test(timeout = 60 * 1000)
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 60;
+  }
+
+  @Test
   public void systemPermissionsTest() throws Exception {
     String testUser = makeUserName();
     PasswordToken testPasswd = new PasswordToken("test_password");
@@ -376,7 +381,7 @@ public class PermissionsIT extends SimpleMacIT {
         throw new IllegalStateException(user + " SHOULD NOT have system permission " + p);
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test
   public void tablePermissionTest() throws Exception {
     // create the test user
     String testUser = makeUserName();

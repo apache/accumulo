@@ -31,8 +31,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -76,50 +74,45 @@ import org.apache.accumulo.examples.simple.shard.Index;
 import org.apache.accumulo.examples.simple.shard.Query;
 import org.apache.accumulo.examples.simple.shard.Reverse;
 import org.apache.accumulo.minicluster.MemoryUnit;
-import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl.LogWriter;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.tracer.TraceServer;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.apache.log4j.Logger;
+import org.junit.Before;
 import org.junit.Test;
 
-public class ExamplesIT extends AbstractMacIT {
-  BatchWriterOpts bwOpts = new BatchWriterOpts();
+public class ExamplesIT extends ConfigurableMacIT {
+  private static final Logger log = Logger.getLogger(ExamplesIT.class);
+  private static final BatchWriterOpts bwOpts = new BatchWriterOpts();
+  private static final BatchWriterConfig bwc = new BatchWriterConfig();
+  private static final String visibility = "A|B";
+  private static final String auths = "A,B";
 
-  static Connector c;
-  static String instance;
-  static String keepers;
-  static String user = "root";
-  static String passwd;
-  String visibility = "A|B";
-  static String auths = "A,B";
-  BatchWriterConfig bwc = new BatchWriterConfig();
+  Connector c;
+  String instance;
+  String keepers;
+  String user = "root";
+  String passwd;
   BatchWriter bw;
   IteratorSetting is;
-  static String dir;
-  static FileSystem fs;
-  private static MiniAccumuloClusterImpl cluster;
+  String dir;
+  FileSystem fs;
 
-  @BeforeClass
-  public static void before() throws Exception {
-    MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(createTestDir(ExamplesIT.class.getName()), AbstractMacIT.ROOT_PASSWORD);
-    cfg.setNativeLibPaths(NativeMapIT.nativeMapLocation().getAbsolutePath());
+  @Override
+  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopConf) {
     cfg.setDefaultMemory(cfg.getDefaultMemory() * 2, MemoryUnit.BYTE);
+  }
 
-    cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.TRUE.toString());
-    configureForEnvironment(cfg, createSharedTestDir(ExamplesIT.class.getName() + "-ssl"));
-    cluster = new MiniAccumuloClusterImpl(cfg);
-    cluster.start();
-
+  @Before
+  public void getClusterInfo() throws Exception {
+    c = getConnector();
     passwd = AbstractMacIT.ROOT_PASSWORD;
-    c = cluster.getConnector("root", ROOT_PASSWORD);
     fs = FileSystem.get(CachedConfiguration.getInstance());
     instance = c.getInstance().getInstanceName();
     keepers = c.getInstance().getZooKeepers();
@@ -129,18 +122,13 @@ public class ExamplesIT extends AbstractMacIT {
   }
 
   @Override
-  public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
-    return cluster.getConnector("root", ROOT_PASSWORD);
+  public int defaultTimeoutSeconds() {
+    return 6 * 60;
   }
 
-  @Override
-  public String rootPath() {
-    return cluster.getConfig().getDir().getAbsolutePath();
-  }
-
-  @Test(timeout = 45 * 1000)
+  @Test
   public void testTrace() throws Exception {
-    Process trace = exec(TraceServer.class);
+    Process trace = cluster.exec(TraceServer.class);
     while (!c.tableOperations().exists("trace"))
       UtilWaitThread.sleep(500);
     Process p = goodExec(TracingExample.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-C", "-D", "-c");
@@ -161,7 +149,7 @@ public class ExamplesIT extends AbstractMacIT {
     trace.destroy();
   }
 
-  @Test(timeout = 20 * 1000)
+  @Test
   public void testClasspath() throws Exception {
     Process p = cluster.exec(Main.class, Collections.singletonList(MapReduceIT.hadoopTmpDirArg), "classpath");
     assertEquals(0, p.waitFor());
@@ -179,11 +167,7 @@ public class ExamplesIT extends AbstractMacIT {
     assertTrue(level3 < level4);
   }
 
-  private Process exec(Class<TraceServer> class1) throws IOException {
-    return cluster.exec(class1);
-  }
-
-  @Test(timeout = 90 * 1000)
+  @Test
   public void testDirList() throws Exception {
     goodExec(Ingest.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--dirTable", "dirTable", "--indexTable", "indexTable", "--dataTable",
         "dataTable", "--vis", visibility, "--chunkSize", 10000 + "", cluster.getConfig().getDir().getAbsolutePath());
@@ -193,11 +177,11 @@ public class ExamplesIT extends AbstractMacIT {
       writer.flush();
     }
     String result = FunctionalTestUtils.readAll(cluster, QueryUtil.class, p);
-    System.out.println("result " + result);
+    log.info("result " + result);
     assertTrue(result.contains("accumulo-site.xml"));
   }
 
-  @Test(timeout = 6 * 1000)
+  @Test
   public void testAgeoffFilter() throws Exception {
     c.tableOperations().create("filtertest");
     is = new IteratorSetting(10, AgeOffFilter.class);
@@ -213,7 +197,7 @@ public class ExamplesIT extends AbstractMacIT {
     assertEquals(0, FunctionalTestUtils.count(c.createScanner("filtertest", Authorizations.EMPTY)));
   }
 
-  @Test(timeout = 60 * 1000)
+  @Test
   public void testStatsCombiner() throws Exception {
     String table = "statscombinertest";
     c.tableOperations().create(table);
@@ -247,7 +231,7 @@ public class ExamplesIT extends AbstractMacIT {
     assertFalse("Iterator had additional results", iter.hasNext());
   }
 
-  @Test(timeout = 50 * 1000)
+  @Test
   public void testBloomFilters() throws Exception {
     c.tableOperations().create("bloom_test");
     c.tableOperations().setProperty("bloom_test", Property.TABLE_BLOOM_ENABLED.getKey(), "true");
@@ -271,7 +255,7 @@ public class ExamplesIT extends AbstractMacIT {
     assertTrue(diff2 < diff);
   }
 
-  @Test(timeout = 3 * 60 * 1000)
+  @Test
   public void testShardedIndex() throws Exception {
     c.tableOperations().create("shard");
     c.tableOperations().create("doc2term");
@@ -296,7 +280,7 @@ public class ExamplesIT extends AbstractMacIT {
         "5", "--count", "1000");
   }
 
-  @Test(timeout = 10 * 1000)
+  @Test
   public void testMaxMutationConstraint() throws Exception {
     c.tableOperations().create("test_ingest");
     c.tableOperations().addConstraint("test_ingest", MaxMutationSize.class.getName());
@@ -310,7 +294,7 @@ public class ExamplesIT extends AbstractMacIT {
     }
   }
 
-  @Test(timeout = 60 * 1000)
+  @Test
   public void testBulkIngest() throws Exception {
     goodExec(GenerateTestData.class, "--start-row", "0", "--count", "10000", "--output", dir + "/tmp/input/data");
     goodExec(SetupTable.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", "bulkTable");
@@ -318,7 +302,7 @@ public class ExamplesIT extends AbstractMacIT {
         "--workDir", dir + "/tmp");
   }
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Test
   public void testTeraSortAndRead() throws Exception {
     String sorted = "sorted";
     goodExec(TeraSortIngest.class, "--count", (1000 * 1000) + "", "-nk", "10", "-xk", "10", "-nv", "10", "-xv", "10", "-t", sorted, "-i", instance, "-z",
@@ -328,7 +312,7 @@ public class ExamplesIT extends AbstractMacIT {
     goodExec(TableToFile.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", sorted, "--output", dir + "/tmp/tableFile");
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test
   public void testWordCount() throws Exception {
     c.tableOperations().create("wordCount");
     is = new IteratorSetting(10, SummingCombiner.class);
@@ -339,29 +323,29 @@ public class ExamplesIT extends AbstractMacIT {
     goodExec(WordCount.class, "-i", instance, "-u", user, "-p", passwd, "-z", keepers, "--input", dir + "/tmp/wc", "-t", "wordCount");
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test
   public void testInsertWithBatchWriterAndReadData() throws Exception {
     String helloBatch = "helloBatch";
     goodExec(InsertWithBatchWriter.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", helloBatch);
     goodExec(ReadData.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", helloBatch);
   }
 
-  @Test(timeout = 5 * 60 * 1000)
+  @Test
   public void testIsolatedScansWithInterference() throws Exception {
     goodExec(InterferenceTest.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", "itest1", "--iterations", "100000", "--isolated");
   }
 
-  @Test(timeout = 6 * 60 * 1000)
+  @Test
   public void testScansWithInterference() throws Exception {
     goodExec(InterferenceTest.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", "itest2", "--iterations", "100000");
   }
 
-  @Test(timeout = 20 * 1000)
+  @Test
   public void testRowOperations() throws Exception {
     goodExec(RowOperations.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd);
   }
 
-  @Test(timeout = 15 * 1000)
+  @Test
   public void testBatchWriter() throws Exception {
     c.tableOperations().create("test");
     goodExec(SequentialBatchWriter.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "-t", "test", "--start", "0", "--num", "100000", "--size",
@@ -369,7 +353,7 @@ public class ExamplesIT extends AbstractMacIT {
 
   }
 
-  @Test(timeout = 135 * 1000)
+  @Test
   public void testReadWriteAndDelete() throws Exception {
     String test2 = "test2";
     goodExec(ReadWriteExample.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--auths", auths, "--table", test2, "--createtable", "-c",
@@ -378,7 +362,7 @@ public class ExamplesIT extends AbstractMacIT {
 
   }
 
-  @Test(timeout = 50 * 1000)
+  @Test
   public void testRandomBatchesAndFlush() throws Exception {
     String test3 = "test3";
     c.tableOperations().create(test3);
@@ -389,17 +373,11 @@ public class ExamplesIT extends AbstractMacIT {
     goodExec(Flush.class, "-i", instance, "-z", keepers, "-u", user, "-p", passwd, "--table", test3);
   }
 
-  @AfterClass
-  public static void stop() throws Exception {
-    goodExec(Admin.class, "stopAll");
-    cleanUp(cluster);
-  }
-
-  private static Process goodExec(Class<?> theClass, String... args) throws InterruptedException, IOException {
+  private Process goodExec(Class<?> theClass, String... args) throws InterruptedException, IOException {
     return expectExec(0, theClass, args);
   }
 
-  private static Process expectExec(int exitCode, Class<?> theClass, String... args) throws InterruptedException, IOException {
+  private Process expectExec(int exitCode, Class<?> theClass, String... args) throws InterruptedException, IOException {
     Process p = null;
     assertEquals(exitCode, (p = cluster.exec(theClass, Collections.singletonList(MapReduceIT.hadoopTmpDirArg), args)).waitFor());
     return p;
