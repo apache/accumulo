@@ -34,14 +34,14 @@ public class SlowIterator extends WrappingIterator {
 
   static private final String SLEEP_TIME = "sleepTime";
   static private final String SEEK_SLEEP_TIME = "seekSleepTime";
-  
+
   private long sleepTime = 0;
   private long seekSleepTime = 0;
   
   public static void setSleepTime(IteratorSetting is, long millis) {
     is.addOption(SLEEP_TIME, Long.toString(millis));  
   }
-  
+
   public static void setSeekSleepTime(IteratorSetting is, long t) {
     is.addOption(SEEK_SLEEP_TIME, Long.toString(t));
   }
@@ -50,28 +50,27 @@ public class SlowIterator extends WrappingIterator {
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     throw new UnsupportedOperationException();
   }
-  
+
   @Override
   public void next() throws IOException {
     UtilWaitThread.sleep(sleepTime);
     super.next();
   }
-  
+
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     UtilWaitThread.sleep(seekSleepTime);
     super.seek(range, columnFamilies, inclusive);
   }
-  
+
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     if (options.containsKey(SLEEP_TIME))
       sleepTime = Long.parseLong(options.get(SLEEP_TIME));
-    
+
     if (options.containsKey(SEEK_SLEEP_TIME))
       seekSleepTime = Long.parseLong(options.get(SEEK_SLEEP_TIME));
   }
 
-  
 }
