@@ -29,7 +29,6 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 // ACCUMULO-2480
 public class TabletServerGivesUpIT extends ConfigurableMacIT {
