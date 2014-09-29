@@ -16,12 +16,6 @@
  */
 package org.apache.accumulo.tserver.log;
 
-import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_FINISH;
-import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_START;
-import static org.apache.accumulo.tserver.logger.LogEvents.DEFINE_TABLET;
-import static org.apache.accumulo.tserver.logger.LogEvents.MANY_MUTATIONS;
-import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
-
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -41,6 +35,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.google.common.base.Joiner;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -65,7 +60,11 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 
-import com.google.common.base.Joiner;
+import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_FINISH;
+import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_START;
+import static org.apache.accumulo.tserver.logger.LogEvents.DEFINE_TABLET;
+import static org.apache.accumulo.tserver.logger.LogEvents.MANY_MUTATIONS;
+import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
 
 /**
  * Wrap a connection to a logger.
@@ -130,7 +129,7 @@ public class DfsLogger {
   private static final LogFileValue EMPTY = new LogFileValue();
 
   private boolean closed = false;
-
+  
   private class LogSyncingTask implements Runnable {
 
     @Override

@@ -26,11 +26,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.apache.accumulo.server.util.Halt;
+
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
@@ -86,6 +91,14 @@ public class TabletServerLogger {
 
   private final AtomicLong syncCounter;
   private final AtomicLong flushCounter;
+  
+  private final static int HALT_AFTER_ERROR_COUNT = 5;
+  private final Cache<Long, Object> walErrors;
+  {
+    // Die if we get 5 WAL creation errors in 10 seconds
+    walErrors = CacheBuilder.newBuilder().maximumSize(HALT_AFTER_ERROR_COUNT).expireAfterWrite(10, TimeUnit.SECONDS).build();
+  }
+
 
   static private abstract class TestCallWithWriteLock {
     abstract boolean test();
@@ -194,6 +207,10 @@ public class TabletServerLogger {
       logSetId.incrementAndGet();
       return;
     } catch (Exception t) {
+      walErrors.put(System.currentTimeMillis(), "");
+      if (walErrors.size() >= HALT_AFTER_ERROR_COUNT) {
+        Halt.halt("Experienced too many errors creating WALs, giving up");
+      }
       throw new RuntimeException(t);
     }
   }
