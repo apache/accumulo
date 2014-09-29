@@ -16,37 +16,67 @@
  */
 package org.apache.accumulo.test;
 
+import java.util.List;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.admin.ActiveScan;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.test.functional.ConfigurableMacIT;
+import org.apache.accumulo.minicluster.MiniAccumuloCluster;
+import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.accumulo.test.functional.SlowIterator;
-import org.apache.hadoop.conf.Configuration;
+import org.apache.log4j.Logger;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
-public class Accumulo3030IT extends ConfigurableMacIT {
-  
-  @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+public class AllowScansToBeInterruptedIT {
+  private static final Logger log = Logger.getLogger(AllowScansToBeInterruptedIT.class);
+
+  public static TemporaryFolder folder = new TemporaryFolder();
+  private MiniAccumuloCluster accumulo;
+  private String secret = "secret";
+
+  @Before
+  public void setUp() throws Exception {
+    folder.create();
+    log.info("Using MAC at " + folder.getRoot());
+    MiniAccumuloConfig cfg = new MiniAccumuloConfig(folder.getRoot(), secret);
     cfg.setNumTservers(1);
+    accumulo = new MiniAccumuloCluster(cfg);
+    accumulo.start();
+  }
+
+  @After
+  public void tearDown() throws Exception {
+    accumulo.stop();
+    folder.delete();
+  }
+
+  Connector getConnector() throws AccumuloException, AccumuloSecurityException {
+    ZooKeeperInstance zki = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZooKeepers());
+    return zki.getConnector("root", new PasswordToken(secret));
   }
 
   @Test(timeout = 60 * 1000)
   public void test() throws Exception {
     // make a table
-    final String tableName = getUniqueNames(1)[0];
+    final String tableName = "test";
     final Connector conn = getConnector();
     conn.tableOperations().create(tableName);
     // make the world's slowest scanner
-    final Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
+    final Scanner scanner = conn.createScanner(tableName, Constants.NO_AUTHS);
     final IteratorSetting cfg = new IteratorSetting(100, SlowIterator.class);
     SlowIterator.setSeekSleepTime(cfg, 99999*1000);
     scanner.addScanIterator(cfg);
@@ -58,8 +88,18 @@ public class Accumulo3030IT extends ConfigurableMacIT {
         try {
           // ensure the scan is running: not perfect, the metadata tables could be scanned, too.
           String tserver = conn.instanceOperations().getTabletServers().iterator().next();
-          while (conn.instanceOperations().getActiveScans(tserver).size() < 1) {
+          List<ActiveScan> scans = null;
+          while (null == scans) {
+            try {
+              // Sometimes getting errors the first time around
+              scans = conn.instanceOperations().getActiveScans(tserver);
+            } catch (Exception e) {
+              log.warn("Could not connect to tserver " + tserver, e);
+            }
+          }
+          while (scans.size() < 1) {
             UtilWaitThread.sleep(1000);
+            scans = conn.instanceOperations().getActiveScans(tserver);
           }
         } catch (Exception e) {
           e.printStackTrace();
@@ -79,5 +119,5 @@ public class Accumulo3030IT extends ConfigurableMacIT {
       thread.join();
     }
   }
-  
+
 }
