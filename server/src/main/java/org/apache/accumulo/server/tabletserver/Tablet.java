@@ -1572,7 +1572,7 @@ public class Tablet {
       }
       
       if (!filename.startsWith(Constants.MAPFILE_EXTENSION + "_") && !FileOperations.getValidExtensions().contains(filename.split("\\.")[1])) {
-        log.error("unknown file in tablet" + path);
+        log.error("unknown file in tablet: " + path);
         continue;
       }
       
