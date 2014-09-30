@@ -117,7 +117,7 @@ import com.google.common.cache.RemovalNotification;
  */
 public class ProxyServer implements AccumuloProxy.Iface {
   
-  private static final Logger logger = Logger.getLogger(ProxyServer.class);
+  public static final Logger logger = Logger.getLogger(ProxyServer.class);
   protected Instance instance;
   
   protected Class<? extends AuthenticationToken> tokenClass;

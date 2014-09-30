@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.client.mock;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -88,6 +89,11 @@ public class MockAccumulo {
   }
 
   public void createTable(String username, String tableName, boolean useVersions, TimeType timeType) {
+    Map<String,String> opts = Collections.emptyMap();
+    createTable(username, tableName, useVersions, timeType, opts);
+  }
+
+  public void createTable(String username, String tableName, boolean useVersions, TimeType timeType, Map<String,String> properties) {
     String namespace = Tables.qualify(tableName).getFirst();
 
     if (!namespaceExists(namespace)) {
@@ -95,7 +101,22 @@ public class MockAccumulo {
     }
 
     MockNamespace n = namespaces.get(namespace);
-    MockTable t = new MockTable(n, useVersions, timeType, Integer.toString(tableIdCounter.incrementAndGet()));
+    MockTable t = new MockTable(n, useVersions, timeType, Integer.toString(tableIdCounter.incrementAndGet()), properties);
+    t.userPermissions.put(username, EnumSet.allOf(TablePermission.class));
+    t.setNamespaceName(namespace);
+    t.setNamespace(n);
+    tables.put(tableName, t);
+  }
+
+  public void createTable(String username, String tableName, TimeType timeType, Map<String,String> properties) {
+    String namespace = Tables.qualify(tableName).getFirst();
+
+    if (!namespaceExists(namespace)) {
+      return;
+    }
+
+    MockNamespace n = namespaces.get(namespace);
+    MockTable t = new MockTable(n, timeType, Integer.toString(tableIdCounter.incrementAndGet()), properties);
     t.userPermissions.put(username, EnumSet.allOf(TablePermission.class));
     t.setNamespaceName(namespace);
     t.setNamespace(n);
