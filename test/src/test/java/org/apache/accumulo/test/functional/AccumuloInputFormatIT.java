@@ -37,6 +37,8 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -74,7 +76,7 @@ public class AccumuloInputFormatIT extends SimpleMacIT {
 
     ClientConfiguration clientConf = new ClientConfiguration().withInstance(conn.getInstance().getInstanceName()).withZkHosts(
         conn.getInstance().getZooKeepers());
-    AccumuloConfiguration clusterClientConf = conn.getInstance().getConfiguration();
+    AccumuloConfiguration clusterClientConf = new ConfigurationCopy(new DefaultConfiguration());
 
     // Pass SSL and CredentialProvider options into the ClientConfiguration given to AccumuloInputFormat
     boolean sslEnabled = Boolean.valueOf(clusterClientConf.get(Property.INSTANCE_RPC_SSL_ENABLED));
