@@ -1154,7 +1154,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
      * @param op
      *          The TableOperation the Master was attempting to perform
      * @throws ThriftTableOperationException
-     *           Thrown if {@link e} was thrown because {@link SecurityErrorCode#TABLE_DOESNT_EXIST}
+     *           Thrown if {@code e} was thrown because {@link SecurityErrorCode#TABLE_DOESNT_EXIST}
      */
     private void throwIfTableMissingSecurityException(ThriftSecurityException e, String tableId, String tableName, TableOperation op)
         throws ThriftTableOperationException {
