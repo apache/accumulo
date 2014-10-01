@@ -55,6 +55,7 @@ public class FateCommand extends Command {
   
   private Option secretOption;
   private Option statusOption;
+  private Option disablePaginationOpt;
   
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws ParseException, KeeperException, InterruptedException,
@@ -131,7 +132,7 @@ public class FateCommand extends Command {
       StringBuilder buf = new StringBuilder(8096);
       Formatter fmt = new Formatter(buf);
       admin.print(zs, zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS, fmt, filterTxid, filterStatus);
-      shellState.printLines(Collections.singletonList(buf.toString()).iterator(), true);
+      shellState.printLines(Collections.singletonList(buf.toString()).iterator(), !cl.hasOption(disablePaginationOpt.getOpt()));
     } else {
       throw new ParseException("Invalid command option");
     }
@@ -170,6 +171,8 @@ public class FateCommand extends Command {
     statusOption.setArgs(Option.UNLIMITED_VALUES);
     statusOption.setOptionalArg(false);
     o.addOption(statusOption);
+    disablePaginationOpt = new Option("np", "no-pagination", false, "disables pagination of output");
+    o.addOption(disablePaginationOpt);
     return o;
   }
   
