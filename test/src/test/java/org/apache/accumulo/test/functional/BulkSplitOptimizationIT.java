@@ -34,9 +34,6 @@ import org.junit.rules.TemporaryFolder;
 
 /**
  * This test verifies that when a lot of files are bulk imported into a table with one tablet and then splits that not all map files go to the children tablets.
- * 
- * 
- * 
  */
 
 public class BulkSplitOptimizationIT extends ConfigurableMacIT {
@@ -69,6 +66,8 @@ public class BulkSplitOptimizationIT extends ConfigurableMacIT {
 
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     FunctionalTestUtils.createRFiles(c, fs, folder.getRoot() + "/testmf", ROWS, SPLITS, 8);
+    File input = new File(folder.getRoot() + "/testmf");
+    System.out.println("Number of generated files: " + input.listFiles().length);
     FunctionalTestUtils.bulkImport(c, fs, TABLE_NAME, folder.getRoot() + "/testmf");
     FunctionalTestUtils.checkSplits(c, TABLE_NAME, 0, 0);
     FunctionalTestUtils.checkRFiles(c, TABLE_NAME, 1, 1, 100, 100);
@@ -78,8 +77,8 @@ public class BulkSplitOptimizationIT extends ConfigurableMacIT {
 
     UtilWaitThread.sleep(2000);
 
-    // wait until over split threshold
-    while (getConnector().tableOperations().listSplits(TABLE_NAME).size() < 50) {
+    // wait until over split threshold -- should be 78 splits
+    while (getConnector().tableOperations().listSplits(TABLE_NAME).size() < 75) {
       UtilWaitThread.sleep(500);
     }
 
@@ -94,7 +93,7 @@ public class BulkSplitOptimizationIT extends ConfigurableMacIT {
     opts.password = new Password(ROOT_PASSWORD);
     VerifyIngest.verifyIngest(c, opts, SOPTS);
 
-    // ensure each tablet does not have all map files
+    // ensure each tablet does not have all map files, should be ~2.5 files per tablet
     FunctionalTestUtils.checkRFiles(c, TABLE_NAME, 50, 100, 1, 4);
   }
 
