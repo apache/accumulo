@@ -161,6 +161,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.fs.VolumeUtil;
+import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.master.recovery.RecoveryPath;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.DistributedStoreException;
@@ -250,7 +251,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   private static final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = 1000;
   private static final long RECENTLY_SPLIT_MILLIES = 60 * 1000;
   private static final long TIME_BETWEEN_GC_CHECKS = 5000;
-  
+
   private TabletServerLogger logger;
 
   protected TabletServerMinCMetrics mincMetrics = new TabletServerMinCMetrics();
@@ -336,7 +337,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     if (sawChange) {
       log.debug(sb.toString());
     }
-    
+
     final long keepAliveTimeout = conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
     if (lastMemoryCheckTime > 0 && lastMemoryCheckTime < now) {
       long diff = now - lastMemoryCheckTime;
@@ -347,7 +348,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       lastMemoryCheckTime = now;
       return;
     }
-    
+
     if (maxIncreaseInCollectionTime > keepAliveTimeout) {
       Halt.halt("Garbage collection may be interfering with lock keep-alive.  Halting.", -1);
     }
@@ -3700,7 +3701,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       Path recovery = null;
       for (String log : entry.logSet) {
         Path finished = RecoveryPath.getRecoveryPath(fs, fs.getFullPath(FileType.WAL, log));
-        finished = new Path(finished, "finished");
+        finished = SortedLogState.getFinishedMarkerPath(finished);
         TabletServer.log.info("Looking for " + finished);
         if (fs.exists(finished)) {
           recovery = finished.getParent();

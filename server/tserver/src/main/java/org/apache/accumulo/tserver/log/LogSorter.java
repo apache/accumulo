@@ -37,9 +37,11 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue.Processor;
 import org.apache.accumulo.tserver.log.DfsLogger.DFSLoggerInputStreams;
+import org.apache.accumulo.tserver.log.DfsLogger.LogHeaderIncompleteException;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -50,7 +52,7 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 
 /**
- * 
+ *
  */
 public class LogSorter {
 
@@ -110,7 +112,19 @@ public class LogSorter {
         // the following call does not throw an exception if the file/dir does not exist
         fs.deleteRecursively(new Path(destPath));
 
-        DFSLoggerInputStreams inputStreams = DfsLogger.readHeaderAndReturnStream(fs, srcPath, conf);
+        DFSLoggerInputStreams inputStreams;
+        try {
+          inputStreams = DfsLogger.readHeaderAndReturnStream(fs, srcPath, conf);
+        } catch (LogHeaderIncompleteException e) {
+          log.warn("Could not read header from write-ahead log " + srcPath + ". Not sorting.");
+          // Creating a 'finished' marker will cause recovery to proceed normally and the
+          // empty file will be correctly ignored downstream.
+          fs.mkdirs(new Path(destPath));
+          writeBuffer(destPath, Collections.<Pair<LogFileKey,LogFileValue>> emptyList(), part++);
+          fs.create(SortedLogState.getFinishedMarkerPath(destPath)).close();
+          return;
+        }
+
         this.input = inputStreams.getOriginalInput();
         this.decryptingInput = inputStreams.getDecryptingInputStream();
 
@@ -140,7 +154,7 @@ public class LogSorter {
         try {
           // parent dir may not exist
           fs.mkdirs(new Path(destPath));
-          fs.create(new Path(destPath, "failed")).close();
+          fs.create(SortedLogState.getFailedMarkerPath(destPath)).close();
         } catch (IOException e) {
           log.error("Error creating failed flag file " + name, e);
         }
@@ -158,10 +172,10 @@ public class LogSorter {
       }
     }
 
-    private void writeBuffer(String destPath, ArrayList<Pair<LogFileKey,LogFileValue>> buffer, int part) throws IOException {
+    private void writeBuffer(String destPath, List<Pair<LogFileKey,LogFileValue>> buffer, int part) throws IOException {
       Path path = new Path(destPath, String.format("part-r-%05d", part++));
       FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
-      
+
       @SuppressWarnings("deprecation")
       MapFile.Writer output = new MapFile.Writer(ns.getConf(), ns, path.toString(), LogFileKey.class, LogFileValue.class);
       try {
@@ -180,10 +194,14 @@ public class LogSorter {
     }
 
     synchronized void close() throws IOException {
-      bytesCopied = input.getPos();
-      input.close();
-      decryptingInput.close();
-      input = null;
+      // If we receive an empty or malformed-header WAL, we won't
+      // have input streams that need closing. Avoid the NPE.
+      if (null != input) {
+        bytesCopied = input.getPos();
+        input.close();
+        decryptingInput.close();
+        input = null;
+      }
     }
 
     public synchronized long getSortTime() {
