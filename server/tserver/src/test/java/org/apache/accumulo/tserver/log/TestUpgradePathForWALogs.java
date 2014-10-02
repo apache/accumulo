@@ -26,6 +26,7 @@ import java.io.OutputStream;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.Path;
@@ -66,7 +67,7 @@ public class TestUpgradePathForWALogs {
     fs = VolumeManagerImpl.getLocal(path);
     Path manyMapsPath = new Path("file://" + path);
     fs.mkdirs(manyMapsPath);
-    fs.create(new Path(manyMapsPath, "finished")).close();
+    fs.create(SortedLogState.getFinishedMarkerPath(manyMapsPath)).close();
   }
 
   @Test

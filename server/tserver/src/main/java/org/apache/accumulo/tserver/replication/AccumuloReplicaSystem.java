@@ -288,6 +288,24 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     span.data("file", p.toString());
     try {
       input = getWalStream(p);
+    } catch (LogHeaderIncompleteException e) {
+      log.warn("Could not read header from {}, assuming that there is no data present in the WAL, therefore replication is complete", p);
+      Status newStatus;
+      // Bump up the begin to the (infinite) end, trying to be accurate
+      if (status.getInfiniteEnd()) {
+        newStatus = Status.newBuilder(status).setBegin(Long.MAX_VALUE).build();
+      } else {
+        newStatus = Status.newBuilder(status).setBegin(status.getEnd()).build();
+      }
+      span = Trace.start("Update replication table");
+      try {
+        helper.recordNewStatus(p, newStatus, target);
+      } catch (TableNotFoundException tnfe) {
+        log.error("Tried to update status in replication table for {} as {}, but the table did not exist", p, ProtobufUtil.toString(newStatus), e);
+        throw new RuntimeException("Replication table did not exist, will retry", e);
+      } finally {
+        span.stop();
+      }
     } catch (IOException e) {
       log.error("Could not create stream for WAL", e);
       // No data sent (bytes nor records) and no progress made
