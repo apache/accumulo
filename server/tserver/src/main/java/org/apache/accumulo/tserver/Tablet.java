@@ -3073,7 +3073,7 @@ public class Tablet {
     long t1, t2, t3;
 
     // acquire file info outside of tablet lock
-    CompactionStrategy strategy = Property.createInstanceFromPropertyName(acuTableConf, Property.TABLE_COMPACTION_STRATEGY, CompactionStrategy.class,
+    CompactionStrategy strategy = Property.createTableInstanceFromPropertyName(acuTableConf, Property.TABLE_COMPACTION_STRATEGY, CompactionStrategy.class,
         new DefaultCompactionStrategy());
     strategy.init(Property.getCompactionStrategyOptions(acuTableConf));
 

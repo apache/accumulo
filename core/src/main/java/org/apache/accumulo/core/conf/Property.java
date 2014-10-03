@@ -629,12 +629,18 @@ public enum Property {
   // This is not a cache for loaded classes, just a way to avoid spamming the debug log
   static Map<String,Class<?>> loaded = Collections.synchronizedMap(new HashMap<String,Class<?>>());
 
-  public static <T> T createInstanceFromPropertyName(AccumuloConfiguration conf, Property property, Class<T> base, T defaultInstance) {
-    String clazzName = conf.get(property);
+  private static <T> T createInstance(String context, String clazzName, Class<T> base, T defaultInstance) {
     T instance = null;
 
     try {
-      Class<? extends T> clazz = AccumuloVFSClassLoader.loadClass(clazzName, base);
+
+      Class<? extends T> clazz;
+      if (context != null && !context.equals("")) {
+        clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, clazzName, base);
+      } else {
+        clazz = AccumuloVFSClassLoader.loadClass(clazzName, base);
+      }
+
       instance = clazz.newInstance();
       if (loaded.put(clazzName, clazz) != clazz)
         log.debug("Loaded class : " + clazzName);
@@ -647,6 +653,19 @@ public enum Property {
       instance = defaultInstance;
     }
     return instance;
+  }
+
+  public static <T> T createTableInstanceFromPropertyName(AccumuloConfiguration conf, Property property, Class<T> base, T defaultInstance) {
+    String clazzName = conf.get(property);
+    String context = conf.get(TABLE_CLASSPATH);
+
+    return createInstance(context, clazzName, base, defaultInstance);
+  }
+
+  public static <T> T createInstanceFromPropertyName(AccumuloConfiguration conf, Property property, Class<T> base, T defaultInstance) {
+    String clazzName = conf.get(property);
+
+    return createInstance(null, clazzName, base, defaultInstance);
   }
 
   public static Map<String,String> getCompactionStrategyOptions(AccumuloConfiguration tableConf) {
