@@ -284,7 +284,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       AccumuloException, AccumuloSecurityException {
 
     final Set<Integer> tids;
-    DataInputStream input = null;
+    final DataInputStream input;
     Span span = Trace.start("Read WAL header");
     span.data("file", p.toString());
     try {
@@ -307,6 +307,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       } finally {
         span.stop();
       }
+      return newStatus;
     } catch (IOException e) {
       log.error("Could not create stream for WAL", e);
       // No data sent (bytes nor records) and no progress made
