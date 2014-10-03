@@ -41,9 +41,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Durability;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.impl.DurabilityImpl;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -143,8 +144,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
-
-import com.google.common.annotations.VisibleForTesting;
 
 /**
  * 
@@ -1773,7 +1772,8 @@ public class Tablet implements TabletCommitter {
     long t1, t2, t3;
 
     // acquire file info outside of tablet lock
-    CompactionStrategy strategy = Property.createInstanceFromPropertyName(tableConfiguration, Property.TABLE_COMPACTION_STRATEGY, CompactionStrategy.class,
+    CompactionStrategy strategy = Property.createTableInstanceFromPropertyName(tableConfiguration, Property.TABLE_COMPACTION_STRATEGY,
+        CompactionStrategy.class,
         new DefaultCompactionStrategy());
     strategy.init(Property.getCompactionStrategyOptions(tableConfiguration));
 
@@ -1829,8 +1829,10 @@ public class Tablet implements TabletCommitter {
         MajorCompactionRequest request = new MajorCompactionRequest(extent, reason, fs, tableConfiguration);
         request.setFiles(allFiles);
         plan = strategy.getCompactionPlan(request);
-        if (plan != null)
+        if (plan != null) {
+          plan.validate(allFiles.keySet());
           inputFiles.addAll(plan.inputFiles);
+        }
       }
 
       if (inputFiles.isEmpty()) {

@@ -19,9 +19,11 @@ package org.apache.accumulo.test.functional;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Random;
+import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -38,6 +40,7 @@ import org.apache.accumulo.tserver.compaction.CompactionPlan;
 import org.apache.accumulo.tserver.compaction.CompactionStrategy;
 import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -83,6 +86,37 @@ public class ConfigurableCompactionIT extends ConfigurableMacIT {
     runTest(c, tableName, 3);
     c.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey() + "count", "" + 5);
     runTest(c, tableName, 5);
+  }
+
+  @Test(timeout = 60000)
+  public void testPerTableClasspath() throws Exception {
+    final Connector c = getConnector();
+    final String tableName = getUniqueNames(1)[0];
+    c.tableOperations().create(tableName);
+    c.instanceOperations().setProperty(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "context1",
+        System.getProperty("user.dir") + "/src/test/resources/TestCompactionStrat.jar");
+    c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "10");
+    c.tableOperations().setProperty(tableName, Property.TABLE_CLASSPATH.getKey(), "context1");
+    // EfgCompactionStrat will only compact a tablet w/ end row of 'efg'. No other tablets are compacted.
+    c.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY.getKey(), "org.apache.accumulo.test.EfgCompactionStrat");
+
+    c.tableOperations().addSplits(tableName, new TreeSet<Text>(Arrays.asList(new Text("efg"))));
+
+    for (char ch = 'a'; ch < 'l'; ch++)
+      writeFlush(c, tableName, ch + "");
+
+    while (countFiles(c, tableName) != 7) {
+      UtilWaitThread.sleep(200);
+    }
+  }
+
+  private void writeFlush(Connector conn, String tablename, String row) throws Exception {
+    BatchWriter bw = conn.createBatchWriter(tablename, new BatchWriterConfig());
+    Mutation m = new Mutation(row);
+    m.put("", "", "");
+    bw.addMutation(m);
+    bw.close();
+    conn.tableOperations().flush(tablename, null, null, true);
   }
 
   final static Random r = new Random();
