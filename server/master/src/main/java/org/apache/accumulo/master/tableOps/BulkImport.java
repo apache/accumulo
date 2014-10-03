@@ -35,6 +35,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
@@ -96,13 +97,13 @@ import org.apache.thrift.TException;
  * that *a* request completed by seeing the flag written into the metadata
  * table, but we won't know if some other rogue thread is still waiting to start
  * a thread and repeat the operation.
- * 
+ *
  * The master can ask the tablet server if it has any requests still running.
  * Except the tablet server might have some thread about to start a request, but
  * before it has made any bookkeeping about the request. To prevent problems
  * like this, an Arbitrator is used. Before starting any new request, the tablet
  * server checks the Arbitrator to see if the request is still valid.
- * 
+ *
  */
 
 public class BulkImport extends MasterRepo {
@@ -174,7 +175,7 @@ public class BulkImport extends MasterRepo {
 
     // move the files into the directory
     try {
-      String bulkDir = prepareBulkImport(fs, sourceDir, tableId);
+      String bulkDir = prepareBulkImport(master, fs, sourceDir, tableId);
       log.debug(" tid " + tid + " bulkDir " + bulkDir);
       return new LoadFiles(tableId, sourceDir, bulkDir, errorDir, setTime);
     } catch (IOException ex) {
@@ -217,60 +218,84 @@ public class BulkImport extends MasterRepo {
 
   //TODO Remove deprecation warning suppression when Hadoop1 support is dropped
   @SuppressWarnings("deprecation")
-  private String prepareBulkImport(VolumeManager fs, String dir, String tableId) throws IOException {
-    Path bulkDir = createNewBulkDir(fs, tableId);
+  private String prepareBulkImport(Master master, final VolumeManager fs, String dir, String tableId) throws Exception {
+    final Path bulkDir = createNewBulkDir(fs, tableId);
 
     MetadataTableUtil.addBulkLoadInProgressFlag("/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
 
     Path dirPath = new Path(dir);
     FileStatus[] mapFiles = fs.listStatus(dirPath);
 
-    UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
+    final UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
 
-    for (FileStatus fileStatus : mapFiles) {
-      String sa[] = fileStatus.getPath().getName().split("\\.");
-      String extension = "";
-      if (sa.length > 1) {
-        extension = sa[sa.length - 1];
+    int workerCount = master.getConfiguration().getCount(Property.MASTER_BULK_RENAME_THREADS);
+    SimpleThreadPool workers = new SimpleThreadPool(workerCount, "bulk move");
+    List<Future<Exception>> results = new ArrayList<>();
 
-        if (!FileOperations.getValidExtensions().contains(extension)) {
-          log.warn(fileStatus.getPath() + " does not have a valid extension, ignoring");
-          continue;
-        }
-      } else {
-        // assume it is a map file
-        extension = Constants.MAPFILE_EXTENSION;
-      }
+    for (FileStatus file : mapFiles) {
+      final FileStatus fileStatus = file;
+      results.add(workers.submit(new Callable<Exception>() {
+        @Override
+        public Exception call() throws Exception {
+          try {
+            String sa[] = fileStatus.getPath().getName().split("\\.");
+            String extension = "";
+            if (sa.length > 1) {
+              extension = sa[sa.length - 1];
 
-      if (extension.equals(Constants.MAPFILE_EXTENSION)) {
-        if (!fileStatus.isDir()) {
-          log.warn(fileStatus.getPath() + " is not a map file, ignoring");
-          continue;
-        }
+              if (!FileOperations.getValidExtensions().contains(extension)) {
+                log.warn(fileStatus.getPath() + " does not have a valid extension, ignoring");
+                return null;
+              }
+            } else {
+              // assume it is a map file
+              extension = Constants.MAPFILE_EXTENSION;
+            }
 
-        if (fileStatus.getPath().getName().equals("_logs")) {
-          log.info(fileStatus.getPath() + " is probably a log directory from a map/reduce task, skipping");
-          continue;
-        }
-        try {
-          FileStatus dataStatus = fs.getFileStatus(new Path(fileStatus.getPath(), MapFile.DATA_FILE_NAME));
-          if (dataStatus.isDir()) {
-            log.warn(fileStatus.getPath() + " is not a map file, ignoring");
-            continue;
+            if (extension.equals(Constants.MAPFILE_EXTENSION)) {
+              if (!fileStatus.isDir()) {
+                log.warn(fileStatus.getPath() + " is not a map file, ignoring");
+                return null;
+              }
+
+              if (fileStatus.getPath().getName().equals("_logs")) {
+                log.info(fileStatus.getPath() + " is probably a log directory from a map/reduce task, skipping");
+                return null;
+              }
+              try {
+                FileStatus dataStatus = fs.getFileStatus(new Path(fileStatus.getPath(), MapFile.DATA_FILE_NAME));
+                if (dataStatus.isDir()) {
+                  log.warn(fileStatus.getPath() + " is not a map file, ignoring");
+                  return null;
+                }
+              } catch (FileNotFoundException fnfe) {
+                log.warn(fileStatus.getPath() + " is not a map file, ignoring");
+                return null;
+              }
+            }
+
+            String newName = "I" + namer.getNextName() + "." + extension;
+            Path newPath = new Path(bulkDir, newName);
+            try {
+              fs.rename(fileStatus.getPath(), newPath);
+              log.debug("Moved " + fileStatus.getPath() + " to " + newPath);
+            } catch (IOException E1) {
+              log.error("Could not move: " + fileStatus.getPath().toString() + " " + E1.getMessage());
+            }
+
+          } catch (Exception ex) {
+            return ex;
           }
-        } catch (FileNotFoundException fnfe) {
-          log.warn(fileStatus.getPath() + " is not a map file, ignoring");
-          continue;
+          return null;
         }
-      }
+      }));
+    }
+    workers.shutdown();
+    while (!workers.awaitTermination(1000L, TimeUnit.MILLISECONDS)) { }
 
-      String newName = "I" + namer.getNextName() + "." + extension;
-      Path newPath = new Path(bulkDir, newName);
-      try {
-        fs.rename(fileStatus.getPath(), newPath);
-        log.debug("Moved " + fileStatus.getPath() + " to " + newPath);
-      } catch (IOException E1) {
-        log.error("Could not move: " + fileStatus.getPath().toString() + " " + E1.getMessage());
+    for (Future<Exception> ex : results) {
+      if (ex.get() != null) {
+        throw ex.get();
       }
     }
     return bulkDir.toString();
