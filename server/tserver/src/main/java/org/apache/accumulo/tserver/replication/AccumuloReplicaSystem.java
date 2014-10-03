@@ -62,6 +62,7 @@ import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.DfsLogger.DFSLoggerInputStreams;
+import org.apache.accumulo.tserver.log.DfsLogger.LogHeaderIncompleteException;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.commons.lang.StringUtils;
@@ -283,7 +284,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       AccumuloException, AccumuloSecurityException {
 
     final Set<Integer> tids;
-    final DataInputStream input;
+    DataInputStream input = null;
     Span span = Trace.start("Read WAL header");
     span.data("file", p.toString());
     try {
@@ -399,8 +400,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     private TCredentials tcreds;
     private Set<Integer> tids;
 
-    public WalClientExecReturn(ReplicationTarget target, DataInputStream input, Path p, Status status, long sizeLimit, String remoteTableId, TCredentials tcreds,
-        Set<Integer> tids) {
+    public WalClientExecReturn(ReplicationTarget target, DataInputStream input, Path p, Status status, long sizeLimit, String remoteTableId,
+        TCredentials tcreds, Set<Integer> tids) {
       this.target = target;
       this.input = input;
       this.p = p;
@@ -449,7 +450,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     private String remoteTableId;
     private TCredentials tcreds;
 
-    public RFileClientExecReturn(ReplicationTarget target, DataInputStream input, Path p, Status status, long sizeLimit, String remoteTableId, TCredentials tcreds) {
+    public RFileClientExecReturn(ReplicationTarget target, DataInputStream input, Path p, Status status, long sizeLimit, String remoteTableId,
+        TCredentials tcreds) {
       this.target = target;
       this.input = input;
       this.p = p;
