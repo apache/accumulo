@@ -39,6 +39,7 @@ import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeUtil;
+import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.master.recovery.HadoopLogCloser;
 import org.apache.accumulo.server.master.recovery.LogCloser;
 import org.apache.accumulo.server.master.recovery.RecoveryPath;
@@ -157,7 +158,7 @@ public class RecoveryManager {
           }
         }
 
-        if (master.getFileSystem().exists(new Path(dest, "finished"))) {
+        if (master.getFileSystem().exists(SortedLogState.getFinishedMarkerPath(dest))) {
           synchronized (this) {
             closeTasksQueued.remove(sortId);
             recoveryDelay.remove(sortId);

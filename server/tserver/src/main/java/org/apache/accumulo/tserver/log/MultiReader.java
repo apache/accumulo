@@ -20,6 +20,7 @@ import java.io.EOFException;
 import java.io.IOException;
 
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.commons.collections.buffer.PriorityBuffer;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -32,23 +33,23 @@ import org.apache.hadoop.io.WritableComparable;
 
 /**
  * Provide simple Map.Reader methods over multiple Maps.
- * 
+ *
  * Presently only supports next() and seek() and works on all the Map directories within a directory. The primary purpose of this class is to merge the results
  * of multiple Reduce jobs that result in Map output files.
  */
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class MultiReader {
-  
+
   /**
    * Group together the next key/value from a Reader with the Reader
-   * 
+   *
    */
   private static class Index implements Comparable<Index> {
     Reader reader;
     WritableComparable key;
     Writable value;
     boolean cached = false;
-    
+
     private static Object create(java.lang.Class<?> klass) {
       try {
         return klass.getConstructor().newInstance();
@@ -56,19 +57,20 @@ public class MultiReader {
         throw new RuntimeException("Unable to construct objects to use for comparison");
       }
     }
-    
+
     public Index(Reader reader) {
       this.reader = reader;
       key = (WritableComparable) create(reader.getKeyClass());
       value = (Writable) create(reader.getValueClass());
     }
-    
+
     private void cache() throws IOException {
       if (!cached && reader.next(key, value)) {
         cached = true;
       }
     }
-    
+
+    @Override
     public int compareTo(Index o) {
       try {
         cache();
@@ -84,16 +86,16 @@ public class MultiReader {
       }
     }
   }
-  
+
   private PriorityBuffer heap = new PriorityBuffer();
-  
+
   @SuppressWarnings("deprecation")
   public MultiReader(VolumeManager fs, Path directory) throws IOException {
     boolean foundFinish = false;
     for (FileStatus child : fs.listStatus(directory)) {
       if (child.getPath().getName().startsWith("_"))
         continue;
-      if (child.getPath().getName().equals("finished")) {
+      if (SortedLogState.isFinished(child.getPath().getName())) {
         foundFinish = true;
         continue;
       }
@@ -101,9 +103,9 @@ public class MultiReader {
       heap.add(new Index(new Reader(ns, child.getPath().toString(), ns.getConf())));
     }
     if (!foundFinish)
-      throw new IOException("Sort \"finished\" flag not found in " + directory);
+      throw new IOException("Sort \"" + SortedLogState.FINISHED.getMarker() + "\" flag not found in " + directory);
   }
-  
+
   private static void copy(Writable src, Writable dest) throws IOException {
     // not exactly efficient...
     DataOutputBuffer output = new DataOutputBuffer();
@@ -112,7 +114,7 @@ public class MultiReader {
     input.reset(output.getData(), output.getLength());
     dest.readFields(input);
   }
-  
+
   public synchronized boolean next(WritableComparable key, Writable val) throws IOException {
     Index elt = (Index) heap.remove();
     try {
@@ -129,7 +131,7 @@ public class MultiReader {
     }
     return true;
   }
-  
+
   public synchronized boolean seek(WritableComparable key) throws IOException {
     PriorityBuffer reheap = new PriorityBuffer(heap.size());
     boolean result = false;
@@ -149,7 +151,7 @@ public class MultiReader {
     heap = reheap;
     return result;
   }
-  
+
   public void close() throws IOException {
     IOException problem = null;
     for (Object obj : heap) {
@@ -164,5 +166,5 @@ public class MultiReader {
       throw problem;
     heap = null;
   }
-  
+
 }

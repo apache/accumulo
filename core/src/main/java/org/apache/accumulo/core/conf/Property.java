@@ -772,26 +772,18 @@ public enum Property {
   // This is not a cache for loaded classes, just a way to avoid spamming the debug log
   static Map<String,Class<?>> loaded = Collections.synchronizedMap(new HashMap<String,Class<?>>());
 
-  /**
-   * Creates a new instance of a class specified in a configuration property.
-   *
-   * @param conf
-   *          configuration containing property
-   * @param property
-   *          property specifying class name
-   * @param base
-   *          base class of type
-   * @param defaultInstance
-   *          instance to use if creation fails
-   * @return new class instance, or default instance if creation failed
-   * @see AccumuloVFSClassLoader
-   */
-  public static <T> T createInstanceFromPropertyName(AccumuloConfiguration conf, Property property, Class<T> base, T defaultInstance) {
-    String clazzName = conf.get(property);
+  private static <T> T createInstance(String context, String clazzName, Class<T> base, T defaultInstance) {
     T instance = null;
 
     try {
-      Class<? extends T> clazz = AccumuloVFSClassLoader.loadClass(clazzName, base);
+
+      Class<? extends T> clazz;
+      if (context != null && !context.equals("")) {
+        clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, clazzName, base);
+      } else {
+        clazz = AccumuloVFSClassLoader.loadClass(clazzName, base);
+      }
+
       instance = clazz.newInstance();
       if (loaded.put(clazzName, clazz) != clazz)
         log.debug("Loaded class : " + clazzName);
@@ -806,10 +798,52 @@ public enum Property {
     return instance;
   }
 
+
+  /**
+   * Creates a new instance of a class specified in a configuration property. The table classpath context is used if set.
+   * 
+   * @param conf
+   *          configuration containing property
+   * @param property
+   *          property specifying class name
+   * @param base
+   *          base class of type
+   * @param defaultInstance
+   *          instance to use if creation fails
+   * @return new class instance, or default instance if creation failed
+   * @see AccumuloVFSClassLoader
+   */
+  public static <T> T createTableInstanceFromPropertyName(AccumuloConfiguration conf, Property property, Class<T> base, T defaultInstance) {
+    String clazzName = conf.get(property);
+    String context = conf.get(TABLE_CLASSPATH);
+
+    return createInstance(context, clazzName, base, defaultInstance);
+  }
+
+  /**
+   * Creates a new instance of a class specified in a configuration property.
+   * 
+   * @param conf
+   *          configuration containing property
+   * @param property
+   *          property specifying class name
+   * @param base
+   *          base class of type
+   * @param defaultInstance
+   *          instance to use if creation fails
+   * @return new class instance, or default instance if creation failed
+   * @see AccumuloVFSClassLoader
+   */
+  public static <T> T createInstanceFromPropertyName(AccumuloConfiguration conf, Property property, Class<T> base, T defaultInstance) {
+    String clazzName = conf.get(property);
+
+    return createInstance(null, clazzName, base, defaultInstance);
+  }
+
   /**
    * Collects together properties from the given configuration pertaining to compaction strategies. The relevant properties all begin with the prefix in
    * {@link #TABLE_COMPACTION_STRATEGY_PREFIX}. In the returned map, the prefix is removed from each property's key.
-   *
+   * 
    * @param tableConf
    *          configuration
    * @return map of compaction strategy property keys and values, with the detection prefix removed from each key

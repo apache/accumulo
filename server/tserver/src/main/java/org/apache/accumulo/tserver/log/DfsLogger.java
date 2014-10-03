@@ -18,6 +18,7 @@ package org.apache.accumulo.tserver.log;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
@@ -71,9 +72,8 @@ import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
  *
  */
 public class DfsLogger {
-  // Package private so that LogSorter can find this
-  static final String LOG_FILE_HEADER_V2 = "--- Log File Header (v2) ---";
-  static final String LOG_FILE_HEADER_V3 = "--- Log File Header (v3) ---";
+  public static final String LOG_FILE_HEADER_V2 = "--- Log File Header (v2) ---";
+  public static final String LOG_FILE_HEADER_V3 = "--- Log File Header (v3) ---";
 
   private static final Logger log = Logger.getLogger(DfsLogger.class);
 
@@ -82,6 +82,26 @@ public class DfsLogger {
 
     public LogClosedException() {
       super("LogClosed");
+    }
+  }
+
+  /**
+   * A well-timed tabletserver failure could result in an incomplete header written to a write-ahead log. This exception is thrown when the header cannot be
+   * read from a WAL which should only happen when the tserver dies as described.
+   */
+  public static class LogHeaderIncompleteException extends IOException {
+    private static final long serialVersionUID = 1l;
+
+    public LogHeaderIncompleteException(String msg) {
+      super(msg);
+    }
+
+    public LogHeaderIncompleteException(String msg, Throwable cause) {
+      super(msg, cause);
+    }
+
+    public LogHeaderIncompleteException(Throwable cause) {
+      super(cause);
     }
   }
 
@@ -278,75 +298,82 @@ public class DfsLogger {
 
     byte[] magic = DfsLogger.LOG_FILE_HEADER_V3.getBytes();
     byte[] magicBuffer = new byte[magic.length];
-    input.readFully(magicBuffer);
-    if (Arrays.equals(magicBuffer, magic)) {
-      // additional parameters it needs from the underlying stream.
-      String cryptoModuleClassname = input.readUTF();
-      CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(cryptoModuleClassname);
+    try {
+      input.readFully(magicBuffer);
+      if (Arrays.equals(magicBuffer, magic)) {
+        // additional parameters it needs from the underlying stream.
+        String cryptoModuleClassname = input.readUTF();
+        CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(cryptoModuleClassname);
 
-      // Create the parameters and set the input stream into those parameters
-      CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
-      params.setEncryptedInputStream(input);
+        // Create the parameters and set the input stream into those parameters
+        CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
+        params.setEncryptedInputStream(input);
 
-      // Create the plaintext input stream from the encrypted one
-      params = cryptoModule.getDecryptingInputStream(params);
+        // Create the plaintext input stream from the encrypted one
+        params = cryptoModule.getDecryptingInputStream(params);
 
-      if (params.getPlaintextInputStream() instanceof DataInputStream) {
-        decryptingInput = (DataInputStream) params.getPlaintextInputStream();
-      } else {
-        decryptingInput = new DataInputStream(params.getPlaintextInputStream());
-      }
-    } else {
-      input.seek(0);
-      byte[] magicV2 = DfsLogger.LOG_FILE_HEADER_V2.getBytes();
-      byte[] magicBufferV2 = new byte[magicV2.length];
-      input.readFully(magicBufferV2);
-
-      if (Arrays.equals(magicBufferV2, magicV2)) {
-        // Log files from 1.5 dump their options in raw to the logger files. Since we don't know the class
-        // that needs to read those files, we can make a couple of basic assumptions. Either it's going to be
-        // the NullCryptoModule (no crypto) or the DefaultCryptoModule.
-
-        // If it's null, we won't have any parameters whatsoever. First, let's attempt to read
-        // parameters
-        Map<String,String> opts = new HashMap<String,String>();
-        int count = input.readInt();
-        for (int i = 0; i < count; i++) {
-          String key = input.readUTF();
-          String value = input.readUTF();
-          opts.put(key, value);
+        if (params.getPlaintextInputStream() instanceof DataInputStream) {
+          decryptingInput = (DataInputStream) params.getPlaintextInputStream();
+        } else {
+          decryptingInput = new DataInputStream(params.getPlaintextInputStream());
         }
+      } else {
+        input.seek(0);
+        byte[] magicV2 = DfsLogger.LOG_FILE_HEADER_V2.getBytes();
+        byte[] magicBufferV2 = new byte[magicV2.length];
+        input.readFully(magicBufferV2);
 
-        if (opts.size() == 0) {
-          // NullCryptoModule, we're done
-          decryptingInput = input;
+        if (Arrays.equals(magicBufferV2, magicV2)) {
+          // Log files from 1.5 dump their options in raw to the logger files. Since we don't know the class
+          // that needs to read those files, we can make a couple of basic assumptions. Either it's going to be
+          // the NullCryptoModule (no crypto) or the DefaultCryptoModule.
+
+          // If it's null, we won't have any parameters whatsoever. First, let's attempt to read
+          // parameters
+          Map<String,String> opts = new HashMap<String,String>();
+          int count = input.readInt();
+          for (int i = 0; i < count; i++) {
+            String key = input.readUTF();
+            String value = input.readUTF();
+            opts.put(key, value);
+          }
+
+          if (opts.size() == 0) {
+            // NullCryptoModule, we're done
+            decryptingInput = input;
+          } else {
+
+            // The DefaultCryptoModule will want to read the parameters from the underlying file, so we will put the file back to that spot.
+            org.apache.accumulo.core.security.crypto.CryptoModule cryptoModule = org.apache.accumulo.core.security.crypto.CryptoModuleFactory
+                .getCryptoModule(DefaultCryptoModule.class.getName());
+
+            CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
+
+            input.seek(0);
+            input.readFully(magicBufferV2);
+            params.setEncryptedInputStream(input);
+
+            params = cryptoModule.getDecryptingInputStream(params);
+            if (params.getPlaintextInputStream() instanceof DataInputStream) {
+              decryptingInput = (DataInputStream) params.getPlaintextInputStream();
+            } else {
+              decryptingInput = new DataInputStream(params.getPlaintextInputStream());
+            }
+          }
+
         } else {
 
-          // The DefaultCryptoModule will want to read the parameters from the underlying file, so we will put the file back to that spot.
-          org.apache.accumulo.core.security.crypto.CryptoModule cryptoModule = org.apache.accumulo.core.security.crypto.CryptoModuleFactory
-              .getCryptoModule(DefaultCryptoModule.class.getName());
-
-          CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
-
           input.seek(0);
-          input.readFully(magicBufferV2);
-          params.setEncryptedInputStream(input);
-
-          params = cryptoModule.getDecryptingInputStream(params);
-          if (params.getPlaintextInputStream() instanceof DataInputStream) {
-            decryptingInput = (DataInputStream) params.getPlaintextInputStream();
-          } else {
-            decryptingInput = new DataInputStream(params.getPlaintextInputStream());
-          }
+          decryptingInput = input;
         }
 
-      } else {
-
-        input.seek(0);
-        decryptingInput = input;
       }
-
+    } catch (EOFException e) {
+      log.warn("Got EOFException trying to read WAL header information, assuming the rest of the file (" + path + ") has no data.");
+      // A TabletServer might have died before the (complete) header was written
+      throw new LogHeaderIncompleteException(e);
     }
+
     return new DFSLoggerInputStreams(input, decryptingInput);
   }
 
@@ -469,7 +496,7 @@ public class DfsLogger {
     }
 
     // wait for background thread to finish before closing log file
-    if(syncThread != null){
+    if (syncThread != null) {
       try {
         syncThread.join();
       } catch (InterruptedException e) {
@@ -477,8 +504,8 @@ public class DfsLogger {
       }
     }
 
-    //expect workq should be empty at this point
-    if(workQueue.size() != 0){
+    // expect workq should be empty at this point
+    if (workQueue.size() != 0) {
       log.error("WAL work queue not empty after sync thread exited");
       throw new IllegalStateException("WAL work queue not empty after sync thread exited");
     }

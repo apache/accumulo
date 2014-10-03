@@ -62,6 +62,7 @@ import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.DfsLogger.DFSLoggerInputStreams;
+import org.apache.accumulo.tserver.log.DfsLogger.LogHeaderIncompleteException;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.commons.lang.StringUtils;
@@ -288,6 +289,25 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     span.data("file", p.toString());
     try {
       input = getWalStream(p);
+    } catch (LogHeaderIncompleteException e) {
+      log.warn("Could not read header from {}, assuming that there is no data present in the WAL, therefore replication is complete", p);
+      Status newStatus;
+      // Bump up the begin to the (infinite) end, trying to be accurate
+      if (status.getInfiniteEnd()) {
+        newStatus = Status.newBuilder(status).setBegin(Long.MAX_VALUE).build();
+      } else {
+        newStatus = Status.newBuilder(status).setBegin(status.getEnd()).build();
+      }
+      span = Trace.start("Update replication table");
+      try {
+        helper.recordNewStatus(p, newStatus, target);
+      } catch (TableNotFoundException tnfe) {
+        log.error("Tried to update status in replication table for {} as {}, but the table did not exist", p, ProtobufUtil.toString(newStatus), e);
+        throw new RuntimeException("Replication table did not exist, will retry", e);
+      } finally {
+        span.stop();
+      }
+      return newStatus;
     } catch (IOException e) {
       log.error("Could not create stream for WAL", e);
       // No data sent (bytes nor records) and no progress made
@@ -381,8 +401,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     private TCredentials tcreds;
     private Set<Integer> tids;
 
-    public WalClientExecReturn(ReplicationTarget target, DataInputStream input, Path p, Status status, long sizeLimit, String remoteTableId, TCredentials tcreds,
-        Set<Integer> tids) {
+    public WalClientExecReturn(ReplicationTarget target, DataInputStream input, Path p, Status status, long sizeLimit, String remoteTableId,
+        TCredentials tcreds, Set<Integer> tids) {
       this.target = target;
       this.input = input;
       this.p = p;
@@ -431,7 +451,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     private String remoteTableId;
     private TCredentials tcreds;
 
-    public RFileClientExecReturn(ReplicationTarget target, DataInputStream input, Path p, Status status, long sizeLimit, String remoteTableId, TCredentials tcreds) {
+    public RFileClientExecReturn(ReplicationTarget target, DataInputStream input, Path p, Status status, long sizeLimit, String remoteTableId,
+        TCredentials tcreds) {
       this.target = target;
       this.input = input;
       this.p = p;

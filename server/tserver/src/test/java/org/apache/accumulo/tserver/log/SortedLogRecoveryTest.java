@@ -40,6 +40,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
@@ -132,7 +133,7 @@ public class SortedLogRecoveryTest {
           map.append(lfe.key, lfe.value);
         }
         map.close();
-        ns.create(new Path(path, "finished")).close();
+        ns.create(SortedLogState.getFinishedMarkerPath(path)).close();
         dirs.add(new Path(path));
       }
       // Recover
