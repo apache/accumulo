@@ -3128,8 +3128,10 @@ public class Tablet {
         MajorCompactionRequest request = new MajorCompactionRequest(extent, reason, fs, acuTableConf);
         request.setFiles(allFiles);
         plan = strategy.getCompactionPlan(request);
-        if (plan != null)
+        if (plan != null) {
+          plan.validate(allFiles.keySet());
           inputFiles.addAll(plan.inputFiles);
+        }
       }
 
       if (inputFiles.isEmpty()) {

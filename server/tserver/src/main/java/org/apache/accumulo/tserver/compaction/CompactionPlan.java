@@ -17,9 +17,14 @@
 package org.apache.accumulo.tserver.compaction;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.accumulo.server.fs.FileRef;
+
+import com.google.common.collect.Sets;
 
 /**
  * A plan for a compaction: the input files, the files that are *not* inputs to a compaction that should simply be deleted, and the optional parameters used to
@@ -51,5 +56,32 @@ public class CompactionPlan {
       }
     }
     return b.toString();
+  }
+
+  /**
+   * Validate compaction plan.
+   * 
+   * @param allFiles
+   *          All possible files
+   * @throws IllegalStateException
+   *           thrown when validation fails.
+   */
+  public final void validate(Set<FileRef> allFiles) {
+    Set<FileRef> inputSet = new HashSet<FileRef>(inputFiles);
+    Set<FileRef> deleteSet = new HashSet<FileRef>(deleteFiles);
+
+    if (!allFiles.containsAll(inputSet)) {
+      inputSet.removeAll(allFiles);
+      throw new IllegalStateException("plan inputs contains files not in allFiles " + inputSet);
+    }
+
+    if (!allFiles.containsAll(deleteSet)) {
+      deleteSet.removeAll(allFiles);
+      throw new IllegalStateException("plan deletes contains files not in allFiles " + deleteSet);
+    }
+
+    if (!Collections.disjoint(inputSet, deleteSet)) {
+      throw new IllegalStateException("plan contains overlap in inputFiles and deleteFiles " + Sets.intersection(inputSet, deleteSet));
+    }
   }
 }
