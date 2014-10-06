@@ -45,13 +45,12 @@ import org.apache.accumulo.core.conf.ConfigSanityCheck;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.shell.Shell;
-import org.apache.accumulo.shell.ShellOptionsJC;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Level;
 import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -79,12 +78,25 @@ public class ShellSetInstanceTest {
     }
   }
 
+  /**
+   * Skip all tests if we have a known bad version of java; See ACCUMULO-3031
+   */
+  @BeforeClass
+  public static void checkJavaVersion() {
+    String javaVer = System.getProperty("java.version", "");
+    if (javaVer.matches("^1[.]7[.]0_(\\d+)$")) {
+      int v = Integer.parseInt(javaVer.substring(6));
+      Assume.assumeTrue("Skipping test due to incompatible Java version; See ACCUMULO-3031", v <= 60 || v >= 72);
+    }
+  }
+
   @BeforeClass
   public static void setupClass() {
     // This is necessary because PowerMock messes with Hadoop's ability to
     // determine the current user (see security.UserGroupInformation).
     System.setProperty("HADOOP_USER_NAME", "test");
   }
+
   @AfterClass
   public static void teardownClass() {
     System.clearProperty("HADOOP_USER_NAME");
@@ -100,6 +112,7 @@ public class ShellSetInstanceTest {
     shell = new Shell(new ConsoleReader(new FileInputStream(FileDescriptor.in), output), new PrintWriter(output));
     shell.setLogErrorsToConsole();
   }
+
   @After
   public void tearDown() {
     shell.shutdown();
@@ -118,34 +131,35 @@ public class ShellSetInstanceTest {
     shell.setInstance(opts);
     verify(theInstance, MockInstance.class);
   }
+
   @Test
   public void testSetInstance_HdfsZooInstance_Explicit() throws Exception {
     testSetInstance_HdfsZooInstance(true, false, false);
   }
+
   @Test
   public void testSetInstance_HdfsZooInstance_InstanceGiven() throws Exception {
     testSetInstance_HdfsZooInstance(false, true, false);
   }
+
   @Test
   public void testSetInstance_HdfsZooInstance_HostsGiven() throws Exception {
     testSetInstance_HdfsZooInstance(false, false, true);
   }
+
   @Test
   public void testSetInstance_HdfsZooInstance_Implicit() throws Exception {
     testSetInstance_HdfsZooInstance(false, false, false);
   }
-  
-  @SuppressWarnings("deprecation")
-  private void testSetInstance_HdfsZooInstance(boolean explicitHdfs, boolean onlyInstance, boolean onlyHosts)
-    throws Exception {
+
+  private void testSetInstance_HdfsZooInstance(boolean explicitHdfs, boolean onlyInstance, boolean onlyHosts) throws Exception {
     ClientConfiguration clientConf = createMock(ClientConfiguration.class);
     ShellOptionsJC opts = createMock(ShellOptionsJC.class);
     expect(opts.isFake()).andReturn(false);
     expect(opts.getClientConfiguration()).andReturn(clientConf);
     expect(opts.isHdfsZooInstance()).andReturn(explicitHdfs);
     if (!explicitHdfs) {
-      expect(opts.getZooKeeperInstance())
-        .andReturn(Collections.<String>emptyList());
+      expect(opts.getZooKeeperInstance()).andReturn(Collections.<String> emptyList());
       if (onlyInstance) {
         expect(opts.getZooKeeperInstanceName()).andReturn("instance");
         expect(clientConf.withInstance("instance")).andReturn(clientConf);
@@ -166,7 +180,7 @@ public class ShellSetInstanceTest {
     }
 
     mockStatic(ConfigSanityCheck.class);
-    ConfigSanityCheck.validate(EasyMock.<AccumuloConfiguration>anyObject());
+    ConfigSanityCheck.validate(EasyMock.<AccumuloConfiguration> anyObject());
     expectLastCall().atLeastOnce();
     replay(ConfigSanityCheck.class);
 
@@ -177,39 +191,45 @@ public class ShellSetInstanceTest {
     }
     if (!onlyInstance) {
       expect(clientConf.containsKey(Property.INSTANCE_VOLUMES.getKey())).andReturn(false).atLeastOnce();
-      expect(clientConf.containsKey(Property.INSTANCE_DFS_DIR.getKey())).andReturn(true).atLeastOnce();
-      expect(clientConf.containsKey(Property.INSTANCE_DFS_URI.getKey())).andReturn(true).atLeastOnce();
-      expect(clientConf.getString(Property.INSTANCE_DFS_URI.getKey())).andReturn("hdfs://nn1").atLeastOnce();
-      expect(clientConf.getString(Property.INSTANCE_DFS_DIR.getKey())).andReturn("/dfs").atLeastOnce();
+      @SuppressWarnings("deprecation")
+      String INSTANCE_DFS_DIR_KEY = Property.INSTANCE_DFS_DIR.getKey();
+      @SuppressWarnings("deprecation")
+      String INSTANCE_DFS_URI_KEY = Property.INSTANCE_DFS_URI.getKey();
+      expect(clientConf.containsKey(INSTANCE_DFS_DIR_KEY)).andReturn(true).atLeastOnce();
+      expect(clientConf.containsKey(INSTANCE_DFS_URI_KEY)).andReturn(true).atLeastOnce();
+      expect(clientConf.getString(INSTANCE_DFS_URI_KEY)).andReturn("hdfs://nn1").atLeastOnce();
+      expect(clientConf.getString(INSTANCE_DFS_DIR_KEY)).andReturn("/dfs").atLeastOnce();
     }
 
     UUID randomUUID = null;
     if (!onlyInstance) {
       mockStatic(ZooUtil.class);
       randomUUID = UUID.randomUUID();
-      expect(ZooUtil.getInstanceIDFromHdfs(anyObject(Path.class), anyObject(AccumuloConfiguration.class)))
-        .andReturn(randomUUID.toString());
+      expect(ZooUtil.getInstanceIDFromHdfs(anyObject(Path.class), anyObject(AccumuloConfiguration.class))).andReturn(randomUUID.toString());
       replay(ZooUtil.class);
       expect(clientConf.withInstance(randomUUID)).andReturn(clientConf);
     }
     replay(clientConf);
 
     ZooKeeperInstance theInstance = createMock(ZooKeeperInstance.class);
-    
+
     expectNew(ZooKeeperInstance.class, clientConf).andReturn(theInstance);
     replay(theInstance, ZooKeeperInstance.class);
 
     shell.setInstance(opts);
     verify(theInstance, ZooKeeperInstance.class);
   }
+
   @Test
   public void testSetInstance_ZKInstance_DashZ() throws Exception {
     testSetInstance_ZKInstance(true);
   }
+
   @Test
   public void testSetInstance_ZKInstance_DashZIandZH() throws Exception {
     testSetInstance_ZKInstance(false);
   }
+
   private void testSetInstance_ZKInstance(boolean dashZ) throws Exception {
     ClientConfiguration clientConf = createMock(ClientConfiguration.class);
     ShellOptionsJC opts = createMock(ShellOptionsJC.class);
@@ -227,7 +247,7 @@ public class ShellSetInstanceTest {
     } else {
       expect(clientConf.withInstance("bar")).andReturn(clientConf);
       expect(clientConf.withZkHosts("host3,host4")).andReturn(clientConf);
-      expect(opts.getZooKeeperInstance()).andReturn(Collections.<String>emptyList());
+      expect(opts.getZooKeeperInstance()).andReturn(Collections.<String> emptyList());
       expect(opts.getZooKeeperInstanceName()).andReturn("bar");
       expect(opts.getZooKeeperHosts()).andReturn("host3,host4");
     }
