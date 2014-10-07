@@ -19,7 +19,7 @@ package org.apache.accumulo.server.log;
 import org.apache.hadoop.fs.Path;
 
 /**
- * A file is written in the destination directory for the sorting of write-ahead logs that need recovering. The value of {@link #marker} is the name of the file
+ * A file is written in the destination directory for the sorting of write-ahead logs that need recovering. The value of {@link #getMarker()} is the name of the file
  * that will exist in the sorted output directory.
  */
 public enum SortedLogState {
