@@ -444,8 +444,8 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
     Text[] terms = decodeColumns(options.get(columnFamiliesOptionName));
     boolean[] notFlag = decodeBooleans(options.get(notFlagOptionName));
     
-    if (terms.length < 2) {
-      throw new IllegalArgumentException("IntersectionIterator requires two or more columns families");
+    if (terms.length < 1) {
+      throw new IllegalArgumentException("IntersectionIterator requires one or more columns families");
     }
     
     // Scan the not flags.
@@ -533,8 +533,8 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
    * Encode the columns to be used when iterating.
    */
   public static void setColumnFamilies(IteratorSetting cfg, Text[] columns) {
-    if (columns.length < 2)
-      throw new IllegalArgumentException("Must supply at least two terms to intersect");
+    if (columns.length < 1)
+      throw new IllegalArgumentException("Must supply at least one term to intersect");
     cfg.addOption(IntersectingIterator.columnFamiliesOptionName, IntersectingIterator.encodeColumns(columns));
   }
   
@@ -542,8 +542,8 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
    * Encode columns and NOT flags indicating which columns should be negated (docIDs will be excluded if matching negated columns, instead of included).
    */
   public static void setColumnFamilies(IteratorSetting cfg, Text[] columns, boolean[] notFlags) {
-    if (columns.length < 2)
-      throw new IllegalArgumentException("Must supply at least two terms to intersect");
+    if (columns.length < 1)
+      throw new IllegalArgumentException("Must supply at least one terms to intersect");
     if (columns.length != notFlags.length)
       throw new IllegalArgumentException("columns and notFlags arrays must be the same length");
     setColumnFamilies(cfg, columns);
