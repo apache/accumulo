@@ -39,10 +39,10 @@ import org.apache.log4j.Logger;
  */
 public class SiteConfiguration extends AccumuloConfiguration {
   private static final Logger log = Logger.getLogger(SiteConfiguration.class);
-  
+
   private static AccumuloConfiguration parent = null;
   private static SiteConfiguration instance = null;
-  
+
   private static Configuration xmlConfig;
 
   /**
@@ -75,7 +75,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
     String configFile = System.getProperty("org.apache.accumulo.config.file", "accumulo-site.xml");
     if (xmlConfig == null) {
       xmlConfig = new Configuration(false);
-      
+
       if (SiteConfiguration.class.getClassLoader().getResource(configFile) == null)
         log.warn(configFile + " not found on classpath", new Throwable());
       else
@@ -83,7 +83,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
     }
     return xmlConfig;
   }
-  
+
   @Override
   public String get(Property property) {
     String key = property.getKey();
@@ -105,7 +105,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
     }
 
     String value = getXmlConfig().get(key);
-    
+
     if (value == null || !property.getType().isValidFormat(value)) {
       if (value != null)
         log.error("Using default value for " + key + " due to improperly formatted " + property.getType() + ": " + value);
@@ -113,7 +113,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
     }
     return value;
   }
-  
+
   @Override
   public void getProperties(Map<String,String> props, PropertyFilter filter) {
     parent.getProperties(props, filter);
@@ -127,7 +127,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
     if (null != hadoopConf) {
       try {
         for (String key : CredentialProviderFactoryShim.getKeys(hadoopConf)) {
-          if (!Property.isValidPropertyKey(key) || !Property.isSensitive(key)) { 
+          if (!Property.isValidPropertyKey(key) || !Property.isSensitive(key)) {
             continue;
           }
 
@@ -151,7 +151,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
     if (null != credProviderPathsValue) {
       // We have configuration for a CredentialProvider
       // Try to pull the sensitive password from there
-      Configuration conf = new Configuration();
+      Configuration conf = new Configuration(false);
       conf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, credProviderPathsValue);
       return conf;
     }
@@ -173,8 +173,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
   public void clear() {
     getXmlConfig().clear();
   }
-  
-  
+
+
   /**
    * Clears the configuration properties in this configuration (but not the
    * parent) and nulls it. This method supports testing and should not be
@@ -186,7 +186,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
       xmlConfig = null;
     }
   }
-  
+
   /**
    * Sets a property. This method supports testing and should not be called.
    *
@@ -196,7 +196,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
   public void set(Property property, String value) {
     set(property.getKey(), value);
   }
-  
+
   /**
    * Sets a property. This method supports testing and should not be called.
    *
