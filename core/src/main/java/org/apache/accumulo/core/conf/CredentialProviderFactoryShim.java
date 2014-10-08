@@ -311,7 +311,7 @@ public class CredentialProviderFactoryShim {
    */
   public static Configuration getConfiguration(String credentialProviders) {
     Preconditions.checkNotNull(credentialProviders);
-    final Configuration conf = new Configuration();
+    final Configuration conf = new Configuration(false);
     conf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, credentialProviders);
     return conf;
   }

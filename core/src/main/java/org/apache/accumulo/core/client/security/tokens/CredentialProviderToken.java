@@ -44,7 +44,7 @@ public class CredentialProviderToken extends PasswordToken {
   }
 
   protected void setWithCredentialProviders(String name, String credentialProviders) throws IOException {
-    final Configuration conf = new Configuration();
+    final Configuration conf = new Configuration(false);
     conf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, credentialProviders);
 
     char[] password = CredentialProviderFactoryShim.getValueFromCredentialProvider(conf, name);
@@ -53,7 +53,7 @@ public class CredentialProviderToken extends PasswordToken {
       throw new IOException("No password could be extracted from CredentialProvider(s) with " + name);
     }
 
-    setPassword(CharBuffer.wrap(password));    
+    setPassword(CharBuffer.wrap(password));
   }
 
   @Override
