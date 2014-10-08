@@ -46,6 +46,7 @@ import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.impl.DurabilityImpl;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
+import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
@@ -464,8 +465,20 @@ public class Tablet implements TabletCommitter {
       final List<LogEntry> rawLogEntries, final SortedMap<FileRef,DataFileValue> rawDatafiles, String time, final TServerInstance lastLocation,
       Set<FileRef> scanFiles, long initFlushID, long initCompactID) throws IOException {
 
+    TableConfiguration tblConf = tabletServer.getTableConfiguration(extent);
+    if (null == tblConf) {
+      Tables.clearCache(tabletServer.getInstance());
+      tblConf = tabletServer.getTableConfiguration(extent);
+      if (null == tblConf) {
+        // Not guaranteed to be non-null, but should be. A failed load will be re-assigned though..
+        log.warn("Could not get table configuration for " + extent.getTableId().toString());
+      }
+    }
+
+    this.tableConfiguration = tblConf;
+
     TabletFiles tabletPaths = VolumeUtil.updateTabletVolumes(tabletServer.getLock(), tabletServer.getFileSystem(), extent, new TabletFiles(location.toString(),
-        rawLogEntries, rawDatafiles), ReplicationConfigurationUtil.isEnabled(extent, tabletServer.getTableConfiguration(extent)));
+        rawLogEntries, rawDatafiles), ReplicationConfigurationUtil.isEnabled(extent, this.tableConfiguration));
 
     Path locationPath;
 
@@ -481,7 +494,6 @@ public class Tablet implements TabletCommitter {
     this.location = locationPath;
     this.lastLocation = lastLocation;
     this.tabletDirectory = tabletPaths.dir;
-    this.tableConfiguration = tabletServer.getTableConfiguration(extent);
 
     this.extent = extent;
     this.tabletResources = trm;
