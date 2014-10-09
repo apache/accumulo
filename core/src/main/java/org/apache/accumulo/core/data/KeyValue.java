@@ -16,45 +16,49 @@
  */
 package org.apache.accumulo.core.data;
 
-import static org.apache.accumulo.core.util.ByteBufferUtil.toBytes;
-
 import java.nio.ByteBuffer;
-import java.util.Map;
+import java.util.AbstractMap.SimpleImmutableEntry;
 
-import org.apache.accumulo.core.Constants;
+/**
+ * A key/value pair. The key and value may not be set after construction.
+ */
+public class KeyValue extends SimpleImmutableEntry<Key,Value> {
 
-public class KeyValue implements Map.Entry<Key,Value> {
-  
-  public Key key;
-  public byte[] value;
-  
+  private static final long serialVersionUID = 1L;
+
+  /**
+   * Creates a new key/value pair.
+   *
+   * @param key
+   *          key
+   * @param value
+   *          bytes of value
+   */
   public KeyValue(Key key, byte[] value) {
-    this.key = key;
-    this.value = value;
+    super(key, new Value(value));
   }
-  
+
+  /**
+   * Creates a new key/value pair.
+   *
+   * @param key
+   *          key
+   * @param value
+   *          buffer containing bytes of value
+   */
   public KeyValue(Key key, ByteBuffer value) {
-    this.key = key;
-    this.value = toBytes(value);
+    super(key, new Value(value));
   }
-  
-  @Override
-  public Key getKey() {
-    return key;
+
+  /**
+   * Creates a new key/value pair.
+   *
+   * @param key
+   *          key
+   * @param value
+   *          buffer containing bytes of value
+   */
+  public KeyValue(Key key, Value value) {
+    super(key, value);
   }
-  
-  @Override
-  public Value getValue() {
-    return new Value(value);
-  }
-  
-  @Override
-  public Value setValue(Value value) {
-    throw new UnsupportedOperationException();
-  }
-  
-  public String toString() {
-    return key + " " + new String(value, Constants.UTF8);
-  }
-  
 }
