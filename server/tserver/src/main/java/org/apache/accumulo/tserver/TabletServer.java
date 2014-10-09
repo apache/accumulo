@@ -1166,7 +1166,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           // convert everything to thrift before adding result
           List<TKeyValue> retResults = new ArrayList<TKeyValue>();
           for (KVEntry entry : results)
-            retResults.add(new TKeyValue(entry.key.toThrift(), ByteBuffer.wrap(entry.value)));
+            retResults.add(new TKeyValue(entry.getKey().toThrift(), ByteBuffer.wrap(entry.getValue().get())));
           Map<TKeyExtent,List<TRange>> retFailures = Translator.translate(failures, Translators.KET, new Translator.ListTranslator<Range,TRange>(Translators.RT));
           List<TKeyExtent> retFullScans = Translator.translate(fullScans, Translators.KET);
           TKeyExtent retPartScan = null;
