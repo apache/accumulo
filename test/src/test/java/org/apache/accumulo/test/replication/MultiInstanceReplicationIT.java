@@ -74,6 +74,11 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
 
   private ExecutorService executor;
 
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 10 * 60;
+  }
+
   @Before
   public void createExecutor() {
     executor = Executors.newSingleThreadExecutor();
@@ -140,7 +145,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
     }
   }
 
-  @Test(timeout = 60 * 5000)
+  @Test
   public void dataWasReplicatedToThePeer() throws Exception {
     MiniAccumuloConfigImpl peerCfg = new MiniAccumuloConfigImpl(createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName() + "_peer"),
         ROOT_PASSWORD);
@@ -293,7 +298,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
     }
   }
 
-  @Test(timeout = 60 * 5000)
+  @Test
   public void dataReplicatedToCorrectTable() throws Exception {
     MiniAccumuloConfigImpl peerCfg = new MiniAccumuloConfigImpl(createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName() + "_peer"),
         ROOT_PASSWORD);
@@ -439,7 +444,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
     }
   }
 
-  @Test(timeout = 10 * 60 * 1000)
+  @Test
   public void dataWasReplicatedToThePeerWithoutDrain() throws Exception {
     MiniAccumuloConfigImpl peerCfg = new MiniAccumuloConfigImpl(createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName() + "_peer"),
         ROOT_PASSWORD);
@@ -538,7 +543,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
     peerCluster.stop();
   }
 
-  @Test(timeout = 60 * 5000)
+  @Test
   public void dataReplicatedToCorrectTableWithoutDrain() throws Exception {
     MiniAccumuloConfigImpl peerCfg = new MiniAccumuloConfigImpl(createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName() + "_peer"),
         ROOT_PASSWORD);
