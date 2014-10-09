@@ -19,6 +19,7 @@ package org.apache.accumulo.test.functional;
 import static org.junit.Assert.assertFalse;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -28,11 +29,12 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
+import org.junit.Assert;
 import org.junit.Test;
 
 // ACCUMULO-2361
 public class DeleteTableDuringSplitIT extends SimpleMacIT {
-  
+
   @Override
   protected int defaultTimeoutSeconds() {
     return 15 * 60;
@@ -40,7 +42,9 @@ public class DeleteTableDuringSplitIT extends SimpleMacIT {
 
   @Test
   public void test() throws Exception {
-    String[] tableNames = getUniqueNames(100);
+    // 96 invocations, 8 at a time
+    int batches = 12, batchSize = 8;
+    String[] tableNames = getUniqueNames(batches * batchSize);
     // make a bunch of tables
     for (String tableName : tableNames) {
       getConnector().tableOperations().create(tableName);
@@ -52,7 +56,7 @@ public class DeleteTableDuringSplitIT extends SimpleMacIT {
 
     List<Future<?>> results = new ArrayList<Future<?>>();
     List<Runnable> tasks = new ArrayList<Runnable>();
-    SimpleThreadPool es = new SimpleThreadPool(tableNames.length, "concurrent-api-requests");
+    SimpleThreadPool es = new SimpleThreadPool(batchSize * 2, "concurrent-api-requests");
     for (String tableName : tableNames) {
       final String finalName = tableName;
       tasks.add(new Runnable() {
@@ -78,11 +82,23 @@ public class DeleteTableDuringSplitIT extends SimpleMacIT {
         }
       });
     }
-    for (Runnable r : tasks)
-      results.add(es.submit(r));
-    for (Future<?> f : results) {
-      f.get();
+    Iterator<Runnable> itr = tasks.iterator();
+    for (int batch = 0; batch < batches; batch++) {
+      for (int i = 0; i < batchSize; i++) {
+        Future<?> f = es.submit(itr.next());
+        results.add(f);
+        f = es.submit(itr.next());
+        results.add(f);
+      }
+      for (Future<?> f : results) {
+        f.get();
+      }
+      results.clear();
     }
+    // Shut down the ES
+    List<Runnable> queued = es.shutdownNow();
+    Assert.assertTrue("Had more tasks to run", queued.isEmpty());
+    Assert.assertFalse("Had more tasks that needed to be submitted", itr.hasNext());
     for (String tableName : tableNames) {
       assertFalse(getConnector().tableOperations().exists(tableName));
     }
