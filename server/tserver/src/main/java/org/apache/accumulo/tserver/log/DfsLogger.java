@@ -351,7 +351,8 @@ public class DfsLogger {
     log.debug("DfsLogger.open() begin");
     VolumeManager fs = conf.getFileSystem();
 
-    logPath = fs.choose(ServerConstants.getWalDirs()) + "/" + logger + "/" + filename;
+    logPath = fs.choose(ServerConstants.getBaseUris()) + Path.SEPARATOR + ServerConstants.WAL_DIR + Path.SEPARATOR + logger + Path.SEPARATOR + filename;
+
     metaReference = toString();
     try {
       short replication = (short) conf.getConfiguration().getCount(Property.TSERV_WAL_REPLICATION);

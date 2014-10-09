@@ -38,7 +38,7 @@ public class TabletOperations {
     String lowDirectory;
     
     UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
-    String volume = fs.choose(ServerConstants.getTablesDirs());
+    String volume = fs.choose(ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR;
     
     while (true) {
       try {
