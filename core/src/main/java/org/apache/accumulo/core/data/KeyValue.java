@@ -28,7 +28,7 @@ public class KeyValue extends SimpleImmutableEntry<Key,Value> {
 
   /**
    * Creates a new key/value pair.
-   * 
+   *
    * @param key
    *          key
    * @param value
@@ -40,7 +40,7 @@ public class KeyValue extends SimpleImmutableEntry<Key,Value> {
 
   /**
    * Creates a new key/value pair.
-   * 
+   *
    * @param key
    *          key
    * @param value
@@ -52,7 +52,7 @@ public class KeyValue extends SimpleImmutableEntry<Key,Value> {
 
   /**
    * Creates a new key/value pair.
-   * 
+   *
    * @param key
    *          key
    * @param value

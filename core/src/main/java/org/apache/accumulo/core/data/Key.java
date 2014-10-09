@@ -900,12 +900,12 @@ public class Key implements WritableComparable<Key>, Cloneable {
     
     if (param.size() > 0)
       tkvl.set(0, new TKeyValue(param.get(0).getKey().toThrift(), ByteBuffer.wrap(param.get(0).getValue().get())));
-    
+
     for (int i = param.size() - 1; i > 0; i--) {
       Key prevKey = param.get(i - 1).getKey();
       KeyValue kv = param.get(i);
       Key key = kv.getKey();
-      
+
       TKey newKey = null;
       
       if (isEqual(prevKey.row, key.row)) {
@@ -933,7 +933,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
       
       if (newKey == null)
         newKey = key.toThrift();
-      
+
       tkvl.set(i, new TKeyValue(newKey, ByteBuffer.wrap(kv.getValue().get())));
     }
     
