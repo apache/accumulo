@@ -19,7 +19,6 @@ package org.apache.accumulo.test;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -29,6 +28,7 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.junit.AfterClass;
@@ -81,7 +81,7 @@ public class KeyValueEqualityTest {
     bw1.close();
     bw2.close();
 
-    Iterator<Entry<Key,Value>> t1 = conn.createScanner(table1, Constants.NO_AUTHS).iterator(), t2 = conn.createScanner(table2, Constants.NO_AUTHS).iterator();
+    Iterator<Entry<Key,Value>> t1 = conn.createScanner(table1, Authorizations.EMPTY).iterator(), t2 = conn.createScanner(table2, Authorizations.EMPTY).iterator();
     while (t1.hasNext() && t2.hasNext()) {
       // KeyValue, the implementation of Entry<Key,Value>, should support equality and hashCode properly
       Entry<Key,Value> e1 = t1.next(), e2 = t2.next();
