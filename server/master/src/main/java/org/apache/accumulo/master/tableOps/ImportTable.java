@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -34,8 +35,8 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.impl.TableOperationsImpl;
 import org.apache.accumulo.core.client.impl.Namespaces;
+import org.apache.accumulo.core.client.impl.TableOperationsImpl;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
@@ -72,7 +73,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 /**
- * 
+ *
  */
 class ImportedTableInfo implements Serializable {
 
@@ -218,7 +219,10 @@ class PopulateMetadataTable extends MasterRepo {
 
       Map<String,String> fileNameMappings = readMappingFile(fs, tableInfo);
 
-      String bulkDir = new Path(tableInfo.importDir).getName();
+      log.info("importDir is " + tableInfo.importDir);
+
+      // This is a directory already prefixed with proper volume information e.g. hdfs://localhost:8020/path/to/accumulo/tables/...
+      String bulkDir = tableInfo.importDir;
 
       ZipEntry zipEntry;
       while ((zipEntry = zis.getNextEntry()) != null) {
@@ -250,7 +254,7 @@ class PopulateMetadataTable extends MasterRepo {
                     "File " + oldName + " does not exist in import dir");
               }
 
-              cq = new Text("/" + bulkDir + "/" + newName);
+              cq = new Text(bulkDir + "/" + newName);
             } else {
               cq = key.getColumnQualifier();
             }
@@ -382,7 +386,7 @@ class MapImportFileNames extends MasterRepo {
 }
 
 class CreateImportDir extends MasterRepo {
-
+  private static final Logger log = Logger.getLogger(CreateImportDir.class);
   private static final long serialVersionUID = 1L;
 
   private ImportedTableInfo tableInfo;
@@ -396,12 +400,19 @@ class CreateImportDir extends MasterRepo {
 
     UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
 
-    Path base = master.getFileSystem().matchingFileSystem(new Path(tableInfo.exportDir), ServerConstants.getTablesDirs());
+    Path exportDir = new Path(tableInfo.exportDir);
+    String[] tableDirs = ServerConstants.getTablesDirs();
+
+    log.info("Looking for matching filesystem for " + exportDir + " from options " + Arrays.toString(tableDirs));
+    Path base = master.getFileSystem().matchingFileSystem(exportDir, tableDirs);
+    log.info("Chose base table directory of " + base);
     Path directory = new Path(base, tableInfo.tableId);
 
     Path newBulkDir = new Path(directory, Constants.BULK_PREFIX + namer.getNextName());
 
     tableInfo.importDir = newBulkDir.toString();
+
+    log.info("Using import dir: " + tableInfo.importDir);
 
     return new MapImportFileNames(tableInfo);
   }
