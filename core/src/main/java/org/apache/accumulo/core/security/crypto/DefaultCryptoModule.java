@@ -244,14 +244,18 @@ public class DefaultCryptoModule implements CryptoModule {
       params.setPlaintextOutputStream(new DiscardCloseOutputStream(params.getPlaintextOutputStream()));
     }
 
-    if (params.getCipher() == null) {
+    Cipher cipher = params.getCipher();
+    if (cipher == null) {
       initializeCipher(params);
     }
+
+    if (0 == cipher.getBlockSize()) {
+      throw new RuntimeException("Encryption cipher must be a block cipher");
+    }
     
-    CipherOutputStream cipherOutputStream = new CipherOutputStream(params.getPlaintextOutputStream(), params.getCipher());
-    BlockedOutputStream blockedOutputStream = new BlockedOutputStream(cipherOutputStream, params.getCipher().getBlockSize(), params.getBlockStreamSize());
-    
-    
+    CipherOutputStream cipherOutputStream = new CipherOutputStream(params.getPlaintextOutputStream(), cipher);
+    BlockedOutputStream blockedOutputStream = new BlockedOutputStream(cipherOutputStream, cipher.getBlockSize(), params.getBlockStreamSize());
+
     params.setEncryptedOutputStream(blockedOutputStream);
     
     if (params.getRecordParametersToStream()) {
