@@ -184,7 +184,7 @@ public class ConfigCommand extends Command {
             printed = true;
           }
           if (!siteConfig.containsKey(key) || !siteVal.equals(sysVal)) {
-            printConfLine(output, "system", printed ? "   @override" : key, sysVal == null ? "" : sysVal);
+            printConfLine(output, "system", printed ? "   @override" : key, sysVal);
             printed = true;
           }
         }
