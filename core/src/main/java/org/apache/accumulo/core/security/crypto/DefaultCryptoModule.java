@@ -247,6 +247,7 @@ public class DefaultCryptoModule implements CryptoModule {
     Cipher cipher = params.getCipher();
     if (cipher == null) {
       initializeCipher(params);
+      cipher = params.getCipher();
     }
 
     if (0 == cipher.getBlockSize()) {
