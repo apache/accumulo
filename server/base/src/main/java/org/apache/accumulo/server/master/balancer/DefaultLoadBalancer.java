@@ -224,7 +224,12 @@ public class DefaultLoadBalancer extends TabletBalancer {
       try {
         if (onlineTabletsForTable == null) {
           onlineTabletsForTable = new HashMap<KeyExtent,TabletStats>();
-          for (TabletStats stat : getOnlineTabletsForTable(tooMuch.server, table))
+          List<TabletStats> stats = getOnlineTabletsForTable(tooMuch.server, table);
+          if (null == stats) {
+            log.warn("Unable to find tablets to move");
+            return result;
+          }
+          for (TabletStats stat : stats)
             onlineTabletsForTable.put(new KeyExtent(stat.extent), stat);
           donerTabletStats.put(table, onlineTabletsForTable);
         }
