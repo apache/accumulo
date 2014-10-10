@@ -16,19 +16,21 @@
  */
 package org.apache.accumulo.core.client;
 
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+import static org.junit.Assert.assertEquals;
+
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.assertEquals;
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
 
 public class ZooKeeperInstanceTest {
   private static final UUID IID = UUID.randomUUID();
@@ -140,5 +142,17 @@ public class ZooKeeperInstanceTest {
     expect(zc.get(Constants.ZROOT + Constants.ZINSTANCES + "/child2")).andReturn(IID_STRING.getBytes(StandardCharsets.UTF_8));
     replay(zc);
     assertEquals("child2", zki.getInstanceName());
+  }
+
+  @Test
+  public void testAllZooKeepersAreUsed() {
+    final String zookeepers = "zk1,zk2,zk3", instanceName = "accumulo";
+    ZooCacheFactory factory = createMock(ZooCacheFactory.class);
+    expect(factory.getZooCache(zookeepers, 30000)).andReturn(zc).anyTimes();
+    replay(factory);
+    ClientConfiguration cfg = ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zookeepers);
+    ZooKeeperInstance zki = new ZooKeeperInstance(cfg, factory);
+    assertEquals(zookeepers, zki.getZooKeepers());
+    assertEquals(instanceName, zki.getInstanceName());
   }
 }
