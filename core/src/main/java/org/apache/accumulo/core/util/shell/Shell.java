@@ -229,7 +229,7 @@ public class Shell extends ShellOptions {
       }
       
       setDebugging(cl.hasOption(debugOption.getLongOpt()));
-      authTimeout = Integer.parseInt(cl.getOptionValue(authTimeoutOpt.getLongOpt(), DEFAULT_AUTH_TIMEOUT)) * 60 * 1000;
+      authTimeout = Integer.parseInt(cl.getOptionValue(authTimeoutOpt.getLongOpt(), DEFAULT_AUTH_TIMEOUT)) * 60 * 1000l;
       disableAuthTimeout = cl.hasOption(disableAuthTimeoutOpt.getLongOpt());
       
       if (cl.hasOption(zooKeeperInstance.getOpt()) && cl.getOptionValues(zooKeeperInstance.getOpt()).length != 2)
