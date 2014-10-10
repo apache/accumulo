@@ -267,7 +267,7 @@ public class Shell extends ShellOptions {
     }
 
     setDebugging(options.isDebugEnabled());
-    authTimeout = options.getAuthTimeout() * 60 * 1000; // convert minutes to milliseconds
+    authTimeout = options.getAuthTimeout() * 60 * 1000l; // convert minutes to milliseconds
     disableAuthTimeout = options.isAuthTimeoutDisabled();
 
     // get the options that were parsed
