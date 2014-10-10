@@ -160,7 +160,6 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
       }
     } else {
       // it's the old format
-      checkArgument(authorizations != null, "authorizations is null");
       if (authorizations.length > 0)
         setAuthorizations(authsString.split(","));
     }
