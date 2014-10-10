@@ -227,7 +227,7 @@ public class ConfigCommand extends Command {
         }
         if (nspVal != null) {
           if (!systemConfig.containsKey(key) || !sysVal.equals(nspVal)) {
-            printConfLine(output, "namespace", printed ? "   @override" : key, nspVal == null ? "" : nspVal);
+            printConfLine(output, "namespace", printed ? "   @override" : key, nspVal);
             printed = true;
           }
         }
