@@ -59,8 +59,11 @@ public class Run {
     Properties testProps = new Properties();
     try {
       FileInputStream fis = new FileInputStream(sitePath);
-      scaleProps.load(fis);
-      fis.close();
+      try {
+        scaleProps.load(fis);
+      } finally {
+        fis.close();
+      }
       fis = new FileInputStream(testPath);
       testProps.load(fis);
     } catch (Exception e) {

@@ -823,29 +823,30 @@ public class RFile {
       this.reader = rdr;
       
       ABlockReader mb = reader.getMetaBlock("RFile.index");
-      
-      int magic = mb.readInt();
-      int ver = mb.readInt();
-      
-      if (magic != RINDEX_MAGIC)
-        throw new IOException("Did not see expected magic number, saw " + magic);
-      if (ver != RINDEX_VER_7 && ver != RINDEX_VER_6 && ver != RINDEX_VER_4 && ver != RINDEX_VER_3)
-        throw new IOException("Did not see expected version, saw " + ver);
-      
-      int size = mb.readInt();
-      lgReaders = new LocalityGroupReader[size];
-      
-      deepCopies = new LinkedList<Reader>();
-      
-      for (int i = 0; i < size; i++) {
-        LocalityGroupMetadata lgm = new LocalityGroupMetadata(ver, rdr);
-        lgm.readFields(mb);
-        localityGroups.add(lgm);
-        
-        lgReaders[i] = new LocalityGroupReader(reader, lgm, ver);
+      try{
+        int magic = mb.readInt();
+        int ver = mb.readInt();
+
+        if (magic != RINDEX_MAGIC)
+          throw new IOException("Did not see expected magic number, saw " + magic);
+        if (ver != RINDEX_VER_7 && ver != RINDEX_VER_6 && ver != RINDEX_VER_4 && ver != RINDEX_VER_3)
+          throw new IOException("Did not see expected version, saw " + ver);
+
+        int size = mb.readInt();
+        lgReaders = new LocalityGroupReader[size];
+
+        deepCopies = new LinkedList<Reader>();
+
+        for (int i = 0; i < size; i++) {
+          LocalityGroupMetadata lgm = new LocalityGroupMetadata(ver, rdr);
+          lgm.readFields(mb);
+          localityGroups.add(lgm);
+
+          lgReaders[i] = new LocalityGroupReader(reader, lgm, ver);
+        }
+      } finally {
+        mb.close();
       }
-      
-      mb.close();
       
       nonDefaultColumnFamilies = new HashSet<ByteSequence>();
       for (LocalityGroupMetadata lgm : localityGroups) {
