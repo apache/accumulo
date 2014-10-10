@@ -266,7 +266,7 @@ public class TabletServer implements Runnable {
 
   private final AtomicLong flushCounter = new AtomicLong(0);
   private final AtomicLong syncCounter = new AtomicLong(0);
-  
+
   private final VolumeManager fs;
   public Instance getInstance() {
     return serverConfig.getInstance();
@@ -354,7 +354,7 @@ public class TabletServer implements Runnable {
   private final WriteTracker writeTracker = new WriteTracker();
 
   private final RowLocks rowLocks = new RowLocks();
-  
+
   private final AtomicLong totalQueuedMutationSize = new AtomicLong(0);
 
   private class ThriftClientHandler extends ClientServiceHandler implements TabletClientService.Iface {
@@ -1098,12 +1098,12 @@ public class TabletServer implements Runnable {
       try {
         long t1 = System.currentTimeMillis();
         for (Entry<KeyExtent,List<ServerConditionalMutation>> entry : es) {
-          Tablet tablet = onlineTablets.get(entry.getKey());
-          Durability tabletDurability = tablet.getDurability();
+          final Tablet tablet = onlineTablets.get(entry.getKey());
           if (tablet == null || tablet.isClosed() || sessionCanceled) {
             for (ServerConditionalMutation scm : entry.getValue())
               results.add(new TCMResult(scm.getID(), TCMStatus.IGNORED));
           } else {
+            final Durability tabletDurability = tablet.getDurability();
             try {
 
               @SuppressWarnings("unchecked")
