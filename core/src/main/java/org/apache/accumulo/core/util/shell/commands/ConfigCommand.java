@@ -220,14 +220,14 @@ public class ConfigCommand extends Command {
             printed = true;
           }
           if (!siteConfig.containsKey(key) || !siteVal.equals(sysVal)) {
-            printConfLine(output, "system", printed ? "   @override" : key, sysVal == null ? "" : sysVal);
+            printConfLine(output, "system", printed ? "   @override" : key, sysVal);
             printed = true;
           }
 
         }
         if (nspVal != null) {
           if (!systemConfig.containsKey(key) || !sysVal.equals(nspVal)) {
-            printConfLine(output, "namespace", printed ? "   @override" : key, nspVal == null ? "" : nspVal);
+            printConfLine(output, "namespace", printed ? "   @override" : key, nspVal);
             printed = true;
           }
         }
