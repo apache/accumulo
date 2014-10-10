@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.replication;
 
 import java.nio.charset.CharacterCodingException;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.lexicoder.ULongLexicoder;
@@ -215,7 +216,7 @@ public class ReplicationSchema {
       log.trace("Normalized {} into {}", file, pathString);
 
       // Append the file as a suffix to the row
-      row.append((ROW_SEPARATOR + pathString).getBytes(), 0, pathString.length() + ROW_SEPARATOR.getLength());
+      row.append((ROW_SEPARATOR + pathString).getBytes(StandardCharsets.UTF_8), 0, pathString.length() + ROW_SEPARATOR.getLength());
 
       // Make the mutation and add the column update
       return new Mutation(row);

@@ -17,6 +17,7 @@
 package org.apache.accumulo.server.util;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -69,8 +70,8 @@ public class MasterMetadataUtil {
       Map<FileRef,Long> bulkLoadedFiles, Credentials credentials, String time, long lastFlushID, long lastCompactID, ZooLock zooLock) {
     Mutation m = extent.getPrevRowUpdateMutation();
     
-    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(path.getBytes()));
-    TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value(time.getBytes()));
+    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(path.getBytes(StandardCharsets.UTF_8)));
+    TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value(time.getBytes(StandardCharsets.UTF_8)));
     if (lastFlushID > 0)
       TabletsSection.ServerColumnFamily.FLUSH_COLUMN.put(m, new Value(("" + lastFlushID).getBytes()));
     if (lastCompactID > 0)
@@ -103,7 +104,7 @@ public class MasterMetadataUtil {
       throw new IllegalArgumentException("Metadata entry does not have split ratio (" + metadataEntry + ")");
     }
     
-    double splitRatio = Double.parseDouble(new String(columns.get(TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN).get()));
+    double splitRatio = Double.parseDouble(new String(columns.get(TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN).get(), StandardCharsets.UTF_8));
     
     Value prevEndRowIBW = columns.get(TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN);
     
@@ -215,7 +216,7 @@ public class MasterMetadataUtil {
       m.putDelete(DataFileColumnFamily.NAME, pathToRemove.meta());
     
     for (FileRef scanFile : scanFiles)
-      m.put(ScanFileColumnFamily.NAME, scanFile.meta(), new Value("".getBytes()));
+      m.put(ScanFileColumnFamily.NAME, scanFile.meta(), new Value(new byte[0]));
     
     if (size.getNumEntries() > 0)
       m.put(DataFileColumnFamily.NAME, path.meta(), new Value(size.encode()));
@@ -299,7 +300,7 @@ public class MasterMetadataUtil {
 
     if (dfv.getNumEntries() > 0) {
       m.put(DataFileColumnFamily.NAME, path.meta(), new Value(dfv.encode()));
-      TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value(time.getBytes()));
+      TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value(time.getBytes(StandardCharsets.UTF_8)));
       // stuff in this location
       TServerInstance self = getTServerInstance(address, zooLock);
       self.putLastLocation(m);
@@ -314,12 +315,12 @@ public class MasterMetadataUtil {
     }
 
     for (FileRef scanFile : filesInUseByScans)
-      m.put(ScanFileColumnFamily.NAME, scanFile.meta(), new Value("".getBytes()));
+      m.put(ScanFileColumnFamily.NAME, scanFile.meta(), new Value(new byte[0]));
 
     if (mergeFile != null)
       m.putDelete(DataFileColumnFamily.NAME, mergeFile.meta());
 
-    TabletsSection.ServerColumnFamily.FLUSH_COLUMN.put(m, new Value((flushId + "").getBytes()));
+    TabletsSection.ServerColumnFamily.FLUSH_COLUMN.put(m, new Value(Long.toString(flushId).getBytes(StandardCharsets.UTF_8)));
 
     return m;
   }

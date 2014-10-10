@@ -19,6 +19,7 @@ package org.apache.accumulo.core.replication;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -154,7 +155,7 @@ public class ReplicationTarget implements Writable {
   public static ReplicationTarget from(String s) {
     ReplicationTarget target = new ReplicationTarget();
     DataInputBuffer buffer = new DataInputBuffer();
-    buffer.reset(s.getBytes(), s.length());
+    buffer.reset(s.getBytes(StandardCharsets.UTF_8), s.length());
 
     try {
       target.readFields(buffer);
