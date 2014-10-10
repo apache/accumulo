@@ -29,7 +29,6 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -48,8 +47,8 @@ import com.google.common.io.Files;
 
 /**
  * ImportTable didn't correctly place absolute paths in metadata. This resulted in the imported table only being usable when the actual HDFS directory for
- * Accumulo was the same as {@link Property#INSTANCE_DFS_DIR}. If any other HDFS directory was used, any interactions with the table would fail because the
- * relative path in the metadata table (created by the ImportTable process) would be converted to a non-existent absolute path.
+ * Accumulo was the same as Property.INSTANCE_DFS_DIR. If any other HDFS directory was used, any interactions with the table would fail because the relative
+ * path in the metadata table (created by the ImportTable process) would be converted to a non-existent absolute path.
  * <p>
  * ACCUMULO-3215
  *
