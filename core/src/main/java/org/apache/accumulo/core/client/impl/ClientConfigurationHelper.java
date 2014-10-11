@@ -20,24 +20,47 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.commons.configuration.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * All client side code that needs a server side configuration object should obtain it from here.
+ * This class exists to get client RPC configuration available as an {@link AccumuloConfiguration} object, which is expected by the RPC layer.
+ * <p>
+ * This exists as a workaround for ACCUMULO-3199 (TODO).
  */
-public class ServerConfigurationUtil {
-  private static final Logger log = LoggerFactory.getLogger(ServerConfigurationUtil.class);
-  @SuppressWarnings("deprecation")
-  public static AccumuloConfiguration getConfiguration(Instance instance) {
-    return instance.getConfiguration();
+public class ClientConfigurationHelper {
+  private static final Logger log = LoggerFactory.getLogger(ClientConfigurationHelper.class);
+
+  /**
+   * This retrieves a the RPC-related client-side configuration in the {@link ClientConfiguration} provided to
+   * {@link ZooKeeperInstance#ZooKeeperInstance(Configuration)}, if one was provided, and converts it to a generic {@link AccumuloConfiguration} instance, which
+   * is used by the RPC layer.
+   *
+   * <p>
+   * If any other {@link Instance} is provided, it will return only defaults.
+   *
+   * <p>
+   * Servers can, and should, retrieve their RPC configuration from their own configuration, which can be obtained from the ServerConfigurationFactory in the
+   * server module. It should <b>NOT</b> use this method, because it will probably not do what you expect.
+   *
+   */
+  public static AccumuloConfiguration getClientRpcConfiguration(Instance instance) {
+    if (instance instanceof ZooKeeperInstance) {
+      @SuppressWarnings("deprecation")
+      Configuration clientConf = ((ZooKeeperInstance) instance).getClientConfiguration();
+      return convertClientConfig(DefaultConfiguration.getInstance(), clientConf);
+    }
+    return DefaultConfiguration.getInstance();
   }
-  
+
   public static AccumuloConfiguration convertClientConfig(final AccumuloConfiguration base, final Configuration config) {
 
     return new AccumuloConfiguration() {
@@ -85,7 +108,7 @@ public class ServerConfigurationUtil {
         if (null != hadoopConf) {
           try {
             for (String key : CredentialProviderFactoryShim.getKeys(hadoopConf)) {
-              if (!Property.isValidPropertyKey(key) || !Property.isSensitive(key)) { 
+              if (!Property.isValidPropertyKey(key) || !Property.isSensitive(key)) {
                 continue;
               }
 

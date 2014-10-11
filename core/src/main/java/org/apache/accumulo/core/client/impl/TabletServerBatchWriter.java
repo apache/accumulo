@@ -48,6 +48,7 @@ import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletServerMutations;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.Violations;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
@@ -848,10 +849,11 @@ public class TabletServerBatchWriter {
       try {
         TabletClientService.Iface client;
         
-        if (timeoutTracker.getTimeOut() < ServerConfigurationUtil.getConfiguration(instance).getTimeInMillis(Property.GENERAL_RPC_TIMEOUT))
-          client = ThriftUtil.getTServerClient(location, ServerConfigurationUtil.getConfiguration(instance), timeoutTracker.getTimeOut());
+        AccumuloConfiguration rpcConfig = ClientConfigurationHelper.getClientRpcConfiguration(instance);
+        if (timeoutTracker.getTimeOut() < rpcConfig.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT))
+          client = ThriftUtil.getTServerClient(location, rpcConfig, timeoutTracker.getTimeOut());
         else
-          client = ThriftUtil.getTServerClient(location, ServerConfigurationUtil.getConfiguration(instance));
+          client = ThriftUtil.getTServerClient(location, rpcConfig);
         
         try {
           MutationSet allFailures = new MutationSet();

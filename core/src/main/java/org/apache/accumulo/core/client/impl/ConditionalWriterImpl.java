@@ -48,6 +48,7 @@ import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletServerMutations;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Condition;
@@ -546,10 +547,11 @@ class ConditionalWriterImpl implements ConditionalWriter {
   
   private TabletClientService.Iface getClient(String location) throws TTransportException {
     TabletClientService.Iface client;
-    if (timeout < ServerConfigurationUtil.getConfiguration(instance).getTimeInMillis(Property.GENERAL_RPC_TIMEOUT))
-      client = ThriftUtil.getTServerClient(location, ServerConfigurationUtil.getConfiguration(instance), timeout);
+    AccumuloConfiguration rpcConfig = ClientConfigurationHelper.getClientRpcConfiguration(instance);
+    if (timeout < rpcConfig.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT))
+      client = ThriftUtil.getTServerClient(location, rpcConfig, timeout);
     else
-      client = ThriftUtil.getTServerClient(location, ServerConfigurationUtil.getConfiguration(instance));
+      client = ThriftUtil.getTServerClient(location, rpcConfig);
     return client;
   }
   

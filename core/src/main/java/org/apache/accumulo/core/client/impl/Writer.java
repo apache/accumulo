@@ -98,7 +98,7 @@ public class Writer {
       }
       
       try {
-        updateServer(instance, m, tabLoc.tablet_extent, tabLoc.tablet_location, credentials, ServerConfigurationUtil.getConfiguration(instance));
+        updateServer(instance, m, tabLoc.tablet_extent, tabLoc.tablet_location, credentials, ClientConfigurationHelper.getClientRpcConfiguration(instance));
         return;
       } catch (NotServingTabletException e) {
         log.trace("Not serving tablet, server = " + tabLoc.tablet_location);

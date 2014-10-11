@@ -84,7 +84,7 @@ public class ReplicationClient {
     }
 
 
-    AccumuloConfiguration conf = ServerConfigurationUtil.getConfiguration(instance);
+    AccumuloConfiguration conf = ClientConfigurationHelper.getClientRpcConfiguration(instance);
 
     String zkPath = ZooUtil.getRoot(instance) + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR;
     String replCoordinatorAddr;
@@ -130,7 +130,7 @@ public class ReplicationClient {
     checkNotNull(server);
 
     try {
-      return ThriftUtil.getClientNoTimeout(new ReplicationServicer.Client.Factory(), server, ServerConfigurationUtil.getConfiguration(inst));
+      return ThriftUtil.getClientNoTimeout(new ReplicationServicer.Client.Factory(), server, ClientConfigurationHelper.getClientRpcConfiguration(inst));
     } catch (TTransportException tte) {
       log.debug("Failed to connect to servicer ({}), will retry...", server, tte);
       throw tte;

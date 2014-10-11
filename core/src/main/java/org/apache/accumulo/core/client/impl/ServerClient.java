@@ -116,8 +116,8 @@ public class ServerClient {
   }
   
   public static Pair<String,ClientService.Client> getConnection(Instance instance, boolean preferCachedConnections) throws TTransportException {
-    AccumuloConfiguration conf = ServerConfigurationUtil.getConfiguration(instance);
-    return getConnection(instance, preferCachedConnections, conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
+    AccumuloConfiguration rpcConfig = ClientConfigurationHelper.getClientRpcConfiguration(instance);
+    return getConnection(instance, preferCachedConnections, rpcConfig.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
   }
   
   public static Pair<String,ClientService.Client> getConnection(Instance instance, boolean preferCachedConnections, long rpcTimeout) throws TTransportException {
@@ -131,9 +131,8 @@ public class ServerClient {
       String path = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + tserver;
       byte[] data = ZooUtil.getLockData(zc, path);
       if (data != null && !new String(data, StandardCharsets.UTF_8).equals("master"))
-        servers.add(new ThriftTransportKey(
-          new ServerServices(new String(data)).getAddressString(Service.TSERV_CLIENT),
-          rpcTimeout, SslConnectionParams.forClient(ServerConfigurationUtil.getConfiguration(instance))));
+        servers.add(new ThriftTransportKey(new ServerServices(new String(data)).getAddressString(Service.TSERV_CLIENT), rpcTimeout, SslConnectionParams
+            .forClient(ClientConfigurationHelper.getClientRpcConfiguration(instance))));
     }
     
     boolean opened = false;

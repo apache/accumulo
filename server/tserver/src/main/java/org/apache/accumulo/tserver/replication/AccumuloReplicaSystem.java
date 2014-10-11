@@ -34,7 +34,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.ClientExecReturn;
 import org.apache.accumulo.core.client.impl.ReplicationClient;
-import org.apache.accumulo.core.client.impl.ServerConfigurationUtil;
 import org.apache.accumulo.core.client.replication.ReplicaSystem;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -154,7 +153,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   @Override
   public Status replicate(final Path p, final Status status, final ReplicationTarget target, final ReplicaSystemHelper helper) {
     final Instance localInstance = HdfsZooInstance.getInstance();
-    final AccumuloConfiguration localConf = ServerConfigurationUtil.getConfiguration(localInstance);
+    final AccumuloConfiguration localConf = new ServerConfigurationFactory(localInstance).getConfiguration();
     Credentials credentialsForPeer = getCredentialsForPeer(localConf, target);
     final TCredentials tCredsForPeer = credentialsForPeer.toThrift(localInstance);
 

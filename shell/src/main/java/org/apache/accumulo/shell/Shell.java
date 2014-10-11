@@ -55,7 +55,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.impl.ServerConfigurationUtil;
+import org.apache.accumulo.core.client.impl.ClientConfigurationHelper;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -438,7 +438,7 @@ public class Shell extends ShellOptions {
       instanceName = clientConfig.get(ClientProperty.INSTANCE_NAME);
     }
     if (instanceName == null || keepers == null) {
-      AccumuloConfiguration conf = SiteConfiguration.getInstance(ServerConfigurationUtil.convertClientConfig(DefaultConfiguration.getInstance(), clientConfig));
+      AccumuloConfiguration conf = SiteConfiguration.getInstance(ClientConfigurationHelper.convertClientConfig(DefaultConfiguration.getInstance(), clientConfig));
       if (instanceName == null) {
         Path instanceDir = new Path(VolumeConfiguration.getVolumeUris(conf)[0], "instance_id");
         instanceId = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(instanceDir, conf));

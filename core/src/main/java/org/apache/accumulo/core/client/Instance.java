@@ -19,10 +19,8 @@ package org.apache.accumulo.core.client;
 import java.nio.ByteBuffer;
 import java.util.List;
 
-import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 
 /**
  * This class represents the information a client needs to know to connect to an instance of accumulo.
@@ -121,27 +119,6 @@ public interface Instance {
    */
   @Deprecated
   Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException;
-
-  /**
-   * Returns the AccumuloConfiguration to use when interacting with this instance.
-   *
-   * @return the AccumuloConfiguration that specifies properties related to interacting with this instance
-   * @deprecated since 1.6.0. This method makes very little sense in the context of the client API and never should have been exposed.
-   * @see InstanceOperations#getSystemConfiguration() for client-side reading of the server-side configuration.
-   */
-  @Deprecated
-  AccumuloConfiguration getConfiguration();
-
-  /**
-   * Set the AccumuloConfiguration to use when interacting with this instance.
-   *
-   * @param conf
-   *          accumulo configuration
-   * @deprecated since 1.6.0. This method makes very little sense in the context of the client API and never should have been exposed.
-   * @see InstanceOperations#setProperty(String, String)
-   */
-  @Deprecated
-  void setConfiguration(AccumuloConfiguration conf);
 
   /**
    * Returns a connection to this instance of accumulo.

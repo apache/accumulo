@@ -81,7 +81,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
       
       try {
         while (true) {
-          List<KeyValue> currentBatch = ThriftScanner.scan(instance, credentials, scanState, timeOut, ServerConfigurationUtil.getConfiguration(instance));
+          List<KeyValue> currentBatch = ThriftScanner.scan(instance, credentials, scanState, timeOut, ClientConfigurationHelper.getClientRpcConfiguration(instance));
           
           if (currentBatch == null) {
             synchQ.add(EMPTY_LIST);

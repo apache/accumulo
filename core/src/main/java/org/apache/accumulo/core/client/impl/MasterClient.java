@@ -66,7 +66,7 @@ public class MasterClient {
     try {
       // Master requests can take a long time: don't ever time out
       MasterClientService.Client client = ThriftUtil.getClientNoTimeout(new MasterClientService.Client.Factory(), master,
-          ServerConfigurationUtil.getConfiguration(instance));
+          ClientConfigurationHelper.getClientRpcConfiguration(instance));
       return client;
     } catch (TTransportException tte) {
       if (tte.getCause().getClass().equals(UnknownHostException.class)) {

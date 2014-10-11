@@ -34,7 +34,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.AccumuloServerException;
 import org.apache.accumulo.core.client.impl.ScannerOptions;
-import org.apache.accumulo.core.client.impl.ServerConfigurationUtil;
+import org.apache.accumulo.core.client.impl.ClientConfigurationHelper;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocations;
@@ -42,6 +42,7 @@ import org.apache.accumulo.core.client.impl.TabletLocatorImpl.TabletLocationObta
 import org.apache.accumulo.core.client.impl.TabletServerBatchReaderIterator;
 import org.apache.accumulo.core.client.impl.TabletServerBatchReaderIterator.ResultReceiver;
 import org.apache.accumulo.core.client.impl.ThriftScanner;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -65,10 +66,12 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
   private SortedSet<Column> locCols;
   private ArrayList<Column> columns;
   private Instance instance;
+  private AccumuloConfiguration rpcConfig;
   
   public MetadataLocationObtainer(Instance instance) {
     
     this.instance = instance;
+    this.rpcConfig = ClientConfigurationHelper.getClientRpcConfiguration(instance);
     
     locCols = new TreeSet<Column>();
     locCols.add(new Column(TextUtil.getBytes(TabletsSection.CurrentLocationColumnFamily.NAME), null, null));
@@ -98,7 +101,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       Map<String,Map<String,String>> serverSideIteratorOptions = Collections.emptyMap();
       
       boolean more = ThriftScanner.getBatchFromServer(instance, credentials, range, src.tablet_extent, src.tablet_location, encodedResults, locCols,
-          serverSideIteratorList, serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, false, ServerConfigurationUtil.getConfiguration(instance));
+          serverSideIteratorList, serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, false, rpcConfig);
       
       decodeRows(encodedResults, results);
       
@@ -106,7 +109,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
         range = new Range(results.lastKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME), true, new Key(stopRow).followingKey(PartialKey.ROW), false);
         encodedResults.clear();
         more = ThriftScanner.getBatchFromServer(instance, credentials, range, src.tablet_extent, src.tablet_location, encodedResults, locCols,
-            serverSideIteratorList, serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, false, ServerConfigurationUtil.getConfiguration(instance));
+            serverSideIteratorList, serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, false, rpcConfig);
         
         decodeRows(encodedResults, results);
       }
@@ -179,7 +182,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
     Map<KeyExtent,List<Range>> failures = new HashMap<KeyExtent,List<Range>>();
     try {
       TabletServerBatchReaderIterator.doLookup(instance, credentials, tserver, tabletsRanges, failures, unscanned, rr, columns, opts, Authorizations.EMPTY,
-          ServerConfigurationUtil.getConfiguration(instance));
+          ClientConfigurationHelper.getClientRpcConfiguration(instance));
       if (failures.size() > 0) {
         // invalidate extents in parents cache
         if (log.isTraceEnabled())

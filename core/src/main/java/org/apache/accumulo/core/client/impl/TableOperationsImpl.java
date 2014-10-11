@@ -122,6 +122,7 @@ import com.google.common.base.Joiner;
 public class TableOperationsImpl extends TableOperationsHelper {
   private Instance instance;
   private Credentials credentials;
+  private AccumuloConfiguration rpcConfig;
 
   public static final String CLONE_EXCLUDE_PREFIX = "!";
 
@@ -137,6 +138,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(instance != null, "instance is null");
     checkArgument(credentials != null, "credentials is null");
     this.instance = instance;
+    this.rpcConfig = ClientConfigurationHelper.getClientRpcConfiguration(instance);
     this.credentials = credentials;
   }
 
@@ -484,7 +486,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         }
 
         try {
-          TabletClientService.Client client = ThriftUtil.getTServerClient(tl.tablet_location, ServerConfigurationUtil.getConfiguration(instance));
+          TabletClientService.Client client = ThriftUtil.getTServerClient(tl.tablet_location, rpcConfig);
           try {
             OpTimer opTimer = null;
             if (log.isTraceEnabled())
@@ -1139,11 +1141,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return ranges;
   }
 
-  // TODO Remove deprecation warning surppression when Hadoop1 support is dropped
+  // TODO Remove deprecation warning suppression when Hadoop1 support is dropped
   @SuppressWarnings("deprecation")
   private Path checkPath(String dir, String kind, String type) throws IOException, AccumuloException {
     Path ret;
-    FileSystem fs = VolumeConfiguration.getVolume(dir, CachedConfiguration.getInstance(), ServerConfigurationUtil.getConfiguration(instance)).getFileSystem();
+    FileSystem fs = VolumeConfiguration.getVolume(dir, CachedConfiguration.getInstance(), rpcConfig).getFileSystem();
 
     if (dir.contains(":")) {
       ret = new Path(dir);

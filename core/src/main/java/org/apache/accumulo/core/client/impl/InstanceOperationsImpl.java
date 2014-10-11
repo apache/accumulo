@@ -35,6 +35,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.ConfigurationType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -55,6 +56,7 @@ import org.apache.thrift.transport.TTransportException;
 public class InstanceOperationsImpl implements InstanceOperations {
   private Instance instance;
   private Credentials credentials;
+  private AccumuloConfiguration rpcConfig;
 
   /**
    * @param instance
@@ -66,6 +68,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     checkArgument(instance != null, "instance is null");
     checkArgument(credentials != null, "credentials is null");
     this.instance = instance;
+    this.rpcConfig = ClientConfigurationHelper.getClientRpcConfiguration(instance);
     this.credentials = credentials;
   }
 
@@ -135,7 +138,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public List<ActiveScan> getActiveScans(String tserver) throws AccumuloException, AccumuloSecurityException {
     Client client = null;
     try {
-      client = ThriftUtil.getTServerClient(tserver, ServerConfigurationUtil.getConfiguration(instance));
+      client = ThriftUtil.getTServerClient(tserver, rpcConfig);
 
       List<ActiveScan> as = new ArrayList<ActiveScan>();
       for (org.apache.accumulo.core.tabletserver.thrift.ActiveScan activeScan : client.getActiveScans(Tracer.traceInfo(), credentials.toThrift(instance))) {
@@ -172,7 +175,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public List<ActiveCompaction> getActiveCompactions(String tserver) throws AccumuloException, AccumuloSecurityException {
     Client client = null;
     try {
-      client = ThriftUtil.getTServerClient(tserver, ServerConfigurationUtil.getConfiguration(instance));
+      client = ThriftUtil.getTServerClient(tserver, rpcConfig);
 
       List<ActiveCompaction> as = new ArrayList<ActiveCompaction>();
       for (org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction activeCompaction : client.getActiveCompactions(Tracer.traceInfo(),
@@ -196,7 +199,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public void ping(String tserver) throws AccumuloException {
     TTransport transport = null;
     try {
-      transport = ThriftUtil.createTransport(AddressUtil.parseAddress(tserver, false), ServerConfigurationUtil.getConfiguration(instance));
+      transport = ThriftUtil.createTransport(AddressUtil.parseAddress(tserver, false), rpcConfig);
       TabletClientService.Client client = ThriftUtil.createClient(new TabletClientService.Client.Factory(), transport);
       client.getTabletServerStatus(Tracer.traceInfo(), credentials.toThrift(instance));
     } catch (TTransportException e) {

@@ -27,11 +27,9 @@ import java.util.UUID;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.impl.ConnectorImpl;
-import org.apache.accumulo.core.client.impl.ServerConfigurationUtil;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
@@ -72,7 +70,6 @@ public class ZooKeeperInstance implements Instance {
 
   private final int zooKeepersSessionTimeOut;
 
-  private AccumuloConfiguration accumuloConf;
   private ClientConfiguration clientConf;
 
   /**
@@ -248,16 +245,13 @@ public class ZooKeeperInstance implements Instance {
     return getConnector(principal, new PasswordToken(pass));
   }
 
-  @Override
+  /**
+   * Used for retrieving the clientConfiguration which was provided (if any); should not be considered public API.
+   */
   @Deprecated
-  public AccumuloConfiguration getConfiguration() {
-    return ServerConfigurationUtil.convertClientConfig(accumuloConf == null ? DefaultConfiguration.getInstance() : accumuloConf, clientConf);
-  }
-
-  @Override
-  @Deprecated
-  public void setConfiguration(AccumuloConfiguration conf) {
-    this.accumuloConf = conf;
+  public final Configuration getClientConfiguration() {
+    // TODO ACCUMULO-3199
+    return clientConf;
   }
 
   /**

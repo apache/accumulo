@@ -41,7 +41,6 @@ import org.apache.accumulo.core.client.impl.TabletLocator.TabletServerMutations;
 import org.apache.accumulo.core.client.impl.TabletLocatorImpl.TabletLocationObtainer;
 import org.apache.accumulo.core.client.impl.TabletLocatorImpl.TabletServerLockChecker;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
@@ -435,20 +434,6 @@ public class TabletLocatorImplTest extends TestCase {
     @Deprecated
     public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
       throw new UnsupportedOperationException();
-    }
-
-    AccumuloConfiguration conf = AccumuloConfiguration.getDefaultConfiguration();
-
-    @Deprecated
-    @Override
-    public AccumuloConfiguration getConfiguration() {
-      return conf;
-    }
-
-    @Override
-    @Deprecated
-    public void setConfiguration(AccumuloConfiguration conf) {
-      this.conf = conf;
     }
 
     @Override

@@ -31,7 +31,7 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class ServerConfigurationUtilTest {
+public class ClientConfigurationHelperTest {
 
   private static boolean isCredentialProviderAvailable = false;
   private static final String keystoreName = "/site-cfg.jceks";
@@ -49,7 +49,7 @@ public class ServerConfigurationUtilTest {
     }
 
     if (isCredentialProviderAvailable) {
-      URL keystoreUrl = ServerConfigurationUtilTest.class.getResource(keystoreName);
+      URL keystoreUrl = ClientConfigurationHelperTest.class.getResource(keystoreName);
 
       Assert.assertNotNull("Could not find " + keystoreName, keystoreUrl);
 
@@ -71,7 +71,7 @@ public class ServerConfigurationUtilTest {
     ClientConfiguration clientConf = new ClientConfiguration();
     clientConf.addProperty(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), absPath);
 
-    AccumuloConfiguration accClientConf = ServerConfigurationUtil.convertClientConfig(DefaultConfiguration.getInstance(), clientConf);
+    AccumuloConfiguration accClientConf = ClientConfigurationHelper.convertClientConfig(DefaultConfiguration.getInstance(), clientConf);
     Assert.assertEquals("mysecret", accClientConf.get(Property.INSTANCE_SECRET));
   }
   
@@ -83,7 +83,7 @@ public class ServerConfigurationUtilTest {
 
     ClientConfiguration clientConf = new ClientConfiguration();
 
-    AccumuloConfiguration accClientConf = ServerConfigurationUtil.convertClientConfig(DefaultConfiguration.getInstance(), clientConf);
+    AccumuloConfiguration accClientConf = ClientConfigurationHelper.convertClientConfig(DefaultConfiguration.getInstance(), clientConf);
     Assert.assertEquals(Property.INSTANCE_SECRET.getDefaultValue(), accClientConf.get(Property.INSTANCE_SECRET));
   }
 
@@ -97,7 +97,7 @@ public class ServerConfigurationUtilTest {
     ClientConfiguration clientConf = new ClientConfiguration();
     clientConf.addProperty(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), absPath);
 
-    AccumuloConfiguration accClientConf = ServerConfigurationUtil.convertClientConfig(DefaultConfiguration.getInstance(), clientConf);
+    AccumuloConfiguration accClientConf = ClientConfigurationHelper.convertClientConfig(DefaultConfiguration.getInstance(), clientConf);
     Map<String,String> props = new HashMap<String,String>();
     accClientConf.getProperties(props, new AllFilter());
 
