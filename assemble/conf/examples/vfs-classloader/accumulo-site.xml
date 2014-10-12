@@ -106,11 +106,13 @@
       $HADOOP_PREFIX/share/hadoop/hdfs/.*.jar,
       $HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar,
       $HADOOP_PREFIX/share/hadoop/yarn/.*.jar,
+      $HADOOP_PREFIX/share/hadoop/yarn/lib/jersey.*.jar,
       /usr/lib/hadoop/.*.jar,
       /usr/lib/hadoop/lib/.*.jar,
       /usr/lib/hadoop-hdfs/.*.jar,
       /usr/lib/hadoop-mapreduce/.*.jar,
       /usr/lib/hadoop-yarn/.*.jar,
+      /usr/lib/hadoop-yarn/lib/jersey.*.jar,
     </value>
     <description>Classpaths that accumulo checks for updates and class files.</description>
   </property>
