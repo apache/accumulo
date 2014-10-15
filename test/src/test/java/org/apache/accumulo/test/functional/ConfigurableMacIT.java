@@ -31,6 +31,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.MonitorUtil;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.minicluster.impl.ZooKeeperBindException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
@@ -48,8 +49,25 @@ public class ConfigurableMacIT extends AbstractMacIT {
 
   @Before
   public void setUp() throws Exception {
-    MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(
-        createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName()), ROOT_PASSWORD);
+    createMiniAccumulo();
+    Exception lastException = null;
+    for (int i = 0; i < 3; i++) {
+      try {
+        cluster.start();
+        return;
+      } catch (ZooKeeperBindException e) {
+        lastException = e;
+        log.warn("Failed to start MiniAccumuloCluster, assumably due to ZooKeeper issues", lastException);
+        Thread.sleep(3000);
+        createMiniAccumulo();
+      }
+    }
+    throw new RuntimeException("Failed to start MiniAccumuloCluster after three attempts", lastException);
+  }
+
+  private void createMiniAccumulo() throws Exception {
+    // createTestDir will give us a empty directory, we don't need to clean it up ourselves
+    MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName()), ROOT_PASSWORD);
     cfg.setNativeLibPaths(NativeMapIT.nativeMapLocation().getAbsolutePath());
     Configuration coreSite = new Configuration(false);
     configure(cfg, coreSite);
@@ -66,7 +84,6 @@ public class ConfigurableMacIT extends AbstractMacIT {
       out.close();
     }
     beforeClusterStart(cfg);
-    cluster.start();
   }
 
   @After
