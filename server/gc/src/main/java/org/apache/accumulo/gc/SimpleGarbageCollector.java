@@ -421,7 +421,7 @@ public class SimpleGarbageCollector implements Iface {
                   TableState tableState = TableManager.getInstance().getTableState(tableId);
                   if (tableState != null && tableState != TableState.DELETING) {
                     // clone directories don't always exist
-                    if (!tabletDir.startsWith("c-"))
+                    if (!tabletDir.startsWith(Constants.CLONE_PREFIX))
                       log.debug("File doesn't exist: " + fullPath);
                   }
                 } else {

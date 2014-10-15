@@ -56,7 +56,7 @@ public class Constants {
   public static final String ZMONITOR_LOCK = ZMONITOR + "/lock";
   public static final String ZMONITOR_HTTP_ADDR = ZMONITOR + "/http_addr";
   public static final String ZMONITOR_LOG4J_ADDR = ZMONITOR + "/log4j_addr";
-  
+
   public static final String ZCONFIG = "/config";
 
   public static final String ZTSERVERS = "/tservers";
@@ -87,6 +87,9 @@ public class Constants {
   public static final String ZTABLE_LOCKS = "/table_locks";
 
   public static final String BULK_PREFIX = "b-";
+
+  public static final String CLONE_PREFIX = "c-";
+  public static final byte[] CLONE_PREFIX_BYTES = CLONE_PREFIX.getBytes(UTF8);
 
   // this affects the table client caching of metadata
   public static final int SCAN_BATCH_SIZE = 1000;
