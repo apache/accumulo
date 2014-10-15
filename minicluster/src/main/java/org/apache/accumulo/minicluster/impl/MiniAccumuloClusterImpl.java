@@ -60,8 +60,8 @@ import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
+import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Pair;
@@ -97,7 +97,7 @@ import com.google.common.collect.Maps;
 /**
  * A utility class that will create Zookeeper and Accumulo processes that write all of their data to a single local directory. This class makes it easy to test
  * code against a real Accumulo instance. Its much more accurate for testing than {@link org.apache.accumulo.core.client.mock.MockAccumulo}, but much slower.
- * 
+ *
  * @since 1.6.0
  */
 public class MiniAccumuloClusterImpl implements AccumuloCluster {
@@ -318,7 +318,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   }
 
   /**
-   * 
+   *
    * @param dir
    *          An empty or nonexistant temp directoy that Accumulo and Zookeeper can store data in. Creating the directory is left to the user. Java 7, Guava,
    *          and Junit provide methods for creating temporary directories.
@@ -439,7 +439,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   /**
    * Starts Accumulo and Zookeeper processes. Can only be called once.
-   * 
+   *
    * @throws IllegalStateException
    *           if already started
    */
@@ -481,7 +481,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
             break;
         } catch (Exception e) {
           if (System.currentTimeMillis() - startTime >= config.getZooKeeperStartupTime()) {
-            throw new RuntimeException("Zookeeper did not start within " + (config.getZooKeeperStartupTime()/1000) + " seconds. Check the logs in " + config.getLogDir() + " for errors.  Last exception: " + e);
+            throw new ZooKeeperBindException("Zookeeper did not start within " + (config.getZooKeeperStartupTime() / 1000) + " seconds. Check the logs in "
+                + config.getLogDir() + " for errors.  Last exception: " + e);
           }
           UtilWaitThread.sleep(250);
         } finally {
@@ -708,7 +709,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   /**
    * Utility method to get a connector to the MAC.
-   * 
+   *
    * @since 1.6.0
    */
   @Override

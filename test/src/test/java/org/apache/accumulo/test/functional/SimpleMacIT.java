@@ -27,6 +27,7 @@ import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloInstance;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.minicluster.impl.ZooKeeperBindException;
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -51,20 +52,39 @@ public class SimpleMacIT extends AbstractMacIT {
   public static synchronized void setUp() throws Exception {
     if (getInstanceOneConnector() == null && cluster == null) {
       log.info("No shared instance available, falling back to creating MAC");
-      folder = createSharedTestDir(SimpleMacIT.class.getName());
-      MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(folder, ROOT_PASSWORD);
-      cfg.setNativeLibPaths(NativeMapIT.nativeMapLocation().getAbsolutePath());
-      cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.TRUE.toString());
-      configureForEnvironment(cfg, SimpleMacIT.class, createSharedTestDir(SimpleMacIT.class.getName() + "-ssl"));
-      cluster = new MiniAccumuloClusterImpl(cfg);
-      cluster.start();
-      Runtime.getRuntime().addShutdownHook(new Thread() {
-        @Override
-        public void run() {
-          cleanUp(cluster);
+      createMiniAccumulo();
+      Exception lastException = null;
+      for (int i = 0; i < 3; i++) {
+        try {
+          cluster.start();
+
+          Runtime.getRuntime().addShutdownHook(new Thread() {
+            @Override
+            public void run() {
+              cleanUp(cluster);
+            }
+          });
+
+          return;
+        } catch (ZooKeeperBindException e) {
+          lastException = e;
+          log.warn("Failed to start MiniAccumuloCluster, assumably due to ZooKeeper issues", lastException);
+          Thread.sleep(3000);
+          createMiniAccumulo();
         }
-      });
+      }
+
+      throw new RuntimeException("Failed to start MiniAccumuloCluster after three attempts", lastException);
     }
+  }
+
+  private static void createMiniAccumulo() throws Exception {
+    folder = createSharedTestDir(SimpleMacIT.class.getName());
+    MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(folder, ROOT_PASSWORD);
+    cfg.setNativeLibPaths(NativeMapIT.nativeMapLocation().getAbsolutePath());
+    cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.TRUE.toString());
+    configureForEnvironment(cfg, SimpleMacIT.class, createSharedTestDir(SimpleMacIT.class.getName() + "-ssl"));
+    cluster = new MiniAccumuloClusterImpl(cfg);
   }
 
   @Before
