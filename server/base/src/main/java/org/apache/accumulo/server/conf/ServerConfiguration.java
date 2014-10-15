@@ -98,5 +98,4 @@ public class ServerConfiguration {
   public Instance getInstance() {
     return scf.getInstance();
   }
-
 }

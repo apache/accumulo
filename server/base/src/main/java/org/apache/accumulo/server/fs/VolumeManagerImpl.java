@@ -391,11 +391,14 @@ public class VolumeManagerImpl implements VolumeManager {
   static private final String DEFAULT = "";
 
   public static VolumeManager get(AccumuloConfiguration conf) throws IOException {
+    return get(conf, CachedConfiguration.getInstance());
+  }
+
+  public static VolumeManager get(AccumuloConfiguration conf, final Configuration hadoopConf) throws IOException {
     final Map<String,Volume> volumes = new HashMap<String,Volume>();
-    final Configuration hadoopConf = CachedConfiguration.getInstance();
 
     // The "default" Volume for Accumulo (in case no volumes are specified)
-    for (String volumeUriOrDir : VolumeConfiguration.getVolumeUris(conf)) {
+    for (String volumeUriOrDir : VolumeConfiguration.getVolumeUris(conf, hadoopConf)) {
       if (volumeUriOrDir.equals(DEFAULT))
         throw new IllegalArgumentException("Cannot re-define the default volume");
 

@@ -17,6 +17,7 @@
 package org.apache.accumulo.minicluster;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Map;
 
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
@@ -95,8 +96,7 @@ public class MiniAccumuloConfig {
   }
 
   /**
-   * Configure the time to wait for ZooKeeper to startup.
-   * Calling this method is optional. The default is 20000 milliseconds
+   * Configure the time to wait for ZooKeeper to startup. Calling this method is optional. The default is 20000 milliseconds
    * 
    * @param zooKeeperStartupTime
    *          Time to wait for ZooKeeper to startup, in milliseconds
@@ -250,6 +250,21 @@ public class MiniAccumuloConfig {
    */
   public MiniAccumuloConfig setNativeLibPaths(String... nativePathItems) {
     impl.setNativeLibPaths(nativePathItems);
+    return this;
+  }
+
+  /**
+   * Informs MAC that it's running against an existing accumulo instance. It is assumed that it's already initialized and hdfs/zookeeper are already running.
+   *
+   * @param accumuloSite
+   *          a File representation of the accumulo-site.xml file for the instance being run
+   * @param hadoopConfDir
+   *          a File representation of the hadoop configuration directory containing core-site.xml and hdfs-site.xml
+   *
+   * @since 1.6.2
+   */
+  public MiniAccumuloConfig useExistingInstance(File accumuloSite, File hadoopConfDir) throws IOException {
+    impl.useExistingInstance(accumuloSite, hadoopConfDir);
     return this;
   }
 }

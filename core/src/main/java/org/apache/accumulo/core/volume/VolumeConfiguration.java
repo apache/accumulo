@@ -60,16 +60,15 @@ public class VolumeConfiguration {
   }
 
   /**
-   * @see org.apache.accumulo.core.volume.VolumeConfiguration#getVolumeUris(AccumuloConfiguration)
+   * @see org.apache.accumulo.core.volume.VolumeConfiguration#getVolumeUris(AccumuloConfiguration,Configuration)
    */
   @Deprecated
-  public static String getConfiguredBaseDir(AccumuloConfiguration conf) {
+  public static String getConfiguredBaseDir(AccumuloConfiguration conf, Configuration hadoopConfig) {
     String singleNamespace = conf.get(Property.INSTANCE_DFS_DIR);
     String dfsUri = conf.get(Property.INSTANCE_DFS_URI);
     String baseDir;
 
     if (dfsUri == null || dfsUri.isEmpty()) {
-      Configuration hadoopConfig = CachedConfiguration.getInstance();
       try {
         baseDir = FileSystem.get(hadoopConfig).getUri().toString() + singleNamespace;
       } catch (IOException e) {
@@ -85,15 +84,20 @@ public class VolumeConfiguration {
 
   /**
    * Compute the URIs to be used by Accumulo
+   * 
    */
   public static String[] getVolumeUris(AccumuloConfiguration conf) {
+    return getVolumeUris(conf, CachedConfiguration.getInstance());
+  }
+  
+  public static String[] getVolumeUris(AccumuloConfiguration conf, Configuration hadoopConfig) {
     String ns = conf.get(Property.INSTANCE_VOLUMES);
 
     String configuredBaseDirs[];
 
     if (ns == null || ns.isEmpty()) {
       // Fall back to using the old config values
-      configuredBaseDirs = new String[] {getConfiguredBaseDir(conf)};
+      configuredBaseDirs = new String[] {getConfiguredBaseDir(conf, hadoopConfig)};
     } else {
       String namespaces[] = ns.split(",");
       configuredBaseDirs = new String[namespaces.length];

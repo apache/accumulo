@@ -21,7 +21,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,6 +30,7 @@ import java.util.regex.Pattern;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.commons.io.FileUtils;
+
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
 import com.google.common.io.Files;

@@ -18,6 +18,7 @@ package org.apache.accumulo.minicluster.impl;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -25,6 +26,7 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.cluster.AccumuloConfig;
 import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
@@ -55,6 +57,7 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
   private File libDir;
   private File libExtDir;
   private File confDir;
+  private File hadoopConfDir = null;
   private File zooKeeperDir;
   private File accumuloDir;
   private File logDir;
@@ -62,11 +65,12 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
 
   private int zooKeeperPort = 0;
   private int configuredZooKeeperPort = 0;
-  private long zooKeeperStartupTime = 20*1000;
+  private long zooKeeperStartupTime = 20 * 1000;
 
   private long defaultMemorySize = 128 * 1024 * 1024;
 
   private boolean initialized = false;
+  private Boolean existingInstance = null;
 
   private boolean useMiniDFS = false;
 
@@ -75,6 +79,10 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
   private String[] classpathItems = null;
 
   private String[] nativePathItems = null;
+
+  // These are only used on top of existing instances
+  private Configuration hadoopConf;
+  private Configuration accumuloConf;
 
   /**
    * @param dir
@@ -109,18 +117,22 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
       logDir = new File(dir, "logs");
       walogDir = new File(dir, "walogs");
 
-      // TODO ACCUMULO-XXXX replace usage of instance.dfs.{dir,uri} with instance.volumes
-      setInstanceLocation();
+      // Never want to override these if an existing instance, which may be using the defaults
+      if (existingInstance == null || !existingInstance) {
+        existingInstance = false;
+        // TODO ACCUMULO-XXXX replace usage of instance.dfs.{dir,uri} with instance.volumes
+        setInstanceLocation();
+        mergeProp(Property.INSTANCE_SECRET.getKey(), DEFAULT_INSTANCE_SECRET);
+        mergeProp(Property.LOGGER_DIR.getKey(), walogDir.getAbsolutePath());
+        mergeProp(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + "password", getRootPassword());
+      }
 
-      mergeProp(Property.INSTANCE_SECRET.getKey(), DEFAULT_INSTANCE_SECRET);
       mergeProp(Property.TSERV_PORTSEARCH.getKey(), "true");
-      mergeProp(Property.LOGGER_DIR.getKey(), walogDir.getAbsolutePath());
       mergeProp(Property.TSERV_DATACACHE_SIZE.getKey(), "10M");
       mergeProp(Property.TSERV_INDEXCACHE_SIZE.getKey(), "10M");
       mergeProp(Property.TSERV_MAXMEM.getKey(), "50M");
       mergeProp(Property.TSERV_WALOG_MAX_SIZE.getKey(), "100M");
       mergeProp(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "false");
-      mergeProp(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + "password", getRootPassword());
       // since there is a small amount of memory, check more frequently for majc... setting may not be needed in 1.5
       mergeProp(Property.TSERV_MAJC_DELAY.getKey(), "3");
       mergeProp(Property.GENERAL_CLASSPATHS.getKey(), libDir.getAbsolutePath() + "/[^.].*[.]jar");
@@ -138,10 +150,13 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
         updateConfigForCredentialProvider();
       }
 
-      // zookeeper port should be set explicitly in this class, not just on the site config
-      if (zooKeeperPort == 0)
-        zooKeeperPort = PortUtils.getRandomFreePort();
-      siteConfig.put(Property.INSTANCE_ZK_HOST.getKey(), "localhost:" + zooKeeperPort);
+      if (existingInstance == null || !existingInstance) {
+        existingInstance = false;
+        // zookeeper port should be set explicitly in this class, not just on the site config
+        if (zooKeeperPort == 0)
+          zooKeeperPort = PortUtils.getRandomFreePort();
+        siteConfig.put(Property.INSTANCE_ZK_HOST.getKey(), "localhost:" + zooKeeperPort);
+      }
       initialized = true;
     }
     return this;
@@ -244,6 +259,15 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
    */
   @Override
   public MiniAccumuloConfigImpl setSiteConfig(Map<String,String> siteConfig) {
+    if (existingInstance != null && existingInstance.booleanValue())
+      throw new UnsupportedOperationException("Cannot set set config info when using an existing instance.");
+
+    this.existingInstance = Boolean.FALSE;
+
+    return _setSiteConfig(siteConfig);
+  }
+
+  private MiniAccumuloConfigImpl _setSiteConfig(Map<String,String> siteConfig) {
     this.siteConfig = new HashMap<String,String>(siteConfig);
     this.configuredSiteConig = new HashMap<String,String>(siteConfig);
     return this;
@@ -259,14 +283,19 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
    */
   @Override
   public MiniAccumuloConfigImpl setZooKeeperPort(int zooKeeperPort) {
+    if (existingInstance != null && existingInstance.booleanValue())
+      throw new UnsupportedOperationException("Cannot set zookeeper info when using an existing instance.");
+
+    this.existingInstance = Boolean.FALSE;
+
     this.configuredZooKeeperPort = zooKeeperPort;
     this.zooKeeperPort = zooKeeperPort;
     return this;
   }
 
   /**
-   * Configure the time to wait for ZooKeeper to startup.
-   * Calling this method is optional. The default is 20000 milliseconds
+   * <<<<<<< HEAD Configure the time to wait for ZooKeeper to startup. Calling this method is optional. The default is 20000 milliseconds ======= Configure the
+   * time to wait for ZooKeeper to startup. Calling this method is optional. The default is 20000 milliseconds >>>>>>> ACCUMULO-2984
    *
    * @param zooKeeperStartupTime
    *          Time to wait for ZooKeeper to startup, in milliseconds
@@ -275,6 +304,11 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
    */
   @Override
   public MiniAccumuloConfigImpl setZooKeeperStartupTime(long zooKeeperStartupTime) {
+    if (existingInstance != null && existingInstance.booleanValue())
+      throw new UnsupportedOperationException("Cannot set zookeeper info when using an existing instance.");
+
+    this.existingInstance = Boolean.FALSE;
+
     this.zooKeeperStartupTime = zooKeeperStartupTime;
     return this;
   }
@@ -557,7 +591,8 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
   }
 
   /**
-   * @param useCredentialProvider the useCredentialProvider to set
+   * @param useCredentialProvider
+   *          the useCredentialProvider to set
    */
   public void setUseCredentialProvider(boolean useCredentialProvider) {
     this.useCredentialProvider = useCredentialProvider;
@@ -566,5 +601,89 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
   @Override
   public MiniAccumuloClusterImpl build() throws IOException {
     return new MiniAccumuloClusterImpl(this);
+  }
+
+  /**
+   * Informs MAC that it's running against an existing accumulo instance. It is assumed that it's already initialized and hdfs/zookeeper are already running.
+   *
+   * @param accumuloSite
+   *          a File representation of the accumulo-site.xml file for the instance being run
+   * @param hadoopConfDir
+   *          a File representation of the hadoop configuration directory containing core-site.xml and hdfs-site.xml
+   * 
+   * @return MiniAccumuloConfigImpl which uses an existing accumulo configuration
+   *
+   * @since 1.6.2
+   *
+   * @throws IOException
+   *           when there are issues converting the provided Files to URLs
+   */
+  public MiniAccumuloConfigImpl useExistingInstance(File accumuloSite, File hadoopConfDir) throws IOException {
+    if (existingInstance != null && !existingInstance.booleanValue())
+      throw new UnsupportedOperationException("Cannot set to useExistingInstance after specifying config/zookeeper");
+
+    this.existingInstance = Boolean.TRUE;
+
+    System.setProperty("org.apache.accumulo.config.file", "accumulo-site.xml");
+    this.hadoopConfDir = hadoopConfDir;
+    hadoopConf = new Configuration(false);
+    accumuloConf = new Configuration(false);
+    File coreSite = new File(hadoopConfDir, "core-site.xml");
+    File hdfsSite = new File(hadoopConfDir, "hdfs-site.xml");
+
+    try {
+      accumuloConf.addResource(accumuloSite.toURI().toURL());
+      hadoopConf.addResource(coreSite.toURI().toURL());
+      hadoopConf.addResource(hdfsSite.toURI().toURL());
+    } catch (MalformedURLException e1) {
+      throw e1;
+    }
+
+    Map<String,String> siteConfigMap = new HashMap<String,String>();
+    for (Entry<String,String> e : accumuloConf) {
+      siteConfigMap.put(e.getKey(), e.getValue());
+    }
+    _setSiteConfig(siteConfigMap);
+    
+    for (Entry<String,String> entry : DefaultConfiguration.getDefaultConfiguration())
+      accumuloConf.setIfUnset(entry.getKey(), entry.getValue());
+
+    return this;
+  }
+
+  /**
+   * @return MAC should run assuming it's configured for an initialized accumulo instance
+   *
+   * @since 1.6.2
+   */
+  public boolean useExistingInstance() {
+    return existingInstance != null && existingInstance;
+  }
+
+  /**
+   * @return hadoop configuration directory being used
+   *
+   * @since 1.6.2
+   */
+  public File getHadoopConfDir() {
+    return this.hadoopConfDir;
+  }
+
+  /**
+   * @return accumulo Configuration being used
+   * 
+   * @since 1.6.2
+   */
+  public Configuration getAccumuloConfiguration() {
+    return accumuloConf;
+  }
+
+  /**
+   * @return hadoop Configuration being used
+   * 
+   * @since 1.6.2
+   */
+  public Configuration getHadoopConfiguration() {
+    return hadoopConf;
   }
 }

@@ -25,31 +25,34 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 
 public class ZooUtil extends org.apache.accumulo.fate.zookeeper.ZooUtil {
-  
+
   private static final Logger log = Logger.getLogger(ZooUtil.class);
-  
+
   public static String getRoot(final Instance instance) {
     return getRoot(instance.getInstanceID());
   }
-  
+
   public static String getRoot(final String instanceId) {
     return Constants.ZROOT + "/" + instanceId;
   }
-  
+
   /**
    * Utility to support certain client side utilities to minimize command-line options.
    */
-
   public static String getInstanceIDFromHdfs(Path instanceDirectory, AccumuloConfiguration conf) {
-    try {
+    return getInstanceIDFromHdfs(instanceDirectory, conf, CachedConfiguration.getInstance());
+  }
 
-      FileSystem fs = VolumeConfiguration.getVolume(instanceDirectory.toString(), CachedConfiguration.getInstance(), conf).getFileSystem();
+  public static String getInstanceIDFromHdfs(Path instanceDirectory, AccumuloConfiguration conf, Configuration hadoopConf) {
+    try {
+      FileSystem fs = VolumeConfiguration.getVolume(instanceDirectory.toString(), hadoopConf, conf).getFileSystem();
       FileStatus[] files = null;
       try {
         files = fs.listStatus(instanceDirectory);
