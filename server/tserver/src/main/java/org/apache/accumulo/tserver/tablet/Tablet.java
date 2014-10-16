@@ -270,7 +270,7 @@ public class Tablet implements TabletCommitter {
       }
 
       if (files == null) {
-        if (location.getName().startsWith("c-"))
+        if (location.getName().startsWith(Constants.CLONE_PREFIX))
           log.debug("Tablet " + extent + " had no dir, creating " + location); // its a clone dir...
         else
           log.warn("Tablet " + extent + " had no dir, creating " + location);

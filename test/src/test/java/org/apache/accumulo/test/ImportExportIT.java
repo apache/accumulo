@@ -42,7 +42,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
 import com.google.common.io.Files;
 
 /**
@@ -57,8 +56,13 @@ public class ImportExportIT extends SimpleMacIT {
 
   private static final Logger log = LoggerFactory.getLogger(ImportExportIT.class);
 
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
+
   @Test
-  public void test() throws Exception {
+  public void testExportImportThenScan() throws Exception {
     Connector conn = getConnector();
 
     String[] tableNames = getUniqueNames(2);
@@ -128,19 +132,34 @@ public class ImportExportIT extends SimpleMacIT {
     Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
     s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+    MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);
 
     // Should find a single entry
-    Entry<Key,Value> fileEntry = Iterables.getOnlyElement(s);
-
-    // The file should be an absolute URI (file:///...), not a relative path (/b-000.../I000001.rf)
-    String fileUri = fileEntry.getKey().getColumnQualifier().toString();
-    Assert.assertFalse("Imported files should have absolute URIs, not relative: " + fileUri, looksLikeRelativePath(fileUri));
+    for (Entry<Key,Value> fileEntry : s) {
+      Key k = fileEntry.getKey();
+      String value = fileEntry.getValue().toString();
+      if (k.getColumnFamily().equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME)) {
+        // The file should be an absolute URI (file:///...), not a relative path (/b-000.../I000001.rf)
+        String fileUri = k.getColumnQualifier().toString();
+        Assert.assertFalse("Imported files should have absolute URIs, not relative: " + fileUri, looksLikeRelativePath(fileUri));
+      } else if (k.getColumnFamily().equals(MetadataSchema.TabletsSection.ServerColumnFamily.NAME)) {
+        Assert.assertFalse("Server directory should have absolute URI, not relative: " + value, looksLikeRelativePath(value));
+      } else {
+        Assert.fail("Got expected pair: " + k + "=" + fileEntry.getValue());
+      }
+    }
 
     // Online the original table before we verify equivalence
     conn.tableOperations().online(srcTable, true);
 
+    verifyTableEquality(conn, srcTable, destTable);
+  }
+
+  private void verifyTableEquality(Connector conn, String srcTable, String destTable) throws Exception {
     Iterator<Entry<Key,Value>> src = conn.createScanner(srcTable, Authorizations.EMPTY).iterator(), dest = conn.createScanner(destTable, Authorizations.EMPTY)
         .iterator();
+    Assert.assertTrue("Could not read any data from source table", src.hasNext());
+    Assert.assertTrue("Could not read any data from destination table", dest.hasNext());
     while (src.hasNext() && dest.hasNext()) {
       Entry<Key,Value> orig = src.next(), copy = dest.next();
       Assert.assertEquals(orig.getKey(), copy.getKey());
@@ -155,6 +174,8 @@ public class ImportExportIT extends SimpleMacIT {
       if ('/' == uri.charAt(10)) {
         return true;
       }
+    } else if (uri.startsWith("/" + Constants.CLONE_PREFIX)) {
+      return true;
     }
 
     return false;

@@ -32,6 +32,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -881,7 +882,7 @@ public class MetadataTableUtil {
       Mutation m = new Mutation(k.getRow());
       m.putDelete(k.getColumnFamily(), k.getColumnQualifier());
       String dir = volumeManager.choose(ServerConstants.getTablesDirs()) + "/" + tableId
-          + new String(FastFormat.toZeroPaddedString(dirCount++, 8, 16, "/c-".getBytes(StandardCharsets.UTF_8)));
+          + new String(FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES));
       TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(dir.getBytes(StandardCharsets.UTF_8)));
       bw.addMutation(m);
     }
