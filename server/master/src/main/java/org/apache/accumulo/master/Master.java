@@ -135,7 +135,7 @@ import com.google.common.collect.Iterables;
 
 /**
  * The Master is responsible for assigning and balancing tablets to tablet servers.
- * 
+ *
  * The master will also coordinate log recoveries and reports general status.
  */
 public class Master implements LiveTServerSet.Listener, TableObserver, CurrentState {
@@ -997,7 +997,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
     try {
       final AgeOffStore<Master> store = new AgeOffStore<Master>(new org.apache.accumulo.fate.ZooStore<Master>(ZooUtil.getRoot(instance) + Constants.ZFATE,
-          ZooReaderWriter.getRetryingInstance()), 1000 * 60 * 60 * 8);
+          ZooReaderWriter.getInstance()), 1000 * 60 * 60 * 8);
 
       int threads = this.getConfiguration().getConfiguration().getCount(Property.MASTER_FATE_THREADPOOL_SIZE);
 

@@ -24,11 +24,11 @@ import org.apache.accumulo.fate.zookeeper.DistributedReadWriteLock;
 import org.apache.zookeeper.KeeperException;
 
 public class ZooQueueLock extends org.apache.accumulo.fate.zookeeper.ZooQueueLock {
-  
+
   public ZooQueueLock(String path, boolean ephemeral) throws KeeperException, InterruptedException {
-    super(ZooReaderWriter.getRetryingInstance(), path, ephemeral);
+    super(ZooReaderWriter.getInstance(), path, ephemeral);
   }
-  
+
   public static void main(String args[]) throws InterruptedException, KeeperException {
     ZooQueueLock lock = new ZooQueueLock("/lock", true);
     DistributedReadWriteLock rlocker = new DistributedReadWriteLock(lock, "reader".getBytes(Constants.UTF8));
@@ -50,5 +50,5 @@ public class ZooQueueLock extends org.apache.accumulo.fate.zookeeper.ZooQueueLoc
     readLock.lock();
     System.out.println("success");
   }
-  
+
 }

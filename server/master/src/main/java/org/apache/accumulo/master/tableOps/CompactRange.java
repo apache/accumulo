@@ -89,7 +89,7 @@ class CompactionDriver extends MasterRepo {
     String zCancelID = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId
         + Constants.ZTABLE_COMPACT_CANCEL_ID;
 
-    IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
+    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
 
     if (Long.parseLong(new String(zoo.getData(zCancelID, null))) >= compactId) {
       // compaction was canceled
@@ -317,7 +317,7 @@ public class CompactRange extends MasterRepo {
   public Repo<Master> call(final long tid, Master environment) throws Exception {
     String zTablePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
 
-    IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
+    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     byte[] cid;
     try {
       cid = zoo.mutate(zTablePath, null, null, new Mutator() {
@@ -362,7 +362,7 @@ public class CompactRange extends MasterRepo {
   static void removeIterators(final long txid, String tableId) throws Exception {
     String zTablePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
 
-    IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
+    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
 
     zoo.mutate(zTablePath, null, null, new Mutator() {
       @Override

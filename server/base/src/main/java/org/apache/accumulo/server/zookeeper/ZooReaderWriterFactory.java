@@ -16,14 +16,10 @@
  */
 package org.apache.accumulo.server.zookeeper;
 
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Proxy;
-
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.RetryingInvocationHandler;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 
@@ -34,7 +30,6 @@ public class ZooReaderWriterFactory {
   private static final String SCHEME = "digest";
   private static final String USER = "accumulo";
   private static IZooReaderWriter instance = null;
-  private static IZooReaderWriter retryingInstance = null;
 
   /**
    * Gets a new reader/writer.
@@ -64,23 +59,6 @@ public class ZooReaderWriterFactory {
             conf.get(Property.INSTANCE_SECRET));
       }
       return instance;
-    }
-  }
-
-  /**
-   * Gets a reader/writer, retrieving ZooKeeper information from the site configuration, and that retries on connection loss. The same instance may be returned
-   * for multiple calls.
-   *
-   * @return retrying reader/writer
-   */
-  public IZooReaderWriter getRetryingInstance() {
-    synchronized (ZooReaderWriterFactory.class) {
-      if (retryingInstance == null) {
-        IZooReaderWriter inst = getInstance();
-        InvocationHandler ih = new RetryingInvocationHandler(inst);
-        retryingInstance = (IZooReaderWriter) Proxy.newProxyInstance(IZooReaderWriter.class.getClassLoader(), new Class[] {IZooReaderWriter.class}, ih);
-      }
-      return retryingInstance;
     }
   }
 }

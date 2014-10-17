@@ -30,73 +30,73 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 class FinishCancelCompaction extends MasterRepo {
   private static final long serialVersionUID = 1L;
   private String tableId;
-  
+
   public FinishCancelCompaction(String tableId) {
     this.tableId = tableId;
   }
-  
+
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
     Utils.getReadLock(tableId, tid).unlock();
     return null;
   }
-  
+
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    
+
   }
 }
 
 /**
- * 
+ *
  */
 public class CancelCompactions extends MasterRepo {
-  
+
   private static final long serialVersionUID = 1L;
   private String tableId;
   private String namespaceId;
-  
+
   public CancelCompactions(String tableId) {
     this.tableId = tableId;
     Instance inst = HdfsZooInstance.getInstance();
     this.namespaceId = Tables.getNamespaceId(inst, tableId);
   }
-  
+
   @Override
   public long isReady(long tid, Master environment) throws Exception {
     return Utils.reserveNamespace(namespaceId, tid, false, true, TableOperation.COMPACT_CANCEL)
         + Utils.reserveTable(tableId, tid, false, true, TableOperation.COMPACT_CANCEL);
   }
-  
+
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
     String zCompactID = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
     String zCancelID = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId
         + Constants.ZTABLE_COMPACT_CANCEL_ID;
-    
-    IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
-    
+
+    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+
     byte[] currentValue = zoo.getData(zCompactID, null);
-    
+
     String cvs = new String(currentValue, Constants.UTF8);
     String[] tokens = cvs.split(",");
     final long flushID = Long.parseLong(tokens[0]);
-    
+
     zoo.mutate(zCancelID, null, null, new Mutator() {
       @Override
       public byte[] mutate(byte[] currentValue) throws Exception {
         long cid = Long.parseLong(new String(currentValue, Constants.UTF8));
-        
+
         if (cid < flushID)
           return Long.toString(flushID).getBytes(Constants.UTF8);
         else
           return Long.toString(cid).getBytes(Constants.UTF8);
       }
     });
-    
+
     return new FinishCancelCompaction(tableId);
   }
-  
+
   @Override
   public void undo(long tid, Master environment) throws Exception {
     Utils.unreserveNamespace(namespaceId, tid, false);

@@ -41,7 +41,7 @@ import org.apache.zookeeper.KeeperException;
 
 public class Utils {
   private static final byte[] ZERO_BYTE = new byte[] {'0'};
-  
+
   static void checkTableDoesNotExist(Instance instance, String tableName, String tableId, TableOperation operation) throws ThriftTableOperationException {
 
     String id = Tables.getNameToIdMap(instance).get(tableName);
@@ -54,7 +54,7 @@ public class Utils {
 
     String tableId = null;
     try {
-      IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
+      IZooReaderWriter zoo = ZooReaderWriter.getInstance();
       final String ntp = ZooUtil.getRoot(instance) + Constants.ZTABLES;
       byte[] nid = zoo.mutate(ntp, ZERO_BYTE, ZooUtil.PUBLIC, new Mutator() {
         @Override
@@ -79,7 +79,7 @@ public class Utils {
     if (getLock(tableId, tid, writeLock).tryLock()) {
       if (tableMustExist) {
         Instance instance = HdfsZooInstance.getInstance();
-        IZooReaderWriter zk = ZooReaderWriter.getRetryingInstance();
+        IZooReaderWriter zk = ZooReaderWriter.getInstance();
         if (!zk.exists(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId))
           throw new ThriftTableOperationException(tableId, "", op, TableOperationExceptionType.NOTFOUND, "Table does not exist");
       }
@@ -103,7 +103,7 @@ public class Utils {
     if (getLock(namespaceId, id, writeLock).tryLock()) {
       if (mustExist) {
         Instance instance = HdfsZooInstance.getInstance();
-        IZooReaderWriter zk = ZooReaderWriter.getRetryingInstance();
+        IZooReaderWriter zk = ZooReaderWriter.getInstance();
         if (!zk.exists(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + namespaceId))
           throw new ThriftTableOperationException(namespaceId, "", op, TableOperationExceptionType.NAMESPACE_NOTFOUND, "Namespace does not exist");
       }
@@ -119,7 +119,7 @@ public class Utils {
     String resvPath = ZooUtil.getRoot(instance) + Constants.ZHDFS_RESERVATIONS + "/"
         + Base64.encodeBase64String(directory.getBytes(Constants.UTF8));
 
-    IZooReaderWriter zk = ZooReaderWriter.getRetryingInstance();
+    IZooReaderWriter zk = ZooReaderWriter.getInstance();
 
     if (ZooReservation.attempt(zk, resvPath, String.format("%016x", tid), "")) {
       return 0;
@@ -131,7 +131,7 @@ public class Utils {
     Instance instance = HdfsZooInstance.getInstance();
     String resvPath = ZooUtil.getRoot(instance) + Constants.ZHDFS_RESERVATIONS + "/"
         + Base64.encodeBase64String(directory.getBytes(Constants.UTF8));
-    ZooReservation.release(ZooReaderWriter.getRetryingInstance(), resvPath, String.format("%016x", tid));
+    ZooReservation.release(ZooReaderWriter.getInstance(), resvPath, String.format("%016x", tid));
   }
 
   private static Lock getLock(String tableId, long tid, boolean writeLock) throws Exception {

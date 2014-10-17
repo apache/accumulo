@@ -67,7 +67,7 @@ public class RenameTable extends MasterRepo {
       throw new ThriftTableOperationException(tableId, oldTableName, TableOperation.RENAME, TableOperationExceptionType.INVALID_NAME,
           "Namespace in new table name does not match the old table name");
 
-    IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
+    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
 
     Utils.tableNameLock.lock();
     try {

@@ -21,12 +21,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.accumulo.fate.util.UtilWaitThread;
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.KeeperException.NoNodeException;
-import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooDefs.Perms;
 import org.apache.zookeeper.ZooKeeper;
@@ -34,27 +33,29 @@ import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
 public class ZooUtil {
+  private static final Logger log = Logger.getLogger(ZooUtil.class);
+
   public enum NodeExistsPolicy {
     SKIP, OVERWRITE, FAIL
   }
-  
+
   public enum NodeMissingPolicy {
     SKIP, CREATE, FAIL
   }
-  
+
   public static class LockID {
     public long eid;
     public String path;
     public String node;
-    
+
     public LockID(String root, String serializedLID) {
       String sa[] = serializedLID.split("\\$");
       int lastSlash = sa[0].lastIndexOf('/');
-      
+
       if (sa.length != 2 || lastSlash < 0) {
         throw new IllegalArgumentException("Malformed serialized lock id " + serializedLID);
       }
-      
+
       if (lastSlash == 0)
         path = root;
       else
@@ -62,37 +63,50 @@ public class ZooUtil {
       node = sa[0].substring(lastSlash + 1);
       eid = new BigInteger(sa[1], 16).longValue();
     }
-    
+
     public LockID(String path, String node, long eid) {
       this.path = path;
       this.node = node;
       this.eid = eid;
     }
-    
+
     public String serialize(String root) {
-      
+
       return path.substring(root.length()) + "/" + node + "$" + Long.toHexString(eid);
     }
-    
+
     @Override
     public String toString() {
       return " path = " + path + " node = " + node + " eid = " + Long.toHexString(eid);
     }
   }
-  
+
   public static final List<ACL> PRIVATE;
   public static final List<ACL> PUBLIC;
+  private static final RetryFactory RETRY_FACTORY;
   static {
     PRIVATE = new ArrayList<ACL>();
     PRIVATE.addAll(Ids.CREATOR_ALL_ACL);
     PUBLIC = new ArrayList<ACL>();
     PUBLIC.addAll(PRIVATE);
     PUBLIC.add(new ACL(Perms.READ, Ids.ANYONE_ID_UNSAFE));
+    RETRY_FACTORY = new RetryFactory(10l, 250l, 250l, 5000l);
   }
-  
+
+  protected static void retryOrThrow(Retry retry, KeeperException e) throws KeeperException {
+    log.warn("Saw (possibly) transient exception communicating with ZooKeeper", e);
+    if (retry.canRetry()) {
+      retry.useRetry();
+      return;
+    }
+
+    log.error("Retry attempts (" + retry.retriesCompleted() + ") exceeded trying to communicate with ZooKeeper");
+    throw e;
+  }
+
   /**
    * This method will delete a node and all its children from zookeeper
-   * 
+   *
    * @param zPath
    *          the path to delete
    */
@@ -100,82 +114,180 @@ public class ZooUtil {
     if (policy.equals(NodeMissingPolicy.CREATE))
       throw new IllegalArgumentException(policy.name() + " is invalid for this operation");
     try {
-      for (String child : zk.getChildren(zPath, false))
+      List<String> children;
+      final Retry retry = RETRY_FACTORY.create();
+      while (true) {
+        try {
+          children = zk.getChildren(zPath, false);
+          break;
+        } catch (KeeperException e) {
+          final Code c = e.code();
+          if (c == Code.CONNECTIONLOSS || c == Code.OPERATIONTIMEOUT || c == Code.SESSIONEXPIRED) {
+            // TODO ZooKeeper needs to be recreated with SESSIONEXPIRED, should use ZooSession
+            retryOrThrow(retry, e);
+          } else {
+            throw e;
+          }
+        }
+        retry.waitForNextAttempt();
+      }
+      for (String child : children)
         recursiveDelete(zk, zPath + "/" + child, NodeMissingPolicy.SKIP);
-      
+
       Stat stat;
-      if ((stat = zk.exists(zPath, null)) != null)
-        zk.delete(zPath, stat.getVersion());
+      while (true) {
+        try {
+          stat = zk.exists(zPath, null);
+          // Node exists
+          if (stat != null) {
+            try {
+              // Try to delete it
+              zk.delete(zPath, stat.getVersion());
+              return;
+            } catch (NoNodeException e) {
+              // If the node is gone now, it's ok if we have SKIP
+              if (policy.equals(NodeMissingPolicy.SKIP)) {
+                return;
+              }
+              throw e;
+            }
+            // Let other KeeperException bubble to the outer catch
+          }
+        } catch (KeeperException e) {
+          final Code c = e.code();
+          if (c == Code.CONNECTIONLOSS || c == Code.OPERATIONTIMEOUT || c == Code.SESSIONEXPIRED) {
+            // TODO ZooKeeper needs to be recreated with SESSIONEXPIRED, should use ZooSession
+            retryOrThrow(retry, e);
+          } else {
+            throw e;
+          }
+        }
+
+        retry.waitForNextAttempt();
+      }
     } catch (KeeperException e) {
       if (policy.equals(NodeMissingPolicy.SKIP) && e.code().equals(KeeperException.Code.NONODE))
         return;
       throw e;
     }
   }
-  
+
   public static void recursiveDelete(ZooKeeper zk, String zPath, NodeMissingPolicy policy) throws KeeperException, InterruptedException {
     recursiveDelete(zk, zPath, -1, policy);
   }
-  
+
   /**
    * Create a persistent node with the default ACL
-   * 
+   *
    * @return true if the node was created or altered; false if it was skipped
    */
   public static boolean putPersistentData(ZooKeeper zk, String zPath, byte[] data, NodeExistsPolicy policy) throws KeeperException, InterruptedException {
     return putData(zk, zPath, data, CreateMode.PERSISTENT, -1, policy, PUBLIC);
   }
-  
+
   public static boolean putPersistentData(ZooKeeper zk, String zPath, byte[] data, int version, NodeExistsPolicy policy) throws KeeperException,
       InterruptedException {
     return putData(zk, zPath, data, CreateMode.PERSISTENT, version, policy, PUBLIC);
   }
-  
+
   public static boolean putPersistentData(ZooKeeper zk, String zPath, byte[] data, int version, NodeExistsPolicy policy, List<ACL> acls)
       throws KeeperException, InterruptedException {
     return putData(zk, zPath, data, CreateMode.PERSISTENT, version, policy, acls);
   }
-  
+
   private static boolean putData(ZooKeeper zk, String zPath, byte[] data, CreateMode mode, int version, NodeExistsPolicy policy, List<ACL> acls)
       throws KeeperException, InterruptedException {
     if (policy == null)
       policy = NodeExistsPolicy.FAIL;
-    
+
+    final Retry retry = RETRY_FACTORY.create();
     while (true) {
       try {
         zk.create(zPath, data, acls, mode);
         return true;
-      } catch (NodeExistsException nee) {
-        switch (policy) {
-          case SKIP:
-            return false;
-          case OVERWRITE:
-            try {
-              zk.setData(zPath, data, version);
-              return true;
-            } catch (NoNodeException nne) {
-              // node delete between create call and set data, so try create call again
-              continue;
-            }
-          default:
-            throw nee;
+      } catch (KeeperException e) {
+        final Code code = e.code();
+        if (code == Code.NODEEXISTS) {
+          switch (policy) {
+            case SKIP:
+              return false;
+            case OVERWRITE:
+              // overwrite the data in the node when it already exists
+              try {
+                zk.setData(zPath, data, version);
+                return true;
+              } catch (KeeperException e2) {
+                final Code code2 = e2.code();
+                if (code2 == Code.NONODE) {
+                  // node delete between create call and set data, so try create call again
+                  continue;
+                } else if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT || code == Code.SESSIONEXPIRED) {
+                  // TODO ZooKeeper needs to be recreated with SESSIONEXPIRED, should use ZooSession
+                  retryOrThrow(retry, e);
+                } else {
+                  // unhandled exception on setData()
+                  throw e;
+                }
+              }
+            default:
+              throw e;
+          }
+        } else if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT || code == Code.SESSIONEXPIRED) {
+          // TODO ZooKeeper needs to be recreated with SESSIONEXPIRED, should use ZooSession
+          retryOrThrow(retry, e);
+        } else {
+          // unhandled exception on create()
+          throw e;
         }
       }
+
+      // Catch all to wait before retrying
+      retry.waitForNextAttempt();
     }
   }
-  
+
   public static byte[] getData(ZooKeeper zk, String zPath, Stat stat) throws KeeperException, InterruptedException {
-    return zk.getData(zPath, false, stat);
+    final Retry retry = RETRY_FACTORY.create();
+    while (true) {
+      try {
+        return zk.getData(zPath, false, stat);
+      } catch (KeeperException e) {
+        final Code c = e.code();
+        if (c == Code.CONNECTIONLOSS || c == Code.OPERATIONTIMEOUT || c == Code.SESSIONEXPIRED) {
+          // TODO ZooKeeper needs to be recreated with SESSIONEXPIRED, should use ZooSession
+          retryOrThrow(retry, e);
+        } else {
+          throw e;
+        }
+      }
+
+      retry.waitForNextAttempt();
+    }
   }
-  
+
   public static Stat getStatus(ZooKeeper zk, String zPath) throws KeeperException, InterruptedException {
-    return zk.exists(zPath, false);
+    final Retry retry = RETRY_FACTORY.create();
+    while (true) {
+      try {
+        return zk.exists(zPath, false);
+      } catch (KeeperException e) {
+        final Code c = e.code();
+        if (c == Code.CONNECTIONLOSS || c == Code.OPERATIONTIMEOUT || c == Code.SESSIONEXPIRED) {
+          // TODO ZooKeeper needs to be recreated with SESSIONEXPIRED, should use ZooSession
+          retryOrThrow(retry, e);
+        } else {
+          throw e;
+        }
+      }
+
+      retry.waitForNextAttempt();
+    }
   }
-  
+
   public static boolean exists(ZooKeeper zk, String zPath) throws KeeperException, InterruptedException {
     return getStatus(zk, zPath) != null;
   }
-  
+
   public static void recursiveCopyPersistent(ZooKeeper zk, String source, String destination, NodeExistsPolicy policy) throws KeeperException,
       InterruptedException {
     Stat stat = null;
@@ -192,9 +304,10 @@ public class ZooUtil {
           throw KeeperException.create(Code.NODEEXISTS, source);
       }
     }
-    
+
     stat = new Stat();
-    byte[] data = zk.getData(source, false, stat);
+    byte[] data = getData(zk, source, stat);
+
     if (stat.getEphemeralOwner() == 0) {
       if (data == null)
         throw KeeperException.create(Code.NONODE, source);
@@ -204,61 +317,113 @@ public class ZooUtil {
           recursiveCopyPersistent(zk, source + "/" + child, destination + "/" + child, policy);
     }
   }
-  
+
   public static boolean putPrivatePersistentData(ZooKeeper zk, String zPath, byte[] data, NodeExistsPolicy policy) throws KeeperException, InterruptedException {
     return putData(zk, zPath, data, CreateMode.PERSISTENT, -1, policy, PRIVATE);
   }
-  
+
   public static String putPersistentSequential(ZooKeeper zk, String zPath, byte[] data) throws KeeperException, InterruptedException {
-    return zk.create(zPath, data, ZooUtil.PUBLIC, CreateMode.PERSISTENT_SEQUENTIAL);
+    final Retry retry = RETRY_FACTORY.create();
+    while (true) {
+      try {
+        return zk.create(zPath, data, ZooUtil.PUBLIC, CreateMode.PERSISTENT_SEQUENTIAL);
+      } catch (KeeperException e) {
+        final Code c = e.code();
+        if (c == Code.CONNECTIONLOSS || c == Code.OPERATIONTIMEOUT || c == Code.SESSIONEXPIRED) {
+          // TODO ZooKeeper needs to be recreated with SESSIONEXPIRED, should use ZooSession
+          retryOrThrow(retry, e);
+        } else {
+          throw e;
+        }
+      }
+
+      retry.waitForNextAttempt();
+    }
   }
-  
+
   public static String putEphemeralData(ZooKeeper zk, String zPath, byte[] data) throws KeeperException, InterruptedException {
-    return zk.create(zPath, data, ZooUtil.PUBLIC, CreateMode.EPHEMERAL);
+    final Retry retry = RETRY_FACTORY.create();
+    while (true) {
+      try {
+        return zk.create(zPath, data, ZooUtil.PUBLIC, CreateMode.EPHEMERAL);
+      } catch (KeeperException e) {
+        final Code c = e.code();
+        if (c == Code.CONNECTIONLOSS || c == Code.OPERATIONTIMEOUT || c == Code.SESSIONEXPIRED) {
+          // TODO ZooKeeper needs to be recreated with SESSIONEXPIRED, should use ZooSession
+          retryOrThrow(retry, e);
+        } else {
+          throw e;
+        }
+      }
+
+      retry.waitForNextAttempt();
+    }
   }
 
   public static String putEphemeralSequential(ZooKeeper zk, String zPath, byte[] data) throws KeeperException, InterruptedException {
-    return zk.create(zPath, data, ZooUtil.PUBLIC, CreateMode.EPHEMERAL_SEQUENTIAL);
+    final Retry retry = RETRY_FACTORY.create();
+    while (true) {
+      try {
+        return zk.create(zPath, data, ZooUtil.PUBLIC, CreateMode.EPHEMERAL_SEQUENTIAL);
+      } catch (KeeperException e) {
+        final Code c = e.code();
+        if (c == Code.CONNECTIONLOSS || c == Code.OPERATIONTIMEOUT || c == Code.SESSIONEXPIRED) {
+          // TODO ZooKeeper needs to be recreated with SESSIONEXPIRED, should use ZooSession
+          retryOrThrow(retry, e);
+        } else {
+          throw e;
+        }
+      }
+
+      retry.waitForNextAttempt();
+    }
   }
-  
+
   public static byte[] getLockData(ZooCache zc, String path) {
-    
+
     List<String> children = zc.getChildren(path);
-    
+
     if (children == null || children.size() == 0) {
       return null;
     }
-    
+
     children = new ArrayList<String>(children);
     Collections.sort(children);
-    
+
     String lockNode = children.get(0);
-    
+
     return zc.get(path + "/" + lockNode);
   }
-  
+
   public static boolean isLockHeld(ZooKeeper zk, LockID lid) throws KeeperException, InterruptedException {
-    
+    final Retry retry = RETRY_FACTORY.create();
     while (true) {
       try {
+        // TODO push down retry to getChildren and exists
         List<String> children = zk.getChildren(lid.path, false);
-        
+
         if (children.size() == 0) {
           return false;
         }
-        
+
         Collections.sort(children);
-        
+
         String lockNode = children.get(0);
         if (!lid.node.equals(lockNode))
           return false;
-        
+
         Stat stat = zk.exists(lid.path + "/" + lid.node, false);
         return stat != null && stat.getEphemeralOwner() == lid.eid;
-      } catch (KeeperException.ConnectionLossException ex) {
-        UtilWaitThread.sleep(1000);
+      } catch (KeeperException ex) {
+        final Code c = ex.code();
+        if (c == Code.CONNECTIONLOSS || c == Code.OPERATIONTIMEOUT || c == Code.SESSIONEXPIRED) {
+          // TODO ZooKeeper needs to be recreated with SESSIONEXPIRED, should use ZooSession
+          retryOrThrow(retry, ex);
+        }
       }
+
+      retry.waitForNextAttempt();
     }
   }
-  
+
 }
