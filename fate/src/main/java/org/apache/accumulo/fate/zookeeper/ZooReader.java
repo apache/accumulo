@@ -33,7 +33,7 @@ public class ZooReader implements IZooReader {
 
   protected String keepers;
   protected int timeout;
-  protected final RetryFactory retryFactory;
+  private final RetryFactory retryFactory;
 
   protected ZooKeeper getSession(String keepers, int timeout, String scheme, byte[] auth) {
     return ZooSession.getSession(keepers, timeout, scheme, auth);
@@ -41,6 +41,10 @@ public class ZooReader implements IZooReader {
 
   protected ZooKeeper getZooKeeper() {
     return getSession(keepers, timeout, null, null);
+  }
+
+  protected RetryFactory getRetryFactory() {
+    return retryFactory;
   }
 
   protected void retryOrThrow(Retry retry, KeeperException e) throws KeeperException {
@@ -61,7 +65,7 @@ public class ZooReader implements IZooReader {
 
   @Override
   public byte[] getData(String zPath, boolean watch, Stat stat) throws KeeperException, InterruptedException {
-    final Retry retry = retryFactory.create();
+    final Retry retry = getRetryFactory().create();
     while (true) {
       try {
         return getZooKeeper().getData(zPath, watch, stat);
@@ -80,7 +84,7 @@ public class ZooReader implements IZooReader {
 
   @Override
   public Stat getStatus(String zPath) throws KeeperException, InterruptedException {
-    final Retry retry = retryFactory.create();
+    final Retry retry = getRetryFactory().create();
     while (true) {
       try {
         return getZooKeeper().exists(zPath, false);
@@ -99,7 +103,7 @@ public class ZooReader implements IZooReader {
 
   @Override
   public Stat getStatus(String zPath, Watcher watcher) throws KeeperException, InterruptedException {
-    final Retry retry = retryFactory.create();
+    final Retry retry = getRetryFactory().create();
     while (true) {
       try {
         return getZooKeeper().exists(zPath, watcher);
@@ -118,7 +122,7 @@ public class ZooReader implements IZooReader {
 
   @Override
   public List<String> getChildren(String zPath) throws KeeperException, InterruptedException {
-    final Retry retry = retryFactory.create();
+    final Retry retry = getRetryFactory().create();
     while (true) {
       try {
         return getZooKeeper().getChildren(zPath, false);
@@ -137,7 +141,7 @@ public class ZooReader implements IZooReader {
 
   @Override
   public List<String> getChildren(String zPath, Watcher watcher) throws KeeperException, InterruptedException {
-    final Retry retry = retryFactory.create();
+    final Retry retry = getRetryFactory().create();
     while (true) {
       try {
         return getZooKeeper().getChildren(zPath, watcher);
@@ -156,7 +160,7 @@ public class ZooReader implements IZooReader {
 
   @Override
   public boolean exists(String zPath) throws KeeperException, InterruptedException {
-    final Retry retry = retryFactory.create();
+    final Retry retry = getRetryFactory().create();
     while (true) {
       try {
         return getZooKeeper().exists(zPath, false) != null;
@@ -175,7 +179,7 @@ public class ZooReader implements IZooReader {
 
   @Override
   public boolean exists(String zPath, Watcher watcher) throws KeeperException, InterruptedException {
-    final Retry retry = retryFactory.create();
+    final Retry retry = getRetryFactory().create();
     while (true) {
       try {
         return getZooKeeper().exists(zPath, watcher) != null;
