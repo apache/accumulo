@@ -24,7 +24,7 @@ import org.apache.log4j.Logger;
 public class Retry {
   private static final Logger log = Logger.getLogger(Retry.class);
 
-  private final long maxRetries, maxWait, waitIncrement;
+  private long maxRetries, maxWait, waitIncrement;
   private long retriesDone, currentWait;
 
   /**
@@ -43,6 +43,26 @@ public class Retry {
     this.waitIncrement = waitIncrement;
     this.retriesDone = 0l;
     this.currentWait = startWait;
+  }
+
+  // Visible for testing
+  void setMaxRetries(long maxRetries) {
+    this.maxRetries = maxRetries;
+  }
+
+  // Visible for testing
+  void setStartWait(long startWait) {
+    this.currentWait = startWait;
+  }
+
+  // Visible for testing
+  void setWaitIncrement(long waitIncrement) {
+    this.waitIncrement = waitIncrement;
+  }
+
+  // Visible for testing
+  void setMaxWait(long maxWait) {
+    this.maxWait = maxWait;
   }
 
   public boolean canRetry() {
@@ -67,8 +87,11 @@ public class Retry {
 
   public void waitForNextAttempt() throws InterruptedException {
     log.debug("Sleeping for " + currentWait + "ms before retrying operation");
-    Thread.sleep(currentWait);
+    sleep(currentWait);
     currentWait = Math.min(maxWait, currentWait + waitIncrement);
   }
 
+  protected void sleep(long wait) throws InterruptedException {
+    Thread.sleep(wait);
+  }
 }
