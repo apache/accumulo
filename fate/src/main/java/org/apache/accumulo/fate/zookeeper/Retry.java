@@ -19,7 +19,7 @@ package org.apache.accumulo.fate.zookeeper;
 import org.apache.log4j.Logger;
 
 /**
- *
+ * Encapsulates the retrying implementation for some operation. Provides bounded retry attempts with a bounded, linear backoff.
  */
 public class Retry {
   private static final Logger log = Logger.getLogger(Retry.class);
@@ -37,7 +37,7 @@ public class Retry {
    * @param waitIncrement
    *          The amount of time (ms) to increment next wait time by
    */
-  public Retry(long maxRetries, long startWait, long maxWait, long waitIncrement) {
+  public Retry(long maxRetries, long startWait, long waitIncrement, long maxWait) {
     this.maxRetries = maxRetries;
     this.maxWait = maxWait;
     this.waitIncrement = waitIncrement;

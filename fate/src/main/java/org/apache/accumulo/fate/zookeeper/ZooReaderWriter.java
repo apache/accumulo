@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.fate.zookeeper.ZooUtil.ZooKeeperConnectionInfo;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -38,6 +39,7 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
   private static ZooReaderWriter instance = null;
   private final String scheme;
   private final byte[] auth;
+  private final ZooKeeperConnectionInfo info;
 
   @Override
   public ZooKeeper getZooKeeper() {
@@ -52,16 +54,17 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
     super(string, timeInMillis);
     this.scheme = scheme;
     this.auth = Arrays.copyOf(auth, auth.length);
+    this.info = new ZooKeeperConnectionInfo(string, timeInMillis, scheme, this.auth);
   }
 
   @Override
   public void recursiveDelete(String zPath, NodeMissingPolicy policy) throws KeeperException, InterruptedException {
-    ZooUtil.recursiveDelete(getZooKeeper(), zPath, policy);
+    ZooUtil.recursiveDelete(info, zPath, policy);
   }
 
   @Override
   public void recursiveDelete(String zPath, int version, NodeMissingPolicy policy) throws KeeperException, InterruptedException {
-    ZooUtil.recursiveDelete(getZooKeeper(), zPath, version, policy);
+    ZooUtil.recursiveDelete(info, zPath, version, policy);
   }
 
   /**
@@ -71,37 +74,43 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
    */
   @Override
   public boolean putPersistentData(String zPath, byte[] data, NodeExistsPolicy policy) throws KeeperException, InterruptedException {
-    return ZooUtil.putPersistentData(getZooKeeper(), zPath, data, policy);
+    return ZooUtil.putPersistentData(info, zPath, data, policy);
+  }
+
+  @Override
+  public boolean putPersistentData(String zPath, byte[] data, int version, NodeExistsPolicy policy, List<ACL> acls) throws KeeperException,
+      InterruptedException {
+    return ZooUtil.putPersistentData(info, zPath, data, version, policy, acls);
   }
 
   @Override
   public boolean putPrivatePersistentData(String zPath, byte[] data, NodeExistsPolicy policy) throws KeeperException, InterruptedException {
-    return ZooUtil.putPrivatePersistentData(getZooKeeper(), zPath, data, policy);
+    return ZooUtil.putPrivatePersistentData(info, zPath, data, policy);
   }
 
   @Override
   public void putPersistentData(String zPath, byte[] data, int version, NodeExistsPolicy policy) throws KeeperException, InterruptedException {
-    ZooUtil.putPersistentData(getZooKeeper(), zPath, data, version, policy);
+    ZooUtil.putPersistentData(info, zPath, data, version, policy);
   }
 
   @Override
   public String putPersistentSequential(String zPath, byte[] data) throws KeeperException, InterruptedException {
-    return ZooUtil.putPersistentSequential(getZooKeeper(), zPath, data);
+    return ZooUtil.putPersistentSequential(info, zPath, data);
   }
 
   @Override
   public String putEphemeralData(String zPath, byte[] data) throws KeeperException, InterruptedException {
-    return ZooUtil.putEphemeralData(getZooKeeper(), zPath, data);
+    return ZooUtil.putEphemeralData(info, zPath, data);
   }
 
   @Override
   public String putEphemeralSequential(String zPath, byte[] data) throws KeeperException, InterruptedException {
-    return ZooUtil.putEphemeralSequential(getZooKeeper(), zPath, data);
+    return ZooUtil.putEphemeralSequential(info, zPath, data);
   }
 
   @Override
   public void recursiveCopyPersistent(String source, String destination, NodeExistsPolicy policy) throws KeeperException, InterruptedException {
-    ZooUtil.recursiveCopyPersistent(getZooKeeper(), source, destination, policy);
+    ZooUtil.recursiveCopyPersistent(info, source, destination, policy);
   }
 
   @Override
@@ -189,7 +198,7 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
 
   @Override
   public boolean isLockHeld(ZooUtil.LockID lockID) throws KeeperException, InterruptedException {
-    return ZooUtil.isLockHeld(getZooKeeper(), lockID);
+    return ZooUtil.isLockHeld(info, lockID);
   }
 
   @Override

@@ -17,13 +17,15 @@
 package org.apache.accumulo.fate.zookeeper;
 
 /**
- *
+ * Creates {@link Retry} instances with the given parameters
  */
 public class RetryFactory {
+  public static final long DEFAULT_MAX_RETRIES = 10l, DEFAULT_START_WAIT = 250l, DEFAULT_WAIT_INCREMENT = 250l, DEFAULT_MAX_WAIT = 5000l;
+  public static final RetryFactory DEFAULT_INSTANCE = new RetryFactory(DEFAULT_MAX_RETRIES, DEFAULT_START_WAIT, DEFAULT_WAIT_INCREMENT, DEFAULT_MAX_WAIT);
 
   private final long maxRetries, startWait, maxWait, waitIncrement;
 
-  public RetryFactory(long maxRetries, long startWait, long maxWait, long waitIncrement) {
+  public RetryFactory(long maxRetries, long startWait, long waitIncrement, long maxWait) {
     this.maxRetries = maxRetries;
     this.startWait = startWait;
     this.maxWait = maxWait;

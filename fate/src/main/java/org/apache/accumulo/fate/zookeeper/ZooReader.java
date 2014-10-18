@@ -223,6 +223,6 @@ public class ZooReader implements IZooReader {
   public ZooReader(String keepers, int timeout) {
     this.keepers = keepers;
     this.timeout = timeout;
-    this.retryFactory = new RetryFactory(10l, 250l, 250l, 5000l);
+    this.retryFactory = RetryFactory.DEFAULT_INSTANCE;
   }
 }
