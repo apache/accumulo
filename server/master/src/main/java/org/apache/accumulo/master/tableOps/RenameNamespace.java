@@ -53,7 +53,7 @@ public class RenameNamespace extends MasterRepo {
 
     Instance instance = master.getInstance();
 
-    IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
+    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
 
     Utils.tableNameLock.lock();
     try {

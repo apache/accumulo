@@ -344,7 +344,7 @@ class DatafileManager {
   void bringMinorCompactionOnline(FileRef tmpDatafile, FileRef newDatafile, FileRef absMergeFile, DataFileValue dfv, CommitSession commitSession, long flushId)
       throws IOException {
 
-    IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
+    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     if (tablet.getExtent().isRootTablet()) {
       try {
         if (!zoo.isLockHeld(tablet.getTabletServer().getLock().getLockID())) {
@@ -522,7 +522,7 @@ class DatafileManager {
 
       t1 = System.currentTimeMillis();
 
-      IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
+      IZooReaderWriter zoo = ZooReaderWriter.getInstance();
 
       tablet.incrementDataSourceDeletions();
 

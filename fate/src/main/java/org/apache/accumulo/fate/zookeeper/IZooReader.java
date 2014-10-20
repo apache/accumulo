@@ -23,21 +23,23 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
 
 public interface IZooReader {
-  
+
   byte[] getData(String zPath, Stat stat) throws KeeperException, InterruptedException;
-  
+
+  byte[] getData(String zPath, boolean watch, Stat stat) throws KeeperException, InterruptedException;
+
   Stat getStatus(String zPath) throws KeeperException, InterruptedException;
-  
+
   Stat getStatus(String zPath, Watcher watcher) throws KeeperException, InterruptedException;
-  
+
   List<String> getChildren(String zPath) throws KeeperException, InterruptedException;
-  
+
   List<String> getChildren(String zPath, Watcher watcher) throws KeeperException, InterruptedException;
-  
+
   boolean exists(String zPath) throws KeeperException, InterruptedException;
-  
+
   boolean exists(String zPath, Watcher watcher) throws KeeperException, InterruptedException;
-  
+
   void sync(final String path) throws KeeperException, InterruptedException;
-  
+
 }

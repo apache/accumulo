@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
-import com.google.common.annotations.VisibleForTesting;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -36,6 +35,8 @@ import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
+
+import com.google.common.annotations.VisibleForTesting;
 
 /**
  * A cache for values stored in ZooKeeper. Values are kept up to date as they
@@ -138,6 +139,9 @@ public class ZooCache {
   }
 
   private interface ZooRunnable {
+    /**
+     * Runs an operation against ZooKeeper, automatically retrying in the face of KeeperExceptions
+     */
     void run(ZooKeeper zooKeeper) throws KeeperException, InterruptedException;
   }
 
@@ -154,8 +158,12 @@ public class ZooCache {
         return;
 
       } catch (KeeperException e) {
-        if (e.code() == Code.NONODE) {
+        final Code code = e.code();
+        if (code == Code.NONODE) {
           log.error("Looked up non-existent node in cache " + e.getPath(), e);
+        } else if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT || code == Code.SESSIONEXPIRED) {
+          log.warn("Saw (possibly) transient exception communicating with ZooKeeper, wil retry", e);
+          continue;
         }
         log.warn("Zookeeper error, will retry", e);
       } catch (InterruptedException e) {
@@ -244,7 +252,7 @@ public class ZooCache {
         /*
          * The following call to exists() is important, since we are caching that a node does not exist. Once the node comes into existence, it will be added to
          * the cache. But this notification of a node coming into existence will only be given if exists() was previously called.
-         * 
+         *
          * If the call to exists() is bypassed and only getData() is called with a special case that looks for Code.NONODE in the KeeperException, then
          * non-existence can not be cached.
          */

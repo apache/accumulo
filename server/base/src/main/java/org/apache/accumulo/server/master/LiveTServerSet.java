@@ -389,7 +389,7 @@ public class LiveTServerSet implements Watcher {
     log.info("Removing zookeeper lock for " + server);
     String fullpath = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + zPath;
     try {
-      ZooReaderWriter.getRetryingInstance().recursiveDelete(fullpath, SKIP);
+      ZooReaderWriter.getInstance().recursiveDelete(fullpath, SKIP);
     } catch (Exception e) {
       String msg = "error removing tablet server lock";
       log.fatal(msg, e);

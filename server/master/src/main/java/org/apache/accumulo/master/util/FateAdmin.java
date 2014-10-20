@@ -75,7 +75,7 @@ public class FateAdmin {
     Instance instance = HdfsZooInstance.getInstance();
     String path = ZooUtil.getRoot(instance) + Constants.ZFATE;
     String masterPath = ZooUtil.getRoot(instance) + Constants.ZMASTER_LOCK;
-    IZooReaderWriter zk = ZooReaderWriter.getRetryingInstance();
+    IZooReaderWriter zk = ZooReaderWriter.getInstance();
     ZooStore<Master> zs = new ZooStore<Master>(path, zk);
 
     if (jc.getParsedCommand().equals("fail")) {

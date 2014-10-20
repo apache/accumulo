@@ -16,25 +16,16 @@
  */
 package org.apache.accumulo.server.zookeeper;
 
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.nio.charset.StandardCharsets;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.fate.util.UtilWaitThread;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
-import org.apache.log4j.Logger;
-import org.apache.zookeeper.KeeperException;
 
 public class ZooReaderWriter extends org.apache.accumulo.fate.zookeeper.ZooReaderWriter {
   private static final String SCHEME = "digest";
   private static final String USER = "accumulo";
   private static ZooReaderWriter instance = null;
-  private static IZooReaderWriter retryingInstance = null;
   
   public ZooReaderWriter(String string, int timeInMillis, String secret) {
     super(string, timeInMillis, SCHEME, (USER + ":" + secret).getBytes(StandardCharsets.UTF_8));
@@ -49,39 +40,4 @@ public class ZooReaderWriter extends org.apache.accumulo.fate.zookeeper.ZooReade
     return instance;
   }
   
-  /**
-   * get an instance that retries when zookeeper connection errors occur
-   * 
-   * @return an instance that retries when Zookeeper connection errors occur.
-   */
-  public static synchronized IZooReaderWriter getRetryingInstance() {
-    
-    if (retryingInstance == null) {
-      final IZooReaderWriter inst = getInstance();
-      
-      InvocationHandler ih = new InvocationHandler() {
-        @Override
-        public Object invoke(Object obj, Method method, Object[] args) throws Throwable {
-          long retryTime = 250;
-          while (true) {
-            try {
-              return method.invoke(inst, args);
-            } catch (InvocationTargetException e) {
-              if (e.getCause() instanceof KeeperException.ConnectionLossException) {
-                Logger.getLogger(ZooReaderWriter.class).warn("Error connecting to zookeeper, will retry in " + retryTime, e.getCause());
-                UtilWaitThread.sleep(retryTime);
-                retryTime = Math.min(5000, retryTime + 250);
-              } else {
-                throw e.getCause();
-              }
-            }
-          }
-        }
-      };
-      
-      retryingInstance = (IZooReaderWriter) Proxy.newProxyInstance(ZooReaderWriter.class.getClassLoader(), new Class[] {IZooReaderWriter.class}, ih);
-    }
-    
-    return retryingInstance;
-  }
 }
