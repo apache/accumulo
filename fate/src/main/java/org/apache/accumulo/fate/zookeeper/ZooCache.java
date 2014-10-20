@@ -162,7 +162,7 @@ public class ZooCache {
         if (code == Code.NONODE) {
           log.error("Looked up non-existent node in cache " + e.getPath(), e);
         } else if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT || code == Code.SESSIONEXPIRED) {
-          log.warn("Saw (possibly) transient exception communicating with ZooKeeper, wil retry", e);
+          log.warn("Saw (possibly) transient exception communicating with ZooKeeper, will retry", e);
           continue;
         }
         log.warn("Zookeeper error, will retry", e);

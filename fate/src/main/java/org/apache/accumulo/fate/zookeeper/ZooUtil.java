@@ -18,9 +18,11 @@ package org.apache.accumulo.fate.zookeeper;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -31,6 +33,8 @@ import org.apache.zookeeper.ZooDefs.Perms;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
+
+import com.google.common.base.Preconditions;
 
 public class ZooUtil {
   private static final Logger log = Logger.getLogger(ZooUtil.class);
@@ -87,10 +91,67 @@ public class ZooUtil {
     byte[] auth;
 
     public ZooKeeperConnectionInfo(String keepers, int timeout, String scheme, byte[] auth) {
+      Preconditions.checkNotNull(keepers);
       this.keepers = keepers;
       this.timeout = timeout;
       this.scheme = scheme;
       this.auth = auth;
+    }
+
+    @Override
+    public int hashCode() {
+      final HashCodeBuilder hcb = new HashCodeBuilder(31, 47);
+      hcb.append(keepers).append(timeout);
+      if (null != scheme) {
+        hcb.append(scheme);
+      }
+      if (null != auth) {
+        hcb.append(auth);
+      }
+      return hcb.toHashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (o instanceof ZooKeeperConnectionInfo) {
+        ZooKeeperConnectionInfo other = (ZooKeeperConnectionInfo) o;
+        if (!keepers.equals(other.keepers) || timeout != other.timeout) {
+          return false;
+        }
+
+        if (null != scheme) {
+          if (null == other.scheme) {
+            // Ours is non-null, theirs is null
+            return false;
+          } else if (!scheme.equals(other.scheme)) {
+            // Both non-null but not equal
+            return false;
+          }
+        }
+
+        if (null != auth) {
+          if (null == other.auth) {
+            return false;
+          } else if (!Arrays.equals(auth, other.auth)) {
+            // both non-null but not equal
+            return false;
+          }
+        }
+
+        return true;
+      }
+
+      return false;
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder(64);
+      sb.append("zookeepers=").append(keepers);
+      sb.append(", timeout=").append(timeout);
+      sb.append(", scheme=").append(scheme);
+      sb.append(", auth=").append(null == auth ? "null" : "REDACTED");
+      return sb.toString();
     }
   }
 
@@ -206,8 +267,7 @@ public class ZooUtil {
   }
 
   public static boolean putPersistentData(ZooKeeperConnectionInfo info, String zPath, byte[] data, int version, NodeExistsPolicy policy)
-      throws KeeperException,
-      InterruptedException {
+      throws KeeperException, InterruptedException {
     return putData(info, zPath, data, CreateMode.PERSISTENT, version, policy, PUBLIC);
   }
 
@@ -216,8 +276,7 @@ public class ZooUtil {
     return putData(info, zPath, data, CreateMode.PERSISTENT, version, policy, acls);
   }
 
-  private static boolean putData(ZooKeeperConnectionInfo info, String zPath, byte[] data, CreateMode mode, int version,
-      NodeExistsPolicy policy, List<ACL> acls)
+  private static boolean putData(ZooKeeperConnectionInfo info, String zPath, byte[] data, CreateMode mode, int version, NodeExistsPolicy policy, List<ACL> acls)
       throws KeeperException, InterruptedException {
     if (policy == null)
       policy = NodeExistsPolicy.FAIL;
@@ -347,8 +406,9 @@ public class ZooUtil {
           }
           retry.waitForNextAttempt();
         }
-        for (String child : children)
+        for (String child : children) {
           recursiveCopyPersistent(info, source + "/" + child, destination + "/" + child, policy);
+        }
       }
     }
   }
