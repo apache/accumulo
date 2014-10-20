@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
 
@@ -132,7 +133,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
     if (null != credProviderPathsValue) {
       // We have configuration for a CredentialProvider
       // Try to pull the sensitive password from there
-      Configuration conf = new Configuration(false);
+      Configuration conf = new Configuration(CachedConfiguration.getInstance());
       conf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, credProviderPathsValue);
       return conf;
     }
