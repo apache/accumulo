@@ -26,16 +26,19 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.DistributedFileSystem;
+import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class CredentialProviderFactoryShimTest {
 
-  private static boolean isCredentialProviderAvailable = false;
   private static final String populatedKeyStoreName = "/accumulo.jceks", emptyKeyStoreName = "/empty.jceks";
   private static File emptyKeyStore, populatedKeyStore;
 
@@ -43,21 +46,19 @@ public class CredentialProviderFactoryShimTest {
   public static void checkCredentialProviderAvailable() {
     try {
       Class.forName(CredentialProviderFactoryShim.HADOOP_CRED_PROVIDER_CLASS_NAME);
-      isCredentialProviderAvailable = true;
     } catch (Exception e) {
-      isCredentialProviderAvailable = false;
+      // If we can't load the credential provider class, don't run the tests
+      Assume.assumeNoException(e);
     }
 
-    if (isCredentialProviderAvailable) {
-      URL populatedKeyStoreUrl = CredentialProviderFactoryShimTest.class.getResource(populatedKeyStoreName),
-          emptyKeyStoreUrl = CredentialProviderFactoryShimTest.class.getResource(emptyKeyStoreName); 
+    URL populatedKeyStoreUrl = CredentialProviderFactoryShimTest.class.getResource(populatedKeyStoreName), emptyKeyStoreUrl = CredentialProviderFactoryShimTest.class
+        .getResource(emptyKeyStoreName);
 
-      Assert.assertNotNull("Could not find " + populatedKeyStoreName, populatedKeyStoreUrl);
-      Assert.assertNotNull("Could not find " + emptyKeyStoreName, emptyKeyStoreUrl);
+    Assert.assertNotNull("Could not find " + populatedKeyStoreName, populatedKeyStoreUrl);
+    Assert.assertNotNull("Could not find " + emptyKeyStoreName, emptyKeyStoreUrl);
 
-      populatedKeyStore = new File(populatedKeyStoreUrl.getFile());
-      emptyKeyStore = new File(emptyKeyStoreUrl.getFile());
-    }
+    populatedKeyStore = new File(populatedKeyStoreUrl.getFile());
+    emptyKeyStore = new File(emptyKeyStoreUrl.getFile());
   }
 
   protected String getKeyStoreUrl(File absoluteFilePath) {
@@ -77,7 +78,7 @@ public class CredentialProviderFactoryShimTest {
   protected void checkCredentialProviders(Configuration conf, Map<String,String> expectation) throws IOException {
     List<String> keys = CredentialProviderFactoryShim.getKeys(conf);
     Assert.assertNotNull(keys);
-    
+
     Assert.assertEquals(expectation.keySet(), new HashSet<String>(keys));
     for (String expectedKey : keys) {
       char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(conf, expectedKey);
@@ -88,10 +89,6 @@ public class CredentialProviderFactoryShimTest {
 
   @Test
   public void testExtractFromProvider() throws IOException {
-    if (!isCredentialProviderAvailable) {
-      return;
-    }
-
     String absPath = getKeyStoreUrl(populatedKeyStore);
     Configuration conf = new Configuration();
     conf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, absPath);
@@ -104,10 +101,6 @@ public class CredentialProviderFactoryShimTest {
 
   @Test
   public void testEmptyKeyStoreParses() throws IOException {
-    if (!isCredentialProviderAvailable) {
-      return;
-    }
-
     String absPath = getKeyStoreUrl(emptyKeyStore);
     Configuration conf = new Configuration();
     conf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, absPath);
@@ -117,10 +110,6 @@ public class CredentialProviderFactoryShimTest {
 
   @Test
   public void testEmptyAndPopulatedKeyStores() throws IOException {
-    if (!isCredentialProviderAvailable) {
-      return;
-    }
-
     String populatedAbsPath = getKeyStoreUrl(populatedKeyStore), emptyAbsPath = getKeyStoreUrl(emptyKeyStore);
     Configuration conf = new Configuration();
     conf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, populatedAbsPath + "," + emptyAbsPath);
@@ -133,10 +122,6 @@ public class CredentialProviderFactoryShimTest {
 
   @Test
   public void testNonExistentClassesDoesntFail() throws IOException {
-    if (isCredentialProviderAvailable) {
-      return;
-    }
-
     Configuration conf = new Configuration();
     conf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, "jceks://file/foo/bar.jceks");
     List<String> keys = CredentialProviderFactoryShim.getKeys(conf);
@@ -156,10 +141,6 @@ public class CredentialProviderFactoryShimTest {
 
   @Test
   public void createKeystoreProvider() throws Exception {
-    if (!isCredentialProviderAvailable) {
-      return;
-    }
-
     File targetDir = new File(System.getProperty("user.dir") + "/target");
     File keystoreFile = new File(targetDir, "create.jks");
     if (keystoreFile.exists()) {
@@ -175,5 +156,49 @@ public class CredentialProviderFactoryShimTest {
     CredentialProviderFactoryShim.createEntry(conf, alias, credential);
 
     Assert.assertArrayEquals(credential, CredentialProviderFactoryShim.getValueFromCredentialProvider(conf, alias));
+  }
+
+  @Test
+  public void extractFromHdfs() throws Exception {
+    File target = new File(System.getProperty("user.dir"), "target");
+    String prevValue = System.setProperty("test.build.data", new File(target, this.getClass().getName() + "_minidfs").toString());
+    MiniDFSCluster.Builder builder = new MiniDFSCluster.Builder(new Configuration());
+    builder.numDataNodes(1);
+    MiniDFSCluster dfsCluster = builder.build();
+    try {
+      if (null != prevValue) {
+        System.setProperty("test.build.data", prevValue);
+      } else {
+        System.clearProperty("test.build.data");
+      }
+
+      // One namenode, One configuration
+      Configuration dfsConfiguration = dfsCluster.getConfiguration(0);
+      Path destPath = new Path("/accumulo.jceks");
+      DistributedFileSystem dfs = dfsCluster.getFileSystem();
+      // Put the populated keystore in hdfs
+      dfs.copyFromLocalFile(new Path(populatedKeyStore.toURI()), destPath);
+
+      Configuration cpConf = CredentialProviderFactoryShim.getConfiguration(dfsConfiguration, "jceks://hdfs/accumulo.jceks");
+
+      // The values in the keystore
+      Map<String,String> expectations = new HashMap<String,String>();
+      expectations.put("key1", "value1");
+      expectations.put("key2", "value2");
+
+      checkCredentialProviders(cpConf, expectations);
+    } finally {
+      dfsCluster.shutdown();
+    }
+  }
+  
+  @Test
+  public void existingConfigurationReturned() {
+    Configuration conf = new Configuration(false);
+    conf.set("foo", "bar");
+    Configuration conf2 = CredentialProviderFactoryShim.getConfiguration(conf, "jceks:///file/accumulo.jceks");
+    // Same object
+    Assert.assertSame(conf, conf2);
+    Assert.assertEquals("bar", conf.get("foo"));
   }
 }

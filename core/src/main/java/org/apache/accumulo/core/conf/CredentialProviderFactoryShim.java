@@ -25,6 +25,7 @@ import java.util.List;
 
 import jline.internal.Preconditions;
 
+import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -311,7 +312,20 @@ public class CredentialProviderFactoryShim {
    */
   public static Configuration getConfiguration(String credentialProviders) {
     Preconditions.checkNotNull(credentialProviders);
-    final Configuration conf = new Configuration(false);
+    return getConfiguration(new Configuration(CachedConfiguration.getInstance()), credentialProviders);
+  }
+  
+  /**
+   * Adds the Credential Provider configuration elements to the provided {@link Configuration}.
+   * 
+   * @param conf
+   *          Existing Hadoop Configuration
+   * @param credentialProviders
+   *          Comma-separated list of CredentialProvider URLs
+   */
+  public static Configuration getConfiguration(Configuration conf, String credentialProviders) {
+    Preconditions.checkNotNull(conf);
+    Preconditions.checkNotNull(credentialProviders);
     conf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, credentialProviders);
     return conf;
   }
