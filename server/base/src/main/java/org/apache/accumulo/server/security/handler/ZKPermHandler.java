@@ -45,7 +45,7 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
 
 /**
- * 
+ *
  */
 public class ZKPermHandler implements PermissionHandler {
   private static final Logger log = Logger.getLogger(ZKAuthorizor.class);
@@ -79,16 +79,17 @@ public class ZKPermHandler implements PermissionHandler {
   @Override
   public boolean hasTablePermission(String user, String table, TablePermission permission) throws TableNotFoundException {
     byte[] serializedPerms;
+    final ZooReaderWriter zrw = ZooReaderWriter.getInstance();
     try {
       String path = ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table;
-      ZooReaderWriter.getInstance().sync(path);
-      serializedPerms = ZooReaderWriter.getInstance().getData(path, null);
+      zrw.sync(path);
+      serializedPerms = zrw.getData(path, null);
     } catch (KeeperException e) {
       if (e.code() == Code.NONODE) {
         // maybe the table was just deleted?
         try {
           // check for existence:
-          ZooReaderWriter.getInstance().getData(ZKTablePath + "/" + table, null);
+          zrw.getData(ZKTablePath + "/" + table, null);
           // it's there, you don't have permission
           return false;
         } catch (InterruptedException ex) {
@@ -127,16 +128,17 @@ public class ZKPermHandler implements PermissionHandler {
   @Override
   public boolean hasNamespacePermission(String user, String namespace, NamespacePermission permission) throws NamespaceNotFoundException {
     byte[] serializedPerms;
+    final ZooReaderWriter zrw = ZooReaderWriter.getInstance();
     try {
       String path = ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespace;
-      ZooReaderWriter.getInstance().sync(path);
-      serializedPerms = ZooReaderWriter.getInstance().getData(path, null);
+      zrw.sync(path);
+      serializedPerms = zrw.getData(path, null);
     } catch (KeeperException e) {
       if (e.code() == Code.NONODE) {
         // maybe the namespace was just deleted?
         try {
           // check for existence:
-          ZooReaderWriter.getInstance().getData(ZKNamespacePath + "/" + namespace, null);
+          zrw.getData(ZKNamespacePath + "/" + namespace, null);
           // it's there, you don't have permission
           return false;
         } catch (InterruptedException ex) {
@@ -213,8 +215,8 @@ public class ZKPermHandler implements PermissionHandler {
       if (tablePerms.add(permission)) {
         synchronized (zooCache) {
           zooCache.clear(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table);
-          IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-          zoo.putPersistentData(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table, ZKSecurityTool.convertTablePermissions(tablePerms),
+          ZooReaderWriter.getInstance().putPersistentData(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table,
+              ZKSecurityTool.convertTablePermissions(tablePerms),
               NodeExistsPolicy.OVERWRITE);
         }
       }
@@ -240,8 +242,8 @@ public class ZKPermHandler implements PermissionHandler {
       if (namespacePerms.add(permission)) {
         synchronized (zooCache) {
           zooCache.clear(ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespace);
-          IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-          zoo.putPersistentData(ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespace, ZKSecurityTool.convertNamespacePermissions(namespacePerms),
+          ZooReaderWriter.getInstance().putPersistentData(ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespace,
+              ZKSecurityTool.convertNamespacePermissions(namespacePerms),
               NodeExistsPolicy.OVERWRITE);
         }
       }
