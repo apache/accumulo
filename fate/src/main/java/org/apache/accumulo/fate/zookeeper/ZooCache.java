@@ -163,9 +163,9 @@ public class ZooCache {
           log.error("Looked up non-existent node in cache " + e.getPath(), e);
         } else if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT || code == Code.SESSIONEXPIRED) {
           log.warn("Saw (possibly) transient exception communicating with ZooKeeper, will retry", e);
-          continue;
+        } else {
+          log.warn("Zookeeper error, will retry", e);
         }
-        log.warn("Zookeeper error, will retry", e);
       } catch (InterruptedException e) {
         log.info("Zookeeper error, will retry", e);
       } catch (ConcurrentModificationException e) {
