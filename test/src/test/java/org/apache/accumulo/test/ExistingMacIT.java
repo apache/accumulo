@@ -1,0 +1,152 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.accumulo.test;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Collection;
+import java.util.Map.Entry;
+import java.util.Set;
+
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.minicluster.MiniAccumuloCluster;
+import org.apache.accumulo.minicluster.MiniAccumuloConfig;
+import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.minicluster.impl.ProcessReference;
+import org.apache.accumulo.test.functional.ConfigurableMacIT;
+import org.apache.commons.io.FileUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.RawLocalFileSystem;
+import org.junit.Assert;
+import org.junit.Test;
+
+public class ExistingMacIT extends ConfigurableMacIT {
+  @Override
+  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
+
+    // use raw local file system so walogs sync and flush will work
+    hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
+  }
+
+  private void createEmptyConfig(File confFile) throws IOException {
+    Configuration conf = new Configuration(false);
+    OutputStream hcOut = new FileOutputStream(confFile);
+    conf.writeXml(hcOut);
+    hcOut.close();
+  }
+
+  @Test
+  public void testExistingInstance() throws Exception {
+
+    Connector conn = getCluster().getConnector("root", ROOT_PASSWORD);
+
+    conn.tableOperations().create("table1");
+
+    BatchWriter bw = conn.createBatchWriter("table1", new BatchWriterConfig());
+
+    Mutation m1 = new Mutation("00081");
+    m1.put("math", "sqroot", "9");
+    m1.put("math", "sq", "6560");
+
+    bw.addMutation(m1);
+    bw.close();
+
+    conn.tableOperations().flush("table1", null, null, true);
+    // TOOD use constants
+    conn.tableOperations().flush(MetadataTable.NAME, null, null, true);
+    conn.tableOperations().flush(RootTable.NAME, null, null, true);
+
+    Set<Entry<ServerType,Collection<ProcessReference>>> procs = getCluster().getProcesses().entrySet();
+    for (Entry<ServerType,Collection<ProcessReference>> entry : procs) {
+      if (entry.getKey() == ServerType.ZOOKEEPER)
+        continue;
+      for (ProcessReference pr : entry.getValue())
+        getCluster().killProcess(entry.getKey(), pr);
+    }
+
+    // TODO clean out zookeeper? following sleep waits for ephemeral nodes to go away
+    UtilWaitThread.sleep(10000);
+
+    File hadoopConfDir = createTestDir(ExistingMacIT.class.getSimpleName() + "_hadoop_conf");
+    FileUtils.deleteQuietly(hadoopConfDir);
+    hadoopConfDir.mkdirs();
+    createEmptyConfig(new File(hadoopConfDir, "core-site.xml"));
+    createEmptyConfig(new File(hadoopConfDir, "hdfs-site.xml"));
+
+    File testDir2 = createTestDir(ExistingMacIT.class.getSimpleName() + "_2");
+    FileUtils.deleteQuietly(testDir2);
+
+    MiniAccumuloConfig macConfig2 = new MiniAccumuloConfig(testDir2, "notused");
+    macConfig2.useExistingInstance(new File(getCluster().getConfig().getConfDir(), "accumulo-site.xml"), hadoopConfDir);
+
+    MiniAccumuloCluster accumulo2 = new MiniAccumuloCluster(macConfig2);
+    accumulo2.start();
+
+    conn = accumulo2.getConnector("root", ROOT_PASSWORD);
+
+    Scanner scanner = conn.createScanner("table1", Authorizations.EMPTY);
+
+    int sum = 0;
+    for (Entry<Key,Value> entry : scanner) {
+      sum += Integer.parseInt(entry.getValue().toString());
+    }
+
+    Assert.assertEquals(6569, sum);
+
+    accumulo2.stop();
+  }
+
+  @Test
+  public void testExistingRunningInstance() throws Exception {
+    File hadoopConfDir = createTestDir(ExistingMacIT.class.getSimpleName() + "_hadoop_conf_2");
+    FileUtils.deleteQuietly(hadoopConfDir);
+    hadoopConfDir.mkdirs();
+    createEmptyConfig(new File(hadoopConfDir, "core-site.xml"));
+    createEmptyConfig(new File(hadoopConfDir, "hdfs-site.xml"));
+
+    File testDir2 = createTestDir(ExistingMacIT.class.getSimpleName() + "_3");
+    FileUtils.deleteQuietly(testDir2);
+
+    MiniAccumuloConfig macConfig2 = new MiniAccumuloConfig(testDir2, "notused");
+    macConfig2.useExistingInstance(new File(getCluster().getConfig().getConfDir(), "accumulo-site.xml"), hadoopConfDir);
+
+    System.out.println("conf " + new File(getCluster().getConfig().getConfDir(), "accumulo-site.xml"));
+
+    MiniAccumuloCluster accumulo2 = new MiniAccumuloCluster(macConfig2);
+    try {
+      accumulo2.start();
+      Assert.fail();
+    } catch (RuntimeException e) {
+      // TODO check message or throw more explicit exception
+    }
+  }
+}

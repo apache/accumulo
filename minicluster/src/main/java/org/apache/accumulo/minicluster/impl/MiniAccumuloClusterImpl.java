@@ -50,6 +50,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;
@@ -59,21 +60,30 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.state.SetGoalState;
 import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.server.Accumulo;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.security.SystemCredentials;
+import org.apache.accumulo.server.util.AccumuloStatus;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.server.util.time.SimpleTimer;
+import org.apache.accumulo.server.zookeeper.ZooReaderWriterFactory;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
 import org.apache.accumulo.trace.instrument.Tracer;
@@ -83,13 +93,19 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
-import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Maps;
@@ -101,7 +117,7 @@ import com.google.common.collect.Maps;
  * @since 1.6.0
  */
 public class MiniAccumuloClusterImpl implements AccumuloCluster {
-  private static final Logger log = Logger.getLogger(MiniAccumuloClusterImpl.class);
+  private static final Logger log = LoggerFactory.getLogger(MiniAccumuloClusterImpl.class);
 
   public static class LogWriter extends Daemon {
     private BufferedReader in;
@@ -219,6 +235,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       StringBuilder classpathBuilder = new StringBuilder();
       classpathBuilder.append(config.getConfDir().getAbsolutePath());
 
+      if (config.getHadoopConfDir() != null)
+        classpathBuilder.append(File.pathSeparator).append(config.getHadoopConfDir().getAbsolutePath());
+
       if (config.getClasspathItems() == null) {
 
         // assume 0 is the system classloader and skip it
@@ -289,6 +308,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     builder.environment().put("ACCUMULO_CONF_DIR", config.getConfDir().getAbsolutePath());
     // hadoop-2.2 puts error messages in the logs if this is not set
     builder.environment().put("HADOOP_HOME", config.getDir().getAbsolutePath());
+    if (config.getHadoopConfDir() != null)
+      builder.environment().put("HADOOP_CONF_DIR", config.getHadoopConfDir().getAbsolutePath());
 
     Process process = builder.start();
 
@@ -338,12 +359,15 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     this.config = config.initialize();
 
     config.getConfDir().mkdirs();
-    config.getAccumuloDir().mkdirs();
-    config.getZooKeeperDir().mkdirs();
     config.getLogDir().mkdirs();
-    config.getWalogDir().mkdirs();
     config.getLibDir().mkdirs();
     config.getLibExtDir().mkdirs();
+
+    if (!config.useExistingInstance()) {
+      config.getZooKeeperDir().mkdirs();
+      config.getWalogDir().mkdirs();
+      config.getAccumuloDir().mkdirs();
+    }
 
     if (config.useMiniDFS()) {
       File nn = new File(config.getAccumuloDir(), "nn");
@@ -377,6 +401,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       siteConfig.put(Property.INSTANCE_DFS_URI.getKey(), dfsUri);
       siteConfig.put(Property.INSTANCE_DFS_DIR.getKey(), "/accumulo");
       config.setSiteConfig(siteConfig);
+    } else if (config.useExistingInstance()) {
+      dfsUri = CachedConfiguration.getInstance().get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY);
     } else {
       dfsUri = "file://";
     }
@@ -393,20 +419,22 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     File siteFile = new File(config.getConfDir(), "accumulo-site.xml");
     writeConfig(siteFile, config.getSiteConfig().entrySet());
 
-    zooCfgFile = new File(config.getConfDir(), "zoo.cfg");
-    FileWriter fileWriter = new FileWriter(zooCfgFile);
+    if (!config.useExistingInstance()) {
+      zooCfgFile = new File(config.getConfDir(), "zoo.cfg");
+      FileWriter fileWriter = new FileWriter(zooCfgFile);
 
-    // zookeeper uses Properties to read its config, so use that to write in order to properly escape things like Windows paths
-    Properties zooCfg = new Properties();
-    zooCfg.setProperty("tickTime", "2000");
-    zooCfg.setProperty("initLimit", "10");
-    zooCfg.setProperty("syncLimit", "5");
-    zooCfg.setProperty("clientPort", config.getZooKeeperPort() + "");
-    zooCfg.setProperty("maxClientCnxns", "1000");
-    zooCfg.setProperty("dataDir", config.getZooKeeperDir().getAbsolutePath());
-    zooCfg.store(fileWriter, null);
+      // zookeeper uses Properties to read its config, so use that to write in order to properly escape things like Windows paths
+      Properties zooCfg = new Properties();
+      zooCfg.setProperty("tickTime", "2000");
+      zooCfg.setProperty("initLimit", "10");
+      zooCfg.setProperty("syncLimit", "5");
+      zooCfg.setProperty("clientPort", config.getZooKeeperPort() + "");
+      zooCfg.setProperty("maxClientCnxns", "1000");
+      zooCfg.setProperty("dataDir", config.getZooKeeperDir().getAbsolutePath());
+      zooCfg.store(fileWriter, null);
 
-    fileWriter.close();
+      fileWriter.close();
+    }
 
     // disable audit logging for mini....
     InputStream auditStream = this.getClass().getResourceAsStream("/auditLog.xml");
@@ -444,58 +472,98 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
    */
   @Override
   public synchronized void start() throws IOException, InterruptedException {
+    if (config.useExistingInstance()) {
+      Configuration acuConf = config.getAccumuloConfiguration();
+      Configuration hadoopConf = config.getHadoopConfiguration();
 
-    if (!initialized) {
+      ConfigurationCopy cc = new ConfigurationCopy(acuConf);
+      VolumeManager fs;
+      try {
+        fs = VolumeManagerImpl.get(cc, hadoopConf);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+      Path instanceIdPath = Accumulo.getAccumuloInstanceIdPath(fs);
 
-      Runtime.getRuntime().addShutdownHook(new Thread() {
-        @Override
-        public void run() {
+      String instanceIdFromFile = ZooUtil.getInstanceIDFromHdfs(instanceIdPath, cc, hadoopConf);
+      IZooReaderWriter zrw = new ZooReaderWriterFactory().getZooReaderWriter(cc.get(Property.INSTANCE_ZK_HOST),
+          (int) cc.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), cc.get(Property.INSTANCE_SECRET));
+
+      String rootPath = ZooUtil.getRoot(instanceIdFromFile);
+
+      String instanceName = null;
+      try {
+        for (String name : zrw.getChildren(Constants.ZROOT + Constants.ZINSTANCES)) {
+          String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + name;
+          byte[] bytes = zrw.getData(instanceNamePath, new Stat());
+          String iid = new String(bytes, Charsets.UTF_8);
+          if (iid.equals(instanceIdFromFile)) {
+            instanceName = name;
+          }
+        }
+      } catch (KeeperException e) {
+        throw new RuntimeException("Unable to read instance name from zookeeper.", e);
+      }
+      if (instanceName == null)
+        throw new RuntimeException("Unable to read instance name from zookeeper.");
+
+      config.setInstanceName(instanceName);
+      if (!AccumuloStatus.isAccumuloOffline(zrw, rootPath))
+        throw new RuntimeException("The Accumulo instance being used is already running. Aborting.");
+    } else {
+      if (!initialized) {
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+          @Override
+          public void run() {
+            try {
+              MiniAccumuloClusterImpl.this.stop();
+            } catch (IOException e) {
+              log.error("IOException while attempting to stop the MiniAccumuloCluster.", e);
+            } catch (InterruptedException e) {
+              log.error("The stopping of MiniAccumuloCluster was interrupted.", e);
+            }
+          }
+        });
+      }
+
+      if (zooKeeperProcess == null) {
+        zooKeeperProcess = _exec(ZooKeeperServerMain.class, ServerType.ZOOKEEPER, zooCfgFile.getAbsolutePath());
+      }
+
+      if (!initialized) {
+        // sleep a little bit to let zookeeper come up before calling init, seems to work better
+        long startTime = System.currentTimeMillis();
+        while (true) {
+          Socket s = null;
           try {
-            MiniAccumuloClusterImpl.this.stop();
-          } catch (IOException e) {
-            log.error("IOException while attempting to stop the MiniAccumuloCluster.", e);
-          } catch (InterruptedException e) {
-            log.error("The stopping of MiniAccumuloCluster was interrupted.", e);
+            s = new Socket("localhost", config.getZooKeeperPort());
+            s.getOutputStream().write("ruok\n".getBytes());
+            s.getOutputStream().flush();
+            byte buffer[] = new byte[100];
+            int n = s.getInputStream().read(buffer);
+            if (n >= 4 && new String(buffer, 0, 4).equals("imok"))
+              break;
+          } catch (Exception e) {
+            if (System.currentTimeMillis() - startTime >= config.getZooKeeperStartupTime()) {
+              throw new ZooKeeperBindException("Zookeeper did not start within " + (config.getZooKeeperStartupTime() / 1000) + " seconds. Check the logs in "
+                  + config.getLogDir() + " for errors.  Last exception: " + e);
+            }
+          } finally {
+            if (s != null)
+              s.close();
           }
         }
-      });
-    }
-
-    if (zooKeeperProcess == null) {
-      zooKeeperProcess = _exec(ZooKeeperServerMain.class, ServerType.ZOOKEEPER, zooCfgFile.getAbsolutePath());
-    }
-
-    if (!initialized) {
-      // sleep a little bit to let zookeeper come up before calling init, seems to work better
-      long startTime = System.currentTimeMillis();
-      while (true) {
-        Socket s = null;
-        try {
-          s = new Socket("localhost", config.getZooKeeperPort());
-          s.getOutputStream().write("ruok\n".getBytes());
-          s.getOutputStream().flush();
-          byte buffer[] = new byte[100];
-          int n = s.getInputStream().read(buffer);
-          if (n >= 4 && new String(buffer, 0, 4).equals("imok"))
-            break;
-        } catch (Exception e) {
-          if (System.currentTimeMillis() - startTime >= config.getZooKeeperStartupTime()) {
-            throw new ZooKeeperBindException("Zookeeper did not start within " + (config.getZooKeeperStartupTime() / 1000) + " seconds. Check the logs in "
-                + config.getLogDir() + " for errors.  Last exception: " + e);
-          }
-          UtilWaitThread.sleep(250);
-        } finally {
-          if (s != null)
-            s.close();
+        Process initProcess = exec(Initialize.class, "--instance-name", config.getInstanceName(), "--password", config.getRootPassword());
+        int ret = initProcess.waitFor();
+        if (ret != 0) {
+          throw new RuntimeException("Initialize process returned " + ret + ". Check the logs in " + config.getLogDir() + " for errors.");
         }
+        initialized = true;
       }
-      Process initProcess = exec(Initialize.class, "--instance-name", config.getInstanceName(), "--password", config.getRootPassword());
-      int ret = initProcess.waitFor();
-      if (ret != 0) {
-        throw new RuntimeException("Initialize process returned " + ret + ". Check the logs in " + config.getLogDir() + " for errors.");
-      }
-      initialized = true;
     }
+
+    log.info("Starting MAC against instance {} and zookeeper(s) {}.", config.getInstanceName(), config.getZooKeepers());
+
     synchronized (tabletServerProcesses) {
       for (int i = tabletServerProcesses.size(); i < config.getNumTservers(); i++) {
         tabletServerProcesses.add(_exec(TabletServer.class, ServerType.TABLET_SERVER));
@@ -743,11 +811,11 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   private int stopProcessWithTimeout(final Process proc, long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
     FutureTask<Integer> future = new FutureTask<Integer>(new Callable<Integer>() {
-        @Override
-        public Integer call() throws InterruptedException {
-          proc.destroy();
-          return proc.waitFor();
-        }
+      @Override
+      public Integer call() throws InterruptedException {
+        proc.destroy();
+        return proc.waitFor();
+      }
     });
 
     executor.execute(future);
@@ -756,9 +824,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   }
 
   /**
-   * Get programmatic interface to information available in a normal monitor.
-   * XXX the returned structure won't contain information about the metadata table until there is data in it.
-   * e.g. if you want to see the metadata table you should create a table.
+   * Get programmatic interface to information available in a normal monitor. XXX the returned structure won't contain information about the metadata table
+   * until there is data in it. e.g. if you want to see the metadata table you should create a table.
+   * 
    * @since 1.6.1
    */
   public MasterMonitorInfo getMasterMonitorInfo() throws AccumuloException, AccumuloSecurityException {
