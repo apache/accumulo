@@ -122,7 +122,7 @@ public class FinishedWorkUpdater implements Runnable {
 
           // Find the minimum value for begin (everyone has replicated up to this offset in the file)
           tableIdToProgress.put(target.getSourceTableId(), Math.min(tableIdToProgress.get(target.getSourceTableId()), status.getBegin()));
-        } 
+        }
 
         if (error) {
           continue;
@@ -150,6 +150,8 @@ public class FinishedWorkUpdater implements Runnable {
 
           // Make the mutation
           StatusSection.add(replMutation, buffer, serializedUpdatedStatus);
+
+          log.debug("Updating replication status entry for {} with {}", serializedRow.getKey().getRow(), updatedStatus);
 
           try {
             replBw.addMutation(replMutation);

@@ -106,7 +106,7 @@ public class RemoveCompleteReplicationRecords implements Runnable {
   /**
    * Removes {@link Status} records read from the given {@code bs} and writes a delete, using the given {@code bw}, when that {@link Status} is fully replicated
    * and closed, as defined by {@link StatusUtil#isSafeForRemoval(Status)}.
-   * 
+   *
    * @param conn
    *          A Connector
    * @param bs
@@ -164,6 +164,8 @@ public class RemoveCompleteReplicationRecords implements Runnable {
       k.getColumnFamily(colf);
       k.getColumnQualifier(colq);
 
+      log.debug("Removing {} {}:{} from replication table", row, colf, colq);
+
       m.putDelete(colf, colq);
 
       String tableId;
@@ -187,8 +189,6 @@ public class RemoveCompleteReplicationRecords implements Runnable {
 
       recordsRemoved++;
     }
-
-    log.info("Removing {} from the replication table", row);
 
     List<Mutation> mutations = new ArrayList<>();
     mutations.add(m);

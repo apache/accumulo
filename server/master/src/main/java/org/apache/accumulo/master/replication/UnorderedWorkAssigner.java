@@ -70,6 +70,7 @@ public class UnorderedWorkAssigner extends DistributedWorkQueueWorkAssigner {
   /**
    * Initialize the queuedWork set with the work already sent out
    */
+  @Override
   protected void initializeQueuedWork() {
     if (null != queuedWork) {
       return;
@@ -98,7 +99,7 @@ public class UnorderedWorkAssigner extends DistributedWorkQueueWorkAssigner {
 
   /**
    * Distribute the work for the given path with filename
-   * 
+   *
    * @param path
    *          Path to the file being replicated
    * @param target
@@ -108,6 +109,7 @@ public class UnorderedWorkAssigner extends DistributedWorkQueueWorkAssigner {
   protected boolean queueWork(Path path, ReplicationTarget target) {
     String queueKey = DistributedWorkQueueWorkAssignerHelper.getQueueKey(path.getName(), target);
     if (queuedWork.contains(queueKey)) {
+      log.debug("{} is already queued to be replicated to {}, not re-queueing", path, target);
       return false;
     }
 
