@@ -422,7 +422,8 @@ class DatafileManager {
 
       // Mark that we have data we want to replicate
       // This WAL could still be in use by other Tablets *from the same table*, so we can only mark that there is data to replicate,
-      // but it is *not* closed
+      // but it is *not* closed. We know it is not closed by the fact that this MinC triggered. A MinC cannot happen unless the
+      // tablet is online and thus these WALs are referenced by that tablet. Therefore, the WAL replication status cannot be 'closed'.
       if (replicate) {
         if (log.isDebugEnabled()) {
           log.debug("Recording that data has been ingested into " + tablet.getExtent() + " using " + logFileOnly);
