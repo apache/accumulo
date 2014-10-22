@@ -103,7 +103,7 @@ public class WorkMaker {
           continue;
         }
 
-        // Don't create the record if we have nothing to do
+        // Don't create the record if we have nothing to do.
         // TODO put this into a filter on serverside
         if (!shouldCreateWork(status)) {
           continue;
@@ -155,6 +155,9 @@ public class WorkMaker {
    * @return Should a Work entry be created for this status
    */
   protected boolean shouldCreateWork(Status status) {
+    // Only creating work when there is work to do (regardless of closed status) is safe
+    // as long as the ReplicaSystem implementation is correctly observing
+    // that a file is completely replicated only when the file is closed
     return StatusUtil.isWorkRequired(status);
   }
 
