@@ -633,7 +633,8 @@ public class Tablet implements TabletCommitter {
           logEntries.clear();
         } else if (ReplicationConfigurationUtil.isEnabled(extent, tabletServer.getTableConfiguration(extent))) {
           // The logs are about to be re-used, we need to record that they have data for this extent,
-          // but that they may get more data
+          // but that they may get more data. logEntries is not cleared which will cause the elements
+          // in logEntries to be added to the currentLogs for this Tablet below.
           Status status = StatusUtil.openWithUnknownLength();
           for (LogEntry logEntry : logEntries) {
             log.debug("Writing updated status to metadata table for " + logEntry.logSet + " " + ProtobufUtil.toString(status));
