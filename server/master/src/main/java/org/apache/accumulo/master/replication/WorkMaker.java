@@ -155,7 +155,7 @@ public class WorkMaker {
    * @return Should a Work entry be created for this status
    */
   protected boolean shouldCreateWork(Status status) {
-    return status.getClosed() || StatusUtil.isWorkRequired(status);
+    return StatusUtil.isWorkRequired(status);
   }
 
   protected void addWorkRecord(Text file, Value v, Map<String,String> targets, String sourceTableId) {
