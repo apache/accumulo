@@ -241,7 +241,9 @@ public class VolumeUtil {
         Status status = StatusUtil.fileClosed();
         log.debug("Tablet directory switched, need to record old log files " + logsToRemove + " " + ProtobufUtil.toString(status));
         // Before deleting these logs, we need to mark them for replication
-        ReplicationTableUtil.updateLogs(creds, extent, logsToRemove, status);
+        for (LogEntry logEntry : logsToRemove) {
+          ReplicationTableUtil.updateFiles(creds, extent, logEntry.logSet, status);
+        }
       }
     }
 

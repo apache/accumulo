@@ -45,7 +45,6 @@ import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.StatusFormatter;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Credentials;
-import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.client.HdfsZooInstance;
@@ -78,11 +77,11 @@ public class ReplicationTableUtil {
    * @param writer
    *          A Writer to use for the given credentials
    */
-  protected synchronized static void addWriter(Credentials creds, Writer writer) {
+  synchronized static void addWriter(Credentials creds, Writer writer) {
     writers.put(creds, writer);
   }
 
-  protected synchronized static Writer getWriter(Credentials credentials) {
+  synchronized static Writer getWriter(Credentials credentials) {
     Writer replicationTable = writers.get(credentials);
     if (replicationTable == null) {
       Instance inst = HdfsZooInstance.getInstance();
@@ -157,7 +156,7 @@ public class ReplicationTableUtil {
   /**
    * Write the given Mutation to the replication table.
    */
-  protected static void update(Credentials credentials, Mutation m, KeyExtent extent) {
+  static void update(Credentials credentials, Mutation m, KeyExtent extent) {
     Writer t = getWriter(credentials);
     while (true) {
       try {
@@ -173,12 +172,6 @@ public class ReplicationTableUtil {
         log.error(e.toString(), e);
       }
       UtilWaitThread.sleep(1000);
-    }
-  }
-
-  public static void updateLogs(Credentials creds, KeyExtent extent, Collection<LogEntry> logs, Status stat) {
-    for (LogEntry entry : logs) {
-      updateFiles(creds, extent, entry.logSet, stat);
     }
   }
 
@@ -201,7 +194,7 @@ public class ReplicationTableUtil {
     }
   }
 
-  public static Mutation createUpdateMutation(Path file, Value v, KeyExtent extent) {
+  static Mutation createUpdateMutation(Path file, Value v, KeyExtent extent) {
     // Need to normalize the file path so we can assuredly find it again later
     return createUpdateMutation(new Text(ReplicationSection.getRowPrefix() + file.toString()), v, extent);
   }
