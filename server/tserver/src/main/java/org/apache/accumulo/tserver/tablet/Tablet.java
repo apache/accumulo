@@ -621,15 +621,6 @@ public class Tablet implements TabletCommitter {
           log.debug("No replayed mutations applied, removing unused entries for " + extent);
           MetadataTableUtil.removeUnusedWALEntries(extent, logEntries, tabletServer.getLock());
 
-          // Ensure that we write a record marking each WAL as requiring replication to make sure we don't abandon the data
-          if (ReplicationConfigurationUtil.isEnabled(extent, tabletServer.getTableConfiguration(extent))) {
-            Status status = StatusUtil.fileClosed();
-            for (LogEntry logEntry : logEntries) {
-              log.debug("Writing closed status to metadata table for " + logEntry.logSet + " " + ProtobufUtil.toString(status));
-              ReplicationTableUtil.updateFiles(SystemCredentials.get(), extent, logEntry.logSet, status);
-            }
-          }
-
           logEntries.clear();
         } else if (ReplicationConfigurationUtil.isEnabled(extent, tabletServer.getTableConfiguration(extent))) {
           // The logs are about to be re-used, we need to record that they have data for this extent,
