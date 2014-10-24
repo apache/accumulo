@@ -16,18 +16,26 @@
  */
 package org.apache.accumulo.test.randomwalk.bulk;
 
-import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.data.Value;
+import java.util.Properties;
+
 import org.apache.accumulo.test.randomwalk.State;
 
-public class BulkMinusOne extends BulkImportTest {
-
-  private static final Value negOne = new Value("-1".getBytes(Constants.UTF8));
+/**
+ * Selectively runs the actual {@link BulkTest} based on the number of active TServers and the number of queued operations.
+ */
+public abstract class SelectiveBulkTest extends BulkTest {
 
   @Override
-  protected void runLater(State state) throws Exception {
-    log.info("Decrementing");
-    BulkPlusOne.bulkLoadLots(log, state, negOne);
+  public void visit(State state, Properties props) throws Exception {
+    if (SelectiveQueueing.shouldQueueOperation(state)) {
+      super.visit(state, props);
+    } else {
+      log.debug("Skipping queueing of " + getClass().getSimpleName() + " because of excessive queued tasks already");
+      log.debug("Waiting 30 seconds before continuing");
+      try {
+        Thread.sleep(30 * 1000);
+      } catch (InterruptedException e) {}
+    }
   }
 
 }

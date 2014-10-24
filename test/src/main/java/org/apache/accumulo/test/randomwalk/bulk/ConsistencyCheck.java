@@ -28,8 +28,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.hadoop.io.Text;
 
-public class ConsistencyCheck extends BulkTest {
-  
+public class ConsistencyCheck extends SelectiveBulkTest {
+
   @Override
   protected void runLater(State state) throws Exception {
     Random rand = (Random) state.get("rand");
@@ -52,5 +52,5 @@ public class ConsistencyCheck extends BulkTest {
         throw new RuntimeException("Inconsistent value at " + entry.getKey() + " was " + entry.getValue() + " should be " + v + " first read at " + first);
     }
   }
-  
+
 }

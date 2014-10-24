@@ -23,8 +23,8 @@ import java.util.TreeSet;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.hadoop.io.Text;
 
-public class Split extends BulkTest {
-  
+public class Split extends SelectiveBulkTest {
+
   @Override
   protected void runLater(State state) throws Exception {
     SortedSet<Text> splits = new TreeSet<Text>();
@@ -36,5 +36,5 @@ public class Split extends BulkTest {
     state.getConnector().tableOperations().addSplits(Setup.getTableName(), splits);
     log.info("split for " + splits + " finished");
   }
-  
+
 }

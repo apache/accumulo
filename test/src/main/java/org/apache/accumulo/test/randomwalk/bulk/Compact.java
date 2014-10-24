@@ -19,8 +19,8 @@ package org.apache.accumulo.test.randomwalk.bulk;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.hadoop.io.Text;
 
-public class Compact extends BulkTest {
-  
+public class Compact extends SelectiveBulkTest {
+
   @Override
   protected void runLater(State state) throws Exception {
     final Text[] points = Merge.getRandomTabletRange(state);
@@ -29,5 +29,5 @@ public class Compact extends BulkTest {
     state.getConnector().tableOperations().compact(Setup.getTableName(), points[0], points[1], false, true);
     log.info("Compaction " + rangeString + " finished");
   }
-  
+
 }
