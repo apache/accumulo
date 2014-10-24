@@ -20,25 +20,23 @@ import java.util.Properties;
 
 import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
-import org.apache.accumulo.test.randomwalk.Test;
 
-public abstract class BulkTest extends Test {
+/**
+ * Selectively runs the actual {@link BulkTest} based on the number of active TServers and the number of queued operations.
+ */
+public abstract class SelectiveBulkTest extends BulkTest {
 
   @Override
-  public void visit(final State state, final Environment env, Properties props) throws Exception {
-    Setup.run(state, new Runnable() {
-      @Override
-      public void run() {
-        try {
-          runLater(state, env);
-        } catch (Throwable ex) {
-          log.error(ex, ex);
-        }
-      }
-
-    });
+  public void visit(State state, Environment env, Properties props) throws Exception {
+    if (SelectiveQueueing.shouldQueueOperation(state, env)) {
+      super.visit(state, env, props);
+    } else {
+      log.debug("Skipping queueing of " + getClass().getSimpleName() + " because of excessive queued tasks already");
+      log.debug("Waiting 30 seconds before continuing");
+      try {
+        Thread.sleep(30 * 1000);
+      } catch (InterruptedException e) {}
+    }
   }
-
-  abstract protected void runLater(State state, Environment env) throws Exception;
 
 }

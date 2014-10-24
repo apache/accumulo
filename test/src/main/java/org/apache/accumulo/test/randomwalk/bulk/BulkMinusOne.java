@@ -22,14 +22,14 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 
-public class BulkMinusOne extends BulkTest {
-  
+public class BulkMinusOne extends BulkImportTest {
+
   private static final Value negOne = new Value("-1".getBytes(StandardCharsets.UTF_8));
-  
+
   @Override
   protected void runLater(State state, Environment env) throws Exception {
     log.info("Decrementing");
     BulkPlusOne.bulkLoadLots(log, state, env, negOne);
   }
-  
+
 }

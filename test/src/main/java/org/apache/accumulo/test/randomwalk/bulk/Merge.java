@@ -23,8 +23,8 @@ import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.hadoop.io.Text;
 
-public class Merge extends BulkTest {
-  
+public class Merge extends SelectiveBulkTest {
+
   @Override
   protected void runLater(State state, Environment env) throws Exception {
     Text[] points = getRandomTabletRange(state);
@@ -32,15 +32,15 @@ public class Merge extends BulkTest {
     env.getConnector().tableOperations().merge(Setup.getTableName(), points[0], points[1]);
     log.info("merging " + rangeToString(points) + " complete");
   }
-  
+
   public static String rangeToString(Text[] points) {
     return "(" + (points[0] == null ? "-inf" : points[0]) + " -> " + (points[1] == null ? "+inf" : points[1]) + "]";
   }
-  
+
   public static Text getRandomRow(Random rand) {
     return new Text(String.format(BulkPlusOne.FMT, (rand.nextLong() & 0x7fffffffffffffffl) % BulkPlusOne.LOTS));
   }
-  
+
   public static Text[] getRandomTabletRange(State state) {
     Random rand = (Random) state.get("rand");
     Text points[] = {getRandomRow(rand), getRandomRow(rand),};
@@ -57,5 +57,5 @@ public class Merge extends BulkTest {
     }
     return points;
   }
-  
+
 }
