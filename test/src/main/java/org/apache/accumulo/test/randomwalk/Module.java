@@ -294,13 +294,13 @@ public class Module extends Node {
             // Bound the time we'll wait for the node to complete
             nodeException = task.get(secondsRemaining, TimeUnit.SECONDS);
           } catch (InterruptedException e) {
-            log.warn("Interrupted waiting for RandomWalk node to complete. Exiting.", e);
+            log.warn("Interrupted waiting for " + nextNode.getClass().getSimpleName() + " to complete. Exiting.", e);
             break;
           } catch (ExecutionException e) {
-            log.error("Caught error executing RandomWalk node", e);
+            log.error("Caught error executing " + nextNode.getClass().getSimpleName(), e);
             throw e;
           } catch (TimeoutException e) {
-            log.info("Timed out waiting for RandomWalk node to complete (waited " + secondsRemaining + " seconds). Exiting.", e);
+            log.info("Timed out waiting for " + nextNode.getClass().getSimpleName() + " to complete (waited " + secondsRemaining + " seconds). Exiting.", e);
             break;
           }
 
