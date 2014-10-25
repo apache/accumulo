@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -65,6 +66,8 @@ import com.google.common.collect.Multimap;
 public class VolumeManagerImpl implements VolumeManager {
 
   private static final Logger log = Logger.getLogger(VolumeManagerImpl.class);
+
+  private static final HashSet<String> WARNED_ABOUT_SYNCONCLOSE = new HashSet<String>();
 
   Map<String,Volume> volumesByName;
   Multimap<URI,Volume> volumesByFileSystemUri;
@@ -262,7 +265,13 @@ public class VolumeManagerImpl implements VolumeManager {
 
           // Everything else
           if (!fs.getConf().getBoolean("dfs.datanode.synconclose", false)) {
-            log.warn("dfs.datanode.synconclose set to false in hdfs-site.xml: data loss is possible on system reset or power loss");
+            // Only warn once per process per volume URI
+            synchronized (WARNED_ABOUT_SYNCONCLOSE) {
+              if (!WARNED_ABOUT_SYNCONCLOSE.contains(entry.getKey())) {
+                WARNED_ABOUT_SYNCONCLOSE.add(entry.getKey());
+                log.warn("dfs.datanode.synconclose set to false in hdfs-site.xml: data loss is possible on hard system reset or power loss");
+              }
+            }
           }
         } catch (ClassNotFoundException ex) {
           // hadoop 1.0.X or hadoop 1.1.0

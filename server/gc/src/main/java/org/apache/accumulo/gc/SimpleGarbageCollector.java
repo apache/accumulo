@@ -144,17 +144,19 @@ public class SimpleGarbageCollector implements Iface {
 
   public static void main(String[] args) throws UnknownHostException, IOException {
     SecurityUtil.serverLogin(SiteConfiguration.getInstance());
+    final String app = "gc";
+    Accumulo.setupLogging(app);
     Instance instance = HdfsZooInstance.getInstance();
     ServerConfigurationFactory conf = new ServerConfigurationFactory(instance);
     final VolumeManager fs = VolumeManagerImpl.get();
-    Accumulo.init(fs, conf, "gc");
+    Accumulo.init(fs, conf, app);
     Opts opts = new Opts();
-    opts.parseArgs("gc", args);
+    opts.parseArgs(app, args);
     SimpleGarbageCollector gc = new SimpleGarbageCollector(opts);
     AccumuloConfiguration config = conf.getConfiguration();
 
     gc.init(fs, instance, SystemCredentials.get(), config);
-    Accumulo.enableTracing(opts.getAddress(), "gc");
+    Accumulo.enableTracing(opts.getAddress(), app);
     gc.run();
   }
 

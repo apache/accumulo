@@ -1235,15 +1235,17 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     try {
       SecurityUtil.serverLogin(SiteConfiguration.getInstance());
 
-      VolumeManager fs = VolumeManagerImpl.get();
       ServerOpts opts = new ServerOpts();
-      opts.parseArgs("master", args);
+      final String app = "master";
+      opts.parseArgs(app, args);
       String hostname = opts.getAddress();
+      Accumulo.setupLogging(app);
       Instance instance = HdfsZooInstance.getInstance();
       ServerConfigurationFactory conf = new ServerConfigurationFactory(instance);
-      Accumulo.init(fs, conf, "master");
+      VolumeManager fs = VolumeManagerImpl.get();
+      Accumulo.init(fs, conf, app);
       Master master = new Master(conf, fs, hostname);
-      Accumulo.enableTracing(hostname, "master");
+      Accumulo.enableTracing(hostname, app);
       master.run();
     } catch (Exception ex) {
       log.error("Unexpected exception, exiting", ex);
