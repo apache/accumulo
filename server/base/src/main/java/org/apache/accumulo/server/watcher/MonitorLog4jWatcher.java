@@ -22,9 +22,7 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.log4j.Appender;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
 import org.apache.log4j.helpers.FileWatchdog;
-import org.apache.log4j.xml.DOMConfigurator;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -41,20 +39,22 @@ public class MonitorLog4jWatcher extends FileWatchdog implements Watcher {
   private static final String PORT_PROPERTY_NAME = "org.apache.accumulo.core.host.log.port";
 
   private final Object lock;
-  private final boolean usingProperties;
+  private final Log4jConfiguration logConfig;
   private boolean loggingDisabled = false;
   protected String path;
 
   public MonitorLog4jWatcher(String instance, String filename) {
     super(filename);
-    usingProperties = (filename != null && filename.endsWith(".properties"));
     this.path = ZooUtil.getRoot(instance) + Constants.ZMONITOR_LOG4J_ADDR;
     this.lock = new Object();
+    this.logConfig = new Log4jConfiguration(filename);
+    doOnChange();
   }
 
   boolean isUsingProperties() {
-    return usingProperties;
+    return logConfig.isUsingProperties();
   }
+
   String getPath() {
     return path;
   }
@@ -74,11 +74,10 @@ public class MonitorLog4jWatcher extends FileWatchdog implements Watcher {
   }
 
   @Override
-  protected void doOnChange() {
+  public void doOnChange() {
     // this method gets called in the parent class' constructor
     // I'm not sure of a better way to get around this. The final modifier helps though.
     if (null == lock) {
-      resetLogger();
       return;
     }
 
@@ -87,17 +86,7 @@ public class MonitorLog4jWatcher extends FileWatchdog implements Watcher {
       // Either way will result in log-forwarding being restarted
       loggingDisabled = false;
       log.info("Enabled log-forwarding");
-      resetLogger();
-    }
-  }
-
-  private void resetLogger() {
-    // Force a reset on the logger's configuration
-    LogManager.resetConfiguration();
-    if (usingProperties) {
-      new PropertyConfigurator().doConfigure(filename, LogManager.getLoggerRepository());
-    } else {
-      new DOMConfigurator().doConfigure(filename, LogManager.getLoggerRepository());
+      logConfig.resetLogger();
     }
   }
 

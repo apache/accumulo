@@ -285,14 +285,16 @@ public class TraceServer implements Watcher {
   public static void main(String[] args) throws Exception {
     SecurityUtil.serverLogin(ServerConfiguration.getSiteConfiguration());
     ServerOpts opts = new ServerOpts();
-    opts.parseArgs("tracer", args);
+    final String app = "tracer";
+    opts.parseArgs(app, args);
+    Accumulo.setupLogging(app);
     Instance instance = HdfsZooInstance.getInstance();
     ServerConfiguration conf = new ServerConfiguration(instance);
     VolumeManager fs = VolumeManagerImpl.get();
-    Accumulo.init(fs, conf, "tracer");
+    Accumulo.init(fs, conf, app);
     String hostname = opts.getAddress();
     TraceServer server = new TraceServer(conf, hostname);
-    Accumulo.enableTracing(hostname, "tserver");
+    Accumulo.enableTracing(hostname, app);
     server.run();
     log.info("tracer stopping");
   }

@@ -3661,16 +3661,18 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   public static void main(String[] args) throws IOException {
     try {
       SecurityUtil.serverLogin(ServerConfiguration.getSiteConfiguration());
-      VolumeManager fs = VolumeManagerImpl.get();
       ServerOpts opts = new ServerOpts();
       opts.parseArgs("tserver", args);
       String hostname = opts.getAddress();
-      Instance instance = HdfsZooInstance.getInstance();
+      final String app = "tserver";
+      Accumulo.setupLogging(app);
+      final Instance instance = HdfsZooInstance.getInstance();
       ServerConfiguration conf = new ServerConfiguration(instance);
+      VolumeManager fs = VolumeManagerImpl.get();
       Accumulo.init(fs, conf, "tserver");
       TabletServer server = new TabletServer(conf, fs);
       server.config(hostname);
-      Accumulo.enableTracing(hostname, "tserver");
+      Accumulo.enableTracing(hostname, app);
       server.run();
     } catch (Exception ex) {
       log.error("Uncaught exception in TabletServer.main, exiting", ex);
