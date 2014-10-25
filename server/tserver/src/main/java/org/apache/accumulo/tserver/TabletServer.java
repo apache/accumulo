@@ -3662,14 +3662,14 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     try {
       SecurityUtil.serverLogin(ServerConfiguration.getSiteConfiguration());
       ServerOpts opts = new ServerOpts();
-      opts.parseArgs("tserver", args);
-      String hostname = opts.getAddress();
       final String app = "tserver";
+      opts.parseArgs(app, args);
+      String hostname = opts.getAddress();
       Accumulo.setupLogging(app);
       final Instance instance = HdfsZooInstance.getInstance();
       ServerConfiguration conf = new ServerConfiguration(instance);
       VolumeManager fs = VolumeManagerImpl.get();
-      Accumulo.init(fs, conf, "tserver");
+      Accumulo.init(fs, conf, app);
       TabletServer server = new TabletServer(conf, fs);
       server.config(hostname);
       Accumulo.enableTracing(hostname, app);
