@@ -18,23 +18,36 @@ package org.apache.accumulo.test.randomwalk.multitable;
 
 import java.util.ArrayList;
 import java.util.Properties;
+import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
+import org.apache.hadoop.io.Text;
 
 public class CreateTable extends Test {
-  
+
+  private final TreeSet<Text> splits;
+
+  public CreateTable() {
+    splits = new TreeSet<Text>();
+    for (int i = 1; i < 10; i++) {
+      splits.add(new Text(Integer.toString(i)));
+    }
+  }
+
   @Override
   public void visit(State state, Properties props) throws Exception {
     Connector conn = state.getConnector();
-    
+
     int nextId = ((Integer) state.get("nextId")).intValue();
     String tableName = String.format("%s_%d", state.getString("tableNamePrefix"), nextId);
     try {
       conn.tableOperations().create(tableName);
+      // Add some splits to make the server's life easier
+      conn.tableOperations().addSplits(tableName, splits);
       String tableId = Tables.getNameToIdMap(state.getInstance()).get(tableName);
       log.debug("created " + tableName + " (id:" + tableId + ")");
       @SuppressWarnings("unchecked")
@@ -43,7 +56,7 @@ public class CreateTable extends Test {
     } catch (TableExistsException e) {
       log.warn("Failed to create " + tableName + " as it already exists");
     }
-    
+
     nextId++;
     state.set("nextId", Integer.valueOf(nextId));
   }
