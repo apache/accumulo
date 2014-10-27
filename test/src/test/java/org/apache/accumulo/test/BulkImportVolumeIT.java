@@ -35,7 +35,12 @@ public class BulkImportVolumeIT extends ConfigurableMacIT {
 
   File volDirBase = null;
   Path v1, v2;
-  
+
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 60;
+  }
+
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     File baseDir = cfg.getDir();
@@ -54,7 +59,7 @@ public class BulkImportVolumeIT extends ConfigurableMacIT {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
-  @Test(timeout= 60 * 1000) 
+  @Test
   public void testBulkImportFailure() throws Exception {
     String tableName = getUniqueNames(1)[0];
     TableOperations to = getConnector().tableOperations();
@@ -69,6 +74,6 @@ public class BulkImportVolumeIT extends ConfigurableMacIT {
     to.importDirectory(tableName, bulk.toString(), err.toString(), false);
     assertEquals(1, err.list().length);
   }
-  
+
 
 }

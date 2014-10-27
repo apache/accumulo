@@ -53,6 +53,11 @@ public class MultiTableBatchWriterIT extends SimpleMacIT {
   private Connector connector;
   private MultiTableBatchWriter mtbw;
 
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 5 * 60;
+  }
+
   @Before
   public void setUpArgs() throws AccumuloException, AccumuloSecurityException {
     connector = getConnector();

@@ -26,8 +26,13 @@ import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.junit.Test;
 
 public class DeleteRowsIT extends SimpleMacIT {
-  
-  @Test(timeout = 5 * 60 * 1000)
+
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 5 * 60;
+  }
+
+  @Test
   public void test() throws Exception {
     Connector c = getConnector();
     String[] tableNames = this.getUniqueNames(20);

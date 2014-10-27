@@ -266,7 +266,12 @@ public class ShellServerIT extends SimpleMacIT {
     ts.shell.shutdown();
   }
 
-  @Test(timeout = 60000)
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 60;
+  }
+
+  @Test
   public void exporttableImporttable() throws Exception {
     final String table = name.getMethodName(), table2 = table + "2";
 
@@ -310,7 +315,7 @@ public class ShellServerIT extends SimpleMacIT {
     throw new RuntimeException("Unexpected constructors for DistCp");
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void setscaniterDeletescaniter() throws Exception {
     final String table = name.getMethodName();
 
@@ -328,7 +333,7 @@ public class ShellServerIT extends SimpleMacIT {
 
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void execfile() throws Exception {
     // execfile
     File file = File.createTempFile("ShellServerIT.execfile", ".conf", getFolder());
@@ -339,7 +344,7 @@ public class ShellServerIT extends SimpleMacIT {
 
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void egrep() throws Exception {
     final String table = name.getMethodName();
 
@@ -351,7 +356,7 @@ public class ShellServerIT extends SimpleMacIT {
     ts.exec("deletetable -f " + table);
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void du() throws Exception {
     final String table = name.getMethodName();
 
@@ -375,7 +380,7 @@ public class ShellServerIT extends SimpleMacIT {
     ts.exec("deletetable -f " + table);
   }
 
-  @Test(timeout = 1000)
+  @Test
   public void debug() throws Exception {
     ts.exec("debug", true, "off", true);
     ts.exec("debug on", true);
@@ -386,7 +391,7 @@ public class ShellServerIT extends SimpleMacIT {
     ts.exec("debug debug debug", false);
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void user() throws Exception {
     final String table = name.getMethodName();
 
@@ -422,7 +427,7 @@ public class ShellServerIT extends SimpleMacIT {
     ts.exec("users", true, "xyzzy", false);
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void iter() throws Exception {
     final String table = name.getMethodName();
 
@@ -471,7 +476,7 @@ public class ShellServerIT extends SimpleMacIT {
 
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void setIterOptionPrompt() throws Exception {
     Connector conn = getConnector();
     String tableName = name.getMethodName();
@@ -555,7 +560,7 @@ public class ShellServerIT extends SimpleMacIT {
     fail("Failed to find expected property on " + tableName + ": " + expectedKey + "=" + expectedValue);
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void notable() throws Exception {
     final String table = name.getMethodName();
 
@@ -569,7 +574,7 @@ public class ShellServerIT extends SimpleMacIT {
     ts.exec("deletetable -f " + table);
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void sleep() throws Exception {
     // sleep
     long now = System.currentTimeMillis();
@@ -579,7 +584,7 @@ public class ShellServerIT extends SimpleMacIT {
     assertTrue("Diff was actually " + diff, diff < 600);
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void addauths() throws Exception {
     final String table = name.getMethodName();
     // addauths
@@ -633,7 +638,7 @@ public class ShellServerIT extends SimpleMacIT {
     ts.exec("deletetable -f " + table);
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void byeQuitExit() throws Exception {
     // bye, quit, exit
     for (String cmd : "bye quit exit".split(" ")) {
@@ -644,13 +649,13 @@ public class ShellServerIT extends SimpleMacIT {
     }
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void classpath() throws Exception {
     // classpath
     ts.exec("classpath", true, "Level 2: Java Classloader (loads everything defined by java classpath) URL classpath items are", true);
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void clearCls() throws Exception {
     // clear/cls
     if (ts.shell.getReader().getTerminal().isAnsiSupported()) {
@@ -662,7 +667,7 @@ public class ShellServerIT extends SimpleMacIT {
     }
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void clonetable() throws Exception {
     final String table = name.getMethodName(), clone = table + "_clone";
 
@@ -681,7 +686,7 @@ public class ShellServerIT extends SimpleMacIT {
     ts.exec("deletetable -f " + clone);
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void testCompactions() throws Exception {
     final String table = name.getMethodName();
 
@@ -721,7 +726,7 @@ public class ShellServerIT extends SimpleMacIT {
     ts.exec("deletetable -f " + table);
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void constraint() throws Exception {
     final String table = name.getMethodName();
 
@@ -740,7 +745,7 @@ public class ShellServerIT extends SimpleMacIT {
     ts.exec("deletetable -f " + table);
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void deletemany() throws Exception {
     final String table = name.getMethodName();
 
@@ -769,7 +774,7 @@ public class ShellServerIT extends SimpleMacIT {
     ts.exec("deletetable -f " + table);
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void deleterows() throws Exception {
     final String table = name.getMethodName();
 
@@ -801,7 +806,7 @@ public class ShellServerIT extends SimpleMacIT {
     ts.exec("deletetable -f " + table);
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void groups() throws Exception {
     final String table = name.getMethodName();
 
@@ -812,7 +817,7 @@ public class ShellServerIT extends SimpleMacIT {
     ts.exec("deletetable -f " + table);
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void grep() throws Exception {
     final String table = name.getMethodName();
 
@@ -847,7 +852,7 @@ public class ShellServerIT extends SimpleMacIT {
     ts.exec("history", true, "history", true);
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void importDirectory() throws Exception {
     final String table = name.getMethodName();
 
@@ -885,12 +890,12 @@ public class ShellServerIT extends SimpleMacIT {
     ts.exec("deletetable -f " + table);
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void info() throws Exception {
     ts.exec("info", true, Constants.VERSION, true);
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void interpreter() throws Exception {
     final String table = name.getMethodName();
 
@@ -907,7 +912,7 @@ public class ShellServerIT extends SimpleMacIT {
     ts.exec("deletetable -f " + table, true);
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void listcompactions() throws Exception {
     final String table = name.getMethodName();
 
@@ -928,7 +933,7 @@ public class ShellServerIT extends SimpleMacIT {
     ts.exec("deletetable -f " + table, true);
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void maxrow() throws Exception {
     final String table = name.getMethodName();
 
@@ -943,7 +948,7 @@ public class ShellServerIT extends SimpleMacIT {
     ts.exec("deletetable -f " + table, true);
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void merge() throws Exception {
     final String table = name.getMethodName();
 
@@ -962,7 +967,7 @@ public class ShellServerIT extends SimpleMacIT {
     assertEquals(1, ts.output.get().split("\n").length);
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void ping() throws Exception {
     for (int i = 0; i < 10; i++) {
       ts.exec("ping", true, "OK", true);
@@ -975,7 +980,7 @@ public class ShellServerIT extends SimpleMacIT {
     assertEquals(3, ts.output.get().split("\n").length);
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void renametable() throws Exception {
     final String table = name.getMethodName() + "1", rename = name.getMethodName() + "2";
 
@@ -988,7 +993,7 @@ public class ShellServerIT extends SimpleMacIT {
     ts.exec("deletetable -f " + rename, true);
   }
 
-  @Test(timeout = 30000)
+  @Test
   public void tables() throws Exception {
     final String table = name.getMethodName(), table1 = table + "_z", table2 = table + "_a";
     ts.exec("createtable " + table1);
@@ -1000,7 +1005,7 @@ public class ShellServerIT extends SimpleMacIT {
     assertTrue(lst.indexOf(table1) < lst.indexOf(table2));
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void systempermission() throws Exception {
     ts.exec("systempermissions");
     assertEquals(11, ts.output.get().split("\n").length - 1);
@@ -1008,7 +1013,7 @@ public class ShellServerIT extends SimpleMacIT {
     assertEquals(6, ts.output.get().split("\n").length - 1);
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void listscans() throws Exception {
     final String table = name.getMethodName();
 
@@ -1073,7 +1078,7 @@ public class ShellServerIT extends SimpleMacIT {
     ts.exec("deletetable -f " + table, true);
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void testPertableClasspath() throws Exception {
     final String table = name.getMethodName();
 
@@ -1120,7 +1125,7 @@ public class ShellServerIT extends SimpleMacIT {
 
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void trace() throws Exception {
     // Make sure to not collide with the "trace" table
     final String table = name.getMethodName() + "Test";
@@ -1138,14 +1143,14 @@ public class ShellServerIT extends SimpleMacIT {
     assertTrue(trace.contains("DeleteTable"));
   }
 
-  @Test(timeout = 30000)
+  @Test
   public void badLogin() throws Exception {
     ts.input.set(ROOT_PASSWORD + "\n");
     String err = ts.exec("user NoSuchUser", false);
     assertTrue(err.contains("BAD_CREDENTIALS for user NoSuchUser"));
   }
 
-  @Test(timeout = 60 * 1000)
+  @Test
   public void namespaces() throws Exception {
     ts.exec("namespaces", true, "\"\"", true); // default namespace, displayed as quoted empty string
     ts.exec("namespaces", true, Namespaces.ACCUMULO_NAMESPACE, true);
@@ -1221,7 +1226,7 @@ public class ShellServerIT extends SimpleMacIT {
     return ts.output.get().split("\n").length - 1;
   }
 
-  @Test(timeout = 30000)
+  @Test
   public void scans() throws Exception {
     ts.exec("createtable t");
     make10();
@@ -1240,7 +1245,7 @@ public class ShellServerIT extends SimpleMacIT {
     ts.exec("deletetable -f t");
   }
 
-  @Test(timeout = 30000)
+  @Test
   public void whoami() throws Exception {
     assertTrue(ts.exec("whoami", true).contains("root"));
     ts.input.set("secret\nsecret\n");

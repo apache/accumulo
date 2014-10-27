@@ -43,6 +43,11 @@ import org.junit.Test;
 
 public class RestartIT extends ConfigurableMacIT {
   @Override
+  public int defaultTimeoutSeconds() {
+    return 10 * 60;
+  }
+
+  @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> props = new HashMap<String,String>();
     props.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "5s");
@@ -60,7 +65,7 @@ public class RestartIT extends ConfigurableMacIT {
     OPTS.rows = VOPTS.rows = 10 * 1000;
   }
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Test
   public void restartMaster() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
@@ -75,7 +80,7 @@ public class RestartIT extends ConfigurableMacIT {
     ingest.destroy();
   }
 
-  @Test(timeout = 8 * 60 * 1000)
+  @Test
   public void restartMasterRecovery() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
@@ -94,7 +99,7 @@ public class RestartIT extends ConfigurableMacIT {
     VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void restartMasterSplit() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
@@ -110,7 +115,7 @@ public class RestartIT extends ConfigurableMacIT {
     ingest.destroy();
   }
 
-  @Test(timeout = 10 * 60 * 1000)
+  @Test
   public void killedTabletServer() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
@@ -124,7 +129,7 @@ public class RestartIT extends ConfigurableMacIT {
     VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
   }
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Test
   public void killedTabletServer2() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("t");
@@ -139,7 +144,7 @@ public class RestartIT extends ConfigurableMacIT {
     c.tableOperations().create("tt");
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void killedTabletServerDuringShutdown() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");
@@ -149,7 +154,7 @@ public class RestartIT extends ConfigurableMacIT {
     assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
   }
 
-  @Test(timeout = 8 * 60 * 1000)
+  @Test
   public void shutdownDuringCompactingSplitting() throws Exception {
     Connector c = getConnector();
     c.tableOperations().create("test_ingest");

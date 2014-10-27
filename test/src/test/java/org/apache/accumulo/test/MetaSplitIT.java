@@ -33,7 +33,12 @@ import org.junit.Test;
 
 public class MetaSplitIT extends SimpleMacIT {
 
-  @Test(expected = AccumuloException.class, timeout = 30000)
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 3 * 60;
+  }
+
+  @Test(expected = AccumuloException.class)
   public void testRootTableSplit() throws Exception {
     TableOperations opts = getConnector().tableOperations();
     SortedSet<Text> splits = new TreeSet<Text>();
@@ -55,7 +60,7 @@ public class MetaSplitIT extends SimpleMacIT {
     opts.addSplits(MetadataTable.NAME, splits);
   }
 
-  @Test(timeout = 180000)
+  @Test
   public void testMetadataTableSplit() throws Exception {
     TableOperations opts = getConnector().tableOperations();
     for (int i = 1; i <= 10; i++) {

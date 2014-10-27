@@ -52,7 +52,11 @@ import org.junit.Test;
 
 public class MasterRepairsDualAssignmentIT extends ConfigurableMacIT {
   
-  
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 5 * 60;
+  }
+
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
@@ -61,7 +65,7 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacIT {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
-  @Test(timeout = 5 * 60 * 1000)
+  @Test
   public void test() throws Exception {
     // make some tablets, spread 'em around
     Connector c = getConnector();
@@ -107,7 +111,7 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacIT {
       System.out.println(states + " size " + states.size() + " allAssigned " + allAssigned);
       if (states.size() != 2 && allAssigned == true)
         break;
-    } 
+    }
     assertEquals(1, states.size());
     // pick an assigned tablet and assign it to the old tablet
     TabletLocationState moved = null;

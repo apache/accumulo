@@ -50,19 +50,24 @@ public class NoMutationRecoveryIT extends ConfigurableMacIT {
   static final String TABLE = "table";
   
   @Override
+  public int defaultTimeoutSeconds() {
+    return 2 * 60;
+  }
+
+  @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.useMiniDFS(true);
     cfg.setNumTservers(1);
   }
-  
+
   public boolean equals(Entry<Key, Value> a, Entry<Key, Value> b) {
     // comparison, without timestamp
     Key akey = a.getKey();
     Key bkey = b.getKey();
-    return akey.compareTo(bkey, PartialKey.ROW_COLFAM_COLQUAL_COLVIS) == 0 && a.getValue().equals(b.getValue()); 
+    return akey.compareTo(bkey, PartialKey.ROW_COLFAM_COLQUAL_COLVIS) == 0 && a.getValue().equals(b.getValue());
   }
-  
-  @Test(timeout = 2 * 60 * 1000)
+
+  @Test
   public void test() throws Exception {
     Connector conn = getConnector();
     conn.tableOperations().create(TABLE);
@@ -104,7 +109,7 @@ public class NoMutationRecoveryIT extends ConfigurableMacIT {
     s.fetchColumnFamily(MetadataSchema.TabletsSection.LogColumnFamily.NAME);
     return s;
   }
-  
+
   private Entry<Key,Value> getLogRef(Connector conn, String table) throws Exception {
     return getLogRefs(conn, table).iterator().next();
   }

@@ -42,23 +42,28 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class CredentialsIT extends SimpleMacIT {
-  
+
   private static final String username = CredentialsIT.class.getSimpleName();
   private static final String password = Base64.encodeBase64String(username.getBytes());
-  
+
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 2 * 60;
+  }
+
   @Before
   public void createLocalUser() throws AccumuloException, AccumuloSecurityException {
     getConnector().securityOperations().createLocalUser(username, new PasswordToken(password));
   }
-  
+
   @After
   public void deleteLocalUser() throws AccumuloException, AccumuloSecurityException {
     getConnector().securityOperations().dropLocalUser(username);
   }
-  
+
   @Test
   public void testConnectorWithDestroyedToken() throws DestroyFailedException, AccumuloException {
     PasswordToken token = new PasswordToken(password);
@@ -72,7 +77,7 @@ public class CredentialsIT extends SimpleMacIT {
       assertTrue(e.getSecurityErrorCode().equals(SecurityErrorCode.TOKEN_EXPIRED));
     }
   }
-  
+
   @Test
   public void testDestroyTokenBeforeRPC() throws AccumuloException, DestroyFailedException, AccumuloSecurityException, TableNotFoundException {
     PasswordToken token = new PasswordToken(password);
@@ -92,5 +97,5 @@ public class CredentialsIT extends SimpleMacIT {
       assertTrue(AccumuloSecurityException.class.cast(e.getCause()).getSecurityErrorCode().equals(SecurityErrorCode.TOKEN_EXPIRED));
     }
   }
-  
+
 }

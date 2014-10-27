@@ -112,6 +112,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
+import org.junit.rules.Timeout;
 
 /**
  * Call every method on the proxy and try to verify that it works.
@@ -162,6 +163,18 @@ public class SimpleProxyIT {
   @Rule
   public TestName testName = new TestName();
 
+  @Rule
+  public Timeout testsShouldTimeout() {
+    int waitLonger;
+    try {
+      waitLonger = Integer.parseInt(System.getProperty("timeout.factor"));
+    } catch (NumberFormatException e) {
+      waitLonger = 1;
+    }
+
+    return new Timeout(waitLonger * 60 * 1000);
+  }
+
   @BeforeClass
   public static void setupMiniCluster() throws Exception {
     FileUtils.deleteQuietly(macTestFolder);
@@ -198,7 +211,18 @@ public class SimpleProxyIT {
     creds = client.login(principal, properties);
   }
 
-  @Test(timeout = 10000)
+  @AfterClass
+  public static void tearDownMiniCluster() throws Exception {
+    if (null != proxyServer) {
+      proxyServer.stop();
+      thread.interrupt();
+      thread.join(5000);
+    }
+    accumulo.stop();
+    FileUtils.deleteQuietly(macTestFolder);
+  }
+
+  @Test
   public void security() throws Exception {
     client.createLocalUser(creds, "user", s2bb(secret));
     ByteBuffer badLogin = client.login("user", properties);
@@ -473,7 +497,7 @@ public class SimpleProxyIT {
     } catch (AccumuloSecurityException ex) {}
   }
 
-  @Test(timeout = 10000)
+  @Test
   public void tableNotFound() throws Exception {
     final String doesNotExist = "doesNotExists";
     try {
@@ -632,8 +656,8 @@ public class SimpleProxyIT {
       client.createConditionalWriter(creds, doesNotExist, new ConditionalWriterOptions());
     } catch (TableNotFoundException ex) {}
   }
-  
-  @Test(timeout = 10 * 1000)
+
+  @Test
   public void testExists() throws Exception {
     client.createTable(creds, "ett1", false, TimeType.MILLIS);
     client.createTable(creds, "ett2", false, TimeType.MILLIS);
@@ -651,7 +675,7 @@ public class SimpleProxyIT {
     } catch (TableExistsException tee) {}
   }
 
-  @Test(timeout = 10000)
+  @Test
   public void testUnknownScanner() throws Exception {
     final String TABLE_TEST = makeTableName();
 
@@ -689,7 +713,7 @@ public class SimpleProxyIT {
     } catch (UnknownScanner us) {}
   }
 
-  @Test(timeout = 10000)
+  @Test
   public void testUnknownWriter() throws Exception {
     final String TABLE_TEST = makeTableName();
 
@@ -722,7 +746,7 @@ public class SimpleProxyIT {
     } catch (UnknownWriter uw) {}
   }
 
-  @Test(timeout = 10000)
+  @Test
   public void testDelete() throws Exception {
     final String TABLE_TEST = makeTableName();
 
@@ -740,7 +764,7 @@ public class SimpleProxyIT {
     assertScan(new String[][] {}, TABLE_TEST);
   }
 
-  @Test(timeout = 60000)
+  @Test
   public void testInstanceOperations() throws Exception {
     int tservers = 0;
     for (String tserver : client.getTabletServers(creds)) {
@@ -806,7 +830,7 @@ public class SimpleProxyIT {
     };
     t.start();
 
-    // look for the scan many times 
+    // look for the scan many times
     List<ActiveScan> scans = new ArrayList<ActiveScan>();
     for (int i = 0; i < 100 && scans.isEmpty(); i++) {
       for (String tserver : client.getTabletServers(creds)) {
@@ -1012,7 +1036,7 @@ public class SimpleProxyIT {
     assertScan(new String[][] {}, TABLE_TEST);
 
     UtilWaitThread.sleep(2000);
-    
+
     writerOptions = new WriterOptions();
     writerOptions.setLatencyMs(10000);
     writerOptions.setMaxMemory(3000);
@@ -1551,11 +1575,11 @@ public class SimpleProxyIT {
   static private ByteBuffer t2bb(Text t) {
     return ByteBuffer.wrap(t.getBytes());
   }
-  
+
   @Test
   public void testGetRowRange() throws Exception {
     Range range = client.getRowRange(s2bb("xyzzy"));
-    org.apache.accumulo.core.data.Range range2 = new org.apache.accumulo.core.data.Range(new Text("xyzzy")); 
+    org.apache.accumulo.core.data.Range range2 = new org.apache.accumulo.core.data.Range(new Text("xyzzy"));
     assertEquals(0, range.start.row.compareTo(t2bb(range2.getStartKey().getRow())));
     assertEquals(0, range.stop.row.compareTo(t2bb(range2.getEndKey().getRow())));
     assertEquals(range.startInclusive, range2.isStartKeyInclusive());
@@ -1566,10 +1590,5 @@ public class SimpleProxyIT {
     assertEquals(0, range.stop.colQualifier.compareTo(t2bb(range2.getEndKey().getColumnQualifier())));
     assertEquals(range.start.timestamp, range.start.timestamp);
     assertEquals(range.stop.timestamp, range.stop.timestamp);
-  }
-  
-  @AfterClass
-  public static void tearDownMiniCluster() throws Exception {
-    accumulo.stop();
   }
 }

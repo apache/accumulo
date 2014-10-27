@@ -84,6 +84,11 @@ public class NamespacesIT extends SimpleMacIT {
   private Connector c;
   private String namespace;
 
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 60;
+  }
+
   @Before
   public void setUpConnectorAndNamespace() throws Exception {
     // prepare a unique namespace and get a new root connector for each test
@@ -868,7 +873,7 @@ public class NamespacesIT extends SimpleMacIT {
     assertFalse(c.securityOperations().hasNamespacePermission(c.whoami(), namespace, NamespacePermission.READ));
     c.securityOperations().grantNamespacePermission(c.whoami(), namespace, NamespacePermission.READ);
     assertTrue(c.securityOperations().hasNamespacePermission(c.whoami(), namespace, NamespacePermission.READ));
-    
+
     c.namespaceOperations().delete(namespace);
 
     try {

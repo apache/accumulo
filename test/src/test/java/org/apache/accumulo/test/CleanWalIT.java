@@ -41,6 +41,11 @@ import org.junit.Test;
 public class CleanWalIT extends ConfigurableMacIT {
   
   @Override
+  public int defaultTimeoutSeconds() {
+    return 4 * 60;
+  }
+
+  @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "3s");
     cfg.setNumTservers(1);
@@ -48,7 +53,7 @@ public class CleanWalIT extends ConfigurableMacIT {
   }
 
   // test for ACCUMULO-1830
-  @Test(timeout= 4 * 60 * 1000)
+  @Test
   public void test() throws Exception {
     Connector conn = getConnector();
     String tableName = getUniqueNames(1)[0];
@@ -67,7 +72,7 @@ public class CleanWalIT extends ConfigurableMacIT {
     assertEquals(1, count(tableName, conn));
     for (String table : new String[]{MetadataTable.NAME, RootTable.NAME})
       assertEquals(0, countLogs(table, conn));
-    
+
     bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
     m = new Mutation("row");
     m.putDelete("cf", "cq");
@@ -89,9 +94,9 @@ public class CleanWalIT extends ConfigurableMacIT {
     scanner.fetchColumnFamily(MetadataSchema.TabletsSection.LogColumnFamily.NAME);
     return FunctionalTestUtils.count(scanner);
   }
-  
+
   int count(String tableName, Connector conn) throws Exception {
     return FunctionalTestUtils.count(conn.createScanner(tableName, Authorizations.EMPTY));
   }
-  
+
 }

@@ -41,11 +41,16 @@ public class DumpConfigIT extends ConfigurableMacIT {
   public TemporaryFolder folder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @Override
+  public int defaultTimeoutSeconds() {
+    return 2 * 60;
+  }
+
+  @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setSiteConfig(Collections.singletonMap(Property.TABLE_FILE_BLOCK_SIZE.getKey(), "1234567"));
   }
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Test
   public void test() throws Exception {
     File siteFileBackup = new File(folder.getRoot(), "accumulo-site.xml.bak");
     assertFalse(siteFileBackup.exists());

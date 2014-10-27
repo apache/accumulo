@@ -37,11 +37,16 @@ import org.junit.Test;
 public class Accumulo3030IT extends ConfigurableMacIT {
 
   @Override
+  public int defaultTimeoutSeconds() {
+    return 60;
+  }
+
+  @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
   }
 
-  @Test(timeout = 60 * 1000)
+  @Test
   public void test() throws Exception {
     // make a table
     final String tableName = getUniqueNames(1)[0];

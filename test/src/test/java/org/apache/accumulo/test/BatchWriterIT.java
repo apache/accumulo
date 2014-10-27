@@ -26,7 +26,12 @@ import org.junit.Test;
 
 public class BatchWriterIT extends SimpleMacIT {
 
-  @Test(timeout = 30 * 1000)
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 30;
+  }
+
+  @Test
   public void test() throws Exception {
     // call the batchwriter with buffer of size zero
     String table = getUniqueNames(1)[0];
