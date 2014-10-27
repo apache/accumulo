@@ -77,6 +77,10 @@ public class ScanMeta extends Test {
     }
     
     log.debug("Found " + hashes.size() + " hashes starting at " + uuid);
+
+    if (hashes.isEmpty()) {
+      return;
+    }
     
     // use batch scanner to verify all of these exist in index
     BatchScanner indexScanner = conn.createBatchScanner(indexTableName, Constants.NO_AUTHS, 3);
