@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.watcher;
 
+import java.io.File;
+
 import org.apache.log4j.LogManager;
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.log4j.xml.DOMConfigurator;
@@ -27,10 +29,12 @@ public class Log4jConfiguration {
 
   private final boolean usingProperties;
   private final String filename;
+  private final File log4jFile;
 
   public Log4jConfiguration(String filename) {
     usingProperties = (filename != null && filename.endsWith(".properties"));
     this.filename = filename;
+    log4jFile = new File(filename);
   }
 
   public boolean isUsingProperties() {
@@ -38,12 +42,15 @@ public class Log4jConfiguration {
   }
 
   public void resetLogger() {
-    // Force a reset on the logger's configuration
-    LogManager.resetConfiguration();
-    if (usingProperties) {
-      new PropertyConfigurator().doConfigure(filename, LogManager.getLoggerRepository());
-    } else {
-      new DOMConfigurator().doConfigure(filename, LogManager.getLoggerRepository());
+    // Force a reset on the logger's configuration, but only if the configured log4j file actually exists
+    // If we reset the configuration blindly, the ITs will not get any logging as they don't set it up on their own
+    if (log4jFile.exists() && log4jFile.isFile() && log4jFile.canRead()) {
+      LogManager.resetConfiguration();
+      if (usingProperties) {
+        new PropertyConfigurator().doConfigure(filename, LogManager.getLoggerRepository());
+      } else {
+        new DOMConfigurator().doConfigure(filename, LogManager.getLoggerRepository());
+      }
     }
   }
 }
