@@ -56,6 +56,8 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.log4j.Logger;
 
+import com.google.common.base.Optional;
+
 public class FileUtil {
   
   public static class FileInfo {
@@ -79,8 +81,8 @@ public class FileUtil {
   private static final Logger log = Logger.getLogger(FileUtil.class);
   
   private static Path createTmpDir(AccumuloConfiguration acuConf, VolumeManager fs) throws IOException {
-    String accumuloDir = fs.choose(ServerConstants.getBaseUris());
-    
+    String accumuloDir = fs.choose(Optional.<String>absent(), ServerConstants.getBaseUris());
+
     Path result = null;
     while (result == null) {
       result = new Path(accumuloDir + Path.SEPARATOR + "tmp/idxReduce_" + String.format("%09d", new Random().nextInt(Integer.MAX_VALUE)));

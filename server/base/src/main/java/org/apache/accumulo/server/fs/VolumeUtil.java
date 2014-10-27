@@ -49,6 +49,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
+import com.google.common.base.Optional;
+
 /**
  * Utility methods for managing absolute URIs contained in Accumulo metadata.
  */
@@ -263,7 +265,7 @@ public class VolumeUtil {
       throw new IllegalArgumentException("Unexpected table dir " + dir);
     }
 
-    Path newDir = new Path(vm.choose(ServerConstants.getBaseUris()) + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + dir.getParent().getName()
+    Path newDir = new Path(vm.choose(Optional.of(extent.getTableId().toString()), ServerConstants.getBaseUris()) + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + dir.getParent().getName()
         + Path.SEPARATOR + dir.getName());
 
     log.info("Updating directory for " + extent + " from " + dir + " to " + newDir);

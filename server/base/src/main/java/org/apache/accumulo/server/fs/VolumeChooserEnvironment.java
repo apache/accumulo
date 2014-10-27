@@ -16,13 +16,22 @@
  */
 package org.apache.accumulo.server.fs;
 
-import java.util.Random;
+import com.google.common.base.Optional;
 
-public class RandomVolumeChooser implements VolumeChooser {
-  private static Random random = new Random();
+public class VolumeChooserEnvironment {
 
-  @Override
-  public String choose(VolumeChooserEnvironment env, String[] options) {
-    return options[random.nextInt(options.length)];
+  private final Optional<String> tableId;
+
+  public VolumeChooserEnvironment(Optional<String> tableId) {
+    this.tableId = tableId;
   }
+
+  public boolean hasTableId() {
+    return tableId.isPresent();
+  }
+
+  public String getTableId() {
+    return tableId.get();
+  }
+
 }

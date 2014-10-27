@@ -14,36 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.test;
+package org.apache.accumulo.server.fs;
 
-import java.util.concurrent.ConcurrentHashMap;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.conf.TableConfiguration;
 
-import org.apache.accumulo.server.fs.VolumeChooser;
-import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
+public class PerTableVolumeChooser implements VolumeChooser {
 
-/**
- * Try to assign some fairness to choosing Volumes. Intended for tests, not for production
- */
-public class FairVolumeChooser implements VolumeChooser {
+  private static final VolumeChooser fallbackVolumeChooser = new RandomVolumeChooser();
 
-  private final ConcurrentHashMap<Integer,Integer> optionLengthToLastChoice = new ConcurrentHashMap<Integer,Integer>();
+  public PerTableVolumeChooser() {}
 
   @Override
   public String choose(VolumeChooserEnvironment env, String[] options) {
-    int currentChoice;
-    Integer lastChoice = optionLengthToLastChoice.get(options.length);
-    if (null == lastChoice) {
-      currentChoice = 0;
+    VolumeChooser chooser;
+    if (env.hasTableId()) {
+      TableConfiguration conf = new ServerConfigurationFactory(HdfsZooInstance.getInstance()).getTableConfiguration(env.getTableId());
+      chooser = Property.createTableInstanceFromPropertyName(conf, Property.TABLE_VOLUME_CHOOSER, VolumeChooser.class, fallbackVolumeChooser);
     } else {
-      currentChoice = lastChoice + 1;
-      if (currentChoice >= options.length) {
-        currentChoice = 0;
-      }
+      chooser = fallbackVolumeChooser;
     }
 
-    optionLengthToLastChoice.put(options.length, currentChoice);
-
-    return options[currentChoice];
+    return chooser.choose(env, options);
   }
-
 }

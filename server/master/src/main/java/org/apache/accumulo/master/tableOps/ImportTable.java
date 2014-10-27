@@ -72,6 +72,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
+import com.google.common.base.Optional;
+
 /**
  *
  */
@@ -325,7 +327,7 @@ class PopulateMetadataTable extends MasterRepo {
    */
   protected String getClonedTabletDir(Master master, String[] tableDirs, String tabletDir) {
     // We can try to spread out the tablet dirs across all volumes
-    String tableDir = master.getFileSystem().choose(tableDirs);
+    String tableDir = master.getFileSystem().choose(Optional.of(tableInfo.tableId), tableDirs);
 
     // Build up a full hdfs://localhost:8020/accumulo/tables/$id/c-XXXXXXX
     return tableDir + "/" + tableInfo.tableId + "/" + tabletDir;

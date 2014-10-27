@@ -106,6 +106,7 @@ import org.apache.zookeeper.ZooDefs.Ids;
 
 import com.beust.jcommander.Parameter;
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 
 /**
  * This class is used to setup the directory structure and the root tablet to get an instance started
@@ -282,13 +283,13 @@ public class Initialize {
     return initialize(opts, instanceNamePath, fs);
   }
 
-  public static boolean initialize(Opts opts, String instanceNamePath, VolumeManager fs) {
+  private static boolean initialize(Opts opts, String instanceNamePath, VolumeManager fs) {
 
     UUID uuid = UUID.randomUUID();
     // the actual disk locations of the root table and tablets
     String[] configuredVolumes = VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance());
-    final String rootTabletDir = new Path(fs.choose(configuredVolumes) + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + RootTable.ID
-        + RootTable.ROOT_TABLET_LOCATION).toString();
+    final String rootTabletDir = new Path(fs.choose(Optional.<String> absent(), configuredVolumes) + Path.SEPARATOR + ServerConstants.TABLE_DIR
+        + Path.SEPARATOR + RootTable.ID + RootTable.ROOT_TABLET_LOCATION).toString();
 
     try {
       initZooKeeper(opts, uuid.toString(), instanceNamePath, rootTabletDir);
@@ -319,7 +320,8 @@ public class Initialize {
     }
 
     try {
-      initSecurity(opts, uuid.toString());
+      AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance()));
+      initSecurity(context, opts, uuid.toString());
     } catch (Exception e) {
       log.fatal("Failed to initialize security", e);
       return false;
@@ -356,13 +358,12 @@ public class Initialize {
     // initialize initial system tables config in zookeeper
     initSystemTablesConfig();
 
-    String tableMetadataTabletDir = fs.choose(ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID
-        + TABLE_TABLETS_TABLET_DIR;
-    String replicationTableDefaultTabletDir = fs.choose(ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + ReplicationTable.ID
-        + Constants.DEFAULT_TABLET_LOCATION;
-
-    String defaultMetadataTabletDir = fs.choose(ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID
-        + Constants.DEFAULT_TABLET_LOCATION;
+    String tableMetadataTabletDir = fs.choose(Optional.<String> absent(), ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+        + MetadataTable.ID + TABLE_TABLETS_TABLET_DIR;
+    String replicationTableDefaultTabletDir = fs.choose(Optional.<String> absent(), ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+        + ReplicationTable.ID + Constants.DEFAULT_TABLET_LOCATION;
+    String defaultMetadataTabletDir = fs.choose(Optional.<String> absent(), ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+        + MetadataTable.ID + Constants.DEFAULT_TABLET_LOCATION;
 
     // create table and default tablets directories
     createDirectories(fs, rootTabletDir, tableMetadataTabletDir, defaultMetadataTabletDir, replicationTableDefaultTabletDir);
@@ -546,15 +547,8 @@ public class Initialize {
     return rootpass.getBytes(UTF_8);
   }
 
-  private static void initSecurity(Opts opts, String iid) throws AccumuloSecurityException, ThriftSecurityException {
-    AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance()) {
-      @Override
-      public synchronized AccumuloConfiguration getConfiguration() {
-        return getSiteConfiguration();
-      }
-    });
-    AuditedSecurityOperation.getInstance(context, true).initializeSecurity(context.rpcCreds(), DEFAULT_ROOT_USER,
-        opts.rootpass);
+  private static void initSecurity(AccumuloServerContext context, Opts opts, String iid) throws AccumuloSecurityException, ThriftSecurityException {
+    AuditedSecurityOperation.getInstance(context, true).initializeSecurity(context.rpcCreds(), DEFAULT_ROOT_USER, opts.rootpass);
   }
 
   public static void initSystemTablesConfig() throws IOException {
@@ -659,9 +653,10 @@ public class Initialize {
       VolumeManager fs = VolumeManagerImpl.get(acuConf);
 
       if (opts.resetSecurity) {
+        AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance()));
         if (isInitialized(fs)) {
           opts.rootpass = getRootPassword(opts);
-          initSecurity(opts, HdfsZooInstance.getInstance().getInstanceID());
+          initSecurity(context, opts, HdfsZooInstance.getInstance().getInstanceID());
         } else {
           log.fatal("Attempted to reset security on accumulo before it was initialized");
         }

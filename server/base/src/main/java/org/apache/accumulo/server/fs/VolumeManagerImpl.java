@@ -60,6 +60,7 @@ import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.util.Progressable;
 import org.apache.log4j.Logger;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
@@ -572,8 +573,8 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   @Override
-  public String choose(String[] options) {
-    return chooser.choose(options);
+  public String choose(Optional<String> tableId, String[] options) {
+    return chooser.choose(new VolumeChooserEnvironment(tableId), options);
   }
 
   @Override

@@ -22,6 +22,8 @@ import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.base.Optional;
+
 /**
  *
  */
@@ -41,7 +43,7 @@ public class ImportTableTest {
 
     EasyMock.expect(master.getFileSystem()).andReturn(volumeManager);
     // Choose the 2nd element
-    EasyMock.expect(volumeManager.choose(tableDirs)).andReturn(tableDirs[1]);
+    EasyMock.expect(volumeManager.choose(Optional.of(iti.tableId), tableDirs)).andReturn(tableDirs[1]);
 
     EasyMock.replay(master, volumeManager);
 
