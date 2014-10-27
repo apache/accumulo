@@ -161,11 +161,12 @@ public class Accumulo {
     // Read the auditing config
     String auditConfig = String.format("%s/auditLog.xml", System.getenv("ACCUMULO_CONF_DIR"));
 
-    DOMConfigurator.configureAndWatch(auditConfig, 5000);
-
     // Set up local file-based logging right away
     Log4jConfiguration logConf = new Log4jConfiguration(logConfigFile);
     logConf.resetLogger();
+
+    // Watch the auditLog.xml for the future updates
+    DOMConfigurator.configureAndWatch(auditConfig, 5000);
   }
 
   public static void init(VolumeManager fs, ServerConfiguration serverConfig, String application) throws IOException {
