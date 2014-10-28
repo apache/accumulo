@@ -298,7 +298,6 @@ public class VolumeIT extends ConfigurableMacIT {
     cluster.start();
 
     verifyVolumesUsed(tableNames[1], false, v1, v2, v3);
-
   }
 
   @Test
