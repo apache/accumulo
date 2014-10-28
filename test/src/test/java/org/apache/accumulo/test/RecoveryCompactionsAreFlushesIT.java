@@ -42,14 +42,19 @@ import org.junit.Test;
 public class RecoveryCompactionsAreFlushesIT extends ConfigurableMacIT {
 
   @Override
+  public int defaultTimeoutSeconds() {
+    return 60;
+  }
+
+  @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
     // file system supports recovery
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
-  
-  @Test(timeout = 60 * 1000)
+
+  @Test
   public void test() throws Exception {
     // create a table
     String tableName = getUniqueNames(1)[0];
@@ -87,6 +92,6 @@ public class RecoveryCompactionsAreFlushesIT extends ConfigurableMacIT {
       Assert.assertFalse(parts[parts.length-1].startsWith("M"));
     }
   }
-  
-  
+
+
 }

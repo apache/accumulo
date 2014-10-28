@@ -40,6 +40,11 @@ import org.junit.Test;
 public class TableConfigurationUpdateIT extends SimpleMacIT {
   private static final Logger log = Logger.getLogger(TableConfigurationUpdateIT.class);
 
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 60;
+  }
+
   @Test
   public void test() throws Exception {
     Connector conn = getConnector();
@@ -57,7 +62,7 @@ public class TableConfigurationUpdateIT extends SimpleMacIT {
     // Number of iterations per thread
     int iterations = 100000;
     AccumuloConfiguration tableConf = new TableConfiguration(inst.getInstanceID(), inst, table, defaultConf);
-    
+
     long start = System.currentTimeMillis();
     ExecutorService svc = Executors.newFixedThreadPool(numThreads);
     CountDownLatch countDown = new CountDownLatch(numThreads);

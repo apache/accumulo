@@ -43,11 +43,16 @@ import org.junit.Test;
 
 public class MetadataIT extends SimpleMacIT {
 
-  @Test(timeout = 60 * 1000)
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 2 * 60;
+  }
+
+  @Test
   public void testFlushAndCompact() throws Exception {
     Connector c = getConnector();
     String tableNames[] = getUniqueNames(2);
-    
+
     // create a table to write some data to metadata table
     c.tableOperations().create(tableNames[0]);
 
@@ -75,12 +80,12 @@ public class MetadataIT extends SimpleMacIT {
     Set<String> files3 = new HashSet<String>();
     for (Entry<Key,Value> entry : rootScanner)
       files3.add(entry.getKey().getColumnQualifier().toString());
-    
+
     // compaction of metadata table should change file set in root table
     Assert.assertNotEquals(files2, files3);
   }
 
-  @Test(timeout = 60 * 1000)
+  @Test
   public void mergeMeta() throws Exception {
     Connector c = getConnector();
     SortedSet<Text> splits = new TreeSet<Text>();
@@ -100,7 +105,7 @@ public class MetadataIT extends SimpleMacIT {
     assertEquals(0, c.tableOperations().listSplits(MetadataTable.NAME).size());
   }
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Test
   public void batchScanTest() throws Exception {
     Connector c = getConnector();
     String tableName = getUniqueNames(1)[0];

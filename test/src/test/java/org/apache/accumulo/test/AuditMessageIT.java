@@ -72,6 +72,11 @@ public class AuditMessageIT extends ConfigurableMacIT {
   private static final Authorizations auths = new Authorizations("private", "public");
 
   @Override
+  public int defaultTimeoutSeconds() {
+    return 60;
+  }
+
+  @Override
   public void beforeClusterStart(MiniAccumuloConfigImpl cfg) throws Exception {
     new File(cfg.getConfDir(), "auditLog.xml").delete();
   }
@@ -176,7 +181,7 @@ public class AuditMessageIT extends ConfigurableMacIT {
 
   }
 
-  @Test(timeout = 60 * 1000)
+  @Test
   public void testTableOperationsAudits() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException, IOException,
       InterruptedException {
 
@@ -208,7 +213,7 @@ public class AuditMessageIT extends ConfigurableMacIT {
 
   }
 
-  @Test(timeout = 60 * 1000)
+  @Test
   public void testUserOperationsAudits() throws AccumuloSecurityException, AccumuloException, TableExistsException, InterruptedException, IOException {
 
     conn.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
@@ -257,7 +262,7 @@ public class AuditMessageIT extends ConfigurableMacIT {
     assertEquals(1, findAuditMessage(auditMessages, "action: dropUser; targetUser: " + AUDIT_USER_2).size());
   }
 
-  @Test(timeout = 60 * 1000)
+  @Test
   public void testImportExportOperationsAudits() throws AccumuloSecurityException, AccumuloException, TableExistsException, TableNotFoundException,
       IOException, InterruptedException {
 
@@ -339,7 +344,7 @@ public class AuditMessageIT extends ConfigurableMacIT {
 
   }
 
-  @Test(timeout = 60 * 1000)
+  @Test
   public void testDataOperationsAudits() throws AccumuloSecurityException, AccumuloException, TableExistsException, TableNotFoundException, IOException,
       InterruptedException {
 
@@ -392,7 +397,7 @@ public class AuditMessageIT extends ConfigurableMacIT {
 
   }
 
-  @Test(timeout = 60 * 1000)
+  @Test
   public void testDeniedAudits() throws AccumuloSecurityException, AccumuloException, TableExistsException, TableNotFoundException, IOException,
       InterruptedException {
 
@@ -459,7 +464,7 @@ public class AuditMessageIT extends ConfigurableMacIT {
             "operation: denied;.*" + String.format(AuditedSecurityOperation.CAN_DELETE_RANGE_AUDIT_TEMPLATE, OLD_TEST_TABLE_NAME, "myRow", "myRow~")).size());
   }
 
-  @Test(timeout = 60 * 1000)
+  @Test
   public void testFailedAudits() throws AccumuloSecurityException, AccumuloException, TableExistsException, TableNotFoundException, IOException,
       InterruptedException {
 

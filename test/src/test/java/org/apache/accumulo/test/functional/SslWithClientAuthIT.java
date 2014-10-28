@@ -41,7 +41,7 @@ public class SslWithClientAuthIT extends SslIT {
   }
 
   @Override
-  protected int defaultTimeoutSeconds() {
+  public int defaultTimeoutSeconds() {
     return 8 * 60;
   }
 

@@ -57,7 +57,12 @@ public class SplitRecoveryIT extends SimpleMacIT {
     return FunctionalTestUtils.count(scanner) == 0;
   }
 
-  @Test(timeout = 60000)
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 60;
+  }
+
+  @Test
   public void test() throws Exception {
 
     String tableName = getUniqueNames(1)[0];

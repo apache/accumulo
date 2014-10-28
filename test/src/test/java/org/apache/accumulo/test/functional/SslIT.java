@@ -29,33 +29,38 @@ import org.junit.Test;
  */
 public class SslIT extends ConfigurableMacIT {
   @Override
+  public int defaultTimeoutSeconds() {
+    return 6 * 60;
+  }
+
+  @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     super.configure(cfg, hadoopCoreSite);
     configureForSsl(cfg, createSharedTestDir(this.getClass().getName() + "-ssl"));
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void binary() throws AccumuloException, AccumuloSecurityException, Exception {
     getConnector().tableOperations().create("bt");
     BinaryIT.runTest(getConnector());
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void concurrency() throws Exception {
     ConcurrencyIT.runTest(getConnector());
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void adminStop() throws Exception {
     ShutdownIT.runAdminStopTest(getConnector(), getCluster());
   }
 
-  @Test(timeout = 6 * 60 * 1000)
+  @Test
   public void bulk() throws Exception {
     BulkIT.runTest(getConnector(), getUniqueNames(1)[0], this.getClass().getName(), testName.getMethodName());
   }
 
-  @Test(timeout = 2 * 60 * 1000)
+  @Test
   public void mapReduce() throws Exception {
     MapReduceIT.runTest(getConnector(), getCluster());
   }

@@ -72,7 +72,12 @@ import org.junit.Test;
 
 public class GarbageCollectorIT extends ConfigurableMacIT {
   private static final String OUR_SECRET = "itsreallysecret";
-  
+
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 5 * 60;
+  }
+
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> settings = new HashMap<String,String>();
@@ -103,7 +108,7 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     assertNull(getCluster().getProcesses().get(ServerType.GARBAGE_COLLECTOR));
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void gcTest() throws Exception {
     killMacGc();
     Connector c = getConnector();
@@ -132,7 +137,7 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     assertTrue(after < before);
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void gcLotsOfCandidatesIT() throws Exception {
     killMacGc();
 
@@ -147,7 +152,7 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     assertTrue(output.contains("delete candidates has exceeded"));
   }
 
-  @Test(timeout = 20 * 60 * 1000)
+  @Test
   public void dontGCRootLog() throws Exception {
     killMacGc();
     // dirty metadata
@@ -176,7 +181,7 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     return delFlag;
   }
 
-  @Test(timeout = 60 * 1000)
+  @Test
   public void testInvalidDelete() throws Exception {
     killMacGc();
 
@@ -226,7 +231,7 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     Assert.assertFalse(iter.hasNext());
   }
 
-  @Test(timeout = 60 * 1000)
+  @Test
   public void testProperPortAdvertisement() throws Exception {
 
     Connector conn = getConnector();

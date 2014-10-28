@@ -20,8 +20,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -52,47 +50,46 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
+import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
-import org.apache.thrift.transport.TTransportException;
-import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-public class TableOperationsIT {
+public class TableOperationsIT extends SimpleMacIT {
 
-  static TemporaryFolder tempFolder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
   static final String ROOT = "root";
-  static final String ROOT_PASS = "password";
 
-  static MiniAccumuloCluster accumuloCluster;
-
-  static Connector connector;
   static TabletClientService.Client client;
   static AtomicInteger tableCounter;
-
-  @BeforeClass
-  public static void startUp() throws IOException, AccumuloException, AccumuloSecurityException, TTransportException, InterruptedException {
-    tableCounter = new AtomicInteger(0);
-    tempFolder.create();
-    accumuloCluster = new MiniAccumuloCluster(tempFolder.getRoot(), ROOT_PASS);
-
-    accumuloCluster.start();
-
-    connector = accumuloCluster.getConnector(ROOT, ROOT_PASS);
-  }
 
   String makeTableName() {
     return "table" + tableCounter.getAndIncrement();
   }
 
-  @Test(timeout = 30 * 1000)
+  private Connector connector;
+
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 30;
+  }
+
+  @BeforeClass
+  public static void setupClass() {
+    tableCounter = new AtomicInteger(0);
+  }
+
+  @Before
+  public void setup() throws Exception {
+    connector = getConnector();
+  }
+
+  @Test
   public void getDiskUsageErrors() throws TableExistsException, AccumuloException, AccumuloSecurityException, TableNotFoundException, TException {
     String tableName = makeTableName();
     connector.tableOperations().create(tableName);
@@ -114,7 +111,7 @@ public class TableOperationsIT {
     } catch (TableNotFoundException e) {}
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test
   public void getDiskUsage() throws TableExistsException, AccumuloException, AccumuloSecurityException, TableNotFoundException, TException {
 
     String tableName = makeTableName();
@@ -172,7 +169,7 @@ public class TableOperationsIT {
     connector.tableOperations().delete(tableName);
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test
   public void createTable() throws TableExistsException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
     String tableName = makeTableName();
     connector.tableOperations().create(tableName);
@@ -182,7 +179,7 @@ public class TableOperationsIT {
     connector.tableOperations().delete(tableName);
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test
   public void createMergeClonedTable() throws Exception {
     String originalTable = makeTableName();
     TableOperations tops = connector.tableOperations();
@@ -245,9 +242,4 @@ public class TableOperationsIT {
     return map;
   }
 
-  @AfterClass
-  public static void shutDown() throws IOException, InterruptedException {
-    accumuloCluster.stop();
-    tempFolder.delete();
-  }
 }

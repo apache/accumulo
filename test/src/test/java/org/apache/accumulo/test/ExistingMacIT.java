@@ -50,6 +50,11 @@ import org.junit.Test;
 
 public class ExistingMacIT extends ConfigurableMacIT {
   @Override
+  public int defaultTimeoutSeconds() {
+    return 2 * 60;
+  }
+
+  @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
 

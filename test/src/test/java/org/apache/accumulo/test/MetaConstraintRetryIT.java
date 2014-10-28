@@ -32,8 +32,13 @@ import org.junit.Test;
 
 public class MetaConstraintRetryIT extends SimpleMacIT {
   
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 30;
+  }
+
   //a test for ACCUMULO-3096
-  @Test(timeout = 30 * 1000, expected = ConstraintViolationException.class)
+  @Test(expected = ConstraintViolationException.class)
   public void test() throws Exception {
 
     getConnector().securityOperations().grantTablePermission("root", MetadataTable.NAME, TablePermission.WRITE);
