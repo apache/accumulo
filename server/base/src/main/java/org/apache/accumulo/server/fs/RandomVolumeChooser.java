@@ -19,7 +19,7 @@ package org.apache.accumulo.server.fs;
 import java.util.Random;
 
 public class RandomVolumeChooser implements VolumeChooser {
-  private static Random random = new Random();
+  protected static Random random = new Random();
 
   @Override
   public String choose(VolumeChooserEnvironment env, String[] options) {
