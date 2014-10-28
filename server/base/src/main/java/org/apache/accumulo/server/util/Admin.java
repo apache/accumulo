@@ -123,6 +123,12 @@ public class Admin {
     @Parameter(names = {"-d", "--directory"}, description = "directory to place config files")
     String directory = null;
   }
+  
+  @Parameters(commandDescription = "redistribute tablet directories across the current volume list")
+  static class RandomizeVolumesCommand {
+    @Parameter(names={"-t"}, description = "table to update", required=true)
+    String table = null;
+  }
 
   public static void main(String[] args) {
     boolean everything;
@@ -152,6 +158,10 @@ public class Admin {
     cl.addCommand("stopAll", stopAllOpts);
     StopMasterCommand stopMasterOpts = new StopMasterCommand();
     cl.addCommand("stopMaster", stopMasterOpts);
+    
+    RandomizeVolumesCommand randomizeVolumesOpts = new RandomizeVolumesCommand();
+    cl.addCommand("randomizeVolumes", randomizeVolumesOpts);
+    
     cl.parse(args);
 
     if (opts.help || cl.getParsedCommand() == null) {
@@ -198,6 +208,8 @@ public class Admin {
         printConfig(instance, principal, token, dumpConfigCommand);
       } else if (cl.getParsedCommand().equals("volumes")) {
         ListVolumesUsed.listVolumes(instance, principal, token);
+      } else if (cl.getParsedCommand().equals("randomizeVolumes")) {
+        RandomizeVolumes.randomize(instance, new Credentials(principal, token), randomizeVolumesOpts.table);
       } else {
         everything = cl.getParsedCommand().equals("stopAll");
 
