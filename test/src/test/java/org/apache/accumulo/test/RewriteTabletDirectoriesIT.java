@@ -25,7 +25,6 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.util.ColumnFQ;
-
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.security.TablePermission;
@@ -77,11 +76,16 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacIT {
     Connector c = getConnector();
     c.securityOperations().grantTablePermission(c.whoami(), MetadataTable.NAME, TablePermission.WRITE);
     final String tableName = getUniqueNames(1)[0];
+    c.tableOperations().create(tableName);
+    BatchWriter bw = c.createBatchWriter(tableName, null);
     final SortedSet<Text> splits = new TreeSet<Text>();
     for (String split : "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z".split(",")) {
       splits.add(new Text(split));
+      Mutation m = new Mutation(new Text(split));
+      m.put(new byte[]{}, new byte[]{}, new byte[]{});
+      bw.addMutation(m);
     }
-    c.tableOperations().create(tableName);
+    bw.close();
     c.tableOperations().addSplits(tableName, splits);
     
     BatchScanner scanner = c.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1);
@@ -90,7 +94,7 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacIT {
     String tableId = c.tableOperations().tableIdMap().get(tableName);
     scanner.setRanges(Collections.singletonList(MetadataSchema.TabletsSection.getRange(tableId)));
     // verify the directory entries are all on v1, make a few entries relative
-    BatchWriter bw = c.createBatchWriter(MetadataTable.NAME, null);
+    bw = c.createBatchWriter(MetadataTable.NAME, null);
     int count = 0;
     for (Entry<Key,Value> entry : scanner) {
       assertTrue(entry.getValue().toString().contains(v1.toString()));
@@ -106,7 +110,7 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacIT {
     assertEquals(splits.size() + 1, count);
     
     // This should fail: only one volume
-    assertEquals(2, cluster.exec(RandomizeVolumes.class, "-z", cluster.getZooKeepers(), "-i", c.getInstance().getInstanceName(), "-t", tableName).waitFor());
+    assertEquals(1, cluster.exec(RandomizeVolumes.class, "-z", cluster.getZooKeepers(), "-i", c.getInstance().getInstanceName(), "-t", tableName).waitFor());
 
     
     cluster.stop();
@@ -138,6 +142,13 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacIT {
       }
     }
     assertEquals(splits.size() + 1, v1Count + v2Count);
-    assertTrue(Math.abs(v1Count - v2Count) < 2);
+    assertTrue(Math.abs(v1Count - v2Count) < 10);
+    // verify we can read the old data
+    count = 0;
+    for (Entry<Key,Value> entry : c.createScanner(tableName, Authorizations.EMPTY)) {
+      assertTrue(splits.contains(entry.getKey().getRow()));
+      count++;
+    }
+    assertEquals(splits.size(), count);
   }
 }

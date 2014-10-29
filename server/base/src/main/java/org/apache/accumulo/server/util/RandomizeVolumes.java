@@ -16,44 +16,48 @@
  */
 package org.apache.accumulo.server.util;
 
+import java.io.IOException;
 import java.util.Map.Entry;
+
+import org.apache.accumulo.server.security.SystemCredentials;
 
 import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.Credentials;
-import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
-import org.apache.accumulo.server.security.SystemCredentials;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.tables.TableManager;
+import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 
 public class RandomizeVolumes {
   private static final Logger log = Logger.getLogger(RandomizeVolumes.class);
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws AccumuloException, AccumuloSecurityException {
     ClientOnRequiredTable opts = new ClientOnRequiredTable();
     opts.parseArgs(RandomizeVolumes.class.getName(), args);
-    String principal = SystemCredentials.get().getPrincipal();
-    AuthenticationToken token = SystemCredentials.get().getToken();
+    Connector c;
+    if (opts.getToken() == null) {
+      SystemCredentials creds = SystemCredentials.get();
+      c = opts.getInstance().getConnector(creds.getPrincipal(), creds.getToken());
+    } else {
+      c = opts.getConnector();
+    }
     try {
-      int status = randomize(opts.getInstance(), new Credentials(principal, token), opts.tableName);
+      int status = randomize(c, opts.tableName);
       System.exit(status);
     } catch (Exception ex) {
       log.error(ex, ex);
@@ -61,42 +65,34 @@ public class RandomizeVolumes {
     }
   }
 
-  public static int randomize(Instance instance, Credentials credentials, String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    SiteConfiguration siteConfiguration = new ServerConfigurationFactory(instance).getSiteConfiguration();
-    String volumesConfig = siteConfiguration.get(Property.INSTANCE_VOLUMES);
-    if (null == volumesConfig || "".equals(volumesConfig)) {
-      log.error(Property.INSTANCE_VOLUMES.getKey() + " is not set in accumulo-site.xml");
+  public static int randomize(Connector c, String tableName) throws IOException, AccumuloSecurityException, AccumuloException, TableNotFoundException {
+    VolumeManager vm = VolumeManagerImpl.get();
+    if (vm.getVolumes().size() < 2) {
+      log.error("There are not enough volumes configured");
       return 1;
     }
-    String[] volumes = volumesConfig.split(",");
-    if (volumes.length < 2) {
-      log.error("There are not enough volumes configured: " + volumesConfig);
-      return 2;
-    }
-    Connector c = instance.getConnector(credentials.getPrincipal(), credentials.getToken());
     String tableId = c.tableOperations().tableIdMap().get(tableName);
     if (null == tableId) {
       log.error("Could not determine the table ID for table " + tableName);
-      return 3;
+      return 2;
     }
     TableState tableState = TableManager.getInstance().getTableState(tableId);
     if (TableState.OFFLINE != tableState) {
-      log.debug("Taking " + tableName + " offline");
+      log.info("Taking " + tableName + " offline");
       c.tableOperations().offline(tableName, true);
-      log.debug(tableName + " offline");
+      log.info(tableName + " offline");
     }
-    log.debug("Rewriting entries for " + tableName);
+    log.info("Rewriting entries for " + tableName);
     Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    final ColumnFQ DIRCOL = MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
-    DIRCOL.fetch(scanner);
-    scanner.setRange(MetadataSchema.TabletsSection.getRange(tableId));
+    DIRECTORY_COLUMN.fetch(scanner);
+    scanner.setRange(TabletsSection.getRange(tableId));
     BatchWriter writer = c.createBatchWriter(MetadataTable.NAME, null);
     int count = 0;
     for (Entry<Key,Value> entry : scanner) {
       String oldLocation = entry.getValue().toString();
       String directory;
       if (oldLocation.contains(":")) {
-        String[] parts = oldLocation.split("/");
+        String[] parts = oldLocation.split(Path.SEPARATOR);
         String tableIdEntry = parts[parts.length - 2];
         if (!tableIdEntry.equals(tableId)) {
           log.error("Unexpected table id found: " + tableIdEntry + ", expected " + tableId + "; skipping");
@@ -104,15 +100,22 @@ public class RandomizeVolumes {
         }
         directory = parts[parts.length - 1];
       } else {
-        directory = oldLocation.substring(1);
+        directory = oldLocation.substring(Path.SEPARATOR.length());
       }
-      Mutation m = new Mutation(entry.getKey().getRow());
-      String newLocation = volumes[count % volumes.length] + "/" + ServerConstants.TABLE_DIR + "/" + tableId + "/" + directory;
-      m.put(DIRCOL.getColumnFamily(), DIRCOL.getColumnQualifier(), new Value(newLocation.getBytes()));
+      Key key = entry.getKey();
+      Mutation m = new Mutation(key.getRow());
+      
+      String newLocation = vm.choose(ServerConstants.getBaseUris()) + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + tableId + Path.SEPARATOR + directory;
+      m.put(key.getColumnFamily(), key.getColumnQualifier(), new Value(newLocation.getBytes()));
       if (log.isTraceEnabled()) {
         log.trace("Replacing " + oldLocation + " with " + newLocation);
       }
       writer.addMutation(m);
+      try {
+        vm.mkdirs(new Path(newLocation));
+      } catch (IOException ex) {
+        // nevermind
+      }
       count++;
     }
     writer.close();

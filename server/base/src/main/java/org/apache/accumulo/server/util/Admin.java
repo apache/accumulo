@@ -208,7 +208,7 @@ public class Admin {
       } else if (cl.getParsedCommand().equals("volumes")) {
         ListVolumesUsed.listVolumes(instance, principal, token);
       } else if (cl.getParsedCommand().equals("randomizeVolumes")) {
-        RandomizeVolumes.randomize(instance, new Credentials(principal, token), randomizeVolumesOpts.table);
+        rc = RandomizeVolumes.randomize(instance.getConnector(principal, token), randomizeVolumesOpts.table);
       } else {
         everything = cl.getParsedCommand().equals("stopAll");
 
