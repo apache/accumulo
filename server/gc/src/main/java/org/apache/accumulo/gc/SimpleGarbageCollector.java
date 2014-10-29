@@ -406,7 +406,7 @@ public class SimpleGarbageCollector implements Iface {
 
               log.debug("Deleting " + fullPath);
 
-              if (moveToTrash(fullPath) || fs.deleteRecursively(fullPath)) {
+              if (archiveOrMoveToTrash(fullPath) || fs.deleteRecursively(fullPath)) {
                 // delete succeeded, still want to delete
                 removeFlag = true;
                 synchronized (SimpleGarbageCollector.this) {
@@ -492,7 +492,7 @@ public class SimpleGarbageCollector implements Iface {
         if (tabletDirs.length == 0) {
           Path p = new Path(dir + "/" + tableID);
           log.debug("Removing table dir " + p);
-          if (!moveToTrash(p))
+          if (!archiveOrMoveToTrash(p))
             fs.delete(p);
         }
       }
@@ -606,7 +606,7 @@ public class SimpleGarbageCollector implements Iface {
    * @throws IOException
    *           if the volume manager encountered a problem
    */
-  boolean moveToTrash(Path path) throws IOException {
+  boolean archiveOrMoveToTrash(Path path) throws IOException {
     if (shouldArchiveFiles()) {
       return archiveFile(path);
     } else {

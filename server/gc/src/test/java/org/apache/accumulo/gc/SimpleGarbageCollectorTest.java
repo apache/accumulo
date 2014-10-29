@@ -103,7 +103,7 @@ public class SimpleGarbageCollectorTest {
     Path path = createMock(Path.class);
     expect(volMgr.moveToTrash(path)).andReturn(true);
     replay(volMgr);
-    assertTrue(gc.moveToTrash(path));
+    assertTrue(gc.archiveOrMoveToTrash(path));
     verify(volMgr);
   }
 
@@ -113,7 +113,7 @@ public class SimpleGarbageCollectorTest {
     Path path = createMock(Path.class);
     expect(volMgr.moveToTrash(path)).andThrow(new FileNotFoundException());
     replay(volMgr);
-    assertFalse(gc.moveToTrash(path));
+    assertFalse(gc.archiveOrMoveToTrash(path));
     verify(volMgr);
   }
 
@@ -127,7 +127,7 @@ public class SimpleGarbageCollectorTest {
     replay(systemConfig);
     gc.init(volMgr, instance, credentials, systemConfig);
     Path path = createMock(Path.class);
-    assertFalse(gc.moveToTrash(path));
+    assertFalse(gc.archiveOrMoveToTrash(path));
   }
 
   @Test
