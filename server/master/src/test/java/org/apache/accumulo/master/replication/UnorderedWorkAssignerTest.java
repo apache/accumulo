@@ -41,13 +41,14 @@ import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
+import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
-import org.apache.accumulo.server.replication.ReplicationTable;
+import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.hadoop.fs.Path;
@@ -85,9 +86,10 @@ public class UnorderedWorkAssignerTest {
 
     Path p = new Path("/accumulo/wal/tserver+port/" + UUID.randomUUID());
 
-    String expectedQueueKey = p.getName() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getPeerName() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
-        + target.getRemoteIdentifier() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getSourceTableId();
-    
+    String expectedQueueKey = p.getName() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getPeerName()
+        + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getRemoteIdentifier() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
+        + target.getSourceTableId();
+
     workQueue.addWork(expectedQueueKey, p.toString());
     expectLastCall().once();
 
@@ -135,7 +137,7 @@ public class UnorderedWorkAssignerTest {
     assigner.setConnector(conn);
 
     // Create and grant ourselves write to the replication table
-    ReplicationTable.create(conn);
+    ReplicationUtil.createReplicationTable(conn);
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
 
     Status.Builder builder = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(false).setCreatedTime(5l);
@@ -198,7 +200,7 @@ public class UnorderedWorkAssignerTest {
     assigner.setConnector(conn);
 
     // Create and grant ourselves write to the replication table
-    ReplicationTable.create(conn);
+    ReplicationUtil.createReplicationTable(conn);
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
 
     // Create two mutations, both of which need replication work done
@@ -270,7 +272,7 @@ public class UnorderedWorkAssignerTest {
     assigner.setConnector(conn);
 
     // Create and grant ourselves write to the replication table
-    ReplicationTable.create(conn);
+    ReplicationUtil.createReplicationTable(conn);
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
 
     // Create two mutations, both of which need replication work done

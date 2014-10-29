@@ -39,10 +39,10 @@ import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
+import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
-import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -182,7 +182,7 @@ public class RemoveCompleteReplicationRecords implements Runnable {
         Long timeClosed = tableToTimeCreated.get(tableId);
         if (null == timeClosed) {
           tableToTimeCreated.put(tableId, status.getCreatedTime());
-        } else if (timeClosed != status.getCreatedTime()){
+        } else if (timeClosed != status.getCreatedTime()) {
           log.warn("Found multiple values for timeClosed for {}: {} and {}", row, timeClosed, status.getCreatedTime());
         }
       }

@@ -50,11 +50,12 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
+import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.replication.ReplicationTable;
+import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -116,12 +117,14 @@ public class GarbageCollectWriteAheadLogsTest {
 
   @Test
   public void testMapServersToFiles() {
+    // @formatter:off
     /*
      * Test fileToServerMap:
      * /dir1/server1/uuid1 -> server1 (new-style)
      * /dir1/uuid2 -> "" (old-style)
      * /dir3/server3/uuid3 -> server3 (new-style)
      */
+    // @formatter:on
     Map<Path,String> fileToServerMap = new java.util.HashMap<Path,String>();
     Path path1 = new Path(new Path(DIR_1_PATH, "server1"), UUID1);
     fileToServerMap.put(path1, "server1"); // new-style
@@ -129,20 +132,24 @@ public class GarbageCollectWriteAheadLogsTest {
     fileToServerMap.put(path2, ""); // old-style
     Path path3 = new Path(new Path(DIR_3_PATH, "server3"), UUID3);
     fileToServerMap.put(path3, "server3"); // old-style
+    // @formatter:off
     /*
      * Test nameToFileMap:
      * uuid1 -> /dir1/server1/uuid1
      * uuid3 -> /dir3/server3/uuid3
      */
+    // @formatter:on
     Map<String,Path> nameToFileMap = new java.util.HashMap<String,Path>();
     nameToFileMap.put(UUID1, path1);
     nameToFileMap.put(UUID3, path3);
 
-    /**
+    // @formatter:off
+    /*
      * Expected map:
      * server1 -> [ /dir1/server1/uuid1 ]
      * server3 -> [ /dir3/server3/uuid3 ]
      */
+    // @formatter:on
     Map<String,ArrayList<Path>> result = GarbageCollectWriteAheadLogs.mapServersToFiles(fileToServerMap, nameToFileMap);
     assertEquals(2, result.size());
     ArrayList<Path> list1 = result.get("server1");
@@ -157,6 +164,7 @@ public class GarbageCollectWriteAheadLogsTest {
     boolean isDir = (size == 0);
     return new FileStatus(size, isDir, 3, BLOCK_SIZE, modTime, path);
   }
+
   private void mockListStatus(Path dir, FileStatus... fileStatuses) throws Exception {
     expect(volMgr.listStatus(dir)).andReturn(fileStatuses);
   }
@@ -164,6 +172,7 @@ public class GarbageCollectWriteAheadLogsTest {
   @Test
   public void testScanServers_NewStyle() throws Exception {
     String[] walDirs = new String[] {"/dir1", "/dir2", "/dir3"};
+    // @formatter:off
     /*
      * Test directory layout:
      * /dir1/
@@ -176,6 +185,7 @@ public class GarbageCollectWriteAheadLogsTest {
      *   server3/
      *     uuid3
      */
+    // @formatter:on
     Path serverDir1Path = new Path(DIR_1_PATH, "server1");
     FileStatus serverDir1 = makeFileStatus(0, serverDir1Path);
     Path subDir2Path = new Path(DIR_1_PATH, "subdir2");
@@ -199,19 +209,23 @@ public class GarbageCollectWriteAheadLogsTest {
     Map<String,Path> nameToFileMap = new java.util.HashMap<String,Path>();
     int count = gcwal.scanServers(walDirs, fileToServerMap, nameToFileMap);
     assertEquals(3, count);
+    // @formatter:off
     /*
      * Expected fileToServerMap:
      * /dir1/server1/uuid1 -> server1
      * /dir3/server3/uuid3 -> server3
      */
+    // @formatter:on
     assertEquals(2, fileToServerMap.size());
     assertEquals("server1", fileToServerMap.get(path1));
     assertEquals("server3", fileToServerMap.get(path3));
+    // @formatter:off
     /*
      * Expected nameToFileMap:
      * uuid1 -> /dir1/server1/uuid1
      * uuid3 -> /dir3/server3/uuid3
      */
+    // @formatter:on
     assertEquals(2, nameToFileMap.size());
     assertEquals(path1, nameToFileMap.get(UUID1));
     assertEquals(path3, nameToFileMap.get(UUID3));
@@ -219,6 +233,7 @@ public class GarbageCollectWriteAheadLogsTest {
 
   @Test
   public void testScanServers_OldStyle() throws Exception {
+    // @formatter:off
     /*
      * Test directory layout:
      * /dir1/
@@ -226,6 +241,7 @@ public class GarbageCollectWriteAheadLogsTest {
      * /dir3/
      *   uuid3
      */
+    // @formatter:on
     String[] walDirs = new String[] {"/dir1", "/dir3"};
     Path serverFile1Path = new Path(DIR_1_PATH, UUID1);
     FileStatus serverFile1 = makeFileStatus(100, serverFile1Path);
@@ -242,19 +258,23 @@ public class GarbageCollectWriteAheadLogsTest {
      * Expect only a single server, the non-server entry for upgrade WALs
      */
     assertEquals(1, count);
+    // @formatter:off
     /*
      * Expected fileToServerMap:
      * /dir1/uuid1 -> ""
      * /dir3/uuid3 -> ""
      */
+    // @formatter:on
     assertEquals(2, fileToServerMap.size());
     assertEquals("", fileToServerMap.get(serverFile1Path));
     assertEquals("", fileToServerMap.get(serverFile3Path));
+    // @formatter:off
     /*
      * Expected nameToFileMap:
      * uuid1 -> /dir1/uuid1
      * uuid3 -> /dir3/uuid3
      */
+    // @formatter:on
     assertEquals(2, nameToFileMap.size());
     assertEquals(serverFile1Path, nameToFileMap.get(UUID1));
     assertEquals(serverFile3Path, nameToFileMap.get(UUID3));
@@ -263,6 +283,7 @@ public class GarbageCollectWriteAheadLogsTest {
   @Test
   public void testGetSortedWALogs() throws Exception {
     String[] recoveryDirs = new String[] {"/dir1", "/dir2", "/dir3"};
+    // @formatter:off
     /*
      * Test directory layout:
      * /dir1/
@@ -272,6 +293,7 @@ public class GarbageCollectWriteAheadLogsTest {
      * /dir3/
      *   uuid3
      */
+    // @formatter:on
     expect(volMgr.exists(DIR_1_PATH)).andReturn(true);
     expect(volMgr.exists(DIR_2_PATH)).andReturn(false);
     expect(volMgr.exists(DIR_3_PATH)).andReturn(true);
@@ -285,11 +307,13 @@ public class GarbageCollectWriteAheadLogsTest {
     replay(volMgr);
 
     Map<String,Path> sortedWalogs = gcwal.getSortedWALogs(recoveryDirs);
-    /**
+    // @formatter:off
+    /*
      * Expected map:
      * uuid1 -> /dir1/uuid1
      * uuid3 -> /dir3/uuid3
      */
+    // @formatter:on
     assertEquals(2, sortedWalogs.size());
     assertEquals(path1, sortedWalogs.get(UUID1));
     assertEquals(path3, sortedWalogs.get(UUID3));
@@ -360,7 +384,7 @@ public class GarbageCollectWriteAheadLogsTest {
 
     GarbageCollectWriteAheadLogs gcWALs = new GarbageCollectWriteAheadLogs(inst, volMgr, false);
 
-    ReplicationTable.create(conn);
+    ReplicationUtil.createReplicationTable(conn);
 
     long file1CreateTime = System.currentTimeMillis();
     long file2CreateTime = file1CreateTime + 50;
@@ -404,7 +428,7 @@ public class GarbageCollectWriteAheadLogsTest {
 
     GarbageCollectWriteAheadLogs gcWALs = new GarbageCollectWriteAheadLogs(inst, volMgr, false);
 
-    ReplicationTable.create(conn);
+    ReplicationUtil.createReplicationTable(conn);
 
     long file1CreateTime = System.currentTimeMillis();
     long file2CreateTime = file1CreateTime + 50;
@@ -464,7 +488,7 @@ public class GarbageCollectWriteAheadLogsTest {
   public void fetchesReplicationEntriesFromMetadataAndReplicationTables() throws Exception {
     Instance inst = new MockInstance(testName.getMethodName());
     Connector conn = inst.getConnector("root", new PasswordToken(""));
-    ReplicationTable.create(conn);
+    ReplicationUtil.createReplicationTable(conn);
 
     long walCreateTime = System.currentTimeMillis();
     String wal = "hdfs://localhost:8020/accumulo/wal/tserver+port/123456-1234-1234-12345678";

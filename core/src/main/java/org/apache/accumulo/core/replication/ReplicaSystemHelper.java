@@ -33,7 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * 
+ *
  */
 public class ReplicaSystemHelper {
   private static final Logger log = LoggerFactory.getLogger(ReplicaSystemHelper.class);
@@ -48,7 +48,7 @@ public class ReplicaSystemHelper {
 
   /**
    * Record the updated Status for this file and target
-   * 
+   *
    * @param filePath
    *          Path to file being replicated
    * @param status
@@ -56,11 +56,12 @@ public class ReplicaSystemHelper {
    * @param target
    *          Peer that was replicated to
    */
-  public void recordNewStatus(Path filePath, Status status, ReplicationTarget target) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public void recordNewStatus(Path filePath, Status status, ReplicationTarget target) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException {
     Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
-    BatchWriter bw = conn.createBatchWriter(ReplicationConstants.TABLE_NAME, new BatchWriterConfig());
+    BatchWriter bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
     try {
-      log.debug("Recording new status for {}, {}", filePath.toString(), ProtobufUtil.toString (status));
+      log.debug("Recording new status for {}, {}", filePath.toString(), ProtobufUtil.toString(status));
       Mutation m = new Mutation(filePath.toString());
       WorkSection.add(m, target.toText(), ProtobufUtil.toValue(status));
       bw.addMutation(m);

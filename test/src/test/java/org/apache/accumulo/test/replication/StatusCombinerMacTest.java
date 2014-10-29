@@ -35,10 +35,11 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
+import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.server.replication.ReplicationTable;
+import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.apache.hadoop.io.Text;
@@ -84,7 +85,7 @@ public class StatusCombinerMacTest extends SimpleMacIT {
       conn.tableOperations().delete(ReplicationTable.NAME);
     }
 
-    ReplicationTable.create(conn);
+    ReplicationUtil.createReplicationTable(conn);
 
     BatchWriter bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
     long createTime = System.currentTimeMillis();

@@ -43,6 +43,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
+import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
@@ -53,7 +54,7 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ProcessReference;
-import org.apache.accumulo.server.replication.ReplicationTable;
+import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem;
@@ -167,7 +168,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
       final Connector connMaster = getConnector();
       final Connector connPeer = peerCluster.getConnector("root", ROOT_PASSWORD);
 
-      ReplicationTable.create(connMaster);
+      ReplicationUtil.createReplicationTable(connMaster);
 
       String peerUserName = "peer", peerPassword = "foo";
 
@@ -703,7 +704,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
 
       Assert.assertTrue("Did not find any records in " + peerTable1 + " on peer", countTable > 0);
 
-      for (int i = 0; i < 10; i++ ) {
+      for (int i = 0; i < 10; i++) {
         countTable = 0l;
         for (Entry<Key,Value> entry : connPeer.createScanner(peerTable2, Authorizations.EMPTY)) {
           countTable++;

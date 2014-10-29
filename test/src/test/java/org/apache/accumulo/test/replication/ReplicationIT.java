@@ -49,6 +49,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Lo
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
+import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
@@ -60,7 +61,7 @@ import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ProcessReference;
-import org.apache.accumulo.server.replication.ReplicationTable;
+import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.accumulo.tserver.TabletServer;
@@ -81,9 +82,8 @@ import com.google.common.collect.Sets;
 import com.google.protobuf.TextFormat;
 
 /**
- * Replication tests which verify expected functionality using a single MAC instance. A MockReplicaSystem
- * is used to "fake" the peer instance that we're replicating to. This lets us test replication in a functional
- * way without having to worry about two real systems.
+ * Replication tests which verify expected functionality using a single MAC instance. A MockReplicaSystem is used to "fake" the peer instance that we're
+ * replicating to. This lets us test replication in a functional way without having to worry about two real systems.
  */
 public class ReplicationIT extends ConfigurableMacIT {
   private static final Logger log = LoggerFactory.getLogger(ReplicationIT.class);
@@ -311,7 +311,7 @@ public class ReplicationIT extends ConfigurableMacIT {
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.READ);
 
     // Verify that we found a single replication record that's for table1
-    Scanner s = ReplicationTable.getScanner(conn, new Authorizations());
+    Scanner s = ReplicationTable.getScanner(conn);
     StatusSection.limit(s);
     Iterator<Entry<Key,Value>> iter = s.iterator();
     attempts = 5;
@@ -319,7 +319,7 @@ public class ReplicationIT extends ConfigurableMacIT {
       if (!iter.hasNext()) {
         s.close();
         Thread.sleep(1000);
-        s = ReplicationTable.getScanner(conn, new Authorizations());
+        s = ReplicationTable.getScanner(conn);
         iter = s.iterator();
         attempts--;
       } else {
@@ -384,7 +384,7 @@ public class ReplicationIT extends ConfigurableMacIT {
     Thread.sleep(5000);
 
     // Verify that we found two replication records: one for table1 and one for table2
-    s = ReplicationTable.getScanner(conn, new Authorizations());
+    s = ReplicationTable.getScanner(conn);
     StatusSection.limit(s);
     iter = s.iterator();
     Assert.assertTrue("Found no records in replication table", iter.hasNext());
@@ -562,7 +562,7 @@ public class ReplicationIT extends ConfigurableMacIT {
       conn.tableOperations().delete(ReplicationTable.NAME);
     }
 
-    ReplicationTable.create(conn);
+    ReplicationUtil.createReplicationTable(conn);
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
 
     final AtomicBoolean keepRunning = new AtomicBoolean(true);
@@ -1063,7 +1063,7 @@ public class ReplicationIT extends ConfigurableMacIT {
       conn.tableOperations().delete(ReplicationTable.NAME);
     }
 
-    ReplicationTable.create(conn);
+    ReplicationUtil.createReplicationTable(conn);
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
 
     final AtomicBoolean keepRunning = new AtomicBoolean(true);

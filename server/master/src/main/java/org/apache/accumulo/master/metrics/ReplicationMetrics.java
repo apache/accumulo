@@ -29,7 +29,7 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
-import org.apache.accumulo.core.replication.ReplicationConstants;
+import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.metrics.AbstractMetricsImpl;
@@ -61,7 +61,7 @@ public class ReplicationMetrics extends AbstractMetricsImpl implements Replicati
 
   @Override
   public int getNumFilesPendingReplication() {
-    if (!tops.exists(ReplicationConstants.TABLE_NAME)) {
+    if (!tops.exists(ReplicationTable.NAME)) {
       return 0;
     }
 

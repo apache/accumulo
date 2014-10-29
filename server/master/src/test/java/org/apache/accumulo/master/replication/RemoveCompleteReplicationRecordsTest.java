@@ -37,10 +37,11 @@ import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
+import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
-import org.apache.accumulo.server.replication.ReplicationTable;
+import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.Assert;
@@ -72,7 +73,7 @@ public class RemoveCompleteReplicationRecordsTest {
 
   @Test
   public void notYetReplicationRecordsIgnored() throws Exception {
-    ReplicationTable.create(conn);
+    ReplicationUtil.createReplicationTable(conn);
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     int numRecords = 3;
     for (int i = 0; i < numRecords; i++) {
@@ -102,7 +103,7 @@ public class RemoveCompleteReplicationRecordsTest {
 
   @Test
   public void partiallyReplicatedRecordsIgnored() throws Exception {
-    ReplicationTable.create(conn);
+    ReplicationUtil.createReplicationTable(conn);
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     int numRecords = 3;
     Status.Builder builder = Status.newBuilder();
@@ -137,7 +138,7 @@ public class RemoveCompleteReplicationRecordsTest {
 
   @Test
   public void replicatedClosedWorkRecordsAreNotRemovedWithoutClosedStatusRecords() throws Exception {
-    ReplicationTable.create(conn);
+    ReplicationUtil.createReplicationTable(conn);
     BatchWriter replBw = ReplicationTable.getBatchWriter(conn);
     int numRecords = 3;
 
@@ -190,7 +191,7 @@ public class RemoveCompleteReplicationRecordsTest {
 
   @Test
   public void replicatedClosedRowsAreRemoved() throws Exception {
-    ReplicationTable.create(conn);
+    ReplicationUtil.createReplicationTable(conn);
     BatchWriter replBw = ReplicationTable.getBatchWriter(conn);
     int numRecords = 3;
 
@@ -282,7 +283,7 @@ public class RemoveCompleteReplicationRecordsTest {
 
   @Test
   public void partiallyReplicatedEntriesPrecludeRowDeletion() throws Exception {
-    ReplicationTable.create(conn);
+    ReplicationUtil.createReplicationTable(conn);
     BatchWriter replBw = ReplicationTable.getBatchWriter(conn);
     int numRecords = 3;
 

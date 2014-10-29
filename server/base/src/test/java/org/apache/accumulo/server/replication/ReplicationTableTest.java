@@ -32,6 +32,7 @@ import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
+import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Before;
@@ -62,7 +63,7 @@ public class ReplicationTableTest {
   public void replicationTableCreated() {
     TableOperations tops = conn.tableOperations();
     Assert.assertFalse(tops.exists(ReplicationTable.NAME));
-    ReplicationTable.create(conn);
+    ReplicationUtil.createReplicationTable(conn);
     Assert.assertTrue(tops.exists(ReplicationTable.NAME));
   }
 
@@ -72,14 +73,14 @@ public class ReplicationTableTest {
     Assert.assertFalse(tops.exists(ReplicationTable.NAME));
 
     // Create the table
-    ReplicationTable.create(conn);
+    ReplicationUtil.createReplicationTable(conn);
 
     // Make sure it exists and save off the id
     Assert.assertTrue(tops.exists(ReplicationTable.NAME));
     String tableId = tops.tableIdMap().get(ReplicationTable.NAME);
 
     // Try to make it again, should return quickly
-    ReplicationTable.create(conn);
+    ReplicationUtil.createReplicationTable(conn);
     Assert.assertTrue(tops.exists(ReplicationTable.NAME));
 
     // Verify we have the same table as previously
@@ -96,7 +97,7 @@ public class ReplicationTableTest {
 
     Assert.assertFalse(iterators.containsKey(ReplicationTable.COMBINER_NAME));
 
-    ReplicationTable.configureReplicationTable(conn);
+    ReplicationUtil.configureReplicationTable(conn);
 
     // After configure the iterator should be set
     iterators = tops.listIterators(ReplicationTable.NAME);
@@ -123,7 +124,7 @@ public class ReplicationTableTest {
       tops.delete(ReplicationTable.NAME);
     }
 
-    ReplicationTable.create(conn);
+    ReplicationUtil.createReplicationTable(conn);
 
     Set<String> iters = tops.listIterators(ReplicationTable.NAME).keySet();
 

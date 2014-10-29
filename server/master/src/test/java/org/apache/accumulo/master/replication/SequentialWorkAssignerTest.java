@@ -37,13 +37,14 @@ import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
+import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
-import org.apache.accumulo.server.replication.ReplicationTable;
+import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.hadoop.io.Text;
@@ -85,7 +86,7 @@ public class SequentialWorkAssignerTest {
     assigner.setConnector(conn);
 
     // Create and grant ourselves write to the replication table
-    ReplicationTable.create(conn);
+    ReplicationUtil.createReplicationTable(conn);
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
 
     // Create two mutations, both of which need replication work done
@@ -158,7 +159,7 @@ public class SequentialWorkAssignerTest {
     assigner.setConnector(conn);
 
     // Create and grant ourselves write to the replication table
-    ReplicationTable.create(conn);
+    ReplicationUtil.createReplicationTable(conn);
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
 
     // Create two mutations, both of which need replication work done
@@ -238,7 +239,7 @@ public class SequentialWorkAssignerTest {
     assigner.setConnector(conn);
 
     // Create and grant ourselves write to the replication table
-    ReplicationTable.create(conn);
+    ReplicationUtil.createReplicationTable(conn);
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
 
     // Create two mutations, both of which need replication work done
@@ -359,7 +360,7 @@ public class SequentialWorkAssignerTest {
     assigner.setConnector(conn);
 
     // Create and grant ourselves write to the replication table
-    ReplicationTable.create(conn);
+    ReplicationUtil.createReplicationTable(conn);
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
 
     // Create two mutations, both of which need replication work done
