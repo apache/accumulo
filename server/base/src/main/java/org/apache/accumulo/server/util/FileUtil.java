@@ -79,11 +79,11 @@ public class FileUtil {
   private static final Logger log = Logger.getLogger(FileUtil.class);
   
   private static Path createTmpDir(AccumuloConfiguration acuConf, VolumeManager fs) throws IOException {
-    String accumuloDir = fs.choose(ServerConstants.getTemporaryDirs());
+    String accumuloDir = fs.choose(ServerConstants.getBaseUris());
     
     Path result = null;
     while (result == null) {
-      result = new Path(accumuloDir + "/tmp/idxReduce_" + String.format("%09d", new Random().nextInt(Integer.MAX_VALUE)));
+      result = new Path(accumuloDir + Path.SEPARATOR + "tmp/idxReduce_" + String.format("%09d", new Random().nextInt(Integer.MAX_VALUE)));
       
       try {
         fs.getFileStatus(result);

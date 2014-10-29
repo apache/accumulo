@@ -165,10 +165,6 @@ public class ServerConstants {
     return VolumeConfiguration.prefix(getTablesDirs(), MetadataTable.ID);
   }
 
-  public static String[] getTemporaryDirs() {
-    return VolumeConfiguration.prefix(getBaseUris(), "tmp");
-  }
-
   public static synchronized List<Pair<Path,Path>> getVolumeReplacements() {
 
     if (replacementsList == null) {

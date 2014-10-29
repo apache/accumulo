@@ -232,9 +232,10 @@ public class Initialize {
 
     UUID uuid = UUID.randomUUID();
     // the actual disk locations of the root table and tablets
-    String[] configuredTableDirs = VolumeConfiguration.prefix(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance()),
-        ServerConstants.TABLE_DIR);
-    final Path rootTablet = new Path(fs.choose(configuredTableDirs) + "/" + RootTable.ID + RootTable.ROOT_TABLET_LOCATION);
+    String[] configuredVolumes = VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance());
+    final Path rootTablet = new Path(fs.choose(configuredVolumes) + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + RootTable.ID
+        + RootTable.ROOT_TABLET_LOCATION);
+
     try {
       initZooKeeper(opts, uuid.toString(), instanceNamePath, rootTablet);
     } catch (Exception e) {
@@ -313,8 +314,10 @@ public class Initialize {
     // the actual disk locations of the metadata table and tablets
     final Path[] metadataTableDirs = paths(ServerConstants.getMetadataTableDirs());
 
-    String tableMetadataTabletDir = fs.choose(VolumeConfiguration.prefix(ServerConstants.getMetadataTableDirs(), TABLE_TABLETS_TABLET_DIR));
-    String defaultMetadataTabletDir = fs.choose(VolumeConfiguration.prefix(ServerConstants.getMetadataTableDirs(), Constants.DEFAULT_TABLET_LOCATION));
+    String tableMetadataTabletDir = fs.choose(ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID
+        + TABLE_TABLETS_TABLET_DIR;
+    String defaultMetadataTabletDir = fs.choose(ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID
+        + Constants.DEFAULT_TABLET_LOCATION;
 
     // initialize initial metadata config in zookeeper
     initMetadataConfig();
