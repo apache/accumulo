@@ -24,18 +24,17 @@ import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.util.ColumnFQ;
-import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.Admin;
@@ -46,6 +45,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -89,10 +90,9 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacIT {
     c.tableOperations().addSplits(tableName, splits);
     
     BatchScanner scanner = c.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1);
-    ColumnFQ DC = MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
-    DC.fetch(scanner);
+    DIRECTORY_COLUMN.fetch(scanner);
     String tableId = c.tableOperations().tableIdMap().get(tableName);
-    scanner.setRanges(Collections.singletonList(MetadataSchema.TabletsSection.getRange(tableId)));
+    scanner.setRanges(Collections.singletonList(TabletsSection.getRange(tableId)));
     // verify the directory entries are all on v1, make a few entries relative
     bw = c.createBatchWriter(MetadataTable.NAME, null);
     int count = 0;
@@ -101,8 +101,9 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacIT {
       count++;
       if (count % 2 == 0) {
         String parts[] = entry.getValue().toString().split("/");
-        Mutation m = new Mutation(entry.getKey().getRow());
-        m.put(DC.getColumnFamily(), DC.getColumnQualifier(), new Value(("/" + parts[parts.length - 1]).getBytes()));
+        Key key = entry.getKey();
+        Mutation m = new Mutation(key.getRow());
+        m.put(key.getColumnFamily(), key.getColumnQualifier(), new Value((Path.SEPARATOR + parts[parts.length - 1]).getBytes()));
         bw.addMutation(m);
       }
     }
@@ -111,7 +112,6 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacIT {
     
     // This should fail: only one volume
     assertEquals(1, cluster.exec(RandomizeVolumes.class, "-z", cluster.getZooKeepers(), "-i", c.getInstance().getInstanceName(), "-t", tableName).waitFor());
-
     
     cluster.stop();
 
