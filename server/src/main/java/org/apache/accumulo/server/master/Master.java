@@ -2169,7 +2169,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       if (!badServers.isEmpty()) {
         log.debug("not balancing because the balance information is out-of-date " + badServers.keySet());
       } else if (notHosted() > 0) {
-        log.debug("not balancing because there are unhosted tablets");
+        log.debug("not balancing because there are unhosted tablets: " + notHosted());
       } else if (getMasterGoalState() == MasterGoalState.CLEAN_STOP) {
         log.debug("not balancing because the master is attempting to stop cleanly");
       } else if (!serversToShutdown.isEmpty()) {
