@@ -46,14 +46,14 @@ import org.apache.log4j.Logger;
 
 public class RandomizeVolumes {
   private static final Logger log = Logger.getLogger(RandomizeVolumes.class);
-  
+
   public static void main(String[] args) {
     ClientOnRequiredTable opts = new ClientOnRequiredTable();
     opts.parseArgs(RandomizeVolumes.class.getName(), args);
     String principal = SystemCredentials.get().getPrincipal();
     AuthenticationToken token = SystemCredentials.get().getToken();
     try {
-      int status = randomize(opts.getInstance(), new Credentials(principal, token), opts.getTableName());
+      int status = randomize(opts.getInstance(), new Credentials(principal, token), opts.tableName);
       System.exit(status);
     } catch (Exception ex) {
       log.error(ex, ex);
@@ -123,5 +123,5 @@ public class RandomizeVolumes {
     }
     return 0;
   }
-  
+
 }
