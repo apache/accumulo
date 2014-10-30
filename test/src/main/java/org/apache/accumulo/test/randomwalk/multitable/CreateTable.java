@@ -51,6 +51,9 @@ public class CreateTable extends Test {
       conn.tableOperations().addSplits(tableName, splits);
       String tableId = Tables.getNameToIdMap(env.getInstance()).get(tableName);
       log.debug("created " + tableName + " (id:" + tableId + ")");
+      // Add some splits to make the server's life easier
+      conn.tableOperations().addSplits(tableName, splits);
+      log.debug("created " + splits.size() + " splits on " + tableName);
       @SuppressWarnings("unchecked")
       ArrayList<String> tables = (ArrayList<String>) state.get("tableList");
       tables.add(tableName);
