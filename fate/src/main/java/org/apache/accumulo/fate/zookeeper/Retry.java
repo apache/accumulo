@@ -46,6 +46,26 @@ public class Retry {
   }
 
   // Visible for testing
+  long getMaxRetries() {
+    return maxRetries;
+  }
+
+  // Visible for testing
+  long getCurrentWait() {
+    return currentWait;
+  }
+
+  // Visible for testing
+  long getWaitIncrement() {
+    return waitIncrement;
+  }
+
+  // Visible for testing
+  long getMaxWait() {
+    return maxWait;
+  }
+
+  // Visible for testing
   void setMaxRetries(long maxRetries) {
     this.maxRetries = maxRetries;
   }
