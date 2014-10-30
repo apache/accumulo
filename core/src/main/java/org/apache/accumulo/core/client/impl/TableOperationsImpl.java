@@ -460,6 +460,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     for (Text split : partitionKeys) {
       boolean successful = false;
       int attempt = 0;
+      long locationFailures = 0;
 
       while (!successful) {
 
@@ -507,6 +508,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
             throw new TableNotFoundException(tableId, tableName, null);
           throw new AccumuloSecurityException(e.user, e.code, e);
         } catch (NotServingTabletException e) {
+          // Do not silently spin when we repeatedly fail to get the location for a tablet
+          locationFailures++;
+          if (5 == locationFailures || 0 == locationFailures % 50) {
+            log.warn("Having difficulty locating hosting tabletserver for split " + split + " on table " + tableName + ". Seen " + locationFailures
+                + " failures.");
+          }
+
           tabLocator.invalidateCache(tl.tablet_extent);
           continue;
         } catch (TException e) {
