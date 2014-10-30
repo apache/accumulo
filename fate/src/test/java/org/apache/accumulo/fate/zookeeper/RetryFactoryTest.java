@@ -16,23 +16,24 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
+import org.junit.Assert;
+import org.junit.Test;
+
 /**
- * Creates {@link Retry} instances with the given parameters
+ *
  */
-public class RetryFactory {
-  public static final long DEFAULT_MAX_RETRIES = 10l, DEFAULT_START_WAIT = 250l, DEFAULT_WAIT_INCREMENT = 250l, DEFAULT_MAX_WAIT = 5000l;
-  public static final RetryFactory DEFAULT_INSTANCE = new RetryFactory(DEFAULT_MAX_RETRIES, DEFAULT_START_WAIT, DEFAULT_WAIT_INCREMENT, DEFAULT_MAX_WAIT);
+public class RetryFactoryTest {
 
-  private final long maxRetries, startWait, maxWait, waitIncrement;
+  @Test
+  public void properArgumentsInRetry() {
+    long maxRetries = 10, startWait = 50l, maxWait = 5000l, waitIncrement = 500l;
+    RetryFactory factory = new RetryFactory(maxRetries, startWait, waitIncrement, maxWait);
+    Retry retry = factory.create();
 
-  public RetryFactory(long maxRetries, long startWait, long waitIncrement, long maxWait) {
-    this.maxRetries = maxRetries;
-    this.startWait = startWait;
-    this.maxWait = maxWait;
-    this.waitIncrement = waitIncrement;
+    Assert.assertEquals(maxRetries, retry.getMaxRetries());
+    Assert.assertEquals(startWait, retry.getCurrentWait());
+    Assert.assertEquals(maxWait, retry.getMaxWait());
+    Assert.assertEquals(waitIncrement, retry.getWaitIncrement());
   }
 
-  public Retry create() {
-    return new Retry(maxRetries, startWait, waitIncrement, maxWait);
-  }
 }
