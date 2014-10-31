@@ -192,7 +192,7 @@ public class ZooUtil {
    * @param zPath
    *          the path to delete
    */
-  static void recursiveDelete(ZooKeeperConnectionInfo info, String zPath, int version, NodeMissingPolicy policy) throws KeeperException, InterruptedException {
+  static void recursiveDelete(ZooKeeperConnectionInfo info, String zPath, NodeMissingPolicy policy) throws KeeperException, InterruptedException {
     if (policy.equals(NodeMissingPolicy.CREATE))
       throw new IllegalArgumentException(policy.name() + " is invalid for this operation");
     try {
@@ -222,8 +222,9 @@ public class ZooUtil {
           // Node exists
           if (stat != null) {
             try {
-              // Try to delete it
-              getZooKeeper(info).delete(zPath, stat.getVersion());
+              // Try to delete it. We don't care if there was an update to the node
+              // since we got the Stat, just delete all versions (-1).
+              getZooKeeper(info).delete(zPath, -1);
               return;
             } catch (NoNodeException e) {
               // If the node is gone now, it's ok if we have SKIP
@@ -250,10 +251,6 @@ public class ZooUtil {
         return;
       throw e;
     }
-  }
-
-  public static void recursiveDelete(ZooKeeperConnectionInfo info, String zPath, NodeMissingPolicy policy) throws KeeperException, InterruptedException {
-    recursiveDelete(info, zPath, -1, policy);
   }
 
   /**
