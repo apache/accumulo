@@ -24,7 +24,6 @@ import java.util.HashSet;
 import java.util.List;
 
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.Volume;
@@ -143,10 +142,6 @@ public class ServerConstants {
   public static Path getDataVersionLocation(Volume v) {
     // all base dirs should have the same version, so can choose any one
     return v.prefixChild(VERSION_DIR);
-  }
-
-  public static String[] getMetadataTableDirs() {
-    return VolumeConfiguration.prefix(getTablesDirs(), MetadataTable.ID);
   }
 
   public static synchronized List<Pair<Path,Path>> getVolumeReplacements() {
