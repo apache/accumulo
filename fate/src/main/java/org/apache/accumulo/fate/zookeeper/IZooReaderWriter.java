@@ -30,8 +30,6 @@ public interface IZooReaderWriter extends IZooReader {
 
   void recursiveDelete(String zPath, NodeMissingPolicy policy) throws KeeperException, InterruptedException;
 
-  void recursiveDelete(String zPath, int version, NodeMissingPolicy policy) throws KeeperException, InterruptedException;
-
   /**
    * Create a persistent node with the default ACL
    *
