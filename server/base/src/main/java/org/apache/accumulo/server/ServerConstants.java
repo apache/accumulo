@@ -134,6 +134,8 @@ public class ServerConstants {
   public static final String TABLE_DIR = "tables";
   public static final String RECOVERY_DIR = "recovery";
   public static final String WAL_DIR = "wal";
+  public static final String WALOG_ARCHIVE_DIR = "walogArchive";
+  public static final String FILE_ARCHIVE_DIR = "fileArchive";
 
   public static String[] getTablesDirs() {
     return VolumeConfiguration.prefix(getBaseUris(), TABLE_DIR);
@@ -148,7 +150,11 @@ public class ServerConstants {
   }
 
   public static String[] getWalogArchives() {
-    return VolumeConfiguration.prefix(getBaseUris(), "walogArchive");
+    return VolumeConfiguration.prefix(getBaseUris(), WALOG_ARCHIVE_DIR);
+  }
+
+  public static String[] getFileArchives() {
+    return VolumeConfiguration.prefix(getBaseUris(), FILE_ARCHIVE_DIR);
   }
 
   public static Path getInstanceIdLocation(Volume v) {

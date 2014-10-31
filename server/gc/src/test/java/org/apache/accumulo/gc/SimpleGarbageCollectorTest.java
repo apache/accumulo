@@ -16,6 +16,18 @@
  */
 package org.apache.accumulo.gc;
 
+import static org.apache.accumulo.gc.SimpleGarbageCollector.CANDIDATE_MEMORY_PERCENTAGE;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
 import java.io.FileNotFoundException;
 
 import org.apache.accumulo.core.client.Instance;
@@ -24,26 +36,12 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.gc.SimpleGarbageCollector.Opts;
-
-import static org.apache.accumulo.gc.SimpleGarbageCollector.CANDIDATE_MEMORY_PERCENTAGE;
-
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.hadoop.fs.Path;
 import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
 
 public class SimpleGarbageCollectorTest {
   private VolumeManager volMgr;
@@ -77,6 +75,7 @@ public class SimpleGarbageCollectorTest {
     expect(systemConfig.getTimeInMillis(Property.GC_CYCLE_DELAY)).andReturn(20000L);
     expect(systemConfig.getCount(Property.GC_DELETE_THREADS)).andReturn(2).times(2);
     expect(systemConfig.getBoolean(Property.GC_TRASH_IGNORE)).andReturn(false);
+    expect(systemConfig.getBoolean(Property.GC_FILE_ARCHIVE)).andReturn(false);
     replay(systemConfig);
     return systemConfig;
   }
@@ -104,7 +103,7 @@ public class SimpleGarbageCollectorTest {
     Path path = createMock(Path.class);
     expect(volMgr.moveToTrash(path)).andReturn(true);
     replay(volMgr);
-    assertTrue(gc.moveToTrash(path));
+    assertTrue(gc.archiveOrMoveToTrash(path));
     verify(volMgr);
   }
 
@@ -114,7 +113,7 @@ public class SimpleGarbageCollectorTest {
     Path path = createMock(Path.class);
     expect(volMgr.moveToTrash(path)).andThrow(new FileNotFoundException());
     replay(volMgr);
-    assertFalse(gc.moveToTrash(path));
+    assertFalse(gc.archiveOrMoveToTrash(path));
     verify(volMgr);
   }
 
@@ -124,11 +123,12 @@ public class SimpleGarbageCollectorTest {
     expect(systemConfig.getTimeInMillis(Property.GC_CYCLE_START)).andReturn(1000L);
     expect(systemConfig.getTimeInMillis(Property.GC_CYCLE_DELAY)).andReturn(20000L);
     expect(systemConfig.getCount(Property.GC_DELETE_THREADS)).andReturn(2);
+    expect(systemConfig.getBoolean(Property.GC_FILE_ARCHIVE)).andReturn(false);
     expect(systemConfig.getBoolean(Property.GC_TRASH_IGNORE)).andReturn(true);
     replay(systemConfig);
     gc.init(volMgr, instance, credentials, systemConfig);
     Path path = createMock(Path.class);
-    assertFalse(gc.moveToTrash(path));
+    assertFalse(gc.archiveOrMoveToTrash(path));
   }
 
   @Test

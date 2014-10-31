@@ -73,6 +73,7 @@ import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.SslConnectionParams;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
@@ -229,6 +230,15 @@ public class SimpleGarbageCollector implements Iface {
    */
   Instance getInstance() {
     return instance;
+  }
+
+  /**
+   * Should files be archived (as opposed to preserved in trash)
+   *
+   * @return True if files should be archived, false otherwise
+   */
+  boolean shouldArchiveFiles() {
+    return config.getBoolean(Property.GC_FILE_ARCHIVE);
   }
 
   /**
@@ -403,7 +413,7 @@ public class SimpleGarbageCollector implements Iface {
 
               log.debug("Deleting " + fullPath);
 
-              if (moveToTrash(fullPath) || fs.deleteRecursively(fullPath)) {
+              if (archiveOrMoveToTrash(fullPath) || fs.deleteRecursively(fullPath)) {
                 // delete succeeded, still want to delete
                 removeFlag = true;
                 synchronized (SimpleGarbageCollector.this) {
@@ -489,7 +499,7 @@ public class SimpleGarbageCollector implements Iface {
         if (tabletDirs.length == 0) {
           Path p = new Path(dir + "/" + tableID);
           log.debug("Removing table dir " + p);
-          if (!moveToTrash(p))
+          if (!archiveOrMoveToTrash(p))
             fs.delete(p);
         }
       }
@@ -643,14 +653,69 @@ public class SimpleGarbageCollector implements Iface {
    * @throws IOException
    *           if the volume manager encountered a problem
    */
-  boolean moveToTrash(Path path) throws IOException {
-    if (!isUsingTrash())
-      return false;
-    try {
-      return fs.moveToTrash(path);
-    } catch (FileNotFoundException ex) {
+  boolean archiveOrMoveToTrash(Path path) throws IOException {
+    if (shouldArchiveFiles()) {
+      return archiveFile(path);
+    } else {
+      if (!isUsingTrash())
+        return false;
+      try {
+        return fs.moveToTrash(path);
+      } catch (FileNotFoundException ex) {
+        return false;
+      }
+    }
+  }
+
+  /**
+   * Move a file, that would otherwise be deleted, to the archive directory for files
+   *
+   * @param fileToArchive
+   *          Path to file that is to be archived
+   * @return True if the file was successfully moved to the file archive directory, false otherwise
+   */
+  boolean archiveFile(Path fileToArchive) throws IOException {
+    // Figure out what the base path this volume uses on this FileSystem
+    Volume sourceVolume = fs.getVolumeByPath(fileToArchive);
+    String sourceVolumeBasePath = sourceVolume.getBasePath();
+
+    log.debug("Base path for volume: " + sourceVolumeBasePath);
+
+    // Get the path for the file we want to archive
+    String sourcePathBasePath = fileToArchive.toUri().getPath();
+
+    // Strip off the common base path for the file to archive
+    String relativeVolumePath = sourcePathBasePath.substring(sourceVolumeBasePath.length());
+    if (Path.SEPARATOR_CHAR == relativeVolumePath.charAt(0)) {
+      if (relativeVolumePath.length() > 1) {
+        relativeVolumePath = relativeVolumePath.substring(1);
+      } else {
+        relativeVolumePath = "";
+      }
+    }
+
+    log.debug("Computed relative path for file to archive: " + relativeVolumePath);
+
+    // The file archive path on this volume (we can't archive this file to a different volume)
+    Path archivePath = new Path(sourceVolumeBasePath, ServerConstants.FILE_ARCHIVE_DIR);
+
+    log.debug("File archive path: " + archivePath);
+
+    fs.mkdirs(archivePath);
+
+    // Preserve the path beneath the Volume's base directory (e.g. tables/1/A_0000001.rf)
+    Path fileArchivePath = new Path(archivePath, relativeVolumePath);
+
+    log.debug("Create full path of " + fileArchivePath + " from " + archivePath + " and " + relativeVolumePath);
+
+    // Make sure that it doesn't already exist, something is wrong.
+    if (fs.exists(fileArchivePath)) {
+      log.warn("Tried to archive file, but it already exists: " + fileArchivePath);
       return false;
     }
+
+    log.debug("Moving " + fileToArchive + " to " + fileArchivePath);
+    return fs.rename(fileToArchive, fileArchivePath);
   }
 
   private void getZooLock(HostAndPort addr) throws KeeperException, InterruptedException {

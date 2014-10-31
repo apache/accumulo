@@ -173,7 +173,7 @@ public class LogSorter {
     }
 
     private void writeBuffer(String destPath, List<Pair<LogFileKey,LogFileValue>> buffer, int part) throws IOException {
-      Path path = new Path(destPath, String.format("part-r-%05d", part++));
+      Path path = new Path(destPath, String.format("part-r-%05d", part));
       FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
 
       @SuppressWarnings("deprecation")
