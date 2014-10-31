@@ -55,11 +55,10 @@ public class ZooReservation {
   }
   
   public static void release(IZooReaderWriter zk, String path, String reservationID) throws KeeperException, InterruptedException {
-    Stat stat = new Stat();
     byte[] zooData;
     
     try {
-      zooData = zk.getData(path, stat);
+      zooData = zk.getData(path, null);
     } catch (NoNodeException e) {
       // Just logging a warning, if data is gone then our work here is done.
       Logger.getLogger(ZooReservation.class).debug("Node does not exist " + path);
@@ -73,7 +72,7 @@ public class ZooReservation {
       throw new IllegalStateException("Tried to release reservation " + path + " with data mismatch " + reservationID + " " + zooDataStr);
     }
     
-    zk.recursiveDelete(path, stat.getVersion(), NodeMissingPolicy.SKIP);
+    zk.recursiveDelete(path, NodeMissingPolicy.SKIP);
   }
   
 }
