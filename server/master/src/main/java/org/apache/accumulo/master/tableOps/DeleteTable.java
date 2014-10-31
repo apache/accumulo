@@ -180,7 +180,7 @@ class CleanUp extends MasterRepo {
     }
 
     if (refCount == 0) {
-      final AccumuloConfiguration conf = master.getConfiguration().getConfiguration();
+      final AccumuloConfiguration conf = master.getConfiguration();
       boolean archiveFiles = conf.getBoolean(Property.GC_FILE_ARCHIVE);
 
       // delete the map files

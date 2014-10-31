@@ -17,6 +17,7 @@
 package org.apache.accumulo.server.util;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
@@ -107,7 +108,7 @@ public class RandomizeVolumes {
       Mutation m = new Mutation(key.getRow());
       
       String newLocation = vm.choose(ServerConstants.getBaseUris()) + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + tableId + Path.SEPARATOR + directory;
-      m.put(key.getColumnFamily(), key.getColumnQualifier(), new Value(newLocation.getBytes(Constants.UTF8)));
+      m.put(key.getColumnFamily(), key.getColumnQualifier(), new Value(newLocation.getBytes(StandardCharsets.UTF_8)));
       if (log.isTraceEnabled()) {
         log.trace("Replacing " + oldLocation + " with " + newLocation);
       }
