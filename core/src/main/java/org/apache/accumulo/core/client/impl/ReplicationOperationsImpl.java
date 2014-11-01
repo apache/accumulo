@@ -61,7 +61,7 @@ import org.slf4j.LoggerFactory;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
- * 
+ *
  */
 public class ReplicationOperationsImpl implements ReplicationOperations {
   private static final Logger log = LoggerFactory.getLogger(ReplicationOperationsImpl.class);
@@ -216,9 +216,6 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
 
   protected Text getTableId(Connector conn, String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     TableOperations tops = conn.tableOperations();
-    while (!tops.exists(ReplicationTable.NAME)) {
-      UtilWaitThread.sleep(200);
-    }
 
     if (!conn.tableOperations().exists(tableName)) {
       throw new TableNotFoundException(null, tableName, null);

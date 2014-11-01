@@ -21,26 +21,34 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.replication.ReplicaSystemFactory;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iterators.conf.ColumnSet;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
@@ -51,6 +59,7 @@ import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
+import org.apache.accumulo.core.replication.StatusFormatter;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
@@ -61,7 +70,7 @@ import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ProcessReference;
-import org.apache.accumulo.server.replication.ReplicationUtil;
+import org.apache.accumulo.server.replication.StatusCombiner;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.accumulo.tserver.TabletServer;
@@ -75,6 +84,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
@@ -130,6 +141,75 @@ public class ReplicationIT extends ConfigurableMacIT {
   }
 
   @Test
+  public void replicationTableCreated() throws AccumuloException, AccumuloSecurityException {
+    Assert.assertTrue(getConnector().tableOperations().exists(ReplicationTable.NAME));
+    Assert.assertEquals(ReplicationTable.ID, getConnector().tableOperations().tableIdMap().get(ReplicationTable.NAME));
+  }
+
+  @Test
+  public void verifyReplicationTableConfig() throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
+    TableOperations tops = getConnector().tableOperations();
+    Map<String,EnumSet<IteratorScope>> iterators = tops.listIterators(ReplicationTable.NAME);
+
+    // verify combiners are only iterators (no versioning)
+    Assert.assertEquals(1, iterators.size());
+
+    // look for combiner
+    Assert.assertTrue(iterators.containsKey(ReplicationTable.COMBINER_NAME));
+    Assert.assertTrue(iterators.get(ReplicationTable.COMBINER_NAME).containsAll(EnumSet.allOf(IteratorScope.class)));
+    for (IteratorScope scope : EnumSet.allOf(IteratorScope.class)) {
+      IteratorSetting is = tops.getIteratorSetting(ReplicationTable.NAME, ReplicationTable.COMBINER_NAME, scope);
+      Assert.assertEquals(30, is.getPriority());
+      Assert.assertEquals(StatusCombiner.class.getName(), is.getIteratorClass());
+      Assert.assertEquals(1, is.getOptions().size());
+      Assert.assertTrue(is.getOptions().containsKey("columns"));
+      String cols = is.getOptions().get("columns");
+      Column statusSectionCol = new Column(StatusSection.NAME);
+      Column workSectionCol = new Column(WorkSection.NAME);
+      Assert.assertEquals(
+          ColumnSet.encodeColumns(statusSectionCol.getColumnFamily(), statusSectionCol.getColumnQualifier()) + ","
+              + ColumnSet.encodeColumns(workSectionCol.getColumnFamily(), workSectionCol.getColumnQualifier()), cols);
+    }
+
+    boolean foundLocalityGroups = false;
+    boolean foundLocalityGroupDef1 = false;
+    boolean foundLocalityGroupDef2 = false;
+    boolean foundFormatter = false;
+    Joiner j = Joiner.on(",");
+    Function<Text,String> textToString = new Function<Text,String>() {
+      @Override
+      public String apply(Text text) {
+        return text.toString();
+      }
+    };
+    for (Entry<String,String> p : tops.getProperties(ReplicationTable.NAME)) {
+      String key = p.getKey();
+      String val = p.getValue();
+      // STATUS_LG_NAME, STATUS_LG_COLFAMS, WORK_LG_NAME, WORK_LG_COLFAMS
+      if (key.equals(Property.TABLE_FORMATTER_CLASS.getKey()) && val.equals(StatusFormatter.class.getName())) {
+        // look for formatter
+        foundFormatter = true;
+      } else if (key.equals(Property.TABLE_LOCALITY_GROUPS.getKey()) && val.equals(j.join(ReplicationTable.LOCALITY_GROUPS.keySet()))) {
+        // look for locality groups enabled
+        foundLocalityGroups = true;
+      } else if (key.startsWith(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey())) {
+        // look for locality group column family definitions
+        if (key.equals(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + ReplicationTable.STATUS_LG_NAME)
+            && val.equals(j.join(Iterables.transform(ReplicationTable.STATUS_LG_COLFAMS, textToString)))) {
+          foundLocalityGroupDef1 = true;
+        } else if (key.equals(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + ReplicationTable.WORK_LG_NAME)
+            && val.equals(j.join(Iterables.transform(ReplicationTable.WORK_LG_COLFAMS, textToString)))) {
+          foundLocalityGroupDef2 = true;
+        }
+      }
+    }
+    Assert.assertTrue(foundLocalityGroups);
+    Assert.assertTrue(foundLocalityGroupDef1);
+    Assert.assertTrue(foundLocalityGroupDef2);
+    Assert.assertTrue(foundFormatter);
+  }
+
+  @Test
   public void correctRecordsCompleteFile() throws Exception {
     Connector conn = getConnector();
     String table = "table1";
@@ -146,17 +226,17 @@ public class ReplicationIT extends ConfigurableMacIT {
 
     bw.close();
 
-    // After writing data, we'll get a replication table
-    boolean exists = conn.tableOperations().exists(ReplicationTable.NAME);
+    // After writing data, we'll get a replication table online
+    boolean online = ReplicationTable.isOnline(conn);
     int attempts = 10;
     do {
-      if (!exists) {
+      if (!online) {
         UtilWaitThread.sleep(2000);
-        exists = conn.tableOperations().exists(ReplicationTable.NAME);
+        online = ReplicationTable.isOnline(conn);
         attempts--;
       }
-    } while (!exists && attempts > 0);
-    Assert.assertTrue("Replication table did not exist", exists);
+    } while (!online && attempts > 0);
+    Assert.assertTrue("Replication table was not online", online);
 
     for (int i = 0; i < 5; i++) {
       if (conn.securityOperations().hasTablePermission("root", ReplicationTable.NAME, TablePermission.READ)) {
@@ -193,7 +273,7 @@ public class ReplicationIT extends ConfigurableMacIT {
     Scanner s;
     attempts = 5;
     while (wals.isEmpty() && attempts > 0) {
-      s = conn.createScanner(MetadataTable.NAME, new Authorizations());
+      s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
       s.fetchColumnFamily(MetadataSchema.TabletsSection.LogColumnFamily.NAME);
       for (Entry<Key,Value> entry : s) {
         LogEntry logEntry = LogEntry.fromKeyValue(entry.getKey(), entry.getValue());
@@ -215,8 +295,8 @@ public class ReplicationIT extends ConfigurableMacIT {
     Connector conn = getConnector();
     List<String> tables = new ArrayList<>();
 
-    // replication shouldn't exist when we begin
-    Assert.assertFalse(conn.tableOperations().exists(ReplicationTable.NAME));
+    // replication shouldn't be online when we begin
+    Assert.assertFalse(ReplicationTable.isOnline(conn));
 
     for (int i = 0; i < 5; i++) {
       String name = "table" + i;
@@ -225,7 +305,7 @@ public class ReplicationIT extends ConfigurableMacIT {
     }
 
     // nor after we create some tables (that aren't being replicated)
-    Assert.assertFalse(conn.tableOperations().exists(ReplicationTable.NAME));
+    Assert.assertFalse(ReplicationTable.isOnline(conn));
 
     for (String table : tables) {
       BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
@@ -243,21 +323,21 @@ public class ReplicationIT extends ConfigurableMacIT {
     }
 
     // After writing data, still no replication table
-    Assert.assertFalse(conn.tableOperations().exists(ReplicationTable.NAME));
+    Assert.assertFalse(ReplicationTable.isOnline(conn));
 
     for (String table : tables) {
       conn.tableOperations().compact(table, null, null, true, true);
     }
 
     // After compacting data, still no replication table
-    Assert.assertFalse(conn.tableOperations().exists(ReplicationTable.NAME));
+    Assert.assertFalse(ReplicationTable.isOnline(conn));
 
     for (String table : tables) {
       conn.tableOperations().delete(table);
     }
 
     // After deleting tables, still no replication table
-    Assert.assertFalse(conn.tableOperations().exists(ReplicationTable.NAME));
+    Assert.assertFalse(ReplicationTable.isOnline(conn));
   }
 
   @Test
@@ -266,7 +346,7 @@ public class ReplicationIT extends ConfigurableMacIT {
     String table1 = "table1", table2 = "table2";
 
     // replication shouldn't exist when we begin
-    Assert.assertFalse("Replication table already existed at the beginning of the test", conn.tableOperations().exists(ReplicationTable.NAME));
+    Assert.assertFalse("Replication table already online at the beginning of the test", ReplicationTable.isOnline(conn));
 
     // Create two tables
     conn.tableOperations().create(table1);
@@ -275,8 +355,8 @@ public class ReplicationIT extends ConfigurableMacIT {
     // Enable replication on table1
     conn.tableOperations().setProperty(table1, Property.TABLE_REPLICATION.getKey(), "true");
 
-    // Despite having replication on, we shouldn't have any need to write a record to it (and create it)
-    Assert.assertFalse(conn.tableOperations().exists(ReplicationTable.NAME));
+    // Despite having replication on, we shouldn't have any need to write a record to it (and bring it online)
+    Assert.assertFalse(ReplicationTable.isOnline(conn));
 
     // Write some data to table1
     BatchWriter bw = conn.createBatchWriter(table1, new BatchWriterConfig());
@@ -295,19 +375,19 @@ public class ReplicationIT extends ConfigurableMacIT {
     // After the commit for these mutations finishes, we'll get a replication entry in accumulo.metadata for table1
     // Don't want to compact table1 as it ultimately cause the entry in accumulo.metadata to be removed before we can verify it's there
 
-    // After writing data, we'll get a replication table
-    boolean exists = conn.tableOperations().exists(ReplicationTable.NAME);
+    // After writing data, we'll get a replication table online
+    boolean online = ReplicationTable.isOnline(conn);
     int attempts = 10;
     do {
-      if (!exists) {
+      if (!online) {
         UtilWaitThread.sleep(5000);
-        exists = conn.tableOperations().exists(ReplicationTable.NAME);
+        online = ReplicationTable.isOnline(conn);
         attempts--;
       }
-    } while (!exists && attempts > 0);
-    Assert.assertTrue("Replication table did not exist", exists);
+    } while (!online && attempts > 0);
+    Assert.assertTrue("Replication table did not exist", online);
 
-    Assert.assertTrue(conn.tableOperations().exists(ReplicationTable.NAME));
+    Assert.assertTrue(ReplicationTable.isOnline(conn));
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.READ);
 
     // Verify that we found a single replication record that's for table1
@@ -353,8 +433,8 @@ public class ReplicationIT extends ConfigurableMacIT {
     // After the commit on these mutations, we'll get a replication entry in accumulo.metadata for table2
     // Don't want to compact table2 as it ultimately cause the entry in accumulo.metadata to be removed before we can verify it's there
 
-    // After writing data, we'll get a replication table
-    Assert.assertTrue(conn.tableOperations().exists(ReplicationTable.NAME));
+    // After writing data, we'll get a replication table online
+    Assert.assertTrue(ReplicationTable.isOnline(conn));
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.READ);
 
     Set<String> tableIds = Sets.newHashSet(conn.tableOperations().tableIdMap().get(table1), conn.tableOperations().tableIdMap().get(table2));
@@ -558,12 +638,9 @@ public class ReplicationIT extends ConfigurableMacIT {
   public void noDeadlock() throws Exception {
     final Connector conn = getConnector();
 
-    if (conn.tableOperations().exists(ReplicationTable.NAME)) {
-      conn.tableOperations().delete(ReplicationTable.NAME);
-    }
-
-    ReplicationUtil.createReplicationTable(conn);
+    ReplicationTable.setOnline(conn);
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
+    conn.tableOperations().deleteRows(ReplicationTable.NAME, null, null);
 
     final AtomicBoolean keepRunning = new AtomicBoolean(true);
     final Set<String> metadataWals = new HashSet<>();
@@ -648,7 +725,7 @@ public class ReplicationIT extends ConfigurableMacIT {
     }
 
     for (String table : Arrays.asList(MetadataTable.NAME, table1, table2, table3)) {
-      Scanner s = conn.createScanner(table, new Authorizations());
+      Scanner s = conn.createScanner(table, Authorizations.EMPTY);
       for (@SuppressWarnings("unused")
       Entry<Key,Value> entry : s) {}
     }
@@ -712,7 +789,7 @@ public class ReplicationIT extends ConfigurableMacIT {
 
     conn.tableOperations().flush(table, null, null, true);
 
-    while (!conn.tableOperations().exists(ReplicationTable.NAME)) {
+    while (!ReplicationTable.isOnline(conn)) {
       UtilWaitThread.sleep(2000);
     }
 
@@ -778,8 +855,8 @@ public class ReplicationIT extends ConfigurableMacIT {
     Connector conn = getConnector();
     String table1 = "table1";
 
-    // replication shouldn't exist when we begin
-    Assert.assertFalse(conn.tableOperations().exists(ReplicationTable.NAME));
+    // replication shouldn't be online when we begin
+    Assert.assertFalse(ReplicationTable.isOnline(conn));
 
     // Create a table
     conn.tableOperations().create(table1);
@@ -819,17 +896,17 @@ public class ReplicationIT extends ConfigurableMacIT {
 
     bw.close();
 
-    // Make sure the replication table exists at this point
-    boolean exists = conn.tableOperations().exists(ReplicationTable.NAME);
+    // Make sure the replication table is online at this point
+    boolean online = ReplicationTable.isOnline(conn);
     attempts = 10;
     do {
-      if (!exists) {
+      if (!online) {
         UtilWaitThread.sleep(2000);
-        exists = conn.tableOperations().exists(ReplicationTable.NAME);
+        online = ReplicationTable.isOnline(conn);
         attempts--;
       }
-    } while (!exists && attempts > 0);
-    Assert.assertTrue("Replication table was never created", exists);
+    } while (!online && attempts > 0);
+    Assert.assertTrue("Replication table was never created", online);
 
     // ACCUMULO-2743 The Observer in the tserver has to be made aware of the change to get the combiner (made by the master)
     for (int i = 0; i < 10 && !conn.tableOperations().listIterators(ReplicationTable.NAME).keySet().contains(ReplicationTable.COMBINER_NAME); i++) {
@@ -963,8 +1040,8 @@ public class ReplicationIT extends ConfigurableMacIT {
     Connector conn = getConnector();
     String table1 = "table1";
 
-    // replication shouldn't exist when we begin
-    Assert.assertFalse(conn.tableOperations().exists(ReplicationTable.NAME));
+    // replication shouldn't be online when we begin
+    Assert.assertFalse(ReplicationTable.isOnline(conn));
 
     // Create two tables
     conn.tableOperations().create(table1);
@@ -1003,16 +1080,16 @@ public class ReplicationIT extends ConfigurableMacIT {
     Assert.assertNotNull("Table ID was null", tableId);
 
     // Make sure the replication table exists at this point
-    boolean exists = conn.tableOperations().exists(ReplicationTable.NAME);
+    boolean online = ReplicationTable.isOnline(conn);
     attempts = 5;
     do {
-      if (!exists) {
+      if (!online) {
         UtilWaitThread.sleep(500);
-        exists = conn.tableOperations().exists(ReplicationTable.NAME);
+        online = ReplicationTable.isOnline(conn);
         attempts--;
       }
-    } while (!exists && attempts > 0);
-    Assert.assertTrue("Replication table did not exist", exists);
+    } while (!online && attempts > 0);
+    Assert.assertTrue("Replication table did not exist", online);
 
     for (int i = 0; i < 5 && !conn.securityOperations().hasTablePermission("root", ReplicationTable.NAME, TablePermission.READ); i++) {
       Thread.sleep(1000);
@@ -1059,12 +1136,9 @@ public class ReplicationIT extends ConfigurableMacIT {
 
     final Connector conn = getConnector();
 
-    if (conn.tableOperations().exists(ReplicationTable.NAME)) {
-      conn.tableOperations().delete(ReplicationTable.NAME);
-    }
-
-    ReplicationUtil.createReplicationTable(conn);
+    ReplicationTable.setOnline(conn);
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
+    conn.tableOperations().deleteRows(ReplicationTable.NAME, null, null);
 
     final AtomicBoolean keepRunning = new AtomicBoolean(true);
     final Set<String> metadataWals = new HashSet<>();
@@ -1164,7 +1238,7 @@ public class ReplicationIT extends ConfigurableMacIT {
 
     // Make sure we can read all the tables (recovery complete)
     for (String table : Arrays.asList(table1, table2, table3)) {
-      Scanner s = conn.createScanner(table, new Authorizations());
+      Scanner s = conn.createScanner(table, Authorizations.EMPTY);
       for (@SuppressWarnings("unused")
       Entry<Key,Value> entry : s) {}
     }
@@ -1265,8 +1339,8 @@ public class ReplicationIT extends ConfigurableMacIT {
     log.info("Got connector to MAC");
     String table1 = "table1";
 
-    // replication shouldn't exist when we begin
-    Assert.assertFalse(conn.tableOperations().exists(ReplicationTable.NAME));
+    // replication shouldn't be online when we begin
+    Assert.assertFalse(ReplicationTable.isOnline(conn));
 
     // Create two tables
     conn.tableOperations().create(table1);
@@ -1308,16 +1382,16 @@ public class ReplicationIT extends ConfigurableMacIT {
     bw.close();
 
     // Make sure the replication table exists at this point
-    boolean exists = conn.tableOperations().exists(ReplicationTable.NAME);
+    boolean online = ReplicationTable.isOnline(conn);
     attempts = 10;
     do {
-      if (!exists) {
+      if (!online) {
         UtilWaitThread.sleep(1000);
-        exists = conn.tableOperations().exists(ReplicationTable.NAME);
+        online = ReplicationTable.isOnline(conn);
         attempts--;
       }
-    } while (!exists && attempts > 0);
-    Assert.assertTrue("Replication table did not exist", exists);
+    } while (!online && attempts > 0);
+    Assert.assertTrue("Replication table did not exist", online);
 
     // Grant ourselves the write permission for later
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
@@ -1391,7 +1465,7 @@ public class ReplicationIT extends ConfigurableMacIT {
 
     // Make sure we can read all the tables (recovery complete)
     for (String table : new String[] {MetadataTable.NAME, table1}) {
-      s = conn.createScanner(table, new Authorizations());
+      s = conn.createScanner(table, Authorizations.EMPTY);
       for (@SuppressWarnings("unused")
       Entry<Key,Value> entry : s) {}
     }

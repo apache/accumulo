@@ -25,10 +25,13 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import jline.console.ConsoleReader;
@@ -57,10 +60,20 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.replication.ReplicationConstants;
+import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
+import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
+import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
@@ -91,6 +104,7 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs.Ids;
 
 import com.beust.jcommander.Parameter;
+import com.google.common.base.Joiner;
 
 /**
  * This class is used to setup the directory structure and the root tablet to get an instance started
@@ -99,7 +113,7 @@ import com.beust.jcommander.Parameter;
 public class Initialize {
   private static final Logger log = Logger.getLogger(Initialize.class);
   private static final String DEFAULT_ROOT_USER = "root";
-  public static final String TABLE_TABLETS_TABLET_DIR = "/table_info";
+  private static final String TABLE_TABLETS_TABLET_DIR = "/table_info";
 
   private static ConsoleReader reader = null;
   private static IZooReaderWriter zoo = ZooReaderWriter.getInstance();
@@ -130,6 +144,8 @@ public class Initialize {
   }
 
   private static HashMap<String,String> initialMetadataConf = new HashMap<String,String>();
+  private static HashMap<String,String> initialMetadataCombinerConf = new HashMap<String,String>();
+  private static HashMap<String,String> initialReplicationTableConf = new HashMap<String,String>();
   static {
     initialMetadataConf.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "32K");
     initialMetadataConf.put(Property.TABLE_FILE_REPLICATION.getKey(), "5");
@@ -146,13 +162,44 @@ public class Initialize {
     initialMetadataConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.bulkLoadFilter", "20," + MetadataBulkLoadFilter.class.getName());
     initialMetadataConf.put(Property.TABLE_FAILURES_IGNORE.getKey(), "false");
     initialMetadataConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "tablet",
-        String.format("%s,%s", TabletsSection.TabletColumnFamily.NAME, TabletsSection.CurrentLocationColumnFamily.NAME));
-    initialMetadataConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "server", String.format("%s,%s,%s,%s", TabletsSection.DataFileColumnFamily.NAME,
-        TabletsSection.LogColumnFamily.NAME, TabletsSection.ServerColumnFamily.NAME, TabletsSection.FutureLocationColumnFamily.NAME));
+        String.format("%s,%s", TabletColumnFamily.NAME, CurrentLocationColumnFamily.NAME));
+    initialMetadataConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "server",
+        String.format("%s,%s,%s,%s", DataFileColumnFamily.NAME, LogColumnFamily.NAME, ServerColumnFamily.NAME, FutureLocationColumnFamily.NAME));
     initialMetadataConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "tablet,server");
     initialMetadataConf.put(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey(), "");
     initialMetadataConf.put(Property.TABLE_INDEXCACHE_ENABLED.getKey(), "true");
     initialMetadataConf.put(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true");
+
+    // ACCUMULO-3077 Set the combiner on accumulo.metadata during init to reduce the likelihood of a race
+    // condition where a tserver compacts away Status updates because it didn't see the Combiner configured
+    IteratorSetting setting = new IteratorSetting(9, ReplicationTableUtil.COMBINER_NAME, StatusCombiner.class);
+    Combiner.setColumns(setting, Collections.singletonList(new Column(ReplicationSection.COLF)));
+    for (IteratorScope scope : IteratorScope.values()) {
+      String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), setting.getName());
+      for (Entry<String,String> prop : setting.getOptions().entrySet()) {
+        initialMetadataCombinerConf.put(root + ".opt." + prop.getKey(), prop.getValue());
+      }
+      initialMetadataCombinerConf.put(root, setting.getPriority() + "," + setting.getIteratorClass());
+    }
+
+    // add combiners to replication table
+    setting = new IteratorSetting(30, ReplicationTable.COMBINER_NAME, StatusCombiner.class);
+    setting.setPriority(30);
+    Combiner.setColumns(setting, Arrays.asList(new Column(StatusSection.NAME), new Column(WorkSection.NAME)));
+    for (IteratorScope scope : EnumSet.allOf(IteratorScope.class)) {
+      String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), setting.getName());
+      for (Entry<String,String> prop : setting.getOptions().entrySet()) {
+        initialReplicationTableConf.put(root + ".opt." + prop.getKey(), prop.getValue());
+      }
+      initialReplicationTableConf.put(root, setting.getPriority() + "," + setting.getIteratorClass());
+    }
+    // add locality groups to replication table
+    for (Entry<String,Set<Text>> g : ReplicationTable.LOCALITY_GROUPS.entrySet()) {
+      initialReplicationTableConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX + g.getKey(), LocalityGroupUtil.encodeColumnFamilies(g.getValue()));
+    }
+    initialReplicationTableConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(), Joiner.on(",").join(ReplicationTable.LOCALITY_GROUPS.keySet()));
+    // add formatter to replication table
+    initialReplicationTableConf.put(Property.TABLE_FORMATTER_CLASS.getKey(), ReplicationTable.STATUS_FORMATTER_CLASS_NAME);
   }
 
   static boolean checkInit(Configuration conf, VolumeManager fs, SiteConfiguration sconf) throws IOException {
@@ -305,60 +352,79 @@ public class Initialize {
   private static void initFileSystem(Opts opts, VolumeManager fs, UUID uuid, String rootTabletDir) throws IOException {
     initDirs(fs, uuid, VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance()), false);
 
-    // initialize initial metadata config in zookeeper
-    initMetadataConfig();
+    // initialize initial system tables config in zookeeper
+    initSystemTablesConfig();
 
     String tableMetadataTabletDir = fs.choose(ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID
         + TABLE_TABLETS_TABLET_DIR;
+    String replicationTableDefaultTabletDir = fs.choose(ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + ReplicationTable.ID
+        + Constants.DEFAULT_TABLET_LOCATION;
+
     String defaultMetadataTabletDir = fs.choose(ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID
         + Constants.DEFAULT_TABLET_LOCATION;
 
     // create table and default tablets directories
-    createDirectories(fs, rootTabletDir, tableMetadataTabletDir, defaultMetadataTabletDir);
+    createDirectories(fs, rootTabletDir, tableMetadataTabletDir, defaultMetadataTabletDir, replicationTableDefaultTabletDir);
 
-    // populate the root tablet with info about the metadata tablets
-    String fileName = rootTabletDir + Path.SEPARATOR + "00000_00000." + FileOperations.getNewFileExtension(AccumuloConfiguration.getDefaultConfiguration());
-    createMetadataFile(fs, fileName, MetadataTable.ID, tableMetadataTabletDir, defaultMetadataTabletDir);
+    String ext = FileOperations.getNewFileExtension(AccumuloConfiguration.getDefaultConfiguration());
+
+    // populate the metadata tables tablet with info about the replication table's one initial tablet
+    String metadataFileName = tableMetadataTabletDir + Path.SEPARATOR + "0_1." + ext;
+    Tablet replicationTablet = new Tablet(ReplicationTable.ID, replicationTableDefaultTabletDir, null, null);
+    createMetadataFile(fs, metadataFileName, replicationTablet);
+
+    // populate the root tablet with info about the metadata table's two initial tablets
+    String rootTabletFileName = rootTabletDir + Path.SEPARATOR + "00000_00000." + ext;
+    Text splitPoint = TabletsSection.getRange().getEndKey().getRow();
+    Tablet tablesTablet = new Tablet(MetadataTable.ID, tableMetadataTabletDir, null, splitPoint, metadataFileName);
+    Tablet defaultTablet = new Tablet(MetadataTable.ID, defaultMetadataTabletDir, splitPoint, null);
+    createMetadataFile(fs, rootTabletFileName, tablesTablet, defaultTablet);
   }
 
-  /**
-   * Create an rfile in the default tablet's directory for a new table. This method is used to create the initial root tablet contents, with information about
-   * the metadata table's tablets
-   *
-   * @param volmanager
-   *          The VolumeManager
-   * @param fileName
-   *          The location to create the file
-   * @param tableId
-   *          TableID that is being "created"
-   * @param tableTabletDir
-   *          The table_info directory for the new table
-   * @param defaultTabletDir
-   *          The default_tablet directory for the new table
-   */
-  private static void createMetadataFile(VolumeManager volmanager, String fileName, String tableId, String tableTabletDir, String defaultTabletDir)
-      throws IOException {
+  private static class Tablet {
+    String tableId, dir;
+    Text prevEndRow, endRow;
+    String[] files;
+
+    Tablet(String tableId, String dir, Text prevEndRow, Text endRow, String... files) {
+      this.tableId = tableId;
+      this.dir = dir;
+      this.prevEndRow = prevEndRow;
+      this.endRow = endRow;
+      this.files = files;
+    }
+  }
+
+  private static void createMetadataFile(VolumeManager volmanager, String fileName, Tablet... tablets) throws IOException {
+    // sort file contents in memory, then play back to the file
+    TreeMap<Key,Value> sorted = new TreeMap<>();
+    for (Tablet tablet : tablets) {
+      createEntriesForTablet(sorted, tablet);
+    }
     FileSystem fs = volmanager.getVolumeByPath(new Path(fileName)).getFileSystem();
     FileSKVWriter tabletWriter = FileOperations.getInstance().openWriter(fileName, fs, fs.getConf(), AccumuloConfiguration.getDefaultConfiguration());
     tabletWriter.startDefaultLocalityGroup();
 
-    Text splitPoint = TabletsSection.getRange().getEndKey().getRow();
-    createEntriesForTablet(tabletWriter, tableId, tableTabletDir, null, splitPoint);
-    createEntriesForTablet(tabletWriter, tableId, defaultTabletDir, splitPoint, null);
+    for (Entry<Key,Value> entry : sorted.entrySet()) {
+      tabletWriter.append(entry.getKey(), entry.getValue());
+    }
 
     tabletWriter.close();
   }
 
-  private static void createEntriesForTablet(FileSKVWriter writer, String tableId, String tabletDir, Text tabletPrevEndRow, Text tabletEndRow)
-      throws IOException {
-    Text extent = new Text(KeyExtent.getMetadataEntry(new Text(tableId), tabletEndRow));
-    addEntry(writer, extent, DIRECTORY_COLUMN, new Value(tabletDir.getBytes(UTF_8)));
-    addEntry(writer, extent, TIME_COLUMN, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes(UTF_8)));
-    addEntry(writer, extent, PREV_ROW_COLUMN, KeyExtent.encodePrevEndRow(tabletPrevEndRow));
+  private static void createEntriesForTablet(TreeMap<Key,Value> map, Tablet tablet) {
+    Value EMPTY_SIZE = new Value("0,0".getBytes(UTF_8));
+    Text extent = new Text(KeyExtent.getMetadataEntry(new Text(tablet.tableId), tablet.endRow));
+    addEntry(map, extent, DIRECTORY_COLUMN, new Value(tablet.dir.getBytes(UTF_8)));
+    addEntry(map, extent, TIME_COLUMN, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes(UTF_8)));
+    addEntry(map, extent, PREV_ROW_COLUMN, KeyExtent.encodePrevEndRow(tablet.prevEndRow));
+    for (String file : tablet.files) {
+      addEntry(map, extent, new ColumnFQ(DataFileColumnFamily.NAME, new Text(file)), EMPTY_SIZE);
+    }
   }
 
-  private static void addEntry(FileSKVWriter writer, Text row, ColumnFQ col, Value value) throws IOException {
-    writer.append(new Key(row, col.getColumnFamily(), col.getColumnQualifier(), 0), value);
+  private static void addEntry(TreeMap<Key,Value> map, Text row, ColumnFQ col, Value value) {
+    map.put(new Key(row, col.getColumnFamily(), col.getColumnQualifier(), 0), value);
   }
 
   private static void createDirectories(VolumeManager fs, String... dirs) throws IOException {
@@ -404,6 +470,8 @@ public class Initialize {
     TableManager.prepareNewNamespaceState(uuid, Namespaces.ACCUMULO_NAMESPACE_ID, Namespaces.ACCUMULO_NAMESPACE, NodeExistsPolicy.FAIL);
     TableManager.prepareNewTableState(uuid, RootTable.ID, Namespaces.ACCUMULO_NAMESPACE_ID, RootTable.NAME, TableState.ONLINE, NodeExistsPolicy.FAIL);
     TableManager.prepareNewTableState(uuid, MetadataTable.ID, Namespaces.ACCUMULO_NAMESPACE_ID, MetadataTable.NAME, TableState.ONLINE, NodeExistsPolicy.FAIL);
+    TableManager.prepareNewTableState(uuid, ReplicationTable.ID, Namespaces.ACCUMULO_NAMESPACE_ID, ReplicationTable.NAME, TableState.OFFLINE,
+        NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTSERVERS, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZPROBLEMS, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + RootTable.ZROOT_TABLET, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
@@ -412,8 +480,7 @@ public class Initialize {
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTRACERS, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZMASTERS, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZMASTER_LOCK, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZMASTER_GOAL_STATE, MasterGoalState.NORMAL.toString().getBytes(UTF_8),
-        NodeExistsPolicy.FAIL);
+    zoo.putPersistentData(zkInstanceRoot + Constants.ZMASTER_GOAL_STATE, MasterGoalState.NORMAL.toString().getBytes(UTF_8), NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZGC, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZGC_LOCK, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZCONFIG, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
@@ -484,7 +551,7 @@ public class Initialize {
         opts.rootpass);
   }
 
-  public static void initMetadataConfig() throws IOException {
+  public static void initSystemTablesConfig() throws IOException {
     try {
       Configuration conf = CachedConfiguration.getInstance();
       int max = conf.getInt("dfs.replication.max", 512);
@@ -500,21 +567,16 @@ public class Initialize {
         if (!TablePropUtil.setTableProperty(MetadataTable.ID, entry.getKey(), entry.getValue()))
           throw new IOException("Cannot create per-table property " + entry.getKey());
       }
-    } catch (Exception e) {
-      log.fatal("error talking to zookeeper", e);
-      throw new IOException(e);
-    }
-    // ACCUMULO-3077 Set the combiner on accumulo.metadata during init to reduce the likelihood of a race
-    // condition where a tserver compacts away Status updates because it didn't see the Combiner configured
-    IteratorSetting setting = new IteratorSetting(9, ReplicationTableUtil.COMBINER_NAME, StatusCombiner.class);
-    Combiner.setColumns(setting, Collections.singletonList(new Column(ReplicationSection.COLF)));
-    try {
-      for (IteratorScope scope : IteratorScope.values()) {
-        String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), setting.getName());
-        for (Entry<String,String> prop : setting.getOptions().entrySet()) {
-          TablePropUtil.setTableProperty(MetadataTable.ID, root + ".opt." + prop.getKey(), prop.getValue());
-        }
-        TablePropUtil.setTableProperty(MetadataTable.ID, root, setting.getPriority() + "," + setting.getIteratorClass());
+      // Only add combiner config to accumulo.metadata table (ACCUMULO-3077)
+      for (Entry<String,String> entry : initialMetadataCombinerConf.entrySet()) {
+        if (!TablePropUtil.setTableProperty(MetadataTable.ID, entry.getKey(), entry.getValue()))
+          throw new IOException("Cannot create per-table property " + entry.getKey());
+      }
+
+      // add configuration to the replication table
+      for (Entry<String,String> entry : initialReplicationTableConf.entrySet()) {
+        if (!TablePropUtil.setTableProperty(ReplicationTable.ID, entry.getKey(), entry.getValue()))
+          throw new IOException("Cannot create per-table property " + entry.getKey());
       }
     } catch (Exception e) {
       log.fatal("Error talking to ZooKeeper", e);

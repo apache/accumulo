@@ -22,7 +22,6 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -33,6 +32,7 @@ import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
+import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
@@ -151,7 +151,7 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
     Scanner s;
     try {
       s = ReplicationTable.getScanner(conn);
-    } catch (TableNotFoundException e) {
+    } catch (ReplicationTableOfflineException e) {
       return;
     }
 
@@ -175,8 +175,8 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
       Scanner workScanner;
       try {
         workScanner = ReplicationTable.getScanner(conn);
-      } catch (TableNotFoundException e) {
-        log.warn("Replication table was deleted. Will retry...");
+      } catch (ReplicationTableOfflineException e) {
+        log.warn("Replication table is offline. Will retry...");
         UtilWaitThread.sleep(5000);
         return;
       }

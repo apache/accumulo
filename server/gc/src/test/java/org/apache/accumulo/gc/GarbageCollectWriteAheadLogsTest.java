@@ -55,7 +55,6 @@ import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -384,11 +383,9 @@ public class GarbageCollectWriteAheadLogsTest {
 
     GarbageCollectWriteAheadLogs gcWALs = new GarbageCollectWriteAheadLogs(inst, volMgr, false);
 
-    ReplicationUtil.createReplicationTable(conn);
-
     long file1CreateTime = System.currentTimeMillis();
     long file2CreateTime = file1CreateTime + 50;
-    BatchWriter bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
+    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     Mutation m = new Mutation("/wals/" + file1);
     StatusSection.add(m, new Text("1"), StatusUtil.fileCreatedValue(file1CreateTime));
     bw.addMutation(m);
@@ -427,8 +424,6 @@ public class GarbageCollectWriteAheadLogsTest {
     Connector conn = inst.getConnector(creds.getPrincipal(), creds.getToken());
 
     GarbageCollectWriteAheadLogs gcWALs = new GarbageCollectWriteAheadLogs(inst, volMgr, false);
-
-    ReplicationUtil.createReplicationTable(conn);
 
     long file1CreateTime = System.currentTimeMillis();
     long file2CreateTime = file1CreateTime + 50;
@@ -488,8 +483,6 @@ public class GarbageCollectWriteAheadLogsTest {
   public void fetchesReplicationEntriesFromMetadataAndReplicationTables() throws Exception {
     Instance inst = new MockInstance(testName.getMethodName());
     Connector conn = inst.getConnector("root", new PasswordToken(""));
-    ReplicationUtil.createReplicationTable(conn);
-
     long walCreateTime = System.currentTimeMillis();
     String wal = "hdfs://localhost:8020/accumulo/wal/tserver+port/123456-1234-1234-12345678";
     BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());

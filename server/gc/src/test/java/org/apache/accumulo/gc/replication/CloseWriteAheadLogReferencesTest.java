@@ -53,7 +53,6 @@ import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.hadoop.io.Text;
 import org.easymock.IAnswer;
 import org.junit.Assert;
@@ -98,7 +97,7 @@ public class CloseWriteAheadLogReferencesTest {
     data.add(Maps.immutableEntry(new Key(logEntry.getRow(), logEntry.getColumnFamily(), logEntry.getColumnQualifier()), new Value(logEntry.getValue())));
 
     // Get a batchscanner, scan the tablets section, fetch only the logs
-    expect(conn.createBatchScanner(MetadataTable.NAME, new Authorizations(), 4)).andReturn(bs);
+    expect(conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4)).andReturn(bs);
     bs.setRanges(Collections.singleton(TabletsSection.getRange()));
     expectLastCall().once();
     bs.fetchColumnFamily(LogColumnFamily.NAME);
@@ -141,7 +140,7 @@ public class CloseWriteAheadLogReferencesTest {
     data.add(Maps.immutableEntry(new Key(logEntry.getRow(), logEntry.getColumnFamily(), logEntry.getColumnQualifier()), new Value(logEntry.getValue())));
 
     // Get a batchscanner, scan the tablets section, fetch only the logs
-    expect(conn.createBatchScanner(MetadataTable.NAME, new Authorizations(), 4)).andReturn(bs);
+    expect(conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4)).andReturn(bs);
     bs.setRanges(Collections.singleton(TabletsSection.getRange()));
     expectLastCall().once();
     bs.fetchColumnFamily(LogColumnFamily.NAME);
@@ -197,7 +196,7 @@ public class CloseWriteAheadLogReferencesTest {
     data.add(Maps.immutableEntry(new Key(logEntry.getRow(), logEntry.getColumnFamily(), logEntry.getColumnQualifier()), new Value(logEntry.getValue())));
 
     // Get a batchscanner, scan the tablets section, fetch only the logs
-    expect(conn.createBatchScanner(MetadataTable.NAME, new Authorizations(), 4)).andReturn(bs);
+    expect(conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4)).andReturn(bs);
     bs.setRanges(Collections.singleton(TabletsSection.getRange()));
     expectLastCall().once();
     bs.fetchColumnFamily(LogColumnFamily.NAME);
@@ -277,7 +276,7 @@ public class CloseWriteAheadLogReferencesTest {
     data.add(Maps.immutableEntry(new Key(logEntry.getRow(), logEntry.getColumnFamily(), logEntry.getColumnQualifier()), new Value(logEntry.getValue())));
 
     // Get a batchscanner, scan the tablets section, fetch only the logs
-    expect(conn.createBatchScanner(MetadataTable.NAME, new Authorizations(), 4)).andReturn(bs);
+    expect(conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4)).andReturn(bs);
     bs.setRanges(Collections.singleton(TabletsSection.getRange()));
     expectLastCall().once();
     bs.fetchColumnFamily(LogColumnFamily.NAME);
@@ -309,7 +308,6 @@ public class CloseWriteAheadLogReferencesTest {
     Instance inst = new MockInstance(testName.getMethodName());
     Connector conn = inst.getConnector("root", new PasswordToken(""));
 
-    ReplicationUtil.createReplicationTable(conn);
     BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     Mutation m = new Mutation(ReplicationSection.getRowPrefix() + "file:/accumulo/wal/tserver+port/12345");
     m.put(ReplicationSection.COLF, new Text("1"), StatusUtil.fileCreatedValue(System.currentTimeMillis()));
@@ -331,7 +329,6 @@ public class CloseWriteAheadLogReferencesTest {
     Instance inst = new MockInstance(testName.getMethodName());
     Connector conn = inst.getConnector("root", new PasswordToken(""));
 
-    ReplicationUtil.createReplicationTable(conn);
     BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     Mutation m = new Mutation(ReplicationSection.getRowPrefix() + file);
     m.put(ReplicationSection.COLF, new Text("1"), StatusUtil.fileCreatedValue(System.currentTimeMillis()));
@@ -353,8 +350,7 @@ public class CloseWriteAheadLogReferencesTest {
     Instance inst = new MockInstance(testName.getMethodName());
     Connector conn = inst.getConnector("root", new PasswordToken(""));
 
-    ReplicationUtil.createReplicationTable(conn);
-    BatchWriter bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
+    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     Mutation m = new Mutation(file);
     StatusSection.add(m, new Text("1"), ProtobufUtil.toValue(StatusUtil.ingestedUntil(1000)));
     bw.addMutation(m);

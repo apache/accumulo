@@ -54,7 +54,6 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ProcessReference;
-import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem;
@@ -168,7 +167,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
       final Connector connMaster = getConnector();
       final Connector connPeer = peerCluster.getConnector("root", ROOT_PASSWORD);
 
-      ReplicationUtil.createReplicationTable(connMaster);
+      ReplicationTable.setOnline(connMaster);
 
       String peerUserName = "peer", peerPassword = "foo";
 
@@ -243,7 +242,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
 
       log.info("");
       log.info("Fetching replication records:");
-      for (Entry<Key,Value> kv : connMaster.createScanner(ReplicationTable.NAME, Authorizations.EMPTY)) {
+      for (Entry<Key,Value> kv : ReplicationTable.getScanner(connMaster)) {
         log.info(kv.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
       }
 
@@ -280,7 +279,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
 
       log.info("");
       log.info("Fetching replication records:");
-      for (Entry<Key,Value> kv : connMaster.createScanner(ReplicationTable.NAME, Authorizations.EMPTY)) {
+      for (Entry<Key,Value> kv : ReplicationTable.getScanner(connMaster)) {
         log.info(kv.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
       }
 
@@ -404,7 +403,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
       Set<String> filesFor1 = connMaster.replicationOperations().referencedFiles(masterTable1), filesFor2 = connMaster.replicationOperations().referencedFiles(
           masterTable2);
 
-      while (!connMaster.tableOperations().exists(ReplicationTable.NAME)) {
+      while (!ReplicationTable.isOnline(connMaster)) {
         Thread.sleep(500);
       }
 
@@ -658,7 +657,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacIT {
 
       log.info("Wrote all data to master cluster");
 
-      while (!connMaster.tableOperations().exists(ReplicationTable.NAME)) {
+      while (!ReplicationTable.isOnline(connMaster)) {
         Thread.sleep(500);
       }
 

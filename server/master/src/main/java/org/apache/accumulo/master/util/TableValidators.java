@@ -19,14 +19,20 @@ package org.apache.accumulo.master.util;
 import static org.apache.accumulo.core.client.impl.Tables.VALID_NAME_REGEX;
 import static org.apache.accumulo.core.client.impl.Tables.qualify;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.util.Validator;
+
+import com.google.common.base.Joiner;
 
 public class TableValidators {
   public static final String VALID_ID_REGEX = "^([a-z0-9]+)$"; // BigDecimal base36
-  
+
   public static final Validator<String> VALID_NAME = new Validator<String>() {
     @Override
     public boolean isValid(String tableName) {
@@ -44,7 +50,8 @@ public class TableValidators {
   public static final Validator<String> VALID_ID = new Validator<String>() {
     @Override
     public boolean isValid(String tableId) {
-      return tableId != null && (RootTable.ID.equals(tableId) || MetadataTable.ID.equals(tableId) || tableId.matches(VALID_ID_REGEX));
+      return tableId != null
+          && (RootTable.ID.equals(tableId) || MetadataTable.ID.equals(tableId) || ReplicationTable.ID.equals(tableId) || tableId.matches(VALID_ID_REGEX));
     }
 
     @Override
@@ -52,6 +59,21 @@ public class TableValidators {
       if (tableId == null)
         return "Table id cannot be null";
       return "Table IDs are base-36 numbers, represented with lowercase alphanumeric digits: " + tableId;
+    }
+  };
+
+  public static final Validator<String> NOT_METADATA = new Validator<String>() {
+
+    private List<String> metadataTables = Arrays.asList(RootTable.NAME, MetadataTable.NAME);
+
+    @Override
+    public boolean isValid(String tableName) {
+      return !metadataTables.contains(tableName);
+    }
+
+    @Override
+    public String invalidMessage(String tableName) {
+      return "Table cannot be one of {" + Joiner.on(",").join(metadataTables) + "}";
     }
   };
 

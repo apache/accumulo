@@ -28,7 +28,6 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -38,6 +37,7 @@ import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
+import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
@@ -63,8 +63,8 @@ public class FinishedWorkUpdater implements Runnable {
   public void run() {
     log.debug("Looking for finished replication work");
 
-    if (!conn.tableOperations().exists(ReplicationTable.NAME)) {
-      log.debug("Replication table doesn't yet exist, will retry");
+    if (!ReplicationTable.isOnline(conn)) {
+      log.debug("Replication table is not yet online, will retry");
       return;
     }
 
@@ -73,8 +73,8 @@ public class FinishedWorkUpdater implements Runnable {
     try {
       bs = ReplicationTable.getBatchScanner(conn, 4);
       replBw = ReplicationTable.getBatchWriter(conn);
-    } catch (TableNotFoundException e) {
-      log.debug("Table did exist, but was deleted, will retry");
+    } catch (ReplicationTableOfflineException e) {
+      log.debug("Table is no longer online, will retry");
       return;
     }
 

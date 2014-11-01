@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -38,8 +37,7 @@ import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
-import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.server.replication.ReplicationUtil;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.apache.hadoop.io.Text;
@@ -81,13 +79,10 @@ public class StatusCombinerMacTest extends SimpleMacIT {
   @Test
   public void test() throws Exception {
     Connector conn = getConnector();
-    if (conn.tableOperations().exists(ReplicationTable.NAME)) {
-      conn.tableOperations().delete(ReplicationTable.NAME);
-    }
 
-    ReplicationUtil.createReplicationTable(conn);
-
-    BatchWriter bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
+    ReplicationTable.setOnline(conn);
+    conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
+    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     long createTime = System.currentTimeMillis();
     try {
       Mutation m = new Mutation("file:/accumulo/wal/HW10447.local+56808/93cdc17e-7521-44fa-87b5-37f45bcb92d3");
@@ -97,11 +92,11 @@ public class StatusCombinerMacTest extends SimpleMacIT {
       bw.close();
     }
 
-    Scanner s = conn.createScanner(ReplicationTable.NAME, new Authorizations());
+    Scanner s = ReplicationTable.getScanner(conn);
     Entry<Key,Value> entry = Iterables.getOnlyElement(s);
     Assert.assertEquals(StatusUtil.fileCreatedValue(createTime), entry.getValue());
 
-    bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
+    bw = ReplicationTable.getBatchWriter(conn);
     try {
       Mutation m = new Mutation("file:/accumulo/wal/HW10447.local+56808/93cdc17e-7521-44fa-87b5-37f45bcb92d3");
       StatusSection.add(m, new Text("1"), ProtobufUtil.toValue(StatusUtil.replicated(Long.MAX_VALUE)));
@@ -110,7 +105,7 @@ public class StatusCombinerMacTest extends SimpleMacIT {
       bw.close();
     }
 
-    s = conn.createScanner(ReplicationTable.NAME, new Authorizations());
+    s = ReplicationTable.getScanner(conn);
     entry = Iterables.getOnlyElement(s);
     Status stat = Status.parseFrom(entry.getValue().get());
     Assert.assertEquals(Long.MAX_VALUE, stat.getBegin());

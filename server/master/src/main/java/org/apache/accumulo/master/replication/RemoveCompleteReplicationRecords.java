@@ -30,7 +30,6 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -40,6 +39,7 @@ import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
+import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
@@ -51,7 +51,7 @@ import com.google.common.base.Stopwatch;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
- * Delete replication entries from {@link ReplicationTable#NAME} that are full replicated and closed
+ * Delete replication entries from the replication table that are fully replicated and closed
  */
 public class RemoveCompleteReplicationRecords implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(RemoveCompleteReplicationRecords.class);
@@ -69,8 +69,8 @@ public class RemoveCompleteReplicationRecords implements Runnable {
     try {
       bs = ReplicationTable.getBatchScanner(conn, 4);
       bw = ReplicationTable.getBatchWriter(conn);
-    } catch (TableNotFoundException e) {
-      log.debug("Not attempting to remove complete replication records as the table ({}) doesn't yet exist", ReplicationTable.NAME);
+    } catch (ReplicationTableOfflineException e) {
+      log.debug("Not attempting to remove complete replication records as the table ({}) isn't yet online", ReplicationTable.NAME);
       return;
     }
 

@@ -44,7 +44,6 @@ import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
-import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.hadoop.io.Text;
@@ -55,7 +54,7 @@ import org.junit.Test;
 import org.junit.rules.TestName;
 
 /**
- * 
+ *
  */
 public class SequentialWorkAssignerTest {
 
@@ -85,8 +84,7 @@ public class SequentialWorkAssignerTest {
     // Set the connector
     assigner.setConnector(conn);
 
-    // Create and grant ourselves write to the replication table
-    ReplicationUtil.createReplicationTable(conn);
+    // grant ourselves write to the replication table
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
 
     // Create two mutations, both of which need replication work done
@@ -158,8 +156,7 @@ public class SequentialWorkAssignerTest {
     // Set the connector
     assigner.setConnector(conn);
 
-    // Create and grant ourselves write to the replication table
-    ReplicationUtil.createReplicationTable(conn);
+    // grant ourselves write to the replication table
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
 
     // Create two mutations, both of which need replication work done
@@ -238,8 +235,7 @@ public class SequentialWorkAssignerTest {
     // Set the connector
     assigner.setConnector(conn);
 
-    // Create and grant ourselves write to the replication table
-    ReplicationUtil.createReplicationTable(conn);
+    // grant ourselves write to the replication table
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
 
     // Create two mutations, both of which need replication work done
@@ -359,8 +355,7 @@ public class SequentialWorkAssignerTest {
     // Set the connector
     assigner.setConnector(conn);
 
-    // Create and grant ourselves write to the replication table
-    ReplicationUtil.createReplicationTable(conn);
+    // grant ourselves write to the replication table
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
 
     // Create two mutations, both of which need replication work done

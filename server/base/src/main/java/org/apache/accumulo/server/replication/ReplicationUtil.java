@@ -18,9 +18,7 @@ package org.apache.accumulo.server.replication;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -32,10 +30,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.replication.ReplicaSystem;
@@ -44,20 +39,16 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.Combiner;
-import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
+import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -243,9 +234,9 @@ public class ReplicationUtil {
     if (null != path) {
       Scanner s;
       try {
-        s = conn.createScanner(ReplicationTable.NAME, Authorizations.EMPTY);
-      } catch (TableNotFoundException e) {
-        log.debug("Replication table no long exists", e);
+        s = ReplicationTable.getScanner(conn);
+      } catch (ReplicationTableOfflineException e) {
+        log.debug("Replication table no longer online", e);
         return status;
       }
 
@@ -292,138 +283,6 @@ public class ReplicationUtil {
       newMap.put(entry.getValue(), entry.getKey());
     }
     return newMap;
-  }
-
-  public static synchronized void createReplicationTable(Connector conn) {
-    TableOperations tops = conn.tableOperations();
-    if (tops.exists(ReplicationTable.NAME)) {
-      if (configureReplicationTable(conn)) {
-        return;
-      }
-    }
-
-    for (int i = 0; i < 5; i++) {
-      try {
-        if (!tops.exists(ReplicationTable.NAME)) {
-          tops.create(ReplicationTable.NAME, false);
-        }
-        break;
-      } catch (AccumuloException | AccumuloSecurityException e) {
-        log.error("Failed to create replication table", e);
-      } catch (TableExistsException e) {
-        // Shouldn't happen unless someone else made the table
-      }
-      log.error("Retrying table creation in 1 second...");
-      UtilWaitThread.sleep(1000);
-    }
-
-    for (int i = 0; i < 5; i++) {
-      if (configureReplicationTable(conn)) {
-        return;
-      }
-
-      log.error("Failed to configure the replication table, retying...");
-      UtilWaitThread.sleep(1000);
-    }
-
-    throw new RuntimeException("Could not configure replication table");
-  }
-
-  /**
-   * Attempts to configure the replication table, will return false if it fails
-   *
-   * @param conn
-   *          Connector for the instance
-   * @return True if the replication table is properly configured
-   */
-  protected static synchronized boolean configureReplicationTable(Connector conn) {
-    try {
-      conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.READ);
-    } catch (AccumuloException | AccumuloSecurityException e) {
-      log.warn("Could not grant root user read access to replication table", e);
-      // Should this be fatal? It's only for convenience, all r/w is done by !SYSTEM
-    }
-
-    TableOperations tops = conn.tableOperations();
-    Map<String,EnumSet<IteratorScope>> iterators = null;
-    try {
-      iterators = tops.listIterators(ReplicationTable.NAME);
-    } catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
-      log.error("Could not fetch iterators for " + ReplicationTable.NAME, e);
-      return false;
-    }
-
-    if (!iterators.containsKey(ReplicationTable.COMBINER_NAME)) {
-      // Set our combiner and combine all columns
-      IteratorSetting setting = new IteratorSetting(30, ReplicationTable.COMBINER_NAME, StatusCombiner.class);
-      Combiner.setColumns(setting, Arrays.asList(new Column(StatusSection.NAME), new Column(WorkSection.NAME)));
-      try {
-        tops.attachIterator(ReplicationTable.NAME, setting);
-      } catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
-        log.error("Could not set StatusCombiner on replication table", e);
-        return false;
-      }
-    }
-
-    Map<String,Set<Text>> localityGroups;
-    try {
-      localityGroups = tops.getLocalityGroups(ReplicationTable.NAME);
-    } catch (TableNotFoundException | AccumuloException e) {
-      log.error("Could not fetch locality groups", e);
-      return false;
-    }
-
-    Set<Text> statusColfams = localityGroups.get(ReplicationTable.STATUS_LG_NAME), workColfams = localityGroups.get(ReplicationTable.WORK_LG_NAME);
-    if (null == statusColfams || null == workColfams) {
-      try {
-        tops.setLocalityGroups(ReplicationTable.NAME, ReplicationTable.LOCALITY_GROUPS);
-      } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
-        log.error("Could not set locality groups on replication table", e);
-        return false;
-      }
-    }
-
-    // Make sure the StatusFormatter is set on the metadata table
-    Iterable<Entry<String,String>> properties;
-    try {
-      properties = tops.getProperties(ReplicationTable.NAME);
-    } catch (AccumuloException | TableNotFoundException e) {
-      log.error("Could not fetch table properties on replication table", e);
-      return false;
-    }
-
-    boolean formatterConfigured = false;
-    for (Entry<String,String> property : properties) {
-      if (Property.TABLE_FORMATTER_CLASS.getKey().equals(property.getKey())) {
-        if (!ReplicationTable.STATUS_FORMATTER_CLASS_NAME.equals(property.getValue())) {
-          log.info("Changing formatter for {} table from {} to {}", ReplicationTable.NAME, property.getValue(), ReplicationTable.STATUS_FORMATTER_CLASS_NAME);
-          try {
-            tops.setProperty(ReplicationTable.NAME, Property.TABLE_FORMATTER_CLASS.getKey(), ReplicationTable.STATUS_FORMATTER_CLASS_NAME);
-          } catch (AccumuloException | AccumuloSecurityException e) {
-            log.error("Could not set formatter on replication table", e);
-            return false;
-          }
-        }
-
-        formatterConfigured = true;
-
-        // Don't need to keep iterating over the properties after we found the one we were looking for
-        break;
-      }
-    }
-
-    if (!formatterConfigured) {
-      try {
-        tops.setProperty(ReplicationTable.NAME, Property.TABLE_FORMATTER_CLASS.getKey(), ReplicationTable.STATUS_FORMATTER_CLASS_NAME);
-      } catch (AccumuloException | AccumuloSecurityException e) {
-        log.error("Could not set formatter on replication table", e);
-        return false;
-      }
-    }
-
-    log.debug("Successfully configured replication table");
-
-    return true;
   }
 
 }

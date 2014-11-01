@@ -19,8 +19,8 @@ package org.apache.accumulo.test;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.HashMap;
-import java.util.Map.Entry;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.AccumuloServerException;
+import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -185,7 +186,7 @@ public class LargeSplitRowIT extends ConfigurableMacIT {
 
     while (iterator.hasNext()) {
       String curr = iterator.next();
-      if (!curr.equals("accumulo.metadata") && !curr.equals("accumulo.root")) {
+      if (!curr.startsWith(Namespaces.ACCUMULO_NAMESPACE + ".")) {
         tableName = curr;
       }
     }

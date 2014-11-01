@@ -48,7 +48,6 @@ import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
-import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.hadoop.fs.Path;
@@ -136,8 +135,7 @@ public class UnorderedWorkAssignerTest {
     // Set the connector
     assigner.setConnector(conn);
 
-    // Create and grant ourselves write to the replication table
-    ReplicationUtil.createReplicationTable(conn);
+    // grant ourselves write to the replication table
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
 
     Status.Builder builder = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(false).setCreatedTime(5l);
@@ -199,8 +197,7 @@ public class UnorderedWorkAssignerTest {
     // Set the connector
     assigner.setConnector(conn);
 
-    // Create and grant ourselves write to the replication table
-    ReplicationUtil.createReplicationTable(conn);
+    // grant ourselves write to the replication table
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
 
     // Create two mutations, both of which need replication work done
@@ -271,8 +268,7 @@ public class UnorderedWorkAssignerTest {
     // Set the connector
     assigner.setConnector(conn);
 
-    // Create and grant ourselves write to the replication table
-    ReplicationUtil.createReplicationTable(conn);
+    // grant ourselves write to the replication table
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
 
     // Create two mutations, both of which need replication work done

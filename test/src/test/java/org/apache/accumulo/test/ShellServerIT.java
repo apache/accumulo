@@ -53,7 +53,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.shell.Shell;
@@ -121,6 +120,7 @@ public class ShellServerIT extends SimpleMacIT {
 
   private static class NoOpErrorMessageCallback extends ErrorMessageCallback {
     private static final String empty = "";
+
     @Override
     public String getErrorMessage() {
       return empty;
@@ -239,8 +239,8 @@ public class ShellServerIT extends SimpleMacIT {
 
   @Before
   public void setupShell() throws Exception {
-    ts = new TestShell(ROOT_PASSWORD, getStaticCluster().getConfig().getInstanceName(), getStaticCluster().getConfig().getZooKeepers(),
-        getStaticCluster().getConfig().getClientConfFile().getAbsolutePath());
+    ts = new TestShell(ROOT_PASSWORD, getStaticCluster().getConfig().getInstanceName(), getStaticCluster().getConfig().getZooKeepers(), getStaticCluster()
+        .getConfig().getClientConfFile().getAbsolutePath());
   }
 
   @AfterClass
@@ -252,7 +252,7 @@ public class ShellServerIT extends SimpleMacIT {
   public void deleteTables() throws Exception {
     Connector c = getConnector();
     for (String table : c.tableOperations().list()) {
-      if (!table.equals(MetadataTable.NAME) && !table.equals(RootTable.NAME) && !table.equals("trace"))
+      if (!table.startsWith(Namespaces.ACCUMULO_NAMESPACE + ".") && !table.equals("trace"))
         try {
           c.tableOperations().delete(table);
         } catch (TableNotFoundException e) {
@@ -427,7 +427,7 @@ public class ShellServerIT extends SimpleMacIT {
     ts.exec("deleteuser -f xyzzy", true);
     ts.exec("users", true, "xyzzy", false);
   }
-  
+
   @Test(timeout = 60 * 1000)
   public void durability() throws Exception {
     final String table = name.getMethodName();
@@ -436,7 +436,7 @@ public class ShellServerIT extends SimpleMacIT {
     ts.exec("insert -d foo a cf cq2 2", false, "foo", true);
     ts.exec("scan -r a", true, "randomGunkaASDFWEAQRd", true);
     ts.exec("scan -r a", true, "foo", false);
-  }  
+  }
 
   @Test
   public void iter() throws Exception {
@@ -1105,9 +1105,8 @@ public class ShellServerIT extends SimpleMacIT {
     FileUtils.copyURLToFile(this.getClass().getResource("/FooConstraint.jar"), fooConstraintJar);
     fooConstraintJar.deleteOnExit();
 
-    ts.exec(
-        "config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1=" + fooFilterJar.toURI().toString() + "," + fooConstraintJar.toURI().toString(),
-        true);
+    ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1=" + fooFilterJar.toURI().toString() + ","
+        + fooConstraintJar.toURI().toString(), true);
 
     ts.exec("createtable " + table, true);
     ts.exec("config -t " + table + " -s " + Property.TABLE_CLASSPATH.getKey() + "=cx1", true);

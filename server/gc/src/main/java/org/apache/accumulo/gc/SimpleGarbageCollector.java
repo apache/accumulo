@@ -63,6 +63,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
+import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
@@ -537,7 +538,7 @@ public class SimpleGarbageCollector implements Iface {
           }
 
         });
-      } catch (TableNotFoundException e) {
+      } catch (ReplicationTableOfflineException e) {
         // No elements that we need to preclude
         return Iterators.emptyIterator();
       }

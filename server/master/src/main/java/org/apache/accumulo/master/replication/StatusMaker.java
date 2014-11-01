@@ -18,6 +18,8 @@ package org.apache.accumulo.master.replication;
 
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -34,9 +36,9 @@ import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
+import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.hadoop.io.Text;
@@ -79,7 +81,7 @@ public class StatusMaker {
       // Read from a source table (typically accumulo.metadata)
       final Scanner s;
       try {
-        s = conn.createScanner(sourceTableName, new Authorizations());
+        s = conn.createScanner(sourceTableName, Authorizations.EMPTY);
       } catch (TableNotFoundException e) {
         throw new RuntimeException(e);
       }
@@ -92,12 +94,12 @@ public class StatusMaker {
       for (Entry<Key,Value> entry : s) {
         // Get a writer to the replication table
         if (null == replicationWriter) {
-          // Ensures table exists and is properly configured
-          ReplicationUtil.createReplicationTable(conn);
+          // Ensures table is online
           try {
-            setBatchWriter(ReplicationTable.getBatchWriter(conn));
-          } catch (TableNotFoundException e) {
-            log.warn("Replication table did exist, but does not anymore");
+            ReplicationTable.setOnline(conn);
+            replicationWriter = ReplicationTable.getBatchWriter(conn);
+          } catch (ReplicationTableOfflineException | AccumuloSecurityException | AccumuloException e) {
+            log.warn("Replication table did not come online");
             replicationWriter = null;
             return;
           }

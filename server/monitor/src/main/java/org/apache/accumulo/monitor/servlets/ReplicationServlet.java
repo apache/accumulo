@@ -28,7 +28,6 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.replication.ReplicationConstants;
-import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -76,10 +75,6 @@ public class ReplicationServlet extends BasicServlet {
     int totalWorkQueueSize = replicationUtil.getMaxReplicationThreads(systemProps, mmi);
 
     TableOperations tops = conn.tableOperations();
-    if (!tops.exists(ReplicationTable.NAME)) {
-      banner(sb, "", "Replication table does not yet exist");
-      return;
-    }
 
     Table replicationStats = new Table("replicationStats", "Replication Status");
     replicationStats.addSortableColumn("Table");

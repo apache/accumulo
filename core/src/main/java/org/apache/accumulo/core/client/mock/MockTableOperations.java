@@ -38,8 +38,8 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.FindMax;
-import org.apache.accumulo.core.client.impl.TableOperationsHelper;
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.client.impl.TableOperationsHelper;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
@@ -376,6 +376,10 @@ class MockTableOperations extends TableOperationsHelper {
       throw new TableNotFoundException(tableName, tableName, "");
     MockTable t = acu.tables.get(tableName);
     Text startText = start != null ? new Text(start) : new Text();
+    if (startText.getLength() == 0 && end == null) {
+      t.table.clear();
+      return;
+    }
     Text endText = end != null ? new Text(end) : new Text(t.table.lastKey().getRow().getBytes());
     startText.append(ZERO, 0, 1);
     endText.append(ZERO, 0, 1);
@@ -442,7 +446,7 @@ class MockTableOperations extends TableOperationsHelper {
     try {
       AccumuloVFSClassLoader.loadClass(className, Class.forName(asTypeName));
     } catch (ClassNotFoundException e) {
-      log.warn("Could not load class '"+className+"' with type name '"+asTypeName+"' in testClassLoad().", e);
+      log.warn("Could not load class '" + className + "' with type name '" + asTypeName + "' in testClassLoad().", e);
       return false;
     }
     return true;

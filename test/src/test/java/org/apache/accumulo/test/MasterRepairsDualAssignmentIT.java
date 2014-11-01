@@ -33,6 +33,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.fate.util.UtilWaitThread;
@@ -50,7 +51,7 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class MasterRepairsDualAssignmentIT extends ConfigurableMacIT {
-  
+
   @Override
   public int defaultTimeoutSeconds() {
     return 5 * 60;
@@ -95,14 +96,18 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacIT {
     assertEquals(2, states.size());
     // Kill a tablet server... we don't care which one... wait for everything to be reassigned
     cluster.killProcess(ServerType.TABLET_SERVER, cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
+    Set<TServerInstance> replStates = new HashSet<>();
     // Find out which tablet server remains
     while (true) {
       UtilWaitThread.sleep(1000);
       states.clear();
+      replStates.clear();
       boolean allAssigned = true;
       for (TabletLocationState tls : store) {
         if (tls != null && tls.current != null) {
           states.add(tls.current);
+        } else if (tls.extent.equals(new KeyExtent(new Text(ReplicationTable.ID), null, null))) {
+          replStates.add(tls.current);
         } else {
           allAssigned = false;
         }
@@ -111,6 +116,7 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacIT {
       if (states.size() != 2 && allAssigned == true)
         break;
     }
+    assertEquals(1, replStates.size());
     assertEquals(1, states.size());
     // pick an assigned tablet and assign it to the old tablet
     TabletLocationState moved = null;

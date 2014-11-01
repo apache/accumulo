@@ -54,7 +54,6 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ProcessReference;
-import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem;
@@ -164,8 +163,8 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
       final Connector connMaster = getConnector();
       final Connector connPeer = peerCluster.getConnector("root", ROOT_PASSWORD);
 
-      ReplicationUtil.createReplicationTable(connMaster);
-
+      ReplicationTable.setOnline(connMaster);
+      
       String peerUserName = "peer", peerPassword = "foo";
 
       String peerClusterName = "peer";
@@ -236,7 +235,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
 
       log.info("");
       log.info("Fetching replication records:");
-      for (Entry<Key,Value> kv : connMaster.createScanner(ReplicationTable.NAME, Authorizations.EMPTY)) {
+      for (Entry<Key,Value> kv : ReplicationTable.getScanner(connMaster)) {
         log.info(kv.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
       }
 
@@ -274,7 +273,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
 
       log.info("");
       log.info("Fetching replication records:");
-      for (Entry<Key,Value> kv : connMaster.createScanner(ReplicationTable.NAME, Authorizations.EMPTY)) {
+      for (Entry<Key,Value> kv : ReplicationTable.getScanner(connMaster)) {
         log.info(kv.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
       }
 
@@ -396,10 +395,6 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
 
       Set<String> filesFor1 = connMaster.replicationOperations().referencedFiles(masterTable1), filesFor2 = connMaster.replicationOperations().referencedFiles(
           masterTable2);
-
-      while (!connMaster.tableOperations().exists(ReplicationTable.NAME)) {
-        Thread.sleep(500);
-      }
 
       // Restart the tserver to force a close on the WAL
       for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
@@ -523,7 +518,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
     for (@SuppressWarnings("unused")
     Entry<Key,Value> kv : connMaster.createScanner(masterTable, Authorizations.EMPTY)) {}
 
-    for (Entry<Key,Value> kv : connMaster.createScanner(ReplicationTable.NAME, Authorizations.EMPTY)) {
+    for (Entry<Key,Value> kv : ReplicationTable.getScanner(connMaster)) {
       log.debug(kv.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
     }
 
@@ -636,10 +631,6 @@ public class MultiInstanceReplicationIT extends ConfigurableMacIT {
       bw.close();
 
       log.info("Wrote all data to master cluster");
-
-      while (!connMaster.tableOperations().exists(ReplicationTable.NAME)) {
-        Thread.sleep(500);
-      }
 
       for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
         cluster.killProcess(ServerType.TABLET_SERVER, proc);

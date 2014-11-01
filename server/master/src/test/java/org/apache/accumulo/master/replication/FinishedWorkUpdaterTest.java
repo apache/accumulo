@@ -34,7 +34,6 @@ import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
-import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -68,8 +67,6 @@ public class FinishedWorkUpdaterTest {
 
   @Test
   public void recordsWithProgressUpdateBothTables() throws Exception {
-    ReplicationUtil.createReplicationTable(conn);
-
     String file = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
     Status stat = Status.newBuilder().setBegin(100).setEnd(200).setClosed(true).setInfiniteEnd(false).build();
     ReplicationTarget target = new ReplicationTarget("peer", "table1", "1");
@@ -98,8 +95,6 @@ public class FinishedWorkUpdaterTest {
 
   @Test
   public void chooseMinimumBeginOffset() throws Exception {
-    ReplicationUtil.createReplicationTable(conn);
-
     String file = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
     // @formatter:off
     Status stat1 = Status.newBuilder().setBegin(100).setEnd(1000).setClosed(true).setInfiniteEnd(false).build(),
@@ -136,8 +131,6 @@ public class FinishedWorkUpdaterTest {
 
   @Test
   public void chooseMinimumBeginOffsetInfiniteEnd() throws Exception {
-    ReplicationUtil.createReplicationTable(conn);
-
     String file = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
     // @formatter:off
     Status stat1 = Status.newBuilder().setBegin(100).setEnd(1000).setClosed(true).setInfiniteEnd(true).build(),

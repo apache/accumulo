@@ -91,8 +91,8 @@ public class CloseWriteAheadLogReferences implements Runnable {
       throw new RuntimeException(e);
     }
 
-    if (!conn.tableOperations().exists(ReplicationTable.NAME)) {
-      log.debug("Replication table doesn't exist, not attempting to clean up wals");
+    if (!ReplicationTable.isOnline(conn)) {
+      log.debug("Replication table isn't online, not attempting to clean up wals");
       return;
     }
 
@@ -124,7 +124,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
 
   /**
    * Construct the set of referenced WALs from the metadata table
-   * 
+   *
    * @param conn
    *          Connector
    * @return The Set of WALs that are referenced in the metadata table
@@ -145,7 +145,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
     BatchScanner bs = null;
     try {
       // TODO Configurable number of threads
-      bs = conn.createBatchScanner(MetadataTable.NAME, new Authorizations(), 4);
+      bs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
       bs.setRanges(Collections.singleton(TabletsSection.getRange()));
       bs.fetchColumnFamily(LogColumnFamily.NAME);
 
@@ -176,7 +176,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
 
   /**
    * Given the set of WALs which have references in the metadata table, close any status messages with reference that WAL.
-   * 
+   *
    * @param conn
    *          Connector
    * @param referencedWals
@@ -188,7 +188,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
     long recordsClosed = 0;
     try {
       bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-      bs = conn.createBatchScanner(MetadataTable.NAME, new Authorizations(), 4);
+      bs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
       bs.setRanges(Collections.singleton(Range.prefix(ReplicationSection.getRowPrefix())));
       bs.fetchColumnFamily(ReplicationSection.COLF);
 
@@ -239,7 +239,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
 
   /**
    * Write a closed {@link Status} mutation for the given {@link Key} using the provided {@link BatchWriter}
-   * 
+   *
    * @param bw
    *          BatchWriter
    * @param k

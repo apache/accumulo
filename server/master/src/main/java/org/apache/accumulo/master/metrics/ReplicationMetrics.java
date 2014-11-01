@@ -25,7 +25,6 @@ import javax.management.ObjectName;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
@@ -47,21 +46,19 @@ public class ReplicationMetrics extends AbstractMetricsImpl implements Replicati
   private static final String METRICS_PREFIX = "replication";
 
   private Connector conn;
-  private TableOperations tops;
   private ObjectName objectName = null;
   private ReplicationUtil replicationUtil;
 
   public ReplicationMetrics(Connector conn) throws MalformedObjectNameException {
     super();
     this.conn = conn;
-    this.tops = conn.tableOperations();
     objectName = new ObjectName("accumulo.server.metrics:service=Replication Metrics,name=ReplicationMBean,instance=" + Thread.currentThread().getName());
     replicationUtil = new ReplicationUtil();
   }
 
   @Override
   public int getNumFilesPendingReplication() {
-    if (!tops.exists(ReplicationTable.NAME)) {
+    if (!ReplicationTable.isOnline(conn)) {
       return 0;
     }
 

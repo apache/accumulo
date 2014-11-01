@@ -20,12 +20,18 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.TableOfflineException;
+import org.apache.accumulo.core.client.impl.Namespaces;
+import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.security.Authorizations;
@@ -35,7 +41,8 @@ import com.google.common.collect.ImmutableMap;
 
 public class ReplicationTable {
 
-  public static final String NAME = "replication";
+  public static final String ID = "+rep";
+  public static final String NAME = Namespaces.ACCUMULO_NAMESPACE + ".replication";
 
   public static final String COMBINER_NAME = "statuscombiner";
 
@@ -46,16 +53,46 @@ public class ReplicationTable {
   public static final Map<String,Set<Text>> LOCALITY_GROUPS = ImmutableMap.of(STATUS_LG_NAME, STATUS_LG_COLFAMS, WORK_LG_NAME, WORK_LG_COLFAMS);
   public static final String STATUS_FORMATTER_CLASS_NAME = StatusFormatter.class.getName();
 
-  public static Scanner getScanner(Connector conn) throws TableNotFoundException {
-    return conn.createScanner(NAME, Authorizations.EMPTY);
+  public static Scanner getScanner(Connector conn) throws ReplicationTableOfflineException {
+    try {
+      return conn.createScanner(NAME, Authorizations.EMPTY);
+    } catch (TableNotFoundException e) {
+      throw new AssertionError(NAME + " should exist, but doesn't.");
+    } catch (TableOfflineException e) {
+      throw new ReplicationTableOfflineException(e);
+    }
   }
 
-  public static BatchWriter getBatchWriter(Connector conn) throws TableNotFoundException {
-    return conn.createBatchWriter(NAME, new BatchWriterConfig());
+  public static BatchWriter getBatchWriter(Connector conn) throws ReplicationTableOfflineException {
+    try {
+      return conn.createBatchWriter(NAME, new BatchWriterConfig());
+    } catch (TableNotFoundException e) {
+      throw new AssertionError(NAME + " should exist, but doesn't.");
+    } catch (TableOfflineException e) {
+      throw new ReplicationTableOfflineException(e);
+    }
   }
 
-  public static BatchScanner getBatchScanner(Connector conn, int queryThreads) throws TableNotFoundException {
-    return conn.createBatchScanner(NAME, Authorizations.EMPTY, queryThreads);
+  public static BatchScanner getBatchScanner(Connector conn, int queryThreads) throws ReplicationTableOfflineException {
+    try {
+      return conn.createBatchScanner(NAME, Authorizations.EMPTY, queryThreads);
+    } catch (TableNotFoundException e) {
+      throw new AssertionError(NAME + " should exist, but doesn't.");
+    } catch (TableOfflineException e) {
+      throw new ReplicationTableOfflineException(e);
+    }
+  }
+
+  public static boolean isOnline(Connector conn) {
+    return TableState.ONLINE == Tables.getTableState(conn.getInstance(), ID);
+  }
+
+  public static void setOnline(Connector conn) throws AccumuloSecurityException, AccumuloException {
+    try {
+      conn.tableOperations().online(NAME, true);
+    } catch (TableNotFoundException e) {
+      throw new AssertionError(NAME + " should exist, but doesn't.");
+    }
   }
 
 }

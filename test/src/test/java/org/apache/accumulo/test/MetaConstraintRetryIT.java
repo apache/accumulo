@@ -31,13 +31,13 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class MetaConstraintRetryIT extends SimpleMacIT {
-  
+
   @Override
   public int defaultTimeoutSeconds() {
     return 30;
   }
 
-  //a test for ACCUMULO-3096
+  // a test for ACCUMULO-3096
   @Test(expected = ConstraintViolationException.class)
   public void test() throws Exception {
 
@@ -47,13 +47,12 @@ public class MetaConstraintRetryIT extends SimpleMacIT {
     Writer w = new Writer(super.getConnector().getInstance(), credentials, MetadataTable.ID);
     KeyExtent extent = new KeyExtent(new Text("5"), null, null);
 
-
     Mutation m = new Mutation(extent.getMetadataEntry());
     // unknown columns should cause contraint violation
     m.put("badcolfam", "badcolqual", "3");
 
     try {
-      MetadataTableUtil.update(w, credentials, null, m);
+      MetadataTableUtil.update(w, null, m);
     } catch (RuntimeException e) {
       if (e.getCause().getClass().equals(ConstraintViolationException.class)) {
         throw (ConstraintViolationException) e.getCause();

@@ -49,7 +49,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * 
+ *
  */
 public class ReplicationOperationsImplTest {
   private static final Logger log = LoggerFactory.getLogger(ReplicationOperationsImplTest.class);
@@ -67,14 +67,13 @@ public class ReplicationOperationsImplTest {
   @Test
   public void waitsUntilEntriesAreReplicated() throws Exception {
     Connector conn = inst.getConnector("root", new PasswordToken(""));
-    conn.tableOperations().create(ReplicationTable.NAME);
     conn.tableOperations().create("foo");
     Text tableId = new Text(conn.tableOperations().tableIdMap().get("foo"));
 
     String file1 = "/accumulo/wals/tserver+port/" + UUID.randomUUID(), file2 = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
     Status stat = Status.newBuilder().setBegin(0).setEnd(10000).setInfiniteEnd(false).setClosed(false).build();
 
-    BatchWriter bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
+    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
 
     Mutation m = new Mutation(file1);
     StatusSection.add(m, tableId, ProtobufUtil.toValue(stat));
@@ -136,7 +135,7 @@ public class ReplicationOperationsImplTest {
     Assert.assertFalse(done.get());
 
     // Remove the replication entries too
-    bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
+    bw = ReplicationTable.getBatchWriter(conn);
     m = new Mutation(file1);
     m.putDelete(StatusSection.NAME, tableId);
     bw.addMutation(m);
@@ -163,7 +162,6 @@ public class ReplicationOperationsImplTest {
   @Test
   public void unrelatedReplicationRecordsDontBlockDrain() throws Exception {
     Connector conn = inst.getConnector("root", new PasswordToken(""));
-    conn.tableOperations().create(ReplicationTable.NAME);
     conn.tableOperations().create("foo");
     conn.tableOperations().create("bar");
 
@@ -173,7 +171,7 @@ public class ReplicationOperationsImplTest {
     String file1 = "/accumulo/wals/tserver+port/" + UUID.randomUUID(), file2 = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
     Status stat = Status.newBuilder().setBegin(0).setEnd(10000).setInfiniteEnd(false).setClosed(false).build();
 
-    BatchWriter bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
+    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
 
     Mutation m = new Mutation(file1);
     StatusSection.add(m, tableId1, ProtobufUtil.toValue(stat));
@@ -227,7 +225,7 @@ public class ReplicationOperationsImplTest {
     Assert.assertFalse(done.get());
 
     // Remove the replication entries too
-    bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
+    bw = ReplicationTable.getBatchWriter(conn);
     m = new Mutation(file1);
     m.putDelete(StatusSection.NAME, tableId1);
     bw.addMutation(m);
@@ -247,7 +245,6 @@ public class ReplicationOperationsImplTest {
   @Test
   public void inprogressReplicationRecordsBlockExecution() throws Exception {
     Connector conn = inst.getConnector("root", new PasswordToken(""));
-    conn.tableOperations().create(ReplicationTable.NAME);
     conn.tableOperations().create("foo");
 
     Text tableId1 = new Text(conn.tableOperations().tableIdMap().get("foo"));
@@ -255,7 +252,7 @@ public class ReplicationOperationsImplTest {
     String file1 = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
     Status stat = Status.newBuilder().setBegin(0).setEnd(10000).setInfiniteEnd(false).setClosed(false).build();
 
-    BatchWriter bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
+    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
 
     Mutation m = new Mutation(file1);
     StatusSection.add(m, tableId1, ProtobufUtil.toValue(stat));
@@ -313,7 +310,7 @@ public class ReplicationOperationsImplTest {
     Assert.assertFalse(done.get());
 
     // Remove the replication entries too
-    bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
+    bw = ReplicationTable.getBatchWriter(conn);
     m = new Mutation(file1);
     m.put(StatusSection.NAME, tableId1, ProtobufUtil.toValue(newStatus));
     bw.addMutation(m);
@@ -333,7 +330,6 @@ public class ReplicationOperationsImplTest {
   @Test
   public void laterCreatedLogsDontBlockExecution() throws Exception {
     Connector conn = inst.getConnector("root", new PasswordToken(""));
-    conn.tableOperations().create(ReplicationTable.NAME);
     conn.tableOperations().create("foo");
 
     Text tableId1 = new Text(conn.tableOperations().tableIdMap().get("foo"));
@@ -341,7 +337,7 @@ public class ReplicationOperationsImplTest {
     String file1 = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
     Status stat = Status.newBuilder().setBegin(0).setEnd(10000).setInfiniteEnd(false).setClosed(false).build();
 
-    BatchWriter bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
+    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     Mutation m = new Mutation(file1);
     StatusSection.add(m, tableId1, ProtobufUtil.toValue(stat));
     bw.addMutation(m);
@@ -395,7 +391,7 @@ public class ReplicationOperationsImplTest {
       System.out.println(e.getKey());
     }
 
-    bw = conn.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
+    bw = ReplicationTable.getBatchWriter(conn);
     m = new Mutation(file1);
     m.putDelete(StatusSection.NAME, tableId1);
     bw.addMutation(m);
