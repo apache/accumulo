@@ -266,18 +266,21 @@ class CleanUp extends MasterRepo {
     }
   }
 
+  @SuppressWarnings("deprecation")
   protected void merge(VolumeManager fs, Path src, Path dest) throws IOException {
     for (FileStatus child : fs.listStatus(src)) {
       final String childName = child.getPath().getName();
       final Path childInSrc = new Path(src, childName), childInDest = new Path(dest, childName);
 
-      if (child.isFile()) {
+      // TODO change to `child.isFile()` when Hadoop-1 support is dropped
+      if (fs.isFile(childInSrc)) {
         if (fs.exists(childInDest)) {
           log.warn("File already exists in archive, ignoring. " + childInDest);
         } else {
           fs.rename(childInSrc, childInDest);
         }
-      } else if (child.isDirectory()) {
+        // TODO change to `child.isDirectory()` when Hadoop-1 support is dropped
+      } else if (child.isDir()) {
         if (fs.exists(childInDest)) {
           // Recurse
           merge(fs, childInSrc, childInDest);
