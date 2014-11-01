@@ -17,10 +17,10 @@
 
 package org.apache.accumulo.core.client.mock;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.nio.charset.StandardCharsets;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Map.Entry;
@@ -263,7 +263,7 @@ public class MockNamespacesTest {
 
     BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m = new Mutation("r");
-    m.put("a", "b", new Value("abcde".getBytes(StandardCharsets.UTF_8)));
+    m.put("a", "b", new Value("abcde".getBytes(UTF_8)));
     bw.addMutation(m);
     bw.flush();
 

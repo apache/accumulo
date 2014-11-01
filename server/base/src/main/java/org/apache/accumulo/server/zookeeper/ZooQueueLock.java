@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.server.zookeeper;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 
@@ -31,8 +32,8 @@ public class ZooQueueLock extends org.apache.accumulo.fate.zookeeper.ZooQueueLoc
 
   public static void main(String args[]) throws InterruptedException, KeeperException {
     ZooQueueLock lock = new ZooQueueLock("/lock", true);
-    DistributedReadWriteLock rlocker = new DistributedReadWriteLock(lock, "reader".getBytes(StandardCharsets.UTF_8));
-    DistributedReadWriteLock wlocker = new DistributedReadWriteLock(lock, "wlocker".getBytes(StandardCharsets.UTF_8));
+    DistributedReadWriteLock rlocker = new DistributedReadWriteLock(lock, "reader".getBytes(UTF_8));
+    DistributedReadWriteLock wlocker = new DistributedReadWriteLock(lock, "wlocker".getBytes(UTF_8));
     final Lock readLock = rlocker.readLock();
     readLock.lock();
     final Lock readLock2 = rlocker.readLock();
@@ -45,7 +46,7 @@ public class ZooQueueLock extends org.apache.accumulo.fate.zookeeper.ZooQueueLoc
     writeLock.lock();
     if (readLock.tryLock(100, TimeUnit.MILLISECONDS))
       throw new RuntimeException("Read lock achieved during write lock!");
-    final Lock writeLock2 = DistributedReadWriteLock.recoverLock(lock, "wlocker".getBytes(StandardCharsets.UTF_8));
+    final Lock writeLock2 = DistributedReadWriteLock.recoverLock(lock, "wlocker".getBytes(UTF_8));
     writeLock2.unlock();
     readLock.lock();
     System.out.println("success");

@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.test;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -47,7 +48,7 @@ public class NativeMapStressTest {
   
   private static void put(NativeMap nm, String row, String val, int mc) {
     Mutation m = new Mutation(new Text(row));
-    m.put(new Text(), new Text(), Long.MAX_VALUE, new Value(val.getBytes(StandardCharsets.UTF_8)));
+    m.put(new Text(), new Text(), Long.MAX_VALUE, new Value(val.getBytes(UTF_8)));
     nm.mutate(m, mc);
   }
   

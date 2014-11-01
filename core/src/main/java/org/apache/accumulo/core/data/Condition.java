@@ -17,8 +17,8 @@
 package org.apache.accumulo.core.data;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashSet;
 
@@ -54,8 +54,8 @@ public class Condition {
   public Condition(CharSequence cf, CharSequence cq) {
     checkArgument(cf != null, "cf is null");
     checkArgument(cq != null, "cq is null");
-    this.cf = new ArrayByteSequence(cf.toString().getBytes(StandardCharsets.UTF_8));
-    this.cq = new ArrayByteSequence(cq.toString().getBytes(StandardCharsets.UTF_8));
+    this.cf = new ArrayByteSequence(cf.toString().getBytes(UTF_8));
+    this.cq = new ArrayByteSequence(cq.toString().getBytes(UTF_8));
     this.cv = EMPTY;
   }
   
@@ -156,7 +156,7 @@ public class Condition {
    */
   public Condition setValue(CharSequence value) {
     checkArgument(value != null, "value is null");
-    this.val = new ArrayByteSequence(value.toString().getBytes(StandardCharsets.UTF_8));
+    this.val = new ArrayByteSequence(value.toString().getBytes(UTF_8));
     return this;
   }
 

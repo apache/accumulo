@@ -16,8 +16,9 @@
  */
 package org.apache.accumulo.server.security.handler;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -95,7 +96,7 @@ public class ZKAuthorizor implements Authorizor {
     try {
       // prep parent node of users with root username
       if (!zoo.exists(ZKUserPath))
-        zoo.putPersistentData(ZKUserPath, rootuser.getBytes(StandardCharsets.UTF_8), NodeExistsPolicy.FAIL);
+        zoo.putPersistentData(ZKUserPath, rootuser.getBytes(UTF_8), NodeExistsPolicy.FAIL);
 
       initUser(rootuser);
       zoo.putPersistentData(ZKUserPath + "/" + rootuser + ZKUserAuths, ZKSecurityTool.convertAuthorizations(Authorizations.EMPTY), NodeExistsPolicy.FAIL);

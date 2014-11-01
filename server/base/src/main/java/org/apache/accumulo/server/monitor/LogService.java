@@ -16,10 +16,11 @@
  */
 package org.apache.accumulo.server.monitor;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -112,7 +113,7 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
         }
       }
 
-      zoo.putEphemeralData(path, logForwardingAddr.getBytes(StandardCharsets.UTF_8));
+      zoo.putEphemeralData(path, logForwardingAddr.getBytes(UTF_8));
 
       new Daemon(server).start();
     } catch (Throwable t) {

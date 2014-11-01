@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.core;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -90,7 +91,7 @@ public class Constants {
   public static final String BULK_PREFIX = "b-";
 
   public static final String CLONE_PREFIX = "c-";
-  public static final byte[] CLONE_PREFIX_BYTES = CLONE_PREFIX.getBytes(StandardCharsets.UTF_8);
+  public static final byte[] CLONE_PREFIX_BYTES = CLONE_PREFIX.getBytes(UTF_8);
 
   // this affects the table client caching of metadata
   public static final int SCAN_BATCH_SIZE = 1000;

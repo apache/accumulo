@@ -16,13 +16,12 @@
  */
 package org.apache.accumulo.core.security;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-
-import java.nio.charset.StandardCharsets;
 
 import javax.security.auth.DestroyFailedException;
 
@@ -107,7 +106,7 @@ public class CredentialsTest {
     assertEquals(abcNullCreds, abcNullCreds);
     assertEquals(new Credentials("abc", new NullToken()), abcNullCreds);
     // equal, but different token constructors
-    assertEquals(new Credentials("abc", new PasswordToken("abc".getBytes(StandardCharsets.UTF_8))), new Credentials("abc", new PasswordToken("abc")));
+    assertEquals(new Credentials("abc", new PasswordToken("abc".getBytes(UTF_8))), new Credentials("abc", new PasswordToken("abc")));
     // test not equals
     assertFalse(nullNullCreds.equals(abcBlahCreds));
     assertFalse(nullNullCreds.equals(abcNullCreds));
@@ -116,7 +115,7 @@ public class CredentialsTest {
   
   @Test
   public void testCredentialsSerialization() throws AccumuloSecurityException {
-    Credentials creds = new Credentials("a:b-c", new PasswordToken("d-e-f".getBytes(StandardCharsets.UTF_8)));
+    Credentials creds = new Credentials("a:b-c", new PasswordToken("d-e-f".getBytes(UTF_8)));
     String serialized = creds.serialize();
     Credentials result = Credentials.deserialize(serialized);
     assertEquals(creds, result);

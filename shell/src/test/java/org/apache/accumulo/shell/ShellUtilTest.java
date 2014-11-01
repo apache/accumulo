@@ -16,12 +16,12 @@
  */
 package org.apache.accumulo.shell;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.apache.accumulo.core.util.Base64;
@@ -56,7 +56,7 @@ public class ShellUtilTest {
     FileUtils.writeStringToFile(testFile, FILEDATA);
     List<Text> output = ShellUtil.scanFile(testFile.getAbsolutePath(), true);
     assertEquals(
-        ImmutableList.of(new Text(Base64.decodeBase64("line1".getBytes(StandardCharsets.UTF_8))), new Text(Base64.decodeBase64("line2".getBytes(StandardCharsets.UTF_8)))),
+        ImmutableList.of(new Text(Base64.decodeBase64("line1".getBytes(UTF_8))), new Text(Base64.decodeBase64("line2".getBytes(UTF_8)))),
         output);
   }
 

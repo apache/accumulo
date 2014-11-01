@@ -16,12 +16,12 @@
  */
 package org.apache.accumulo.shell.mock;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-
 import jline.console.ConsoleReader;
 
 import org.apache.accumulo.core.client.mock.MockInstance;
@@ -78,7 +78,7 @@ public class MockShell extends Shell {
       printInfo();
     
     if (execFile != null) {
-      java.util.Scanner scanner = new java.util.Scanner(execFile, StandardCharsets.UTF_8.name());
+      java.util.Scanner scanner = new java.util.Scanner(execFile, UTF_8.name());
       try {
         while (scanner.hasNextLine() && !hasExited()) {
           execCommand(scanner.nextLine(), true, isVerbose());
@@ -138,6 +138,6 @@ public class MockShell extends Shell {
       sb.append(command).append(NEWLINE);
     }
     
-    return new ByteArrayInputStream(sb.toString().getBytes(StandardCharsets.UTF_8));
+    return new ByteArrayInputStream(sb.toString().getBytes(UTF_8));
   }
 }

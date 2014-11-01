@@ -17,8 +17,7 @@
 package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
-
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -92,7 +91,7 @@ public class Writer {
       TabletLocation tabLoc = TabletLocator.getLocator(instance, table).locateTablet(credentials, new Text(m.getRow()), false, true);
       
       if (tabLoc == null) {
-        log.trace("No tablet location found for row " + new String(m.getRow(), StandardCharsets.UTF_8));
+        log.trace("No tablet location found for row " + new String(m.getRow(), UTF_8));
         UtilWaitThread.sleep(500);
         continue;
       }

@@ -16,10 +16,10 @@
  */
 package org.apache.accumulo.server.util;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.cli.ClientOnRequiredTable;
@@ -108,7 +108,7 @@ public class RandomizeVolumes {
 
       String newLocation = vm.choose(ServerConstants.getBaseUris()) + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + tableId + Path.SEPARATOR
           + directory;
-      m.put(key.getColumnFamily(), key.getColumnQualifier(), new Value(newLocation.getBytes(StandardCharsets.UTF_8)));
+      m.put(key.getColumnFamily(), key.getColumnQualifier(), new Value(newLocation.getBytes(UTF_8)));
       if (log.isTraceEnabled()) {
         log.trace("Replacing " + oldLocation + " with " + newLocation);
       }

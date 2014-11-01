@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.monitor.servlets;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -46,8 +47,8 @@ public class XMLServlet extends BasicServlet {
   
   @Override
   protected void pageStart(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) {
-    resp.setContentType("text/xml;charset=" + StandardCharsets.UTF_8.name());
-    sb.append("<?xml version=\"1.0\" encoding=\"" + StandardCharsets.UTF_8.name() + "\"?>\n");
+    resp.setContentType("text/xml;charset=" + UTF_8.name());
+    sb.append("<?xml version=\"1.0\" encoding=\"" + UTF_8.name() + "\"?>\n");
     sb.append("<stats>\n");
   }
   

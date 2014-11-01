@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.core.security;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.text.ParseException;
 
 /**
@@ -35,7 +36,7 @@ public class VisibilityParseException extends ParseException {
    */
   public VisibilityParseException(String reason, byte[] visibility, int errorOffset) {
     super(reason, errorOffset);
-    this.visibility = new String(visibility, StandardCharsets.UTF_8);
+    this.visibility = new String(visibility, UTF_8);
   }
   
   @Override

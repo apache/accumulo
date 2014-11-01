@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.server.util;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.Formattable;
 import java.util.Formatter;
 import java.util.List;
@@ -158,7 +159,7 @@ public class ListInstances {
       if (master == null) {
         return null;
       }
-      return new String(master, StandardCharsets.UTF_8);
+      return new String(master, UTF_8);
     } catch (Exception e) {
       handleException(e, printErrors);
       return null;
@@ -183,7 +184,7 @@ public class ListInstances {
     for (String name : names) {
       String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + name;
       try {
-        UUID iid = UUID.fromString(new String(zk.getData(instanceNamePath, null), StandardCharsets.UTF_8));
+        UUID iid = UUID.fromString(new String(zk.getData(instanceNamePath, null), UTF_8));
         tm.put(name, iid);
       } catch (Exception e) {
         handleException(e, printErrors);

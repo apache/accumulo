@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.core.util;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -39,7 +40,7 @@ public class ByteArraySet extends TreeSet<byte[]> {
   public static ByteArraySet fromStrings(Collection<String> c) {
     List<byte[]> lst = new ArrayList<byte[]>();
     for (String s : c)
-      lst.add(s.getBytes(StandardCharsets.UTF_8));
+      lst.add(s.getBytes(UTF_8));
     return new ByteArraySet(lst);
   }
   

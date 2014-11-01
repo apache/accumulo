@@ -16,8 +16,9 @@
  */
 package org.apache.accumulo.server.master.state;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -95,7 +96,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
     try {
       Map<Text,MergeInfo> result = new HashMap<Text,MergeInfo>();
       DataInputBuffer buffer = new DataInputBuffer();
-      byte[] data = Base64.decodeBase64(merges.getBytes(StandardCharsets.UTF_8));
+      byte[] data = Base64.decodeBase64(merges.getBytes(UTF_8));
       buffer.reset(data, data.length);
       while (buffer.available() > 0) {
         MergeInfo mergeInfo = new MergeInfo();

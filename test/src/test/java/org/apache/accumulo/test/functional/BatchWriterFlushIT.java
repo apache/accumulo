@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Random;
@@ -67,7 +68,7 @@ public class BatchWriterFlushIT extends SimpleMacIT {
     Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY);
 
     Mutation m = new Mutation(new Text(String.format("r_%10d", 1)));
-    m.put(new Text("cf"), new Text("cq"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+    m.put(new Text("cf"), new Text("cq"), new Value("1".getBytes(UTF_8)));
     bw.addMutation(m);
 
     UtilWaitThread.sleep(500);

@@ -16,12 +16,13 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
@@ -44,7 +45,6 @@ import com.google.common.annotations.VisibleForTesting;
  */
 public class ZooCache {
   private static final Logger log = Logger.getLogger(ZooCache.class);
-  private static final Charset UTF8 = Charset.forName("UTF-8");
 
   private ZCacheWatcher watcher = new ZCacheWatcher();
   private Watcher externalWatcher = null;
@@ -273,10 +273,10 @@ public class ZooCache {
             throw new ConcurrentModificationException();
           }
           if (log.isTraceEnabled())
-            log.trace("zookeeper contained " + zPath + " " + (data == null ? null : new String(data, UTF8)));
+            log.trace("zookeeper contained " + zPath + " " + (data == null ? null : new String(data, UTF_8)));
         }
         if (log.isTraceEnabled())
-          log.trace("putting " + zPath + " " + (data == null ? null : new String(data, UTF8)) + " in cache");
+          log.trace("putting " + zPath + " " + (data == null ? null : new String(data, UTF_8)) + " in cache");
         put(zPath, data, stat);
       }
 

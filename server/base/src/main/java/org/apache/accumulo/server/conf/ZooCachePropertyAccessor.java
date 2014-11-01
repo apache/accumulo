@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.server.conf;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.List;
 import java.util.Map;
 
@@ -113,7 +114,7 @@ public class ZooCachePropertyAccessor {
   private String get(String path) {
     byte[] v = propCache.get(path);
     if (v != null) {
-      return new String(v, StandardCharsets.UTF_8);
+      return new String(v, UTF_8);
     } else {
       return null;
     }

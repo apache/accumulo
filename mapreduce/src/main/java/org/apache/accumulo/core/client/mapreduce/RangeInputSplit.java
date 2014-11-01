@@ -16,11 +16,12 @@
  */
 package org.apache.accumulo.core.client.mapreduce;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -195,7 +196,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
     if (in.readBoolean()) {
       String strAuths = in.readUTF();
-      auths = new Authorizations(strAuths.getBytes(StandardCharsets.UTF_8));
+      auths = new Authorizations(strAuths.getBytes(UTF_8));
     }
 
     if (in.readBoolean()) {
@@ -209,7 +210,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
       switch (this.tokenSource) {
         case INLINE:
           String tokenClass = in.readUTF();
-          byte[] base64TokenBytes = in.readUTF().getBytes(StandardCharsets.UTF_8);
+          byte[] base64TokenBytes = in.readUTF().getBytes(UTF_8);
           byte[] tokenBytes = Base64.decodeBase64(base64TokenBytes);
 
           this.token = AuthenticationTokenSerializer.deserialize(tokenClass, tokenBytes);

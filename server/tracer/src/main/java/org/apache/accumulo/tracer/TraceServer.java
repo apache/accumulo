@@ -16,10 +16,11 @@
  */
 package org.apache.accumulo.tracer;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.channels.ServerSocketChannel;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
@@ -129,7 +130,7 @@ public class TraceServer implements Watcher {
       Mutation spanMutation = new Mutation(new Text(idString));
       Mutation indexMutation = new Mutation(new Text("idx:" + s.svc + ":" + startString));
       long diff = s.stop - s.start;
-      indexMutation.put(new Text(s.description), new Text(s.sender), new Value((idString + ":" + Long.toHexString(diff)).getBytes(StandardCharsets.UTF_8)));
+      indexMutation.put(new Text(s.description), new Text(s.sender), new Value((idString + ":" + Long.toHexString(diff)).getBytes(UTF_8)));
       ByteArrayTransport transport = new ByteArrayTransport();
       TCompactProtocol protocol = new TCompactProtocol(transport);
       s.write(protocol);
@@ -182,7 +183,7 @@ public class TraceServer implements Watcher {
         Map<String,String> loginMap = conf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
         if (loginMap.isEmpty()) {
           Property p = Property.TRACE_PASSWORD;
-          at = new PasswordToken(conf.get(p).getBytes(StandardCharsets.UTF_8));
+          at = new PasswordToken(conf.get(p).getBytes(UTF_8));
         } else {
           Properties props = new Properties();
           AuthenticationToken token = AccumuloVFSClassLoader.getClassLoader().loadClass(conf.get(Property.TRACE_TOKEN_TYPE)).asSubclass(AuthenticationToken.class)
@@ -280,7 +281,7 @@ public class TraceServer implements Watcher {
   private void registerInZooKeeper(String name) throws Exception {
     String root = ZooUtil.getRoot(serverConfiguration.getInstance()) + Constants.ZTRACERS;
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-    String path = zoo.putEphemeralSequential(root + "/trace-", name.getBytes(StandardCharsets.UTF_8));
+    String path = zoo.putEphemeralSequential(root + "/trace-", name.getBytes(UTF_8));
     zoo.exists(path, this);
   }
 

@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.test.randomwalk.image;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.security.MessageDigest;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -59,7 +60,7 @@ public class Verify extends Test {
     String uuid = UUID.randomUUID().toString();
     
     MessageDigest alg = MessageDigest.getInstance("SHA-1");
-    alg.update(uuid.getBytes(StandardCharsets.UTF_8));
+    alg.update(uuid.getBytes(UTF_8));
     
     indexScanner.setRange(new Range(new Text(alg.digest()), null));
     indexScanner.setBatchSize(numVerifications);

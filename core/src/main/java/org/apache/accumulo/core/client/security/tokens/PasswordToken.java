@@ -16,12 +16,13 @@
  */
 package org.apache.accumulo.core.client.security.tokens;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -131,7 +132,7 @@ public class PasswordToken implements AuthenticationToken {
 
   protected void setPassword(CharBuffer charBuffer) {
     // encode() kicks back a C-string, which is not compatible with the old passwording system
-    ByteBuffer bb = StandardCharsets.UTF_8.encode(charBuffer);
+    ByteBuffer bb = UTF_8.encode(charBuffer);
     // create array using byter buffer length
     this.password = new byte[bb.remaining()];
     bb.get(this.password);

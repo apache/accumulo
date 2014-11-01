@@ -16,8 +16,9 @@
  */
 package org.apache.accumulo.core.trace;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -74,7 +75,7 @@ public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
       List<String> hosts = new ArrayList<String>();
       for (String child : children) {
         byte[] data = zoo.getData(path + "/" + child, null);
-        hosts.add(new String(data, StandardCharsets.UTF_8));
+        hosts.add(new String(data, UTF_8));
       }
       this.hosts.clear();
       this.hosts.addAll(hosts);

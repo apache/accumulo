@@ -16,8 +16,9 @@
  */
 package org.apache.accumulo.tserver.replication;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
@@ -78,7 +79,7 @@ public class ReplicationProcessor implements Processor {
   @Override
   public void process(String workID, byte[] data) {
     ReplicationTarget target = DistributedWorkQueueWorkAssignerHelper.fromQueueKey(workID).getValue();
-    String file = new String(data, StandardCharsets.UTF_8);
+    String file = new String(data, UTF_8);
 
     log.debug("Received replication work for {} to {}", file, target);
 

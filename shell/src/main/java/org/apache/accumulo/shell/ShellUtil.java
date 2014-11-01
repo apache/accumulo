@@ -16,9 +16,10 @@
  */
 package org.apache.accumulo.shell;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Scanner;
 
@@ -43,13 +44,13 @@ public class ShellUtil {
    */
   public static List<Text> scanFile(String filename, boolean decode) throws FileNotFoundException {
     String line;
-    Scanner file = new Scanner(new File(filename), StandardCharsets.UTF_8.name());
+    Scanner file = new Scanner(new File(filename), UTF_8.name());
     List<Text> result = Lists.newArrayList();
     try {
       while (file.hasNextLine()) {
         line = file.nextLine();
         if (!line.isEmpty()) {
-          result.add(decode ? new Text(Base64.decodeBase64(line.getBytes(StandardCharsets.UTF_8))) : new Text(line));
+          result.add(decode ? new Text(Base64.decodeBase64(line.getBytes(UTF_8))) : new Text(line));
         }
       }
     } finally {

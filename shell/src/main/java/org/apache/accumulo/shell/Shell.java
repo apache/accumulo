@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.shell;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.nio.charset.StandardCharsets.ISO_8859_1;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -25,7 +28,6 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -187,7 +189,7 @@ public class Shell extends ShellOptions {
   public static final Logger log = Logger.getLogger(Shell.class);
   private static final Logger audit = Logger.getLogger(Shell.class.getName() + ".audit");
 
-  public static final Charset CHARSET = StandardCharsets.ISO_8859_1;
+  public static final Charset CHARSET = ISO_8859_1;
   public static final int NO_FIXED_ARG_LENGTH_CHECK = -1;
   public static final String COMMENT_PREFIX = "#";
   public static final String HISTORY_DIR_NAME = ".accumulo";
@@ -566,7 +568,7 @@ public class Shell extends ShellOptions {
     ShellCompletor userCompletor = null;
 
     if (execFile != null) {
-      java.util.Scanner scanner = new java.util.Scanner(execFile, StandardCharsets.UTF_8.name());
+      java.util.Scanner scanner = new java.util.Scanner(execFile, UTF_8.name());
       try {
         while (scanner.hasNextLine() && !hasExited()) {
           execCommand(scanner.nextLine(), true, isVerbose());
@@ -981,7 +983,7 @@ public class Shell extends ShellOptions {
     PrintWriter writer;
 
     public PrintFile(String filename) throws FileNotFoundException {
-      writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename), StandardCharsets.UTF_8)));
+      writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename), UTF_8)));
     }
 
     @Override

@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.tserver.replication;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -93,7 +94,7 @@ public class ReplicationProcessorTest {
 
     EasyMock.replay(replica, proc);
 
-    proc.process(queueKey, path.toString().getBytes(StandardCharsets.UTF_8));
+    proc.process(queueKey, path.toString().getBytes(UTF_8));
 
     EasyMock.verify(replica, proc);
   }

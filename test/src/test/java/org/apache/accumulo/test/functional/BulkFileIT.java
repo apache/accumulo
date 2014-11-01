@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.SortedSet;
@@ -113,7 +114,7 @@ public class BulkFileIT extends SimpleMacIT {
 
   private void writeData(FileSKVWriter w, int s, int e) throws Exception {
     for (int i = s; i <= e; i++) {
-      w.append(new Key(new Text(String.format("%04d", i))), new Value(Integer.toString(i).getBytes(StandardCharsets.UTF_8)));
+      w.append(new Key(new Text(String.format("%04d", i))), new Value(Integer.toString(i).getBytes(UTF_8)));
     }
   }
 

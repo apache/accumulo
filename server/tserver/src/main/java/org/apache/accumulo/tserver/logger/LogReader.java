@@ -16,10 +16,11 @@
  */
 package org.apache.accumulo.tserver.logger;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -155,7 +156,7 @@ public class LogReader {
           }
 
           if (rowMatcher != null) {
-            rowMatcher.reset(new String(m.getRow(), StandardCharsets.UTF_8));
+            rowMatcher.reset(new String(m.getRow(), UTF_8));
             if (rowMatcher.matches()) {
               found = true;
               break;

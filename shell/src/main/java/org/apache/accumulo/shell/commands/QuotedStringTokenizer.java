@@ -16,8 +16,9 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.UnsupportedEncodingException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -58,7 +59,7 @@ public class QuotedStringTokenizer implements Iterable<String> {
     
     final byte[] token = new byte[input.length()];
     int tokenLength = 0;
-    final byte[] inputBytes = input.getBytes(StandardCharsets.UTF_8);
+    final byte[] inputBytes = input.getBytes(UTF_8);
     for (int i = 0; i < input.length(); ++i) {
       final char ch = input.charAt(i);
       

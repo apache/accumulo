@@ -17,13 +17,13 @@
 package org.apache.accumulo.core.client.mapreduce.lib.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -152,7 +152,7 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   public static Authorizations getScanAuthorizations(Class<?> implementingClass, Configuration conf) {
     String authString = conf.get(enumToConfKey(implementingClass, ScanOpts.AUTHORIZATIONS));
-    return authString == null ? Authorizations.EMPTY : new Authorizations(authString.getBytes(StandardCharsets.UTF_8));
+    return authString == null ? Authorizations.EMPTY : new Authorizations(authString.getBytes(UTF_8));
   }
 
   /**
@@ -202,7 +202,7 @@ public class InputConfigurator extends ConfiguratorBase {
     Collection<String> encodedRanges = conf.getStringCollection(enumToConfKey(implementingClass, ScanOpts.RANGES));
     List<Range> ranges = new ArrayList<Range>();
     for (String rangeString : encodedRanges) {
-      ByteArrayInputStream bais = new ByteArrayInputStream(Base64.decodeBase64(rangeString.getBytes(StandardCharsets.UTF_8)));
+      ByteArrayInputStream bais = new ByteArrayInputStream(Base64.decodeBase64(rangeString.getBytes(UTF_8)));
       Range range = new Range();
       range.readFields(new DataInputStream(bais));
       ranges.add(range);
@@ -234,7 +234,7 @@ public class InputConfigurator extends ConfiguratorBase {
     try {
       while (tokens.hasMoreTokens()) {
         String itstring = tokens.nextToken();
-        ByteArrayInputStream bais = new ByteArrayInputStream(Base64.decodeBase64(itstring.getBytes(StandardCharsets.UTF_8)));
+        ByteArrayInputStream bais = new ByteArrayInputStream(Base64.decodeBase64(itstring.getBytes(UTF_8)));
         list.add(new IteratorSetting(new DataInputStream(bais)));
         bais.close();
       }
@@ -314,9 +314,9 @@ public class InputConfigurator extends ConfiguratorBase {
 
     for (String col : serialized) {
       int idx = col.indexOf(":");
-      Text cf = new Text(idx < 0 ? Base64.decodeBase64(col.getBytes(StandardCharsets.UTF_8)) : Base64.decodeBase64(col.substring(0, idx).getBytes(
-          StandardCharsets.UTF_8)));
-      Text cq = idx < 0 ? null : new Text(Base64.decodeBase64(col.substring(idx + 1).getBytes(StandardCharsets.UTF_8)));
+      Text cf = new Text(idx < 0 ? Base64.decodeBase64(col.getBytes(UTF_8)) : Base64.decodeBase64(col.substring(0, idx).getBytes(
+          UTF_8)));
+      Text cq = idx < 0 ? null : new Text(Base64.decodeBase64(col.substring(idx + 1).getBytes(UTF_8)));
       columns.add(new Pair<Text,Text>(cf, cq));
     }
     return columns;
@@ -559,7 +559,7 @@ public class InputConfigurator extends ConfiguratorBase {
     MapWritable mapWritable = new MapWritable();
     if (configString != null) {
       try {
-        byte[] bytes = Base64.decodeBase64(configString.getBytes(StandardCharsets.UTF_8));
+        byte[] bytes = Base64.decodeBase64(configString.getBytes(UTF_8));
         ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
         mapWritable.readFields(new DataInputStream(bais));
         bais.close();

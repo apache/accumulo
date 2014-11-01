@@ -16,8 +16,9 @@
  */
 package org.apache.accumulo.monitor;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.net.InetAddress;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -384,7 +385,7 @@ public class Monitor {
       List<String> locks = zk.getChildren(path, null);
       if (locks != null && locks.size() > 0) {
         Collections.sort(locks);
-        address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0), null), StandardCharsets.UTF_8)).getAddress(Service.GC_CLIENT);
+        address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0), null), UTF_8)).getAddress(Service.GC_CLIENT);
         GCMonitorService.Client client = ThriftUtil.getClient(new GCMonitorService.Client.Factory(), address, config.getConfiguration());
         try {
           result = client.getStatus(Tracer.traceInfo(), SystemCredentials.get().toThrift(instance));
@@ -463,7 +464,7 @@ public class Monitor {
 
       String monitorAddress = HostAndPort.fromParts(hostname, server.getPort()).toString();
 
-      ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instance) + Constants.ZMONITOR_HTTP_ADDR, monitorAddress.getBytes(StandardCharsets.UTF_8),
+      ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instance) + Constants.ZMONITOR_HTTP_ADDR, monitorAddress.getBytes(UTF_8),
           NodeExistsPolicy.OVERWRITE);
       log.info("Set monitor address in zookeeper to " + monitorAddress);
     } catch (Exception ex) {

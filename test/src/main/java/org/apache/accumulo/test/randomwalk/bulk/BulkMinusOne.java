@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.test.randomwalk.bulk;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.test.randomwalk.Environment;
@@ -24,7 +24,7 @@ import org.apache.accumulo.test.randomwalk.State;
 
 public class BulkMinusOne extends BulkImportTest {
 
-  private static final Value negOne = new Value("-1".getBytes(StandardCharsets.UTF_8));
+  private static final Value negOne = new Value("-1".getBytes(UTF_8));
 
   @Override
   protected void runLater(State state, Environment env) throws Exception {

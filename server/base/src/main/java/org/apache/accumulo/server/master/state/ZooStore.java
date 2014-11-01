@@ -16,8 +16,9 @@
  */
 package org.apache.accumulo.server.master.state;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -75,7 +76,7 @@ public class ZooStore implements DistributedStore {
       path = relative(path);
       ZooReaderWriter.getInstance().putPersistentData(path, bs, NodeExistsPolicy.OVERWRITE);
       cache.clear();
-      log.debug("Wrote " + new String(bs, StandardCharsets.UTF_8) + " to " + path);
+      log.debug("Wrote " + new String(bs, UTF_8) + " to " + path);
     } catch (Exception ex) {
       throw new DistributedStoreException(ex);
     }

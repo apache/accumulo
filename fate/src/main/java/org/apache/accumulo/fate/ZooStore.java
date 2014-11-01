@@ -16,13 +16,14 @@
  */
 package org.apache.accumulo.fate;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.nio.charset.Charset;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -45,7 +46,6 @@ import org.apache.zookeeper.KeeperException.NodeExistsException;
 //TODO document zookeeper layout - ACCUMULO-1298
 
 public class ZooStore<T> implements TStore<T> {
-  private static final Charset UTF8 = Charset.forName("UTF-8");
   
   private String path;
   private IZooReaderWriter zk;
@@ -105,7 +105,7 @@ public class ZooStore<T> implements TStore<T> {
       try {
         // looking at the code for SecureRandom, it appears to be thread safe
         long tid = idgenerator.nextLong() & 0x7fffffffffffffffl;
-        zk.putPersistentData(getTXPath(tid), TStatus.NEW.name().getBytes(UTF8), NodeExistsPolicy.FAIL);
+        zk.putPersistentData(getTXPath(tid), TStatus.NEW.name().getBytes(UTF_8), NodeExistsPolicy.FAIL);
         return tid;
       } catch (NodeExistsException nee) {
         // exist, so just try another random #
@@ -159,7 +159,7 @@ public class ZooStore<T> implements TStore<T> {
           // have reserved id, status should not change
           
           try {
-            TStatus status = TStatus.valueOf(new String(zk.getData(path + "/" + txdir, null), UTF8));
+            TStatus status = TStatus.valueOf(new String(zk.getData(path + "/" + txdir, null), UTF_8));
             if (status == TStatus.IN_PROGRESS || status == TStatus.FAILED_IN_PROGRESS) {
               return tid;
             } else {
@@ -321,7 +321,7 @@ public class ZooStore<T> implements TStore<T> {
   
   private TStatus _getStatus(long tid) {
     try {
-      return TStatus.valueOf(new String(zk.getData(getTXPath(tid), null), UTF8));
+      return TStatus.valueOf(new String(zk.getData(getTXPath(tid), null), UTF_8));
     } catch (NoNodeException nne) {
       return TStatus.UNKNOWN;
     } catch (Exception e) {
@@ -364,7 +364,7 @@ public class ZooStore<T> implements TStore<T> {
     verifyReserved(tid);
     
     try {
-      zk.putPersistentData(getTXPath(tid), status.name().getBytes(UTF8), NodeExistsPolicy.OVERWRITE);
+      zk.putPersistentData(getTXPath(tid), status.name().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -392,7 +392,7 @@ public class ZooStore<T> implements TStore<T> {
     
     try {
       if (so instanceof String) {
-        zk.putPersistentData(getTXPath(tid) + "/prop_" + prop, ("S " + so).getBytes(UTF8), NodeExistsPolicy.OVERWRITE);
+        zk.putPersistentData(getTXPath(tid) + "/prop_" + prop, ("S " + so).getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
       } else {
         byte[] sera = serialize(so);
         byte[] data = new byte[sera.length + 2];
@@ -418,7 +418,7 @@ public class ZooStore<T> implements TStore<T> {
         System.arraycopy(data, 2, sera, 0, sera.length);
         return (Serializable) deserialize(sera);
       } else if (data[0] == 'S') {
-        return new String(data, 2, data.length - 2, UTF8);
+        return new String(data, 2, data.length - 2, UTF_8);
       } else {
         throw new IllegalStateException("Bad property data " + prop);
       }

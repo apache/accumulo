@@ -16,13 +16,14 @@
  */
 package org.apache.accumulo.server;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.nio.charset.StandardCharsets;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
@@ -239,7 +240,7 @@ public class Accumulo {
             try {
               byte[] buffer = new byte[10];
               int bytes = is.read(buffer);
-              String setting = new String(buffer, 0, bytes, StandardCharsets.UTF_8);
+              String setting = new String(buffer, 0, bytes, UTF_8);
               setting = setting.trim();
               if (bytes > 0 && Integer.parseInt(setting) > 10) {
                 log.warn("System swappiness setting is greater than ten (" + setting + ") which can cause time-sensitive operations to be delayed. "

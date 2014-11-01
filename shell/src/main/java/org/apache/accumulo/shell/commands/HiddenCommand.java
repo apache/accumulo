@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.security.SecureRandom;
 import java.util.Random;
 
@@ -43,7 +44,7 @@ public class HiddenCommand extends Command {
       shellState.getReader().println(
           new String(Base64.decodeBase64(("ICAgICAgIC4tLS4KICAgICAgLyAvXCBcCiAgICAgKCAvLS1cICkKICAgICAuPl8gIF88LgogICAgLyB8ICd8ICcgXAog"
               + "ICAvICB8Xy58Xy4gIFwKICAvIC98ICAgICAgfFwgXAogfCB8IHwgfFwvfCB8IHwgfAogfF98IHwgfCAgfCB8IHxffAogICAgIC8gIF9fICBcCiAgICAvICAv"
-              + "ICBcICBcCiAgIC8gIC8gICAgXCAgXF8KIHwvICAvICAgICAgXCB8IHwKIHxfXy8gICAgICAgIFx8X3wK").getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8));
+              + "ICBcICBcCiAgIC8gIC8gICAgXCAgXF8KIHwvICAvICAgICAgXCB8IHwKIHxfXy8gICAgICAgIFx8X3wK").getBytes(UTF_8)), UTF_8));
     } else {
       throw new ShellCommandException(ErrorCode.UNRECOGNIZED_COMMAND, getName());
     }

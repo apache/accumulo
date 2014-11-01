@@ -16,8 +16,9 @@
  */
 package org.apache.accumulo.server.util;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -70,8 +71,8 @@ public class MasterMetadataUtil {
       Map<FileRef,Long> bulkLoadedFiles, Credentials credentials, String time, long lastFlushID, long lastCompactID, ZooLock zooLock) {
     Mutation m = extent.getPrevRowUpdateMutation();
     
-    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(path.getBytes(StandardCharsets.UTF_8)));
-    TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value(time.getBytes(StandardCharsets.UTF_8)));
+    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(path.getBytes(UTF_8)));
+    TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value(time.getBytes(UTF_8)));
     if (lastFlushID > 0)
       TabletsSection.ServerColumnFamily.FLUSH_COLUMN.put(m, new Value(("" + lastFlushID).getBytes()));
     if (lastCompactID > 0)
@@ -104,7 +105,7 @@ public class MasterMetadataUtil {
       throw new IllegalArgumentException("Metadata entry does not have split ratio (" + metadataEntry + ")");
     }
     
-    double splitRatio = Double.parseDouble(new String(columns.get(TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN).get(), StandardCharsets.UTF_8));
+    double splitRatio = Double.parseDouble(new String(columns.get(TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN).get(), UTF_8));
     
     Value prevEndRowIBW = columns.get(TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN);
     
@@ -300,7 +301,7 @@ public class MasterMetadataUtil {
 
     if (dfv.getNumEntries() > 0) {
       m.put(DataFileColumnFamily.NAME, path.meta(), new Value(dfv.encode()));
-      TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value(time.getBytes(StandardCharsets.UTF_8)));
+      TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value(time.getBytes(UTF_8)));
       // stuff in this location
       TServerInstance self = getTServerInstance(address, zooLock);
       self.putLastLocation(m);
@@ -320,7 +321,7 @@ public class MasterMetadataUtil {
     if (mergeFile != null)
       m.putDelete(DataFileColumnFamily.NAME, mergeFile.meta());
 
-    TabletsSection.ServerColumnFamily.FLUSH_COLUMN.put(m, new Value(Long.toString(flushId).getBytes(StandardCharsets.UTF_8)));
+    TabletsSection.ServerColumnFamily.FLUSH_COLUMN.put(m, new Value(Long.toString(flushId).getBytes(UTF_8)));
 
     return m;
   }

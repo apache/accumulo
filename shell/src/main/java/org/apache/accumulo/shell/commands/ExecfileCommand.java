@@ -16,8 +16,9 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.File;
-import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 
 import org.apache.accumulo.shell.Shell;
@@ -36,7 +37,7 @@ public class ExecfileCommand extends Command {
   
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
-    Scanner scanner = new Scanner(new File(cl.getArgs()[0]), StandardCharsets.UTF_8.name());
+    Scanner scanner = new Scanner(new File(cl.getArgs()[0]), UTF_8.name());
     try {
       while (scanner.hasNextLine()) {
         shellState.execCommand(scanner.nextLine(), true, cl.hasOption(verboseOption.getOpt()));

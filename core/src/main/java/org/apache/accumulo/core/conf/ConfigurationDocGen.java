@@ -16,12 +16,13 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.TreeMap;
 
@@ -324,7 +325,7 @@ class ConfigurationDocGen {
       int n;
       try {
         while ((n = data.read(buffer)) > 0)
-          doc.print(new String(buffer, 0, n, StandardCharsets.UTF_8));
+          doc.print(new String(buffer, 0, n, UTF_8));
       } catch (IOException e) {
         log.debug("Encountered IOException while reading InputStream in appendResource().", e);
         return;
@@ -363,9 +364,9 @@ class ConfigurationDocGen {
    */
   public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException {
     if (args.length == 2 && args[0].equals("--generate-html")) {
-      new ConfigurationDocGen(new PrintStream(args[1], StandardCharsets.UTF_8.name())).generateHtml();
+      new ConfigurationDocGen(new PrintStream(args[1], UTF_8.name())).generateHtml();
     } else if (args.length == 2 && args[0].equals("--generate-asciidoc")) {
-      new ConfigurationDocGen(new PrintStream(args[1], StandardCharsets.UTF_8.name())).generateAsciidoc();
+      new ConfigurationDocGen(new PrintStream(args[1], UTF_8.name())).generateAsciidoc();
     } else {
       throw new IllegalArgumentException("Usage: " + ConfigurationDocGen.class.getName() + " --generate-html <filename> | --generate-asciidoc <filename>");
     }

@@ -16,12 +16,13 @@
  */
 package org.apache.accumulo.core.iterators;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -179,13 +180,13 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   public static class StringEncoder implements Encoder<Long> {
     @Override
     public byte[] encode(Long v) {
-      return Long.toString(v).getBytes(StandardCharsets.UTF_8);
+      return Long.toString(v).getBytes(UTF_8);
     }
     
     @Override
     public Long decode(byte[] b) {
       try {
-        return Long.parseLong(new String(b, StandardCharsets.UTF_8));
+        return Long.parseLong(new String(b, UTF_8));
       } catch (NumberFormatException nfe) {
         throw new ValueFormatException(nfe);
       }

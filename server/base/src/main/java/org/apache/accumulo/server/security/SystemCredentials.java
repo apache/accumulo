@@ -16,10 +16,11 @@
  */
 package org.apache.accumulo.server.security;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecurityPermission;
@@ -107,7 +108,7 @@ public final class SystemCredentials extends Credentials {
     }
 
     private static SystemToken get(Instance instance) {
-      byte[] instanceIdBytes = instance.getInstanceID().getBytes(StandardCharsets.UTF_8);
+      byte[] instanceIdBytes = instance.getInstanceID().getBytes(UTF_8);
       byte[] confChecksum;
       MessageDigest md;
       try {
@@ -117,14 +118,14 @@ public final class SystemCredentials extends Credentials {
       }
 
       // seed the config with the version and instance id, so at least it's not empty
-      md.update(ServerConstants.WIRE_VERSION.toString().getBytes(StandardCharsets.UTF_8));
+      md.update(ServerConstants.WIRE_VERSION.toString().getBytes(UTF_8));
       md.update(instanceIdBytes);
 
       for (Entry<String,String> entry : SiteConfiguration.getInstance()) {
         // only include instance properties
         if (entry.getKey().startsWith(Property.INSTANCE_PREFIX.toString())) {
-          md.update(entry.getKey().getBytes(StandardCharsets.UTF_8));
-          md.update(entry.getValue().getBytes(StandardCharsets.UTF_8));
+          md.update(entry.getKey().getBytes(UTF_8));
+          md.update(entry.getValue().getBytes(UTF_8));
         }
       }
       confChecksum = md.digest();

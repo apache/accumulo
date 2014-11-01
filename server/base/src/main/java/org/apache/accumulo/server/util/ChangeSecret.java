@@ -16,8 +16,9 @@
  */
 package org.apache.accumulo.server.util;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -139,7 +140,7 @@ public class ChangeSecret {
     });
     String path = "/accumulo/instances/" + inst.getInstanceName();
     orig.recursiveDelete(path, NodeMissingPolicy.SKIP);
-    new_.putPersistentData(path, newInstanceId.getBytes(StandardCharsets.UTF_8), NodeExistsPolicy.OVERWRITE);
+    new_.putPersistentData(path, newInstanceId.getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
     return newInstanceId;
   }
   

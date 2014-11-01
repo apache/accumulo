@@ -16,9 +16,10 @@
  */
 package org.apache.accumulo.test.randomwalk.shard;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
@@ -68,7 +69,7 @@ public class ExportIndex extends Test {
     long t3 = System.currentTimeMillis();
 
     // copy files
-    BufferedReader reader = new BufferedReader(new InputStreamReader(fs.open(new Path(exportDir, "distcp.txt")), StandardCharsets.UTF_8));
+    BufferedReader reader = new BufferedReader(new InputStreamReader(fs.open(new Path(exportDir, "distcp.txt")), UTF_8));
     String file = null;
     while ((file = reader.readLine()) != null) {
       Path src = new Path(file);

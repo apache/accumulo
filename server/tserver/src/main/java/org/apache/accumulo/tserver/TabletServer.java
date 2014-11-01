@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.tserver;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.server.problems.ProblemType.TABLET_LOAD;
 
 import java.io.FileNotFoundException;
@@ -23,7 +24,6 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -412,7 +412,7 @@ public class TabletServer implements Runnable {
         List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, boolean isolated,
         long readaheadThreshold) throws NotServingTabletException, ThriftSecurityException, org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException {
 
-      String tableId = new String(textent.getTable(), StandardCharsets.UTF_8);
+      String tableId = new String(textent.getTable(), UTF_8);
       if (!security.canScan(credentials, tableId, Tables.getNamespaceId(getInstance(), tableId), range, columns, ssiList, ssio, authorizations))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
@@ -554,7 +554,7 @@ public class TabletServer implements Runnable {
       // find all of the tables that need to be scanned
       final HashSet<String> tables = new HashSet<String>();
       for (TKeyExtent keyExtent : tbatch.keySet()) {
-        tables.add(new String(keyExtent.getTable(), StandardCharsets.UTF_8));
+        tables.add(new String(keyExtent.getTable(), UTF_8));
       }
 
       if (tables.size() != 1)
@@ -953,7 +953,7 @@ public class TabletServer implements Runnable {
     public void update(TInfo tinfo, TCredentials credentials, TKeyExtent tkeyExtent, TMutation tmutation, TDurability tdurability) throws NotServingTabletException,
         ConstraintViolationException, ThriftSecurityException {
 
-      final String tableId = new String(tkeyExtent.getTable(), StandardCharsets.UTF_8);
+      final String tableId = new String(tkeyExtent.getTable(), UTF_8);
       if (!security.canWrite(credentials, tableId, Tables.getNamespaceId(getInstance(), tableId)))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
       final KeyExtent keyExtent = new KeyExtent(tkeyExtent);
@@ -2274,7 +2274,7 @@ public class TabletServer implements Runnable {
       // The replication service is unique to the thrift service for a tserver, not just a host.
       // Advertise the host and port for replication service given the host and port for the tserver.
       ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(getInstance()) + ReplicationConstants.ZOO_TSERVERS + "/" + clientAddress.toString(),
-          sp.address.toString().getBytes(StandardCharsets.UTF_8), NodeExistsPolicy.OVERWRITE);
+          sp.address.toString().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
     } catch (Exception e) {
       log.error("Could not advertise replication service port", e);
       throw new RuntimeException(e);
@@ -2322,7 +2322,7 @@ public class TabletServer implements Runnable {
         }
       };
 
-      byte[] lockContent = new ServerServices(getClientAddressString(), Service.TSERV_CLIENT).toString().getBytes(StandardCharsets.UTF_8);
+      byte[] lockContent = new ServerServices(getClientAddressString(), Service.TSERV_CLIENT).toString().getBytes(UTF_8);
       for (int i = 0; i < 120 / 5; i++) {
         zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.SKIP);
 

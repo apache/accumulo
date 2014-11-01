@@ -16,8 +16,9 @@
  */
 package org.apache.accumulo.master.tableOps;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -60,12 +61,12 @@ public class Utils {
       byte[] nid = zoo.mutate(ntp, ZERO_BYTE, ZooUtil.PUBLIC, new Mutator() {
         @Override
         public byte[] mutate(byte[] currentValue) throws Exception {
-          BigInteger nextId = new BigInteger(new String(currentValue, StandardCharsets.UTF_8), Character.MAX_RADIX);
+          BigInteger nextId = new BigInteger(new String(currentValue, UTF_8), Character.MAX_RADIX);
           nextId = nextId.add(BigInteger.ONE);
-          return nextId.toString(Character.MAX_RADIX).getBytes(StandardCharsets.UTF_8);
+          return nextId.toString(Character.MAX_RADIX).getBytes(UTF_8);
         }
       });
-      return new String(nid, StandardCharsets.UTF_8);
+      return new String(nid, UTF_8);
     } catch (Exception e1) {
       Logger.getLogger(CreateTable.class).error("Failed to assign tableId to " + tableName, e1);
       throw new ThriftTableOperationException(tableId, tableName, TableOperation.CREATE, TableOperationExceptionType.OTHER, e1.getMessage());
@@ -118,7 +119,7 @@ public class Utils {
     Instance instance = HdfsZooInstance.getInstance();
 
     String resvPath = ZooUtil.getRoot(instance) + Constants.ZHDFS_RESERVATIONS + "/"
-        + Base64.encodeBase64String(directory.getBytes(StandardCharsets.UTF_8));
+        + Base64.encodeBase64String(directory.getBytes(UTF_8));
 
     IZooReaderWriter zk = ZooReaderWriter.getInstance();
 
@@ -131,12 +132,12 @@ public class Utils {
   public static void unreserveHdfsDirectory(String directory, long tid) throws KeeperException, InterruptedException {
     Instance instance = HdfsZooInstance.getInstance();
     String resvPath = ZooUtil.getRoot(instance) + Constants.ZHDFS_RESERVATIONS + "/"
-        + Base64.encodeBase64String(directory.getBytes(StandardCharsets.UTF_8));
+        + Base64.encodeBase64String(directory.getBytes(UTF_8));
     ZooReservation.release(ZooReaderWriter.getInstance(), resvPath, String.format("%016x", tid));
   }
 
   private static Lock getLock(String tableId, long tid, boolean writeLock) throws Exception {
-    byte[] lockData = String.format("%016x", tid).getBytes(StandardCharsets.UTF_8);
+    byte[] lockData = String.format("%016x", tid).getBytes(UTF_8);
     ZooQueueLock qlock = new ZooQueueLock(ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZTABLE_LOCKS + "/" + tableId, false);
     Lock lock = DistributedReadWriteLock.recoverLock(qlock, lockData);
     if (lock == null) {

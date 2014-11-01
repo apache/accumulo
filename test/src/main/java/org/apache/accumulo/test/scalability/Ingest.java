@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.test.scalability;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -101,7 +102,7 @@ public class Ingest extends ScaleTest {
     while (count < numIngestEntries) {
       count++;
       long rowId = ContinuousIngest.genLong(minRow, maxRow, r);
-      Mutation m = ContinuousIngest.genMutation(rowId, r.nextInt(maxColF), r.nextInt(maxColQ), cv, ingestInstanceId.getBytes(StandardCharsets.UTF_8), count, null, r, false);
+      Mutation m = ContinuousIngest.genMutation(rowId, r.nextInt(maxColF), r.nextInt(maxColQ), cv, ingestInstanceId.getBytes(UTF_8), count, null, r, false);
       totalBytes += m.numBytes();
       try {
         bw.addMutation(m);

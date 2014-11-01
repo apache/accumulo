@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.server.conf;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -97,7 +98,7 @@ public class ZooConfiguration extends AccumuloConfiguration {
     byte[] v = propCache.get(zPath);
     String value = null;
     if (v != null)
-      value = new String(v, StandardCharsets.UTF_8);
+      value = new String(v, UTF_8);
     return value;
   }
 

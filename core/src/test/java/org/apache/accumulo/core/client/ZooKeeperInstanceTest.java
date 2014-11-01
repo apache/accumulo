@@ -16,12 +16,12 @@
  */
 package org.apache.accumulo.core.client;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertEquals;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 
@@ -84,7 +84,7 @@ public class ZooKeeperInstanceTest {
 
   @Test
   public void testGetInstanceID_FromCache() {
-    expect(zc.get(Constants.ZROOT + Constants.ZINSTANCES + "/instance")).andReturn(IID_STRING.getBytes(StandardCharsets.UTF_8));
+    expect(zc.get(Constants.ZROOT + Constants.ZINSTANCES + "/instance")).andReturn(IID_STRING.getBytes(UTF_8));
     expect(zc.get(Constants.ZROOT + "/" + IID_STRING)).andReturn("yup".getBytes());
     replay(zc);
     assertEquals(IID_STRING, zki.getInstanceID());
@@ -110,7 +110,7 @@ public class ZooKeeperInstanceTest {
 
   @Test(expected = RuntimeException.class)
   public void testGetInstanceID_IDMissingForName() {
-    expect(zc.get(Constants.ZROOT + Constants.ZINSTANCES + "/instance")).andReturn(IID_STRING.getBytes(StandardCharsets.UTF_8));
+    expect(zc.get(Constants.ZROOT + Constants.ZINSTANCES + "/instance")).andReturn(IID_STRING.getBytes(UTF_8));
     expect(zc.get(Constants.ZROOT + "/" + IID_STRING)).andReturn(null);
     replay(zc);
     zki.getInstanceID();
@@ -138,8 +138,8 @@ public class ZooKeeperInstanceTest {
     children.add("child1");
     children.add("child2");
     expect(zc.getChildren(Constants.ZROOT + Constants.ZINSTANCES)).andReturn(children);
-    expect(zc.get(Constants.ZROOT + Constants.ZINSTANCES + "/child1")).andReturn(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
-    expect(zc.get(Constants.ZROOT + Constants.ZINSTANCES + "/child2")).andReturn(IID_STRING.getBytes(StandardCharsets.UTF_8));
+    expect(zc.get(Constants.ZROOT + Constants.ZINSTANCES + "/child1")).andReturn(UUID.randomUUID().toString().getBytes(UTF_8));
+    expect(zc.get(Constants.ZROOT + Constants.ZINSTANCES + "/child2")).andReturn(IID_STRING.getBytes(UTF_8));
     replay(zc);
     assertEquals("child2", zki.getInstanceName());
   }

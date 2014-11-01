@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.test;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.Map;
@@ -143,7 +144,7 @@ public class LargeSplitRowIT extends ConfigurableMacIT {
     for (Entry<Key,Value> entry : scanner) {
       Key k = entry.getKey();
       data[data.length - 1] = (byte) count;
-      String expected = new String(data, StandardCharsets.UTF_8);
+      String expected = new String(data, UTF_8);
       Assert.assertEquals(expected, k.getRow().toString());
       Assert.assertEquals("cf", k.getColumnFamily().toString());
       Assert.assertEquals("cq", k.getColumnQualifier().toString());
@@ -265,7 +266,7 @@ public class LargeSplitRowIT extends ConfigurableMacIT {
       }
       Key k = entry.getKey();
       data[data.length - 1] = (byte) extra;
-      String expected = new String(data, StandardCharsets.UTF_8);
+      String expected = new String(data, UTF_8);
       Assert.assertEquals(expected, k.getRow().toString());
       Assert.assertEquals("cf", k.getColumnFamily().toString());
       Assert.assertEquals("cq", k.getColumnQualifier().toString());

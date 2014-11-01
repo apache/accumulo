@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.server.replication;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -201,7 +202,7 @@ public class ReplicationUtil {
   public String getAbsolutePath(Connector conn, String workQueuePath, String queueKey) {
     byte[] data = zooCache.get(workQueuePath + "/" + queueKey);
     if (null != data) {
-      return new String(data, StandardCharsets.UTF_8);
+      return new String(data, UTF_8);
     }
 
     return null;

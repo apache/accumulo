@@ -16,8 +16,9 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Set;
 
@@ -38,7 +39,7 @@ public class AuthenticateCommand extends Command {
       shellState.getReader().println();
       return 0;
     } // user canceled
-    final byte[] password = p.getBytes(StandardCharsets.UTF_8);
+    final byte[] password = p.getBytes(UTF_8);
     final boolean valid = shellState.getConnector().securityOperations().authenticateUser(user, new PasswordToken(password));
     shellState.getReader().println((valid ? "V" : "Not v") + "alid");
     return 0;

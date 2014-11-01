@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.util;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.util.Base64;
 import org.apache.hadoop.io.Text;
@@ -38,7 +38,7 @@ public class Encoding {
     while (node.length() % 4 != 0)
       node += "=";
     /* decode transparently handles URLSafe encodings */
-    return Base64.decodeBase64(node.getBytes(StandardCharsets.UTF_8));
+    return Base64.decodeBase64(node.getBytes(UTF_8));
   }
   
 }

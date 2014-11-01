@@ -16,8 +16,9 @@
  */
 package org.apache.accumulo.core.util;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -62,7 +63,7 @@ public class ByteBufferUtil {
   }
   
   public static String toString(ByteBuffer bytes) {
-    return new String(bytes.array(), bytes.position(), bytes.remaining(), StandardCharsets.UTF_8);
+    return new String(bytes.array(), bytes.position(), bytes.remaining(), UTF_8);
   }
   
   public static ByteBuffer toByteBuffers(ByteSequence bs) {

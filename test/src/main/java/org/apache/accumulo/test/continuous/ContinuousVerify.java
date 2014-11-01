@@ -16,9 +16,10 @@
  */
 package org.apache.accumulo.test.continuous;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -111,7 +112,7 @@ public class ContinuousVerify extends Configured implements Tool {
 
       int offset = ContinuousWalk.getPrevRowOffset(val);
       if (offset > 0) {
-        ref.set(Long.parseLong(new String(val, offset, 16, StandardCharsets.UTF_8), 16));
+        ref.set(Long.parseLong(new String(val, offset, 16, UTF_8), 16));
         vrow.set(r);
         context.write(ref, vrow);
       }
@@ -145,7 +146,7 @@ public class ContinuousVerify extends Configured implements Tool {
         for (Long ref : refs) {
           sb.append(comma);
           comma = ",";
-          sb.append(new String(ContinuousIngest.genRow(ref), StandardCharsets.UTF_8));
+          sb.append(new String(ContinuousIngest.genRow(ref), UTF_8));
         }
 
         context.write(new Text(ContinuousIngest.genRow(key.get())), new Text(sb.toString()));

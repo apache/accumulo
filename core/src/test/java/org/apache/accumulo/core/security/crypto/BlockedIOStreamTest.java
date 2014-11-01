@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.security.crypto;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
@@ -23,7 +24,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Random;
 
@@ -40,12 +40,12 @@ public class BlockedIOStreamTest {
     BlockedOutputStream blockOut = new BlockedOutputStream(baos, blockSize, 1);
 
     String contentString = "My Blocked Content String";
-    byte[] content = contentString.getBytes(StandardCharsets.UTF_8);
+    byte[] content = contentString.getBytes(UTF_8);
     blockOut.write(content);
     blockOut.flush();
 
     String contentString2 = "My Other Blocked Content String";
-    byte[] content2 = contentString2.getBytes(StandardCharsets.UTF_8);
+    byte[] content2 = contentString2.getBytes(UTF_8);
     blockOut.write(content2);
     blockOut.flush();
 
@@ -58,12 +58,12 @@ public class BlockedIOStreamTest {
     DataInputStream dIn = new DataInputStream(blockIn);
 
     dIn.readFully(content, 0, content.length);
-    String readContentString = new String(content, StandardCharsets.UTF_8);
+    String readContentString = new String(content, UTF_8);
 
     assertEquals(contentString, readContentString);
 
     dIn.readFully(content2, 0, content2.length);
-    String readContentString2 = new String(content2, StandardCharsets.UTF_8);
+    String readContentString2 = new String(content2, UTF_8);
 
     assertEquals(contentString2, readContentString2);
 

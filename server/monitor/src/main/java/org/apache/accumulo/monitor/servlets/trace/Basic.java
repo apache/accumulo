@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.monitor.servlets.trace;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.Date;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -74,7 +75,7 @@ abstract class Basic extends BasicServlet {
     Map<String,String> loginMap = conf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
     if (loginMap.isEmpty()) {
       Property p = Property.TRACE_PASSWORD;
-      at = new PasswordToken(conf.get(p).getBytes(StandardCharsets.UTF_8));
+      at = new PasswordToken(conf.get(p).getBytes(UTF_8));
     } else {
       Properties props = new Properties();
       int prefixLength = Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey().length();

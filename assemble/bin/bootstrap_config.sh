@@ -121,7 +121,7 @@ while [[ "${OVERWRITE}" = "0" ]]; do
     OVERWRITE=1
   fi
 done
-echo "Coppying configuration files to: ${CONF_DIR}"
+echo "Copying configuration files to: ${CONF_DIR}"
 
 #Native 1GB
 native_1GB_tServer="-Xmx128m -Xms128m"

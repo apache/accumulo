@@ -16,12 +16,13 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -208,12 +209,12 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
         sb.append(",");
         sb.append(Long.toString(la.get(i)));
       }
-      return sb.toString().getBytes(StandardCharsets.UTF_8);
+      return sb.toString().getBytes(UTF_8);
     }
     
     @Override
     public List<Long> decode(byte[] b) {
-      String[] longstrs = new String(b, StandardCharsets.UTF_8).split(",");
+      String[] longstrs = new String(b, UTF_8).split(",");
       List<Long> la = new ArrayList<Long>(longstrs.length);
       for (String s : longstrs) {
         if (s.length() == 0)

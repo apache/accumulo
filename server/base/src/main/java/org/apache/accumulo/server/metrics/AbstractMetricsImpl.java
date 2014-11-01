@@ -16,13 +16,14 @@
  */
 package org.apache.accumulo.server.metrics;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.lang.management.ManagementFactory;
-import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
@@ -198,7 +199,7 @@ public abstract class AbstractMetricsImpl {
         return;
       }
     }
-    logWriter = new OutputStreamWriter(new FileOutputStream(logFile, true), StandardCharsets.UTF_8);
+    logWriter = new OutputStreamWriter(new FileOutputStream(logFile, true), UTF_8);
   }
   
   private void writeToLog(String name) throws IOException {

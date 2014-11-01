@@ -16,9 +16,9 @@
  */
 package org.apache.accumulo.core.util;
 
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.nio.ByteBuffer;
 import org.apache.accumulo.core.Constants;
 import org.apache.hadoop.io.Text;
 
@@ -44,7 +44,7 @@ public final class TextUtil {
       Text newText = new Text();
       newText.append(text.getBytes(), 0, maxLen);
       String suffix = "... TRUNCATED";
-      newText.append(suffix.getBytes(StandardCharsets.UTF_8), 0, suffix.length());
+      newText.append(suffix.getBytes(UTF_8), 0, suffix.length());
       return newText;
     }
     

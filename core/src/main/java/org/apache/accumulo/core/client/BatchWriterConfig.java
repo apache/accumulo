@@ -16,10 +16,11 @@
  */
 package org.apache.accumulo.core.client;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -207,8 +208,8 @@ public class BatchWriterConfig implements Writable {
       addField(fields, "durability", durability);
     String output = StringUtils.join(",", fields);
 
-    byte[] bytes = output.getBytes(StandardCharsets.UTF_8);
-    byte[] len = String.format("%6s#", Integer.toString(bytes.length, 36)).getBytes(StandardCharsets.UTF_8);
+    byte[] bytes = output.getBytes(UTF_8);
+    byte[] len = String.format("%6s#", Integer.toString(bytes.length, 36)).getBytes(UTF_8);
     if (len.length != 7)
       throw new IllegalStateException("encoded length does not match expected value");
     out.write(len);
@@ -225,13 +226,13 @@ public class BatchWriterConfig implements Writable {
   public void readFields(DataInput in) throws IOException {
     byte[] len = new byte[7];
     in.readFully(len);
-    String strLen = new String(len, StandardCharsets.UTF_8);
+    String strLen = new String(len, UTF_8);
     if (!strLen.endsWith("#"))
       throw new IllegalStateException("length was not encoded correctly");
     byte[] bytes = new byte[Integer.parseInt(strLen.substring(strLen.lastIndexOf(' ') + 1, strLen.length() - 1), 36)];
     in.readFully(bytes);
 
-    String strFields = new String(bytes, StandardCharsets.UTF_8);
+    String strFields = new String(bytes, UTF_8);
     String[] fields = StringUtils.split(strFields, '\\', ',');
     for (String field : fields) {
       String[] keyValue = StringUtils.split(field, '\\', '=');

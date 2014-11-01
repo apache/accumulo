@@ -17,8 +17,8 @@
 package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -126,7 +126,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
         List<String> copy = new ArrayList<String>(children);
         Collections.sort(copy);
         byte[] data = cache.get(path + "/" + candidate + "/" + copy.get(0));
-        if (data != null && !"master".equals(new String(data, StandardCharsets.UTF_8))) {
+        if (data != null && !"master".equals(new String(data, UTF_8))) {
           results.add(candidate);
         }
       }

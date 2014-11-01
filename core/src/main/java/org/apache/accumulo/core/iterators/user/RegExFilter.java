@@ -16,9 +16,10 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -58,7 +59,7 @@ public class RegExFilter extends Filter {
   public static final String ENCODING = "encoding";
   public static final String MATCH_SUBSTRING = "matchSubstring";
   
-  public static final String ENCODING_DEFAULT = StandardCharsets.UTF_8.name();
+  public static final String ENCODING_DEFAULT = UTF_8.name();
   
   private Matcher rowMatcher;
   private Matcher colfMatcher;
@@ -196,7 +197,7 @@ public class RegExFilter extends Filter {
         this.encoding = options.get(ENCODING);
         if ("".equals(this.encoding))
           encoding = ENCODING_DEFAULT;
-        new String("test".getBytes(StandardCharsets.UTF_8), encoding);
+        new String("test".getBytes(UTF_8), encoding);
       } catch (UnsupportedEncodingException e) {
         throw new IllegalArgumentException("invalid encoding " + ENCODING + ":" + this.encoding, e);
       }

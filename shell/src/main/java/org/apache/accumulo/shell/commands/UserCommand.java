@@ -16,8 +16,9 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Set;
 
@@ -44,7 +45,7 @@ public class UserCommand extends Command {
       shellState.getReader().println();
       return 0;
     } // user canceled
-    pass = p.getBytes(StandardCharsets.UTF_8);
+    pass = p.getBytes(UTF_8);
     shellState.updateUser(user, new PasswordToken(pass));
     return 0;
   }

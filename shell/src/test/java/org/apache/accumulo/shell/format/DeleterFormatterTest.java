@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.shell.format;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.createNiceMock;
@@ -30,7 +31,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
@@ -69,7 +69,7 @@ public class DeleterFormatterTest {
     }
 
     public void set(String in) {
-      bais = new ByteArrayInputStream(in.getBytes(StandardCharsets.UTF_8));
+      bais = new ByteArrayInputStream(in.getBytes(UTF_8));
     }
   };
 
@@ -95,7 +95,7 @@ public class DeleterFormatterTest {
     replay(writer, exceptionWriter, shellState);
 
     data = new TreeMap<Key,Value>();
-    data.put(new Key("r", "cf", "cq"), new Value("value".getBytes(StandardCharsets.UTF_8)));
+    data.put(new Key("r", "cf", "cq"), new Value("value".getBytes(UTF_8)));
   }
 
   @Test
@@ -117,7 +117,7 @@ public class DeleterFormatterTest {
   @Test
   public void testNo() throws IOException {
     input.set("no\n");
-    data.put(new Key("z"), new Value("v2".getBytes(StandardCharsets.UTF_8)));
+    data.put(new Key("z"), new Value("v2".getBytes(UTF_8)));
     formatter = new DeleterFormatter(writer, data.entrySet(), true, shellState, false);
 
     assertTrue(formatter.hasNext());
@@ -131,7 +131,7 @@ public class DeleterFormatterTest {
   @Test
   public void testNoConfirmation() throws IOException {
     input.set("");
-    data.put(new Key("z"), new Value("v2".getBytes(StandardCharsets.UTF_8)));
+    data.put(new Key("z"), new Value("v2".getBytes(UTF_8)));
     formatter = new DeleterFormatter(writer, data.entrySet(), true, shellState, false);
 
     assertTrue(formatter.hasNext());
@@ -145,7 +145,7 @@ public class DeleterFormatterTest {
   @Test
   public void testYes() throws IOException {
     input.set("y\nyes\n");
-    data.put(new Key("z"), new Value("v2".getBytes(StandardCharsets.UTF_8)));
+    data.put(new Key("z"), new Value("v2".getBytes(UTF_8)));
     formatter = new DeleterFormatter(writer, data.entrySet(), true, shellState, false);
 
     assertTrue(formatter.hasNext());

@@ -16,9 +16,10 @@
  */
 package org.apache.accumulo.server.util;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.Stack;
 
 import javax.xml.parsers.SAXParser;
@@ -69,7 +70,7 @@ public class RestoreZookeeper {
           cwd.push("");
         else
           cwd.push(root);
-        create(root, "", StandardCharsets.UTF_8.name());
+        create(root, "", UTF_8.name());
       }
     }
     
@@ -80,7 +81,7 @@ public class RestoreZookeeper {
     
     // assume UTF-8 if not "base64"
     private void create(String path, String value, String encoding) {
-      byte[] data = value.getBytes(StandardCharsets.UTF_8);
+      byte[] data = value.getBytes(UTF_8);
       if ("base64".equals(encoding))
         data = Base64.decodeBase64(data);
       try {

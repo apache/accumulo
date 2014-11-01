@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -82,12 +83,12 @@ public class VisibilityIT extends SimpleMacIT {
   }
 
   private void mput(Mutation m, String cf, String cq, String cv, String val) {
-    ColumnVisibility le = new ColumnVisibility(cv.getBytes(StandardCharsets.UTF_8));
-    m.put(new Text(cf), new Text(cq), le, new Value(val.getBytes(StandardCharsets.UTF_8)));
+    ColumnVisibility le = new ColumnVisibility(cv.getBytes(UTF_8));
+    m.put(new Text(cf), new Text(cq), le, new Value(val.getBytes(UTF_8)));
   }
 
   private void mputDelete(Mutation m, String cf, String cq, String cv) {
-    ColumnVisibility le = new ColumnVisibility(cv.getBytes(StandardCharsets.UTF_8));
+    ColumnVisibility le = new ColumnVisibility(cv.getBytes(UTF_8));
     m.putDelete(new Text(cf), new Text(cq), le);
   }
 
@@ -264,7 +265,7 @@ public class VisibilityIT extends SimpleMacIT {
   private ByteArraySet nbas(Set<String> auths) {
     ByteArraySet bas = new ByteArraySet();
     for (String auth : auths) {
-      bas.add(auth.getBytes(StandardCharsets.UTF_8));
+      bas.add(auth.getBytes(UTF_8));
     }
     return bas;
   }

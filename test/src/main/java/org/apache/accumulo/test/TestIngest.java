@@ -16,8 +16,9 @@
  */
 package org.apache.accumulo.test;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
@@ -153,8 +154,8 @@ public class TestIngest {
     return bytevals;
   }
   
-  private static byte ROW_PREFIX[] = "row_".getBytes(StandardCharsets.UTF_8);
-  private static byte COL_PREFIX[] = "col_".getBytes(StandardCharsets.UTF_8);
+  private static byte ROW_PREFIX[] = "row_".getBytes(UTF_8);
+  private static byte COL_PREFIX[] = "col_".getBytes(UTF_8);
   
   public static Text generateRow(int rowid, int startRow) {
     return new Text(FastFormat.toZeroPaddedString(rowid + startRow, 10, 10, ROW_PREFIX));

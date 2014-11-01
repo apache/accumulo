@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.server.zookeeper;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -216,10 +217,10 @@ public class DistributedWorkQueue {
   }
 
   /**
-   * Adds work to the queue, automatically converting the String to bytes using {@link StandardCharsets#UTF_8}
+   * Adds work to the queue, automatically converting the String to bytes using UTF-8
    */
   public void addWork(String workId, String data) throws KeeperException, InterruptedException {
-    addWork(workId, data.getBytes(StandardCharsets.UTF_8));
+    addWork(workId, data.getBytes(UTF_8));
   }
   
   public void addWork(String workId, byte[] data) throws KeeperException, InterruptedException {

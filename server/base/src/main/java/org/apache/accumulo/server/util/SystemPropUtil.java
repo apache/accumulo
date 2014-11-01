@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.server.util;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
@@ -41,7 +41,7 @@ public class SystemPropUtil {
     
     // create the zk node for this property and set it's data to the specified value
     String zPath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZCONFIG + "/" + property;
-    ZooReaderWriter.getInstance().putPersistentData(zPath, value.getBytes(StandardCharsets.UTF_8), NodeExistsPolicy.OVERWRITE);
+    ZooReaderWriter.getInstance().putPersistentData(zPath, value.getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
     
     return true;
   }

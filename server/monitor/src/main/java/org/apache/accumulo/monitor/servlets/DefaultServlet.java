@@ -16,9 +16,10 @@
  */
 package org.apache.accumulo.monitor.servlets;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -76,7 +77,7 @@ public class DefaultServlet extends BasicServlet {
           while ((n = data.read(buffer)) > 0)
             out.write(buffer, 0, n);
         } else {
-          out.write(("could not get resource " + path + "").getBytes(StandardCharsets.UTF_8));
+          out.write(("could not get resource " + path + "").getBytes(UTF_8));
         }
       } finally {
         if (data != null)

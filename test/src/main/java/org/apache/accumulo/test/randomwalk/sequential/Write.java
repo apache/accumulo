@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.test.randomwalk.sequential;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -43,7 +44,7 @@ public class Write extends Test {
     state.set("totalWrites", totalWrites);
     
     Mutation m = new Mutation(new Text(String.format("%010d", totalWrites)));
-    m.put(new Text("cf"), new Text("cq"), new Value("val".getBytes(StandardCharsets.UTF_8)));
+    m.put(new Text("cf"), new Text("cq"), new Value("val".getBytes(UTF_8)));
     bw.addMutation(m);
   }
 }

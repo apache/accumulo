@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -130,7 +131,7 @@ public class AddSplitIT extends SimpleMacIT {
       String row = String.format("%09d", i);
 
       Mutation m = new Mutation(new Text(row));
-      m.put(new Text("cf1"), new Text("cq1"), ts, new Value(Integer.toString(i).getBytes(StandardCharsets.UTF_8)));
+      m.put(new Text("cf1"), new Text("cq1"), ts, new Value(Integer.toString(i).getBytes(UTF_8)));
       bw.addMutation(m);
     }
 

@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.master.tserverOps;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
@@ -59,7 +59,7 @@ public class ShutdownTServer extends MasterRepo {
       ZooLock.deleteLock(path);
       path = ZooUtil.getRoot(master.getInstance()) + Constants.ZDEADTSERVERS + "/" + server.getLocation();
       IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-      zoo.putPersistentData(path, "forced down".getBytes(StandardCharsets.UTF_8), NodeExistsPolicy.OVERWRITE);
+      zoo.putPersistentData(path, "forced down".getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
       return null;
     }
     

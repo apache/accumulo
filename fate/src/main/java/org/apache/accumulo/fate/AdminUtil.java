@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.fate;
 
-import java.nio.charset.Charset;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -38,7 +39,6 @@ import org.apache.zookeeper.KeeperException;
  * A utility to administer FATE operations
  */
 public class AdminUtil<T> {
-  private static final Charset UTF8 = Charset.forName("UTF-8");
   private static final Logger log = Logger.getLogger(AdminUtil.class);
   
   private boolean exitOnError = false;
@@ -84,7 +84,7 @@ public class AdminUtil<T> {
         for (String node : lockNodes) {
           try {
             byte[] data = zk.getData(lockPath + "/" + id + "/" + node, null);
-            String lda[] = new String(data, UTF8).split(":");
+            String lda[] = new String(data, UTF_8).split(":");
             
             if (lda[0].charAt(0) == 'W')
               sawWriteLock = true;
@@ -252,7 +252,7 @@ public class AdminUtil<T> {
       for (String node : lockNodes) {
         String lockPath = path + "/" + id + "/" + node;
         byte[] data = zk.getData(path + "/" + id + "/" + node, null);
-        String lda[] = new String(data, UTF8).split(":");
+        String lda[] = new String(data, UTF_8).split(":");
         if (lda[1].equals(txidStr))
           zk.recursiveDelete(lockPath, NodeMissingPolicy.SKIP);
       }

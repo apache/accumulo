@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.server.watcher;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -111,7 +111,7 @@ public class MonitorLog4jWatcher extends FileWatchdog implements Watcher {
    */
   protected void updateMonitorLog4jLocation() {
     try {
-      String hostPortString = new String(ZooReaderWriter.getInstance().getData(path, null), StandardCharsets.UTF_8);
+      String hostPortString = new String(ZooReaderWriter.getInstance().getData(path, null), UTF_8);
       HostAndPort hostAndPort = HostAndPort.fromString(hostPortString);
 
       System.setProperty(HOST_PROPERTY_NAME, hostAndPort.getHostText());

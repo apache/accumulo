@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -69,7 +70,7 @@ public class CreateAndUseIT extends SimpleMacIT {
 
     for (int i = 1; i < 257; i++) {
       Mutation m = new Mutation(new Text(String.format("%08x", (i << 8) - 16)));
-      m.put(cf, cq, new Value(Integer.toString(i).getBytes(StandardCharsets.UTF_8)));
+      m.put(cf, cq, new Value(Integer.toString(i).getBytes(UTF_8)));
 
       bw.addMutation(m);
     }

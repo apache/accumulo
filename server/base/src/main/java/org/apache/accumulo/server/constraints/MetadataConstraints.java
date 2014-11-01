@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.server.constraints;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -196,7 +197,7 @@ public class MetadataConstraints implements Constraint {
           HashSet<Text> dataFiles = new HashSet<Text>();
           HashSet<Text> loadedFiles = new HashSet<Text>();
 
-          String tidString = new String(columnUpdate.getValue(), StandardCharsets.UTF_8);
+          String tidString = new String(columnUpdate.getValue(), UTF_8);
           int otherTidCount = 0;
           
           for (ColumnUpdate update : mutation.getUpdates()) {
@@ -209,7 +210,7 @@ public class MetadataConstraints implements Constraint {
             } else if (new Text(update.getColumnFamily()).equals(TabletsSection.BulkFileColumnFamily.NAME)) {
               loadedFiles.add(new Text(update.getColumnQualifier()));
               
-              if (!new String(update.getValue(), StandardCharsets.UTF_8).equals(tidString)) {
+              if (!new String(update.getValue(), UTF_8).equals(tidString)) {
                 otherTidCount++;
               }
             }
@@ -253,7 +254,7 @@ public class MetadataConstraints implements Constraint {
           }
           
           boolean lockHeld = false;
-          String lockId = new String(columnUpdate.getValue(), StandardCharsets.UTF_8);
+          String lockId = new String(columnUpdate.getValue(), UTF_8);
           
           try {
             lockHeld = ZooLock.isLockHeld(zooCache, new ZooUtil.LockID(zooRoot, lockId));
@@ -270,10 +271,10 @@ public class MetadataConstraints implements Constraint {
     }
     
     if (violations != null) {
-      log.debug("violating metadata mutation : " + new String(mutation.getRow(), StandardCharsets.UTF_8));
+      log.debug("violating metadata mutation : " + new String(mutation.getRow(), UTF_8));
       for (ColumnUpdate update : mutation.getUpdates()) {
-        log.debug(" update: " + new String(update.getColumnFamily(), StandardCharsets.UTF_8) + ":" + new String(update.getColumnQualifier(), StandardCharsets.UTF_8) + " value "
-            + (update.isDeleted() ? "[delete]" : new String(update.getValue(), StandardCharsets.UTF_8)));
+        log.debug(" update: " + new String(update.getColumnFamily(), UTF_8) + ":" + new String(update.getColumnQualifier(), UTF_8) + " value "
+            + (update.isDeleted() ? "[delete]" : new String(update.getValue(), UTF_8)));
       }
     }
     

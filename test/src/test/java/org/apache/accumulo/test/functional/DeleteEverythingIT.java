@@ -16,9 +16,9 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.*;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Map.Entry;
 
@@ -56,7 +56,7 @@ public class DeleteEverythingIT extends ConfigurableMacIT {
     c.tableOperations().create("de");
     BatchWriter bw = getConnector().createBatchWriter("de", new BatchWriterConfig());
     Mutation m = new Mutation(new Text("foo"));
-    m.put(new Text("bar"), new Text("1910"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+    m.put(new Text("bar"), new Text("1910"), new Value("5".getBytes(UTF_8)));
     bw.addMutation(m);
     bw.flush();
     

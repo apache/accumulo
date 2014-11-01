@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.test;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Random;
@@ -83,7 +84,7 @@ public class TestBinaryRows {
   public static void runTest(Connector connector, Opts opts, BatchWriterOpts bwOpts, ScannerOpts scanOpts) throws Exception {
     
     final Text CF = new Text("cf"), CQ = new Text("cq");
-    final byte[] CF_BYTES = "cf".getBytes(StandardCharsets.UTF_8), CQ_BYTES = "cq".getBytes(StandardCharsets.UTF_8);
+    final byte[] CF_BYTES = "cf".getBytes(UTF_8), CQ_BYTES = "cq".getBytes(UTF_8);
     if (opts.mode.equals("ingest") || opts.mode.equals("delete")) {
       BatchWriter bw = connector.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());
       boolean delete = opts.mode.equals("delete");
@@ -96,7 +97,7 @@ public class TestBinaryRows {
         if (delete) {
           m.putDelete(CF, CQ);
         } else {
-          m.put(CF, CQ, new Value(value.getBytes(StandardCharsets.UTF_8)));
+          m.put(CF, CQ, new Value(value.getBytes(UTF_8)));
         }
         bw.addMutation(m);
       }

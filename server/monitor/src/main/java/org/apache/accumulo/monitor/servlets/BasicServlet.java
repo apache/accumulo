@@ -16,13 +16,14 @@
  */
 package org.apache.accumulo.monitor.servlets;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
 import java.util.TimerTask;
@@ -251,18 +252,18 @@ abstract public class BasicServlet extends HttpServlet {
 
   public static String encode(String s) {
     try {
-      return URLEncoder.encode(s, StandardCharsets.UTF_8.name());
+      return URLEncoder.encode(s, UTF_8.name());
     } catch (UnsupportedEncodingException e) {
-      Logger.getLogger(BasicServlet.class).fatal(StandardCharsets.UTF_8.name() + " is not a recognized encoding", e);
+      Logger.getLogger(BasicServlet.class).fatal(UTF_8.name() + " is not a recognized encoding", e);
       throw new AssertionError(e); // can't happen with UTF-8
     }
   }
 
   public static String decode(String s) {
     try {
-      return URLDecoder.decode(s, StandardCharsets.UTF_8.name());
+      return URLDecoder.decode(s, UTF_8.name());
     } catch (UnsupportedEncodingException e) {
-      Logger.getLogger(BasicServlet.class).fatal(StandardCharsets.UTF_8.name() + " is not a recognized encoding", e);
+      Logger.getLogger(BasicServlet.class).fatal(UTF_8.name() + " is not a recognized encoding", e);
       throw new AssertionError(e); // can't happen with UTF-8
     }
   }

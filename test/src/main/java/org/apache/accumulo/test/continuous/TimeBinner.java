@@ -16,9 +16,10 @@
  */
 package org.apache.accumulo.test.continuous;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -72,7 +73,7 @@ public class TimeBinner {
     Operation operation = Operation.valueOf(opts.operation);
     SimpleDateFormat sdf = new SimpleDateFormat(opts.dateFormat);
     
-    BufferedReader in = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
+    BufferedReader in = new BufferedReader(new InputStreamReader(System.in, UTF_8));
     
     String line = null;
     

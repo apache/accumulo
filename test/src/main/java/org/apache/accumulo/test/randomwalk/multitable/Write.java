@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.test.randomwalk.multitable;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Properties;
@@ -72,7 +73,7 @@ public class Write extends Test {
     m.put(meta, new Text("payload"), new Value(payloadBytes));
     
     // store size
-    m.put(meta, new Text("size"), new Value(String.format("%d", numBytes).getBytes(StandardCharsets.UTF_8)));
+    m.put(meta, new Text("size"), new Value(String.format("%d", numBytes).getBytes(UTF_8)));
     
     // store hash
     MessageDigest alg = MessageDigest.getInstance("SHA-1");

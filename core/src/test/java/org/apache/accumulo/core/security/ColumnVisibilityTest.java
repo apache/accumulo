@@ -16,13 +16,13 @@
  */
 package org.apache.accumulo.core.security;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.security.ColumnVisibility.quote;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
 
 import org.apache.accumulo.core.security.ColumnVisibility.Node;
@@ -226,11 +226,11 @@ public class ColumnVisibilityTest {
 
   @Test
   public void testParseTreesOrdering() {
-    byte[] expression = "(b&c&d)|((a|m)&y&z)|(e&f)".getBytes(StandardCharsets.UTF_8);
+    byte[] expression = "(b&c&d)|((a|m)&y&z)|(e&f)".getBytes(UTF_8);
     byte[] flattened = new ColumnVisibility(expression).flatten();
 
     // Convert to String for indexOf convenience
-    String flat = new String(flattened, StandardCharsets.UTF_8);
+    String flat = new String(flattened, UTF_8);
     assertTrue("shortest expressions sort first", flat.indexOf('e') < flat.indexOf('|'));
     assertTrue("shortest children sort first", flat.indexOf('b') < flat.indexOf('a'));
   }

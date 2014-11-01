@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.test.performance.metadata;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -107,10 +108,10 @@ public class MetadataBatchScanTest {
         
         String dir = "/t-" + UUID.randomUUID();
         
-        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value(dir.getBytes(StandardCharsets.UTF_8)));
+        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value(dir.getBytes(UTF_8)));
         
         for (int i = 0; i < 5; i++) {
-          mut.put(DataFileColumnFamily.NAME, new Text(dir + "/00000_0000" + i + ".map"), new Value("10000,1000000".getBytes(StandardCharsets.UTF_8)));
+          mut.put(DataFileColumnFamily.NAME, new Text(dir + "/00000_0000" + i + ".map"), new Value("10000,1000000".getBytes(UTF_8)));
         }
         
         bw.addMutation(mut);

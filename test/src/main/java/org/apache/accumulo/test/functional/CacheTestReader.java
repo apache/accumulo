@@ -16,10 +16,11 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.ObjectOutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -53,12 +54,12 @@ public class CacheTestReader {
       for (int i = 0; i < numData; i++) {
         byte[] v = zc.get(rootDir + "/data" + i);
         if (v != null)
-          readData.put(rootDir + "/data" + i, new String(v, StandardCharsets.UTF_8));
+          readData.put(rootDir + "/data" + i, new String(v, UTF_8));
       }
       
       byte[] v = zc.get(rootDir + "/dataS");
       if (v != null)
-        readData.put(rootDir + "/dataS", new String(v, StandardCharsets.UTF_8));
+        readData.put(rootDir + "/dataS", new String(v, UTF_8));
       
       List<String> children = zc.getChildren(rootDir + "/dir");
       if (children != null)

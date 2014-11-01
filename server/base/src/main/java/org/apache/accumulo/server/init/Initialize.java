@@ -16,13 +16,13 @@
  */
 package org.apache.accumulo.server.init;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -352,8 +352,8 @@ public class Initialize {
   private static void createEntriesForTablet(FileSKVWriter writer, String tableId, String tabletDir, Text tabletPrevEndRow, Text tabletEndRow)
       throws IOException {
     Text extent = new Text(KeyExtent.getMetadataEntry(new Text(tableId), tabletEndRow));
-    addEntry(writer, extent, DIRECTORY_COLUMN, new Value(tabletDir.getBytes(StandardCharsets.UTF_8)));
-    addEntry(writer, extent, TIME_COLUMN, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes(StandardCharsets.UTF_8)));
+    addEntry(writer, extent, DIRECTORY_COLUMN, new Value(tabletDir.getBytes(UTF_8)));
+    addEntry(writer, extent, TIME_COLUMN, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes(UTF_8)));
     addEntry(writer, extent, PREV_ROW_COLUMN, KeyExtent.encodePrevEndRow(tabletPrevEndRow));
   }
 
@@ -391,7 +391,7 @@ public class Initialize {
     // setup instance name
     if (opts.clearInstanceName)
       zoo.recursiveDelete(instanceNamePath, NodeMissingPolicy.SKIP);
-    zoo.putPersistentData(instanceNamePath, uuid.getBytes(StandardCharsets.UTF_8), NodeExistsPolicy.FAIL);
+    zoo.putPersistentData(instanceNamePath, uuid.getBytes(UTF_8), NodeExistsPolicy.FAIL);
 
     final byte[] EMPTY_BYTE_ARRAY = new byte[0], ZERO_CHAR_ARRAY = new byte[] {'0'};
 
@@ -408,11 +408,11 @@ public class Initialize {
     zoo.putPersistentData(zkInstanceRoot + Constants.ZPROBLEMS, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + RootTable.ZROOT_TABLET, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + RootTable.ZROOT_TABLET_WALOGS, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + RootTable.ZROOT_TABLET_PATH, rootTabletDir.getBytes(StandardCharsets.UTF_8), NodeExistsPolicy.FAIL);
+    zoo.putPersistentData(zkInstanceRoot + RootTable.ZROOT_TABLET_PATH, rootTabletDir.getBytes(UTF_8), NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTRACERS, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZMASTERS, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZMASTER_LOCK, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZMASTER_GOAL_STATE, MasterGoalState.NORMAL.toString().getBytes(StandardCharsets.UTF_8),
+    zoo.putPersistentData(zkInstanceRoot + Constants.ZMASTER_GOAL_STATE, MasterGoalState.NORMAL.toString().getBytes(UTF_8),
         NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZGC, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZGC_LOCK, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
@@ -461,7 +461,7 @@ public class Initialize {
 
   private static byte[] getRootPassword(Opts opts) throws IOException {
     if (opts.cliPassword != null) {
-      return opts.cliPassword.getBytes(StandardCharsets.UTF_8);
+      return opts.cliPassword.getBytes(UTF_8);
     }
     String rootpass;
     String confirmpass;
@@ -476,7 +476,7 @@ public class Initialize {
       if (!rootpass.equals(confirmpass))
         log.error("Passwords do not match");
     } while (!rootpass.equals(confirmpass));
-    return rootpass.getBytes(StandardCharsets.UTF_8);
+    return rootpass.getBytes(UTF_8);
   }
 
   private static void initSecurity(Opts opts, String iid) throws AccumuloSecurityException, ThriftSecurityException {

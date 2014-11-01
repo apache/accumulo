@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.util;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -26,7 +28,6 @@ import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -123,7 +124,7 @@ public class SendLogToChainsaw extends XMLLayout {
         // Parse the server type and name from the log file name
         String threadName = log.getName().substring(0, log.getName().indexOf("."));
         try {
-          isReader = new InputStreamReader(new FileInputStream(log), StandardCharsets.UTF_8);
+          isReader = new InputStreamReader(new FileInputStream(log), UTF_8);
         } catch (FileNotFoundException e) {
           System.out.println("Unable to find file: " + log.getAbsolutePath());
           throw e;
@@ -136,7 +137,7 @@ public class SendLogToChainsaw extends XMLLayout {
             out = convertLine(line, threadName);
             if (null != out) {
               if (socket != null && socket.isConnected())
-                socket.getOutputStream().write(out.getBytes(StandardCharsets.UTF_8));
+                socket.getOutputStream().write(out.getBytes(UTF_8));
               else
                 System.err.println("Unable to send data to transport");
             }
@@ -183,7 +184,7 @@ public class SendLogToChainsaw extends XMLLayout {
           return null;
       }
       // URL encode the message
-      message = URLEncoder.encode(message, StandardCharsets.UTF_8.name());
+      message = URLEncoder.encode(message, UTF_8.name());
       // Assume that we are processing logs from today.
       // If the date in the line is greater than today, then it must be
       // from the previous month.

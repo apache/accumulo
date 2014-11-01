@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.test.randomwalk.concurrent;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -47,10 +48,10 @@ public class ChangeAuthorizations extends Test {
       if (rand.nextBoolean()) {
         String authorization = String.format("a%d", rand.nextInt(5000));
         log.debug("adding authorization " + authorization);
-        auths.add(authorization.getBytes(StandardCharsets.UTF_8));
+        auths.add(authorization.getBytes(UTF_8));
       } else {
         if (auths.size() > 0) {
-          log.debug("removing authorization " + new String(auths.remove(0), StandardCharsets.UTF_8));
+          log.debug("removing authorization " + new String(auths.remove(0), UTF_8));
         }
       }
       conn.securityOperations().changeUserAuthorizations(userName, new Authorizations(auths));

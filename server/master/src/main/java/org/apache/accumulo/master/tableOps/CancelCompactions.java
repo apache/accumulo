@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.master.tableOps;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
@@ -80,19 +80,19 @@ public class CancelCompactions extends MasterRepo {
 
     byte[] currentValue = zoo.getData(zCompactID, null);
 
-    String cvs = new String(currentValue, StandardCharsets.UTF_8);
+    String cvs = new String(currentValue, UTF_8);
     String[] tokens = cvs.split(",");
     final long flushID = Long.parseLong(tokens[0]);
 
     zoo.mutate(zCancelID, null, null, new Mutator() {
       @Override
       public byte[] mutate(byte[] currentValue) throws Exception {
-        long cid = Long.parseLong(new String(currentValue, StandardCharsets.UTF_8));
+        long cid = Long.parseLong(new String(currentValue, UTF_8));
 
         if (cid < flushID)
-          return Long.toString(flushID).getBytes(StandardCharsets.UTF_8);
+          return Long.toString(flushID).getBytes(UTF_8);
         else
-          return Long.toString(cid).getBytes(StandardCharsets.UTF_8);
+          return Long.toString(cid).getBytes(UTF_8);
       }
     });
 

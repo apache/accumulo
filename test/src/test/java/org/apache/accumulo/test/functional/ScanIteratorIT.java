@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -54,8 +55,8 @@ public class ScanIteratorIT extends SimpleMacIT {
 
     for (int i = 0; i < 1000; i++) {
       Mutation m = new Mutation(new Text(String.format("%06d", i)));
-      m.put(new Text("cf1"), new Text("cq1"), new Value(Integer.toString(1000 - i).getBytes(StandardCharsets.UTF_8)));
-      m.put(new Text("cf1"), new Text("cq2"), new Value(Integer.toString(i - 1000).getBytes(StandardCharsets.UTF_8)));
+      m.put(new Text("cf1"), new Text("cq1"), new Value(Integer.toString(1000 - i).getBytes(UTF_8)));
+      m.put(new Text("cf1"), new Text("cq2"), new Value(Integer.toString(i - 1000).getBytes(UTF_8)));
 
       bw.addMutation(m);
     }

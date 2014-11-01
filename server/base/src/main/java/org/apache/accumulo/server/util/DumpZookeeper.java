@@ -16,10 +16,10 @@
  */
 package org.apache.accumulo.server.util;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
-import java.nio.charset.StandardCharsets;
-
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
@@ -110,7 +110,7 @@ public class DumpZookeeper {
       if (data[i] < ' ' || data[i] > '~')
         return new Encoded("base64", Base64.encodeBase64String(data));
     }
-    return new Encoded(StandardCharsets.UTF_8.name(), new String(data, StandardCharsets.UTF_8));
+    return new Encoded(UTF_8.name(), new String(data, UTF_8));
   }
   
   private static void write(PrintStream out, int indent, String fmt, Object... args) {

@@ -16,8 +16,9 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -58,7 +59,7 @@ public class VisibilityFilter extends org.apache.accumulo.core.iterators.system.
     
     if (!filterInvalid) {
       String auths = options.get(AUTHS);
-      Authorizations authObj = auths == null || auths.isEmpty() ? new Authorizations() : new Authorizations(auths.getBytes(StandardCharsets.UTF_8));
+      Authorizations authObj = auths == null || auths.isEmpty() ? new Authorizations() : new Authorizations(auths.getBytes(UTF_8));
       this.ve = new VisibilityEvaluator(authObj);
       this.defaultVisibility = new Text();
     }

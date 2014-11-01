@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.Collections;
 import java.util.EnumSet;
 
@@ -95,7 +96,7 @@ public class ConcurrencyIT extends ConfigurableMacIT {
     BatchWriter bw = c.createBatchWriter("cct", new BatchWriterConfig());
     for (int i = 0; i < 50; i++) {
       Mutation m = new Mutation(new Text(String.format("%06d", i)));
-      m.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes(StandardCharsets.UTF_8)));
+      m.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes(UTF_8)));
       bw.addMutation(m);
     }
     bw.flush();
@@ -111,7 +112,7 @@ public class ConcurrencyIT extends ConfigurableMacIT {
     
     for (int i = 0; i < 50; i++) {
       Mutation m = new Mutation(new Text(String.format("%06d", i)));
-      m.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes(StandardCharsets.UTF_8)));
+      m.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes(UTF_8)));
       bw.addMutation(m);
     }
     

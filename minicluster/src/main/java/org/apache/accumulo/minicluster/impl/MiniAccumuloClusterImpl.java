@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.minicluster.impl;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -105,7 +107,6 @@ import org.apache.zookeeper.server.ZooKeeperServerMain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Maps;
@@ -496,7 +497,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         for (String name : zrw.getChildren(Constants.ZROOT + Constants.ZINSTANCES)) {
           String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + name;
           byte[] bytes = zrw.getData(instanceNamePath, new Stat());
-          String iid = new String(bytes, Charsets.UTF_8);
+          String iid = new String(bytes, UTF_8);
           if (iid.equals(instanceIdFromFile)) {
             instanceName = name;
           }

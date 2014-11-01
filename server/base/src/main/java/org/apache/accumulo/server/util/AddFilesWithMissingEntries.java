@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.server.util;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -123,7 +124,7 @@ public class AddFilesWithMissingEntries {
           String size = Long.toString(file.getLen());
           String entries = "1"; // lie
           String value = size + "," + entries;
-          m.put(DataFileColumnFamily.NAME, new Text(filename), new Value(value.getBytes(StandardCharsets.UTF_8)));
+          m.put(DataFileColumnFamily.NAME, new Text(filename), new Value(value.getBytes(UTF_8)));
           if (update) {
             writer.getBatchWriter(MetadataTable.NAME).addMutation(m);
           }

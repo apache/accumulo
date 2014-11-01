@@ -16,9 +16,9 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertTrue;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -52,9 +52,9 @@ public class DeleteRowsSplitIT extends SimpleMacIT {
   static final SortedSet<Text> SPLITS = new TreeSet<Text>();
   static final List<String> ROWS = new ArrayList<String>();
   static {
-    for (byte b : LETTERS.getBytes(StandardCharsets.UTF_8)) {
+    for (byte b : LETTERS.getBytes(UTF_8)) {
       SPLITS.add(new Text(new byte[] {b}));
-      ROWS.add(new String(new byte[] {b}, StandardCharsets.UTF_8));
+      ROWS.add(new String(new byte[] {b}, UTF_8));
     }
   }
 

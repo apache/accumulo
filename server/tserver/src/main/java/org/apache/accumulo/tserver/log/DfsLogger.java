@@ -16,6 +16,13 @@
  */
 package org.apache.accumulo.tserver.log;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_FINISH;
+import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_START;
+import static org.apache.accumulo.tserver.logger.LogEvents.DEFINE_TABLET;
+import static org.apache.accumulo.tserver.logger.LogEvents.MANY_MUTATIONS;
+import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
@@ -23,7 +30,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.nio.channels.ClosedChannelException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -60,12 +66,6 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
-
-import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_FINISH;
-import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_START;
-import static org.apache.accumulo.tserver.logger.LogEvents.DEFINE_TABLET;
-import static org.apache.accumulo.tserver.logger.LogEvents.MANY_MUTATIONS;
-import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
 
 /**
  * Wrap a connection to a logger.
@@ -416,7 +416,7 @@ public class DfsLogger {
           .getConfiguration().get(Property.CRYPTO_MODULE_CLASS));
 
       // Initialize the log file with a header and the crypto params used to set up this log file.
-      logFile.write(LOG_FILE_HEADER_V3.getBytes(StandardCharsets.UTF_8));
+      logFile.write(LOG_FILE_HEADER_V3.getBytes(UTF_8));
 
       CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf.getConfiguration());
 

@@ -16,9 +16,9 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -82,7 +82,7 @@ public class TabletIT extends ConfigurableMacIT {
       // populate
       for (int i = 0; i < N; i++) {
         Mutation m = new Mutation(new Text(String.format("%05d", i)));
-        m.put(new Text("col" + Integer.toString((i % 3) + 1)), new Text("qual"), new Value("junk".getBytes(StandardCharsets.UTF_8)));
+        m.put(new Text("col" + Integer.toString((i % 3) + 1)), new Text("qual"), new Value("junk".getBytes(UTF_8)));
         b.addMutation(m);
       }
       b.close();

@@ -16,8 +16,9 @@
  */
 package org.apache.accumulo.test.randomwalk;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.File;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -335,9 +336,9 @@ public class Module extends Node {
             else if (value instanceof String || value instanceof Map || value instanceof Collection || value instanceof Number)
               logMsg += value;
             else if (value instanceof byte[])
-              logMsg += new String((byte[]) value, StandardCharsets.UTF_8);
+              logMsg += new String((byte[]) value, UTF_8);
             else if (value instanceof PasswordToken)
-              logMsg += new String(((PasswordToken) value).getPassword(), StandardCharsets.UTF_8);
+              logMsg += new String(((PasswordToken) value).getPassword(), UTF_8);
             else
               logMsg += value.getClass() + " - " + value;
 

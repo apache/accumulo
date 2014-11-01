@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.client.security.tokens;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import javax.security.auth.DestroyFailedException;
 
@@ -35,11 +35,11 @@ public class PasswordTokenTest {
     props.put("password", "五六");
     pt.init(props);
     props.destroy();
-    String s = new String(pt.getPassword(), StandardCharsets.UTF_8);
+    String s = new String(pt.getPassword(), UTF_8);
     Assert.assertEquals("五六", s);
     
     pt = new PasswordToken("五六");
-    s = new String(pt.getPassword(), StandardCharsets.UTF_8);
+    s = new String(pt.getPassword(), UTF_8);
     Assert.assertEquals("五六", s);
   }
 }

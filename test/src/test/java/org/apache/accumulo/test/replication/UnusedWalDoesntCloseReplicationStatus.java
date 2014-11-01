@@ -16,11 +16,11 @@
  */
 package org.apache.accumulo.test.replication;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
 
 import java.io.DataOutputStream;
 import java.io.File;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map.Entry;
@@ -100,7 +100,7 @@ public class UnusedWalDoesntCloseReplicationStatus extends ConfigurableMacIT {
     // Make a fake WAL with no data in it for our real table
     FSDataOutputStream out = fs.create(new Path(tserverWal.getAbsolutePath()));
 
-    out.write(DfsLogger.LOG_FILE_HEADER_V3.getBytes(StandardCharsets.UTF_8));
+    out.write(DfsLogger.LOG_FILE_HEADER_V3.getBytes(UTF_8));
 
     DataOutputStream dos = new DataOutputStream(out);
     dos.writeUTF("NullCryptoModule");
@@ -176,7 +176,7 @@ public class UnusedWalDoesntCloseReplicationStatus extends ConfigurableMacIT {
     bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     m = new Mutation(extent.getMetadataEntry());
     m.put(MetadataSchema.TabletsSection.LogColumnFamily.NAME, new Text("localhost:12345/" + walUri),
-        new Value((walUri + "|1").getBytes(StandardCharsets.UTF_8)));
+        new Value((walUri + "|1").getBytes(UTF_8)));
     bw.addMutation(m);
 
     // Add a replication entry for our fake WAL

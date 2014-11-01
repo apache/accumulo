@@ -16,8 +16,9 @@
  */
 package org.apache.accumulo.test.continuous;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
@@ -87,7 +88,7 @@ public class ContinuousMoru extends Configured implements Tool {
       
       random = new Random();
       ingestInstanceId = context.getConfiguration().get(CI_ID);
-      iiId = ingestInstanceId.getBytes(StandardCharsets.UTF_8);
+      iiId = ingestInstanceId.getBytes(UTF_8);
       
       count = 0;
     }
@@ -103,7 +104,7 @@ public class ContinuousMoru extends Configured implements Tool {
         
         int offset = ContinuousWalk.getPrevRowOffset(val);
         if (offset > 0) {
-          long rowLong = Long.parseLong(new String(val, offset, 16, StandardCharsets.UTF_8), 16);
+          long rowLong = Long.parseLong(new String(val, offset, 16, UTF_8), 16);
           Mutation m = ContinuousIngest.genMutation(rowLong, random.nextInt(max_cf), random.nextInt(max_cq), EMPTY_VIS, iiId, count++, key.getRowData()
               .toArray(), random, true);
           context.write(null, m);

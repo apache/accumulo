@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.server.master.state;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -60,7 +61,7 @@ public class DeadServerList {
             // in the dead server list.
             continue;
           }
-          DeadServer server = new DeadServer(child, stat.getMtime(), new String(data, StandardCharsets.UTF_8));
+          DeadServer server = new DeadServer(child, stat.getMtime(), new String(data, UTF_8));
           result.add(server);
         }
       }
@@ -82,7 +83,7 @@ public class DeadServerList {
   public void post(String server, String cause) {
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     try {
-      zoo.putPersistentData(path + "/" + server, cause.getBytes(StandardCharsets.UTF_8), NodeExistsPolicy.SKIP);
+      zoo.putPersistentData(path + "/" + server, cause.getBytes(UTF_8), NodeExistsPolicy.SKIP);
     } catch (Exception ex) {
       log.error(ex, ex);
     }

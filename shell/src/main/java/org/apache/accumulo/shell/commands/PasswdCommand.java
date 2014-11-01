@@ -16,9 +16,9 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.IOException;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
@@ -65,7 +65,7 @@ public class PasswdCommand extends Command {
     if (!password.equals(passwordConfirm)) {
       throw new IllegalArgumentException("Passwords do not match");
     }
-    byte[] pass = password.getBytes(StandardCharsets.UTF_8);
+    byte[] pass = password.getBytes(UTF_8);
     shellState.getConnector().securityOperations().changeLocalUserPassword(user, new PasswordToken(pass));
     // update the current credentials if the password changed was for
     // the current user

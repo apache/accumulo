@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.Collections;
 import java.util.Map.Entry;
 import java.util.Random;
@@ -130,7 +131,7 @@ public class LargeRowIT extends ConfigurableMacIT {
       TestIngest.toPrintableChars(rowData);
 
       Mutation mut = new Mutation(new Text(rowData));
-      mut.put(new Text(""), new Text(""), new Value(Integer.toString(i).getBytes(StandardCharsets.UTF_8)));
+      mut.put(new Text(""), new Text(""), new Value(Integer.toString(i).getBytes(UTF_8)));
       bw.addMutation(mut);
     }
 
@@ -178,7 +179,7 @@ public class LargeRowIT extends ConfigurableMacIT {
         if (!entry.getKey().getRow().equals(new Text(rowData))) {
           throw new Exception("verification failed, unexpected row i =" + i);
         }
-        if (!entry.getValue().equals(Integer.toString(i).getBytes(StandardCharsets.UTF_8))) {
+        if (!entry.getValue().equals(Integer.toString(i).getBytes(UTF_8))) {
           throw new Exception("verification failed, unexpected value i =" + i + " value = " + entry.getValue());
         }
         count++;

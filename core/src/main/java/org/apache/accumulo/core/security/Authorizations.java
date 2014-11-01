@@ -17,10 +17,10 @@
 package org.apache.accumulo.core.security;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.Serializable;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -147,13 +147,13 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
 
     checkArgument(authorizations != null, "authorizations is null");
 
-    String authsString = new String(authorizations, StandardCharsets.UTF_8);
+    String authsString = new String(authorizations, UTF_8);
     if (authsString.startsWith(HEADER)) {
       // it's the new format
       authsString = authsString.substring(HEADER.length());
       if (authsString.length() > 0) {
         for (String encAuth : authsString.split(",")) {
-          byte[] auth = Base64.decodeBase64(encAuth.getBytes(StandardCharsets.UTF_8));
+          byte[] auth = Base64.decodeBase64(encAuth.getBytes(UTF_8));
           auths.add(new ArrayByteSequence(auth));
         }
         checkAuths();
@@ -189,7 +189,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
     auths.clear();
     for (String str : authorizations) {
       str = str.trim();
-      auths.add(new ArrayByteSequence(str.getBytes(StandardCharsets.UTF_8)));
+      auths.add(new ArrayByteSequence(str.getBytes(UTF_8)));
     }
 
     checkAuths();
@@ -202,7 +202,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
    * @see #serialize()
    */
   public byte[] getAuthorizationsArray() {
-    return serialize().getBytes(StandardCharsets.UTF_8);
+    return serialize().getBytes(UTF_8);
   }
 
   /**
@@ -243,7 +243,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
     for (ByteSequence auth : auths) {
       sb.append(sep);
       sep = ",";
-      sb.append(new String(auth.toArray(), StandardCharsets.UTF_8));
+      sb.append(new String(auth.toArray(), UTF_8));
     }
 
     return sb.toString();

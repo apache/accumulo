@@ -16,9 +16,9 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -94,7 +94,7 @@ public class SplitRecoveryIT extends ConfigurableMacIT {
       public void unableToMonitorLockNode(Throwable e) {
         System.exit(-1);
       }
-    }, "foo".getBytes(StandardCharsets.UTF_8));
+    }, "foo".getBytes(UTF_8));
     
     if (!gotLock) {
       System.err.println("Failed to get lock " + zPath);

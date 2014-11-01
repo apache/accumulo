@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -24,7 +25,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -60,7 +60,7 @@ public class NativeMapIT {
   }
 
   private Value nv(int v) {
-    return new Value(String.format("r%09d", v).getBytes(StandardCharsets.UTF_8));
+    return new Value(String.format("r%09d", v).getBytes(UTF_8));
   }
 
   public static File nativeMapLocation() {
@@ -128,12 +128,12 @@ public class NativeMapIT {
           for (int l = 0; l < num; l++) {
             for (int ts = 0; ts < num; ts++) {
               Key key = nk(i, j, k, l, ts, true);
-              Value value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + true + "_" + run).getBytes(StandardCharsets.UTF_8));
+              Value value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + true + "_" + run).getBytes(UTF_8));
 
               nm.put(key, value);
 
               key = nk(i, j, k, l, ts, false);
-              value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + false + "_" + run).getBytes(StandardCharsets.UTF_8));
+              value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + false + "_" + run).getBytes(UTF_8));
 
               nm.put(key, value);
             }
@@ -150,7 +150,7 @@ public class NativeMapIT {
           for (int l = 0; l < num; l++) {
             for (int ts = num - 1; ts >= 0; ts--) {
               Key key = nk(i, j, k, l, ts, true);
-              Value value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + true + "_" + run).getBytes(StandardCharsets.UTF_8));
+              Value value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + true + "_" + run).getBytes(UTF_8));
 
               assertTrue(iter.hasNext());
               Entry<Key,Value> entry = iter.next();
@@ -158,7 +158,7 @@ public class NativeMapIT {
               assertEquals(value, entry.getValue());
 
               key = nk(i, j, k, l, ts, false);
-              value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + false + "_" + run).getBytes(StandardCharsets.UTF_8));
+              value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + false + "_" + run).getBytes(UTF_8));
 
               assertTrue(iter.hasNext());
               entry = iter.next();
@@ -178,7 +178,7 @@ public class NativeMapIT {
           for (int l = 0; l < num; l++) {
             for (int ts = 0; ts < num; ts++) {
               Key key = nk(i, j, k, l, ts, true);
-              Value value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + true + "_" + run).getBytes(StandardCharsets.UTF_8));
+              Value value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + true + "_" + run).getBytes(UTF_8));
 
               assertEquals(value, nm.get(key));
 
@@ -189,7 +189,7 @@ public class NativeMapIT {
               assertEquals(value, entry.getValue());
 
               key = nk(i, j, k, l, ts, false);
-              value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + false + "_" + run).getBytes(StandardCharsets.UTF_8));
+              value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + false + "_" + run).getBytes(UTF_8));
 
               assertEquals(value, nm.get(key));
 

@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.master.replication;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.Iterator;
 import java.util.Random;
 import java.util.Set;
@@ -83,7 +84,7 @@ public class MasterReplicationCoordinator implements ReplicationCoordinator.Ifac
     TServerInstance tserver = getRandomTServer(tservers, rand.nextInt(tservers.size()));
     String replServiceAddr;
     try {
-      replServiceAddr = new String(reader.getData(ZooUtil.getRoot(inst) + ReplicationConstants.ZOO_TSERVERS + "/" + tserver.hostPort(), null), StandardCharsets.UTF_8);
+      replServiceAddr = new String(reader.getData(ZooUtil.getRoot(inst) + ReplicationConstants.ZOO_TSERVERS + "/" + tserver.hostPort(), null), UTF_8);
     } catch (KeeperException | InterruptedException e) {
       log.error("Could not fetch repliation service port for tserver", e);
       throw new ReplicationCoordinatorException(ReplicationCoordinatorErrorCode.SERVICE_CONFIGURATION_UNAVAILABLE,

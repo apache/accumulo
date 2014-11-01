@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.test.randomwalk.bulk;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -140,7 +141,7 @@ public class Verify extends Test {
   }
   
   private static void report(Text startBadRow, Text lastBadRow, Value value) {
-    System.out.println("Bad value " + new String(value.get(), StandardCharsets.UTF_8));
+    System.out.println("Bad value " + new String(value.get(), UTF_8));
     System.out.println(" Range [" + startBadRow + " -> " + lastBadRow + "]");
   }
   
