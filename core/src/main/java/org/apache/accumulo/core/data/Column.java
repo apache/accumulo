@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.data;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static org.apache.accumulo.core.util.ByteBufferUtil.toBytes;
 
 import java.io.DataInput;
@@ -23,7 +24,6 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.thrift.TColumn;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
@@ -159,8 +159,8 @@ public class Column implements WritableComparable<Column> {
   }
   
   public String toString() {
-    return new String(columnFamily == null ? new byte[0] : columnFamily, Constants.UTF8) + ":" + new String(columnQualifier == null ? new byte[0] : columnQualifier, Constants.UTF8) + ":"
-        + new String(columnVisibility == null ? new byte[0] : columnVisibility, Constants.UTF8);
+    return new String(columnFamily == null ? new byte[0] : columnFamily, UTF_8) + ":" + new String(columnQualifier == null ? new byte[0] : columnQualifier, UTF_8) + ":"
+        + new String(columnVisibility == null ? new byte[0] : columnVisibility, UTF_8);
   }
   
   public TColumn toThrift() {

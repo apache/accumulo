@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -55,7 +57,7 @@ public class DeleteEverythingTest extends FunctionalTest {
   public void run() throws Exception {
     BatchWriter bw = getConnector().createBatchWriter("de", new BatchWriterConfig());
     Mutation m = new Mutation(new Text("foo"));
-    m.put(new Text("bar"), new Text("1910"), new Value("5".getBytes(Constants.UTF8)));
+    m.put(new Text("bar"), new Text("1910"), new Value("5".getBytes(UTF_8)));
     bw.addMutation(m);
     bw.flush();
     

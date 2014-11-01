@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -141,7 +143,7 @@ public class ServerClient {
       String path = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + tserver;
       byte[] data = ZooUtil.getLockData(zc, path);
       if (data != null) {
-        String tserverData = new String(data, Constants.UTF8);
+        String tserverData = new String(data, UTF_8);
         if (!tserverData.equals("master")) {
           servers.add(new ThriftTransportKey(new ServerServices(tserverData).getAddressString(Service.TSERV_CLIENT), conf.getPort(Property.TSERV_CLIENTPORT),
               rpcTimeout));

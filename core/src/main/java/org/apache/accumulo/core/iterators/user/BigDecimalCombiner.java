@@ -16,12 +16,13 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
@@ -103,13 +104,13 @@ public abstract class BigDecimalCombiner extends TypedValueCombiner<BigDecimal> 
   public static class BigDecimalEncoder implements org.apache.accumulo.core.iterators.TypedValueCombiner.Encoder<BigDecimal> {
     @Override
     public byte[] encode(BigDecimal v) {
-      return v.toString().getBytes(Constants.UTF8);
+      return v.toString().getBytes(UTF_8);
     }
     
     @Override
     public BigDecimal decode(byte[] b) throws ValueFormatException {
       try {
-        return new BigDecimal(new String(b, Constants.UTF8));
+        return new BigDecimal(new String(b, UTF_8));
       } catch (NumberFormatException nfe) {
         throw new ValueFormatException(nfe);
       }

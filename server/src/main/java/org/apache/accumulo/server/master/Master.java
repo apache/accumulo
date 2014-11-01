@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.master;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import static java.lang.Math.min;
 
 import java.io.IOException;
@@ -300,7 +302,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
         for (String id : Tables.getIdToNameMap(instance).keySet()) {
 
-          zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_COMPACT_CANCEL_ID, "0".getBytes(Constants.UTF8),
+          zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_COMPACT_CANCEL_ID, "0".getBytes(UTF_8),
               NodeExistsPolicy.SKIP);
         }
         haveUpgradedZooKeeper = true;
@@ -527,9 +529,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         fid = zoo.mutate(zTablePath, null, null, new Mutator() {
           @Override
           public byte[] mutate(byte[] currentValue) throws Exception {
-            long flushID = Long.parseLong(new String(currentValue, Constants.UTF8));
+            long flushID = Long.parseLong(new String(currentValue, UTF_8));
             flushID++;
-            return Long.toString(flushID).getBytes(Constants.UTF8);
+            return Long.toString(flushID).getBytes(UTF_8);
           }
         });
       } catch (NoNodeException nne) {
@@ -538,7 +540,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         log.warn(e.getMessage(), e);
         throw new ThriftTableOperationException(tableId, null, TableOperation.FLUSH, TableOperationExceptionType.OTHER, null);
       }
-      return Long.parseLong(new String(fid, Constants.UTF8));
+      return Long.parseLong(new String(fid, UTF_8));
     }
 
     @Override
@@ -1255,7 +1257,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
   private void setMasterGoalState(MasterGoalState state) {
     try {
-      ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instance) + Constants.ZMASTER_GOAL_STATE, state.name().getBytes(Constants.UTF8),
+      ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instance) + Constants.ZMASTER_GOAL_STATE, state.name().getBytes(UTF_8),
           NodeExistsPolicy.OVERWRITE);
     } catch (Exception ex) {
       log.error("Unable to set master goal state in zookeeper");
@@ -1266,7 +1268,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     while (true)
       try {
         byte[] data = ZooReaderWriter.getInstance().getData(ZooUtil.getRoot(instance) + Constants.ZMASTER_GOAL_STATE, null);
-        return MasterGoalState.valueOf(new String(data, Constants.UTF8));
+        return MasterGoalState.valueOf(new String(data, UTF_8));
       } catch (Exception e) {
         log.error("Problem getting real goal state: " + e);
         UtilWaitThread.sleep(1000);
@@ -1897,7 +1899,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         }
 
         if (maxLogicalTime != null)
-          Constants.METADATA_TIME_COLUMN.put(m, new Value(maxLogicalTime.getBytes(Constants.UTF8)));
+          Constants.METADATA_TIME_COLUMN.put(m, new Value(maxLogicalTime.getBytes(UTF_8)));
 
         if (!m.getUpdates().isEmpty()) {
           bw.addMutation(m);
@@ -2351,7 +2353,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     InetSocketAddress sock = org.apache.accumulo.core.util.AddressUtil.parseAddress(hostname, serverPort.port);
     String address = org.apache.accumulo.core.util.AddressUtil.toString(sock);
     log.info("Setting master lock data to " + address);
-    masterLock.replaceLockData(address.getBytes(Constants.UTF8));
+    masterLock.replaceLockData(address.getBytes(UTF_8));
 
     while (!clientService.isServing()) {
       UtilWaitThread.sleep(100);
@@ -2443,7 +2445,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
       MasterLockWatcher masterLockWatcher = new MasterLockWatcher();
       masterLock = new ZooLock(zMasterLoc);
-      masterLock.lockAsync(masterLockWatcher, masterClientAddress.getBytes(Constants.UTF8));
+      masterLock.lockAsync(masterLockWatcher, masterClientAddress.getBytes(UTF_8));
 
       masterLockWatcher.waitForChange();
 

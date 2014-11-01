@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.fate;
 
-import java.nio.charset.Charset;
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,7 +35,6 @@ import org.apache.zookeeper.KeeperException;
  * A utility to administer FATE operations
  */
 public class AdminUtil<T> {
-  private static final Charset UTF8 = Charset.forName("UTF-8");
   
   public void print(ReadOnlyTStore<T> zs, IZooReaderWriter zk, String lockPath) throws KeeperException, InterruptedException {
     Map<Long,List<String>> heldLocks = new HashMap<Long,List<String>>();
@@ -54,7 +54,7 @@ public class AdminUtil<T> {
         for (String node : lockNodes) {
           try {
             byte[] data = zk.getData(lockPath + "/" + id + "/" + node, null);
-            String lda[] = new String(data, UTF8).split(":");
+            String lda[] = new String(data, UTF_8).split(":");
             
             if (lda[0].charAt(0) == 'W')
               sawWriteLock = true;
@@ -167,7 +167,7 @@ public class AdminUtil<T> {
       for (String node : lockNodes) {
         String lockPath = path + "/" + id + "/" + node;
         byte[] data = zk.getData(path + "/" + id + "/" + node, null);
-        String lda[] = new String(data, UTF8).split(":");
+        String lda[] = new String(data, UTF_8).split(":");
         if (lda[1].equals(txidStr))
           zk.recursiveDelete(lockPath, NodeMissingPolicy.SKIP);
       }

@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.tabletserver.log;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static org.apache.accumulo.server.logger.LogEvents.COMPACTION_FINISH;
 import static org.apache.accumulo.server.logger.LogEvents.COMPACTION_START;
 import static org.apache.accumulo.server.logger.LogEvents.DEFINE_TABLET;
@@ -201,7 +202,7 @@ public class DfsLogger {
   public static FSDataInputStream readHeader(FileSystem fs, Path path, Map<String,String> opts) throws IOException {
     FSDataInputStream file = fs.open(path);
     try {
-      byte[] magic = LOG_FILE_HEADER_V2.getBytes(Constants.UTF8);
+      byte[] magic = LOG_FILE_HEADER_V2.getBytes(UTF_8);
       byte[] buffer = new byte[magic.length];
       file.readFully(buffer);
       if (Arrays.equals(buffer, magic)) {
@@ -272,7 +273,7 @@ public class DfsLogger {
           .getConfiguration().get(Property.CRYPTO_MODULE_CLASS));
 
       // Initialize the log file with a header and the crypto params used to set up this log file.
-      logFile.write(LOG_FILE_HEADER_V2.getBytes(Constants.UTF8));
+      logFile.write(LOG_FILE_HEADER_V2.getBytes(UTF_8));
       Map<String,String> cryptoOpts = conf.getConfiguration().getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX);
 
       logFile.writeInt(cryptoOpts.size());

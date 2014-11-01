@@ -17,20 +17,18 @@
  */
 package org.apache.accumulo.core.data;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static org.apache.accumulo.core.util.ByteBufferUtil.toBytes;
 
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.List;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
-import org.apache.log4j.Logger;
 
 /**
  * A byte sequence that is usable as a key or value. Based on {@link org.apache.hadoop.io.BytesWritable} only this class is NOT resizable and DOES NOT
@@ -39,7 +37,6 @@ import org.apache.log4j.Logger;
  */
 public class Value implements WritableComparable<Object> {
   protected byte[] value;
-  private static final Logger log = Logger.getLogger(Value.class);
   
   /**
    * Create a zero-size sequence.
@@ -196,13 +193,7 @@ public class Value implements WritableComparable<Object> {
   
   @Override
   public String toString() {
-	String retValue = "";
-    try {
-      retValue = new String(get(), Constants.VALUE_ENCODING);
-    } catch (UnsupportedEncodingException e) {
-      log.error(e.toString());
-    }
-    return retValue;
+    return new String(get(), UTF_8);
   }
   
   /**

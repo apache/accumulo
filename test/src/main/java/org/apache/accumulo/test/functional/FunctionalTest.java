@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -290,6 +292,6 @@ public abstract class FunctionalTest {
   }
   
   static Mutation nm(String row, String cf, String cq, String value) {
-    return nm(row, cf, cq, new Value(value.getBytes(Constants.UTF8)));
+    return nm(row, cf, cq, new Value(value.getBytes(UTF_8)));
   }
 }

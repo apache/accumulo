@@ -16,9 +16,9 @@
  */
 package org.apache.accumulo.core.data;
 
-import java.io.Serializable;
+import static com.google.common.base.Charsets.UTF_8;
 
-import org.apache.accumulo.core.Constants;
+import java.io.Serializable;
 
 public class ArrayByteSequence extends ByteSequence implements Serializable {
   
@@ -47,7 +47,7 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
   }
   
   public ArrayByteSequence(String s) {
-    this(s.getBytes(Constants.UTF8));
+    this(s.getBytes(UTF_8));
   }
   
   @Override
@@ -105,6 +105,6 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
   }
   
   public String toString() {
-    return new String(data, offset, length, Constants.UTF8);
+    return new String(data, offset, length, UTF_8);
   }
 }

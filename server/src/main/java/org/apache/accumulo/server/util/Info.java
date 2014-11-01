@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.util;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -26,7 +28,7 @@ public class Info {
   public static void main(String[] args) throws Exception {
     ZooReaderWriter zrw = ZooReaderWriter.getInstance();
     Instance instance = HdfsZooInstance.getInstance();
-    System.out.println("monitor: " + new String(zrw.getData(ZooUtil.getRoot(instance) + Constants.ZMONITOR_HTTP_ADDR, null), Constants.UTF8));
+    System.out.println("monitor: " + new String(zrw.getData(ZooUtil.getRoot(instance) + Constants.ZMONITOR_HTTP_ADDR, null), UTF_8));
     System.out.println("masters: " + instance.getMasterLocations());
     System.out.println("zookeepers: " + instance.getZooKeepers());
   }

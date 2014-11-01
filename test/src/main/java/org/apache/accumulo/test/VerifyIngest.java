@@ -16,12 +16,13 @@
  */
 package org.apache.accumulo.test;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Random;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
@@ -187,7 +188,7 @@ public class VerifyIngest {
             
             if (entry.getValue().compareTo(value) != 0) {
               log.error("unexpected value, rowNum : " + rowNum + " colNum : " + colNum);
-              log.error(" saw = " + new String(entry.getValue().get()) + " expected = " + new String(value, Constants.UTF8));
+              log.error(" saw = " + new String(entry.getValue().get()) + " expected = " + new String(value, UTF_8));
               errors++;
             }
             

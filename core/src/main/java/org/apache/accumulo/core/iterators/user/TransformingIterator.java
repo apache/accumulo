@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -27,7 +29,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -112,7 +113,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
     if (scanning) {
       String auths = options.get(AUTH_OPT);
       if (auths != null && !auths.isEmpty()) {
-        ve = new VisibilityEvaluator(new Authorizations(auths.getBytes(Constants.UTF8)));
+        ve = new VisibilityEvaluator(new Authorizations(auths.getBytes(UTF_8)));
         visibleCache = new LRUMap(100);
       }
     }
@@ -146,7 +147,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
     for (Entry<String,String> option : options.entrySet()) {
       try {
         if (option.getKey().equals(AUTH_OPT)) {
-          new Authorizations(option.getValue().getBytes(Constants.UTF8));
+          new Authorizations(option.getValue().getBytes(UTF_8));
         } else if (option.getKey().equals(MAX_BUFFER_SIZE_OPT)) {
           AccumuloConfiguration.getMemoryInBytes(option.getValue());
         }

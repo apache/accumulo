@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.proxy;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Date;
@@ -24,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy;
@@ -74,7 +75,7 @@ public class TestProxyClient {
     
     System.out.println("Creating user: ");
     if (!tpc.proxy().listLocalUsers(login).contains("testuser")) {
-      tpc.proxy().createLocalUser(login, "testuser", ByteBuffer.wrap("testpass".getBytes(Constants.UTF8)));
+      tpc.proxy().createLocalUser(login, "testuser", ByteBuffer.wrap("testpass".getBytes(UTF_8)));
     }
     System.out.println("UserList: " + tpc.proxy().listLocalUsers(login));
     
@@ -100,9 +101,9 @@ public class TestProxyClient {
     Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<ByteBuffer,List<ColumnUpdate>>();
     for (int i = 0; i < maxInserts; i++) {
       String result = String.format(format, i);
-      ColumnUpdate update = new ColumnUpdate(ByteBuffer.wrap(("cf" + i).getBytes(Constants.UTF8)), ByteBuffer.wrap(("cq" + i).getBytes(Constants.UTF8)));
+      ColumnUpdate update = new ColumnUpdate(ByteBuffer.wrap(("cf" + i).getBytes(UTF_8)), ByteBuffer.wrap(("cq" + i).getBytes(UTF_8)));
       update.setValue(Util.randStringBuffer(10));
-      mutations.put(ByteBuffer.wrap(result.getBytes(Constants.UTF8)), Collections.singletonList(update));
+      mutations.put(ByteBuffer.wrap(result.getBytes(UTF_8)), Collections.singletonList(update));
       
       if (i % 1000 == 0) {
         tpc.proxy().updateAndFlush(login, testTable, mutations);
@@ -126,10 +127,10 @@ public class TestProxyClient {
     for (int i = 0; i < maxInserts; i++) {
       String result = String.format(format, i);
       Key pkey = new Key();
-      pkey.setRow(result.getBytes(Constants.UTF8));
-      ColumnUpdate update = new ColumnUpdate(ByteBuffer.wrap(("cf" + i).getBytes(Constants.UTF8)), ByteBuffer.wrap(("cq" + i).getBytes(Constants.UTF8)));
+      pkey.setRow(result.getBytes(UTF_8));
+      ColumnUpdate update = new ColumnUpdate(ByteBuffer.wrap(("cf" + i).getBytes(UTF_8)), ByteBuffer.wrap(("cq" + i).getBytes(UTF_8)));
       update.setValue(Util.randStringBuffer(10));
-      mutations.put(ByteBuffer.wrap(result.getBytes(Constants.UTF8)), Collections.singletonList(update));
+      mutations.put(ByteBuffer.wrap(result.getBytes(UTF_8)), Collections.singletonList(update));
       tpc.proxy().update(writer, mutations);
       mutations.clear();
     }

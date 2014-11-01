@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.util;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -62,7 +64,7 @@ public class LocalityCheck {
         addBlocks(fs, host, files, totalBlocks, localBlocks);
         files.clear();
       } else if (key.compareColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY) == 0) {
-        files.add(new String(KeyExtent.tableOfMetadataRow(key.getRow()), Constants.UTF8) + slash(key.getColumnQualifier().toString()));
+        files.add(new String(KeyExtent.tableOfMetadataRow(key.getRow()), UTF_8) + slash(key.getColumnQualifier().toString()));
       }
     }
     System.out.println(" Server         %local  total blocks");

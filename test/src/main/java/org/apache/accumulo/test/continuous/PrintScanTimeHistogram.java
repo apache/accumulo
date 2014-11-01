@@ -16,13 +16,14 @@
  */
 package org.apache.accumulo.test.continuous;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.log4j.Logger;
 
 public class PrintScanTimeHistogram {
@@ -48,7 +49,7 @@ public class PrintScanTimeHistogram {
   
   private static void processFile(InputStream ins, Histogram<String> srqHist, Histogram<String> fsrHist) throws FileNotFoundException, IOException {
     String line;
-    BufferedReader in = new BufferedReader(new InputStreamReader(ins, Constants.UTF8));
+    BufferedReader in = new BufferedReader(new InputStreamReader(ins, UTF_8));
     
     while ((line = in.readLine()) != null) {
       

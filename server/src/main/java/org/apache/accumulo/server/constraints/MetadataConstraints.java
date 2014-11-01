@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.constraints;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -186,7 +188,7 @@ public class MetadataConstraints implements Constraint {
           HashSet<Text> dataFiles = new HashSet<Text>();
           HashSet<Text> loadedFiles = new HashSet<Text>();
 
-          String tidString = new String(columnUpdate.getValue(), Constants.UTF8);
+          String tidString = new String(columnUpdate.getValue(), UTF_8);
           int otherTidCount = 0;
 
           for (ColumnUpdate update : mutation.getUpdates()) {
@@ -199,7 +201,7 @@ public class MetadataConstraints implements Constraint {
             } else if (new Text(update.getColumnFamily()).equals(Constants.METADATA_BULKFILE_COLUMN_FAMILY)) {
               loadedFiles.add(new Text(update.getColumnQualifier()));
               
-              if (!new String(update.getValue(), Constants.UTF8).equals(tidString)) {
+              if (!new String(update.getValue(), UTF_8).equals(tidString)) {
                 otherTidCount++;
               }
             }
@@ -243,7 +245,7 @@ public class MetadataConstraints implements Constraint {
           }
           
           boolean lockHeld = false;
-          String lockId = new String(columnUpdate.getValue(), Constants.UTF8);
+          String lockId = new String(columnUpdate.getValue(), UTF_8);
           
           try {
             lockHeld = ZooLock.isLockHeld(zooCache, new ZooUtil.LockID(zooRoot, lockId));
@@ -260,9 +262,9 @@ public class MetadataConstraints implements Constraint {
     }
     
     if (violations != null) {
-      log.debug("violating metadata mutation : " + new String(mutation.getRow(), Constants.UTF8));
+      log.debug("violating metadata mutation : " + new String(mutation.getRow(), UTF_8));
       for (ColumnUpdate update : mutation.getUpdates()) {
-        log.debug(" update: " + new String(update.getColumnFamily(), Constants.UTF8) + ":" + new String(update.getColumnQualifier(), Constants.UTF8) + " value " + (update.isDeleted() ? "[delete]" : new String(update.getValue(), Constants.UTF8)));
+        log.debug(" update: " + new String(update.getColumnFamily(), UTF_8) + ":" + new String(update.getColumnQualifier(), UTF_8) + " value " + (update.isDeleted() ? "[delete]" : new String(update.getValue(), UTF_8)));
       }
     }
     

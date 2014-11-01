@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -138,7 +140,7 @@ public class AddSplitTest extends FunctionalTest {
       String row = String.format("%09d", i);
       
       Mutation m = new Mutation(new Text(row));
-      m.put(new Text("cf1"), new Text("cq1"), ts, new Value(Integer.toString(i).getBytes(Constants.UTF8)));
+      m.put(new Text("cf1"), new Text("cq1"), ts, new Value(Integer.toString(i).getBytes(UTF_8)));
       bw.addMutation(m);
     }
     

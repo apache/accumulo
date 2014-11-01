@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.util;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
@@ -68,7 +70,7 @@ public class RemoveEntriesForMissingFiles {
     for (Entry<Key,Value> entry : metadata) {
       count++;
       Key key = entry.getKey();
-      String table = new String(KeyExtent.tableOfMetadataRow(entry.getKey().getRow()), Constants.UTF8);
+      String table = new String(KeyExtent.tableOfMetadataRow(entry.getKey().getRow()), UTF_8);
       String file = key.getColumnQualifier().toString();
       if (!file.startsWith("/"))
         file = "/" + file;

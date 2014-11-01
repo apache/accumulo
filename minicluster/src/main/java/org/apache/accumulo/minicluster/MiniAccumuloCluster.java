@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.minicluster;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -40,7 +42,6 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.gc.SimpleGarbageCollector;
@@ -73,8 +74,8 @@ public class MiniAccumuloCluster {
     
     public LogWriter(InputStream stream, File logFile) throws IOException {
       this.setDaemon(true);
-      this.in = new BufferedReader(new InputStreamReader(stream, Constants.UTF8));
-      out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(logFile), Constants.UTF8));
+      this.in = new BufferedReader(new InputStreamReader(stream, UTF_8));
+      out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(logFile), UTF_8));
       
       SimpleTimer.getInstance().schedule(new Runnable() {
         @Override
@@ -246,7 +247,7 @@ public class MiniAccumuloCluster {
     
     File siteFile = new File(confDir, "accumulo-site.xml");
     
-    OutputStreamWriter fileWriter = new OutputStreamWriter(new FileOutputStream(siteFile), Constants.UTF8);
+    OutputStreamWriter fileWriter = new OutputStreamWriter(new FileOutputStream(siteFile), UTF_8);
     fileWriter.append("<configuration>\n");
     
     HashMap<String,String> siteConfig = new HashMap<String,String>(config.getSiteConfig());
@@ -288,7 +289,7 @@ public class MiniAccumuloCluster {
     fileWriter.close();
     
     zooCfgFile = new File(confDir, "zoo.cfg");
-    fileWriter = new OutputStreamWriter(new FileOutputStream(zooCfgFile), Constants.UTF8);
+    fileWriter = new OutputStreamWriter(new FileOutputStream(zooCfgFile), UTF_8);
     
     // zookeeper uses Properties to read its config, so use that to write in order to properly escape things like Windows paths
     Properties zooCfg = new Properties();

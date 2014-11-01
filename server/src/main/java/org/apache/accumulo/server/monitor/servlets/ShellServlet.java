@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.monitor.servlets;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -34,7 +36,6 @@ import javax.servlet.http.HttpSession;
 
 import jline.ConsoleReader;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.shell.Shell;
 
 public class ShellServlet extends BasicServlet {
@@ -250,8 +251,8 @@ public class ShellServlet extends BasicServlet {
       this.cmdIndex = 0;
       this.readWait = false;
       this.output = new StringBuilderOutputStream();
-      ConsoleReader reader = new ConsoleReader(this, new OutputStreamWriter(output, Constants.UTF8));
-      this.shell = new Shell(reader, new PrintWriter(new OutputStreamWriter(output, Constants.UTF8)));
+      ConsoleReader reader = new ConsoleReader(this, new OutputStreamWriter(output, UTF_8));
+      this.shell = new Shell(reader, new PrintWriter(new OutputStreamWriter(output, UTF_8)));
       shell.setLogErrorsToConsole();
       if (mock != null) {
         if (shell.config("--fake", "-u", username, "-p", password))

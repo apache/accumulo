@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -26,7 +28,6 @@ import java.util.Random;
 import java.util.TreeMap;
 import java.util.UUID;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -84,15 +85,15 @@ public class CacheTestWriter {
         
         // change values
         for (int i = 0; i < numData; i++) {
-          byte data[] = Long.toString(r.nextLong(), 16).getBytes(Constants.UTF8);
+          byte data[] = Long.toString(r.nextLong(), 16).getBytes(UTF_8);
           zk.putPersistentData(rootDir + "/data" + i, data, NodeExistsPolicy.OVERWRITE);
-          expectedData.put(rootDir + "/data" + i, new String(data, Constants.UTF8));
+          expectedData.put(rootDir + "/data" + i, new String(data, UTF_8));
         }
         
         // test a data node that does not always exists...
         if (r.nextFloat() < .5) {
           
-          byte data[] = Long.toString(r.nextLong(), 16).getBytes(Constants.UTF8);
+          byte data[] = Long.toString(r.nextLong(), 16).getBytes(UTF_8);
           
           if (!dataSExists) {
             zk.putPersistentData(rootDir + "/dataS", data, NodeExistsPolicy.SKIP);
@@ -101,7 +102,7 @@ public class CacheTestWriter {
             zk.putPersistentData(rootDir + "/dataS", data, NodeExistsPolicy.OVERWRITE);
           }
           
-          expectedData.put(rootDir + "/dataS", new String(data, Constants.UTF8));
+          expectedData.put(rootDir + "/dataS", new String(data, UTF_8));
           
         } else {
           if (dataSExists) {

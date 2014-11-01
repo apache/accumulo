@@ -16,13 +16,14 @@
  */
 package org.apache.accumulo.test.randomwalk.multitable;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Properties;
 import java.util.Random;
 import java.util.UUID;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
@@ -71,7 +72,7 @@ public class Write extends Test {
     m.put(meta, new Text("payload"), new Value(payloadBytes));
     
     // store size
-    m.put(meta, new Text("size"), new Value(String.format("%d", numBytes).getBytes(Constants.UTF8)));
+    m.put(meta, new Text("size"), new Value(String.format("%d", numBytes).getBytes(UTF_8)));
     
     // store hash
     MessageDigest alg = MessageDigest.getInstance("SHA-1");

@@ -16,9 +16,9 @@
  */
 package org.apache.accumulo.core.security;
 
-import java.text.ParseException;
+import static com.google.common.base.Charsets.UTF_8;
 
-import org.apache.accumulo.core.Constants;
+import java.text.ParseException;
 
 public class VisibilityParseException extends ParseException {
   private static final long serialVersionUID = 1L;
@@ -26,7 +26,7 @@ public class VisibilityParseException extends ParseException {
   
   public VisibilityParseException(String reason, byte[] visibility, int errorOffset) {
     super(reason, errorOffset);
-    this.visibility = new String(visibility, Constants.UTF8);
+    this.visibility = new String(visibility, UTF_8);
   }
   
   @Override

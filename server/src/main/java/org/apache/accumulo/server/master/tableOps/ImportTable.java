@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.master.tableOps;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -176,7 +178,7 @@ class PopulateMetadataTable extends MasterRepo {
   }
   
   static Map<String,String> readMappingFile(FileSystem fs, ImportedTableInfo tableInfo) throws Exception {
-    BufferedReader in = new BufferedReader(new InputStreamReader(fs.open(new Path(tableInfo.importDir, "mappings.txt")), Constants.UTF8));
+    BufferedReader in = new BufferedReader(new InputStreamReader(fs.open(new Path(tableInfo.importDir, "mappings.txt")), UTF_8));
     
     try {
       Map<String,String> map = new HashMap<String,String>();
@@ -250,14 +252,14 @@ class PopulateMetadataTable extends MasterRepo {
             
             if (m == null) {
               m = new Mutation(metadataRow);
-              Constants.METADATA_DIRECTORY_COLUMN.put(m, new Value(FastFormat.toZeroPaddedString(dirCount++, 8, 16, "/c-".getBytes(Constants.UTF8))));
+              Constants.METADATA_DIRECTORY_COLUMN.put(m, new Value(FastFormat.toZeroPaddedString(dirCount++, 8, 16, "/c-".getBytes(UTF_8))));
               currentRow = metadataRow;
             }
             
             if (!currentRow.equals(metadataRow)) {
               mbw.addMutation(m);
               m = new Mutation(metadataRow);
-              Constants.METADATA_DIRECTORY_COLUMN.put(m, new Value(FastFormat.toZeroPaddedString(dirCount++, 8, 16, "/c-".getBytes(Constants.UTF8))));
+              Constants.METADATA_DIRECTORY_COLUMN.put(m, new Value(FastFormat.toZeroPaddedString(dirCount++, 8, 16, "/c-".getBytes(UTF_8))));
             }
             
             m.put(key.getColumnFamily(), cq, val);
@@ -324,7 +326,7 @@ class MapImportFileNames extends MasterRepo {
       
       UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
       
-      mappingsWriter = new BufferedWriter(new OutputStreamWriter(fs.create(path), Constants.UTF8));
+      mappingsWriter = new BufferedWriter(new OutputStreamWriter(fs.create(path), UTF_8));
       
       for (FileStatus fileStatus : files) {
         String fileName = fileStatus.getPath().getName();
@@ -553,7 +555,7 @@ public class ImportTable extends MasterRepo {
       ZipEntry zipEntry;
       while ((zipEntry = zis.getNextEntry()) != null) {
         if (zipEntry.getName().equals(Constants.EXPORT_INFO_FILE)) {
-          BufferedReader in = new BufferedReader(new InputStreamReader(zis, Constants.UTF8));
+          BufferedReader in = new BufferedReader(new InputStreamReader(zis, UTF_8));
           String line = null;
           while ((line = in.readLine()) != null) {
             String sa[] = line.split(":", 2);

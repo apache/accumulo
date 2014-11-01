@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -71,7 +73,7 @@ public class CreateAndUseTest extends FunctionalTest {
     
     for (int i = 1; i < 257; i++) {
       Mutation m = new Mutation(new Text(String.format("%08x", (i << 8) - 16)));
-      m.put(cf, cq, new Value(Integer.toString(i).getBytes(Constants.UTF8)));
+      m.put(cf, cq, new Value(Integer.toString(i).getBytes(UTF_8)));
       
       bw.addMutation(m);
     }

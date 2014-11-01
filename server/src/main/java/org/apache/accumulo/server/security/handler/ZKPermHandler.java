@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.security.handler;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -258,7 +260,7 @@ public class ZKPermHandler implements PermissionHandler {
     try {
       // prep parent node of users with root username
       if (!zoo.exists(ZKUserPath))
-        zoo.putPersistentData(ZKUserPath, rootuser.getBytes(Constants.UTF8), NodeExistsPolicy.FAIL);
+        zoo.putPersistentData(ZKUserPath, rootuser.getBytes(UTF_8), NodeExistsPolicy.FAIL);
       
       initUser(rootuser);
       zoo.putPersistentData(ZKUserPath + "/" + rootuser + ZKUserSysPerms, ZKSecurityTool.convertSystemPermissions(rootPerms), NodeExistsPolicy.FAIL);

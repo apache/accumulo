@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.security.SecurityPermission;
 import java.util.List;
 import java.util.Map;
@@ -53,9 +55,9 @@ public class Tables {
       byte[] tblPath = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME);
       if (tblPath != null) {
         if (nameAsKey)
-          tableMap.put(new String(tblPath, Constants.UTF8), tableId);
+          tableMap.put(new String(tblPath, UTF_8), tableId);
         else
-          tableMap.put(tableId, new String(tblPath, Constants.UTF8));
+          tableMap.put(tableId, new String(tblPath, UTF_8));
       }
     }
     
@@ -112,7 +114,7 @@ public class Tables {
     if (state == null)
       return TableState.UNKNOWN;
     
-    return TableState.valueOf(new String(state, Constants.UTF8));
+    return TableState.valueOf(new String(state, UTF_8));
   }
   
   public static long getCacheResetCount() {

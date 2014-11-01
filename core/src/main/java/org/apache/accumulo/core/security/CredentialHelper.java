@@ -16,12 +16,13 @@
  */
 package org.apache.accumulo.core.security;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
@@ -43,7 +44,7 @@ public class CredentialHelper {
   }
   
   public static String asBase64String(TCredentials cred) throws AccumuloSecurityException {
-    return new String(Base64.encodeBase64(asByteArray(cred)), Charset.forName("UTF-8"));
+    return new String(Base64.encodeBase64(asByteArray(cred)), UTF_8);
   }
   
   public static byte[] asByteArray(TCredentials cred) throws AccumuloSecurityException {
@@ -58,7 +59,7 @@ public class CredentialHelper {
   }
   
   public static TCredentials fromBase64String(String string) throws AccumuloSecurityException {
-    return fromByteArray(Base64.decodeBase64(string.getBytes(Charset.forName("UTF-8"))));
+    return fromByteArray(Base64.decodeBase64(string.getBytes(UTF_8)));
   }
   
   public static TCredentials fromByteArray(byte[] serializedCredential) throws AccumuloSecurityException {
@@ -90,7 +91,7 @@ public class CredentialHelper {
   }
   
   public static String tokenAsBase64(AuthenticationToken token) throws AccumuloSecurityException {
-    return new String(Base64.encodeBase64(toBytes(token)), Charset.forName("UTF-8"));
+    return new String(Base64.encodeBase64(toBytes(token)), UTF_8);
   }
   
   public static byte[] toBytes(AuthenticationToken token) throws AccumuloSecurityException {

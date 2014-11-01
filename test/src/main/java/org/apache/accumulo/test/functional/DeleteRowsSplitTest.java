@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -46,9 +48,9 @@ public class DeleteRowsSplitTest extends FunctionalTest {
   static final SortedSet<Text> SPLITS = new TreeSet<Text>();
   static final List<String> ROWS = new ArrayList<String>();
   static {
-    for (byte b : LETTERS.getBytes(Constants.UTF8)) {
+    for (byte b : LETTERS.getBytes(UTF_8)) {
       SPLITS.add(new Text(new byte[] {b}));
-      ROWS.add(new String(new byte[] {b}, Constants.UTF8));
+      ROWS.add(new String(new byte[] {b}, UTF_8));
     }
   }
 

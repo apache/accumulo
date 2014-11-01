@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -95,7 +97,7 @@ public class SplitRecoveryTest extends FunctionalTest {
       public void unableToMonitorLockNode(Throwable e) {
         System.exit(-1);
       }
-    }, "foo".getBytes(Constants.UTF8));
+    }, "foo".getBytes(UTF_8));
     
     if (!gotLock) {
       System.err.println("Failed to get lock " + zPath);

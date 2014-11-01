@@ -16,12 +16,13 @@
  */
 package org.apache.accumulo.core.client.mapreduce.lib.util;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.nio.charset.Charset;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -99,7 +100,7 @@ public class OutputConfigurator extends ConfiguratorBase {
     String serialized;
     try {
       bwConfig.write(new DataOutputStream(baos));
-      serialized = new String(baos.toByteArray(), Charset.forName("UTF-8"));
+      serialized = new String(baos.toByteArray(), UTF_8);
       baos.close();
     } catch (IOException e) {
       throw new IllegalArgumentException("unable to serialize " + BatchWriterConfig.class.getName());
@@ -125,7 +126,7 @@ public class OutputConfigurator extends ConfiguratorBase {
       return bwConfig;
     } else {
       try {
-        ByteArrayInputStream bais = new ByteArrayInputStream(serialized.getBytes(Charset.forName("UTF-8")));
+        ByteArrayInputStream bais = new ByteArrayInputStream(serialized.getBytes(UTF_8));
         bwConfig.readFields(new DataInputStream(bais));
         bais.close();
         return bwConfig;

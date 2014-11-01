@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.util;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -61,7 +63,7 @@ public class MetadataTable {
     }
     
     public DataFileValue(byte[] encodedDFV) {
-      String[] ba = new String(encodedDFV, Constants.UTF8).split(",");
+      String[] ba = new String(encodedDFV, UTF_8).split(",");
       
       size = Long.parseLong(ba[0]);
       numEntries = Long.parseLong(ba[1]);
@@ -90,8 +92,8 @@ public class MetadataTable {
     
     public byte[] encode() {
       if (time >= 0)
-        return ("" + size + "," + numEntries + "," + time).getBytes(Constants.UTF8);
-      return ("" + size + "," + numEntries).getBytes(Constants.UTF8);
+        return ("" + size + "," + numEntries + "," + time).getBytes(UTF_8);
+      return ("" + size + "," + numEntries).getBytes(UTF_8);
     }
     
     public boolean equals(Object o) {

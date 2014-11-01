@@ -16,11 +16,12 @@
  */
 package org.apache.accumulo.core.iterators;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -59,7 +60,7 @@ public class ColumnFamilyCounter implements SortedKeyValueIterator<Key,Value> {
       }
       
       this.key = new Key(currentRow.toArray(), currentColf.toArray(), new byte[0], new byte[0], ts);
-      this.value = new Value(Integer.toString(count).getBytes(Constants.UTF8));
+      this.value = new Value(Integer.toString(count).getBytes(UTF_8));
       
     } else {
       this.key = null;

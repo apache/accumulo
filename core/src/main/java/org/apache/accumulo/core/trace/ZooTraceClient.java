@@ -16,13 +16,14 @@
  */
 package org.apache.accumulo.core.trace;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.trace.instrument.receivers.SendSpansViaThrift;
 import org.apache.log4j.Logger;
@@ -74,7 +75,7 @@ public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
       List<String> hosts = new ArrayList<String>();
       for (String child : children) {
         byte[] data = zoo.getData(path + "/" + child, null);
-        hosts.add(new String(data, Constants.UTF8));
+        hosts.add(new String(data, UTF_8));
       }
       this.hosts.clear();
       this.hosts.addAll(hosts);

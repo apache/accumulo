@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.security;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -63,7 +65,7 @@ public class SecurityConstants {
   
   private static AuthenticationToken makeSystemPassword() {
     int wireVersion = Constants.WIRE_VERSION;
-    byte[] inst = HdfsZooInstance.getInstance().getInstanceID().getBytes(Constants.UTF8);
+    byte[] inst = HdfsZooInstance.getInstance().getInstanceID().getBytes(UTF_8);
     try {
       confChecksum = getSystemConfigChecksum();
     } catch (NoSuchAlgorithmException e) {
@@ -92,14 +94,14 @@ public class SecurityConstants {
       
       // seed the config with the version and instance id, so at least
       // it's not empty
-      md.update(Constants.WIRE_VERSION.toString().getBytes(Constants.UTF8));
-      md.update(HdfsZooInstance.getInstance().getInstanceID().getBytes(Constants.UTF8));
+      md.update(Constants.WIRE_VERSION.toString().getBytes(UTF_8));
+      md.update(HdfsZooInstance.getInstance().getInstanceID().getBytes(UTF_8));
       
       for (Entry<String,String> entry : ServerConfiguration.getSiteConfiguration()) {
         // only include instance properties
         if (entry.getKey().startsWith(Property.INSTANCE_PREFIX.toString())) {
-          md.update(entry.getKey().getBytes(Constants.UTF8));
-          md.update(entry.getValue().getBytes(Constants.UTF8));
+          md.update(entry.getKey().getBytes(UTF_8));
+          md.update(entry.getValue().getBytes(UTF_8));
         }
       }
       

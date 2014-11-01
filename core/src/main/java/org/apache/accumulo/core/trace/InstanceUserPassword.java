@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.core.trace;
 
-import org.apache.accumulo.core.Constants;
+import static com.google.common.base.Charsets.UTF_8;
+
 import org.apache.accumulo.core.client.Instance;
 
 public class InstanceUserPassword {
@@ -27,6 +28,6 @@ public class InstanceUserPassword {
   public InstanceUserPassword(Instance instance, String username, String password) {
     this.instance = instance;
     this.username = username;
-    this.password = password.getBytes(Constants.UTF8);
+    this.password = password.getBytes(UTF_8);
   }
 }

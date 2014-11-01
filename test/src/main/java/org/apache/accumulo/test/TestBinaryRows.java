@@ -16,12 +16,13 @@
  */
 package org.apache.accumulo.test;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -90,7 +91,7 @@ public class TestBinaryRows {
       Connector connector = opts.getConnector();
       
       final Text CF = new Text("cf"), CQ = new Text("cq");
-      final byte[] CF_BYTES = "cf".getBytes(Constants.UTF8), CQ_BYTES = "cq".getBytes(Constants.UTF8);
+      final byte[] CF_BYTES = "cf".getBytes(UTF_8), CQ_BYTES = "cq".getBytes(UTF_8);
       
       if (opts.mode.equals("ingest") || opts.mode.equals("delete")) {
         BatchWriter bw = connector.createBatchWriter(opts.tableName, bwOpts.getBatchWriterConfig());
@@ -104,7 +105,7 @@ public class TestBinaryRows {
           if (delete) {
             m.putDelete(CF, CQ);
           } else {
-            m.put(CF, CQ, new Value(value.getBytes(Constants.UTF8)));
+            m.put(CF, CQ, new Value(value.getBytes(UTF_8)));
           }
           bw.addMutation(m);
         }

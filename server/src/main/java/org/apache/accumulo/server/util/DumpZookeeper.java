@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.util;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 
@@ -107,9 +109,9 @@ public class DumpZookeeper {
     for (int i = 0; i < data.length; i++) {
       // does this look like simple ascii?
       if (data[i] < ' ' || data[i] > '~')
-        return new Encoded("base64", new String(Base64.encodeBase64(data), "utf8"));
+        return new Encoded("base64", new String(Base64.encodeBase64(data), UTF_8));
     }
-    return new Encoded("utf8", new String(data, "utf8"));
+    return new Encoded(UTF_8.name().toLowerCase(), new String(data, UTF_8));
   }
   
   private static void write(PrintStream out, int indent, String fmt, Object... args) {

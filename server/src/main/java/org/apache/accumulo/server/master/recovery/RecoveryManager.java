@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.master.recovery;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Collection;
@@ -110,7 +112,7 @@ public class RecoveryManager {
   
   private void initiateSort(String host, final String file) throws KeeperException, InterruptedException {
     String source = getSource(host, file).toString();
-    new DistributedWorkQueue(ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY).addWork(file, source.getBytes(Constants.UTF8));
+    new DistributedWorkQueue(ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY).addWork(file, source.getBytes(UTF_8));
     
     synchronized (this) {
       sortsQueued.add(file);

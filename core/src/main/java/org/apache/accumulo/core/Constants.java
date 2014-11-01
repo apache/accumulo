@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.nio.charset.Charset;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -29,8 +31,15 @@ import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
+import com.google.common.base.Charsets;
+
 public class Constants {
-  public static final Charset UTF8 = Charset.forName("UTF-8");
+  /**
+   * @deprecated since 1.5.3; statically import Guava's {@link Charsets#UTF_8} or Java 7's built-in StandardCharsets.UTF_8 or use
+   *             {@link Charset#forName(String)} with "UTF-8" instead
+   */
+  @Deprecated
+  public static final Charset UTF8 = UTF_8;
   public static final String VERSION = FilteredConstants.VERSION;
   
   // versions should never be negative
@@ -143,7 +152,11 @@ public class Constants {
   public static final Range METADATA_ROOT_TABLET_KEYSPACE = new Range(ROOT_TABLET_EXTENT.getMetadataEntry(), false, KeyExtent.getMetadataEntry(new Text(
       METADATA_TABLE_ID), null), true);
   
-  public static final String VALUE_ENCODING = "UTF-8";
+  /**
+   * @deprecated since 1.5.3; not used, but specifies UTF-8
+   */
+  @Deprecated
+  public static final String VALUE_ENCODING = UTF_8.name();
   
   public static final String BULK_PREFIX = "b-";
   public static final String OLD_BULK_PREFIX = "bulk_";

@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,7 +30,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.log4j.Logger;
 
 public class DefaultConfiguration extends AccumuloConfiguration {
@@ -74,7 +75,7 @@ public class DefaultConfiguration extends AccumuloConfiguration {
       int n;
       try {
         while ((n = data.read(buffer)) > 0)
-          doc.print(new String(buffer, 0, n, Constants.UTF8));
+          doc.print(new String(buffer, 0, n, UTF_8));
       } catch (IOException e) {
         e.printStackTrace();
         return;
@@ -190,7 +191,7 @@ public class DefaultConfiguration extends AccumuloConfiguration {
    */
   public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException {
     if (args.length == 2 && args[0].equals("--generate-doc")) {
-      generateDocumentation(new PrintStream(args[1], Constants.UTF8.name()));
+      generateDocumentation(new PrintStream(args[1], UTF_8.name()));
     } else {
       throw new IllegalArgumentException("Usage: " + DefaultConfiguration.class.getName() + " --generate-doc <filename>");
     }

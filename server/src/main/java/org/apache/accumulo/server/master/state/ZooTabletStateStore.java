@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.master.state;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -104,7 +106,7 @@ public class ZooTabletStateStore extends TabletStateStore {
   }
   
   protected TServerInstance parse(byte[] current) {
-    String str = new String(current, Constants.UTF8);
+    String str = new String(current, UTF_8);
     String[] parts = str.split("[|]", 2);
     InetSocketAddress address = AddressUtil.parseAddress(parts[0], 0);
     if (parts.length > 1 && parts[1] != null && parts[1].length() > 0) {
@@ -128,7 +130,7 @@ public class ZooTabletStateStore extends TabletStateStore {
     if (current.current != null) {
       throw new IllegalDSException("Trying to set the root tablet location: it is already set to " + current.current);
     }
-    store.put(Constants.ZROOT_TABLET_FUTURE_LOCATION, value.getBytes(Constants.UTF8));
+    store.put(Constants.ZROOT_TABLET_FUTURE_LOCATION, value.getBytes(UTF_8));
   }
   
   @Override
@@ -147,8 +149,8 @@ public class ZooTabletStateStore extends TabletStateStore {
     if (!current.future.equals(assignment.server)) {
       throw new IllegalDSException("Root tablet is already assigned to " + current.future);
     }
-    store.put(Constants.ZROOT_TABLET_LOCATION, value.getBytes(Constants.UTF8));
-    store.put(Constants.ZROOT_TABLET_LAST_LOCATION, value.getBytes(Constants.UTF8));
+    store.put(Constants.ZROOT_TABLET_LOCATION, value.getBytes(UTF_8));
+    store.put(Constants.ZROOT_TABLET_LAST_LOCATION, value.getBytes(UTF_8));
     // Make the following unnecessary by making the entire update atomic 
     store.remove(Constants.ZROOT_TABLET_FUTURE_LOCATION);
     log.debug("Put down root tablet location");

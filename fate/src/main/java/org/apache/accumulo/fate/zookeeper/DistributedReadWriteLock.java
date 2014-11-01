@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
-import java.nio.charset.Charset;
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -32,7 +33,6 @@ import org.apache.log4j.Logger;
 // A ReadWriteLock that can be implemented in ZooKeeper.  Features the ability to store data
 // with the lock, and recover the lock using that data to find the lock.
 public class DistributedReadWriteLock implements java.util.concurrent.locks.ReadWriteLock {
-  private static final Charset UTF8 = Charset.forName("UTF-8");
   
   static enum LockType {
     READ, WRITE,
@@ -60,7 +60,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
       if (split == -1)
         throw new IllegalArgumentException();
       
-      this.type = LockType.valueOf(new String(lockData, 0, split, UTF8));
+      this.type = LockType.valueOf(new String(lockData, 0, split, UTF_8));
       this.userData = Arrays.copyOfRange(lockData, split + 1, lockData.length);
     }
     
@@ -73,7 +73,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
     }
     
     public byte[] getLockData() {
-      byte typeBytes[] = type.name().getBytes(UTF8);
+      byte typeBytes[] = type.name().getBytes(UTF_8);
       byte[] result = new byte[userData.length + 1 + typeBytes.length];
       System.arraycopy(typeBytes, 0, result, 0, typeBytes.length);
       result[typeBytes.length] = ':';
@@ -145,7 +145,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
     public boolean tryLock() {
       if (entry == -1) {
         entry = qlock.addEntry(new ParsedLock(this.lockType(), this.userData).getLockData());
-        log.info("Added lock entry " + entry + " userData " + new String(this.userData, UTF8) + " lockType " + lockType());
+        log.info("Added lock entry " + entry + " userData " + new String(this.userData, UTF_8) + " lockType " + lockType());
       }
       SortedMap<Long,byte[]> entries = qlock.getEarlierEntries(entry);
       for (Entry<Long,byte[]> entry : entries.entrySet()) {
@@ -155,7 +155,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
         if (parsed.type == LockType.WRITE)
           return false;
       }
-      throw new IllegalStateException("Did not find our own lock in the queue: " + this.entry + " userData " + new String(this.userData, UTF8) + " lockType "
+      throw new IllegalStateException("Did not find our own lock in the queue: " + this.entry + " userData " + new String(this.userData, UTF_8) + " lockType "
           + lockType());
     }
     
@@ -177,7 +177,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
     public void unlock() {
       if (entry == -1)
         return;
-      log.debug("Removing lock entry " + entry + " userData " + new String(this.userData, UTF8) + " lockType " + lockType());
+      log.debug("Removing lock entry " + entry + " userData " + new String(this.userData, UTF_8) + " lockType " + lockType());
       qlock.removeEntry(entry);
       entry = -1;
     }
@@ -207,12 +207,12 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
     public boolean tryLock() {
       if (entry == -1) {
         entry = qlock.addEntry(new ParsedLock(this.lockType(), this.userData).getLockData());
-        log.info("Added lock entry " + entry + " userData " + new String(this.userData, UTF8) + " lockType " + lockType());
+        log.info("Added lock entry " + entry + " userData " + new String(this.userData, UTF_8) + " lockType " + lockType());
       }
       SortedMap<Long,byte[]> entries = qlock.getEarlierEntries(entry);
       Iterator<Entry<Long,byte[]>> iterator = entries.entrySet().iterator();
       if (!iterator.hasNext())
-        throw new IllegalStateException("Did not find our own lock in the queue: " + this.entry + " userData " + new String(this.userData, UTF8) + " lockType "
+        throw new IllegalStateException("Did not find our own lock in the queue: " + this.entry + " userData " + new String(this.userData, UTF_8) + " lockType "
             + lockType());
       if (iterator.next().getKey().equals(entry))
         return true;

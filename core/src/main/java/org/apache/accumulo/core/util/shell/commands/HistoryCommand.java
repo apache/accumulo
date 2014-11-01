@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileInputStream;
@@ -26,7 +28,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -50,7 +51,7 @@ public class HistoryCommand extends Command {
       PrintWriter out = null;
       try {
         FileOutputStream file = new FileOutputStream(histDir + "/shell_history.txt");
-        final BufferedWriter fileWriter = new BufferedWriter(new OutputStreamWriter(file, Constants.UTF8));
+        final BufferedWriter fileWriter = new BufferedWriter(new OutputStreamWriter(file, UTF_8));
         out = new PrintWriter(fileWriter);
       } catch (FileNotFoundException e) { 
         e.printStackTrace();
@@ -65,7 +66,7 @@ public class HistoryCommand extends Command {
     else {
       BufferedReader in = null;
       try {
-        in = new BufferedReader(new InputStreamReader(new FileInputStream(histDir + "/shell_history.txt"), Constants.UTF8));
+        in = new BufferedReader(new InputStreamReader(new FileInputStream(histDir + "/shell_history.txt"), UTF_8));
         String Line;
         try {
           Line = in.readLine();

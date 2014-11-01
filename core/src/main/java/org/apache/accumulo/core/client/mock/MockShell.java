@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.client.mock;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -24,7 +26,6 @@ import java.io.Writer;
 
 import jline.ConsoleReader;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 
@@ -78,7 +79,7 @@ public class MockShell extends Shell {
       printInfo();
     
     if (execFile != null) {
-      java.util.Scanner scanner = new java.util.Scanner(new File(execFile), Constants.UTF8.name());
+      java.util.Scanner scanner = new java.util.Scanner(new File(execFile), UTF_8.name());
       try {
         while (scanner.hasNextLine() && !hasExited()) {
           execCommand(scanner.nextLine(), true, isVerbose());
@@ -138,6 +139,6 @@ public class MockShell extends Shell {
       sb.append(command).append(NEWLINE);
     }
     
-    return new ByteArrayInputStream(sb.toString().getBytes(Constants.UTF8));
+    return new ByteArrayInputStream(sb.toString().getBytes(UTF_8));
   }
 }

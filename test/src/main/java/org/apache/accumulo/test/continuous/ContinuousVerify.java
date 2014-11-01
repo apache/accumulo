@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.continuous;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -24,7 +26,6 @@ import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ClientOnDefaultTable;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
@@ -111,7 +112,7 @@ public class ContinuousVerify extends Configured implements Tool {
 
       int offset = ContinuousWalk.getPrevRowOffset(val);
       if (offset > 0) {
-        ref.set(Long.parseLong(new String(val, offset, 16, Constants.UTF8), 16));
+        ref.set(Long.parseLong(new String(val, offset, 16, UTF_8), 16));
         vrow.set(r);
         context.write(ref, vrow);
       }
@@ -145,7 +146,7 @@ public class ContinuousVerify extends Configured implements Tool {
         for (Long ref : refs) {
           sb.append(comma);
           comma = ",";
-          sb.append(new String(ContinuousIngest.genRow(ref), Constants.UTF8));
+          sb.append(new String(ContinuousIngest.genRow(ref), UTF_8));
         }
 
         context.write(new Text(ContinuousIngest.genRow(key.get())), new Text(sb.toString()));

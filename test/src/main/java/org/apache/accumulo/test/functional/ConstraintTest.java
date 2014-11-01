@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -76,7 +78,7 @@ public class ConstraintTest extends FunctionalTest {
     BatchWriter bw = getConnector().createBatchWriter("ct", new BatchWriterConfig());
     
     Mutation mut1 = new Mutation(new Text("r1"));
-    mut1.put(new Text("cf1"), new Text("cq1"), new Value("123".getBytes(Constants.UTF8)));
+    mut1.put(new Text("cf1"), new Text("cq1"), new Value("123".getBytes(UTF_8)));
     
     bw.addMutation(mut1);
     
@@ -87,7 +89,7 @@ public class ConstraintTest extends FunctionalTest {
     
     // create a mutation with a non numeric value
     Mutation mut2 = new Mutation(new Text("r1"));
-    mut2.put(new Text("cf1"), new Text("cq1"), new Value("123a".getBytes(Constants.UTF8)));
+    mut2.put(new Text("cf1"), new Text("cq1"), new Value("123a".getBytes(UTF_8)));
     
     bw.addMutation(mut2);
     
@@ -130,7 +132,7 @@ public class ConstraintTest extends FunctionalTest {
     Entry<Key,Value> entry = iter.next();
     
     if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
-        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123".getBytes(Constants.UTF8)))) {
+        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123".getBytes(UTF_8)))) {
       throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
     }
     
@@ -153,7 +155,7 @@ public class ConstraintTest extends FunctionalTest {
     entry = iter.next();
     
     if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
-        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123a".getBytes(Constants.UTF8)))) {
+        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123a".getBytes(UTF_8)))) {
       throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
     }
     
@@ -170,7 +172,7 @@ public class ConstraintTest extends FunctionalTest {
     bw = getConnector().createBatchWriter("ct", new BatchWriterConfig());
     
     Mutation mut3 = new Mutation(new Text("r1"));
-    mut3.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes(Constants.UTF8)));
+    mut3.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes(UTF_8)));
     
     bw.addMutation(mut3);
     
@@ -193,7 +195,7 @@ public class ConstraintTest extends FunctionalTest {
     entry = iter.next();
     
     if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
-        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123a".getBytes(Constants.UTF8)))) {
+        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123a".getBytes(UTF_8)))) {
       throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
     }
     
@@ -216,7 +218,7 @@ public class ConstraintTest extends FunctionalTest {
     entry = iter.next();
     
     if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
-        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("foo".getBytes(Constants.UTF8)))) {
+        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("foo".getBytes(UTF_8)))) {
       throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
     }
     
@@ -228,7 +230,7 @@ public class ConstraintTest extends FunctionalTest {
   
   private Mutation newMut(String row, String cf, String cq, String val) {
     Mutation mut1 = new Mutation(new Text(row));
-    mut1.put(new Text(cf), new Text(cq), new Value(val.getBytes(Constants.UTF8)));
+    mut1.put(new Text(cf), new Text(cq), new Value(val.getBytes(UTF_8)));
     return mut1;
   }
   
@@ -300,14 +302,14 @@ public class ConstraintTest extends FunctionalTest {
     Entry<Key,Value> entry = iter.next();
     
     if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
-        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123".getBytes(Constants.UTF8)))) {
+        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123".getBytes(UTF_8)))) {
       throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
     }
     
     entry = iter.next();
     
     if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
-        || !entry.getKey().getColumnQualifier().equals(new Text("cq4")) || !entry.getValue().equals(new Value("789".getBytes(Constants.UTF8)))) {
+        || !entry.getKey().getColumnQualifier().equals(new Text("cq4")) || !entry.getValue().equals(new Value("789".getBytes(UTF_8)))) {
       throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
     }
     

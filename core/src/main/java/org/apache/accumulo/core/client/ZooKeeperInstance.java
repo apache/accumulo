@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.client;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.UnknownHostException;
@@ -146,7 +148,7 @@ public class ZooKeeperInstance implements Instance {
         throw new RuntimeException("Instance name " + instanceName
             + " does not exist in zookeeper.  Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
       }
-      instanceId = new String(iidb, Constants.UTF8);
+      instanceId = new String(iidb, UTF_8);
     }
 
     if (zooCache.get(Constants.ZROOT + "/" + instanceId) == null) {
@@ -164,13 +166,13 @@ public class ZooKeeperInstance implements Instance {
 
     OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Looking up master location in zoocache.");
     byte[] loc = ZooUtil.getLockData(zooCache, masterLocPath);
-    opTimer.stop("Found master at " + (loc == null ? null : new String(loc, Constants.UTF8)) + " in %DURATION%");
+    opTimer.stop("Found master at " + (loc == null ? null : new String(loc, UTF_8)) + " in %DURATION%");
 
     if (loc == null) {
       return Collections.emptyList();
     }
 
-    return Collections.singletonList(new String(loc, Constants.UTF8));
+    return Collections.singletonList(new String(loc, UTF_8));
   }
 
   @Override
@@ -179,13 +181,13 @@ public class ZooKeeperInstance implements Instance {
 
     OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Looking up root tablet location in zookeeper.");
     byte[] loc = zooCache.get(zRootLocPath);
-    opTimer.stop("Found root tablet at " + (loc == null ? null : new String(loc, Constants.UTF8)) + " in %DURATION%");
+    opTimer.stop("Found root tablet at " + (loc == null ? null : new String(loc, UTF_8)) + " in %DURATION%");
 
     if (loc == null) {
       return null;
     }
 
-    return new String(loc, Constants.UTF8).split("\\|")[0];
+    return new String(loc, UTF_8).split("\\|")[0];
   }
 
   @Override
@@ -266,7 +268,7 @@ public class ZooKeeperInstance implements Instance {
     for (String name : zooCache.getChildren(Constants.ZROOT + Constants.ZINSTANCES)) {
       String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + name;
       byte[] bytes = zooCache.get(instanceNamePath);
-      UUID iid = UUID.fromString(new String(bytes, Constants.UTF8));
+      UUID iid = UUID.fromString(new String(bytes, UTF_8));
       if (iid.equals(instanceId)) {
         return name;
       }

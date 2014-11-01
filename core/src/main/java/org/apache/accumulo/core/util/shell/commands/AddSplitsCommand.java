@@ -16,10 +16,11 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.File;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
@@ -43,11 +44,11 @@ public class AddSplitsCommand extends Command {
       final String f = cl.getOptionValue(optSplitsFile.getOpt());
       
       String line;
-      java.util.Scanner file = new java.util.Scanner(new File(f), Constants.UTF8.name());
+      java.util.Scanner file = new java.util.Scanner(new File(f), UTF_8.name());
       while (file.hasNextLine()) {
         line = file.nextLine();
         if (!line.isEmpty()) {
-          splits.add(decode ? new Text(Base64.decodeBase64(line.getBytes(Constants.UTF8))) : new Text(line));
+          splits.add(decode ? new Text(Base64.decodeBase64(line.getBytes(UTF_8))) : new Text(line));
         }
       }
     } else {

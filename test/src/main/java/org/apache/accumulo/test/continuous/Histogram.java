@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.continuous;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -29,8 +31,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
-
-import org.apache.accumulo.core.Constants;
 
 class HistData<T> implements Comparable<HistData<T>>, Serializable {
   private static final long serialVersionUID = 1L;
@@ -147,7 +147,7 @@ public class Histogram<T> implements Serializable {
     
     FileOutputStream fos = new FileOutputStream(file);
     BufferedOutputStream bos = new BufferedOutputStream(fos);
-    PrintStream ps = new PrintStream(bos, false, Constants.UTF8.name());
+    PrintStream ps = new PrintStream(bos, false, UTF_8.name());
     
     TreeSet<HistData<T>> sortedCounts = new TreeSet<HistData<T>>(counts.values());
     for (Iterator<HistData<T>> iter = sortedCounts.iterator(); iter.hasNext();) {

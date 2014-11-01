@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Map.Entry;
@@ -73,12 +75,12 @@ public class CreateTableCommand extends Command {
       final String f = cl.getOptionValue(createTableOptSplit.getOpt());
       
       String line;
-      Scanner file = new Scanner(new File(f), Constants.UTF8.name());
+      Scanner file = new Scanner(new File(f), UTF_8.name());
       try {
         while (file.hasNextLine()) {
           line = file.nextLine();
           if (!line.isEmpty())
-            partitions.add(decode ? new Text(Base64.decodeBase64(line.getBytes(Constants.UTF8 ))) : new Text(line));
+            partitions.add(decode ? new Text(Base64.decodeBase64(line.getBytes(UTF_8 ))) : new Text(line));
         }
       } finally {
         file.close();

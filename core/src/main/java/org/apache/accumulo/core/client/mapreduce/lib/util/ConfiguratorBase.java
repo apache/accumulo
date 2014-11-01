@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.client.mapreduce.lib.util;
 
-import java.nio.charset.Charset;
+import static com.google.common.base.Charsets.UTF_8;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
@@ -164,7 +164,7 @@ public class ConfiguratorBase {
    * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
    */
   public static byte[] getToken(Class<?> implementingClass, Configuration conf) {
-    return Base64.decodeBase64(conf.get(enumToConfKey(implementingClass, ConnectorInfo.TOKEN), "").getBytes(Charset.forName("UTF-8")));
+    return Base64.decodeBase64(conf.get(enumToConfKey(implementingClass, ConnectorInfo.TOKEN), "").getBytes(UTF_8));
   }
 
   /**

@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.master.tableOps;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -62,14 +64,14 @@ public class RenameTable extends MasterRepo {
       
       zoo.mutate(tap, null, null, new Mutator() {
         public byte[] mutate(byte[] current) throws Exception {
-          final String currentName = new String(current, Constants.UTF8);
+          final String currentName = new String(current, UTF_8);
           if (currentName.equals(newTableName))
             return null; // assume in this case the operation is running again, so we are done
           if (!currentName.equals(oldTableName)) {
             throw new ThriftTableOperationException(null, oldTableName, TableOperation.RENAME, TableOperationExceptionType.NOTFOUND,
                 "Name changed while processing");
           }
-          return newTableName.getBytes(Constants.UTF8);
+          return newTableName.getBytes(UTF_8);
         }
       });
       Tables.clearCache(instance);

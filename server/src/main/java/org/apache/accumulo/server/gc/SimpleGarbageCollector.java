@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.gc;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -415,7 +417,7 @@ public class SimpleGarbageCollector implements Iface {
     
     while (true) {
       lock = new ZooLock(path);
-      if (lock.tryLock(lockWatcher, new ServerServices(address, Service.GC_CLIENT).toString().getBytes(Constants.UTF8))) {
+      if (lock.tryLock(lockWatcher, new ServerServices(address, Service.GC_CLIENT).toString().getBytes(UTF_8))) {
         break;
       }
       UtilWaitThread.sleep(1000);
@@ -622,7 +624,7 @@ public class SimpleGarbageCollector implements Iface {
           if (cf.startsWith("../")) {
             delete = cf.substring(2);
           } else {
-            String table = new String(KeyExtent.tableOfMetadataRow(entry.getKey().getRow()), Constants.UTF8);
+            String table = new String(KeyExtent.tableOfMetadataRow(entry.getKey().getRow()), UTF_8);
             delete = "/" + table + cf;
           }
           // WARNING: This line is EXTREMELY IMPORTANT.
@@ -636,7 +638,7 @@ public class SimpleGarbageCollector implements Iface {
           if (candidates.remove(path))
             log.debug("Candidate was still in use in the METADATA table: " + path);
         } else if (Constants.METADATA_DIRECTORY_COLUMN.hasColumns(entry.getKey())) {
-          String table = new String(KeyExtent.tableOfMetadataRow(entry.getKey().getRow()), Constants.UTF8);
+          String table = new String(KeyExtent.tableOfMetadataRow(entry.getKey().getRow()), UTF_8);
           String delete = "/" + table + entry.getValue().toString();
           validateDir(delete);
           if (candidates.remove(delete))

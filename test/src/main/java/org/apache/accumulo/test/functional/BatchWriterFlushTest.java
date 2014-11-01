@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -76,7 +78,7 @@ public class BatchWriterFlushTest extends FunctionalTest {
     Scanner scanner = getConnector().createScanner("bwlt", Constants.NO_AUTHS);
     
     Mutation m = new Mutation(new Text(String.format("r_%10d", 1)));
-    m.put(new Text("cf"), new Text("cq"), new Value("1".getBytes(Constants.UTF8)));
+    m.put(new Text("cf"), new Text("cq"), new Value("1".getBytes(UTF_8)));
     bw.addMutation(m);
     
     UtilWaitThread.sleep(1000);

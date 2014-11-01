@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -25,7 +27,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.test.continuous.ContinuousVerify;
 import org.apache.hadoop.conf.Configuration;
@@ -121,7 +122,7 @@ public class RunTests extends Configured implements Tool {
       Process p = pb.start();
       p.getOutputStream().close();
       InputStream out = p.getInputStream();
-      InputStreamReader outr = new InputStreamReader(out, Constants.UTF8);
+      InputStreamReader outr = new InputStreamReader(out, UTF_8);
       BufferedReader br = new BufferedReader(outr);
       String line;
       try {

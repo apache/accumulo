@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -112,7 +114,7 @@ public class BulkFileTest extends FunctionalTest {
   
   private void writeData(FileSKVWriter w, int s, int e) throws Exception {
     for (int i = s; i <= e; i++) {
-      w.append(new Key(new Text(String.format("%04d", i))), new Value(Integer.toString(i).getBytes(Constants.UTF8)));
+      w.append(new Key(new Text(String.format("%04d", i))), new Value(Integer.toString(i).getBytes(UTF_8)));
     }
   }
   

@@ -16,11 +16,12 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
@@ -87,7 +88,7 @@ public class BulkSplitOptimizationTest extends FunctionalTest {
     
     String passwd = "";
     if (token instanceof PasswordToken) {
-      passwd = new String(((PasswordToken) token).getPassword(), Constants.UTF8);
+      passwd = new String(((PasswordToken) token).getPassword(), UTF_8);
     }
     VerifyIngest.main(new String[] {"--timestamp", "1", "--size", "50", "--random", "56", "--rows", "100000", "--start", "0", "--cols", "1", "-p", passwd});
     

@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.util.shell;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -439,7 +441,7 @@ public class Shell extends ShellOptions {
     ShellCompletor userCompletor = null;
     
     if (execFile != null) {
-      java.util.Scanner scanner = new java.util.Scanner(new File(execFile), Constants.UTF8.name());
+      java.util.Scanner scanner = new java.util.Scanner(new File(execFile), UTF_8.name());
       try {
         while (scanner.hasNextLine() && !hasExited()) {
           execCommand(scanner.nextLine(), true, isVerbose());
@@ -808,7 +810,7 @@ public class Shell extends ShellOptions {
     PrintWriter writer;
     
     public PrintFile(String filename) throws FileNotFoundException {
-      writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename), Constants.UTF8)));
+      writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename), UTF_8)));
     }
     
     @Override

@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -70,7 +72,7 @@ public class BloomFilterTest extends FunctionalTest {
     // test inserting an empty key
     BatchWriter bw = getConnector().createBatchWriter("bt4", new BatchWriterConfig());
     Mutation m = new Mutation(new Text(""));
-    m.put(new Text(""), new Text(""), new Value("foo1".getBytes(Constants.UTF8)));
+    m.put(new Text(""), new Text(""), new Value("foo1".getBytes(UTF_8)));
     bw.addMutation(m);
     bw.close();
     getConnector().tableOperations().flush("bt4", null, null, true);
@@ -207,15 +209,15 @@ public class BloomFilterTest extends FunctionalTest {
       switch (depth) {
         case 1:
           m = new Mutation(new Text(key));
-          m.put(new Text("cf"), new Text("cq"), new Value(Long.toString(i).getBytes(Constants.UTF8)));
+          m.put(new Text("cf"), new Text("cq"), new Value(Long.toString(i).getBytes(UTF_8)));
           break;
         case 2:
           m = new Mutation(new Text("row"));
-          m.put(new Text(key), new Text("cq"), new Value(Long.toString(i).getBytes(Constants.UTF8)));
+          m.put(new Text(key), new Text("cq"), new Value(Long.toString(i).getBytes(UTF_8)));
           break;
         case 3:
           m = new Mutation(new Text("row"));
-          m.put(new Text("cf"), new Text(key), new Value(Long.toString(i).getBytes(Constants.UTF8)));
+          m.put(new Text("cf"), new Text(key), new Value(Long.toString(i).getBytes(UTF_8)));
           break;
       }
       

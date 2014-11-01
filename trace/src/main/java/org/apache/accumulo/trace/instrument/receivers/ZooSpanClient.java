@@ -39,7 +39,7 @@ public class ZooSpanClient extends SendSpansViaThrift {
   private static final Logger log = Logger.getLogger(ZooSpanClient.class);
   private static final int TOTAL_TIME_WAIT_CONNECT_MS = 10 * 1000;
   private static final int TIME_WAIT_CONNECT_CHECK_MS = 100;
-  private static final Charset UTF8 = Charset.forName("UTF-8");
+  private static final Charset UTF_8 = Charset.forName("UTF-8");
   
   ZooKeeper zoo = null;
   final String path;
@@ -100,7 +100,7 @@ public class ZooSpanClient extends SendSpansViaThrift {
       List<String> hosts = new ArrayList<String>();
       for (String child : children) {
         byte[] data = zoo.getData(path + "/" + child, null, null);
-        hosts.add(new String(data, UTF8));
+        hosts.add(new String(data, UTF_8));
       }
       this.hosts.clear();
       this.hosts.addAll(hosts);

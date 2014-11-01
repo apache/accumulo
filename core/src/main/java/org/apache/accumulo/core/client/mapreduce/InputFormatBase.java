@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.client.mapreduce;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
@@ -1211,8 +1213,8 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       for (Entry<String,String> opt : setting.getOptions().entrySet()) {
         String deprecatedOption;
         try {
-          deprecatedOption = setting.getName() + AccumuloIteratorOption.FIELD_SEP + URLEncoder.encode(opt.getKey(), "UTF-8") + AccumuloIteratorOption.FIELD_SEP
-              + URLEncoder.encode(opt.getValue(), "UTF-8");
+          deprecatedOption = setting.getName() + AccumuloIteratorOption.FIELD_SEP + URLEncoder.encode(opt.getKey(), UTF_8.name()) + AccumuloIteratorOption.FIELD_SEP
+              + URLEncoder.encode(opt.getValue(), UTF_8.name());
         } catch (UnsupportedEncodingException e) {
           throw new RuntimeException(e);
         }
@@ -1290,8 +1292,8 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       StringTokenizer tokenizer = new StringTokenizer(iteratorOption, FIELD_SEP);
       this.iteratorName = tokenizer.nextToken();
       try {
-        this.key = URLDecoder.decode(tokenizer.nextToken(), "UTF-8");
-        this.value = URLDecoder.decode(tokenizer.nextToken(), "UTF-8");
+        this.key = URLDecoder.decode(tokenizer.nextToken(), UTF_8.name());
+        this.value = URLDecoder.decode(tokenizer.nextToken(), UTF_8.name());
       } catch (UnsupportedEncodingException e) {
         throw new RuntimeException(e);
       }
@@ -1312,7 +1314,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     @Override
     public String toString() {
       try {
-        return iteratorName + FIELD_SEP + URLEncoder.encode(key, "UTF-8") + FIELD_SEP + URLEncoder.encode(value, "UTF-8");
+        return iteratorName + FIELD_SEP + URLEncoder.encode(key, UTF_8.name()) + FIELD_SEP + URLEncoder.encode(value, UTF_8.name());
       } catch (UnsupportedEncodingException e) {
         throw new RuntimeException(e);
       }

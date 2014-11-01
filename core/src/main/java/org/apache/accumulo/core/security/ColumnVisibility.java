@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.security;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -24,7 +26,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.util.BadArgumentException;
@@ -224,7 +225,7 @@ public class ColumnVisibility {
    */
   private static void stringify(Node root, byte[] expression, StringBuilder out) {
     if (root.type == NodeType.TERM) {
-      out.append(new String(expression, root.start, root.end - root.start, Constants.UTF8));
+      out.append(new String(expression, root.start, root.end - root.start, UTF_8));
     } else {
       String sep = "";
       for (Node c : root.children) {
@@ -249,7 +250,7 @@ public class ColumnVisibility {
     Node normRoot = normalize(node, expression);
     StringBuilder builder = new StringBuilder(expression.length);
     stringify(normRoot, expression, builder);
-    return builder.toString().getBytes(Constants.UTF8);
+    return builder.toString().getBytes(UTF_8);
   }
   
   private static class ColumnVisibilityParser {
@@ -262,10 +263,10 @@ public class ColumnVisibility {
       if (expression.length > 0) {
         Node node = parse_(expression);
         if (node == null) {
-          throw new BadArgumentException("operator or missing parens", new String(expression, Constants.UTF8), index - 1);
+          throw new BadArgumentException("operator or missing parens", new String(expression, UTF_8), index - 1);
         }
         if (parens != 0) {
-          throw new BadArgumentException("parenthesis mis-match", new String(expression, Constants.UTF8), index - 1);
+          throw new BadArgumentException("parenthesis mis-match", new String(expression, UTF_8), index - 1);
         }
         return node;
       }
@@ -275,11 +276,11 @@ public class ColumnVisibility {
     Node processTerm(int start, int end, Node expr, byte[] expression) {
       if (start != end) {
         if (expr != null)
-          throw new BadArgumentException("expression needs | or &", new String(expression, Constants.UTF8), start);
+          throw new BadArgumentException("expression needs | or &", new String(expression, UTF_8), start);
         return new Node(start, end);
       }
       if (expr == null)
-        throw new BadArgumentException("empty term", new String(expression, Constants.UTF8), start);
+        throw new BadArgumentException("empty term", new String(expression, UTF_8), start);
       return expr;
     }
     
@@ -295,7 +296,7 @@ public class ColumnVisibility {
             expr = processTerm(termStart, index - 1, expr, expression);
             if (result != null) {
               if (!result.type.equals(NodeType.AND))
-                throw new BadArgumentException("cannot mix & and |", new String(expression, Constants.UTF8), index - 1);
+                throw new BadArgumentException("cannot mix & and |", new String(expression, UTF_8), index - 1);
             } else {
               result = new Node(NodeType.AND);
             }
@@ -309,7 +310,7 @@ public class ColumnVisibility {
             expr = processTerm(termStart, index - 1, expr, expression);
             if (result != null) {
               if (!result.type.equals(NodeType.OR))
-                throw new BadArgumentException("cannot mix | and &", new String(expression, Constants.UTF8), index - 1);
+                throw new BadArgumentException("cannot mix | and &", new String(expression, UTF_8), index - 1);
             } else {
               result = new Node(NodeType.OR);
             }
@@ -322,7 +323,7 @@ public class ColumnVisibility {
           case '(': {
             parens++;
             if (termStart != index - 1 || expr != null)
-              throw new BadArgumentException("expression needs & or |", new String(expression, Constants.UTF8), index - 1);
+              throw new BadArgumentException("expression needs & or |", new String(expression, UTF_8), index - 1);
             expr = parse_(expression);
             termStart = index;
             termComplete = false;
@@ -332,7 +333,7 @@ public class ColumnVisibility {
             parens--;
             Node child = processTerm(termStart, index - 1, expr, expression);
             if (child == null && result == null)
-              throw new BadArgumentException("empty expression not allowed", new String(expression, Constants.UTF8), index);
+              throw new BadArgumentException("empty expression not allowed", new String(expression, UTF_8), index);
             if (result == null)
               return child;
             if (result.type == child.type)
@@ -345,22 +346,22 @@ public class ColumnVisibility {
           }
           case '"': {
             if (termStart != index - 1)
-              throw new BadArgumentException("expression needs & or |", new String(expression, Constants.UTF8), index - 1);
+              throw new BadArgumentException("expression needs & or |", new String(expression, UTF_8), index - 1);
             
             while (index < expression.length && expression[index] != '"') {
               if (expression[index] == '\\') {
                 index++;
                 if (expression[index] != '\\' && expression[index] != '"')
-                  throw new BadArgumentException("invalid escaping within quotes", new String(expression, Constants.UTF8), index - 1);
+                  throw new BadArgumentException("invalid escaping within quotes", new String(expression, UTF_8), index - 1);
               }
               index++;
             }
             
             if (index == expression.length)
-              throw new BadArgumentException("unclosed quote", new String(expression, Constants.UTF8), termStart);
+              throw new BadArgumentException("unclosed quote", new String(expression, UTF_8), termStart);
             
             if (termStart + 1 == index)
-              throw new BadArgumentException("empty term", new String(expression, Constants.UTF8), termStart);
+              throw new BadArgumentException("empty term", new String(expression, UTF_8), termStart);
             
             index++;
             
@@ -370,11 +371,11 @@ public class ColumnVisibility {
           }
           default: {
             if (termComplete)
-              throw new BadArgumentException("expression needs & or |", new String(expression, Constants.UTF8), index - 1);
+              throw new BadArgumentException("expression needs & or |", new String(expression, UTF_8), index - 1);
             
             byte c = expression[index - 1];
             if (!Authorizations.isValidAuthChar(c))
-              throw new BadArgumentException("bad character (" + c + ")", new String(expression, Constants.UTF8), index - 1);
+              throw new BadArgumentException("bad character (" + c + ")", new String(expression, UTF_8), index - 1);
           }
         }
       }
@@ -385,7 +386,7 @@ public class ColumnVisibility {
         result = child;
       if (result.type != NodeType.TERM)
         if (result.children.size() < 2)
-          throw new BadArgumentException("missing term", new String(expression, Constants.UTF8), index);
+          throw new BadArgumentException("missing term", new String(expression, UTF_8), index);
       return result;
     }
   }
@@ -416,7 +417,7 @@ public class ColumnVisibility {
    *          An expression of the rights needed to see this mutation. The expression syntax is defined at the class-level documentation
    */
   public ColumnVisibility(String expression) {
-    this(expression.getBytes(Constants.UTF8));
+    this(expression.getBytes(UTF_8));
   }
   
   /**
@@ -439,7 +440,7 @@ public class ColumnVisibility {
   
   @Override
   public String toString() {
-    return "[" + new String(expression, Constants.UTF8) + "]";
+    return "[" + new String(expression, UTF_8) + "]";
   }
   
   /**
@@ -484,7 +485,7 @@ public class ColumnVisibility {
    * 
    */
   public static String quote(String term) {
-    return new String(quote(term.getBytes(Constants.UTF8)), Constants.UTF8);
+    return new String(quote(term.getBytes(UTF_8)), UTF_8);
   }
   
   /**

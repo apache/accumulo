@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.monitor;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -110,7 +112,7 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
         }
       }
 
-      zoo.putEphemeralData(path, logForwardingAddr.getBytes(Constants.UTF8));
+      zoo.putEphemeralData(path, logForwardingAddr.getBytes(UTF_8));
 
       new Daemon(server).start();
     } catch (Throwable t) {
