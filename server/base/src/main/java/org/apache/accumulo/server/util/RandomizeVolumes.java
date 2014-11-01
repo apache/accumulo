@@ -16,13 +16,12 @@
  */
 package org.apache.accumulo.server.util;
 
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
-
-import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -40,14 +39,14 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 
 public class RandomizeVolumes {
   private static final Logger log = Logger.getLogger(RandomizeVolumes.class);
-  
+
   public static void main(String[] args) throws AccumuloException, AccumuloSecurityException {
     ClientOnRequiredTable opts = new ClientOnRequiredTable();
     opts.parseArgs(RandomizeVolumes.class.getName(), args);
@@ -106,8 +105,9 @@ public class RandomizeVolumes {
       }
       Key key = entry.getKey();
       Mutation m = new Mutation(key.getRow());
-      
-      String newLocation = vm.choose(ServerConstants.getBaseUris()) + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + tableId + Path.SEPARATOR + directory;
+
+      String newLocation = vm.choose(ServerConstants.getBaseUris()) + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + tableId + Path.SEPARATOR
+          + directory;
       m.put(key.getColumnFamily(), key.getColumnQualifier(), new Value(newLocation.getBytes(StandardCharsets.UTF_8)));
       if (log.isTraceEnabled()) {
         log.trace("Replacing " + oldLocation + " with " + newLocation);
@@ -128,5 +128,5 @@ public class RandomizeVolumes {
     }
     return 0;
   }
-  
+
 }

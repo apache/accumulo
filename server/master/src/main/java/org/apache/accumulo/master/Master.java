@@ -291,7 +291,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       // This Master hasn't started Fate yet, so any outstanding transactions must be from before the upgrade.
       // Change to Guava's Verify once we use Guava 17.
       if (null != fate) {
-        throw new IllegalStateException("Access to Fate should not have been initialized prior to the Master transitioning to active. Please save all logs and file a bug.");
+        throw new IllegalStateException(
+            "Access to Fate should not have been initialized prior to the Master transitioning to active. Please save all logs and file a bug.");
       }
       Accumulo.abortIfFateTransactions();
       try {
@@ -326,7 +327,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           }
         } catch (KeeperException.NoNodeException ex) {
           // skip
-        } 
+        }
         for (String id : zoo.getChildren(zooRoot + Constants.ZTABLES)) {
           log.debug("Converting table " + id + " WALog setting to Durability");
           try {
@@ -367,9 +368,10 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         log.debug("Upgrade creating table " + RootTable.NAME + " (ID: " + RootTable.ID + ")");
         TableManager.prepareNewTableState(instance.getInstanceID(), RootTable.ID, Namespaces.ACCUMULO_NAMESPACE_ID, RootTable.NAME, TableState.ONLINE,
             NodeExistsPolicy.SKIP);
-        Initialize.initMetadataConfig(RootTable.ID);
+        Initialize.initMetadataConfig();
         // ensure root user can flush root table
-        security.grantTablePermission(SystemCredentials.get().toThrift(instance), security.getRootUsername(), RootTable.ID, TablePermission.ALTER_TABLE, Namespaces.ACCUMULO_NAMESPACE_ID);
+        security.grantTablePermission(SystemCredentials.get().toThrift(instance), security.getRootUsername(), RootTable.ID, TablePermission.ALTER_TABLE,
+            Namespaces.ACCUMULO_NAMESPACE_ID);
 
         // put existing tables in the correct namespaces
         String tables = ZooUtil.getRoot(instance) + Constants.ZTABLES;
@@ -383,8 +385,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
         // rename metadata table
         log.debug("Upgrade renaming table " + MetadataTable.OLD_NAME + " (ID: " + MetadataTable.ID + ") to " + MetadataTable.NAME);
-        zoo.putPersistentData(tables + "/" + MetadataTable.ID + Constants.ZTABLE_NAME, Tables.qualify(MetadataTable.NAME).getSecond().getBytes(StandardCharsets.UTF_8),
-            NodeExistsPolicy.OVERWRITE);
+        zoo.putPersistentData(tables + "/" + MetadataTable.ID + Constants.ZTABLE_NAME,
+            Tables.qualify(MetadataTable.NAME).getSecond().getBytes(StandardCharsets.UTF_8), NodeExistsPolicy.OVERWRITE);
 
         moveRootTabletToRootTable(zoo);
 
@@ -418,13 +420,16 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         // sanity check that we passed the Fate verification prior to ZooKeeper upgrade, and that Fate still hasn't been started.
         // Change both to use Guava's Verify once we use Guava 17.
         if (!haveUpgradedZooKeeper) {
-          throw new IllegalStateException("We should only attempt to upgrade Accumulo's metadata table if we've already upgraded ZooKeeper. Please save all logs and file a bug.");
+          throw new IllegalStateException(
+              "We should only attempt to upgrade Accumulo's metadata table if we've already upgraded ZooKeeper. Please save all logs and file a bug.");
         }
         if (null != fate) {
-          throw new IllegalStateException("Access to Fate should not have been initialized prior to the Master finishing upgrades. Please save all logs and file a bug.");
+          throw new IllegalStateException(
+              "Access to Fate should not have been initialized prior to the Master finishing upgrades. Please save all logs and file a bug.");
         }
         Runnable upgradeTask = new Runnable() {
           int version = accumuloPersistentVersion;
+
           @Override
           public void run() {
             try {
@@ -434,7 +439,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
                 MetadataTableUtil.moveMetaDeleteMarkersFrom14(instance, SystemCredentials.get());
                 version++;
               }
-              if (version == ServerConstants.MOVE_TO_ROOT_TABLE - 1){
+              if (version == ServerConstants.MOVE_TO_ROOT_TABLE - 1) {
                 log.info("Updating Delete Markers in metadata table.");
                 MetadataTableUtil.moveMetaDeleteMarkers(instance, SystemCredentials.get());
                 version++;
@@ -775,10 +780,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
 
     /**
-     * If a migrating tablet splits, and the tablet dies before sending the
-     * master a message, the migration will refer to a non-existing tablet,
-     * so it can never complete. Periodically scan the metadata table and
-     * remove any migrating tablets that no longer exist.
+     * If a migrating tablet splits, and the tablet dies before sending the master a message, the migration will refer to a non-existing tablet, so it can never
+     * complete. Periodically scan the metadata table and remove any migrating tablets that no longer exist.
      */
     private void cleanupNonexistentMigrations(final Connector connector) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
       Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
@@ -794,9 +797,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     }
 
     /**
-     * If migrating a tablet for a table that is offline, the migration
-     * can never succeed because no tablet server will load the tablet.
-     * check for offline tables and remove their migrations.
+     * If migrating a tablet for a table that is offline, the migration can never succeed because no tablet server will load the tablet. check for offline
+     * tables and remove their migrations.
      */
     private void cleanupOfflineMigrations() {
       TableManager manager = TableManager.getInstance();
@@ -1075,8 +1077,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     ZooKeeperInitialization.ensureZooKeeperInitialized(zReaderWriter, zroot);
 
     Processor<Iface> processor = new Processor<Iface>(RpcWrapper.service(new MasterClientServiceHandler(this)));
-    ServerAddress sa = TServerUtils.startServer(getConfiguration(), hostname, Property.MASTER_CLIENTPORT, processor, "Master",
-        "Master Client Service Handler", null, Property.MASTER_MINTHREADS, Property.MASTER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
+    ServerAddress sa = TServerUtils.startServer(getConfiguration(), hostname, Property.MASTER_CLIENTPORT, processor, "Master", "Master Client Service Handler",
+        null, Property.MASTER_MINTHREADS, Property.MASTER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
     clientService = sa.server;
     String address = sa.address.toString();
     log.info("Setting master lock data to " + address);

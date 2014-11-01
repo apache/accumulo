@@ -26,7 +26,6 @@ import java.util.List;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.Volume;
@@ -63,9 +62,9 @@ public class ServerConstants {
    * version (4) moves logging to HDFS in 1.5.0
    */
   public static final int LOGGING_TO_HDFS = 4;
-  public static final BitSet CAN_UPGRADE = new BitSet(); 
+  public static final BitSet CAN_UPGRADE = new BitSet();
   static {
-    for (int i : new int[]{DATA_VERSION, MOVE_TO_ROOT_TABLE, MOVE_DELETE_MARKERS, LOGGING_TO_HDFS}) {
+    for (int i : new int[] {DATA_VERSION, MOVE_TO_ROOT_TABLE, MOVE_DELETE_MARKERS, LOGGING_TO_HDFS}) {
       CAN_UPGRADE.set(i);
     }
   }
@@ -165,10 +164,6 @@ public class ServerConstants {
   public static Path getDataVersionLocation(Volume v) {
     // all base dirs should have the same version, so can choose any one
     return v.prefixChild(VERSION_DIR);
-  }
-
-  public static String[] getMetadataTableDirs() {
-    return VolumeConfiguration.prefix(getTablesDirs(), MetadataTable.ID);
   }
 
   public static synchronized List<Pair<Path,Path>> getVolumeReplacements() {

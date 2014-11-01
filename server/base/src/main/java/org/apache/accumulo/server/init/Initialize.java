@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.server.init;
 
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -51,13 +55,12 @@ import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
@@ -144,8 +147,8 @@ public class Initialize {
     initialMetadataConf.put(Property.TABLE_FAILURES_IGNORE.getKey(), "false");
     initialMetadataConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "tablet",
         String.format("%s,%s", TabletsSection.TabletColumnFamily.NAME, TabletsSection.CurrentLocationColumnFamily.NAME));
-    initialMetadataConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "server", String.format("%s,%s,%s,%s", DataFileColumnFamily.NAME,
-        LogColumnFamily.NAME, TabletsSection.ServerColumnFamily.NAME, TabletsSection.FutureLocationColumnFamily.NAME));
+    initialMetadataConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "server", String.format("%s,%s,%s,%s", TabletsSection.DataFileColumnFamily.NAME,
+        TabletsSection.LogColumnFamily.NAME, TabletsSection.ServerColumnFamily.NAME, TabletsSection.FutureLocationColumnFamily.NAME));
     initialMetadataConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "tablet,server");
     initialMetadataConf.put(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey(), "");
     initialMetadataConf.put(Property.TABLE_INDEXCACHE_ENABLED.getKey(), "true");
@@ -189,24 +192,27 @@ public class Initialize {
     return true;
   }
 
-  @SuppressWarnings("deprecation")
   static void printInitializeFailureMessages(SiteConfiguration sconf) {
-    String instanceDfsDir = sconf.get(Property.INSTANCE_DFS_DIR);
+    @SuppressWarnings("deprecation")
+    Property INSTANCE_DFS_DIR = Property.INSTANCE_DFS_DIR;
+    @SuppressWarnings("deprecation")
+    Property INSTANCE_DFS_URI = Property.INSTANCE_DFS_URI;
+    String instanceDfsDir = sconf.get(INSTANCE_DFS_DIR);
     log.fatal("It appears the directories " + Arrays.asList(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance()))
         + " were previously initialized.");
     String instanceVolumes = sconf.get(Property.INSTANCE_VOLUMES);
-    String instanceDfsUri = sconf.get(Property.INSTANCE_DFS_URI);
+    String instanceDfsUri = sconf.get(INSTANCE_DFS_URI);
 
     if (!instanceVolumes.isEmpty()) {
       log.fatal("Change the property " + Property.INSTANCE_VOLUMES + " to use different filesystems,");
     } else if (!instanceDfsDir.isEmpty()) {
-      log.fatal("Change the property " + Property.INSTANCE_DFS_URI + " to use a different filesystem,");
+      log.fatal("Change the property " + INSTANCE_DFS_URI + " to use a different filesystem,");
     } else {
       log.fatal("You are using the default URI for the filesystem. Set the property " + Property.INSTANCE_VOLUMES + " to use a different filesystem,");
     }
-    log.fatal("or change the property " + Property.INSTANCE_DFS_DIR + " to use a different directory.");
-    log.fatal("The current value of " + Property.INSTANCE_DFS_URI + " is |" + instanceDfsUri + "|");
-    log.fatal("The current value of " + Property.INSTANCE_DFS_DIR + " is |" + instanceDfsDir + "|");
+    log.fatal("or change the property " + INSTANCE_DFS_DIR + " to use a different directory.");
+    log.fatal("The current value of " + INSTANCE_DFS_URI + " is |" + instanceDfsUri + "|");
+    log.fatal("The current value of " + INSTANCE_DFS_DIR + " is |" + instanceDfsDir + "|");
     log.fatal("The current value of " + Property.INSTANCE_VOLUMES + " is |" + instanceVolumes + "|");
   }
 
@@ -233,18 +239,18 @@ public class Initialize {
     UUID uuid = UUID.randomUUID();
     // the actual disk locations of the root table and tablets
     String[] configuredVolumes = VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance());
-    final Path rootTablet = new Path(fs.choose(configuredVolumes) + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + RootTable.ID
-        + RootTable.ROOT_TABLET_LOCATION);
+    final String rootTabletDir = new Path(fs.choose(configuredVolumes) + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + RootTable.ID
+        + RootTable.ROOT_TABLET_LOCATION).toString();
 
     try {
-      initZooKeeper(opts, uuid.toString(), instanceNamePath, rootTablet);
+      initZooKeeper(opts, uuid.toString(), instanceNamePath, rootTabletDir);
     } catch (Exception e) {
       log.fatal("Failed to initialize zookeeper", e);
       return false;
     }
 
     try {
-      initFileSystem(opts, fs, uuid, rootTablet);
+      initFileSystem(opts, fs, uuid, rootTabletDir);
     } catch (Exception e) {
       log.fatal("Failed to initialize filesystem", e);
 
@@ -256,7 +262,7 @@ public class Initialize {
 
         // Try to determine when we couldn't find an appropriate core-site.xml on the classpath
         if (defaultFsUri.equals(fsDefaultName) && defaultFsUri.equals(fsDefaultFS)) {
-          log.fatal("Default filesystem value ('fs.defaultFS' or 'fs.default.name') was found in the Hadoop configuration");
+          log.fatal("Default filesystem value ('fs.defaultFS' or 'fs.default.name') of '" + defaultFsUri + "' was found in the Hadoop configuration");
           log.fatal("Please ensure that the Hadoop core-site.xml is on the classpath using 'general.classpaths' in accumulo-site.xml");
         }
       }
@@ -283,14 +289,6 @@ public class Initialize {
     }
   }
 
-  private static Path[] paths(String[] paths) {
-    Path[] result = new Path[paths.length];
-    for (int i = 0; i < paths.length; i++) {
-      result[i] = new Path(paths[i]);
-    }
-    return result;
-  }
-
   private static void initDirs(VolumeManager fs, UUID uuid, String[] baseDirs, boolean print) throws IOException {
     for (String baseDir : baseDirs) {
       fs.mkdirs(new Path(new Path(baseDir, ServerConstants.VERSION_DIR), "" + ServerConstants.DATA_VERSION));
@@ -304,153 +302,88 @@ public class Initialize {
     }
   }
 
-  // TODO Remove deprecation warning suppression when Hadoop1 support is dropped
-  @SuppressWarnings("deprecation")
-  private static void initFileSystem(Opts opts, VolumeManager fs, UUID uuid, Path rootTablet) throws IOException {
-    FileStatus fstat;
-
+  private static void initFileSystem(Opts opts, VolumeManager fs, UUID uuid, String rootTabletDir) throws IOException {
     initDirs(fs, uuid, VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance()), false);
 
-    // the actual disk locations of the metadata table and tablets
-    final Path[] metadataTableDirs = paths(ServerConstants.getMetadataTableDirs());
+    // initialize initial metadata config in zookeeper
+    initMetadataConfig();
 
     String tableMetadataTabletDir = fs.choose(ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID
         + TABLE_TABLETS_TABLET_DIR;
     String defaultMetadataTabletDir = fs.choose(ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID
         + Constants.DEFAULT_TABLET_LOCATION;
 
-    // initialize initial metadata config in zookeeper
-    initMetadataConfig();
-
-    // create metadata table
-    for (Path mtd : metadataTableDirs) {
-      try {
-        fstat = fs.getFileStatus(mtd);
-        if (!fstat.isDir()) {
-          log.fatal("location " + mtd.toString() + " exists but is not a directory");
-          return;
-        }
-      } catch (FileNotFoundException fnfe) {
-        if (!fs.mkdirs(mtd)) {
-          log.fatal("unable to create directory " + mtd.toString());
-          return;
-        }
-      }
-    }
-
-    // create root table and tablet
-    try {
-      fstat = fs.getFileStatus(rootTablet);
-      if (!fstat.isDir()) {
-        log.fatal("location " + rootTablet.toString() + " exists but is not a directory");
-        return;
-      }
-    } catch (FileNotFoundException fnfe) {
-      if (!fs.mkdirs(rootTablet)) {
-        log.fatal("unable to create directory " + rootTablet.toString());
-        return;
-      }
-    }
-
-    // populate the root tablet with info about the default tablet
-    // the root tablet contains the key extent and locations of all the
-    // metadata tablets
-    initializeTableData(fs, MetadataTable.ID, rootTablet.toString(), tableMetadataTabletDir, defaultMetadataTabletDir);
-
-    createDirectories(fs, tableMetadataTabletDir, defaultMetadataTabletDir);
-  }
-
-  @SuppressWarnings("deprecation")
-  private static void createDirectories(VolumeManager fs, String... directories) throws IOException {
     // create table and default tablets directories
-    FileStatus fstat;
-    for (String s : directories) {
-      Path dir = new Path(s);
-      try {
-        fstat = fs.getFileStatus(dir);
-        if (!fstat.isDir()) {
-          log.fatal("location " + dir.toString() + " exists but is not a directory");
-          return;
-        }
-      } catch (FileNotFoundException fnfe) {
-        try {
-          fstat = fs.getFileStatus(dir);
-          if (!fstat.isDir()) {
-            log.fatal("location " + dir.toString() + " exists but is not a directory");
-            return;
-          }
-        } catch (FileNotFoundException fnfe2) {
-          // create table info dir
-          if (!fs.mkdirs(dir)) {
-            log.fatal("unable to create directory " + dir.toString());
-            return;
-          }
-        }
+    createDirectories(fs, rootTabletDir, tableMetadataTabletDir, defaultMetadataTabletDir);
 
-        // create default dir
-        if (!fs.mkdirs(dir)) {
-          log.fatal("unable to create directory " + dir.toString());
-          return;
-        }
-      }
-    }
+    // populate the root tablet with info about the metadata tablets
+    String fileName = rootTabletDir + Path.SEPARATOR + "00000_00000." + FileOperations.getNewFileExtension(AccumuloConfiguration.getDefaultConfiguration());
+    createMetadataFile(fs, fileName, MetadataTable.ID, tableMetadataTabletDir, defaultMetadataTabletDir);
   }
+
   /**
-   * Create an rfile in the default tablet's directory for a new table
-   * @param volmanager The VolumeManager
-   * @param tableId TableID that is being "created"
-   * @param targetTabletDir Directory where the rfile should created in
-   * @param tableTabletDir The table_info directory for the new table
-   * @param defaultTabletDir The default_tablet directory for the new table
+   * Create an rfile in the default tablet's directory for a new table. This method is used to create the initial root tablet contents, with information about
+   * the metadata table's tablets
+   *
+   * @param volmanager
+   *          The VolumeManager
+   * @param fileName
+   *          The location to create the file
+   * @param tableId
+   *          TableID that is being "created"
+   * @param tableTabletDir
+   *          The table_info directory for the new table
+   * @param defaultTabletDir
+   *          The default_tablet directory for the new table
    */
-  private static void initializeTableData(VolumeManager volmanager, String tableId, String targetTabletDir, String tableTabletDir, String defaultTabletDir) throws IOException {
-    // populate the root tablet with info about the default tablet
-    // the root tablet contains the key extent and locations of all the
-    // metadata tablets
-    String initTabFile = targetTabletDir + "/00000_00000." + FileOperations.getNewFileExtension(AccumuloConfiguration.getDefaultConfiguration());
-    FileSystem fs = volmanager.getVolumeByPath(new Path(initTabFile)).getFileSystem();
-    FileSKVWriter tabletWriter = FileOperations.getInstance().openWriter(initTabFile, fs, fs.getConf(), AccumuloConfiguration.getDefaultConfiguration());
+  private static void createMetadataFile(VolumeManager volmanager, String fileName, String tableId, String tableTabletDir, String defaultTabletDir)
+      throws IOException {
+    FileSystem fs = volmanager.getVolumeByPath(new Path(fileName)).getFileSystem();
+    FileSKVWriter tabletWriter = FileOperations.getInstance().openWriter(fileName, fs, fs.getConf(), AccumuloConfiguration.getDefaultConfiguration());
     tabletWriter.startDefaultLocalityGroup();
 
-    Text tableExtent = new Text(KeyExtent.getMetadataEntry(new Text(tableId), MetadataSchema.TabletsSection.getRange().getEndKey().getRow()));
-
-    // table tablet's directory
-    Key tableDirKey = new Key(tableExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
-        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
-    tabletWriter.append(tableDirKey, new Value(defaultTabletDir.getBytes(StandardCharsets.UTF_8)));
-
-    // table tablet time
-    Key tableTimeKey = new Key(tableExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
-        TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
-    tabletWriter.append(tableTimeKey, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes(StandardCharsets.UTF_8)));
-
-    // table tablet's prevrow
-    Key tablePrevRowKey = new Key(tableExtent, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
-        TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
-    tabletWriter.append(tablePrevRowKey, KeyExtent.encodePrevEndRow(null));
-
-    // ----------] default tablet info
-    Text defaultExtent = new Text(KeyExtent.getMetadataEntry(new Text(tableId), null));
-
-    // default's directory
-    Key defaultDirKey = new Key(defaultExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
-        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
-    tabletWriter.append(defaultDirKey, new Value(defaultTabletDir.getBytes(StandardCharsets.UTF_8)));
-
-    // default's time
-    Key defaultTimeKey = new Key(defaultExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
-        TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
-    tabletWriter.append(defaultTimeKey, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes(StandardCharsets.UTF_8)));
-
-    // default's prevrow
-    Key defaultPrevRowKey = new Key(defaultExtent, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
-        TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
-    tabletWriter.append(defaultPrevRowKey, KeyExtent.encodePrevEndRow(MetadataSchema.TabletsSection.getRange().getEndKey().getRow()));
+    Text splitPoint = TabletsSection.getRange().getEndKey().getRow();
+    createEntriesForTablet(tabletWriter, tableId, tableTabletDir, null, splitPoint);
+    createEntriesForTablet(tabletWriter, tableId, defaultTabletDir, splitPoint, null);
 
     tabletWriter.close();
   }
 
-  private static void initZooKeeper(Opts opts, String uuid, String instanceNamePath, Path rootTablet) throws KeeperException, InterruptedException {
+  private static void createEntriesForTablet(FileSKVWriter writer, String tableId, String tabletDir, Text tabletPrevEndRow, Text tabletEndRow)
+      throws IOException {
+    Text extent = new Text(KeyExtent.getMetadataEntry(new Text(tableId), tabletEndRow));
+    addEntry(writer, extent, DIRECTORY_COLUMN, new Value(tabletDir.getBytes(StandardCharsets.UTF_8)));
+    addEntry(writer, extent, TIME_COLUMN, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes(StandardCharsets.UTF_8)));
+    addEntry(writer, extent, PREV_ROW_COLUMN, KeyExtent.encodePrevEndRow(tabletPrevEndRow));
+  }
+
+  private static void addEntry(FileSKVWriter writer, Text row, ColumnFQ col, Value value) throws IOException {
+    writer.append(new Key(row, col.getColumnFamily(), col.getColumnQualifier(), 0), value);
+  }
+
+  private static void createDirectories(VolumeManager fs, String... dirs) throws IOException {
+    for (String s : dirs) {
+      Path dir = new Path(s);
+      try {
+        FileStatus fstat = fs.getFileStatus(dir);
+        // TODO Remove deprecation warning suppression when Hadoop1 support is dropped
+        @SuppressWarnings("deprecation")
+        boolean isDirectory = fstat.isDir();
+        if (!isDirectory) {
+          log.fatal("location " + dir + " exists but is not a directory");
+          return;
+        }
+      } catch (FileNotFoundException fnfe) {
+        // attempt to create directory, since it doesn't exist
+        if (!fs.mkdirs(dir)) {
+          log.fatal("unable to create directory " + dir);
+          return;
+        }
+      }
+    }
+  }
+
+  private static void initZooKeeper(Opts opts, String uuid, String instanceNamePath, String rootTabletDir) throws KeeperException, InterruptedException {
     // setup basic data in zookeeper
     zoo.putPersistentData(Constants.ZROOT, new byte[0], -1, NodeExistsPolicy.SKIP, Ids.OPEN_ACL_UNSAFE);
     zoo.putPersistentData(Constants.ZROOT + Constants.ZINSTANCES, new byte[0], -1, NodeExistsPolicy.SKIP, Ids.OPEN_ACL_UNSAFE);
@@ -475,11 +408,12 @@ public class Initialize {
     zoo.putPersistentData(zkInstanceRoot + Constants.ZPROBLEMS, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + RootTable.ZROOT_TABLET, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + RootTable.ZROOT_TABLET_WALOGS, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + RootTable.ZROOT_TABLET_PATH, rootTablet.toString().getBytes(), NodeExistsPolicy.FAIL);
+    zoo.putPersistentData(zkInstanceRoot + RootTable.ZROOT_TABLET_PATH, rootTabletDir.getBytes(StandardCharsets.UTF_8), NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTRACERS, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZMASTERS, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZMASTER_LOCK, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZMASTER_GOAL_STATE, MasterGoalState.NORMAL.toString().getBytes(StandardCharsets.UTF_8), NodeExistsPolicy.FAIL);
+    zoo.putPersistentData(zkInstanceRoot + Constants.ZMASTER_GOAL_STATE, MasterGoalState.NORMAL.toString().getBytes(StandardCharsets.UTF_8),
+        NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZGC, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZGC_LOCK, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZCONFIG, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
@@ -550,7 +484,7 @@ public class Initialize {
         opts.rootpass);
   }
 
-  public static void initMetadataConfig(String tableId) throws IOException {
+  public static void initMetadataConfig() throws IOException {
     try {
       Configuration conf = CachedConfiguration.getInstance();
       int max = conf.getInt("dfs.replication.max", 512);
@@ -570,16 +504,10 @@ public class Initialize {
       log.fatal("error talking to zookeeper", e);
       throw new IOException(e);
     }
-  }
-
-  protected static void initMetadataConfig() throws IOException {
-    initMetadataConfig(RootTable.ID);
-    initMetadataConfig(MetadataTable.ID);
-
     // ACCUMULO-3077 Set the combiner on accumulo.metadata during init to reduce the likelihood of a race
     // condition where a tserver compacts away Status updates because it didn't see the Combiner configured
     IteratorSetting setting = new IteratorSetting(9, ReplicationTableUtil.COMBINER_NAME, StatusCombiner.class);
-    Combiner.setColumns(setting, Collections.singletonList(new Column(MetadataSchema.ReplicationSection.COLF)));
+    Combiner.setColumns(setting, Collections.singletonList(new Column(ReplicationSection.COLF)));
     try {
       for (IteratorScope scope : IteratorScope.values()) {
         String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), setting.getName());
@@ -617,8 +545,7 @@ public class Initialize {
 
   private static void addVolumes(VolumeManager fs) throws IOException {
     HashSet<String> initializedDirs = new HashSet<String>();
-    initializedDirs
-        .addAll(Arrays.asList(ServerConstants.checkBaseUris(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance()), true)));
+    initializedDirs.addAll(Arrays.asList(ServerConstants.checkBaseUris(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance()), true)));
 
     HashSet<String> uinitializedDirs = new HashSet<String>();
     uinitializedDirs.addAll(Arrays.asList(VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance())));
