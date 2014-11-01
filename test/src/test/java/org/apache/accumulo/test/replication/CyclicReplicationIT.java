@@ -44,6 +44,7 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ProcessReference;
+import org.apache.accumulo.minicluster.impl.ZooKeeperBindException;
 import org.apache.accumulo.test.functional.AbstractMacIT;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem;
@@ -74,7 +75,7 @@ public class CyclicReplicationIT {
     } catch (NumberFormatException exception) {
       log.warn("Could not parse timeout.factor, not scaling timeout");
     }
-    
+
     return new Timeout(scalingFactor * 5 * 60 * 1000);
   }
 
@@ -146,38 +147,57 @@ public class CyclicReplicationIT {
     File master1Dir = createTestDir("master1"), master2Dir = createTestDir("master2");
     String password = "password";
 
-    MiniAccumuloConfigImpl master1Cfg = new MiniAccumuloConfigImpl(master1Dir, password);
-    master1Cfg.setNumTservers(1);
-    master1Cfg.setInstanceName("master1");
+    MiniAccumuloConfigImpl master1Cfg;
+    MiniAccumuloClusterImpl master1Cluster;
+    while (true) {
+      master1Cfg= new MiniAccumuloConfigImpl(master1Dir, password);
+      master1Cfg.setNumTservers(1);
+      master1Cfg.setInstanceName("master1");
 
-    // Set up SSL if needed
-    AbstractMacIT.configureForEnvironment(master1Cfg, AbstractMacIT.createSharedTestDir(this.getClass().getName() + "-ssl"));
+      // Set up SSL if needed
+      AbstractMacIT.configureForEnvironment(master1Cfg, AbstractMacIT.createSharedTestDir(this.getClass().getName() + "-ssl"));
 
-    master1Cfg.setProperty(Property.REPLICATION_NAME, master1Cfg.getInstanceName());
-    master1Cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
-    master1Cfg.setProperty(Property.REPLICATION_THREADCHECK, "5m");
-    master1Cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
-    master1Cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
-    MiniAccumuloClusterImpl master1Cluster = master1Cfg.build();
-    setCoreSite(master1Cluster);
+      master1Cfg.setProperty(Property.REPLICATION_NAME, master1Cfg.getInstanceName());
+      master1Cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
+      master1Cfg.setProperty(Property.REPLICATION_THREADCHECK, "5m");
+      master1Cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
+      master1Cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
+      master1Cluster = master1Cfg.build();
+      setCoreSite(master1Cluster);
 
-    MiniAccumuloConfigImpl master2Cfg = new MiniAccumuloConfigImpl(master2Dir, password);
-    master2Cfg.setNumTservers(1);
-    master2Cfg.setInstanceName("master2");
+      try {
+        master1Cluster.start();
+        break;
+      } catch (ZooKeeperBindException e) {
+        log.warn("Failed to start ZooKeeper on " + master1Cfg.getZooKeeperPort() + ", will retry");
+      }
+    }
 
-    // Set up SSL if needed. Need to share the same SSL truststore as master1
-    this.updatePeerConfigFromPrimary(master1Cfg, master2Cfg);
+    MiniAccumuloConfigImpl master2Cfg;
+    MiniAccumuloClusterImpl master2Cluster;
+    while (true) {
+      master2Cfg = new MiniAccumuloConfigImpl(master2Dir, password);
+      master2Cfg.setNumTservers(1);
+      master2Cfg.setInstanceName("master2");
 
-    master2Cfg.setProperty(Property.REPLICATION_NAME, master2Cfg.getInstanceName());
-    master2Cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
-    master2Cfg.setProperty(Property.REPLICATION_THREADCHECK, "5m");
-    master2Cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
-    master2Cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
-    MiniAccumuloClusterImpl master2Cluster = master2Cfg.build();
-    setCoreSite(master2Cluster);
+      // Set up SSL if needed. Need to share the same SSL truststore as master1
+      this.updatePeerConfigFromPrimary(master1Cfg, master2Cfg);
 
-    master1Cluster.start();
-    master2Cluster.start();
+      master2Cfg.setProperty(Property.REPLICATION_NAME, master2Cfg.getInstanceName());
+      master2Cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
+      master2Cfg.setProperty(Property.REPLICATION_THREADCHECK, "5m");
+      master2Cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
+      master2Cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
+      master2Cluster = master2Cfg.build();
+      setCoreSite(master2Cluster);
+
+      try {
+        master2Cluster.start();
+        break;
+      } catch (ZooKeeperBindException e) {
+        log.warn("Failed to start ZooKeeper on " + master2Cfg.getZooKeeperPort() + ", will retry");
+      }
+    }
 
     try {
       Connector connMaster1 = master1Cluster.getConnector("root", password), connMaster2 = master2Cluster.getConnector("root", password);
