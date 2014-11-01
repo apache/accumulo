@@ -83,6 +83,7 @@ public class SimpleMacIT extends AbstractMacIT {
     MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(folder, ROOT_PASSWORD);
     cfg.setNativeLibPaths(NativeMapIT.nativeMapLocation().getAbsolutePath());
     cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.TRUE.toString());
+    cfg.setProperty(Property.GC_FILE_ARCHIVE, Boolean.TRUE.toString());
     configureForEnvironment(cfg, createSharedTestDir(SimpleMacIT.class.getName() + "-ssl"));
     cluster = new MiniAccumuloClusterImpl(cfg);
   }
