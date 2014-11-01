@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,7 +26,6 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.log4j.Logger;
 
 /**
@@ -310,7 +311,7 @@ class ConfigurationDocGen {
       int n;
       try {
         while ((n = data.read(buffer)) > 0)
-          doc.print(new String(buffer, 0, n, Constants.UTF8));
+          doc.print(new String(buffer, 0, n, UTF_8));
       } catch (IOException e) {
         e.printStackTrace();
         return;
@@ -345,9 +346,9 @@ class ConfigurationDocGen {
    */
   public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException {
     if (args.length == 2 && args[0].equals("--generate-html")) {
-      new ConfigurationDocGen(new PrintStream(args[1], Constants.UTF8.name())).generateHtml();
+      new ConfigurationDocGen(new PrintStream(args[1], UTF_8.name())).generateHtml();
     } else if (args.length == 2 && args[0].equals("--generate-latex")) {
-      new ConfigurationDocGen(new PrintStream(args[1], Constants.UTF8.name())).generateLaTeX();
+      new ConfigurationDocGen(new PrintStream(args[1], UTF_8.name())).generateLaTeX();
     } else {
       throw new IllegalArgumentException("Usage: " + ConfigurationDocGen.class.getName() + " --generate-html <filename> | --generate-latex <filename>");
     }

@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.conf;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -85,7 +87,7 @@ public class NamespaceConfigurationTest {
   public void testGet_InZK() {
     Property p = Property.INSTANCE_SECRET;
     expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF + "/" + p.getKey())).andReturn(
-        "sekrit".getBytes(Constants.UTF8));
+        "sekrit".getBytes(UTF_8));
     replay(zc);
     assertEquals("sekrit", c.get(Property.INSTANCE_SECRET));
   }
@@ -122,9 +124,9 @@ public class NamespaceConfigurationTest {
     children.add("ding");
     expect(zc.getChildren(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF)).andReturn(children);
     expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF + "/" + "foo")).andReturn(
-        "bar".getBytes(Constants.UTF8));
+        "bar".getBytes(UTF_8));
     expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF + "/" + "ding")).andReturn(
-        "dong".getBytes(Constants.UTF8));
+        "dong".getBytes(UTF_8));
     replay(zc);
     c.getProperties(props, filter);
     assertEquals(2, props.size());
@@ -149,7 +151,7 @@ public class NamespaceConfigurationTest {
     // need to do a get so the accessor is created
     Property p = Property.INSTANCE_SECRET;
     expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF + "/" + p.getKey())).andReturn(
-        "sekrit".getBytes(Constants.UTF8));
+        "sekrit".getBytes(UTF_8));
     zc.clear();
     replay(zc);
     c.get(Property.INSTANCE_SECRET);

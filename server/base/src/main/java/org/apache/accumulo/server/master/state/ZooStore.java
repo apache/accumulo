@@ -16,10 +16,11 @@
  */
 package org.apache.accumulo.server.master.state;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -75,7 +76,7 @@ public class ZooStore implements DistributedStore {
       path = relative(path);
       ZooReaderWriter.getInstance().putPersistentData(path, bs, NodeExistsPolicy.OVERWRITE);
       cache.clear();
-      log.debug("Wrote " + new String(bs, Constants.UTF8) + " to " + path);
+      log.debug("Wrote " + new String(bs, UTF_8) + " to " + path);
     } catch (Exception ex) {
       throw new DistributedStoreException(ex);
     }

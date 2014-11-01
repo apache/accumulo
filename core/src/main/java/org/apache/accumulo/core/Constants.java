@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
@@ -23,8 +25,15 @@ import java.util.Collections;
 
 import org.apache.accumulo.core.security.Authorizations;
 
+import com.google.common.base.Charsets;
+
 public class Constants {
-  public static final Charset UTF8 = Charset.forName("UTF-8");
+  /**
+   * @deprecated since 1.5.3, 1.6.2; statically import Guava's {@link Charsets#UTF_8} or Java 7's built-in StandardCharsets.UTF_8 or use
+   *             {@link Charset#forName(String)} with "UTF-8" instead
+   */
+  @Deprecated
+  public static final Charset UTF8 = UTF_8;
   public static final String VERSION = FilteredConstants.VERSION;
 
   // Zookeeper locations
@@ -89,7 +98,7 @@ public class Constants {
   public static final String BULK_PREFIX = "b-";
 
   public static final String CLONE_PREFIX = "c-";
-  public static final byte[] CLONE_PREFIX_BYTES = CLONE_PREFIX.getBytes(UTF8);
+  public static final byte[] CLONE_PREFIX_BYTES = CLONE_PREFIX.getBytes(UTF_8);
 
   // this affects the table client caching of metadata
   public static final int SCAN_BATCH_SIZE = 1000;

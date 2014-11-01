@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
@@ -26,7 +27,6 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.Constants;
 import org.junit.Test;
 
 /**
@@ -147,7 +147,7 @@ public class BatchWriterConfigTest {
     bwConfig = new BatchWriterConfig();
     bwConfig.setMaxWriteThreads(42);
     bytes = createBytes(bwConfig);
-    assertEquals("     i#maxWriteThreads=42", new String(bytes, Constants.UTF8));
+    assertEquals("     i#maxWriteThreads=42", new String(bytes, UTF_8));
     checkBytes(bwConfig, bytes);
     
     // test human-readable with 2 fields
@@ -155,7 +155,7 @@ public class BatchWriterConfigTest {
     bwConfig.setMaxWriteThreads(24);
     bwConfig.setTimeout(3, TimeUnit.SECONDS);
     bytes = createBytes(bwConfig);
-    assertEquals("     v#maxWriteThreads=24,timeout=3000", new String(bytes, Constants.UTF8));
+    assertEquals("     v#maxWriteThreads=24,timeout=3000", new String(bytes, UTF_8));
     checkBytes(bwConfig, bytes);
   }
 

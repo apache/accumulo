@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.mapreduce.lib.impl;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static org.apache.accumulo.core.util.ArgumentChecker.notNull;
 
 import java.io.ByteArrayInputStream;
@@ -33,7 +34,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
@@ -152,7 +152,7 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   public static Authorizations getScanAuthorizations(Class<?> implementingClass, Configuration conf) {
     String authString = conf.get(enumToConfKey(implementingClass, ScanOpts.AUTHORIZATIONS));
-    return authString == null ? Authorizations.EMPTY : new Authorizations(authString.getBytes(Constants.UTF8));
+    return authString == null ? Authorizations.EMPTY : new Authorizations(authString.getBytes(UTF_8));
   }
 
   /**
@@ -314,8 +314,8 @@ public class InputConfigurator extends ConfiguratorBase {
 
     for (String col : serialized) {
       int idx = col.indexOf(":");
-      Text cf = new Text(idx < 0 ? Base64.decodeBase64(col.getBytes(Constants.UTF8)) : Base64.decodeBase64(col.substring(0, idx).getBytes(Constants.UTF8)));
-      Text cq = idx < 0 ? null : new Text(Base64.decodeBase64(col.substring(idx + 1).getBytes(Constants.UTF8)));
+      Text cf = new Text(idx < 0 ? Base64.decodeBase64(col.getBytes(UTF_8)) : Base64.decodeBase64(col.substring(0, idx).getBytes(UTF_8)));
+      Text cq = idx < 0 ? null : new Text(Base64.decodeBase64(col.substring(idx + 1).getBytes(UTF_8)));
       columns.add(new Pair<Text,Text>(cf, cq));
     }
     return columns;

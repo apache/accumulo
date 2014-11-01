@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.util.format;
 
-import static org.apache.accumulo.core.Constants.UTF8;
+import static com.google.common.base.Charsets.UTF_8;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.createNiceMock;
@@ -68,7 +68,7 @@ public class DeleterFormatterTest {
     }
 
     public void set(String in) {
-      bais = new ByteArrayInputStream(in.getBytes(UTF8));
+      bais = new ByteArrayInputStream(in.getBytes(UTF_8));
     }
   };
 
@@ -94,7 +94,7 @@ public class DeleterFormatterTest {
     replay(writer, exceptionWriter, shellState);
 
     data = new TreeMap<Key,Value>();
-    data.put(new Key("r", "cf", "cq"), new Value("value".getBytes(UTF8)));
+    data.put(new Key("r", "cf", "cq"), new Value("value".getBytes(UTF_8)));
   }
 
   @Test
@@ -116,7 +116,7 @@ public class DeleterFormatterTest {
   @Test
   public void testNo() throws IOException {
     input.set("no\n");
-    data.put(new Key("z"), new Value("v2".getBytes(UTF8)));
+    data.put(new Key("z"), new Value("v2".getBytes(UTF_8)));
     formatter = new DeleterFormatter(writer, data.entrySet(), true, shellState, false);
 
     assertTrue(formatter.hasNext());
@@ -130,7 +130,7 @@ public class DeleterFormatterTest {
   @Test
   public void testNoConfirmation() throws IOException {
     input.set("");
-    data.put(new Key("z"), new Value("v2".getBytes(UTF8)));
+    data.put(new Key("z"), new Value("v2".getBytes(UTF_8)));
     formatter = new DeleterFormatter(writer, data.entrySet(), true, shellState, false);
 
     assertTrue(formatter.hasNext());
@@ -144,7 +144,7 @@ public class DeleterFormatterTest {
   @Test
   public void testYes() throws IOException {
     input.set("y\nyes\n");
-    data.put(new Key("z"), new Value("v2".getBytes(UTF8)));
+    data.put(new Key("z"), new Value("v2".getBytes(UTF_8)));
     formatter = new DeleterFormatter(writer, data.entrySet(), true, shellState, false);
 
     assertTrue(formatter.hasNext());

@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
-import java.nio.charset.Charset;
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -33,7 +34,6 @@ import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 
 public class ZooLock implements Watcher {
-  private static final Charset UTF8 = Charset.forName("UTF-8");
   protected static final Logger log = Logger.getLogger(ZooLock.class);
   
   public static final String LOCK_PREFIX = "zlock-";
@@ -529,7 +529,7 @@ public class ZooLock implements Watcher {
     
     byte[] data = zk.getData(path + "/" + lockNode, null);
     
-    if (lockData.equals(new String(data, UTF8))) {
+    if (lockData.equals(new String(data, UTF_8))) {
       zk.recursiveDelete(path + "/" + lockNode, NodeMissingPolicy.FAIL);
       return true;
     }

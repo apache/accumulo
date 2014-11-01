@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.tablets;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.Random;
 
 import org.apache.accumulo.core.Constants;
@@ -50,13 +52,13 @@ public class UniqueNameAllocator {
       try {
         byte[] max = ZooReaderWriter.getInstance().mutate(nextNamePath, null, ZooUtil.PRIVATE, new ZooReaderWriter.Mutator() {
           public byte[] mutate(byte[] currentValue) throws Exception {
-            long l = Long.parseLong(new String(currentValue, Constants.UTF8), Character.MAX_RADIX);
+            long l = Long.parseLong(new String(currentValue, UTF_8), Character.MAX_RADIX);
             l += allocate;
-            return Long.toString(l, Character.MAX_RADIX).getBytes(Constants.UTF8);
+            return Long.toString(l, Character.MAX_RADIX).getBytes(UTF_8);
           }
         });
         
-        maxAllocated = Long.parseLong(new String(max, Constants.UTF8), Character.MAX_RADIX);
+        maxAllocated = Long.parseLong(new String(max, UTF_8), Character.MAX_RADIX);
         next = maxAllocated - allocate;
         
       } catch (Exception e) {
@@ -64,7 +66,7 @@ public class UniqueNameAllocator {
       }
     }
     
-    return new String(FastFormat.toZeroPaddedString(next++, 7, Character.MAX_RADIX, new byte[0]), Constants.UTF8);
+    return new String(FastFormat.toZeroPaddedString(next++, 7, Character.MAX_RADIX, new byte[0]), UTF_8);
   }
   
   private static UniqueNameAllocator instance = null;

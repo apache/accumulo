@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.randomwalk.bulk;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -23,7 +25,6 @@ import java.util.Properties;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
@@ -139,7 +140,7 @@ public class Verify extends Test {
   }
   
   private static void report(Text startBadRow, Text lastBadRow, Value value) {
-    System.out.println("Bad value " + new String(value.get(), Constants.UTF8));
+    System.out.println("Bad value " + new String(value.get(), UTF_8));
     System.out.println(" Range [" + startBadRow + " -> " + lastBadRow + "]");
   }
   

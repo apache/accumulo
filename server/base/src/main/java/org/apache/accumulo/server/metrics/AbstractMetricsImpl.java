@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.metrics;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -30,7 +32,6 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.StandardMBean;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 import org.apache.commons.lang.time.DateUtils;
@@ -198,7 +199,7 @@ public abstract class AbstractMetricsImpl {
         return;
       }
     }
-    logWriter = new OutputStreamWriter(new FileOutputStream(logFile, true), Constants.UTF8);
+    logWriter = new OutputStreamWriter(new FileOutputStream(logFile, true), UTF_8);
   }
   
   private void writeToLog(String name) throws IOException {

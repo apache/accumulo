@@ -17,12 +17,13 @@
  */
 package org.apache.accumulo.core.data;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.util.List;
 
 import org.junit.Before;
@@ -33,7 +34,7 @@ import static org.junit.Assert.*;
 
 public class ValueTest {
   private static final byte[] toBytes(String s) {
-    return s.getBytes(Charset.forName("UTF-8"));
+    return s.getBytes(UTF_8);
   }
 
   private static final byte[] DATA = toBytes("data");

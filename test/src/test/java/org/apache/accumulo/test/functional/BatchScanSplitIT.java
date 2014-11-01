@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -23,7 +25,6 @@ import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.Random;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -64,7 +65,7 @@ public class BatchScanSplitIT extends ConfigurableMacIT {
 
     for (int i = 0; i < numRows; i++) {
       Mutation m = new Mutation(new Text(String.format("%09x", i)));
-      m.put(new Text("cf1"), new Text("cq1"), new Value(String.format("%016x", numRows - i).getBytes(Constants.UTF8)));
+      m.put(new Text("cf1"), new Text("cq1"), new Value(String.format("%016x", numRows - i).getBytes(UTF_8)));
       bw.addMutation(m);
     }
 
@@ -88,7 +89,7 @@ public class BatchScanSplitIT extends ConfigurableMacIT {
     for (int i = 0; i < 100; i++) {
       int r = random.nextInt(numRows);
       Text row = new Text(String.format("%09x", r));
-      expected.put(row, new Value(String.format("%016x", numRows - r).getBytes(Constants.UTF8)));
+      expected.put(row, new Value(String.format("%016x", numRows - r).getBytes(UTF_8)));
       ranges.add(new Range(row));
     }
 

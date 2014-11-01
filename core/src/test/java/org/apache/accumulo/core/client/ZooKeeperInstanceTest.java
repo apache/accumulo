@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
@@ -83,7 +84,7 @@ public class ZooKeeperInstanceTest {
 
   @Test
   public void testGetInstanceID_FromCache() {
-    expect(zc.get(Constants.ZROOT + Constants.ZINSTANCES + "/instance")).andReturn(IID_STRING.getBytes(Constants.UTF8));
+    expect(zc.get(Constants.ZROOT + Constants.ZINSTANCES + "/instance")).andReturn(IID_STRING.getBytes(UTF_8));
     expect(zc.get(Constants.ZROOT + "/" + IID_STRING)).andReturn("yup".getBytes());
     replay(zc);
     assertEquals(IID_STRING, zki.getInstanceID());
@@ -109,7 +110,7 @@ public class ZooKeeperInstanceTest {
 
   @Test(expected = RuntimeException.class)
   public void testGetInstanceID_IDMissingForName() {
-    expect(zc.get(Constants.ZROOT + Constants.ZINSTANCES + "/instance")).andReturn(IID_STRING.getBytes(Constants.UTF8));
+    expect(zc.get(Constants.ZROOT + Constants.ZINSTANCES + "/instance")).andReturn(IID_STRING.getBytes(UTF_8));
     expect(zc.get(Constants.ZROOT + "/" + IID_STRING)).andReturn(null);
     replay(zc);
     zki.getInstanceID();
@@ -137,8 +138,8 @@ public class ZooKeeperInstanceTest {
     children.add("child1");
     children.add("child2");
     expect(zc.getChildren(Constants.ZROOT + Constants.ZINSTANCES)).andReturn(children);
-    expect(zc.get(Constants.ZROOT + Constants.ZINSTANCES + "/child1")).andReturn(UUID.randomUUID().toString().getBytes(Constants.UTF8));
-    expect(zc.get(Constants.ZROOT + Constants.ZINSTANCES + "/child2")).andReturn(IID_STRING.getBytes(Constants.UTF8));
+    expect(zc.get(Constants.ZROOT + Constants.ZINSTANCES + "/child1")).andReturn(UUID.randomUUID().toString().getBytes(UTF_8));
+    expect(zc.get(Constants.ZROOT + Constants.ZINSTANCES + "/child2")).andReturn(IID_STRING.getBytes(UTF_8));
     replay(zc);
     assertEquals("child2", zki.getInstanceName());
   }

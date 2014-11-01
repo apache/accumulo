@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.monitor.servlets;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -249,18 +251,18 @@ abstract public class BasicServlet extends HttpServlet {
 
   public static String encode(String s) {
     try {
-      return URLEncoder.encode(s, Constants.UTF8.name());
+      return URLEncoder.encode(s, UTF_8.name());
     } catch (UnsupportedEncodingException e) {
-      Logger.getLogger(BasicServlet.class).fatal(Constants.UTF8.name() + " is not a recognized encoding", e);
+      Logger.getLogger(BasicServlet.class).fatal(UTF_8.name() + " is not a recognized encoding", e);
       throw new AssertionError(e); // can't happen with UTF-8
     }
   }
 
   public static String decode(String s) {
     try {
-      return URLDecoder.decode(s, Constants.UTF8.name());
+      return URLDecoder.decode(s, UTF_8.name());
     } catch (UnsupportedEncodingException e) {
-      Logger.getLogger(BasicServlet.class).fatal(Constants.UTF8.name() + " is not a recognized encoding", e);
+      Logger.getLogger(BasicServlet.class).fatal(UTF_8.name() + " is not a recognized encoding", e);
       throw new AssertionError(e); // can't happen with UTF-8
     }
   }

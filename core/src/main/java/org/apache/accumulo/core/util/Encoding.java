@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.core.util;
 
-import org.apache.accumulo.core.Constants;
+import static com.google.common.base.Charsets.UTF_8;
+
 import org.apache.accumulo.core.util.Base64;
 import org.apache.hadoop.io.Text;
 
@@ -37,7 +38,7 @@ public class Encoding {
     while (node.length() % 4 != 0)
       node += "=";
     /* decode transparently handles URLSafe encodings */
-    return Base64.decodeBase64(node.getBytes(Constants.UTF8));
+    return Base64.decodeBase64(node.getBytes(UTF_8));
   }
   
 }

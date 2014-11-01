@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.client;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -83,13 +85,13 @@ public class HdfsZooInstance implements Instance {
 
     byte[] loc = zooCache.get(zRootLocPath);
 
-    opTimer.stop("Found root tablet at " + (loc == null ? null : new String(loc, Constants.UTF8)) + " in %DURATION%");
+    opTimer.stop("Found root tablet at " + (loc == null ? null : new String(loc, UTF_8)) + " in %DURATION%");
 
     if (loc == null) {
       return null;
     }
 
-    return new String(loc, Constants.UTF8).split("\\|")[0];
+    return new String(loc, UTF_8).split("\\|")[0];
   }
 
   @Override
@@ -101,13 +103,13 @@ public class HdfsZooInstance implements Instance {
 
     byte[] loc = ZooLock.getLockData(zooCache, masterLocPath, null);
 
-    opTimer.stop("Found master at " + (loc == null ? null : new String(loc, Constants.UTF8)) + " in %DURATION%");
+    opTimer.stop("Found master at " + (loc == null ? null : new String(loc, UTF_8)) + " in %DURATION%");
 
     if (loc == null) {
       return Collections.emptyList();
     }
 
-    return Collections.singletonList(new String(loc, Constants.UTF8));
+    return Collections.singletonList(new String(loc, UTF_8));
   }
 
   @Override

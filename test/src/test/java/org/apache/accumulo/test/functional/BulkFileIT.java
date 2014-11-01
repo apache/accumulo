@@ -16,12 +16,13 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -113,7 +114,7 @@ public class BulkFileIT extends SimpleMacIT {
 
   private void writeData(FileSKVWriter w, int s, int e) throws Exception {
     for (int i = s; i <= e; i++) {
-      w.append(new Key(new Text(String.format("%04d", i))), new Value(Integer.toString(i).getBytes(Constants.UTF8)));
+      w.append(new Key(new Text(String.format("%04d", i))), new Value(Integer.toString(i).getBytes(UTF_8)));
     }
   }
 

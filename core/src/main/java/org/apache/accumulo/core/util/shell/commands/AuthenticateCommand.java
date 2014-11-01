@@ -16,11 +16,12 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -38,7 +39,7 @@ public class AuthenticateCommand extends Command {
       shellState.getReader().println();
       return 0;
     } // user canceled
-    final byte[] password = p.getBytes(Constants.UTF8);
+    final byte[] password = p.getBytes(UTF_8);
     final boolean valid = shellState.getConnector().securityOperations().authenticateUser(user, new PasswordToken(password));
     shellState.getReader().println((valid ? "V" : "Not v") + "alid");
     return 0;

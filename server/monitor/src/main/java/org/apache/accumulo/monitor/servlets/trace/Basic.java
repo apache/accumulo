@@ -16,13 +16,14 @@
  */
 package org.apache.accumulo.monitor.servlets.trace;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.Date;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
@@ -74,7 +75,7 @@ abstract class Basic extends BasicServlet {
     Map<String,String> loginMap = conf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
     if (loginMap.isEmpty()) {
       Property p = Property.TRACE_PASSWORD;
-      at = new PasswordToken(conf.get(p).getBytes(Constants.UTF8));
+      at = new PasswordToken(conf.get(p).getBytes(UTF_8));
     } else {
       Properties props = new Properties();
       int prefixLength = Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey().length();

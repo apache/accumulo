@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.tserver.logger;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.IOException;
@@ -26,7 +28,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
@@ -155,7 +156,7 @@ public class LogReader {
           }
 
           if (rowMatcher != null) {
-            rowMatcher.reset(new String(m.getRow(), Constants.UTF8));
+            rowMatcher.reset(new String(m.getRow(), UTF_8));
             if (rowMatcher.matches()) {
               found = true;
               break;

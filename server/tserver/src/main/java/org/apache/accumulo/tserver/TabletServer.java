@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.tserver;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static org.apache.accumulo.server.problems.ProblemType.TABLET_LOAD;
 
 import java.io.FileNotFoundException;
@@ -1197,7 +1198,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, boolean isolated,
         long readaheadThreshold) throws NotServingTabletException, ThriftSecurityException, org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException {
 
-      String tableId = new String(textent.getTable(), Constants.UTF8);
+      String tableId = new String(textent.getTable(), UTF_8);
       if (!security.canScan(credentials, tableId, Tables.getNamespaceId(instance, tableId), range, columns, ssiList, ssio, authorizations))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
@@ -1348,7 +1349,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       // find all of the tables that need to be scanned
       HashSet<String> tables = new HashSet<String>();
       for (TKeyExtent keyExtent : tbatch.keySet()) {
-        tables.add(new String(keyExtent.getTable(), Constants.UTF8));
+        tables.add(new String(keyExtent.getTable(), UTF_8));
       }
 
       if (tables.size() != 1)
@@ -1757,7 +1758,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     public void update(TInfo tinfo, TCredentials credentials, TKeyExtent tkeyExtent, TMutation tmutation) throws NotServingTabletException,
         ConstraintViolationException, ThriftSecurityException {
 
-      String tableId = new String(tkeyExtent.getTable(), Constants.UTF8);
+      String tableId = new String(tkeyExtent.getTable(), UTF_8);
       if (!security.canWrite(credentials, tableId, Tables.getNamespaceId(instance, tableId)))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
       KeyExtent keyExtent = new KeyExtent(tkeyExtent);
@@ -3144,7 +3145,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         }
       };
 
-      byte[] lockContent = new ServerServices(getClientAddressString(), Service.TSERV_CLIENT).toString().getBytes(Constants.UTF8);
+      byte[] lockContent = new ServerServices(getClientAddressString(), Service.TSERV_CLIENT).toString().getBytes(UTF_8);
       for (int i = 0; i < 120 / 5; i++) {
         zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.SKIP);
 

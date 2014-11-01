@@ -16,10 +16,11 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.File;
 import java.util.Scanner;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -36,7 +37,7 @@ public class ExecfileCommand extends Command {
   
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
-    Scanner scanner = new Scanner(new File(cl.getArgs()[0]), Constants.UTF8.name());
+    Scanner scanner = new Scanner(new File(cl.getArgs()[0]), UTF_8.name());
     try {
       while (scanner.hasNextLine()) {
         shellState.execCommand(scanner.nextLine(), true, cl.hasOption(verboseOption.getOpt()));

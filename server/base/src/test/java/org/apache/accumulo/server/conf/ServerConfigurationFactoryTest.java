@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.conf;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.endsWith;
@@ -27,7 +28,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -61,7 +61,7 @@ public class ServerConfigurationFactoryTest {
     expect(zc.getChildren(anyObject(String.class))).andReturn(null);
     expectLastCall().anyTimes();
     // ConfigSanityCheck looks at timeout
-    expect(zc.get(endsWith("timeout"))).andReturn(("" + ZK_TIMEOUT + "ms").getBytes(Constants.UTF8));
+    expect(zc.get(endsWith("timeout"))).andReturn(("" + ZK_TIMEOUT + "ms").getBytes(UTF_8));
     replay(zc);
   }
 

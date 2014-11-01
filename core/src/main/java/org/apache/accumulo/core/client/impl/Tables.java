@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.security.SecurityPermission;
 import java.util.HashMap;
 import java.util.List;
@@ -136,7 +138,7 @@ public class Tables {
       if (nId == null) {
         namespaceName = null;
       } else {
-        String namespaceId = new String(nId, Constants.UTF8);
+        String namespaceId = new String(nId, UTF_8);
         if (!namespaceId.equals(Namespaces.DEFAULT_NAMESPACE_ID)) {
           try {
             namespaceName = namespaceIdToNameMap.get(namespaceId);
@@ -151,7 +153,7 @@ public class Tables {
         }
       }
       if (tableName != null && namespaceName != null) {
-        String tableNameStr = qualified(new String(tableName, Constants.UTF8), namespaceName);
+        String tableNameStr = qualified(new String(tableName, UTF_8), namespaceName);
         if (nameAsKey)
           tableMap.put(tableNameStr, tableId);
         else
@@ -251,7 +253,7 @@ public class Tables {
     if (state == null)
       return TableState.UNKNOWN;
 
-    return TableState.valueOf(new String(state, Constants.UTF8));
+    return TableState.valueOf(new String(state, UTF_8));
   }
 
   public static long getCacheResetCount() {
@@ -308,7 +310,7 @@ public class Tables {
       throw new IllegalArgumentException("Table with id " + tableId + " does not exist");
     }
 
-    return new String(n, Constants.UTF8);
+    return new String(n, UTF_8);
   }
 
 }

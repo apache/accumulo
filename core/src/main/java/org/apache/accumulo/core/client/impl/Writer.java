@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.core.client.impl;
 
-import org.apache.accumulo.core.Constants;
+import static com.google.common.base.Charsets.UTF_8;
+
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
@@ -84,7 +85,7 @@ public class Writer {
       TabletLocation tabLoc = TabletLocator.getLocator(instance, table).locateTablet(credentials, new Text(m.getRow()), false, true);
       
       if (tabLoc == null) {
-        log.trace("No tablet location found for row " + new String(m.getRow(), Constants.UTF8));
+        log.trace("No tablet location found for row " + new String(m.getRow(), UTF_8));
         UtilWaitThread.sleep(500);
         continue;
       }

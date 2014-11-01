@@ -16,12 +16,13 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -415,7 +416,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
     String[] columnStrings = columns.split("\n");
     Text[] columnTexts = new Text[columnStrings.length];
     for (int i = 0; i < columnStrings.length; i++) {
-      columnTexts[i] = new Text(Base64.decodeBase64(columnStrings[i].getBytes(Constants.UTF8)));
+      columnTexts[i] = new Text(Base64.decodeBase64(columnStrings[i].getBytes(UTF_8)));
     }
     return columnTexts;
   }
@@ -428,7 +429,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
     if (flags == null)
       return null;
     
-    byte[] bytes = Base64.decodeBase64(flags.getBytes(Constants.UTF8));
+    byte[] bytes = Base64.decodeBase64(flags.getBytes(UTF_8));
     boolean[] bFlags = new boolean[bytes.length];
     for (int i = 0; i < bytes.length; i++) {
       if (bytes[i] == 1)

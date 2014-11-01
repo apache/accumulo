@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.randomwalk.shard;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -24,7 +26,6 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -163,7 +164,7 @@ public class BulkInsert extends Test {
   
   private void sort(State state, FileSystem fs, String tableName, String seqFile, String outputDir, String workDir, int maxSplits) throws Exception {
     
-    PrintStream out = new PrintStream(new BufferedOutputStream(fs.create(new Path(workDir + "/splits.txt"))), false, Constants.UTF8.name());
+    PrintStream out = new PrintStream(new BufferedOutputStream(fs.create(new Path(workDir + "/splits.txt"))), false, UTF_8.name());
     
     Connector conn = state.getConnector();
     

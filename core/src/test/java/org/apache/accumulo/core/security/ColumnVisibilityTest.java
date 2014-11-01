@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.security;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static org.apache.accumulo.core.security.ColumnVisibility.quote;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -24,7 +25,6 @@ import static org.junit.Assert.fail;
 
 import java.util.Comparator;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.security.ColumnVisibility.Node;
 import org.apache.accumulo.core.security.ColumnVisibility.NodeComparator;
 import org.apache.accumulo.core.security.ColumnVisibility.NodeType;
@@ -226,11 +226,11 @@ public class ColumnVisibilityTest {
 
   @Test
   public void testParseTreesOrdering() {
-    byte[] expression = "(b&c&d)|((a|m)&y&z)|(e&f)".getBytes(Constants.UTF8);
+    byte[] expression = "(b&c&d)|((a|m)&y&z)|(e&f)".getBytes(UTF_8);
     byte[] flattened = new ColumnVisibility(expression).flatten();
 
     // Convert to String for indexOf convenience
-    String flat = new String(flattened, Constants.UTF8);
+    String flat = new String(flattened, UTF_8);
     assertTrue("shortest expressions sort first", flat.indexOf('e') < flat.indexOf('|'));
     assertTrue("shortest children sort first", flat.indexOf('b') < flat.indexOf('a'));
   }

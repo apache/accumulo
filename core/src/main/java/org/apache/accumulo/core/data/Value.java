@@ -17,6 +17,7 @@
  */
 package org.apache.accumulo.core.data;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static org.apache.accumulo.core.util.ByteBufferUtil.toBytes;
 
 import java.io.DataInput;
@@ -27,7 +28,6 @@ import java.util.List;
 
 import com.google.common.base.Preconditions;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
@@ -205,7 +205,7 @@ public class Value implements WritableComparable<Object> {
   
   @Override
   public String toString() {
-    return new String(get(), Constants.UTF8);
+    return new String(get(), UTF_8);
   }
   
   /**

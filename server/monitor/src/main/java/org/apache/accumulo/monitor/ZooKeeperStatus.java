@@ -16,11 +16,12 @@
  */
 package org.apache.accumulo.monitor;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.Collection;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.TTimeoutTransport;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -100,14 +101,14 @@ public class ZooKeeperStatus implements Runnable {
             addr = HostAndPort.fromParts(parts[0], 2181);
           
           transport = TTimeoutTransport.create(addr, 10 * 1000l);
-          transport.write("stat\n".getBytes(Constants.UTF8), 0, 5);
+          transport.write("stat\n".getBytes(UTF_8), 0, 5);
           StringBuilder response = new StringBuilder();
           try {
             transport.flush();
             byte[] buffer = new byte[1024 * 100];
             int n = 0;
             while ((n = transport.read(buffer, 0, buffer.length)) > 0) {
-              response.append(new String(buffer, 0, n, Constants.UTF8));
+              response.append(new String(buffer, 0, n, UTF_8));
             }
           } catch (TTransportException ex) {
             // happens at EOF

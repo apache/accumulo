@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.ObjectOutputStream;
@@ -24,7 +26,6 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 
@@ -53,12 +54,12 @@ public class CacheTestReader {
       for (int i = 0; i < numData; i++) {
         byte[] v = zc.get(rootDir + "/data" + i);
         if (v != null)
-          readData.put(rootDir + "/data" + i, new String(v, Constants.UTF8));
+          readData.put(rootDir + "/data" + i, new String(v, UTF_8));
       }
       
       byte[] v = zc.get(rootDir + "/dataS");
       if (v != null)
-        readData.put(rootDir + "/dataS", new String(v, Constants.UTF8));
+        readData.put(rootDir + "/dataS", new String(v, UTF_8));
       
       List<String> children = zc.getChildren(rootDir + "/dir");
       if (children != null)

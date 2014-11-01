@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.server.zookeeper;
 
-import org.apache.accumulo.core.Constants;
+import static com.google.common.base.Charsets.UTF_8;
+
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
@@ -43,7 +44,7 @@ public class ZooReaderWriterFactory {
    * @return reader/writer
    */
   public IZooReaderWriter getZooReaderWriter(String string, int timeInMillis, String secret) {
-    return new ZooReaderWriter(string, timeInMillis, SCHEME, (USER + ":" + secret).getBytes(Constants.UTF8));
+    return new ZooReaderWriter(string, timeInMillis, SCHEME, (USER + ":" + secret).getBytes(UTF_8));
   }
 
   /**

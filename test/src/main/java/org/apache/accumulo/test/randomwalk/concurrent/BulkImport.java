@@ -16,13 +16,14 @@
  */
 package org.apache.accumulo.test.randomwalk.concurrent;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -123,7 +124,7 @@ public class BulkImport extends Test {
           Mutation m = new Mutation(String.format("%016x", row));
           long val = rand.nextLong() & 0x7fffffffffffffffl;
           for (int j = 0; j < 10; j++) {
-            m.put("cf", "cq" + j, new Value(String.format("%016x", val).getBytes(Constants.UTF8)));
+            m.put("cf", "cq" + j, new Value(String.format("%016x", val).getBytes(UTF_8)));
           }
           
           bw.addMutation(m);

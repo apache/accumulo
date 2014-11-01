@@ -16,12 +16,12 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static org.junit.Assert.*;
 
 import java.util.Collections;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -56,7 +56,7 @@ public class DeleteEverythingIT extends ConfigurableMacIT {
     c.tableOperations().create("de");
     BatchWriter bw = getConnector().createBatchWriter("de", new BatchWriterConfig());
     Mutation m = new Mutation(new Text("foo"));
-    m.put(new Text("bar"), new Text("1910"), new Value("5".getBytes(Constants.UTF8)));
+    m.put(new Text("bar"), new Text("1910"), new Value("5".getBytes(UTF_8)));
     bw.addMutation(m);
     bw.flush();
     

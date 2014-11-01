@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.security;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -106,7 +108,7 @@ public final class SystemCredentials extends Credentials {
     }
 
     private static SystemToken get(Instance instance) {
-      byte[] instanceIdBytes = instance.getInstanceID().getBytes(Constants.UTF8);
+      byte[] instanceIdBytes = instance.getInstanceID().getBytes(UTF_8);
       byte[] confChecksum;
       MessageDigest md;
       try {
@@ -116,14 +118,14 @@ public final class SystemCredentials extends Credentials {
       }
 
       // seed the config with the version and instance id, so at least it's not empty
-      md.update(ServerConstants.WIRE_VERSION.toString().getBytes(Constants.UTF8));
+      md.update(ServerConstants.WIRE_VERSION.toString().getBytes(UTF_8));
       md.update(instanceIdBytes);
 
       for (Entry<String,String> entry : ServerConfiguration.getSiteConfiguration()) {
         // only include instance properties
         if (entry.getKey().startsWith(Property.INSTANCE_PREFIX.toString())) {
-          md.update(entry.getKey().getBytes(Constants.UTF8));
-          md.update(entry.getValue().getBytes(Constants.UTF8));
+          md.update(entry.getKey().getBytes(UTF_8));
+          md.update(entry.getValue().getBytes(UTF_8));
         }
       }
       confChecksum = md.digest();

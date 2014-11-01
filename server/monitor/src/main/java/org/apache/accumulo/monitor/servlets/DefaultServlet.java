@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.monitor.servlets;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -30,7 +32,6 @@ import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.util.Duration;
 import org.apache.accumulo.core.util.NumUtil;
@@ -76,7 +77,7 @@ public class DefaultServlet extends BasicServlet {
           while ((n = data.read(buffer)) > 0)
             out.write(buffer, 0, n);
         } else {
-          out.write(("could not get resource " + path + "").getBytes(Constants.UTF8));
+          out.write(("could not get resource " + path + "").getBytes(UTF_8));
         }
       } finally {
         if (data != null)

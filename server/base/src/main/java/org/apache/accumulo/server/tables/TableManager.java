@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.tables;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.security.SecurityPermission;
 import java.util.Collections;
 import java.util.HashMap;
@@ -65,7 +67,7 @@ public class TableManager {
 
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     zoo.putPersistentData(zPath, new byte[0], existsPolicy);
-    zoo.putPersistentData(zPath + Constants.ZNAMESPACE_NAME, namespace.getBytes(Constants.UTF8), existsPolicy);
+    zoo.putPersistentData(zPath + Constants.ZNAMESPACE_NAME, namespace.getBytes(UTF_8), existsPolicy);
     zoo.putPersistentData(zPath + Constants.ZNAMESPACE_CONF, new byte[0], existsPolicy);
   }
 
@@ -79,12 +81,12 @@ public class TableManager {
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     zoo.putPersistentData(zTablePath, new byte[0], existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_CONF, new byte[0], existsPolicy);
-    zoo.putPersistentData(zTablePath + Constants.ZTABLE_NAMESPACE, namespaceId.getBytes(Constants.UTF8), existsPolicy);
-    zoo.putPersistentData(zTablePath + Constants.ZTABLE_NAME, tableName.getBytes(Constants.UTF8), existsPolicy);
+    zoo.putPersistentData(zTablePath + Constants.ZTABLE_NAMESPACE, namespaceId.getBytes(UTF_8), existsPolicy);
+    zoo.putPersistentData(zTablePath + Constants.ZTABLE_NAME, tableName.getBytes(UTF_8), existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_FLUSH_ID, ZERO_BYTE, existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_COMPACT_ID, ZERO_BYTE, existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_COMPACT_CANCEL_ID, ZERO_BYTE, existsPolicy);
-    zoo.putPersistentData(zTablePath + Constants.ZTABLE_STATE, state.name().getBytes(Constants.UTF8), existsPolicy);
+    zoo.putPersistentData(zTablePath + Constants.ZTABLE_STATE, state.name().getBytes(UTF_8), existsPolicy);
   }
 
   public synchronized static TableManager getInstance() {
@@ -132,12 +134,12 @@ public class TableManager {
     String statePath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE;
 
     try {
-      ZooReaderWriter.getInstance().mutate(statePath, newState.name().getBytes(Constants.UTF8), ZooUtil.PUBLIC, new Mutator() {
+      ZooReaderWriter.getInstance().mutate(statePath, newState.name().getBytes(UTF_8), ZooUtil.PUBLIC, new Mutator() {
         @Override
         public byte[] mutate(byte[] oldData) throws Exception {
           TableState oldState = TableState.UNKNOWN;
           if (oldData != null)
-            oldState = TableState.valueOf(new String(oldData, Constants.UTF8));
+            oldState = TableState.valueOf(new String(oldData, UTF_8));
           boolean transition = true;
           // +--------+
           // v |
@@ -159,7 +161,7 @@ public class TableManager {
           if (!transition)
             throw new IllegalTableTransitionException(oldState, newState);
           log.debug("Transitioning state for table " + tableId + " from " + oldState + " to " + newState);
-          return newState.name().getBytes(Constants.UTF8);
+          return newState.name().getBytes(UTF_8);
         }
       });
     } catch (Exception e) {
@@ -181,7 +183,7 @@ public class TableManager {
       TableState tState = TableState.UNKNOWN;
       byte[] data = zooStateCache.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE);
       if (data != null) {
-        String sState = new String(data, Constants.UTF8);
+        String sState = new String(data, UTF_8);
         try {
           tState = TableState.valueOf(sState);
         } catch (IllegalArgumentException e) {

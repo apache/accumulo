@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.client.mapreduce.lib.impl;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -223,7 +225,7 @@ public class ConfiguratorBase {
     if (token.startsWith(TokenSource.INLINE.prefix())) {
       String[] args = token.substring(TokenSource.INLINE.prefix().length()).split(":", 2);
       if (args.length == 2)
-        return AuthenticationTokenSerializer.deserialize(args[0], Base64.decodeBase64(args[1].getBytes(Constants.UTF8)));
+        return AuthenticationTokenSerializer.deserialize(args[0], Base64.decodeBase64(args[1].getBytes(UTF_8)));
     } else if (token.startsWith(TokenSource.FILE.prefix())) {
       String tokenFileName = token.substring(TokenSource.FILE.prefix().length());
       return getTokenFromFile(conf, getPrincipal(implementingClass, conf), tokenFileName);

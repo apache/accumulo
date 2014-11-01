@@ -16,10 +16,11 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.IOException;
 import java.util.Map;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -58,7 +59,7 @@ public class VisibilityFilter extends org.apache.accumulo.core.iterators.system.
     
     if (!filterInvalid) {
       String auths = options.get(AUTHS);
-      Authorizations authObj = auths == null || auths.isEmpty() ? new Authorizations() : new Authorizations(auths.getBytes(Constants.UTF8));
+      Authorizations authObj = auths == null || auths.isEmpty() ? new Authorizations() : new Authorizations(auths.getBytes(UTF_8));
       this.ve = new VisibilityEvaluator(authObj);
       this.defaultVisibility = new Text();
     }

@@ -16,11 +16,12 @@
  */
 package org.apache.accumulo.server.util;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -123,7 +124,7 @@ public class AddFilesWithMissingEntries {
           String size = Long.toString(file.getLen());
           String entries = "1"; // lie
           String value = size + "," + entries;
-          m.put(DataFileColumnFamily.NAME, new Text(filename), new Value(value.getBytes(Constants.UTF8)));
+          m.put(DataFileColumnFamily.NAME, new Text(filename), new Value(value.getBytes(UTF_8)));
           if (update) {
             writer.getBatchWriter(MetadataTable.NAME).addMutation(m);
           }

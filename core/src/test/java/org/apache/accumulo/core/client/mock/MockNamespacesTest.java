@@ -17,6 +17,7 @@
 
 package org.apache.accumulo.core.client.mock;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -25,7 +26,6 @@ import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Random;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -263,7 +263,7 @@ public class MockNamespacesTest {
 
     BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m = new Mutation("r");
-    m.put("a", "b", new Value("abcde".getBytes(Constants.UTF8)));
+    m.put("a", "b", new Value("abcde".getBytes(UTF_8)));
     bw.addMutation(m);
     bw.flush();
 

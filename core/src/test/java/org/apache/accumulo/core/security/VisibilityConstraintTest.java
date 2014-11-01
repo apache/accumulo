@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.security;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.createNiceMock;
 import static org.easymock.EasyMock.expect;
@@ -26,7 +27,6 @@ import static org.junit.Assert.assertNull;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.constraints.Constraint.Environment;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.Mutation;
@@ -52,7 +52,7 @@ public class VisibilityConstraintTest {
     vc = new VisibilityConstraint();
     mutation = new Mutation("r");
 
-    ArrayByteSequence bs = new ArrayByteSequence("good".getBytes(Constants.UTF8));
+    ArrayByteSequence bs = new ArrayByteSequence("good".getBytes(UTF_8));
 
     AuthorizationContainer ac = createNiceMock(AuthorizationContainer.class);
     expect(ac.contains(bs)).andReturn(true);

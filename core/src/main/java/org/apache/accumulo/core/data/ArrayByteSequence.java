@@ -16,10 +16,10 @@
  */
 package org.apache.accumulo.core.data;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.Serializable;
 import java.nio.ByteBuffer;
-
-import org.apache.accumulo.core.Constants;
 
 public class ArrayByteSequence extends ByteSequence implements Serializable {
   
@@ -48,7 +48,7 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
   }
   
   public ArrayByteSequence(String s) {
-    this(s.getBytes(Constants.UTF8));
+    this(s.getBytes(UTF_8));
   }
   
   public ArrayByteSequence(ByteBuffer buffer) {
@@ -119,6 +119,6 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
   }
   
   public String toString() {
-    return new String(data, offset, length, Constants.UTF8);
+    return new String(data, offset, length, UTF_8);
   }
 }

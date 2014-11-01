@@ -16,10 +16,11 @@
  */
 package org.apache.accumulo.core.data;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.Arrays;
 import java.util.HashSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.ArgumentChecker;
@@ -43,8 +44,8 @@ public class Condition {
 
   public Condition(CharSequence cf, CharSequence cq) {
     ArgumentChecker.notNull(cf, cq);
-    this.cf = new ArrayByteSequence(cf.toString().getBytes(Constants.UTF8));
-    this.cq = new ArrayByteSequence(cq.toString().getBytes(Constants.UTF8));
+    this.cf = new ArrayByteSequence(cf.toString().getBytes(UTF_8));
+    this.cq = new ArrayByteSequence(cq.toString().getBytes(UTF_8));
     this.cv = EMPTY;
   }
   
@@ -100,7 +101,7 @@ public class Condition {
 
   public Condition setValue(CharSequence value) {
     ArgumentChecker.notNull(value);
-    this.val = new ArrayByteSequence(value.toString().getBytes(Constants.UTF8));
+    this.val = new ArrayByteSequence(value.toString().getBytes(UTF_8));
     return this;
   }
 

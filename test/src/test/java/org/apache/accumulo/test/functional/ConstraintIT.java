@@ -16,12 +16,13 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -72,7 +73,7 @@ public class ConstraintIT extends SimpleMacIT {
     BatchWriter bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
 
     Mutation mut1 = new Mutation(new Text("r1"));
-    mut1.put(new Text("cf1"), new Text("cq1"), new Value("123".getBytes(Constants.UTF8)));
+    mut1.put(new Text("cf1"), new Text("cq1"), new Value("123".getBytes(UTF_8)));
 
     bw.addMutation(mut1);
 
@@ -83,7 +84,7 @@ public class ConstraintIT extends SimpleMacIT {
 
     // create a mutation with a non numeric value
     Mutation mut2 = new Mutation(new Text("r1"));
-    mut2.put(new Text("cf1"), new Text("cq1"), new Value("123a".getBytes(Constants.UTF8)));
+    mut2.put(new Text("cf1"), new Text("cq1"), new Value("123a".getBytes(UTF_8)));
 
     bw.addMutation(mut2);
 
@@ -126,7 +127,7 @@ public class ConstraintIT extends SimpleMacIT {
     Entry<Key,Value> entry = iter.next();
 
     if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
-        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123".getBytes(Constants.UTF8)))) {
+        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123".getBytes(UTF_8)))) {
       throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
     }
 
@@ -149,7 +150,7 @@ public class ConstraintIT extends SimpleMacIT {
     entry = iter.next();
 
     if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
-        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123a".getBytes(Constants.UTF8)))) {
+        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123a".getBytes(UTF_8)))) {
       throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
     }
 
@@ -166,7 +167,7 @@ public class ConstraintIT extends SimpleMacIT {
     bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
 
     Mutation mut3 = new Mutation(new Text("r1"));
-    mut3.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes(Constants.UTF8)));
+    mut3.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes(UTF_8)));
 
     bw.addMutation(mut3);
 
@@ -189,7 +190,7 @@ public class ConstraintIT extends SimpleMacIT {
     entry = iter.next();
 
     if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
-        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123a".getBytes(Constants.UTF8)))) {
+        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123a".getBytes(UTF_8)))) {
       throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
     }
 
@@ -212,7 +213,7 @@ public class ConstraintIT extends SimpleMacIT {
     entry = iter.next();
 
     if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
-        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("foo".getBytes(Constants.UTF8)))) {
+        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("foo".getBytes(UTF_8)))) {
       throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
     }
 
@@ -224,7 +225,7 @@ public class ConstraintIT extends SimpleMacIT {
 
   private Mutation newMut(String row, String cf, String cq, String val) {
     Mutation mut1 = new Mutation(new Text(row));
-    mut1.put(new Text(cf), new Text(cq), new Value(val.getBytes(Constants.UTF8)));
+    mut1.put(new Text(cf), new Text(cq), new Value(val.getBytes(UTF_8)));
     return mut1;
   }
 
@@ -296,14 +297,14 @@ public class ConstraintIT extends SimpleMacIT {
     Entry<Key,Value> entry = iter.next();
 
     if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
-        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123".getBytes(Constants.UTF8)))) {
+        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123".getBytes(UTF_8)))) {
       throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
     }
 
     entry = iter.next();
 
     if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
-        || !entry.getKey().getColumnQualifier().equals(new Text("cq4")) || !entry.getValue().equals(new Value("789".getBytes(Constants.UTF8)))) {
+        || !entry.getKey().getColumnQualifier().equals(new Text("cq4")) || !entry.getValue().equals(new Value("789".getBytes(UTF_8)))) {
       throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
     }
 

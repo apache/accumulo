@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.client.mapreduce;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -27,7 +29,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -195,7 +196,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
     if (in.readBoolean()) {
       String strAuths = in.readUTF();
-      auths = new Authorizations(strAuths.getBytes(Constants.UTF8));
+      auths = new Authorizations(strAuths.getBytes(UTF_8));
     }
 
     if (in.readBoolean()) {
@@ -209,7 +210,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
       switch (this.tokenSource) {
         case INLINE:
           String tokenClass = in.readUTF();
-          byte[] base64TokenBytes = in.readUTF().getBytes(Constants.UTF8);
+          byte[] base64TokenBytes = in.readUTF().getBytes(UTF_8);
           byte[] tokenBytes = Base64.decodeBase64(base64TokenBytes);
 
           this.token = AuthenticationTokenSerializer.deserialize(tokenClass, tokenBytes);

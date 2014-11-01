@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.randomwalk.concurrent;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -47,7 +49,7 @@ public class StopTabletServer extends Test {
           Collections.sort(children);
           Stat stat = new Stat();
           byte[] data = rdr.getData(base + "/" + child + "/" + children.get(0), stat);
-          if (!"master".equals(new String(data, Constants.UTF8))) {
+          if (!"master".equals(new String(data, UTF_8))) {
             result.add(new TServerInstance(AddressUtil.parseAddress(child, false), stat.getEphemeralOwner()));
           }
         }

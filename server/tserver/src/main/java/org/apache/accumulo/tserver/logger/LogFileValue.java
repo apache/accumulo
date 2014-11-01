@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.tserver.logger;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -23,7 +25,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.server.data.ServerMutation;
@@ -59,7 +60,7 @@ public class LogFileValue implements Writable {
   }
   
   private static String displayLabels(byte[] labels) {
-    String s = new String(labels, Constants.UTF8);
+    String s = new String(labels, UTF_8);
     s = s.replace("&", " & ");
     s = s.replace("|", " | ");
     return s;
@@ -76,11 +77,11 @@ public class LogFileValue implements Writable {
         builder.append("...");
         break;
       }
-      builder.append("  ").append(new String(m.getRow(), Constants.UTF8)).append("\n");
+      builder.append("  ").append(new String(m.getRow(), UTF_8)).append("\n");
       for (ColumnUpdate update : m.getUpdates()) {
         String value = new String(update.getValue());
-        builder.append("      ").append(new String(update.getColumnFamily(), Constants.UTF8)).append(":")
-                .append(new String(update.getColumnQualifier(), Constants.UTF8)).append(" ").append(update.hasTimestamp() ? "[user]:" : "[system]:")
+        builder.append("      ").append(new String(update.getColumnFamily(), UTF_8)).append(":")
+                .append(new String(update.getColumnQualifier(), UTF_8)).append(" ").append(update.hasTimestamp() ? "[user]:" : "[system]:")
                 .append(update.getTimestamp()).append(" [").append(displayLabels(update.getColumnVisibility())).append("] ")
                 .append(update.isDeleted() ? "<deleted>" : value).append("\n");
       }

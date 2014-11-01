@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.conf;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
@@ -27,7 +28,6 @@ import static org.junit.Assert.assertSame;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration.PropertyFilter;
 import org.apache.accumulo.core.conf.Property;
@@ -41,7 +41,7 @@ public class ZooCachePropertyAccessorTest {
   private static final String KEY = PROP.getKey();
   private static final String FULL_PATH = PATH + "/" + KEY;
   private static final String VALUE = "value";
-  private static final byte[] VALUE_BYTES = VALUE.getBytes(Constants.UTF8);
+  private static final byte[] VALUE_BYTES = VALUE.getBytes(UTF_8);
 
   private ZooCache zc;
   private ZooCachePropertyAccessor a;

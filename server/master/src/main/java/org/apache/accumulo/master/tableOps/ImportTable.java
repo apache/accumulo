@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.master.tableOps;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -184,7 +186,7 @@ class PopulateMetadataTable extends MasterRepo {
   }
 
   static Map<String,String> readMappingFile(VolumeManager fs, ImportedTableInfo tableInfo) throws Exception {
-    BufferedReader in = new BufferedReader(new InputStreamReader(fs.open(new Path(tableInfo.importDir, "mappings.txt")), Constants.UTF8));
+    BufferedReader in = new BufferedReader(new InputStreamReader(fs.open(new Path(tableInfo.importDir, "mappings.txt")), UTF_8));
 
     try {
       Map<String,String> map = new HashMap<String,String>();
@@ -263,13 +265,13 @@ class PopulateMetadataTable extends MasterRepo {
 
             if (m == null) {
               // Make a unique directory inside the table's dir. Cannot import multiple tables into one table, so don't need to use unique allocator
-              String tabletDir = new String(FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES), Constants.UTF8);
+              String tabletDir = new String(FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES), UTF_8);
 
               // Build up a full hdfs://localhost:8020/accumulo/tables/$id/c-XXXXXXX
               String absolutePath = getClonedTabletDir(master, tableDirs, tabletDir);
 
               m = new Mutation(metadataRow);
-              TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(absolutePath.getBytes(Constants.UTF8)));
+              TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(absolutePath.getBytes(UTF_8)));
               currentRow = metadataRow;
             }
 
@@ -277,13 +279,13 @@ class PopulateMetadataTable extends MasterRepo {
               mbw.addMutation(m);
 
               // Make a unique directory inside the table's dir. Cannot import multiple tables into one table, so don't need to use unique allocator
-              String tabletDir = new String(FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES), Constants.UTF8);
+              String tabletDir = new String(FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES), UTF_8);
 
               // Build up a full hdfs://localhost:8020/accumulo/tables/$id/c-XXXXXXX
               String absolutePath = getClonedTabletDir(master, tableDirs, tabletDir);
 
               m = new Mutation(metadataRow);
-              TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(absolutePath.getBytes(Constants.UTF8)));
+              TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(absolutePath.getBytes(UTF_8)));
             }
 
             m.put(key.getColumnFamily(), cq, val);
@@ -363,7 +365,7 @@ class MapImportFileNames extends MasterRepo {
 
       UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
 
-      mappingsWriter = new BufferedWriter(new OutputStreamWriter(fs.create(path), Constants.UTF8));
+      mappingsWriter = new BufferedWriter(new OutputStreamWriter(fs.create(path), UTF_8));
 
       for (FileStatus fileStatus : files) {
         String fileName = fileStatus.getPath().getName();
@@ -605,7 +607,7 @@ public class ImportTable extends MasterRepo {
       ZipEntry zipEntry;
       while ((zipEntry = zis.getNextEntry()) != null) {
         if (zipEntry.getName().equals(Constants.EXPORT_INFO_FILE)) {
-          BufferedReader in = new BufferedReader(new InputStreamReader(zis, Constants.UTF8));
+          BufferedReader in = new BufferedReader(new InputStreamReader(zis, UTF_8));
           String line = null;
           while ((line = in.readLine()) != null) {
             String sa[] = line.split(":", 2);

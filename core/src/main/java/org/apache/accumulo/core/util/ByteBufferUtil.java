@@ -16,13 +16,14 @@
  */
 package org.apache.accumulo.core.util;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.hadoop.io.Text;
 
@@ -62,7 +63,7 @@ public class ByteBufferUtil {
   }
   
   public static String toString(ByteBuffer bytes) {
-    return new String(bytes.array(), bytes.position(), bytes.remaining(), Constants.UTF8);
+    return new String(bytes.array(), bytes.position(), bytes.remaining(), UTF_8);
   }
   
   public static ByteBuffer toByteBuffers(ByteSequence bs) {

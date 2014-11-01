@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.util;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.nio.ByteBuffer;
 
 import org.apache.accumulo.core.Constants;
@@ -43,7 +45,7 @@ public final class TextUtil {
       Text newText = new Text();
       newText.append(text.getBytes(), 0, maxLen);
       String suffix = "... TRUNCATED";
-      newText.append(suffix.getBytes(Constants.UTF8), 0, suffix.length());
+      newText.append(suffix.getBytes(UTF_8), 0, suffix.length());
       return newText;
     }
     

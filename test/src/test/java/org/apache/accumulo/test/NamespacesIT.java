@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -33,7 +34,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -479,9 +479,9 @@ public class NamespacesIT extends SimpleMacIT {
     Mutation m1 = new Mutation("r1");
     Mutation m2 = new Mutation("r2");
     Mutation m3 = new Mutation("r3");
-    m1.put("a", "b", new Value("abcde".getBytes(Constants.UTF8)));
-    m2.put("e", "f", new Value("123".getBytes(Constants.UTF8)));
-    m3.put("c", "d", new Value("zyxwv".getBytes(Constants.UTF8)));
+    m1.put("a", "b", new Value("abcde".getBytes(UTF_8)));
+    m2.put("e", "f", new Value("123".getBytes(UTF_8)));
+    m3.put("c", "d", new Value("zyxwv".getBytes(UTF_8)));
     BatchWriter bw = c.createBatchWriter(t1, new BatchWriterConfig());
     bw.addMutations(Arrays.asList(m1, m2, m3));
     try {

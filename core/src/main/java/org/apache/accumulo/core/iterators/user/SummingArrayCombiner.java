@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -27,7 +29,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -208,12 +209,12 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
         sb.append(",");
         sb.append(Long.toString(la.get(i)));
       }
-      return sb.toString().getBytes(Constants.UTF8);
+      return sb.toString().getBytes(UTF_8);
     }
     
     @Override
     public List<Long> decode(byte[] b) {
-      String[] longstrs = new String(b, Constants.UTF8).split(",");
+      String[] longstrs = new String(b, UTF_8).split(",");
       List<Long> la = new ArrayList<Long>(longstrs.length);
       for (String s : longstrs) {
         if (s.length() == 0)

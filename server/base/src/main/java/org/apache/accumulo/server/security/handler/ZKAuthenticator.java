@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.security.handler;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
@@ -71,7 +73,7 @@ public final class ZKAuthenticator implements Authenticator {
         }
 
         // prep parent node of users with root username
-        zoo.putPersistentData(ZKUserPath, principal.getBytes(Constants.UTF8), NodeExistsPolicy.FAIL);
+        zoo.putPersistentData(ZKUserPath, principal.getBytes(UTF_8), NodeExistsPolicy.FAIL);
 
         constructUser(principal, ZKSecurityTool.createPass(token));
       }

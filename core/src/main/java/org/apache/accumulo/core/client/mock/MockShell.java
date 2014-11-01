@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.client.mock;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,7 +29,6 @@ import org.apache.commons.io.output.WriterOutputStream;
 import org.apache.commons.cli.CommandLine;
 import jline.console.ConsoleReader;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.ShellOptionsJC;
 
@@ -59,7 +60,7 @@ public class MockShell extends Shell {
    */
   @Deprecated
   public MockShell(InputStream in, Writer out) throws IOException {
-    this(in, new WriterOutputStream(out, Constants.UTF8.name()));
+    this(in, new WriterOutputStream(out, UTF_8.name()));
     this.writer = out;
   }
   
@@ -107,7 +108,7 @@ public class MockShell extends Shell {
       printInfo();
     
     if (execFile != null) {
-      java.util.Scanner scanner = new java.util.Scanner(execFile, Constants.UTF8.name());
+      java.util.Scanner scanner = new java.util.Scanner(execFile, UTF_8.name());
       try {
         while (scanner.hasNextLine() && !hasExited()) {
           execCommand(scanner.nextLine(), true, isVerbose());
@@ -158,7 +159,7 @@ public class MockShell extends Shell {
    */
   @Deprecated
   public void setConsoleWriter(Writer out) {
-    setConsoleWriter(new WriterOutputStream(out, Constants.UTF8.name()));
+    setConsoleWriter(new WriterOutputStream(out, UTF_8.name()));
     this.writer = out;
   }
   
@@ -176,6 +177,6 @@ public class MockShell extends Shell {
       sb.append(command).append(NEWLINE);
     }
     
-    return new ByteArrayInputStream(sb.toString().getBytes(Constants.UTF8));
+    return new ByteArrayInputStream(sb.toString().getBytes(UTF_8));
   }
 }

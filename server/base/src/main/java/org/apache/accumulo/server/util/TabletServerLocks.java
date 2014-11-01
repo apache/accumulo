@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.util;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.util.List;
 
 import org.apache.accumulo.core.Constants;
@@ -56,7 +58,7 @@ public class TabletServerLocks {
         byte[] lockData = ZooLock.getLockData(cache, tserverPath + "/" + tabletServer, null);
         String holder = null;
         if (lockData != null) {
-          holder = new String(lockData, Constants.UTF8);
+          holder = new String(lockData, UTF_8);
         }
         
         System.out.printf("%32s %16s%n", tabletServer, holder);

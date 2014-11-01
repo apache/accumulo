@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.tserver.log;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_FINISH;
 import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_START;
 import static org.apache.accumulo.tserver.logger.LogEvents.DEFINE_TABLET;
@@ -41,7 +42,6 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -386,7 +386,7 @@ public class DfsLogger {
           .getConfiguration().get(Property.CRYPTO_MODULE_CLASS));
 
       // Initialize the log file with a header and the crypto params used to set up this log file.
-      logFile.write(LOG_FILE_HEADER_V3.getBytes(Constants.UTF8));
+      logFile.write(LOG_FILE_HEADER_V3.getBytes(UTF_8));
 
       CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf.getConfiguration());
 

@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.security;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
@@ -141,7 +143,7 @@ public class SecurityOperation {
 
   public synchronized String getRootUsername() {
     if (rootUserName == null)
-      rootUserName = new String(zooCache.get(ZKUserPath), Constants.UTF8);
+      rootUserName = new String(zooCache.get(ZKUserPath), UTF_8);
     return rootUserName;
   }
 
