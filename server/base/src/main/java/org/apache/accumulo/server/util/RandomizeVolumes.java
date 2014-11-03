@@ -22,6 +22,8 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import java.io.IOException;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.util.SimpleThreadPool;
+
 import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -67,7 +69,7 @@ public class RandomizeVolumes {
   }
 
   public static int randomize(Connector c, String tableName) throws IOException, AccumuloSecurityException, AccumuloException, TableNotFoundException {
-    VolumeManager vm = VolumeManagerImpl.get();
+    final VolumeManager vm = VolumeManagerImpl.get();
     if (vm.getVolumes().size() < 2) {
       log.error("There are not enough volumes configured");
       return 1;
@@ -83,6 +85,7 @@ public class RandomizeVolumes {
       c.tableOperations().offline(tableName, true);
       log.info(tableName + " offline");
     }
+    SimpleThreadPool pool = new SimpleThreadPool(50, "directory maker");
     log.info("Rewriting entries for " + tableName);
     Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     DIRECTORY_COLUMN.fetch(scanner);
@@ -106,18 +109,23 @@ public class RandomizeVolumes {
       Key key = entry.getKey();
       Mutation m = new Mutation(key.getRow());
 
-      String newLocation = vm.choose(ServerConstants.getBaseUris()) + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + tableId + Path.SEPARATOR
+      final String newLocation = vm.choose(ServerConstants.getBaseUris()) + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + tableId + Path.SEPARATOR
           + directory;
       m.put(key.getColumnFamily(), key.getColumnQualifier(), new Value(newLocation.getBytes(UTF_8)));
       if (log.isTraceEnabled()) {
         log.trace("Replacing " + oldLocation + " with " + newLocation);
       }
       writer.addMutation(m);
-      try {
-        vm.mkdirs(new Path(newLocation));
-      } catch (IOException ex) {
-        // nevermind
-      }
+      pool.submit(new Runnable() {
+        @Override
+        public void run() {
+          try {
+            vm.mkdirs(new Path(newLocation));
+          } catch (IOException ex) {
+            // nevermind
+          }
+        }
+      });
       count++;
     }
     writer.close();
