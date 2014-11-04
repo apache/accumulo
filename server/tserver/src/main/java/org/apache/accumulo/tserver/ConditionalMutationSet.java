@@ -37,7 +37,7 @@ public class ConditionalMutationSet {
     void defer(List<ServerConditionalMutation> scml, List<ServerConditionalMutation> okMutations, List<ServerConditionalMutation> deferred);
   }
   
-  static class DuplicateFitler implements DeferFilter {
+  static class DuplicateFilter implements DeferFilter {
     public void defer(List<ServerConditionalMutation> scml, List<ServerConditionalMutation> okMutations, List<ServerConditionalMutation> deferred) {
       okMutations.add(scml.get(0));
       for (int i = 1; i < scml.size(); i++) {
@@ -73,7 +73,7 @@ public class ConditionalMutationSet {
   }
   
   static void deferDuplicatesRows(Map<KeyExtent,List<ServerConditionalMutation>> updates, Map<KeyExtent,List<ServerConditionalMutation>> deferred) {
-    defer(updates, deferred, new DuplicateFitler());
+    defer(updates, deferred, new DuplicateFilter());
   }
 
   static void sortConditionalMutations(Map<KeyExtent,List<ServerConditionalMutation>> updates) {
