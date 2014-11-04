@@ -234,6 +234,9 @@ public class ZooUtil {
               throw e;
             }
             // Let other KeeperException bubble to the outer catch
+          } else {
+            // If the stat is null, the node is now gone which is fine.
+            return;
           }
         } catch (KeeperException e) {
           final Code c = e.code();
