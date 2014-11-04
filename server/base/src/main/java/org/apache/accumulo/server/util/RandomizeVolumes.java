@@ -128,6 +128,7 @@ public class RandomizeVolumes {
       count++;
     }
     writer.close();
+    pool.shutdown();
     log.info("Updated " + count + " entries for table " + tableName);
     if (TableState.OFFLINE != tableState) {
       c.tableOperations().online(tableName, true);
