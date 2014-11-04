@@ -839,7 +839,7 @@ public class ShellServerIT extends SimpleMacIT {
     ts.exec("deletetable -f " + table, true);
   }
 
-  @Test(timeout = 45000)
+  @Test
   public void help() throws Exception {
     ts.exec("help -np", true, "Help Commands", true);
     ts.exec("?", true, "Help Commands", true);

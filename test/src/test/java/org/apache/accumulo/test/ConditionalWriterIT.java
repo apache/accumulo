@@ -85,6 +85,8 @@ import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.collect.Iterables;
+
 /**
  *
  */
@@ -154,7 +156,8 @@ public class ConditionalWriterIT extends SimpleMacIT {
     Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
     scanner.fetchColumn(new Text("name"), new Text("last"));
     scanner.setRange(new Range("99006"));
-    Assert.assertEquals("Doe", scanner.iterator().next().getValue().toString());
+    Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
+    Assert.assertEquals("Doe", entry.getValue().toString());
 
     // test w/ two conditions that are met
     ConditionalMutation cm6 = new ConditionalMutation("99006", new Condition("tx", "seq").setValue("2"), new Condition("name", "last").setValue("Doe"));
@@ -162,7 +165,8 @@ public class ConditionalWriterIT extends SimpleMacIT {
     cm6.put("tx", "seq", "3");
     Assert.assertEquals(Status.ACCEPTED, cw.write(cm6).getStatus());
 
-    Assert.assertEquals("DOE", scanner.iterator().next().getValue().toString());
+    entry = Iterables.getOnlyElement(scanner);
+    Assert.assertEquals("DOE", entry.getValue().toString());
 
     // test a conditional mutation that deletes
     ConditionalMutation cm7 = new ConditionalMutation("99006", new Condition("tx", "seq").setValue("3"));
@@ -171,13 +175,14 @@ public class ConditionalWriterIT extends SimpleMacIT {
     cm7.putDelete("tx", "seq");
     Assert.assertEquals(Status.ACCEPTED, cw.write(cm7).getStatus());
 
-    Assert.assertFalse(scanner.iterator().hasNext());
+    Assert.assertFalse("Did not expect to find any results", scanner.iterator().hasNext());
 
     // add the row back
     Assert.assertEquals(Status.ACCEPTED, cw.write(cm0).getStatus());
     Assert.assertEquals(Status.REJECTED, cw.write(cm0).getStatus());
 
-    Assert.assertEquals("doe", scanner.iterator().next().getValue().toString());
+    entry = Iterables.getOnlyElement(scanner);
+    Assert.assertEquals("doe", entry.getValue().toString());
   }
 
   @Test
@@ -207,7 +212,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     scanner.setRange(new Range("99006"));
     // TODO verify all columns
     scanner.fetchColumn(new Text("tx"), new Text("seq"));
-    Entry<Key,Value> entry = scanner.iterator().next();
+    Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
     Assert.assertEquals("1", entry.getValue().toString());
     long ts = entry.getKey().getTimestamp();
 
@@ -247,7 +252,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     Assert.assertEquals(Status.REJECTED, cw.write(cm5).getStatus());
 
     // ensure no updates were made
-    entry = scanner.iterator().next();
+    entry = Iterables.getOnlyElement(scanner);
     Assert.assertEquals("1", entry.getValue().toString());
 
     // set all columns correctly
@@ -257,7 +262,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     cm6.put("tx", "seq", cva, "2");
     Assert.assertEquals(Status.ACCEPTED, cw.write(cm6).getStatus());
 
-    entry = scanner.iterator().next();
+    entry = Iterables.getOnlyElement(scanner);
     Assert.assertEquals("2", entry.getValue().toString());
 
   }
@@ -353,10 +358,12 @@ public class ConditionalWriterIT extends SimpleMacIT {
 
     try {
       cw2.write(cm8).getStatus();
-      Assert.fail();
-    } catch (AccumuloSecurityException ase) {}
-
-    cw2.close();
+      Assert.fail("Writing mutation with Authorizations the user doesn't have should fail");
+    } catch (AccumuloSecurityException ase) {
+      // expected, check specific failure?
+    } finally {
+      cw2.close();
+    }
   }
 
   @Test
@@ -378,13 +385,13 @@ public class ConditionalWriterIT extends SimpleMacIT {
     cm0.put("tx", "seq", "1");
 
     Assert.assertEquals(Status.VIOLATED, cw.write(cm0).getStatus());
-    Assert.assertFalse(scanner.iterator().hasNext());
+    Assert.assertFalse("Should find no results in the table is mutation result was violated", scanner.iterator().hasNext());
 
     ConditionalMutation cm1 = new ConditionalMutation("99006", new Condition("tx", "seq"));
     cm1.put("tx", "seq", "1");
 
     Assert.assertEquals(Status.ACCEPTED, cw.write(cm1).getStatus());
-    Assert.assertTrue(scanner.iterator().hasNext());
+    Assert.assertTrue("Accepted result should be returned when reading table", scanner.iterator().hasNext());
 
     cw.close();
   }
@@ -433,24 +440,28 @@ public class ConditionalWriterIT extends SimpleMacIT {
     scanner.setRange(new Range("ACCUMULO-1000"));
     scanner.fetchColumn(new Text("count"), new Text("comments"));
 
-    Assert.assertEquals("3", scanner.iterator().next().getValue().toString());
+    Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
+    Assert.assertEquals("3", entry.getValue().toString());
 
     ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig());
 
     ConditionalMutation cm0 = new ConditionalMutation("ACCUMULO-1000", new Condition("count", "comments").setValue("3"));
     cm0.put("count", "comments", "1");
     Assert.assertEquals(Status.REJECTED, cw.write(cm0).getStatus());
-    Assert.assertEquals("3", scanner.iterator().next().getValue().toString());
+    entry = Iterables.getOnlyElement(scanner);
+    Assert.assertEquals("3", entry.getValue().toString());
 
     ConditionalMutation cm1 = new ConditionalMutation("ACCUMULO-1000", new Condition("count", "comments").setIterators(iterConfig).setValue("3"));
     cm1.put("count", "comments", "1");
     Assert.assertEquals(Status.ACCEPTED, cw.write(cm1).getStatus());
-    Assert.assertEquals("4", scanner.iterator().next().getValue().toString());
+    entry = Iterables.getOnlyElement(scanner);
+    Assert.assertEquals("4", entry.getValue().toString());
 
     ConditionalMutation cm2 = new ConditionalMutation("ACCUMULO-1000", new Condition("count", "comments").setValue("4"));
     cm2.put("count", "comments", "1");
     Assert.assertEquals(Status.REJECTED, cw.write(cm1).getStatus());
-    Assert.assertEquals("4", scanner.iterator().next().getValue().toString());
+    entry = Iterables.getOnlyElement(scanner);
+    Assert.assertEquals("4", entry.getValue().toString());
 
     // run test with multiple iterators passed in same batch and condition with two iterators
 
@@ -469,7 +480,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     while (results.hasNext()) {
       Result result = results.next();
       String k = new String(result.getMutation().getRow());
-      Assert.assertFalse(actual.containsKey(k));
+      Assert.assertFalse("Did not expect to see multiple resultus for the row: " + k, actual.containsKey(k));
       actual.put(k, result.getStatus());
     }
 
@@ -533,7 +544,8 @@ public class ConditionalWriterIT extends SimpleMacIT {
 
     for (String row : new String[] {"99006", "59056", "19059"}) {
       scanner.setRange(new Range(row));
-      Assert.assertEquals("1", scanner.iterator().next().getValue().toString());
+      Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
+      Assert.assertEquals("1", entry.getValue().toString());
     }
 
     TreeSet<Text> splits = new TreeSet<Text>();
@@ -572,20 +584,23 @@ public class ConditionalWriterIT extends SimpleMacIT {
       }
     }
 
-    Assert.assertEquals(1, accepted);
-    Assert.assertEquals(2, rejected);
+    Assert.assertEquals("Expected only one accepted conditional mutation", 1, accepted);
+    Assert.assertEquals("Expected two rejected conditional mutations", 2, rejected);
 
     for (String row : new String[] {"59056", "19059"}) {
       scanner.setRange(new Range(row));
-      Assert.assertEquals("1", scanner.iterator().next().getValue().toString());
+      Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
+      Assert.assertEquals("1", entry.getValue().toString());
     }
 
     scanner.setRange(new Range("99006"));
-    Assert.assertEquals("2", scanner.iterator().next().getValue().toString());
+    Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
+    Assert.assertEquals("2", entry.getValue().toString());
 
     scanner.clearColumns();
     scanner.fetchColumn(new Text("name"), new Text("last"));
-    Assert.assertEquals("Doe", scanner.iterator().next().getValue().toString());
+    entry = Iterables.getOnlyElement(scanner);
+    Assert.assertEquals("Doe", entry.getValue().toString());
 
     cw.close();
   }
@@ -635,7 +650,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
       count++;
     }
 
-    Assert.assertEquals(num, count);
+    Assert.assertEquals("Did not receive the expected number of results", num, count);
 
     ArrayList<ConditionalMutation> cml2 = new ArrayList<ConditionalMutation>(num);
 
@@ -658,7 +673,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
       count++;
     }
 
-    Assert.assertEquals(num, count);
+    Assert.assertEquals("Did not receive the expected number of results", num, count);
 
     cw.close();
   }
@@ -736,9 +751,8 @@ public class ConditionalWriterIT extends SimpleMacIT {
     Scanner scanner = conn.createScanner(tableName, new Authorizations("A"));
     scanner.fetchColumn(new Text("tx"), new Text("seq"));
 
-    Iterator<Entry<Key,Value>> iter = scanner.iterator();
-    Assert.assertEquals("1", iter.next().getValue().toString());
-    Assert.assertFalse(iter.hasNext());
+    Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
+    Assert.assertEquals("1", entry.getValue().toString());
 
     cw.close();
   }
@@ -787,9 +801,9 @@ public class ConditionalWriterIT extends SimpleMacIT {
       total++;
     }
 
-    Assert.assertEquals(1, accepted);
-    Assert.assertEquals(2, rejected);
-    Assert.assertEquals(3, total);
+    Assert.assertEquals("Expected one accepted result", 1, accepted);
+    Assert.assertEquals("Expected two rejected results", 2, rejected);
+    Assert.assertEquals("Expected three total results", 3, total);
 
     cw.close();
   }
@@ -987,7 +1001,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
       tp.awaitTermination(1, TimeUnit.MINUTES);
     }
 
-    Assert.assertFalse(failed.get());
+    Assert.assertFalse("A MutatorTask failed with an exception", failed.get());
 
     Scanner scanner = conn.createScanner(table, Authorizations.EMPTY);
 
@@ -1037,14 +1051,14 @@ public class ConditionalWriterIT extends SimpleMacIT {
 
     try {
       cw1.write(cm1).getStatus();
-      Assert.assertFalse(true);
+      Assert.fail("Expected exception writing conditional mutation to table the user doesn't have write access to");
     } catch (AccumuloSecurityException ase) {
 
     }
 
     try {
       cw2.write(cm1).getStatus();
-      Assert.assertFalse(true);
+      Assert.fail("Expected exception writing conditional mutation to table the user doesn't have read access to");
     } catch (AccumuloSecurityException ase) {
 
     }
@@ -1083,11 +1097,11 @@ public class ConditionalWriterIT extends SimpleMacIT {
       String val = entry.getValue().toString();
 
       if (cf.equals("tx") && cq.equals("seq"))
-        Assert.assertEquals("1", val);
+        Assert.assertEquals("Unexpected value in tx:seq", "1", val);
       else if (cf.equals("data") && cq.equals("x"))
-        Assert.assertEquals("a", val);
+        Assert.assertEquals("Unexpected value in data:x", "a", val);
       else
-        Assert.fail();
+        Assert.fail("Saw unexpected column family and qualifier");
     }
 
     ConditionalMutation cm3 = new ConditionalMutation("r1", new Condition("tx", "seq").setValue("1"));
@@ -1106,7 +1120,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
 
     try {
       conn.createConditionalWriter(table, new ConditionalWriterConfig());
-      Assert.assertFalse(true);
+      Assert.fail("Creating conditional writer for table that doesn't exist should fail");
     } catch (TableNotFoundException e) {}
 
     conn.tableOperations().create(table);
@@ -1123,7 +1137,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
 
     try {
       result.getStatus();
-      Assert.assertFalse(true);
+      Assert.fail("Expected exception writing conditional mutation to deleted table");
     } catch (AccumuloException ae) {
       Assert.assertEquals(TableDeletedException.class, ae.getCause().getClass());
     }
@@ -1148,7 +1162,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
 
     try {
       result.getStatus();
-      Assert.assertFalse(true);
+      Assert.fail("Expected exception writing conditional mutation to offline table");
     } catch (AccumuloException ae) {
       Assert.assertEquals(TableOfflineException.class, ae.getCause().getClass());
     }
@@ -1157,7 +1171,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
 
     try {
       conn.createConditionalWriter(table, new ConditionalWriterConfig());
-      Assert.assertFalse(true);
+      Assert.fail("Expected exception creating conditional writer to offline table");
     } catch (TableOfflineException e) {}
   }
 
@@ -1180,7 +1194,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
 
     try {
       result.getStatus();
-      Assert.assertFalse(true);
+      Assert.fail("Expected exception using iterator which throws an error");
     } catch (AccumuloException ae) {
 
     }

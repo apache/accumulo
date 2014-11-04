@@ -33,20 +33,20 @@ import org.apache.accumulo.test.VerifyIngest;
 import org.junit.Test;
 
 public class ShutdownIT extends ConfigurableMacIT {
-  
+
   @Override
   protected int defaultTimeoutSeconds() {
     return 2 * 60;
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void shutdownDuringIngest() throws Exception {
     Process ingest = cluster.exec(TestIngest.class, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD, "--createTable");
     UtilWaitThread.sleep(100);
     assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
     ingest.destroy();
   }
-  
+
   @Test
   public void shutdownDuringQuery() throws Exception {
     assertEquals(0, cluster.exec(TestIngest.class, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "-u", "root","-p", ROOT_PASSWORD, "--createTable").waitFor());
@@ -55,7 +55,7 @@ public class ShutdownIT extends ConfigurableMacIT {
     assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
     verify.destroy();
   }
-  
+
   @Test
   public void shutdownDuringDelete() throws Exception {
     assertEquals(0, cluster.exec(TestIngest.class, "-i", cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD, "--createTable").waitFor());
@@ -65,7 +65,7 @@ public class ShutdownIT extends ConfigurableMacIT {
     deleter.destroy();
   }
 
-  
+
   @Test
   public void shutdownDuringDeleteTable() throws Exception {
     final Connector c = getConnector();
@@ -74,6 +74,7 @@ public class ShutdownIT extends ConfigurableMacIT {
     }
     final AtomicReference<Exception> ref = new AtomicReference<Exception>();
     Thread async = new Thread() {
+      @Override
       public void run() {
         try {
           for (int i = 0; i < 10; i++)
@@ -89,12 +90,12 @@ public class ShutdownIT extends ConfigurableMacIT {
     if (ref.get() != null)
       throw ref.get();
   }
-  
-  @Test(timeout = 4 * 60 * 1000)
+
+  @Test
   public void stopDuringStart() throws Exception {
     assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
   }
-  
+
   @Test
   public void adminStop() throws Exception {
     runAdminStopTest(getConnector(), cluster);
