@@ -357,8 +357,8 @@ public class ConditionalWriterIT extends SimpleMacIT {
     cm8.put("tx", "seq", cva, "1");
 
     try {
-      cw2.write(cm8).getStatus();
-      Assert.fail("Writing mutation with Authorizations the user doesn't have should fail");
+      Status status = cw2.write(cm8).getStatus();
+      Assert.fail("Writing mutation with Authorizations the user doesn't have should fail. Got status: " + status);
     } catch (AccumuloSecurityException ase) {
       // expected, check specific failure?
     } finally {
@@ -1050,15 +1050,15 @@ public class ConditionalWriterIT extends SimpleMacIT {
     Assert.assertEquals(Status.ACCEPTED, cw3.write(cm1).getStatus());
 
     try {
-      cw1.write(cm1).getStatus();
-      Assert.fail("Expected exception writing conditional mutation to table the user doesn't have write access to");
+      Status status = cw1.write(cm1).getStatus();
+      Assert.fail("Expected exception writing conditional mutation to table the user doesn't have write access to, Got status: " + status);
     } catch (AccumuloSecurityException ase) {
 
     }
 
     try {
-      cw2.write(cm1).getStatus();
-      Assert.fail("Expected exception writing conditional mutation to table the user doesn't have read access to");
+      Status status = cw2.write(cm1).getStatus();
+      Assert.fail("Expected exception writing conditional mutation to table the user doesn't have read access to. Got status: " + status);
     } catch (AccumuloSecurityException ase) {
 
     }
@@ -1101,7 +1101,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
       else if (cf.equals("data") && cq.equals("x"))
         Assert.assertEquals("Unexpected value in data:x", "a", val);
       else
-        Assert.fail("Saw unexpected column family and qualifier");
+        Assert.fail("Saw unexpected column family and qualifier: " + entry);
     }
 
     ConditionalMutation cm3 = new ConditionalMutation("r1", new Condition("tx", "seq").setValue("1"));
@@ -1136,8 +1136,8 @@ public class ConditionalWriterIT extends SimpleMacIT {
     Result result = cw.write(cm1);
 
     try {
-      result.getStatus();
-      Assert.fail("Expected exception writing conditional mutation to deleted table");
+      Status status = result.getStatus();
+      Assert.fail("Expected exception writing conditional mutation to deleted table. Got status: " + status);
     } catch (AccumuloException ae) {
       Assert.assertEquals(TableDeletedException.class, ae.getCause().getClass());
     }
@@ -1161,8 +1161,8 @@ public class ConditionalWriterIT extends SimpleMacIT {
     Result result = cw.write(cm1);
 
     try {
-      result.getStatus();
-      Assert.fail("Expected exception writing conditional mutation to offline table");
+      Status status = result.getStatus();
+      Assert.fail("Expected exception writing conditional mutation to offline table. Got status: " + status);
     } catch (AccumuloException ae) {
       Assert.assertEquals(TableOfflineException.class, ae.getCause().getClass());
     }
@@ -1193,8 +1193,8 @@ public class ConditionalWriterIT extends SimpleMacIT {
     Result result = cw.write(cm1);
 
     try {
-      result.getStatus();
-      Assert.fail("Expected exception using iterator which throws an error");
+      Status status = result.getStatus();
+      Assert.fail("Expected exception using iterator which throws an error, Got status: " + status);
     } catch (AccumuloException ae) {
 
     }
