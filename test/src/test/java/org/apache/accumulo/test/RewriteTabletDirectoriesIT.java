@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.test;
 
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -46,13 +50,14 @@ import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 // ACCUMULO-3263
 public class RewriteTabletDirectoriesIT extends ConfigurableMacIT {
   
+  @Override
+  public int defaultTimeoutSeconds() {
+    return 4 * 60;
+  }
+
   private Path v1, v2;
 
   @Override
@@ -72,7 +77,7 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacIT {
     super.configure(cfg, hadoopCoreSite);
   }
 
-  @Test(timeout = 4 * 60 * 1000)
+  @Test
   public void test() throws Exception {
     Connector c = getConnector();
     c.securityOperations().grantTablePermission(c.whoami(), MetadataTable.NAME, TablePermission.WRITE);
@@ -88,7 +93,7 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacIT {
     }
     bw.close();
     c.tableOperations().addSplits(tableName, splits);
-    
+
     BatchScanner scanner = c.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1);
     DIRECTORY_COLUMN.fetch(scanner);
     String tableId = c.tableOperations().tableIdMap().get(tableName);
@@ -109,10 +114,10 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacIT {
     }
     bw.close();
     assertEquals(splits.size() + 1, count);
-    
+
     // This should fail: only one volume
     assertEquals(1, cluster.exec(RandomizeVolumes.class, "-z", cluster.getZooKeepers(), "-i", c.getInstance().getInstanceName(), "-t", tableName).waitFor());
-    
+
     cluster.stop();
 
     // add the 2nd volume
@@ -122,7 +127,7 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacIT {
     BufferedOutputStream fos = new BufferedOutputStream(new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
     conf.writeXml(fos);
     fos.close();
-    
+
     // initialize volume
     assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").waitFor());
     cluster.start();
