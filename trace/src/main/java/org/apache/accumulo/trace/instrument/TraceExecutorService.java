@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.trace.instrument;
 
+import org.htrace.Span;
+import org.htrace.Tracer;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -108,4 +111,13 @@ public class TraceExecutorService implements ExecutorService {
     return impl.invokeAny(wrapCollection(tasks), timeout, unit);
   }
   
+  /**
+   * Finish a given trace and set the span for the current thread to null.
+   */
+  public static void endThread(Span span) {
+    if (span != null) {
+      span.stop();
+      Tracer.getInstance().continueSpan(null);
+    }
+  }
 }

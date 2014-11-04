@@ -21,8 +21,11 @@ import java.io.File;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.apache.accumulo.core.conf.Property;
@@ -56,7 +59,10 @@ public class ClientConfiguration extends CompositeConfiguration {
     INSTANCE_ZK_HOST(Property.INSTANCE_ZK_HOST),
     INSTANCE_ZK_TIMEOUT(Property.INSTANCE_ZK_TIMEOUT),
     INSTANCE_NAME("instance.name", null, PropertyType.STRING, "Name of Accumulo instance to connect to"),
-    INSTANCE_ID("instance.id", null, PropertyType.STRING, "UUID of Accumulo instance to connect to"), ;
+    INSTANCE_ID("instance.id", null, PropertyType.STRING, "UUID of Accumulo instance to connect to"),
+    TRACE_SPAN_RECEIVERS(Property.TRACE_SPAN_RECEIVERS),
+    TRACE_SPAN_RECEIVER_PREFIX(Property.TRACE_SPAN_RECEIVER_PREFIX),
+    TRACE_ZK_PATH(Property.TRACE_ZK_PATH);
 
     private String key;
     private String defaultValue;
@@ -206,6 +212,32 @@ public class ClientConfiguration extends CompositeConfiguration {
       return this.getString(prop.getKey());
     else
       return prop.getDefaultValue();
+  }
+
+  private void checkType(ClientProperty property, PropertyType type) {
+    if (!property.getType().equals(type)) {
+      String msg = "Configuration method intended for type " + type + " called with a " + property.getType() + " argument (" + property.getKey() + ")";
+      throw new IllegalArgumentException(msg);
+    }
+  }
+
+  /**
+   * Gets all properties under the given prefix in this configuration.
+   *
+   * @param property prefix property, must be of type PropertyType.PREFIX
+   * @return a map of property keys to values
+   * @throws IllegalArgumentException if property is not a prefix
+   */
+  public Map<String,String> getAllPropertiesWithPrefix(ClientProperty property) {
+    checkType(property, PropertyType.PREFIX);
+
+    Map<String,String> propMap = new HashMap<String,String>();
+    Iterator<?> iter = this.getKeys(property.getKey());
+    while (iter.hasNext()) {
+      String p = (String)iter.next();
+      propMap.put(p, getString(p));
+    }
+    return propMap;
   }
 
   /**

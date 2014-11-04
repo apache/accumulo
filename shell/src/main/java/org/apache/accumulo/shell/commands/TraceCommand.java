@@ -40,7 +40,7 @@ public class TraceCommand extends DebugCommand {
         Trace.on("shell:" + shellState.getPrincipal());
       } else if (cl.getArgs()[0].equalsIgnoreCase("off")) {
         if (Trace.isTracing()) {
-          final long trace = Trace.currentTrace().traceId();
+          final long trace = Trace.currentTraceId();
           Trace.off();
           StringBuffer sb = new StringBuffer();
           int traceCount = 0;

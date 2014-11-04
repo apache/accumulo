@@ -18,57 +18,93 @@ package org.apache.accumulo.core.trace;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
-import org.apache.accumulo.trace.instrument.receivers.SendSpansViaThrift;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
-
+import org.htrace.HTraceConfiguration;
 
 /**
  * Find a Span collector via zookeeper and push spans there via Thrift RPC
- * 
  */
 public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
-  
   private static final Logger log = Logger.getLogger(ZooTraceClient.class);
-  
-  final ZooReader zoo;
-  final String path;
+
+  private static final int DEFAULT_TIMEOUT = 30 * 1000;
+
+  ZooReader zoo = null;
+  String path;
+  boolean pathExists = false;
   final Random random = new Random();
   final List<String> hosts = new ArrayList<String>();
-  
-  public ZooTraceClient(ZooReader zoo, String path, String host, String service, long millis) throws IOException, KeeperException, InterruptedException {
-    super(host, service, millis);
-    this.path = path;
-    this.zoo = zoo;
-    updateHosts(path, zoo.getChildren(path, this));
+
+  public ZooTraceClient() {
+    super();
   }
-  
+
+  public ZooTraceClient(long millis) {
+    super(millis);
+  }
+
   @Override
-  synchronized protected String getSpanKey(Map<String,String> data) {
+  synchronized protected String getSpanKey(Map<ByteBuffer,ByteBuffer> data) {
     if (hosts.size() > 0) {
-      return hosts.get(random.nextInt(hosts.size()));
+      String host = hosts.get(random.nextInt(hosts.size()));
+      log.debug("sending data to " + host);
+      return host;
     }
     return null;
   }
-  
+
+  @Override
+  public void configure(HTraceConfiguration conf) {
+    super.configure(conf);
+    String keepers = conf.get(DistributedTrace.TRACER_ZK_HOST);
+    if (keepers == null)
+      throw new IllegalArgumentException("Must configure " + DistributedTrace.TRACER_ZK_HOST);
+    int timeout = conf.getInt(DistributedTrace.TRACER_ZK_TIMEOUT, DEFAULT_TIMEOUT);
+    zoo = new ZooReader(keepers, timeout);
+    path = conf.get(DistributedTrace.TRACER_ZK_PATH, Constants.ZTRACERS);
+    process(null);
+  }
+
   @Override
   public void process(WatchedEvent event) {
+    log.debug("Processing event for trace server zk watch");
     try {
-      updateHosts(path, zoo.getChildren(path, null));
+      if (pathExists || zoo.exists(path)) {
+        pathExists = true;
+        updateHosts(path, zoo.getChildren(path, this));
+      } else {
+        zoo.exists(path, this);
+      }
     } catch (Exception ex) {
       log.error("unable to get destination hosts in zookeeper", ex);
     }
   }
-  
+
+  @Override
+  protected void sendSpans() {
+    if (hosts.isEmpty()) {
+      if (!sendQueue.isEmpty()) {
+        log.error("No hosts to send data to, dropping queued spans");
+        synchronized (sendQueue) {
+          sendQueue.clear();
+          sendQueue.notifyAll();
+        }
+      }
+    } else {
+      super.sendSpans();
+    }
+  }
+
   synchronized private void updateHosts(String path, List<String> children) {
     log.debug("Scanning trace hosts in zookeeper: " + path);
     try {

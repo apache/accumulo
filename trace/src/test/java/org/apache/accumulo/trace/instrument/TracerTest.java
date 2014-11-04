@@ -22,6 +22,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -30,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
-import org.apache.accumulo.trace.instrument.receivers.SpanReceiver;
 import org.apache.accumulo.trace.instrument.thrift.TraceWrap;
 import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.accumulo.trace.thrift.TestService;
@@ -43,13 +43,17 @@ import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
+import org.htrace.HTraceConfiguration;
+import org.htrace.Sampler;
+import org.htrace.SpanReceiver;
+import org.htrace.wrappers.TraceProxy;
 import org.junit.Before;
 import org.junit.Test;
 
 
 public class TracerTest {
   static class SpanStruct {
-    public SpanStruct(long traceId, long spanId, long parentId, long start, long stop, String description, Map<String,String> data) {
+    public SpanStruct(long traceId, long spanId, long parentId, long start, long stop, String description, Map<byte[],byte[]> data) {
       super();
       this.traceId = traceId;
       this.spanId = spanId;
@@ -66,7 +70,7 @@ public class TracerTest {
     public long start;
     public long stop;
     public String description;
-    public Map<String,String> data;
+    public Map<byte[],byte[]> data;
     
     public long millis() {
       return stop - start;
@@ -77,21 +81,29 @@ public class TracerTest {
     public Map<Long,List<SpanStruct>> traces = new HashMap<Long,List<SpanStruct>>();
     
     @Override
-    public void span(long traceId, long spanId, long parentId, long start, long stop, String description, Map<String,String> data) {
-      SpanStruct span = new SpanStruct(traceId, spanId, parentId, start, stop, description, data);
+    public void receiveSpan(org.htrace.Span s)  {
+      long traceId = s.getTraceId();
+      SpanStruct span = new SpanStruct(traceId, s.getSpanId(), s.getParentId(), s.getStartTimeMillis(), s.getStopTimeMillis(), s.getDescription(),
+          s.getKVAnnotations());
       if (!traces.containsKey(traceId))
         traces.put(traceId, new ArrayList<SpanStruct>());
       traces.get(traceId).add(span);
     }
     
     @Override
-    public void flush() {}
+    public void configure(HTraceConfiguration conf) {
+    }
+
+    @Override
+    public void close() throws IOException {
+    }
   }
   
+  @SuppressWarnings("deprecation")
   @Test
   public void testTrace() throws Exception {
     TestReceiver tracer = new TestReceiver();
-    Tracer.getInstance().addReceiver(tracer);
+    org.htrace.Trace.addReceiver(tracer);
     
     assertFalse(Trace.isTracing());
     Trace.start("nop").stop();
@@ -103,12 +115,12 @@ public class TracerTest {
     assertFalse(Trace.isTracing());
     
     Span start = Trace.on("testing");
-    assertEquals(Trace.currentTrace(), start);
+    assertEquals(Trace.currentTrace().getSpan(), start.getScope().getSpan());
     assertTrue(Trace.isTracing());
     
-    Trace.start("shortest trace ever");
-    Trace.currentTrace().stop();
-    long traceId = Trace.currentTrace().traceId();
+    Span span = Trace.start("shortest trace ever");
+    span.stop();
+    long traceId = Trace.currentTraceId();
     assertNotNull(tracer.traces.get(traceId));
     assertTrue(tracer.traces.get(traceId).size() == 1);
     assertEquals("shortest trace ever", tracer.traces.get(traceId).get(0).description);
@@ -149,7 +161,7 @@ public class TracerTest {
   @Test
   public void testThrift() throws Exception {
     TestReceiver tracer = new TestReceiver();
-    Tracer.getInstance().addReceiver(tracer);
+    org.htrace.Trace.addReceiver(tracer);
     
     ServerSocket socket = new ServerSocket(0);
     TServerSocket transport = new TServerSocket(socket);
@@ -195,25 +207,26 @@ public class TracerTest {
   }
 
   /**
-   * Verify that exceptions propagate up through the trace wrapping with sampling enabled, instead of seeing the reflexive exceptions.
+   * Verify that exceptions propagate up through the trace wrapping with sampling enabled, as the cause of the reflexive exceptions.
    */
   @Test(expected = IOException.class)
-  public void testTracedException() throws Exception {
-    TraceProxy.trace(callable).call();
+  public void testTracedException() throws Throwable {
+    try {
+      TraceProxy.trace(callable).call();
+    } catch (InvocationTargetException e) {
+      throw e.getCause();
+    }
   }
 
   /**
-   * Verify that exceptions propagate up through the trace wrapping with sampling disabled, instead of seeing the reflexive exceptions.
+   * Verify that exceptions propagate up through the trace wrapping with sampling disabled, as the cause of the reflexive exceptions.
    */
   @Test(expected = IOException.class)
-  public void testUntracedException() throws Exception {
-    Sampler never = new Sampler() {
-      @Override
-      public boolean next() {
-        return false;
-      }
-    };
-
-    TraceProxy.trace(callable, never).call();
+  public void testUntracedException() throws Throwable {
+    try {
+      TraceProxy.trace(callable, Sampler.NEVER).call();
+    } catch (InvocationTargetException e) {
+      throw e.getCause();
+    }
   }
 }

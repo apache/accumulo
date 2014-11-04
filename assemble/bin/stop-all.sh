@@ -64,5 +64,5 @@ done
 "${bin}/tdown.sh"
 
 echo "Cleaning all server entries in ZooKeeper"
-"$ACCUMULO_HOME/bin/accumulo" org.apache.accumulo.server.util.ZooZap -master -tservers -tracers
+"$ACCUMULO_HOME/bin/accumulo" org.apache.accumulo.server.util.ZooZap -master -tservers -tracers --site-file "$ACCUMULO_CONF_DIR/accumulo-site.xml"
 

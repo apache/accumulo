@@ -50,7 +50,8 @@ public class AccumuloStatus {
         if (!reader.getChildren(rootPath + Constants.ZTSERVERS + "/" + child).isEmpty())
           return false;
       }
-      if (!reader.getChildren(rootPath + Constants.ZTRACERS).isEmpty())
+      // TODO: check configured tracers location instead of default
+      if (!reader.getChildren(Constants.ZTRACERS).isEmpty())
         return false;
       if (!reader.getChildren(rootPath + Constants.ZMASTER_LOCK).isEmpty())
         return false;

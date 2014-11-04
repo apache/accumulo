@@ -14,18 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.trace.instrument.receivers;
+package org.apache.accumulo.core.trace;
 
+import org.apache.accumulo.trace.thrift.Annotation;
+import org.apache.accumulo.trace.thrift.RemoteSpan;
+import org.apache.log4j.Logger;
+import org.htrace.HTraceConfiguration;
+import org.htrace.Span;
+import org.htrace.SpanReceiver;
+import org.htrace.TimelineAnnotation;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.util.AbstractQueue;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentLinkedQueue;
-
-import org.apache.accumulo.trace.thrift.RemoteSpan;
-import org.apache.log4j.Logger;
-
 
 /**
  * Deliver Span information periodically to a destination.
@@ -36,26 +46,28 @@ import org.apache.log4j.Logger;
  * </ul>
  */
 public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanReceiver {
-  
+
   private static final Logger log = Logger.getLogger(AsyncSpanReceiver.class);
   
   private final Map<SpanKey,Destination> clients = new HashMap<SpanKey,Destination>();
   
-  protected final String host;
-  protected final String service;
+  protected String host = null;
+  protected String service = null;
   
   protected abstract Destination createDestination(SpanKey key) throws Exception;
   
   protected abstract void send(Destination resource, RemoteSpan span) throws Exception;
   
-  protected abstract SpanKey getSpanKey(Map<String,String> data);
+  protected abstract SpanKey getSpanKey(Map<ByteBuffer,ByteBuffer> data);
   
   Timer timer = new Timer("SpanSender", true);
-  final AbstractQueue<RemoteSpan> sendQueue = new ConcurrentLinkedQueue<RemoteSpan>();
-  
-  public AsyncSpanReceiver(String host, String service, long millis) {
-    this.host = host;
-    this.service = service;
+  protected final AbstractQueue<RemoteSpan> sendQueue = new ConcurrentLinkedQueue<RemoteSpan>();
+
+  public AsyncSpanReceiver() {
+    this(1000);
+  }
+
+  public AsyncSpanReceiver(long millis) {
     timer.schedule(new TimerTask() {
       @Override
       public void run() {
@@ -68,18 +80,11 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
       
     }, millis, millis);
   }
-  
-  void sendSpans() {
+
+  protected void sendSpans() {
     while (!sendQueue.isEmpty()) {
       boolean sent = false;
       RemoteSpan s = sendQueue.peek();
-      if (s.stop - s.start < 1) {
-        synchronized (sendQueue) {
-          sendQueue.remove();
-          sendQueue.notifyAll();
-        }
-        continue;
-      }
       SpanKey dest = getSpanKey(s.data);
       Destination client = clients.get(dest);
       if (client == null) {
@@ -98,25 +103,48 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
           }
           sent = true;
         } catch (Exception ex) {
-          log.error(ex, ex);
+          log.warn("Got error sending to " + dest + ", refreshing client", ex);
+          clients.remove(dest);
         }
       }
       if (!sent)
         break;
     }
   }
-  
+
+  public static Map<ByteBuffer, ByteBuffer> convertToByteBuffers(Map<byte[], byte[]> bytesMap) {
+    if (bytesMap == null)
+      return null;
+    Map<ByteBuffer, ByteBuffer> result = new HashMap<ByteBuffer, ByteBuffer>();
+    for (Entry<byte[], byte[]> bytes : bytesMap.entrySet()) {
+      result.put(ByteBuffer.wrap(bytes.getKey()), ByteBuffer.wrap(bytes.getValue()));
+    }
+    return result;
+  }
+
+  public static List<Annotation> convertToAnnotations(List<TimelineAnnotation> annotations) {
+    if (annotations == null)
+      return null;
+    List<Annotation> result = new ArrayList<Annotation>();
+    for (TimelineAnnotation annotation : annotations) {
+      result.add(new Annotation(annotation.getTime(), annotation.getMessage()));
+    }
+    return result;
+  }
+
   @Override
-  public void span(long traceId, long spanId, long parentId, long start, long stop, String description, Map<String,String> data) {
-    
+  public void receiveSpan(Span s) {
+    Map<ByteBuffer, ByteBuffer> data = convertToByteBuffers(s.getKVAnnotations());
     SpanKey dest = getSpanKey(data);
     if (dest != null) {
-      sendQueue.add(new RemoteSpan(host, service, traceId, spanId, parentId, start, stop, description, data));
+      List<Annotation> annotations = convertToAnnotations(s.getTimelineAnnotations());
+      sendQueue.add(new RemoteSpan(host, service==null ? s.getProcessId() : service, s.getTraceId(), s.getSpanId(), s.getParentId(),
+          s.getStartTimeMillis(), s.getStopTimeMillis(), s.getDescription(), data, annotations));
     }
   }
-  
+
   @Override
-  public void flush() {
+  public void close() {
     synchronized (sendQueue) {
       while (!sendQueue.isEmpty()) {
         try {
@@ -127,6 +155,19 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
         }
       }
     }
+  }
+
+  @Override
+  public void configure(HTraceConfiguration conf) {
+    host = conf.get(DistributedTrace.TRACE_HOST_PROPERTY, host);
+    if (host == null) {
+      try {
+        host = InetAddress.getLocalHost().getCanonicalHostName().toString();
+      } catch (UnknownHostException e) {
+        host = "unknown";
+      }
+    }
+    service = conf.get(DistributedTrace.TRACE_SERVICE_PROPERTY, service);
   }
   
 }

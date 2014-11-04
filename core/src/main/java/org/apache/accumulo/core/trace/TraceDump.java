@@ -37,6 +37,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
+import org.htrace.Span;
 
 import com.beust.jcommander.Parameter;
 
@@ -134,7 +135,7 @@ public class TraceDump {
       RemoteSpan span = TraceFormatter.getRemoteSpan(entry);
       tree.addNode(span);
       start = min(start, span.start);
-      if (span.parentId <= 0)
+      if (span.parentId == Span.ROOT_SPAN_ID)
         count++;
     }
     out.print(String.format("Trace started at %s", TraceFormatter.formatDate(new Date(start))));

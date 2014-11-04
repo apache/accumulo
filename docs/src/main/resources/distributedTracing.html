@@ -30,13 +30,20 @@ distributed, and the typical lookup is fast.</p>
 <p>To provide insight into what accumulo is doing during your scan, you can turn on tracing before you do your operation:</p>
 
 <pre>
-   DistributedTrace.enable(instance, zooReader, hostname, "myApplication");
-   Trace scanTrace = Trace.on("client:scan");
+   import org.apache.accumulo.core.trace.DistributedTrace;
+   import org.htrace.Sampler;
+   import org.htrace.Trace;
+   import org.htrace.TraceScope;
+   ...
+
+   DistributedTrace.enable(hostname, "myApplication");
+   TraceScope scanTrace = Trace.startSpan("client:scan", Sampler.ALWAYS);
    BatchScanner scanner = conn.createBatchScanner(...);
    // Configure your scanner
    for (Entry<Key, Value> entry : scanner) {
    }
-   Trace.off();
+   scanTrace.close();
+   DistributedTrace.disableTracing();
 </pre>
 
 

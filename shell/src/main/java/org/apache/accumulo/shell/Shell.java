@@ -78,7 +78,6 @@ import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterFactory;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.apache.accumulo.shell.commands.AboutCommand;
@@ -328,8 +327,7 @@ public class Shell extends ShellOptions {
       }
 
       if (!options.isFake()) {
-        ZooReader zr = new ZooReader(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
-        DistributedTrace.enable(instance, zr, "shell", InetAddress.getLocalHost().getHostName());
+        DistributedTrace.enable(InetAddress.getLocalHost().getHostName(), "shell", options.getClientConfiguration());
       }
 
       this.setTableName("");
@@ -525,6 +523,7 @@ public class Shell extends ShellOptions {
       System.exit(shell.start());
     } finally {
       shell.shutdown();
+      DistributedTrace.disable();
     }
   }
 

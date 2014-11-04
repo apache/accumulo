@@ -16,11 +16,15 @@
  */
 package org.apache.accumulo.core.trace;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.trace.thrift.Annotation;
 import org.apache.accumulo.trace.thrift.RemoteSpan;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -88,8 +92,17 @@ public class TraceFormatter implements Formatter {
       result.append(String.format(" %12s:%s%n", "parent", Long.toHexString(span.parentId)));
       result.append(String.format(" %12s:%s%n", "start", dateFormatter.format(span.start)));
       result.append(String.format(" %12s:%s%n", "ms", span.stop - span.start));
-      for (Entry<String,String> entry : span.data.entrySet()) {
-        result.append(String.format(" %12s:%s%n", entry.getKey(), entry.getValue()));
+      if (span.data != null) {
+        for (Entry<ByteBuffer, ByteBuffer> entry : span.data.entrySet()) {
+          String key = new String(entry.getKey().array(), entry.getKey().arrayOffset(), entry.getKey().limit(), UTF_8);
+          String value = new String(entry.getValue().array(), entry.getValue().arrayOffset(), entry.getValue().limit(), UTF_8);
+          result.append(String.format(" %12s:%s%n", key, value));
+        }
+      }
+      if (span.annotations != null) {
+        for (Annotation annotation : span.annotations) {
+          result.append(String.format(" %12s:%s:%s%n", "annotation", annotation.getMsg(), dateFormatter.format(annotation.getTime())));
+        }
       }
       
       if (printTimeStamps) {

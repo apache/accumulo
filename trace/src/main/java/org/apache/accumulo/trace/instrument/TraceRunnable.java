@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.trace.instrument;
 
+import org.htrace.Span;
+import org.htrace.Trace;
+import org.htrace.TraceScope;
+
 /**
  * Wrap a Runnable with a Span that survives a change in threads.
  * 
@@ -24,28 +28,38 @@ public class TraceRunnable implements Runnable, Comparable<TraceRunnable> {
   
   private final Span parent;
   private final Runnable runnable;
+  private final String description;
   
   public TraceRunnable(Runnable runnable) {
-    this(Trace.currentTrace(), runnable);
+    this(Trace.currentSpan(), runnable);
   }
   
   public TraceRunnable(Span parent, Runnable runnable) {
+    this(parent, runnable, null);
+  }
+
+  public TraceRunnable(Span parent, Runnable runnable, String description) {
     this.parent = parent;
     this.runnable = runnable;
+    this.description = description;
   }
   
   @Override
   public void run() {
     if (parent != null) {
-      Span chunk = Trace.startThread(parent, Thread.currentThread().getName());
+      TraceScope chunk = Trace.startSpan(getDescription(), parent);
       try {
         runnable.run();
       } finally {
-        Trace.endThread(chunk);
+        TraceExecutorService.endThread(chunk.getSpan());
       }
     } else {
       runnable.run();
     }
+  }
+
+  private String getDescription() {
+    return this.description == null ? Thread.currentThread().getName() : description;
   }
   
   @Override

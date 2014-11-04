@@ -2078,11 +2078,10 @@ public class Tablet implements TabletCommitter {
           this.notifyAll();
         }
 
-        Span curr = Trace.currentTrace();
-        curr.data("extent", "" + getExtent());
+        span.data("extent", "" + getExtent());
         if (majCStats != null) {
-          curr.data("read", "" + majCStats.getEntriesRead());
-          curr.data("written", "" + majCStats.getEntriesWritten());
+          span.data("read", "" + majCStats.getEntriesRead());
+          span.data("written", "" + majCStats.getEntriesWritten());
         }
       }
     } finally {

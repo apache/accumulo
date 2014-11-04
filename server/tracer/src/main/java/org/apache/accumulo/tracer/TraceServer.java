@@ -26,7 +26,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -43,10 +42,10 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.AgeOffFilter;
 import org.apache.accumulo.core.security.SecurityUtil;
-import org.apache.accumulo.core.trace.TraceFormatter;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.core.trace.TraceFormatter;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
@@ -225,7 +224,7 @@ public class TraceServer implements Watcher {
     TThreadPoolServer.Args options = new TThreadPoolServer.Args(transport);
     options.processor(new Processor<Iface>(new Receiver()));
     server = new TThreadPoolServer(options);
-    registerInZooKeeper(sock.getInetAddress().getHostAddress() + ":" + sock.getLocalPort());
+    registerInZooKeeper(sock.getInetAddress().getHostAddress() + ":" + sock.getLocalPort(), conf.get(Property.TRACE_ZK_PATH));
     writer = new AtomicReference<BatchWriter>(this.connector.createBatchWriter(table, new BatchWriterConfig().setMaxLatency(5, TimeUnit.SECONDS)));
   }
 
@@ -278,9 +277,10 @@ public class TraceServer implements Watcher {
     }
   }
 
-  private void registerInZooKeeper(String name) throws Exception {
-    String root = ZooUtil.getRoot(serverConfiguration.getInstance()) + Constants.ZTRACERS;
+  private void registerInZooKeeper(String name, String root) throws Exception {
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    zoo.putPersistentData(root, new byte[0], NodeExistsPolicy.SKIP);
+    log.info("Registering tracer " + name + " at " + root);
     String path = zoo.putEphemeralSequential(root + "/trace-", name.getBytes(UTF_8));
     zoo.exists(path, this);
   }
@@ -297,9 +297,12 @@ public class TraceServer implements Watcher {
     Accumulo.init(fs, conf, app);
     String hostname = opts.getAddress();
     TraceServer server = new TraceServer(conf, hostname);
-    Accumulo.enableTracing(hostname, app);
-    server.run();
-    log.info("tracer stopping");
+    try {
+      server.run();
+    } finally {
+      log.info("tracer stopping");
+      ZooReaderWriter.getInstance().getZooKeeper().close();
+    }
   }
 
   @Override

@@ -19,6 +19,7 @@ package org.apache.accumulo.server.util;
 import java.util.List;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -48,6 +49,10 @@ public class ZooZap {
     boolean zapTracers = false;
     @Parameter(names="-verbose", description="print out messages about progress")
     boolean verbose = false;
+
+    String getTraceZKPath() {
+      return super.getClientConfiguration().get(ClientProperty.TRACE_ZK_PATH);
+    }
   }
   
   public static void main(String[] args) {
@@ -93,7 +98,7 @@ public class ZooZap {
     }
     
     if (opts.zapTracers) {
-      String path = Constants.ZROOT + "/" + iid + Constants.ZTRACERS;
+      String path = opts.getTraceZKPath();
       zapDirectory(zoo, path);
     }
     

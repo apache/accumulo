@@ -25,7 +25,6 @@ import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
@@ -34,8 +33,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.DistributedTrace;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.trace.instrument.Trace;
+
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
@@ -62,19 +61,19 @@ public class VerifyIngest {
     Opts opts = new Opts();
     ScannerOpts scanOpts = new ScannerOpts();
     opts.parseArgs(VerifyIngest.class.getName(), args, scanOpts);
-    Instance instance = opts.getInstance();
     try {
       if (opts.trace) {
         String name = VerifyIngest.class.getSimpleName();
-        DistributedTrace.enable(instance, new ZooReader(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut()), name, null);
+        DistributedTrace.enable();
         Trace.on(name);
-        Trace.currentTrace().data("cmdLine", Arrays.asList(args).toString());
+        Trace.data("cmdLine", Arrays.asList(args).toString());
       }
 
       verifyIngest(opts.getConnector(), opts, scanOpts);
 
     } finally {
       Trace.off();
+      DistributedTrace.disable();
     }
   }
 

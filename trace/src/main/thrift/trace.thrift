@@ -17,6 +17,11 @@
 namespace java org.apache.accumulo.trace.thrift
 namespace cpp org.apache.accumulo.trace.thrift
 
+struct Annotation {
+   1:i64 time,
+   2:string msg
+}
+
 struct RemoteSpan {
    1:string sender,
    2:string svc, 
@@ -26,7 +31,8 @@ struct RemoteSpan {
    6:i64 start, 
    7:i64 stop, 
    8:string description, 
-   9:map<string, string> data
+   10:map<binary, binary> data,
+   11:list<Annotation> annotations
 }
 
 struct TInfo {

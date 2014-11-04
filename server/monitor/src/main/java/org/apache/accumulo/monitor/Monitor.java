@@ -54,6 +54,7 @@ import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -413,8 +414,12 @@ public class Monitor {
     config = new ServerConfigurationFactory(instance);
     Accumulo.init(fs, config, app);
     Monitor monitor = new Monitor();
-    Accumulo.enableTracing(hostname, app);
-    monitor.run(hostname);
+    DistributedTrace.enable(hostname, app, config.getConfiguration());
+    try {
+      monitor.run(hostname);
+    } finally {
+      DistributedTrace.disable();
+    }
   }
 
   private static long START_TIME;

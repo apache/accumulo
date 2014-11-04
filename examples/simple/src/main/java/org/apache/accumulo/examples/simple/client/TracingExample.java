@@ -17,6 +17,7 @@
 
 package org.apache.accumulo.examples.simple.client;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.cli.ClientOnDefaultTable;
@@ -33,9 +34,9 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.DistributedTrace;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
-import org.apache.accumulo.trace.instrument.Span;
-import org.apache.accumulo.trace.instrument.Trace;
+import org.htrace.Sampler;
+import org.htrace.Trace;
+import org.htrace.TraceScope;
 
 import com.beust.jcommander.Parameter;
 
@@ -64,7 +65,7 @@ public class TracingExample {
   }
 
   public void enableTracing(Opts opts) throws Exception {
-    DistributedTrace.enable(opts.getInstance(), new ZooReader(opts.getInstance().getZooKeepers(), 1000), "myHost", "myApp");
+    DistributedTrace.enable("myHost", "myApp");
   }
 
   public void execute(Opts opts) throws TableNotFoundException, InterruptedException, AccumuloException, AccumuloSecurityException, TableExistsException {
@@ -91,22 +92,21 @@ public class TracingExample {
     // Trace the write operation. Note, unless you flush the BatchWriter, you will not capture
     // the write operation as it is occurs asynchronously. You can optionally create additional Spans
     // within a given Trace as seen below around the flush
-    Trace.on("Client Write");
+    TraceScope scope = Trace.startSpan("Client Write", Sampler.ALWAYS);
 
-    System.out.println("TraceID: " + Long.toHexString(Trace.currentTrace().traceId()));
+    System.out.println("TraceID: " + Long.toHexString(scope.getSpan().getTraceId()));
     BatchWriter batchWriter = opts.getConnector().createBatchWriter(opts.getTableName(), new BatchWriterConfig());
 
     Mutation m = new Mutation("row");
     m.put("cf", "cq", "value");
 
     batchWriter.addMutation(m);
-    Span flushSpan = Trace.start("Client Flush");
+    // You can add timeline annotations to Spans which will be able to be viewed in the Monitor
+    scope.getSpan().addTimelineAnnotation("Initiating Flush");
     batchWriter.flush();
-    flushSpan.stop();
 
-    // Use Trace.offNoFlush() if you don't want the operation to block.
     batchWriter.close();
-    Trace.off();
+    scope.close();
   }
 
   private void readEntries(Opts opts) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
@@ -114,8 +114,8 @@ public class TracingExample {
     Scanner scanner = opts.getConnector().createScanner(opts.getTableName(), opts.auths);
 
     // Trace the read operation.
-    Span readSpan = Trace.on("Client Read");
-    System.out.println("TraceID: " + Long.toHexString(Trace.currentTrace().traceId()));
+    TraceScope readScope = Trace.startSpan("Client Read", Sampler.ALWAYS);
+    System.out.println("TraceID: " + Long.toHexString(readScope.getSpan().getTraceId()));
 
     int numberOfEntriesRead = 0;
     for (Entry<Key,Value> entry : scanner) {
@@ -123,9 +123,10 @@ public class TracingExample {
       ++numberOfEntriesRead;
     }
     // You can add additional metadata (key, values) to Spans which will be able to be viewed in the Monitor
-    readSpan.data("Number of Entries Read", String.valueOf(numberOfEntriesRead));
+    readScope.getSpan().addKVAnnotation("Number of Entries Read".getBytes(UTF_8),
+        String.valueOf(numberOfEntriesRead).getBytes(UTF_8));
 
-    Trace.off();
+    readScope.close();
   }
 
   public static void main(String[] args) throws Exception {

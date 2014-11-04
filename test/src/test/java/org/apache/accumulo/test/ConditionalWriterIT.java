@@ -74,7 +74,6 @@ import org.apache.accumulo.core.trace.TraceDump.Printer;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.AlphaNumKeyConstraint;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.test.functional.BadIterator;
 import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.apache.accumulo.test.functional.SlowIterator;
@@ -1234,7 +1233,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
     conn.tableOperations().create(tableName);
     conn.tableOperations().deleteRows("trace", null, null);
 
-    DistributedTrace.enable(conn.getInstance(), new ZooReader(conn.getInstance().getZooKeepers(), 30*1000), "testTrace", "localhost");
+    DistributedTrace.enable("localhost", "testTrace", getClientConfig());
     Span root = Trace.on("traceTest");
     ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig());
 

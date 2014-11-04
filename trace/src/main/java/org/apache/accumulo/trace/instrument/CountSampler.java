@@ -16,26 +16,16 @@
  */
 package org.apache.accumulo.trace.instrument;
 
-import java.util.Random;
-
 /**
- * Sampler that returns true every N calls.
- * 
+ * use org.htrace.impl.CountSampler instead
  */
-public class CountSampler implements Sampler {
-  
-  final static Random random = new Random();
-  
-  final long frequency;
-  long count = random.nextLong();
-  
+public class CountSampler extends org.htrace.impl.CountSampler implements Sampler {
   public CountSampler(long frequency) {
-    this.frequency = frequency;
+    super(frequency);
   }
   
   @Override
   public boolean next() {
-    return (count++ % frequency) == 0;
+    return super.next(null);
   }
-  
 }

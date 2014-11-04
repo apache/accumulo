@@ -14,11 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.trace.instrument.receivers;
+package org.apache.accumulo.core.trace;
 
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.util.Map;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.trace.thrift.RemoteSpan;
 import org.apache.accumulo.trace.thrift.SpanReceiver.Client;
@@ -27,6 +25,10 @@ import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.nio.ByteBuffer;
+import java.util.Map;
 
 /**
  * Send Span data to a destination using thrift.
@@ -36,9 +38,13 @@ public class SendSpansViaThrift extends AsyncSpanReceiver<String,Client> {
   private static final org.apache.log4j.Logger log = org.apache.log4j.Logger.getLogger(SendSpansViaThrift.class);
   
   private static final String THRIFT = "thrift://";
-  
-  public SendSpansViaThrift(String host, String service, long millis) {
-    super(host, service, millis);
+
+  public SendSpansViaThrift() {
+    super();
+  }
+
+  public SendSpansViaThrift(long millis) {
+    super(millis);
   }
   
   @Override
@@ -69,13 +75,15 @@ public class SendSpansViaThrift extends AsyncSpanReceiver<String,Client> {
         client.span(s);
       } catch (Exception ex) {
         client.getInputProtocol().getTransport().close();
-        client = null;
+        throw ex;
       }
     }
   }
-  
-  protected String getSpanKey(Map<String,String> data) {
-    String dest = data.get("dest");
+
+  private static final ByteBuffer DEST = ByteBuffer.wrap("dest".getBytes(UTF_8));
+
+  protected String getSpanKey(Map<ByteBuffer,ByteBuffer> data) {
+    String dest = new String(data.get(DEST).array());
     if (dest != null && dest.startsWith(THRIFT)) {
       String hostAddress = dest.substring(THRIFT.length());
       String[] hostAddr = hostAddress.split(":", 2);

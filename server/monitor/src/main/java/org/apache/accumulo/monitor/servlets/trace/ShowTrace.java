@@ -17,7 +17,9 @@
 package org.apache.accumulo.monitor.servlets.trace;
 
 import static java.lang.Math.min;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -34,6 +36,7 @@ import org.apache.accumulo.core.trace.SpanTreeVisitor;
 import org.apache.accumulo.core.trace.TraceDump;
 import org.apache.accumulo.core.trace.TraceFormatter;
 import org.apache.accumulo.monitor.servlets.BasicServlet;
+import org.apache.accumulo.trace.thrift.Annotation;
 import org.apache.accumulo.trace.thrift.RemoteSpan;
 import org.apache.hadoop.io.Text;
 
@@ -115,7 +118,8 @@ public class ShowTrace extends Basic {
         sb.append(String.format("<td style='text-indent: %dpx'>%s@%s</td>%n", level * 5, node.svc, node.sender));
         sb.append("<td>" + node.description + "</td>");
         boolean hasData = node.data != null && !node.data.isEmpty();
-        if (hasData) {
+        boolean hasAnnotations = node.annotations != null && !node.annotations.isEmpty();
+        if (hasData || hasAnnotations) {
           String hexSpanId = Long.toHexString(node.spanId);
           sb.append("<td><input type='checkbox' id=\"");
           sb.append(hexSpanId);
@@ -127,11 +131,23 @@ public class ShowTrace extends Basic {
         sb.append("</tr>\n");
         sb.append("<tr id='" + Long.toHexString(node.spanId) + "' style='display:none'>");
         sb.append("<td colspan='5'>\n");
-        if (hasData) {
+        if (hasData || hasAnnotations) {
           sb.append("  <table class='indent,noborder'>\n");
-          for (Entry<String,String> entry : node.data.entrySet()) {
-            sb.append("  <tr><td>" + BasicServlet.sanitize(entry.getKey()) + "</td>");
-            sb.append("<td>" + BasicServlet.sanitize(entry.getValue()) + "</td></tr>\n");
+          if (hasData) {
+            sb.append("  <tr><th>Key</th><th>Value</th></tr>\n");
+            for (Entry<ByteBuffer, ByteBuffer> entry : node.data.entrySet()) {
+              String key = new String(entry.getKey().array(), entry.getKey().arrayOffset(), entry.getKey().limit(), UTF_8);
+              String value = new String(entry.getValue().array(), entry.getValue().arrayOffset(), entry.getValue().limit(), UTF_8);
+              sb.append("  <tr><td>" + BasicServlet.sanitize(key) + "</td>");
+              sb.append("<td>" + BasicServlet.sanitize(value) + "</td></tr>\n");
+            }
+          }
+          if (hasAnnotations) {
+            sb.append("  <tr><th>Annotation</th><th>Time Offset</th></tr>\n");
+            for (Annotation entry : node.annotations) {
+              sb.append("  <tr><td>" + BasicServlet.sanitize(entry.getMsg()) + "</td>");
+              sb.append(String.format("<td>%d</td></tr>\n", entry.getTime() - finalStart));
+            }
           }
           sb.append("  </table>");
         }

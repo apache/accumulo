@@ -17,79 +17,124 @@
 package org.apache.accumulo.trace.instrument;
 
 import org.apache.accumulo.trace.thrift.TInfo;
+import org.htrace.TraceInfo;
+import org.htrace.wrappers.TraceProxy;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
- * A Trace allows a user to gather global, distributed, detailed performance information while requesting a service. The general usage for a user is to do
- * something like this:
- * 
- * Trace.on("doSomething"); try { doSomething(); } finally { Trace.off(); }
- * 
- * This updates the environment for this thread, and data collection will occur whenever the thread encounters any Span notations in the code. The information
- * about the trace will also be carried over RPC calls as well. If the thread should hand off work to another thread, the environment can be carried with it, so
- * that the trace continues on the new thread.
+ * Utility class for tracing within Accumulo.  Not intended for client use!
+ *
  */
 public class Trace {
-  
-  // Initiate tracing if it isn't already started
+  /**
+   * Start a trace span with a given description.
+   */
   public static Span on(String description) {
-    return Tracer.getInstance().on(description);
+    return on(description, Sampler.ALWAYS);
   }
-  
-  // Turn tracing off:
+
+  /**
+   * Start a trace span with a given description with the given sampler.
+   */
+  public static <T> Span on(String description, org.htrace.Sampler<T> sampler) {
+    return new Span(org.htrace.Trace.startSpan(description, sampler));
+  }
+
+  /**
+   * Finish the current trace.
+   */
   public static void off() {
-    Tracer.getInstance().stopTracing();
-    Tracer.getInstance().flush();
+    org.htrace.Span span = org.htrace.Trace.currentSpan();
+    if (span != null) {
+      span.stop();
+      org.htrace.Tracer.getInstance().continueSpan(null);
+    }
   }
-  
+
+  /**
+   * @deprecated since 1.7, use {@link #off()} instead
+   */
+  @Deprecated
   public static void offNoFlush() {
-    Tracer.getInstance().stopTracing();
+    off();
   }
-  
-  // Are we presently tracing?
+
+  /**
+   * Returns whether tracing is currently on.
+   */
   public static boolean isTracing() {
-    return Tracer.getInstance().isTracing();
+    return org.htrace.Trace.isTracing();
   }
-  
-  // If we are tracing, return the current span, else null
+
+  /**
+   * Return the current span.
+   * @deprecated since 1.7 -- it is better to save the span you create in a local variable and call its methods, rather than retrieving the current span
+   */
+  @Deprecated
   public static Span currentTrace() {
-    return Tracer.getInstance().currentTrace();
+    return new Span(org.htrace.Trace.currentSpan());
   }
-  
-  // Create a new time span, if tracing is on
+
+  /**
+   * Get the trace id of the current span.
+   */
+  public static long currentTraceId() {
+    return org.htrace.Trace.currentSpan().getTraceId();
+  }
+
+  /**
+   * Start a new span with a given description, if already tracing.
+   */
   public static Span start(String description) {
-    return Tracer.getInstance().start(description);
+    return new Span(org.htrace.Trace.startSpan(description));
   }
-  
-  // Start a trace in the current thread from information passed via RPC
+
+  /**
+   * Continue a trace by starting a new span with a given parent and description.
+   */
   public static Span trace(TInfo info, String description) {
     if (info.traceId == 0) {
-      return Tracer.NULL_SPAN;
+      return Span.NULL_SPAN;
     }
-    return Tracer.getInstance().continueTrace(description, info.traceId, info.parentId);
+    TraceInfo ti = new TraceInfo(info.traceId, info.parentId);
+    return new Span(org.htrace.Trace.startSpan(description, ti));
   }
-  
-  // Initiate a trace in this thread, starting now
+
+  /**
+   * Start a new span with a given description and parent.
+   * @deprecated since 1.7 -- use htrace API
+   */
+  @Deprecated
   public static Span startThread(Span parent, String description) {
-    return Tracer.getInstance().startThread(parent, description);
+    return new Span(org.htrace.Trace.startSpan(description, parent.getSpan()));
   }
-  
-  // Stop a trace in this thread, starting now
-  public static void endThread(Span span) {
-    Tracer.getInstance().endThread(span);
+
+  /**
+   * Add data to the current span.
+   */
+  public static void data(String k, String v) {
+    org.htrace.Span span = org.htrace.Trace.currentSpan();
+    if (span != null)
+      span.addKVAnnotation(k.getBytes(UTF_8), v.getBytes(UTF_8));
   }
-  
-  // Wrap the runnable in a new span, if tracing
+
+  /**
+   * Wrap a runnable in a TraceRunnable, if tracing.
+   */
   public static Runnable wrap(Runnable runnable) {
-    if (isTracing())
-      return new TraceRunnable(Trace.currentTrace(), runnable);
-    return runnable;
+    if (isTracing()) {
+      return new TraceRunnable(org.htrace.Trace.currentSpan(), runnable);
+    } else {
+      return runnable;
+    }
   }
-  
+
   // Wrap all calls to the given object with spans
   public static <T> T wrapAll(T instance) {
     return TraceProxy.trace(instance);
   }
-  
+
   // Sample trace all calls to the given object
   public static <T> T wrapAll(T instance, Sampler dist) {
     return TraceProxy.trace(instance, dist);

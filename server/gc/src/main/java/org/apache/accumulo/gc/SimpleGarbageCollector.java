@@ -69,6 +69,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
@@ -97,7 +98,6 @@ import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.util.TabletIterator;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.trace.instrument.CountSampler;
-import org.apache.accumulo.trace.instrument.Sampler;
 import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.accumulo.trace.thrift.TInfo;
@@ -158,8 +158,12 @@ public class SimpleGarbageCollector implements Iface {
     AccumuloConfiguration config = conf.getConfiguration();
 
     gc.init(fs, instance, SystemCredentials.get(), config);
-    Accumulo.enableTracing(opts.getAddress(), app);
-    gc.run();
+    DistributedTrace.enable(opts.getAddress(), app, config);
+    try {
+      gc.run();
+    } finally {
+      DistributedTrace.disable();
+    }
   }
 
   /**
@@ -568,11 +572,10 @@ public class SimpleGarbageCollector implements Iface {
       return;
     }
 
-    Sampler sampler = new CountSampler(100);
+    CountSampler sampler = new CountSampler(100);
 
     while (true) {
-      if (sampler.next())
-        Trace.on("gc");
+      Trace.on("gc", sampler);
 
       Span gcSpan = Trace.start("loop");
       tStart = System.currentTimeMillis();
@@ -634,7 +637,7 @@ public class SimpleGarbageCollector implements Iface {
         log.warn(e, e);
       }
 
-      Trace.offNoFlush();
+      Trace.off();
       try {
         long gcDelay = config.getTimeInMillis(Property.GC_CYCLE_DELAY);
         log.debug("Sleeping for " + gcDelay + " milliseconds");

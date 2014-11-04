@@ -228,7 +228,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       // We made no status, punt on it for now, and let it re-queue itself for work
       return status;
     } finally {
-      Trace.offNoFlush();
+      Trace.off();
     }
   }
 

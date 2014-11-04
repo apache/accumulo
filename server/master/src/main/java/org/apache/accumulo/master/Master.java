@@ -69,6 +69,7 @@ import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SecurityUtil;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -1259,11 +1260,13 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       VolumeManager fs = VolumeManagerImpl.get();
       Accumulo.init(fs, conf, app);
       Master master = new Master(conf, fs, hostname);
-      Accumulo.enableTracing(hostname, app);
+      DistributedTrace.enable(hostname, app, conf.getConfiguration());
       master.run();
     } catch (Exception ex) {
       log.error("Unexpected exception, exiting", ex);
       System.exit(1);
+    } finally {
+      DistributedTrace.disable();
     }
   }
 

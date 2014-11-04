@@ -32,7 +32,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.Version;
@@ -105,14 +104,6 @@ public class Accumulo {
     // It doesn't matter which Volume is used as they should all have the instance ID stored
     Volume v = fs.getVolumes().iterator().next();
     return ServerConstants.getInstanceIdLocation(v);
-  }
-
-  public static void enableTracing(String address, String application) {
-    try {
-      DistributedTrace.enable(HdfsZooInstance.getInstance(), ZooReaderWriter.getInstance(), application, address);
-    } catch (Exception ex) {
-      log.error("creating remote sink for trace spans", ex);
-    }
   }
 
   /**

@@ -16,56 +16,173 @@
  */
 package org.apache.accumulo.trace.instrument;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import org.htrace.NullScope;
+import org.htrace.TimelineAnnotation;
+import org.htrace.TraceScope;
+
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 /**
- * Base interface for gathering and reporting statistics about a block of execution.
+ * This is a wrapper for a TraceScope object, which is a wrapper for a Span and its parent.
  */
-public interface Span {
-  static final long ROOT_SPAN_ID = 0;
-  
-  /** Begin gathering timing information */
-  void start();
-  
-  /** The block has completed, stop the clock */
-  void stop();
-  
-  /** Get the start time, in milliseconds */
-  long getStartTimeMillis();
-  
-  /** Get the stop time, in milliseconds */
-  long getStopTimeMillis();
-  
-  /** Return the total amount of time elapsed since start was called, if running, or difference between stop and start */
-  long accumulatedMillis();
-  
-  /** Has the span been started and not yet stopped? */
-  boolean running();
-  
-  /** Return a textual description of this span */
-  String description();
-  
-  /** A pseudo-unique (random) number assigned to this span instance */
-  long spanId();
-  
-  /** The parent span: returns null if this is the root span */
-  Span parent();
-  
-  /** A pseudo-unique (random) number assigned to the trace associated with this span */
-  long traceId();
-  
-  /** Create a child span of this span with the given description */
-  Span child(String description);
-  
+public class Span implements org.htrace.Span, CloudtraceSpan {
+  public static final long ROOT_SPAN_ID = org.htrace.Span.ROOT_SPAN_ID;
+  public static final Span NULL_SPAN = new Span(NullScope.INSTANCE);
+  private TraceScope scope = null;
+  protected org.htrace.Span span = null;
+
+  public Span(TraceScope scope) {
+    this.scope = scope;
+    this.span = scope.getSpan();
+  }
+
+  public Span(org.htrace.Span span) {
+    this.span = span;
+  }
+
+  public TraceScope getScope() {
+    return scope;
+  }
+
+  public org.htrace.Span getSpan() {
+    return span;
+  }
+
+  public long traceId() {
+    return span.getTraceId();
+  }
+
+  public void data(String k, String v) {
+    if (span != null)
+      span.addKVAnnotation(k.getBytes(UTF_8), v.getBytes(UTF_8));
+  }
+
   @Override
-  String toString();
-  
-  /** Return the pseudo-unique (random) number of the parent span, returns ROOT_SPAN_ID if this is the root span */
-  long parentId();
-  
-  /** Add data associated with this span */
-  void data(String key, String value);
-  
-  /** Get data associated with this span (read only) */
-  Map<String,String> getData();
+  public void stop() {
+    if (scope == null) {
+      if (span != null) {
+        span.stop();
+      }
+    } else {
+      scope.close();
+    }
+  }
+
+  @Override
+  public long getStartTimeMillis() {
+    return span.getStartTimeMillis();
+  }
+
+  @Override
+  public long getStopTimeMillis() {
+    return span.getStopTimeMillis();
+  }
+
+  @Override
+  public long getAccumulatedMillis() {
+    return span.getAccumulatedMillis();
+  }
+
+  @Override
+  public boolean isRunning() {
+    return span.isRunning();
+  }
+
+  @Override
+  public String getDescription() {
+    return span.getDescription();
+  }
+
+  @Override
+  public long getSpanId() {
+    return span.getSpanId();
+  }
+
+  @Override
+  public long getTraceId() {
+    return span.getTraceId();
+  }
+
+  @Override
+  public Span child(String s) {
+    return new Span(span.child(s));
+  }
+
+  @Override
+  public long getParentId() {
+    return span.getParentId();
+  }
+
+  @Override
+  public void addKVAnnotation(byte[] k, byte[] v) {
+    span.addKVAnnotation(k, v);
+  }
+
+  @Override
+  public void addTimelineAnnotation(String s) {
+    span.addTimelineAnnotation(s);
+  }
+
+  @Override
+  public Map<byte[], byte[]> getKVAnnotations() {
+    return span.getKVAnnotations();
+  }
+
+  @Override
+  public List<TimelineAnnotation> getTimelineAnnotations() {
+    return span.getTimelineAnnotations();
+  }
+
+  @Override
+  public String getProcessId() {
+    return span.getProcessId();
+  }
+
+  @Override
+  public String toString() {
+    return span.toString();
+  }
+
+  public void start() {
+    throw new UnsupportedOperationException("can't start span");
+  }
+
+  public long accumulatedMillis() {
+    return getAccumulatedMillis();
+  }
+
+  public boolean running() {
+    return isRunning();
+  }
+
+  public String description() {
+    return getDescription();
+  }
+
+  public long spanId() {
+    return getSpanId();
+  }
+
+  public Span parent() {
+    throw new UnsupportedOperationException("can't get parent");
+  }
+
+  public long parentId() {
+    return getParentId();
+  }
+
+  @Override
+  public Map<String,String> getData() {
+    Map<byte[],byte[]> data = span.getKVAnnotations();
+    HashMap<String,String> stringData = new HashMap<>();
+    for (Entry<byte[],byte[]> d : data.entrySet()) {
+      stringData.put(new String(d.getKey(), UTF_8), new String(d.getValue(), UTF_8));
+    }
+    return stringData;
+  }
 }

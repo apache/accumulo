@@ -146,7 +146,7 @@ public class ExamplesIT extends ConfigurableMacIT {
     }
     assertTrue(count > 0);
     result = FunctionalTestUtils.readAll(cluster, TraceDumpExample.class, p);
-    assertTrue(result.contains("myHost@myApp"));
+    assertTrue(result.contains("myApp@myHost"));
     trace.destroy();
   }
 

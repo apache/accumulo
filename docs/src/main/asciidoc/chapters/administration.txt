@@ -386,47 +386,115 @@ the following properties
   trace.user
   trace.token.property.password
 
+Other tracer configuration properties include
+
+  trace.port.client
+  trace.table
+
+==== Configuring Tracing
+Traces are collected via SpanReceivers. The default SpanReceiver
+configured is org.apache.accumulo.core.trace.ZooTraceClient, which
+sends spans to an Accumulo Tracer process, as discussed in the
+previous section. This default can be changed to a different span
+receiver, or additional span receivers can be added in a
+comma-separated list, by modifying the property
+
+  trace.span.receivers
+
+Individual span receivers may require their own configuration
+parameters, which are grouped under the trace.span.receiver.*
+prefix.  The ZooTraceClient requires the following property that
+indicates where the tracer servers will register themselves in
+ZooKeeper.
+
+  trace.span.receiver.zookeeper.path
+
+This is configured to /tracers by default.  If multiple Accumulo
+instances are sharing the same ZooKeeper quorum, take care to
+configure Accumulo with unique values for this property.
+
+Hadoop can also be configured to send traces to Accumulo, as of
+Hadoop 2.6.0, by setting the following properties in Hadoop's
+core-site.xml file (the path property is optional if left as the
+default).
+
+  <property>
+    <name>hadoop.htrace.spanreceiver.classes</name>
+    <value>org.apache.accumulo.core.trace.ZooTraceClient</value>
+  </property>
+  <property>
+    <name>hadoop.tracer.zookeeper.host</name>
+    <value>zookeeperHost:2181</value>
+  </property>
+  <property>
+    <name>hadoop.tracer.zookeeper.path</name>
+    <value>/tracers</value>
+  </property>
+
+The accumulo-core, accumulo-trace, and libthrift jars must also
+be placed on Hadoop's classpath.
+
 ==== Instrumenting a Client
 Tracing can be used to measure a client operation, such as a scan, as
 the operation traverses the distributed system. To enable tracing for
 your application call
 
 [source,java]
-DistributedTrace.enable(instance, new ZooReader(instance), hostname, "myApplication");
+import org.apache.accumulo.core.trace.DistributedTrace;
+...
+DistributedTrace.enable(hostname, "myApplication");
+// do some tracing
+...
+DistributedTrace.disable();
 
 Once tracing has been enabled, a client can wrap an operation in a trace.
 
 [source,java]
-Trace.on("Client Scan");
+import org.htrace.Sampler;
+import org.htrace.Trace;
+import org.htrace.TraceScope;
+...
+TraceScope scope = Trace.startSpan("Client Scan", Sampler.ALWAYS);
 BatchScanner scanner = conn.createBatchScanner(...);
 // Configure your scanner
 for (Entry entry : scanner) {
 }
-Trace.off();
+scope.close();
 
 Additionally, the user can create additional Spans within a Trace.
+The sampler for the trace should only be specified with the first span, and subsequent spans will be collected depending on whether that first span was sampled.
 
 [source,java]
-Trace.on("Client Update");
+TraceScope scope = Trace.startSpan("Client Update", Sampler.ALWAYS);
 ...
-Span readSpan = Trace.start("Read");
+TraceScope readScope = Trace.startSpan("Read");
 ...
-readSpan.stop();
+readScope.close();
 ...
-Span writeSpan = Trace.start("Write");
+TraceScope writeScope = Trace.startSpan("Write");
 ...
-writeSpan.stop();
-Trace.off();
+writeScope.close();
+scope.close();
 
 Like Dapper, Accumulo tracing supports user defined annotations to associate additional data with a Trace.
+Checking whether currently tracing is necessary when using a sampler other than Sampler.ALWAYS.
 
 [source,java]
 ...
 int numberOfEntriesRead = 0;
-Span readSpan = Trace.start("Read");
+TraceScope readScope = Trace.startSpan("Read");
 // Do the read, update the counter
 ...
-readSpan.data("Number of Entries Read", String.valueOf(numberOfEntriesRead));
+if (Trace.isTracing)
+  readScope.getSpan().addKVAnnotation("Number of Entries Read".getBytes(StandardCharsets.UTF_8),
+      String.valueOf(numberOfEntriesRead).getBytes(StandardCharsets.UTF_8));
+
+It is also possible to add timeline annotations to your spans.
+This associates a string with a given timestamp between the start and stop times for a span.
+
+[source,java]
+...
+writeScope.getSpan().addTimelineAnnotation("Initiating Flush");
 
 Some client operations may have a high volume within your
 application. As such, you may wish to only sample a percentage of
@@ -434,18 +502,18 @@ operations for tracing. As seen below, the CountSampler can be used to
 help enable tracing for 1-in-1000 operations
 
 [source,java]
+import org.htrace.impl.CountSampler;
+...
 Sampler sampler = new CountSampler(1000);
 ...
-if (sampler.next()) {
-  Trace.on("Read");
-}
+TraceScope readScope = Trace.startSpan("Read", sampler);
 ...
-Trace.offNoFlush();
+readScope.close();
 
-It should be noted that it is safe to turn off tracing even if it
-isn't currently active. The +Trace.offNoFlush()+ should be used if the
-user does not wish to have +Trace.off()+ block while flushing trace
-data.
+Remember to close all spans and disable tracing when finished.
+
+[source,java]
+DistributedTrace.disable();
 
 ==== Viewing Collected Traces
 To view collected traces, use the "Recent Traces" link on the Monitor

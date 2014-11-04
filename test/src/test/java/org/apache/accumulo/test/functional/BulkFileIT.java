@@ -34,7 +34,6 @@ import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
-import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -59,7 +58,7 @@ public class BulkFileIT extends SimpleMacIT {
     c.tableOperations().addSplits(tableName, splits);
     Configuration conf = new Configuration();
     AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
-    FileSystem fs = TraceFileSystem.wrap(VolumeConfiguration.getDefaultVolume(conf, aconf).getFileSystem());
+    FileSystem fs = VolumeConfiguration.getDefaultVolume(conf, aconf).getFileSystem();
 
     String dir = rootPath() + "/bulk_test_diff_files_89723987592_" + getUniqueNames(1)[0];
 

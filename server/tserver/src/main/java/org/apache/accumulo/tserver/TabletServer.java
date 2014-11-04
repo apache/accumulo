@@ -122,6 +122,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processor;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
+import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.ColumnFQ;
@@ -2876,11 +2877,13 @@ public class TabletServer implements Runnable {
       Accumulo.init(fs, conf, app);
       TabletServer server = new TabletServer(conf, fs);
       server.config(hostname);
-      Accumulo.enableTracing(hostname, app);
+      DistributedTrace.enable(hostname, app, conf.getConfiguration());
       server.run();
     } catch (Exception ex) {
       log.error("Uncaught exception in TabletServer.main, exiting", ex);
       System.exit(1);
+    } finally {
+      DistributedTrace.disable();
     }
   }
 

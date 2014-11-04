@@ -29,7 +29,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -49,9 +48,7 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.FastFormat;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.server.cli.ClientOnDefaultTable;
-import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
@@ -181,11 +178,9 @@ public class TestIngest {
     Opts opts = new Opts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(TestIngest.class.getName(), args, bwOpts);
-    
-    Instance instance = opts.getInstance();
-    
+
     String name = TestIngest.class.getSimpleName();
-    DistributedTrace.enable(instance, new ZooReader(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut()), name, null);
+    DistributedTrace.enable(name);
     
     try {
       opts.startTracing(name);
@@ -199,7 +194,8 @@ public class TestIngest {
     } catch (Exception e) {
       throw new RuntimeException(e);
     } finally {
-      Trace.off();
+      opts.stopTracing();
+      DistributedTrace.disable();
     }
   }
 

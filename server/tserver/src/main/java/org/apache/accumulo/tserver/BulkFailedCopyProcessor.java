@@ -23,7 +23,6 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
-import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue.Processor;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
@@ -53,8 +52,8 @@ public class BulkFailedCopyProcessor implements Processor {
 
     try {
       VolumeManager vm = VolumeManagerImpl.get(SiteConfiguration.getInstance());
-      FileSystem origFs = TraceFileSystem.wrap(vm.getVolumeByPath(orig).getFileSystem());
-      FileSystem destFs = TraceFileSystem.wrap(vm.getVolumeByPath(dest).getFileSystem());
+      FileSystem origFs = vm.getVolumeByPath(orig).getFileSystem();
+      FileSystem destFs = vm.getVolumeByPath(dest).getFileSystem();
       
       FileUtil.copy(origFs, orig, destFs, tmp, false, true, CachedConfiguration.getInstance());
       destFs.rename(tmp, dest);
@@ -62,7 +61,7 @@ public class BulkFailedCopyProcessor implements Processor {
     } catch (IOException ex) {
       try {
         VolumeManager vm = VolumeManagerImpl.get(SiteConfiguration.getInstance());
-        FileSystem destFs = TraceFileSystem.wrap(vm.getVolumeByPath(dest).getFileSystem());
+        FileSystem destFs = vm.getVolumeByPath(dest).getFileSystem();
         destFs.create(dest).close();
         log.warn(" marked " + dest + " failed", ex);
       } catch (IOException e) {

@@ -54,19 +54,18 @@ public class ThriftUtil {
   private static final Logger log = Logger.getLogger(ThriftUtil.class);
 
   public static class TraceProtocol extends TCompactProtocol {
+    private Span span = null;
 
     @Override
     public void writeMessageBegin(TMessage message) throws TException {
-      Trace.start("client:" + message.name);
+      span = Trace.start("client:" + message.name);
       super.writeMessageBegin(message);
     }
 
     @Override
     public void writeMessageEnd() throws TException {
       super.writeMessageEnd();
-      Span currentTrace = Trace.currentTrace();
-      if (currentTrace != null)
-        currentTrace.stop();
+      span.stop();
     }
 
     public TraceProtocol(TTransport transport) {

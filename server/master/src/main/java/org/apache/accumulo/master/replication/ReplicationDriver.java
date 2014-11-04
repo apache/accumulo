@@ -25,7 +25,6 @@ import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.trace.instrument.CountSampler;
-import org.apache.accumulo.trace.instrument.Sampler;
 import org.apache.accumulo.trace.instrument.Trace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +53,7 @@ public class ReplicationDriver extends Daemon {
 
   @Override
   public void run() {
-    Sampler sampler = new CountSampler(10);
+    CountSampler sampler = new CountSampler(10);
 
     while (master.stillMaster()) {
       if (null == workMaker) {
@@ -73,9 +72,7 @@ public class ReplicationDriver extends Daemon {
         rcrr = new RemoveCompleteReplicationRecords(conn);
       }
 
-      if (sampler.next()) {
-        Trace.on("masterReplicationDriver");
-      }
+      Trace.on("masterReplicationDriver", sampler);
 
       // Make status markers from replication records in metadata, removing entries in
       // metadata which are no longer needed (closed records)
@@ -109,7 +106,7 @@ public class ReplicationDriver extends Daemon {
         log.error("Caught Exception trying to remove finished Replication records", e);
       }
 
-      Trace.offNoFlush();
+      Trace.off();
 
       // Sleep for a bit
       long sleepMillis = conf.getTimeInMillis(Property.MASTER_REPLICATION_SCAN_INTERVAL);

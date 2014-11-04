@@ -17,11 +17,9 @@
 package org.apache.accumulo.trace.instrument;
 
 /**
- * Extremely simple callback to determine the frequency that an action should be performed.
- * 
- * @see Trace#wrapAll
+ * use org.htrace.Sampler instead
  */
-public interface Sampler {
+public interface Sampler extends org.htrace.Sampler<Object> {
   
   boolean next();
   

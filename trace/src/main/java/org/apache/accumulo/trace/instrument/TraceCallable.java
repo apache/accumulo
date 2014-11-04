@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.trace.instrument;
 
+import org.htrace.Span;
+import org.htrace.Trace;
+import org.htrace.TraceScope;
+
 import java.util.concurrent.Callable;
 
 /**
@@ -25,27 +29,41 @@ import java.util.concurrent.Callable;
 public class TraceCallable<V> implements Callable<V> {
   private final Callable<V> impl;
   private final Span parent;
+  private final String description;
   
   TraceCallable(Callable<V> impl) {
-    this(Trace.currentTrace(), impl);
+    this(Trace.currentSpan(), impl);
   }
   
   TraceCallable(Span parent, Callable<V> impl) {
+    this(parent, impl, null);
+  }
+
+  TraceCallable(Span parent, Callable<V> impl, String description) {
     this.impl = impl;
     this.parent = parent;
+    this.description = description;
   }
   
   @Override
   public V call() throws Exception {
     if (parent != null) {
-      Span chunk = Trace.startThread(parent, Thread.currentThread().getName());
+      TraceScope chunk = Trace.startSpan(getDescription(), parent);
       try {
         return impl.call();
       } finally {
-        Trace.endThread(chunk);
+        TraceExecutorService.endThread(chunk.getSpan());
       }
     } else {
       return impl.call();
     }
+  }
+
+  public Callable<V> getImpl() {
+    return impl;
+  }
+
+  private String getDescription() {
+    return this.description == null ? Thread.currentThread().getName() : description;
   }
 }

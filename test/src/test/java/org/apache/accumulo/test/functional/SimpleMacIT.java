@@ -17,9 +17,11 @@
 package org.apache.accumulo.test.functional;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
@@ -28,6 +30,8 @@ import org.apache.accumulo.minicluster.MiniAccumuloInstance;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ZooKeeperBindException;
+import org.apache.commons.configuration.ConfigurationException;
+import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -40,6 +44,8 @@ import org.junit.BeforeClass;
  */
 public class SimpleMacIT extends AbstractMacIT {
   protected static final Logger log = Logger.getLogger(SimpleMacIT.class);
+
+  private static final String INSTANCE_NAME = "instance1";
 
   private static File folder;
   private static MiniAccumuloClusterImpl cluster = null;
@@ -124,7 +130,7 @@ public class SimpleMacIT extends AbstractMacIT {
    */
   private static Connector getInstanceOneConnector() {
     try {
-      return new MiniAccumuloInstance("instance1", getInstanceOnePath()).getConnector("root", new PasswordToken(ROOT_PASSWORD));
+      return new MiniAccumuloInstance(INSTANCE_NAME, getInstanceOnePath()).getConnector("root", new PasswordToken(ROOT_PASSWORD));
     } catch (Exception e) {
       return null;
     }
@@ -132,6 +138,16 @@ public class SimpleMacIT extends AbstractMacIT {
 
   private static File getInstanceOnePath() {
     return new File(System.getProperty("user.dir") + "/accumulo-maven-plugin/instance1");
+  }
+
+  protected static ClientConfiguration getClientConfig() throws FileNotFoundException, ConfigurationException {
+    if (getInstanceOneConnector() == null) {
+      return new ClientConfiguration(new PropertiesConfiguration(cluster.getConfig().getClientConfFile()));
+    } else {
+      File directory = getInstanceOnePath();
+      return new ClientConfiguration(MiniAccumuloInstance.getConfigProperties(directory)).withInstance(INSTANCE_NAME)
+          .withZkHosts(MiniAccumuloInstance.getZooKeepersFromDir(directory));
+    }
   }
 
 }
