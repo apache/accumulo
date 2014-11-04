@@ -261,7 +261,7 @@ public class BulkImporter {
       assignmentStats.unrecoveredMapFiles(failedFailures);
       
       timer.stop(Timers.TOTAL);
-      printReport();
+      printReport(paths);
       return assignmentStats;
     } finally {
       if (client != null)
@@ -270,7 +270,7 @@ public class BulkImporter {
     }
   }
   
-  private void printReport() {
+  private void printReport(Set<Path> paths) {
     long totalTime = 0;
     for (Timers t : Timers.values()) {
       if (t == Timers.TOTAL)
@@ -278,8 +278,14 @@ public class BulkImporter {
       
       totalTime += timer.get(t);
     }
+    List<String> files = new ArrayList<String>();
+    for (Path path : paths) {
+      files.add(path.getName());
+    }
+    Collections.sort(files);
     
     log.debug("BULK IMPORT TIMING STATISTICS");
+    log.debug("Files: " + files);
     log.debug(String.format("Examine map files    : %,10.2f secs %6.2f%s", timer.getSecs(Timers.EXAMINE_MAP_FILES), 100.0 * timer.get(Timers.EXAMINE_MAP_FILES)
         / timer.get(Timers.TOTAL), "%"));
     log.debug(String.format("Query %-14s : %,10.2f secs %6.2f%s", MetadataTable.NAME, timer.getSecs(Timers.QUERY_METADATA),
