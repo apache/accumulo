@@ -454,16 +454,16 @@ public class Tablet {
   private static final Logger log = Logger.getLogger(Tablet.class);
   public TabletStatsKeeper timer;
 
-  private Rate queryRate = new Rate(0.2);
+  private Rate queryRate = new Rate(0.95);
   private long queryCount = 0;
 
-  private Rate queryByteRate = new Rate(0.2);
+  private Rate queryByteRate = new Rate(0.95);
   private long queryBytes = 0;
 
-  private Rate ingestRate = new Rate(0.2);
+  private Rate ingestRate = new Rate(0.95);
   private long ingestCount = 0;
 
-  private Rate ingestByteRate = new Rate(0.2);
+  private Rate ingestByteRate = new Rate(0.95);
   private long ingestBytes = 0;
 
   private byte[] defaultSecurityLabel = new byte[0];
@@ -476,7 +476,7 @@ public class Tablet {
 
   // a count of the amount of data read by the iterators
   private AtomicLong scannedCount = new AtomicLong(0);
-  private Rate scannedRate = new Rate(0.2);
+  private Rate scannedRate = new Rate(0.95);
 
   private ConfigurationObserver configObserver;
 
