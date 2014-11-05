@@ -1150,6 +1150,10 @@ public class ConditionalWriterIT extends SimpleMacIT {
 
     conn.tableOperations().create(table);
 
+    // Make sure the table is online, assigned and hosted
+    for (@SuppressWarnings("unused")
+    Entry<Key,Value> entry : conn.createScanner(table, Authorizations.EMPTY)) {}
+
     ConditionalWriter cw = conn.createConditionalWriter(table, new ConditionalWriterConfig());
 
     conn.tableOperations().offline(table, true);
