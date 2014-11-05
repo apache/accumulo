@@ -216,16 +216,16 @@ public class Tablet implements TabletCommitter {
 
   private final TabletStatsKeeper timer = new TabletStatsKeeper();
 
-  private final Rate queryRate = new Rate(0.2);
+  private final Rate queryRate = new Rate(0.95);
   private long queryCount = 0;
 
-  private final Rate queryByteRate = new Rate(0.2);
+  private final Rate queryByteRate = new Rate(0.95);
   private long queryBytes = 0;
 
-  private final Rate ingestRate = new Rate(0.2);
+  private final Rate ingestRate = new Rate(0.95);
   private long ingestCount = 0;
 
-  private final Rate ingestByteRate = new Rate(0.2);
+  private final Rate ingestByteRate = new Rate(0.95);
   private long ingestBytes = 0;
 
   private byte[] defaultSecurityLabel = new byte[0];
@@ -236,7 +236,7 @@ public class Tablet implements TabletCommitter {
   private volatile long numEntries = 0;
   private volatile long numEntriesInMemory = 0;
 
-  private final Rate scannedRate = new Rate(0.2);
+  private final Rate scannedRate = new Rate(0.95);
   private final AtomicLong scannedCount = new AtomicLong(0);
 
   private final ConfigurationObserver configObserver;
