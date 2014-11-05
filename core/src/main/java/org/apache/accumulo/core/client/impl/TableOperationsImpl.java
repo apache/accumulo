@@ -1228,11 +1228,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       String metaTable = MetadataTable.NAME;
       if (tableId.equals(MetadataTable.ID))
         metaTable = RootTable.NAME;
-      Scanner scanner = instance.getConnector(credentials.getPrincipal(), credentials.getToken()).createScanner(metaTable, Authorizations.EMPTY);
-      scanner = new IsolatedScanner(scanner);
-      TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
-      scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
-      scanner.setRange(range);
+
+      Scanner scanner = createMetadataScanner(instance, credentials, metaTable, range);
 
       RowIterator rowIter = new RowIterator(scanner);
 
@@ -1317,6 +1314,20 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
 
     }
+  }
+
+  /**
+   * Create an IsolatedScanner over the given table, fetching the columns necessary to determine when a table has transitioned to online or offline.
+   */
+  protected IsolatedScanner createMetadataScanner(Instance inst, Credentials creds, String metaTable, Range range) throws TableNotFoundException,
+      AccumuloException,
+      AccumuloSecurityException {
+    Scanner scanner = inst.getConnector(creds.getPrincipal(), creds.getToken()).createScanner(metaTable, Authorizations.EMPTY);
+    TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
+    scanner.fetchColumnFamily(TabletsSection.FutureLocationColumnFamily.NAME);
+    scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
+    scanner.setRange(range);
+    return new IsolatedScanner(scanner);
   }
 
   @Override
