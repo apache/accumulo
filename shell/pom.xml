@@ -80,7 +80,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-trace</artifactId>
+      <artifactId>accumulo-tracer</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>

@@ -23,8 +23,8 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.trace.TraceDump;
-import org.apache.accumulo.core.trace.TraceDump.Printer;
+import org.apache.accumulo.tracer.TraceDump;
+import org.apache.accumulo.tracer.TraceDump.Printer;
 import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;

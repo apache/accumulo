@@ -18,9 +18,9 @@ package org.apache.accumulo.monitor.servlets.trace;
 
 import java.util.Date;
 
-import org.apache.accumulo.core.trace.TraceFormatter;
 import org.apache.accumulo.monitor.util.celltypes.StringType;
-import org.apache.accumulo.trace.thrift.RemoteSpan;
+import org.apache.accumulo.tracer.TraceFormatter;
+import org.apache.accumulo.tracer.thrift.RemoteSpan;
 
 /**
  * 

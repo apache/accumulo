@@ -36,8 +36,8 @@ import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.trace.instrument.Tracer;
 
 public class SecurityOperationsImpl implements SecurityOperations {
 

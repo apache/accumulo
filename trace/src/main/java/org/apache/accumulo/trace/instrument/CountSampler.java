@@ -17,8 +17,9 @@
 package org.apache.accumulo.trace.instrument;
 
 /**
- * use org.htrace.impl.CountSampler instead
+ * @deprecated since 1.7, use org.htrace.impl.CountSampler instead
  */
+@Deprecated
 public class CountSampler extends org.htrace.impl.CountSampler implements Sampler {
   public CountSampler(long frequency) {
     super(frequency);

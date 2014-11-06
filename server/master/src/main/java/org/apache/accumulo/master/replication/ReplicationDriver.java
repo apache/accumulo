@@ -21,11 +21,11 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.trace.CountSampler;
+import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.trace.instrument.CountSampler;
-import org.apache.accumulo.trace.instrument.Trace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

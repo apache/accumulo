@@ -34,10 +34,10 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Prope
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.trace.TraceFormatter;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.servlets.BasicServlet;
 import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.tracer.TraceFormatter;
 
 abstract class Basic extends BasicServlet {
 

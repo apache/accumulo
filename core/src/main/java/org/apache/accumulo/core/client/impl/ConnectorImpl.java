@@ -44,7 +44,7 @@ import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
-import org.apache.accumulo.trace.instrument.Tracer;
+import org.apache.accumulo.core.trace.Tracer;
 
 public class ConnectorImpl extends Connector {
   private final Instance instance;

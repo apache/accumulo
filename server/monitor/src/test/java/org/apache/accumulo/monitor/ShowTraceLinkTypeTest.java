@@ -19,8 +19,8 @@ package org.apache.accumulo.monitor;
 import java.util.ArrayList;
 import java.util.Collections;
 
-import org.apache.accumulo.trace.thrift.RemoteSpan;
-import org.apache.accumulo.trace.thrift.Annotation;
+import org.apache.accumulo.tracer.thrift.RemoteSpan;
+import org.apache.accumulo.tracer.thrift.Annotation;
 import org.junit.Assert;
 import org.junit.Test;
 

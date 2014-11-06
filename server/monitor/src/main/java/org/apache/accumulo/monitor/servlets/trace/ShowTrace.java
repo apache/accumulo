@@ -31,13 +31,13 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.trace.SpanTree;
-import org.apache.accumulo.core.trace.SpanTreeVisitor;
-import org.apache.accumulo.core.trace.TraceDump;
-import org.apache.accumulo.core.trace.TraceFormatter;
 import org.apache.accumulo.monitor.servlets.BasicServlet;
-import org.apache.accumulo.trace.thrift.Annotation;
-import org.apache.accumulo.trace.thrift.RemoteSpan;
+import org.apache.accumulo.tracer.SpanTree;
+import org.apache.accumulo.tracer.SpanTreeVisitor;
+import org.apache.accumulo.tracer.TraceDump;
+import org.apache.accumulo.tracer.TraceFormatter;
+import org.apache.accumulo.tracer.thrift.Annotation;
+import org.apache.accumulo.tracer.thrift.RemoteSpan;
 import org.apache.hadoop.io.Text;
 
 public class ShowTrace extends Basic {

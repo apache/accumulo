@@ -47,6 +47,7 @@ import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.master.thrift.FateOperation;
 import org.apache.accumulo.core.master.thrift.FateService;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.Validator;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
@@ -68,7 +69,6 @@ import org.apache.accumulo.master.tableOps.TraceRepo;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.util.TablePropUtil;
-import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 

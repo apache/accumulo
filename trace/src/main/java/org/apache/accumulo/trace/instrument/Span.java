@@ -18,134 +18,32 @@ package org.apache.accumulo.trace.instrument;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import org.htrace.NullScope;
-import org.htrace.TimelineAnnotation;
-import org.htrace.TraceScope;
-
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 /**
- * This is a wrapper for a TraceScope object, which is a wrapper for a Span and its parent.
+ * @deprecated since 1.7, use {@link org.apache.accumulo.core.trace.Span} instead
  */
-public class Span implements org.htrace.Span, CloudtraceSpan {
+@Deprecated
+public class Span extends org.apache.accumulo.core.trace.Span implements CloudtraceSpan {
   public static final long ROOT_SPAN_ID = org.htrace.Span.ROOT_SPAN_ID;
-  public static final Span NULL_SPAN = new Span(NullScope.INSTANCE);
-  private TraceScope scope = null;
-  protected org.htrace.Span span = null;
 
-  public Span(TraceScope scope) {
-    this.scope = scope;
-    this.span = scope.getSpan();
+  public Span(org.apache.accumulo.core.trace.Span span) {
+    super(span.getScope());
+  }
+
+  public Span(org.htrace.TraceScope scope) {
+    super(scope);
   }
 
   public Span(org.htrace.Span span) {
-    this.span = span;
-  }
-
-  public TraceScope getScope() {
-    return scope;
-  }
-
-  public org.htrace.Span getSpan() {
-    return span;
-  }
-
-  public long traceId() {
-    return span.getTraceId();
-  }
-
-  public void data(String k, String v) {
-    if (span != null)
-      span.addKVAnnotation(k.getBytes(UTF_8), v.getBytes(UTF_8));
-  }
-
-  @Override
-  public void stop() {
-    if (scope == null) {
-      if (span != null) {
-        span.stop();
-      }
-    } else {
-      scope.close();
-    }
-  }
-
-  @Override
-  public long getStartTimeMillis() {
-    return span.getStartTimeMillis();
-  }
-
-  @Override
-  public long getStopTimeMillis() {
-    return span.getStopTimeMillis();
-  }
-
-  @Override
-  public long getAccumulatedMillis() {
-    return span.getAccumulatedMillis();
-  }
-
-  @Override
-  public boolean isRunning() {
-    return span.isRunning();
-  }
-
-  @Override
-  public String getDescription() {
-    return span.getDescription();
-  }
-
-  @Override
-  public long getSpanId() {
-    return span.getSpanId();
-  }
-
-  @Override
-  public long getTraceId() {
-    return span.getTraceId();
+    super(span);
   }
 
   @Override
   public Span child(String s) {
     return new Span(span.child(s));
-  }
-
-  @Override
-  public long getParentId() {
-    return span.getParentId();
-  }
-
-  @Override
-  public void addKVAnnotation(byte[] k, byte[] v) {
-    span.addKVAnnotation(k, v);
-  }
-
-  @Override
-  public void addTimelineAnnotation(String s) {
-    span.addTimelineAnnotation(s);
-  }
-
-  @Override
-  public Map<byte[], byte[]> getKVAnnotations() {
-    return span.getKVAnnotations();
-  }
-
-  @Override
-  public List<TimelineAnnotation> getTimelineAnnotations() {
-    return span.getTimelineAnnotations();
-  }
-
-  @Override
-  public String getProcessId() {
-    return span.getProcessId();
-  }
-
-  @Override
-  public String toString() {
-    return span.toString();
   }
 
   public void start() {
@@ -177,7 +75,7 @@ public class Span implements org.htrace.Span, CloudtraceSpan {
   }
 
   @Override
-  public Map<String,String> getData() {
+  public Map<String, String> getData() {
     Map<byte[],byte[]> data = span.getKVAnnotations();
     HashMap<String,String> stringData = new HashMap<>();
     for (Entry<byte[],byte[]> d : data.entrySet()) {

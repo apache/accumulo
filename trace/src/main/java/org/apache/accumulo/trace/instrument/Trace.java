@@ -16,127 +16,70 @@
  */
 package org.apache.accumulo.trace.instrument;
 
+import org.apache.accumulo.core.trace.wrappers.TraceExecutorService;
 import org.apache.accumulo.trace.thrift.TInfo;
-import org.htrace.TraceInfo;
-import org.htrace.wrappers.TraceProxy;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
- * Utility class for tracing within Accumulo.  Not intended for client use!
- *
+ * @deprecated since 1.7, use {@link org.apache.accumulo.core.trace.Trace} instead
  */
-public class Trace {
-  /**
-   * Start a trace span with a given description.
-   */
+@Deprecated
+public class Trace extends org.apache.accumulo.core.trace.Trace {
+  // Initiate tracing if it isn't already started
   public static Span on(String description) {
-    return on(description, Sampler.ALWAYS);
+    return new Span(org.apache.accumulo.core.trace.Trace.on(description));
   }
 
-  /**
-   * Start a trace span with a given description with the given sampler.
-   */
-  public static <T> Span on(String description, org.htrace.Sampler<T> sampler) {
-    return new Span(org.htrace.Trace.startSpan(description, sampler));
-  }
-
-  /**
-   * Finish the current trace.
-   */
+  // Turn tracing off:
   public static void off() {
-    org.htrace.Span span = org.htrace.Trace.currentSpan();
-    if (span != null) {
-      span.stop();
-      org.htrace.Tracer.getInstance().continueSpan(null);
-    }
+    org.apache.accumulo.core.trace.Trace.off();
   }
 
-  /**
-   * @deprecated since 1.7, use {@link #off()} instead
-   */
-  @Deprecated
   public static void offNoFlush() {
-    off();
+    org.apache.accumulo.core.trace.Trace.offNoFlush();
   }
 
-  /**
-   * Returns whether tracing is currently on.
-   */
+  // Are we presently tracing?
   public static boolean isTracing() {
-    return org.htrace.Trace.isTracing();
+    return org.apache.accumulo.core.trace.Trace.isTracing();
   }
 
-  /**
-   * Return the current span.
-   * @deprecated since 1.7 -- it is better to save the span you create in a local variable and call its methods, rather than retrieving the current span
-   */
-  @Deprecated
+  // If we are tracing, return the current span, else null
   public static Span currentTrace() {
     return new Span(org.htrace.Trace.currentSpan());
   }
 
-  /**
-   * Get the trace id of the current span.
-   */
-  public static long currentTraceId() {
-    return org.htrace.Trace.currentSpan().getTraceId();
-  }
-
-  /**
-   * Start a new span with a given description, if already tracing.
-   */
+  // Create a new time span, if tracing is on
   public static Span start(String description) {
-    return new Span(org.htrace.Trace.startSpan(description));
+    return new Span(org.apache.accumulo.core.trace.Trace.start(description));
   }
 
-  /**
-   * Continue a trace by starting a new span with a given parent and description.
-   */
+  // Start a trace in the current thread from information passed via RPC
   public static Span trace(TInfo info, String description) {
-    if (info.traceId == 0) {
-      return Span.NULL_SPAN;
-    }
-    TraceInfo ti = new TraceInfo(info.traceId, info.parentId);
-    return new Span(org.htrace.Trace.startSpan(description, ti));
+    return new Span(org.apache.accumulo.core.trace.Trace.trace(info, description));
   }
 
-  /**
-   * Start a new span with a given description and parent.
-   * @deprecated since 1.7 -- use htrace API
-   */
-  @Deprecated
+  // Initiate a trace in this thread, starting now
   public static Span startThread(Span parent, String description) {
     return new Span(org.htrace.Trace.startSpan(description, parent.getSpan()));
   }
 
-  /**
-   * Add data to the current span.
-   */
-  public static void data(String k, String v) {
-    org.htrace.Span span = org.htrace.Trace.currentSpan();
-    if (span != null)
-      span.addKVAnnotation(k.getBytes(UTF_8), v.getBytes(UTF_8));
+  // Stop a trace in this thread, starting now
+  public static void endThread(Span span) {
+    TraceExecutorService.endThread(span.getSpan());
   }
 
-  /**
-   * Wrap a runnable in a TraceRunnable, if tracing.
-   */
+  // Wrap the runnable in a new span, if tracing
   public static Runnable wrap(Runnable runnable) {
-    if (isTracing()) {
-      return new TraceRunnable(org.htrace.Trace.currentSpan(), runnable);
-    } else {
-      return runnable;
-    }
+    return org.apache.accumulo.core.trace.Trace.wrap(runnable);
   }
 
   // Wrap all calls to the given object with spans
   public static <T> T wrapAll(T instance) {
-    return TraceProxy.trace(instance);
+    return org.apache.accumulo.core.trace.Trace.wrapAll(instance);
   }
 
   // Sample trace all calls to the given object
   public static <T> T wrapAll(T instance, Sampler dist) {
-    return TraceProxy.trace(instance, dist);
+    return org.apache.accumulo.core.trace.Trace.wrapAll(instance, dist);
   }
 }

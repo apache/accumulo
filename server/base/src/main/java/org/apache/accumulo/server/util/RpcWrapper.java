@@ -20,8 +20,8 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
-import org.apache.accumulo.trace.instrument.thrift.RpcServerInvocationHandler;
-import org.apache.accumulo.trace.instrument.thrift.TraceWrap;
+import org.apache.accumulo.core.trace.wrappers.RpcServerInvocationHandler;
+import org.apache.accumulo.core.trace.wrappers.TraceWrap;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.slf4j.LoggerFactory;

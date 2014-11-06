@@ -19,8 +19,9 @@ package org.apache.accumulo.trace.instrument;
 import java.util.Map;
 
 /**
- * Base interface for gathering and reporting statistics about a block of execution.
+ * @deprecated only used for ensuring backwards compatibility
  */
+@Deprecated
 public interface CloudtraceSpan {
   static final long ROOT_SPAN_ID = 0;
   

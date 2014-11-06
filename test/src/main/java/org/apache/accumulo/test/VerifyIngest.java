@@ -33,7 +33,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.DistributedTrace;
-import org.apache.accumulo.trace.instrument.Trace;
+import org.apache.accumulo.core.trace.Trace;
 
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;

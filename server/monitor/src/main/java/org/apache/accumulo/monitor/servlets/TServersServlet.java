@@ -34,6 +34,7 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.tabletserver.thrift.ActionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
+import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.Duration;
 import org.apache.accumulo.core.util.ThriftUtil;
@@ -52,7 +53,6 @@ import org.apache.accumulo.server.master.state.TabletServerState;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.ActionStatsUpdator;
 import org.apache.accumulo.server.util.TableInfoUtil;
-import org.apache.accumulo.trace.instrument.Tracer;
 
 import com.google.common.net.HostAndPort;
 

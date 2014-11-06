@@ -23,6 +23,7 @@ import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.master.state.SetGoalState;
 import org.apache.accumulo.server.client.HdfsZooInstance;
@@ -30,7 +31,6 @@ import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
-import org.apache.accumulo.trace.instrument.Tracer;
 
 public class StartAll extends Test {
   

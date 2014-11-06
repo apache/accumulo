@@ -30,11 +30,11 @@ import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
+import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.metrics.AbstractMetricsImpl;
 import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.accumulo.server.security.SystemCredentials;
-import org.apache.accumulo.trace.instrument.Tracer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

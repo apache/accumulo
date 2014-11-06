@@ -19,9 +19,9 @@ package org.apache.accumulo.tserver.tablet;
 import java.io.IOException;
 
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.trace.Span;
+import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.server.fs.FileRef;
-import org.apache.accumulo.trace.instrument.Span;
-import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.accumulo.tserver.MinorCompactionReason;
 import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
 import org.apache.log4j.Logger;

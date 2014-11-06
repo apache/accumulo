@@ -21,10 +21,10 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.thrift.TDurability;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
-import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;
