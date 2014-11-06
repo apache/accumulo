@@ -631,8 +631,13 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     switch (type) {
       case MASTER:
         if (proc.equals(masterProcess)) {
-          masterProcess.destroy();
-          masterProcess.waitFor();
+          try {
+            stopProcessWithTimeout(masterProcess, 30, TimeUnit.SECONDS);
+          } catch (ExecutionException e) {
+            log.warn("Master did not fully stop after 30 seconds", e);
+          } catch (TimeoutException e) {
+            log.warn("Master did not fully stop after 30 seconds", e);
+          }
           masterProcess = null;
           found = true;
         }
@@ -642,8 +647,13 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           for (Process tserver : tabletServerProcesses) {
             if (proc.equals(tserver)) {
               tabletServerProcesses.remove(tserver);
-              tserver.destroy();
-              tserver.waitFor();
+              try {
+                stopProcessWithTimeout(tserver, 30, TimeUnit.SECONDS);
+              } catch (ExecutionException e) {
+                log.warn("TabletServer did not fully stop after 30 seconds", e);
+              } catch (TimeoutException e) {
+                log.warn("TabletServer did not fully stop after 30 seconds", e);
+              }
               found = true;
               break;
             }
@@ -652,16 +662,26 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         break;
       case ZOOKEEPER:
         if (proc.equals(zooKeeperProcess)) {
-          zooKeeperProcess.destroy();
-          zooKeeperProcess.waitFor();
+          try {
+            stopProcessWithTimeout(zooKeeperProcess, 30, TimeUnit.SECONDS);
+          } catch (ExecutionException e) {
+            log.warn("ZooKeeper did not fully stop after 30 seconds", e);
+          } catch (TimeoutException e) {
+            log.warn("ZooKeeper did not fully stop after 30 seconds", e);
+          }
           zooKeeperProcess = null;
           found = true;
         }
         break;
       case GARBAGE_COLLECTOR:
         if (proc.equals(gcProcess)) {
-          gcProcess.destroy();
-          gcProcess.waitFor();
+          try {
+            stopProcessWithTimeout(gcProcess, 30, TimeUnit.SECONDS);
+          } catch (ExecutionException e) {
+            log.warn("GarbageCollector did not fully stop after 30 seconds", e);
+          } catch (TimeoutException e) {
+            log.warn("GarbageCollector did not fully stop after 30 seconds", e);
+          }
           gcProcess = null;
           found = true;
         }
@@ -829,7 +849,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   /**
    * Get programmatic interface to information available in a normal monitor. XXX the returned structure won't contain information about the metadata table
    * until there is data in it. e.g. if you want to see the metadata table you should create a table.
-   * 
+   *
    * @since 1.6.1
    */
   public MasterMonitorInfo getMasterMonitorInfo() throws AccumuloException, AccumuloSecurityException {
