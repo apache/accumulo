@@ -53,7 +53,6 @@ import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 public class FileManager {
@@ -204,7 +203,7 @@ public class FileManager {
     
     ArrayList<FileSKVIterator> ret = new ArrayList<FileSKVIterator>();
     
-    for (int i = 0; i < numToTake; i++) {
+    for (int i = 0; i < numToTake && i < openReaders.size(); i++) {
       OpenReader or = openReaders.get(i);
       
       List<OpenReader> ofl = openFiles.get(or.fileName);
@@ -266,9 +265,9 @@ public class FileManager {
     return reservedReaders.get(reader);
   }
   
-  private List<FileSKVIterator> reserveReaders(Text table, Collection<String> files, boolean continueOnFailure) throws IOException {
+  private List<FileSKVIterator> reserveReaders(KeyExtent tablet, Collection<String> files, boolean continueOnFailure) throws IOException {
     
-    if (files.size() >= maxOpen) {
+    if (!tablet.isMeta() && files.size() >= maxOpen) {
       throw new IllegalArgumentException("requested files exceeds max open");
     }
     
@@ -281,7 +280,9 @@ public class FileManager {
     List<FileSKVIterator> reservedFiles = new ArrayList<FileSKVIterator>();
     Map<FileSKVIterator,String> readersReserved = new HashMap<FileSKVIterator,String>();
     
-    filePermits.acquireUninterruptibly(files.size());
+    if (!tablet.isMeta()) {
+      filePermits.acquireUninterruptibly(files.size());
+    }
     
     // now that the we are past the semaphore, we have the authority
     // to open files.size() files
@@ -312,23 +313,27 @@ public class FileManager {
         Path path = new Path(file);
         FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
         //log.debug("Opening "+file + " path " + path);
-        FileSKVIterator reader = FileOperations.getInstance().openReader(path.toString(), false, ns, ns.getConf(), conf.getTableConfiguration(table.toString()),
+        FileSKVIterator reader = FileOperations.getInstance().openReader(path.toString(), false, ns, ns.getConf(), conf.getTableConfiguration(tablet),
             dataCache, indexCache);
         reservedFiles.add(reader);
         readersReserved.put(reader, file);
       } catch (Exception e) {
         
-        ProblemReports.getInstance().report(new ProblemReport(table.toString(), ProblemType.FILE_READ, file, e));
+        ProblemReports.getInstance().report(new ProblemReport(tablet.toString(), ProblemType.FILE_READ, file, e));
         
         if (continueOnFailure) {
           // release the permit for the file that failed to open
-          filePermits.release(1);
+          if (!tablet.isMeta()) {
+            filePermits.release(1);
+          }
           log.warn("Failed to open file " + file + " " + e.getMessage() + " continuing...");
         } else {
           // close whatever files were opened
           closeReaders(reservedFiles);
           
-          filePermits.release(files.size());
+          if (!tablet.isMeta()) {
+            filePermits.release(files.size());
+          }
           
           log.error("Failed to open file " + file + " " + e.getMessage());
           throw new IOException("Failed to open " + file, e);
@@ -344,7 +349,7 @@ public class FileManager {
     return reservedFiles;
   }
   
-  private void releaseReaders(List<FileSKVIterator> readers, boolean sawIOException) {
+  private void releaseReaders(KeyExtent tablet, List<FileSKVIterator> readers, boolean sawIOException) {
     // put files in openFiles
     
     synchronized (this) {
@@ -375,7 +380,9 @@ public class FileManager {
       closeReaders(readers);
     
     // decrement the semaphore
-    filePermits.release(readers.size());
+    if (!tablet.isMeta()) {
+      filePermits.release(readers.size());
+    }
     
   }
   
@@ -488,7 +495,7 @@ public class FileManager {
             + " files.size()=" + files.size() + " maxOpen=" + maxOpen + " tablet = " + tablet);
       }
       
-      List<FileSKVIterator> newlyReservedReaders = reserveReaders(tablet.getTableId(), files, continueOnFailure);
+      List<FileSKVIterator> newlyReservedReaders = reserveReaders(tablet, files, continueOnFailure);
       
       tabletReservedReaders.addAll(newlyReservedReaders);
       return newlyReservedReaders;
@@ -524,7 +531,7 @@ public class FileManager {
     
     synchronized void detach() {
       
-      releaseReaders(tabletReservedReaders, false);
+      releaseReaders(tablet, tabletReservedReaders, false);
       tabletReservedReaders.clear();
       
       for (FileDataSource fds : dataSources)
@@ -559,7 +566,7 @@ public class FileManager {
     }
     
     synchronized void releaseOpenFiles(boolean sawIOException) {
-      releaseReaders(tabletReservedReaders, sawIOException);
+      releaseReaders(tablet, tabletReservedReaders, sawIOException);
       tabletReservedReaders.clear();
       dataSources.clear();
     }
