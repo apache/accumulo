@@ -19,7 +19,6 @@ package org.apache.accumulo.trace.thrift;
 /**
  * @deprecated since 1.7, use {@link org.apache.accumulo.core.trace.thrift.TInfo} instead
  */
+@SuppressWarnings("serial")
 @Deprecated
-public class TInfo extends org.apache.accumulo.core.trace.thrift.TInfo {
-}
-
+public class TInfo extends org.apache.accumulo.core.trace.thrift.TInfo {}
