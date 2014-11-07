@@ -64,6 +64,11 @@ public class EmbeddedWebServer {
         sslContextFactory.setExcludeCipherSuites(StringUtils.split(excludedCiphers, ','));
       }
 
+      final String includeProtocols = conf.get(Property.MONITOR_SSL_INCLUDE_PROTOCOLS);
+      if (null != includeProtocols && !includeProtocols.isEmpty()) {
+        sslContextFactory.setIncludeProtocols(StringUtils.split(includeProtocols, ','));
+      }
+
       connector = new ServerConnector(server, sslContextFactory);
       usingSsl = true;
     }
