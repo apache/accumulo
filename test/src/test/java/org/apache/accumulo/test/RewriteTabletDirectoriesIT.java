@@ -18,6 +18,7 @@ package org.apache.accumulo.test;
 
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedOutputStream;
@@ -52,7 +53,7 @@ import org.junit.Test;
 
 // ACCUMULO-3263
 public class RewriteTabletDirectoriesIT extends ConfigurableMacIT {
-  
+
   @Override
   public int defaultTimeoutSeconds() {
     return 4 * 60;
@@ -71,6 +72,8 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacIT {
     v1 = new Path("file://" + v1f.getAbsolutePath());
     v2 = new Path("file://" + v2f.getAbsolutePath());
 
+    // Use a VolumeChooser which should be more fair
+    cfg.setProperty(Property.GENERAL_VOLUME_CHOOSER, FairVolumeChooser.class.getName());
     // Run MAC on two locations in the local file system
     cfg.setProperty(Property.INSTANCE_VOLUMES, v1.toString());
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
@@ -83,6 +86,8 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacIT {
     c.securityOperations().grantTablePermission(c.whoami(), MetadataTable.NAME, TablePermission.WRITE);
     final String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
+
+    // Write some data to a table and add some splits
     BatchWriter bw = c.createBatchWriter(tableName, null);
     final SortedSet<Text> splits = new TreeSet<Text>();
     for (String split : "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z".split(",")) {
@@ -97,12 +102,13 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacIT {
     BatchScanner scanner = c.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1);
     DIRECTORY_COLUMN.fetch(scanner);
     String tableId = c.tableOperations().tableIdMap().get(tableName);
+    assertNotNull("TableID for " + tableName + " was null", tableId);
     scanner.setRanges(Collections.singletonList(TabletsSection.getRange(tableId)));
     // verify the directory entries are all on v1, make a few entries relative
     bw = c.createBatchWriter(MetadataTable.NAME, null);
     int count = 0;
     for (Entry<Key,Value> entry : scanner) {
-      assertTrue(entry.getValue().toString().contains(v1.toString()));
+      assertTrue("Expected " + entry.getValue() + " to contain " + v1, entry.getValue().toString().contains(v1.toString()));
       count++;
       if (count % 2 == 0) {
         String parts[] = entry.getValue().toString().split("/");
@@ -146,12 +152,17 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacIT {
         v2Count++;
       }
     }
+
+    log.info("Count for volume1: " + v1Count);
+    log.info("Count for volume2: " + v2Count);
+
     assertEquals(splits.size() + 1, v1Count + v2Count);
-    assertTrue(Math.abs(v1Count - v2Count) < 10);
+    // a fair chooser will differ by less than count(volumes)
+    assertTrue("Expected the number of files to differ between volumes by less than 10. " + v1Count + " " + v2Count, Math.abs(v1Count - v2Count) < 2);
     // verify we can read the old data
     count = 0;
     for (Entry<Key,Value> entry : c.createScanner(tableName, Authorizations.EMPTY)) {
-      assertTrue(splits.contains(entry.getKey().getRow()));
+      assertTrue("Found unexpected entry in table: " + entry, splits.contains(entry.getKey().getRow()));
       count++;
     }
     assertEquals(splits.size(), count);

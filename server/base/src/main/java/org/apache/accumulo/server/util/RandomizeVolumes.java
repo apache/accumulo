@@ -21,8 +21,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 
 import java.io.IOException;
 import java.util.Map.Entry;
-
-import org.apache.accumulo.core.util.SimpleThreadPool;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -38,6 +37,7 @@ import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -108,7 +108,7 @@ public class RandomizeVolumes {
       }
       Key key = entry.getKey();
       Mutation m = new Mutation(key.getRow());
-      
+
       final String newLocation = vm.choose(ServerConstants.getBaseUris()) + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + tableId + Path.SEPARATOR + directory;
       m.put(key.getColumnFamily(), key.getColumnQualifier(), new Value(newLocation.getBytes(UTF_8)));
       if (log.isTraceEnabled()) {
@@ -129,6 +129,15 @@ public class RandomizeVolumes {
     }
     writer.close();
     pool.shutdown();
+    while (!pool.isTerminated()) {
+      log.trace("Waiting for mkdir() calls to finish");
+      try {
+        pool.awaitTermination(5, TimeUnit.SECONDS);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        break;
+      }
+    }
     log.info("Updated " + count + " entries for table " + tableName);
     if (TableState.OFFLINE != tableState) {
       c.tableOperations().online(tableName, true);
