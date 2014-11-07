@@ -30,8 +30,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * {@link SortedKeyValueIterator} which attempts to compute a hash over some range of Key-Value pairs.
@@ -40,7 +38,6 @@ import org.slf4j.LoggerFactory;
  * Range. If the (Batch)Scanner stops and restarts in the middle of a session, incorrect values will be returned and the merkle tree will be invalid.
  */
 public class DigestIterator implements SortedKeyValueIterator<Key,Value> {
-  private static final Logger log = LoggerFactory.getLogger(DigestIterator.class);
   public static final String HASH_NAME_KEY = "hash.name";
 
   private MessageDigest digest;

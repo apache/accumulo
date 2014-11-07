@@ -35,16 +35,13 @@ import com.beust.jcommander.Parameter;
 public class ManualComparison {
 
   public static class ManualComparisonOpts extends ClientOpts {
-    @Parameter(names={"--table1"}, required = true, description = "First table")
+    @Parameter(names = {"--table1"}, required = true, description = "First table")
     public String table1;
 
-    @Parameter(names={"--table2"}, required = true, description = "First table")
+    @Parameter(names = {"--table2"}, required = true, description = "First table")
     public String table2;
   }
 
-  /**
-   * @param args
-   */
   public static void main(String[] args) throws Exception {
     ManualComparisonOpts opts = new ManualComparisonOpts();
     opts.parseArgs("ManualComparison", args);
