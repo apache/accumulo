@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.master;
 
+import static org.apache.accumulo.master.util.TableValidators.NOT_METADATA;
 import static org.apache.accumulo.master.util.TableValidators.NOT_ROOT_ID;
 import static org.apache.accumulo.master.util.TableValidators.NOT_SYSTEM;
 import static org.apache.accumulo.master.util.TableValidators.VALID_ID;
@@ -318,7 +319,7 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_DELETE_RANGE: {
         TableOperation tableOp = TableOperation.DELETE_RANGE;
-        String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
+        String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_METADATA);
         Text startRow = ByteBufferUtil.toText(arguments.get(1));
         Text endRow = ByteBufferUtil.toText(arguments.get(2));
 

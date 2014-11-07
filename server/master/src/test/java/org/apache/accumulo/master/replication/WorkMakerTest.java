@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.master.replication;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -33,11 +32,11 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
+import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
-import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.replication.ReplicationTable;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
@@ -54,8 +53,6 @@ import com.google.common.collect.Iterables;
  */
 public class WorkMakerTest {
 
-  private final Map<String,TableConfiguration> tableConfs = new HashMap<>();
-
   private MockInstance instance;
   private Connector conn;
 
@@ -66,14 +63,8 @@ public class WorkMakerTest {
   public void createMockAccumulo() throws Exception {
     instance = new MockInstance();
     conn = instance.getConnector("root", new PasswordToken(""));
-
-    if (conn.tableOperations().exists(ReplicationTable.NAME)) {
-      conn.tableOperations().delete(ReplicationTable.NAME);
-    }
-
-    conn.tableOperations().create(ReplicationTable.NAME);
-
-    tableConfs.clear();
+    conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
+    conn.tableOperations().deleteRows(ReplicationTable.NAME, null, null);
   }
 
   @Test

@@ -16,14 +16,17 @@
  */
 package org.apache.accumulo.core.replication;
 
-/**
- * 
- */
-public class ReplicationConstants {
+import org.apache.accumulo.core.client.TableOfflineException;
 
-  // Constants for replication information in zookeeper
-  public static final String ZOO_BASE = "/replication";
-  public static final String ZOO_WORK_QUEUE = ZOO_BASE + "/workqueue";
-  public static final String ZOO_TSERVERS = ZOO_BASE + "/tservers";
+/**
+ *
+ */
+public class ReplicationTableOfflineException extends Exception {
+
+  private static final long serialVersionUID = 1L;
+
+  public ReplicationTableOfflineException(TableOfflineException e) {
+    super(e);
+  }
 
 }

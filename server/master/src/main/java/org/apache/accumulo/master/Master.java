@@ -62,6 +62,7 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
@@ -365,11 +366,16 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
             TableManager.prepareNewNamespaceState(instance.getInstanceID(), id, ns, NodeExistsPolicy.SKIP);
         }
 
+        // create replication table in zk
+        log.debug("Upgrade creating table " + ReplicationTable.NAME + " (ID: " + ReplicationTable.ID + ")");
+        TableManager.prepareNewTableState(instance.getInstanceID(), ReplicationTable.ID, Namespaces.ACCUMULO_NAMESPACE_ID, ReplicationTable.NAME,
+            TableState.OFFLINE, NodeExistsPolicy.SKIP);
+
         // create root table
         log.debug("Upgrade creating table " + RootTable.NAME + " (ID: " + RootTable.ID + ")");
         TableManager.prepareNewTableState(instance.getInstanceID(), RootTable.ID, Namespaces.ACCUMULO_NAMESPACE_ID, RootTable.NAME, TableState.ONLINE,
             NodeExistsPolicy.SKIP);
-        Initialize.initMetadataConfig();
+        Initialize.initSystemTablesConfig();
         // ensure root user can flush root table
         security.grantTablePermission(SystemCredentials.get().toThrift(instance), security.getRootUsername(), RootTable.ID, TablePermission.ALTER_TABLE,
             Namespaces.ACCUMULO_NAMESPACE_ID);
@@ -379,15 +385,15 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         for (String tableId : zoo.getChildren(tables)) {
           String targetNamespace = (MetadataTable.ID.equals(tableId) || RootTable.ID.equals(tableId)) ? Namespaces.ACCUMULO_NAMESPACE_ID
               : Namespaces.DEFAULT_NAMESPACE_ID;
-          log.debug("Upgrade moving table " + new String(zoo.getData(tables + "/" + tableId + Constants.ZTABLE_NAME, null), UTF_8) + " (ID: "
-              + tableId + ") into namespace with ID " + targetNamespace);
+          log.debug("Upgrade moving table " + new String(zoo.getData(tables + "/" + tableId + Constants.ZTABLE_NAME, null), UTF_8) + " (ID: " + tableId
+              + ") into namespace with ID " + targetNamespace);
           zoo.putPersistentData(tables + "/" + tableId + Constants.ZTABLE_NAMESPACE, targetNamespace.getBytes(UTF_8), NodeExistsPolicy.SKIP);
         }
 
         // rename metadata table
         log.debug("Upgrade renaming table " + MetadataTable.OLD_NAME + " (ID: " + MetadataTable.ID + ") to " + MetadataTable.NAME);
-        zoo.putPersistentData(tables + "/" + MetadataTable.ID + Constants.ZTABLE_NAME,
-            Tables.qualify(MetadataTable.NAME).getSecond().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
+        zoo.putPersistentData(tables + "/" + MetadataTable.ID + Constants.ZTABLE_NAME, Tables.qualify(MetadataTable.NAME).getSecond().getBytes(UTF_8),
+            NodeExistsPolicy.OVERWRITE);
 
         moveRootTabletToRootTable(zoo);
 
@@ -443,6 +449,11 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
               if (version == ServerConstants.MOVE_TO_ROOT_TABLE - 1) {
                 log.info("Updating Delete Markers in metadata table.");
                 MetadataTableUtil.moveMetaDeleteMarkers(instance, SystemCredentials.get());
+                version++;
+              }
+              if (version == ServerConstants.MOVE_TO_REPLICATION_TABLE - 1) {
+                log.info("Updating metadata table with entries for the replication table");
+                MetadataTableUtil.createReplicationTable(instance, SystemCredentials.get());
                 version++;
               }
               log.info("Updating persistent data version.");

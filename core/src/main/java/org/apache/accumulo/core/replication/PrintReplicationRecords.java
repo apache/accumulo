@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
- * 
+ *
  */
 public class PrintReplicationRecords implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(PrintReplicationRecords.class);
@@ -80,7 +80,7 @@ public class PrintReplicationRecords implements Runnable {
     out.println("--------------------------------------------------------------------");
 
     try {
-      s = conn.createScanner(ReplicationConstants.TABLE_NAME, Authorizations.EMPTY);
+      s = conn.createScanner(ReplicationTable.NAME, Authorizations.EMPTY);
     } catch (TableNotFoundException e) {
       log.error("Replication table does not exist");
       return;

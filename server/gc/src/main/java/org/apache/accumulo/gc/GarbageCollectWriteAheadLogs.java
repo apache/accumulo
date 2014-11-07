@@ -45,6 +45,8 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
+import org.apache.accumulo.core.replication.ReplicationTable;
+import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
@@ -58,7 +60,6 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
@@ -86,7 +87,7 @@ public class GarbageCollectWriteAheadLogs {
 
   /**
    * Creates a new GC WAL object.
-   * 
+   *
    * @param instance
    *          instance to use
    * @param fs
@@ -102,7 +103,7 @@ public class GarbageCollectWriteAheadLogs {
 
   /**
    * Gets the instance used by this object.
-   * 
+   *
    * @return instance
    */
   Instance getInstance() {
@@ -111,7 +112,7 @@ public class GarbageCollectWriteAheadLogs {
 
   /**
    * Gets the volume manager used by this object.
-   * 
+   *
    * @return volume manager
    */
   VolumeManager getVolumeManager() {
@@ -120,7 +121,7 @@ public class GarbageCollectWriteAheadLogs {
 
   /**
    * Checks if the volume manager should move files to the trash rather than delete them.
-   * 
+   *
    * @return true if trash is used
    */
   boolean isUsingTrash() {
@@ -277,7 +278,7 @@ public class GarbageCollectWriteAheadLogs {
 
   /**
    * Converts a list of paths to their corresponding strings.
-   * 
+   *
    * @param paths
    *          list of paths
    * @return string forms of paths
@@ -292,7 +293,7 @@ public class GarbageCollectWriteAheadLogs {
   /**
    * Reverses the given mapping of file paths to servers. The returned map provides a list of file paths for each server. Any path whose name is not in the
    * mapping of file names to paths is skipped.
-   * 
+   *
    * @param fileToServerMap
    *          map of file paths to servers
    * @param nameToFileMap
@@ -379,7 +380,7 @@ public class GarbageCollectWriteAheadLogs {
 
   /**
    * Determine if the given WAL is needed for replication
-   * 
+   *
    * @param wal
    *          The full path (URI)
    * @return True if the WAL is still needed by replication (not a candidate for deletion)
@@ -447,7 +448,7 @@ public class GarbageCollectWriteAheadLogs {
       replScanner.setRange(Range.exact(wal));
 
       return Iterables.concat(metaScanner, replScanner);
-    } catch (TableNotFoundException e) {
+    } catch (ReplicationTableOfflineException e) {
       // do nothing
     }
 
@@ -458,15 +459,15 @@ public class GarbageCollectWriteAheadLogs {
     return scanServers(ServerConstants.getWalDirs(), fileToServerMap, nameToFileMap);
   }
 
-  // TODO Remove deprecation warning suppression when Hadoop1 support is dropped
-  @SuppressWarnings("deprecation")
   /**
-   * Scans write-ahead log directories for logs. The maps passed in are
-   * populated with scan information.
+   * Scans write-ahead log directories for logs. The maps passed in are populated with scan information.
    *
-   * @param walDirs write-ahead log directories
-   * @param fileToServerMap map of file paths to servers
-   * @param nameToFileMap map of file names to paths
+   * @param walDirs
+   *          write-ahead log directories
+   * @param fileToServerMap
+   *          map of file paths to servers
+   * @param nameToFileMap
+   *          map of file names to paths
    * @return number of servers located (including those with no logs present)
    */
   int scanServers(String[] walDirs, Map<Path,String> fileToServerMap, Map<String,Path> nameToFileMap) throws Exception {
@@ -484,7 +485,10 @@ public class GarbageCollectWriteAheadLogs {
         continue;
       for (FileStatus status : listing) {
         String server = status.getPath().getName();
-        if (status.isDir()) {
+        // TODO Remove deprecation warning suppression when Hadoop1 support is dropped
+        @SuppressWarnings("deprecation")
+        boolean isDirectory = status.isDir();
+        if (isDirectory) {
           servers.add(server);
           for (FileStatus file : fs.listStatus(new Path(walRoot, server))) {
             if (isUUID(file.getPath().getName())) {
@@ -513,7 +517,7 @@ public class GarbageCollectWriteAheadLogs {
 
   /**
    * Looks for write-ahead logs in recovery directories.
-   * 
+   *
    * @param recoveryDirs
    *          recovery directories
    * @return map of log file names to paths
@@ -540,7 +544,7 @@ public class GarbageCollectWriteAheadLogs {
 
   /**
    * Checks if a string is a valid UUID.
-   * 
+   *
    * @param name
    *          string to check
    * @return true if string is a UUID

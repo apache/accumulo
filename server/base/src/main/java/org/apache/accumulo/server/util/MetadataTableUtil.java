@@ -17,6 +17,9 @@
 package org.apache.accumulo.server.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -64,6 +67,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -82,6 +86,7 @@ import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.security.SystemCredentials;
+import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileStatus;
@@ -132,10 +137,10 @@ public class MetadataTableUtil {
 
   public static void update(Credentials credentials, ZooLock zooLock, Mutation m, KeyExtent extent) {
     Writer t = extent.isMeta() ? getRootTable(credentials) : getMetadataTable(credentials);
-    update(t, credentials, zooLock, m);
+    update(t, zooLock, m);
   }
 
-  public static void update(Writer t, Credentials credentials, ZooLock zooLock, Mutation m) {
+  public static void update(Writer t, ZooLock zooLock, Mutation m) {
     if (zooLock != null)
       putLockID(zooLock, m);
     while (true) {
@@ -971,6 +976,20 @@ public class MetadataTableUtil {
   }
 
   /**
+   * During an upgrade from 1.6 to 1.7, we need to add the replication table
+   */
+  public static void createReplicationTable(Instance instance, SystemCredentials systemCredentials) throws IOException {
+    String dir = VolumeManagerImpl.get().choose(ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + ReplicationTable.ID
+        + Constants.DEFAULT_TABLET_LOCATION;
+
+    Mutation m = new Mutation(new Text(KeyExtent.getMetadataEntry(new Text(ReplicationTable.ID), null)));
+    m.put(DIRECTORY_COLUMN.getColumnFamily(), DIRECTORY_COLUMN.getColumnQualifier(), 0, new Value(dir.getBytes(UTF_8)));
+    m.put(TIME_COLUMN.getColumnFamily(), TIME_COLUMN.getColumnQualifier(), 0, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes(UTF_8)));
+    m.put(PREV_ROW_COLUMN.getColumnFamily(), PREV_ROW_COLUMN.getColumnQualifier(), 0, KeyExtent.encodePrevEndRow(null));
+    update(getMetadataTable(systemCredentials), null, m);
+  }
+
+  /**
    * During an upgrade we need to move deletion requests for files under the !METADATA table to the root tablet.
    */
   public static void moveMetaDeleteMarkers(Instance instance, Credentials creds) {
@@ -988,7 +1007,6 @@ public class MetadataTableUtil {
         break;
       }
     }
-
   }
 
   public static void moveMetaDeleteMarkersFrom14(Instance instance, Credentials creds) {

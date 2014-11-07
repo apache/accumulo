@@ -25,7 +25,6 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -33,12 +32,13 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.replication.ReplicationSchema;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
+import org.apache.accumulo.core.replication.ReplicationTable;
+import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.replication.ReplicationTable;
 import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -64,8 +64,8 @@ public class WorkMaker {
 
   public void run() {
     ServerConfigurationFactory serverConf = new ServerConfigurationFactory(conn.getInstance());
-    if (!conn.tableOperations().exists(ReplicationTable.NAME)) {
-      log.info("Replication table does not yet exist");
+    if (!ReplicationTable.isOnline(conn)) {
+      log.info("Replication table is not yet online");
       return;
     }
 
@@ -77,8 +77,8 @@ public class WorkMaker {
         if (null == writer) {
           setBatchWriter(ReplicationTable.getBatchWriter(conn));
         }
-      } catch (TableNotFoundException e) {
-        log.warn("Replication table did exist, but does not anymore");
+      } catch (ReplicationTableOfflineException e) {
+        log.warn("Replication table was online, but not anymore");
         writer = null;
         return;
       }

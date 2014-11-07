@@ -38,12 +38,13 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class WaitForBalanceIT extends ConfigurableMacIT {
-  
+
   @Test(timeout = 30 * 1000)
   public void test() throws Exception {
     final Connector c = getConnector();
     // ensure the metadata table is online
-    for (@SuppressWarnings("unused") Entry<Key,Value> unused : c.createScanner(MetadataTable.NAME, Authorizations.EMPTY))
+    for (@SuppressWarnings("unused")
+    Entry<Key,Value> unused : c.createScanner(MetadataTable.NAME, Authorizations.EMPTY))
       ;
     c.instanceOperations().waitForBalance();
     assertTrue(isBalanced());
@@ -61,10 +62,10 @@ public class WaitForBalanceIT extends ConfigurableMacIT {
   }
 
   private boolean isBalanced() throws Exception {
-    final Map<String, Integer> counts = new HashMap<String, Integer>();
+    final Map<String,Integer> counts = new HashMap<String,Integer>();
     int offline = 0;
     final Connector c = getConnector();
-    for (String tableName : new String[]{MetadataTable.NAME, RootTable.NAME}) {
+    for (String tableName : new String[] {MetadataTable.NAME, RootTable.NAME}) {
       final Scanner s = c.createScanner(tableName, Authorizations.EMPTY);
       s.setRange(MetadataSchema.TabletsSection.getRange());
       s.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
@@ -88,7 +89,8 @@ public class WaitForBalanceIT extends ConfigurableMacIT {
         }
       }
     }
-    if (offline > 0) {
+    // the replication table is expected to be offline for this test, so ignore it
+    if (offline > 1) {
       System.out.println("Offline tablets " + offline);
       return false;
     }
@@ -107,5 +109,5 @@ public class WaitForBalanceIT extends ConfigurableMacIT {
     }
     return true;
   }
-  
+
 }

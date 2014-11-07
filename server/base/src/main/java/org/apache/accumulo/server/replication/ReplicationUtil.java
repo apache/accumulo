@@ -42,8 +42,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
+import org.apache.accumulo.core.replication.ReplicationTable;
+import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
@@ -88,7 +89,9 @@ public class ReplicationUtil {
 
   /**
    * Extract replication peers from system configuration
-   * @param systemProperties System properties, typically from Connector.instanceOperations().getSystemConfiguration()
+   *
+   * @param systemProperties
+   *          System properties, typically from Connector.instanceOperations().getSystemConfiguration()
    * @return Configured replication peers
    */
   public Map<String,String> getPeers(Map<String,String> systemProperties) {
@@ -99,11 +102,12 @@ public class ReplicationUtil {
     for (Entry<String,String> property : systemProperties.entrySet()) {
       String key = property.getKey();
       // Filter out cruft that we don't want
-      if (key.startsWith(definedPeersPrefix) && !key.startsWith(Property.REPLICATION_PEER_USER.getKey()) && !key.startsWith(Property.REPLICATION_PEER_PASSWORD.getKey())) {
+      if (key.startsWith(definedPeersPrefix) && !key.startsWith(Property.REPLICATION_PEER_USER.getKey())
+          && !key.startsWith(Property.REPLICATION_PEER_PASSWORD.getKey())) {
         String peerName = property.getKey().substring(definedPeersPrefix.length());
         ReplicaSystem replica;
         try {
-         replica = ReplicaSystemFactory.get(property.getValue());
+          replica = ReplicaSystemFactory.get(property.getValue());
         } catch (Exception e) {
           log.warn("Could not instantiate ReplicaSystem for {} with configuration {}", property.getKey(), property.getValue(), e);
           continue;
@@ -162,7 +166,7 @@ public class ReplicationUtil {
     // Read over the queued work
     BatchScanner bs;
     try {
-      bs = conn.createBatchScanner(ReplicationConstants.TABLE_NAME, Authorizations.EMPTY, 4);
+      bs = conn.createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
     } catch (TableNotFoundException e) {
       log.debug("No replication table exists", e);
       return counts;
@@ -194,9 +198,13 @@ public class ReplicationUtil {
 
   /**
    * Fetches the absolute path of the file to be replicated.
-   * @param conn Accumulo Connector
-   * @param workQueuePath Root path for the Replication WorkQueue
-   * @param queueKey The Replication work queue key
+   *
+   * @param conn
+   *          Accumulo Connector
+   * @param workQueuePath
+   *          Root path for the Replication WorkQueue
+   * @param queueKey
+   *          The Replication work queue key
    * @return The absolute path for the file, or null if the key is no longer in ZooKeeper
    */
   public String getAbsolutePath(Connector conn, String workQueuePath, String queueKey) {
@@ -210,9 +218,13 @@ public class ReplicationUtil {
 
   /**
    * Compute a progress string for the replication of the given WAL
-   * @param conn Accumulo Connector
-   * @param path Absolute path to a WAL, or null
-   * @param target ReplicationTarget the WAL is being replicated to
+   *
+   * @param conn
+   *          Accumulo Connector
+   * @param path
+   *          Absolute path to a WAL, or null
+   * @param target
+   *          ReplicationTarget the WAL is being replicated to
    * @return A status message for a file being replicated
    */
   public String getProgress(Connector conn, String path, ReplicationTarget target) {
@@ -222,9 +234,9 @@ public class ReplicationUtil {
     if (null != path) {
       Scanner s;
       try {
-        s = conn.createScanner(ReplicationConstants.TABLE_NAME, Authorizations.EMPTY);
-      } catch (TableNotFoundException e) {
-        log.debug("Replication table no long exists", e);
+        s = ReplicationTable.getScanner(conn);
+      } catch (ReplicationTableOfflineException e) {
+        log.debug("Replication table no longer online", e);
         return status;
       }
 
@@ -236,8 +248,8 @@ public class ReplicationUtil {
       try {
         kv = Iterables.getOnlyElement(s);
       } catch (NoSuchElementException e) {
-       log.trace("Could not find status of {} replicating to {}", path, target);
-       status = "Unknown";
+        log.trace("Could not find status of {} replicating to {}", path, target);
+        status = "Unknown";
       } finally {
         s.close();
       }
@@ -267,9 +279,10 @@ public class ReplicationUtil {
 
   public Map<String,String> invert(Map<String,String> map) {
     Map<String,String> newMap = Maps.newHashMapWithExpectedSize(map.size());
-    for(Entry<String,String> entry : map.entrySet()) {
+    for (Entry<String,String> entry : map.entrySet()) {
       newMap.put(entry.getValue(), entry.getKey());
     }
     return newMap;
   }
+
 }
