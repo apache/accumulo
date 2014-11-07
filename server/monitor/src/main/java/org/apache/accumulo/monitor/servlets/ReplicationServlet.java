@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.replication.ReplicationConstants;
+import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -75,6 +76,10 @@ public class ReplicationServlet extends BasicServlet {
     int totalWorkQueueSize = replicationUtil.getMaxReplicationThreads(systemProps, mmi);
 
     TableOperations tops = conn.tableOperations();
+    if (!ReplicationTable.isOnline(conn)) {
+      banner(sb, "", "Replication table is offline");
+      return;
+    }
 
     Table replicationStats = new Table("replicationStats", "Replication Status");
     replicationStats.addSortableColumn("Table");
