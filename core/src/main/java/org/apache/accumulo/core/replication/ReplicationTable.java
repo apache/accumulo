@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
@@ -84,7 +85,7 @@ public class ReplicationTable {
   }
 
   public static boolean isOnline(Connector conn) {
-    return TableState.ONLINE == Tables.getTableState(conn.getInstance(), ID);
+    return conn.getInstance() instanceof MockInstance || TableState.ONLINE == Tables.getTableState(conn.getInstance(), ID);
   }
 
   public static void setOnline(Connector conn) throws AccumuloSecurityException, AccumuloException {

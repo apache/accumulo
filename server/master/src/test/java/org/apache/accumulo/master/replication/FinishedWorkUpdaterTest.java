@@ -61,7 +61,7 @@ public class FinishedWorkUpdaterTest {
   }
 
   @Test
-  public void noReplicationTableFailsGracefully() {
+  public void offlineReplicationTableFailsGracefully() {
     updater.run();
   }
 
