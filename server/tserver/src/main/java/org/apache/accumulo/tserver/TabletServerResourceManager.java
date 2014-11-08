@@ -27,6 +27,7 @@ import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -54,6 +55,7 @@ import org.apache.accumulo.server.tabletserver.MemoryManager;
 import org.apache.accumulo.server.tabletserver.TabletState;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.tserver.FileManager.ScanFileManager;
+import org.apache.accumulo.tserver.TabletServer.AssignmentHandler;
 import org.apache.accumulo.tserver.compaction.CompactionStrategy;
 import org.apache.accumulo.tserver.compaction.DefaultCompactionStrategy;
 import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
@@ -63,9 +65,9 @@ import org.apache.log4j.Logger;
 
 /**
  * ResourceManager is responsible for managing the resources of all tablets within a tablet server.
- * 
- * 
- * 
+ *
+ *
+ *
  */
 public class TabletServerResourceManager {
 
@@ -84,6 +86,8 @@ public class TabletServerResourceManager {
   private final ExecutorService readAheadThreadPool;
   private final ExecutorService defaultReadAheadThreadPool;
   private final Map<String,ExecutorService> threadPools = new TreeMap<String,ExecutorService>();
+
+  private final ConcurrentHashMap<KeyExtent,RunnableStartedAt> activeAssignments;
 
   private final VolumeManager fs;
 
@@ -196,6 +200,8 @@ public class TabletServerResourceManager {
 
     assignMetaDataPool = createEs(0, 1, 60, "metadata tablet assignment");
 
+    activeAssignments = new ConcurrentHashMap<KeyExtent,RunnableStartedAt>();
+
     readAheadThreadPool = createEs(Property.TSERV_READ_AHEAD_MAXCONCURRENT, "tablet read ahead");
     defaultReadAheadThreadPool = createEs(Property.TSERV_METADATA_READ_AHEAD_MAXCONCURRENT, "metadata tablets read ahead");
 
@@ -207,6 +213,61 @@ public class TabletServerResourceManager {
     memoryManager.init(conf);
     memMgmt = new MemoryManagementFramework();
     memMgmt.startThreads();
+
+    SimpleTimer timer = SimpleTimer.getInstance(conf.getConfiguration());
+
+    // We can use the same map for both metadata and normal assignments since the keyspace (extent)
+    // is guaranteed to be unique. Schedule the task once, the task will reschedule itself.
+    timer.schedule(new AssignmentWatcher(acuConf, activeAssignments, timer), 5000);
+  }
+
+  /**
+   * Accepts some map which is tracking active assignment task(s) (running) and monitors them to ensure that the time the assignment(s) have been running don't
+   * exceed a threshold. If the time is exceeded a warning is printed and a stack trace is logged for the running assignment.
+   */
+  protected static class AssignmentWatcher implements Runnable {
+    private static final Logger log = Logger.getLogger(AssignmentWatcher.class);
+
+    private final Map<KeyExtent,RunnableStartedAt> activeAssignments;
+    private final AccumuloConfiguration conf;
+    private final SimpleTimer timer;
+
+    public AssignmentWatcher(AccumuloConfiguration conf, Map<KeyExtent,RunnableStartedAt> activeAssignments, SimpleTimer timer) {
+      this.conf = conf;
+      this.activeAssignments = activeAssignments;
+      this.timer = timer;
+    }
+
+    @Override
+    public void run() {
+      final long millisBeforeWarning = conf.getTimeInMillis(Property.TSERV_ASSIGNMENT_DURATION_WARNING);
+      try {
+        long now = System.currentTimeMillis();
+        KeyExtent extent;
+        RunnableStartedAt runnable;
+        for (Entry<KeyExtent,RunnableStartedAt> entry : activeAssignments.entrySet()) {
+          extent = entry.getKey();
+          runnable = entry.getValue();
+          final long duration = now - runnable.getStartTime();
+
+          // Print a warning if an assignment has been running for over the configured time length
+          if (duration > millisBeforeWarning) {
+            log.warn("Assignment for " + extent + " has been running for at least " + duration + "ms", runnable.getTask().getException());
+          } else if (log.isTraceEnabled()) {
+            log.trace("Assignment for " + extent + " only running for " + duration + "ms");
+          }
+        }
+      } catch (Exception e) {
+        log.warn("Caught exception checking active assignments", e);
+      } finally {
+        // Don't run more often than every 5s
+        long delay = Math.max((long) (millisBeforeWarning * 0.5), 5000l);
+        if (log.isTraceEnabled()) {
+          log.trace("Rescheduling assignment watcher to run in " + delay + "ms");
+        }
+        timer.schedule(this, delay);
+      }
+    }
   }
 
   private static class TabletStateImpl implements TabletState, Cloneable {
@@ -648,12 +709,12 @@ public class TabletServerResourceManager {
     }
   }
 
-  public void addAssignment(Runnable assignmentHandler) {
-    assignmentPool.execute(assignmentHandler);
+  public void addAssignment(KeyExtent extent, Logger log, AssignmentHandler assignmentHandler) {
+    assignmentPool.execute(new ActiveAssignmentRunnable(activeAssignments, extent, new LoggingRunnable(log, assignmentHandler)));
   }
 
-  public void addMetaDataAssignment(Runnable assignmentHandler) {
-    assignMetaDataPool.execute(assignmentHandler);
+  public void addMetaDataAssignment(KeyExtent extent, Logger log, AssignmentHandler assignmentHandler) {
+    assignMetaDataPool.execute(new ActiveAssignmentRunnable(activeAssignments, extent, new LoggingRunnable(log, assignmentHandler)));
   }
 
   public void addMigration(KeyExtent tablet, Runnable migrationHandler) {

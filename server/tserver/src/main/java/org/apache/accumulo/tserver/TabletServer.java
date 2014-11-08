@@ -1472,7 +1472,8 @@ public class TabletServer implements Runnable {
       // add the assignment job to the appropriate queue
       log.info("Loading tablet " + extent);
 
-      final Runnable ah = new LoggingRunnable(log, new AssignmentHandler(extent));
+      final AssignmentHandler ah = new AssignmentHandler(extent);
+      // final Runnable ah = new LoggingRunnable(log, );
       // Root tablet assignment must take place immediately
       if (extent.isRootTablet()) {
         new Daemon("Root Tablet Assignment") {
@@ -1489,9 +1490,9 @@ public class TabletServer implements Runnable {
         }.start();
       } else {
         if (extent.isMeta()) {
-          resourceManager.addMetaDataAssignment(ah);
+          resourceManager.addMetaDataAssignment(extent, log, ah);
         } else {
-          resourceManager.addAssignment(ah);
+          resourceManager.addAssignment(extent, log, ah);
         }
       }
     }
@@ -2019,7 +2020,7 @@ public class TabletServer implements Runnable {
     }
   }
 
-  private class AssignmentHandler implements Runnable {
+  protected class AssignmentHandler implements Runnable {
     private final KeyExtent extent;
     private final int retryAttempt;
 
@@ -2174,10 +2175,10 @@ public class TabletServer implements Runnable {
               if (extent.isRootTablet()) {
                 new Daemon(new LoggingRunnable(log, handler), "Root tablet assignment retry").start();
               } else {
-                resourceManager.addMetaDataAssignment(handler);
+                resourceManager.addMetaDataAssignment(extent, log, handler);
               }
             } else {
-              resourceManager.addAssignment(handler);
+              resourceManager.addAssignment(extent, log, handler);
             }
           }
         }, reschedule);
