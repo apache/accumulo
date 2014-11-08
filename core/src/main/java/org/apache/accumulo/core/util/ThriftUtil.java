@@ -16,10 +16,25 @@
  */
 package org.apache.accumulo.core.util;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.UnknownHostException;
+import java.security.KeyStore;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManagerFactory;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -48,6 +63,7 @@ import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.TTransportFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 public class ThriftUtil {
@@ -200,11 +216,34 @@ public class ThriftUtil {
   }
 
   public static TServerSocket getServerSocket(int port, int timeout, InetAddress address, SslConnectionParams params) throws TTransportException {
+    TServerSocket tServerSock;
     if (params.useJsse()) {
-      return TSSLTransportFactory.getServerSocket(port, timeout, params.isClientAuth(), address);
+      tServerSock = TSSLTransportFactory.getServerSocket(port, timeout, params.isClientAuth(), address);
     } else {
-      return TSSLTransportFactory.getServerSocket(port, timeout, address, params.getTTransportParams());
+      tServerSock = TSSLTransportFactory.getServerSocket(port, timeout, address, params.getTTransportParams());
     }
+
+    ServerSocket serverSock = tServerSock.getServerSocket();
+    if (serverSock instanceof SSLServerSocket) {
+      SSLServerSocket sslServerSock = (SSLServerSocket) serverSock;
+      String[] protocols = params.getServerProtocols();
+
+      // Be nice for the user and automatically remove protocols that might not exist in their JVM. Keeps us from forcing config alterations too
+      // e.g. TLSv1.1 and TLSv1.2 don't exist in JDK6
+      Set<String> socketEnabledProtocols = new HashSet<String>(Arrays.asList(sslServerSock.getEnabledProtocols()));
+      // Keep only the enabled protocols that were specified by the configuration
+      socketEnabledProtocols.retainAll(Arrays.asList(protocols));
+      if (socketEnabledProtocols.isEmpty()) {
+        // Bad configuration...
+        throw new RuntimeException("No available protocols available for secure socket. Availaable protocols: "
+            + Arrays.toString(sslServerSock.getEnabledProtocols()) + ", allowed protocols: " + Arrays.toString(protocols));
+      }
+
+      // Set the protocol(s) on the server socket
+      sslServerSock.setEnabledProtocols(socketEnabledProtocols.toArray(new String[0]));
+    }
+
+    return tServerSock;
   }
 
   public static TTransport createClientTransport(HostAndPort address, int timeout, SslConnectionParams sslParams) throws TTransportException {
@@ -216,7 +255,21 @@ public class ThriftUtil {
         if (sslParams.useJsse()) {
           transport = TSSLTransportFactory.getClientSocket(address.getHostText(), address.getPort(), timeout);
         } else {
-          transport = TSSLTransportFactory.getClientSocket(address.getHostText(), address.getPort(), timeout, sslParams.getTTransportParams());
+          // JDK6's factory doesn't appear to pass the protocol onto the Socket properly so we have
+          // to do some magic to make sure that happens. Not an issue in JDK7
+
+          // Taken from thrift-0.9.1 to make the SSLContext
+          SSLContext sslContext = createSSLContext(sslParams);
+
+          // Create the factory from it
+          SSLSocketFactory sslSockFactory = sslContext.getSocketFactory();
+
+          // Wrap the real factory with our own that will set the protocol on the Socket before returning it
+          ProtocolOverridingSSLSocketFactory wrappingSslSockFactory = new ProtocolOverridingSSLSocketFactory(sslSockFactory,
+              new String[] {sslParams.getClientProtocol()});
+
+          // Create the TSocket from that
+          transport = createClient(wrappingSslSockFactory, address.getHostText(), address.getPort(), timeout);
         }
         // TSSLTransportFactory leaves transports open, so no need to open here
       } else if (timeout == 0) {
@@ -238,5 +291,146 @@ public class ThriftUtil {
       }
     }
     return transport;
+  }
+
+  /**
+   * Lifted from TSSLTransportFactory in Thrift-0.9.1. The method to create a client socket with an SSLContextFactory object is not visibile to us. Have to use
+   * SslConnectionParams instead of TSSLTransportParameters because no getters exist on TSSLTransportParameters.
+   *
+   * @param params
+   *          Parameters to use to create the SSLContext
+   */
+  private static SSLContext createSSLContext(SslConnectionParams params) throws TTransportException {
+    SSLContext ctx;
+    try {
+      ctx = SSLContext.getInstance(params.getClientProtocol());
+      TrustManagerFactory tmf = null;
+      KeyManagerFactory kmf = null;
+
+      if (params.isTrustStoreSet()) {
+        tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        KeyStore ts = KeyStore.getInstance(params.getTrustStoreType());
+        ts.load(new FileInputStream(params.getTrustStorePath()), params.getTrustStorePass().toCharArray());
+        tmf.init(ts);
+      }
+
+      if (params.isKeyStoreSet()) {
+        kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        KeyStore ks = KeyStore.getInstance(params.getKeyStoreType());
+        ks.load(new FileInputStream(params.getKeyStorePath()), params.getKeyStorePass().toCharArray());
+        kmf.init(ks, params.getKeyStorePass().toCharArray());
+      }
+
+      if (params.isKeyStoreSet() && params.isTrustStoreSet()) {
+        ctx.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
+      } else if (params.isKeyStoreSet()) {
+        ctx.init(kmf.getKeyManagers(), null, null);
+      } else {
+        ctx.init(null, tmf.getTrustManagers(), null);
+      }
+
+    } catch (Exception e) {
+      throw new TTransportException("Error creating the transport", e);
+    }
+    return ctx;
+  }
+
+  /**
+   * Lifted from Thrift-0.9.1 because it was private. Create an SSLSocket with the given factory, host:port, and timeout.
+   *
+   * @param factory
+   *          Factory to create the socket from
+   * @param host
+   *          Destination host
+   * @param port
+   *          Destination port
+   * @param timeout
+   *          Socket timeout
+   */
+  private static TSocket createClient(SSLSocketFactory factory, String host, int port, int timeout) throws TTransportException {
+    try {
+      SSLSocket socket = (SSLSocket) factory.createSocket(host, port);
+      socket.setSoTimeout(timeout);
+      return new TSocket(socket);
+    } catch (Exception e) {
+      throw new TTransportException("Could not connect to " + host + " on port " + port, e);
+    }
+  }
+
+  /**
+   * JDK6's SSLSocketFactory doesn't seem to properly set the protocols on the Sockets that it creates which causes an SSLv2 client hello message during
+   * handshake, even when only TLSv1 is enabled. This only appears to be an issue on the client sockets, not the server sockets.
+   *
+   * This class wraps the SSLSocketFactory ensuring that the Socket is properly configured.
+   * http://www.coderanch.com/t/637177/Security/Disabling-handshake-message-Java
+   *
+   * This class can be removed when JDK6 support is officially unsupported by Accumulo
+   */
+  private static class ProtocolOverridingSSLSocketFactory extends SSLSocketFactory {
+
+    private final SSLSocketFactory delegate;
+    private final String[] enabledProtocols;
+
+    public ProtocolOverridingSSLSocketFactory(final SSLSocketFactory delegate, final String[] enabledProtocols) {
+      Preconditions.checkNotNull(enabledProtocols);
+      Preconditions.checkArgument(0 != enabledProtocols.length, "Expected at least one protocol");
+      this.delegate = delegate;
+      this.enabledProtocols = enabledProtocols;
+    }
+
+    @Override
+    public String[] getDefaultCipherSuites() {
+      return delegate.getDefaultCipherSuites();
+    }
+
+    @Override
+    public String[] getSupportedCipherSuites() {
+      return delegate.getSupportedCipherSuites();
+    }
+
+    @Override
+    public Socket createSocket(final Socket socket, final String host, final int port, final boolean autoClose) throws IOException {
+      final Socket underlyingSocket = delegate.createSocket(socket, host, port, autoClose);
+      return overrideProtocol(underlyingSocket);
+    }
+
+    @Override
+    public Socket createSocket(final String host, final int port) throws IOException, UnknownHostException {
+      final Socket underlyingSocket = delegate.createSocket(host, port);
+      return overrideProtocol(underlyingSocket);
+    }
+
+    @Override
+    public Socket createSocket(final String host, final int port, final InetAddress localAddress, final int localPort) throws IOException, UnknownHostException {
+      final Socket underlyingSocket = delegate.createSocket(host, port, localAddress, localPort);
+      return overrideProtocol(underlyingSocket);
+    }
+
+    @Override
+    public Socket createSocket(final InetAddress host, final int port) throws IOException {
+      final Socket underlyingSocket = delegate.createSocket(host, port);
+      return overrideProtocol(underlyingSocket);
+    }
+
+    @Override
+    public Socket createSocket(final InetAddress host, final int port, final InetAddress localAddress, final int localPort) throws IOException {
+      final Socket underlyingSocket = delegate.createSocket(host, port, localAddress, localPort);
+      return overrideProtocol(underlyingSocket);
+    }
+
+    /**
+     * Set the {@link javax.net.ssl.SSLSocket#getEnabledProtocols() enabled protocols} to {@link #enabledProtocols} if the <code>socket</code> is a
+     * {@link SSLSocket}
+     *
+     * @param socket
+     *          The Socket
+     * @return
+     */
+    private Socket overrideProtocol(final Socket socket) {
+      if (socket instanceof SSLSocket) {
+        ((SSLSocket) socket).setEnabledProtocols(enabledProtocols);
+      }
+      return socket;
+    }
   }
 }
