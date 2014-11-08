@@ -278,6 +278,8 @@ public enum Property {
       "resiliency in the face of unexpected power outages, at the cost of speed. If method is not available, the legacy 'sync' method " +
       "will be used to ensure backwards compatibility with older Hadoop versions. A value of 'hflush' is the alternative to the default value " +
       "of 'hsync' which will result in faster writes, but with less durability"),
+  TSERV_ASSIGNMENT_DURATION_WARNING("tserver.assignment.duration.warning", "10m", PropertyType.TIMEDURATION, "The amount of time an assignment can run "
+      + " before the server will print a warning along with the current stack trace. Meant to help debug stuck assignments"),
 
   // properties that are specific to logger server behavior
   LOGGER_PREFIX("logger.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the write-ahead logger servers"),
