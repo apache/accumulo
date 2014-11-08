@@ -212,7 +212,7 @@ public class Accumulo {
 
     // Encourage users to configure TLS
     final String SSL = "SSL";
-    for (Property sslProtocolProperty : Arrays.asList(Property.MONITOR_SSL_INCLUDE_PROTOCOLS)) {
+    for (Property sslProtocolProperty : Arrays.asList(Property.RPC_SSL_CLIENT_PROTOCOL, Property.RPC_SSL_ENABLED_PROTOCOLS, Property.MONITOR_SSL_INCLUDE_PROTOCOLS)) {
       String value = conf.get(sslProtocolProperty);
       if (value.contains(SSL)) {
         log.warn("It is recommended that " + sslProtocolProperty + " only allow TLS");

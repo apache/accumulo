@@ -19,6 +19,7 @@ package org.apache.accumulo.core.util;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.net.URL;
+import java.util.Arrays;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -26,7 +27,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.apache.thrift.transport.TSSLTransportFactory.TSSLTransportParameters;
 
-public class SslConnectionParams  {
+public class SslConnectionParams {
   private static final Logger log = Logger.getLogger(SslConnectionParams.class);
 
   private boolean useJsse = false;
@@ -43,6 +44,11 @@ public class SslConnectionParams  {
   private String trustStoreType;
 
   private String[] cipherSuites;
+  private String[] serverProtocols;
+  private String clientProtocol;
+
+  // Use the static construction methods
+  private SslConnectionParams() {}
 
   public static SslConnectionParams forConfig(AccumuloConfiguration conf, boolean server) {
     if (!conf.getBoolean(Property.INSTANCE_RPC_SSL_ENABLED))
@@ -73,6 +79,11 @@ public class SslConnectionParams  {
     if (null != ciphers && !ciphers.isEmpty()) {
       result.cipherSuites = StringUtils.split(ciphers, ',');
     }
+
+    String enabledProtocols = conf.get(Property.RPC_SSL_ENABLED_PROTOCOLS);
+    result.serverProtocols = StringUtils.split(enabledProtocols, ',');
+
+    result.clientProtocol = conf.get(Property.RPC_SSL_CLIENT_PROTOCOL);
 
     return result;
   }
@@ -124,9 +135,9 @@ public class SslConnectionParams  {
         // try classpath
         URL url = SslConnectionParams.class.getClassLoader().getResource(keystorePath);
         if (url != null) {
-            file = new File(url.toURI());
-            if (file.exists())
-              return file.getAbsolutePath();
+          file = new File(url.toURI());
+          if (file.exists())
+            return file.getAbsolutePath();
         }
       }
     } catch (Exception e) {
@@ -151,16 +162,58 @@ public class SslConnectionParams  {
     return clientAuth;
   }
 
+  public String[] getServerProtocols() {
+    return serverProtocols;
+  }
+
+  public String getClientProtocol() {
+    return clientProtocol;
+  }
+
+  public boolean isKeyStoreSet() {
+    return keyStoreSet;
+  }
+
+  public String getKeyStorePath() {
+    return keyStorePath;
+  }
+
+  /**
+   * @return the keyStorePass
+   */
+  public String getKeyStorePass() {
+    return keyStorePass;
+  }
+
+  public String getKeyStoreType() {
+    return keyStoreType;
+  }
+
+  public boolean isTrustStoreSet() {
+    return trustStoreSet;
+  }
+
+  public String getTrustStorePath() {
+    return trustStorePath;
+  }
+
+  public String getTrustStorePass() {
+    return trustStorePass;
+  }
+
+  /**
+   * @return the trustStoreType
+   */
+  public String getTrustStoreType() {
+    return trustStoreType;
+  }
+
   public TSSLTransportParameters getTTransportParams() {
     if (useJsse)
       throw new IllegalStateException("Cannot get TTransportParams for JSEE configuration.");
-    TSSLTransportParameters params;
-    if (null != cipherSuites) {
-      // TLS is the default value used in thrift 0.9.1
-      params = new TSSLTransportParameters("TLS", cipherSuites);
-    } else {
-      params = new TSSLTransportParameters();
-    }
+
+    // Null cipherSuites is implicitly handled
+    TSSLTransportParameters params = new TSSLTransportParameters(clientProtocol, cipherSuites);
 
     params.requireClientAuth(clientAuth);
     if (keyStoreSet) {
@@ -175,18 +228,20 @@ public class SslConnectionParams  {
   @Override
   public int hashCode() {
     int hash = 0;
-    hash = 31*hash + (clientAuth?0:1);
-    hash = 31*hash + (useJsse?0:1);
+    hash = 31 * hash + (clientAuth ? 0 : 1);
+    hash = 31 * hash + (useJsse ? 0 : 1);
     if (useJsse)
       return hash;
-    hash = 31*hash + (keyStoreSet?0:1);
-    hash = 31*hash + (trustStoreSet?0:1);
+    hash = 31 * hash + (keyStoreSet ? 0 : 1);
+    hash = 31 * hash + (trustStoreSet ? 0 : 1);
     if (keyStoreSet) {
-      hash = 31*hash + keyStorePath.hashCode();
+      hash = 31 * hash + keyStorePath.hashCode();
     }
     if (trustStoreSet) {
-      hash = 31*hash + trustStorePath.hashCode();
+      hash = 31 * hash + trustStorePath.hashCode();
     }
+    hash = 31 * hash + clientProtocol.hashCode();
+    hash = 31 * hash + Arrays.hashCode(serverProtocols);
     return super.hashCode();
   }
 
@@ -195,7 +250,7 @@ public class SslConnectionParams  {
     if (!(obj instanceof SslConnectionParams))
       return false;
 
-    SslConnectionParams other = (SslConnectionParams)obj;
+    SslConnectionParams other = (SslConnectionParams) obj;
     if (clientAuth != other.clientAuth)
       return false;
     if (useJsse)
@@ -203,19 +258,18 @@ public class SslConnectionParams  {
     if (keyStoreSet) {
       if (!other.keyStoreSet)
         return false;
-      if (!keyStorePath.equals(other.keyStorePath) ||
-          !keyStorePass.equals(other.keyStorePass) ||
-          !keyStoreType.equals(other.keyStoreType))
+      if (!keyStorePath.equals(other.keyStorePath) || !keyStorePass.equals(other.keyStorePass) || !keyStoreType.equals(other.keyStoreType))
         return false;
     }
     if (trustStoreSet) {
       if (!other.trustStoreSet)
         return false;
-      if (!trustStorePath.equals(other.trustStorePath) ||
-          !trustStorePass.equals(other.trustStorePass) ||
-          !trustStoreType.equals(other.trustStoreType))
+      if (!trustStorePath.equals(other.trustStorePath) || !trustStorePass.equals(other.trustStorePass) || !trustStoreType.equals(other.trustStoreType))
         return false;
     }
-    return true;
+    if (!Arrays.equals(serverProtocols, other.serverProtocols)) {
+      return false;
+    }
+    return clientProtocol.equals(other.clientProtocol);
   }
 }
