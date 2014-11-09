@@ -39,6 +39,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
@@ -121,6 +122,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
     }
 
     log.info("Found " + referencedWals.size() + " WALs referenced in metadata in " + sw.toString());
+    log.debug("Referenced WALs: " + referencedWals);
     sw.reset();
 
     /*
@@ -202,6 +204,8 @@ public class CloseWriteAheadLogReferences implements Runnable {
         // The value may contain multiple WALs
         LogEntry logEntry = LogEntry.fromKeyValue(entry.getKey(), entry.getValue());
 
+        log.debug("Found WALs for table(" + logEntry.extent.getTableId() + "): " + logEntry.logSet);
+
         // Normalize each log file (using Path) and add it to the set
         for (String logFile : logEntry.logSet) {
           referencedWals.add(normalizedWalPaths.get(logFile));
@@ -251,12 +255,13 @@ public class CloseWriteAheadLogReferences implements Runnable {
         }
 
         // Ignore things that aren't completely replicated as we can't delete those anyways
-        entry.getKey().getRow(replFileText);
-        String replFile = replFileText.toString().substring(ReplicationSection.getRowPrefix().length());
+        MetadataSchema.ReplicationSection.getFile(entry.getKey(), replFileText);
+        String replFile = replFileText.toString();
+        boolean isReferenced = referencedWals.contains(replFile);
 
         // We only want to clean up WALs (which is everything but rfiles) and only when
         // metadata doesn't have a reference to the given WAL
-        if (!status.getClosed() && !replFile.endsWith(RFILE_SUFFIX) && !referencedWals.contains(replFile)) {
+        if (!status.getClosed() && !replFile.endsWith(RFILE_SUFFIX) && !isReferenced) {
           try {
             closeWal(bw, entry.getKey());
             recordsClosed++;

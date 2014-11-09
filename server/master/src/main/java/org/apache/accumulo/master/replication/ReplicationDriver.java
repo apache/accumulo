@@ -55,6 +55,12 @@ public class ReplicationDriver extends Daemon {
   public void run() {
     CountSampler sampler = new CountSampler(10);
 
+    long millisToWait = conf.getTimeInMillis(Property.REPLICATION_DRIVER_DELAY);
+    log.debug("Waiting " + millisToWait + "ms before starting main replication loop");
+    UtilWaitThread.sleep(millisToWait);
+
+    log.debug("Starting replication loop");
+
     while (master.stillMaster()) {
       if (null == workMaker) {
         try {
