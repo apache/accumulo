@@ -151,6 +151,8 @@ public class CloseWriteAheadLogReferences implements Runnable {
       return;
     }
 
+    log.debug("Got active WALs from all tservers " + activeWals);
+
     referencedWals.addAll(activeWals);
 
     log.info("Found " + activeWals.size() + " WALs actively in use by TabletServers in " + sw.toString());
@@ -344,8 +346,11 @@ public class CloseWriteAheadLogReferences implements Runnable {
           log.debug("Could not fetch active wals from " + address);
           return null;
         }
-        log.debug("Got active wals for " + address + ", " + activeWalsForServer);
-        walogs.addAll(activeWalsForServer);
+        log.debug("Got raw active wals for " + address + ", " + activeWalsForServer);
+        for (String activeWal : activeWalsForServer) {
+          // Normalize the WAL URI
+          walogs.add(new Path(activeWal).toString());
+        }
       }
     }
 
