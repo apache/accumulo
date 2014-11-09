@@ -18,6 +18,7 @@ package org.apache.accumulo.gc.replication;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -29,11 +30,14 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.rfile.RFile;
+import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -43,11 +47,20 @@ import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
+import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.trace.thrift.TInfo;
+import org.apache.accumulo.core.util.ThriftUtil;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.thrift.TException;
+import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,6 +68,7 @@ import com.google.common.base.Stopwatch;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.net.HostAndPort;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
@@ -108,6 +122,38 @@ public class CloseWriteAheadLogReferences implements Runnable {
 
     log.info("Found " + referencedWals.size() + " WALs referenced in metadata in " + sw.toString());
     sw.reset();
+
+    /*
+     * ACCUMULO-3320 WALs cannot be closed while a TabletServer may still use it later.
+     *
+     * In addition to the WALs that are actively referenced in the metadata table, tservers can also hold on to a WAL that is not presently referenced by any
+     * tablet. For example, a tablet could MinC which would end in all logs for that tablet being removed. However, if more data was ingested into the table,
+     * the same WAL could be re-used again by that tserver.
+     *
+     * If this code happened to run after the compaction but before the log is again referenced by a tabletserver, we might delete the WAL reference, only to
+     * have it recreated again which causes havoc with the replication status for a table.
+     */
+    final AccumuloConfiguration conf = new ServerConfigurationFactory(instance).getConfiguration();
+    final TInfo tinfo = Tracer.traceInfo();
+    final TCredentials tcreds = SystemCredentials.get().toThrift(instance);
+    Set<String> activeWals;
+    Span findActiveWalsSpan = Trace.start("findActiveWals");
+    try {
+      sw.start();
+      activeWals = getActiveWals(conf, tinfo, tcreds);
+    } finally {
+      sw.stop();
+      findActiveWalsSpan.stop();
+    }
+
+    if (null == activeWals) {
+      log.warn("Could not compute the set of currently active WALs. Not closing any files");
+      return;
+    }
+
+    referencedWals.addAll(activeWals);
+
+    log.info("Found " + activeWals.size() + " WALs actively in use by TabletServers in " + sw.toString());
 
     Span updateReplicationSpan = Trace.start("updateReplicationTable");
     long recordsClosed = 0;
@@ -252,4 +298,99 @@ public class CloseWriteAheadLogReferences implements Runnable {
     bw.addMutation(m);
   }
 
+  private String getMasterAddress() {
+    try {
+      List<String> locations = instance.getMasterLocations();
+      if (locations.size() == 0)
+        return null;
+      return locations.get(0);
+    } catch (Exception e) {
+      log.warn("Failed to obtain master host " + e);
+    }
+
+    return null;
+  }
+
+  private MasterClientService.Client getMasterConnection(AccumuloConfiguration conf) {
+    final String address = getMasterAddress();
+    try {
+      if (address == null) {
+        log.warn("Could not fetch Master address");
+        return null;
+      }
+      return ThriftUtil.getClient(new MasterClientService.Client.Factory(), address, Property.GENERAL_RPC_TIMEOUT, conf);
+    } catch (Exception e) {
+      log.warn("Issue with masterConnection (" + address + ") " + e, e);
+    }
+    return null;
+  }
+
+  /**
+   * Fetch the set of WALs in use by tabletservers
+   *
+   * @return Set of WALs in use by tservers, null if they cannot be computed for some reason
+   */
+  protected Set<String> getActiveWals(AccumuloConfiguration conf, TInfo tinfo, TCredentials tcreds) {
+    List<String> tservers = getActiveTservers(conf, tinfo, tcreds);
+
+    // Compute the total set of WALs used by tservers
+    Set<String> walogs = null;
+    if (null != tservers) {
+      walogs = new HashSet<String>();
+      for (String tserver : tservers) {
+        HostAndPort address = HostAndPort.fromString(tserver);
+        List<String> activeWalsForServer = getActiveWalsForServer(conf, tinfo, tcreds, address);
+        if (null == activeWalsForServer) {
+          log.debug("Could not fetch active wals from " + address);
+          return null;
+        }
+        log.debug("Got active wals for " + address + ", " + activeWalsForServer);
+        walogs.addAll(activeWalsForServer);
+      }
+    }
+
+    return walogs;
+  }
+
+  /**
+   * Get the active tabletservers as seen by the master.
+   *
+   * @return The active tabletservers, null if they can't be computed.
+   */
+  protected List<String> getActiveTservers(AccumuloConfiguration conf, TInfo tinfo, TCredentials tcreds) {
+    MasterClientService.Client client = null;
+
+    List<String> tservers = null;
+    try {
+      client = getMasterConnection(conf);
+
+      if (null != client) {
+        tservers = client.getActiveTservers(tinfo, tcreds);
+      }
+    } catch (TException e) {
+      // If we can't fetch the tabletservers, we can't fetch any active WALs
+      log.warn("Failed to fetch active tabletservers from the master", e);
+      return null;
+    } finally {
+      ThriftUtil.returnClient(client);
+    }
+
+    return tservers;
+  }
+
+  protected List<String> getActiveWalsForServer(AccumuloConfiguration conf, TInfo tinfo, TCredentials tcreds, HostAndPort server) {
+    TabletClientService.Client tserverClient = null;
+    try {
+      tserverClient = ThriftUtil.getClient(new TabletClientService.Client.Factory(), server, conf);
+      return tserverClient.getActiveLogs(tinfo, tcreds);
+    } catch (TTransportException e) {
+      log.warn("Failed to fetch active write-ahead logs from " + server, e);
+      return null;
+    } catch (TException e) {
+      log.warn("Failed to fetch active write-ahead logs from " + server, e);
+      return null;
+    } finally {
+      ThriftUtil.returnClient(tserverClient);
+    }
+  }
 }

@@ -27,15 +27,12 @@ import static org.junit.Assert.assertTrue;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.UUID;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -44,7 +41,6 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -58,13 +54,10 @@ import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Credentials;
-import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -73,7 +66,6 @@ import org.junit.rules.TestName;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
-import com.google.common.net.HostAndPort;
 
 public class GarbageCollectWriteAheadLogsTest {
   private static final long BLOCK_SIZE = 64000000L;
@@ -524,76 +516,5 @@ public class GarbageCollectWriteAheadLogsTest {
         Assert.assertEquals(wal, row);
       }
     }
-  }
-
-  @Test
-  public void getActiveWals() throws Exception {
-    GarbageCollectWriteAheadLogs gcWals = EasyMock.createMockBuilder(GarbageCollectWriteAheadLogs.class).addMockedMethod("getActiveTservers")
-        .addMockedMethod("getActiveWalsForServer").createMock();
-    AccumuloConfiguration conf = EasyMock.createMock(AccumuloConfiguration.class);
-    TInfo tinfo = EasyMock.createMock(TInfo.class);
-    TCredentials tcreds = EasyMock.createMock(TCredentials.class);
-
-    List<String> tservers = Arrays.asList("localhost:12345", "localhost:12346");
-    EasyMock.expect(gcWals.getActiveTservers(conf, tinfo, tcreds)).andReturn(tservers);
-    int numWals = 0;
-    for (String tserver : tservers) {
-      EasyMock.expect(gcWals.getActiveWalsForServer(conf, tinfo, tcreds, HostAndPort.fromString(tserver))).andReturn(Arrays.asList("/wal" + numWals));
-      numWals++;
-    }
-
-    EasyMock.replay(gcWals);
-
-    Set<String> wals = gcWals.getActiveWals(conf, tinfo, tcreds);
-
-    EasyMock.verify(gcWals);
-
-    Set<String> expectedWals = new HashSet<String>();
-    for (int i = 0; i < numWals; i++) {
-      expectedWals.add("/wal" + i);
-    }
-
-    Assert.assertEquals(expectedWals, wals);
-  }
-
-  @Test
-  public void offlineMaster() throws Exception {
-    GarbageCollectWriteAheadLogs gcWals = EasyMock.createMockBuilder(GarbageCollectWriteAheadLogs.class).addMockedMethod("getActiveTservers")
-        .addMockedMethod("getActiveWalsForServer").createMock();
-    AccumuloConfiguration conf = EasyMock.createMock(AccumuloConfiguration.class);
-    TInfo tinfo = EasyMock.createMock(TInfo.class);
-    TCredentials tcreds = EasyMock.createMock(TCredentials.class);
-
-    EasyMock.expect(gcWals.getActiveTservers(conf, tinfo, tcreds)).andReturn(null);
-
-    EasyMock.replay(gcWals);
-
-    Set<String> wals = gcWals.getActiveWals(conf, tinfo, tcreds);
-
-    EasyMock.verify(gcWals);
-
-    Assert.assertNull("Expected to get null for active WALs", wals);
-  }
-
-  @Test
-  public void offlineTserver() throws Exception {
-    GarbageCollectWriteAheadLogs gcWals = EasyMock.createMockBuilder(GarbageCollectWriteAheadLogs.class).addMockedMethod("getActiveTservers")
-        .addMockedMethod("getActiveWalsForServer").createMock();
-    AccumuloConfiguration conf = EasyMock.createMock(AccumuloConfiguration.class);
-    TInfo tinfo = EasyMock.createMock(TInfo.class);
-    TCredentials tcreds = EasyMock.createMock(TCredentials.class);
-
-    List<String> tservers = Arrays.asList("localhost:12345", "localhost:12346");
-    EasyMock.expect(gcWals.getActiveTservers(conf, tinfo, tcreds)).andReturn(tservers);
-    EasyMock.expect(gcWals.getActiveWalsForServer(conf, tinfo, tcreds, HostAndPort.fromString("localhost:12345"))).andReturn(Arrays.asList("/wal" + 0));
-    EasyMock.expect(gcWals.getActiveWalsForServer(conf, tinfo, tcreds, HostAndPort.fromString("localhost:12346"))).andReturn(null);
-
-    EasyMock.replay(gcWals);
-
-    Set<String> wals = gcWals.getActiveWals(conf, tinfo, tcreds);
-
-    EasyMock.verify(gcWals);
-
-    Assert.assertNull("Expected to get null for active WALs", wals);
   }
 }
