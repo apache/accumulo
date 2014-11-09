@@ -1743,6 +1743,13 @@ public class TabletServer implements Runnable {
 
       return ret;
     }
+    
+    @Override
+    public List<String> getActiveLogs(TInfo tinfo, TCredentials credentials) throws TException {
+      Set<String> logs = new HashSet<String>();
+      logger.getLogFiles(logs);
+      return new ArrayList<String>(logs);
+    }
   }
 
   private class SplitRunner implements Runnable {

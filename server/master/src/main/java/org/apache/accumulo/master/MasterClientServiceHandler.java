@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -435,7 +436,7 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
   private void alterTableProperty(TCredentials c, String tableName, String property, String value, TableOperation op) throws ThriftSecurityException,
       ThriftTableOperationException {
     final String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, op);
-    String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId); 
+    String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
     if (!master.security.canAlterTable(c, tableId, namespaceId))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
@@ -472,4 +473,14 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
     master.waitForBalance(tinfo);
   }
 
+  @Override
+  public List<String> getActiveTservers(TInfo tinfo, TCredentials credentials) throws TException {
+    Set<TServerInstance> tserverInstances = master.onlineTabletServers();
+    List<String> servers = new ArrayList<String>();
+    for (TServerInstance tserverInstance : tserverInstances) {
+      servers.add(tserverInstance.getLocation().toString());
+    }
+
+    return servers;
+  }
 }

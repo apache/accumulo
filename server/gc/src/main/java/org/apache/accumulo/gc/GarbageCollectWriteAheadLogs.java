@@ -36,11 +36,13 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
+import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
@@ -51,12 +53,14 @@ import org.apache.accumulo.core.replication.StatusUtil;
 import org.apache.accumulo.core.replication.proto.Replication.Status;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -69,6 +73,7 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.thrift.TException;
+import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -355,12 +360,23 @@ public class GarbageCollectWriteAheadLogs {
       throw new IllegalArgumentException(e);
     }
 
+
+    final AccumuloConfiguration conf = new ServerConfigurationFactory(instance).getConfiguration();
+    final TInfo tinfo = Tracer.traceInfo();
+    final TCredentials tcreds = SystemCredentials.get().toThrift(getInstance());
+    Set<String> activeWals = getActiveWals(conf, tinfo, tcreds);
+
     int count = 0;
 
     Iterator<Entry<String,Path>> walIter = nameToFileMap.entrySet().iterator();
     while (walIter.hasNext()) {
       Entry<String,Path> wal = walIter.next();
       String fullPath = wal.getValue().toString();
+      if (null == activeWals) {
+        log.debug("Could not contact servers to determine if WAL is still in use");
+        walIter.remove();
+        sortedWALogs.remove(wal.getKey());
+      }
       if (neededByReplication(conn, fullPath)) {
         log.debug("Removing WAL from candidate deletion as it is still needed for replication: {} ", fullPath);
         // If we haven't already removed it, check to see if this WAL is
@@ -378,6 +394,102 @@ public class GarbageCollectWriteAheadLogs {
     return count;
   }
 
+  private String getMasterAddress() {
+    try {
+      List<String> locations = getInstance().getMasterLocations();
+      if (locations.size() == 0)
+        return null;
+      return locations.get(0);
+    } catch (Exception e) {
+      log.warn("Failed to obtain master host " + e);
+    }
+
+    return null;
+  }
+
+  private MasterClientService.Client getMasterConnection(AccumuloConfiguration conf) {
+    final String address = getMasterAddress();
+    try {
+      if (address == null) {
+        log.warn("Could not fetch Master address");
+        return null;
+      }
+      return ThriftUtil.getClient(new MasterClientService.Client.Factory(), address, Property.GENERAL_RPC_TIMEOUT, conf);
+    } catch (Exception e) {
+      log.warn("Issue with masterConnection (" + address + ") " + e, e);
+    }
+    return null;
+  }
+
+  /**
+   * Fetch the set of WALs in use by tabletservers
+   *
+   * @return Set of WALs in use by tservers, null if they cannot be computed for some reason
+   */
+  protected Set<String> getActiveWals(AccumuloConfiguration conf, TInfo tinfo, TCredentials tcreds) {
+    List<String> tservers = getActiveTservers(conf, tinfo, tcreds);
+
+    // Compute the total set of WALs used by tservers
+    Set<String> walogs = null;
+    if (null != tservers) {
+      walogs = new HashSet<String>();
+      for (String tserver : tservers) {
+        HostAndPort address = HostAndPort.fromString(tserver);
+        List<String> activeWalsForServer = getActiveWalsForServer(conf, tinfo, tcreds, address);
+        if (null == activeWalsForServer) {
+          log.debug("Could not fetch active wals from " + address);
+          return null;
+        }
+        log.debug("Got active wals for " + address + ", " + activeWalsForServer);
+        walogs.addAll(activeWalsForServer);
+      }
+    }
+
+    return walogs;
+  }
+
+  /**
+   * Get the active tabletservers as seen by the master.
+   *
+   * @return The active tabletservers, null if they can't be computed.
+   */
+  protected List<String> getActiveTservers(AccumuloConfiguration conf, TInfo tinfo, TCredentials tcreds) {
+    MasterClientService.Client client = null;
+
+    List<String> tservers = null;
+    try {
+      client = getMasterConnection(conf);
+
+      if (null != client) {
+        tservers = client.getActiveTservers(tinfo, tcreds);
+      }
+    } catch (TException e) {
+      // If we can't fetch the tabletservers, we can't fetch any active WALs
+      log.warn("Failed to fetch active tabletservers from the master", e);
+      return null;
+    } finally {
+      ThriftUtil.returnClient(client);
+    }
+
+    return tservers;
+  }
+
+  protected List<String> getActiveWalsForServer(AccumuloConfiguration conf, TInfo tinfo, TCredentials tcreds, HostAndPort server) {
+    TabletClientService.Client tserverClient = null;
+    try {
+      tserverClient = ThriftUtil.getClient(new TabletClientService.Client.Factory(), server, conf);
+      return tserverClient.getActiveLogs(tinfo, tcreds);
+    } catch (TTransportException e) {
+      log.warn("Failed to fetch active write-ahead logs from " + server, e);
+      return null;
+    } catch (TException e) {
+      log.warn("Failed to fetch active write-ahead logs from " + server, e);
+      return null;
+    } finally {
+      ThriftUtil.returnClient(tserverClient);
+    }
+  }
+
   /**
    * Determine if the given WAL is needed for replication
    *
@@ -387,23 +499,6 @@ public class GarbageCollectWriteAheadLogs {
    */
   protected boolean neededByReplication(Connector conn, String wal) {
     log.info("Checking replication table for " + wal);
-
-    // try {
-    // log.info("Current state of Metadata table");
-    // for (Entry<Key,Value> entry : conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-    // log.info(entry.getKey().toStringNoTruncate() + "=" + TextFormat.shortDebugString(Status.parseFrom(entry.getValue().get())));
-    // }
-    // } catch (Exception e) {
-    // log.error("Could not read metadata table");
-    // }
-    // try {
-    // log.info("Current state of replication table");
-    // for (Entry<Key,Value> entry : conn.createScanner(ReplicationTable.NAME, Authorizations.EMPTY)) {
-    // log.info(entry.getKey().toStringNoTruncate() + "=" + TextFormat.shortDebugString(Status.parseFrom(entry.getValue().get())));
-    // }
-    // } catch (Exception e) {
-    // log.error("Could not read replication table");
-    // }
 
     Iterable<Entry<Key,Value>> iter = getReplicationStatusForFile(conn, wal);
 

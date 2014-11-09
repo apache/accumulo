@@ -224,6 +224,11 @@ public class NullTserver {
 
     @Override
     public void closeConditionalUpdate(TInfo tinfo, long sessID) throws TException {}
+    
+    @Override
+    public List<String> getActiveLogs(TInfo tinfo, TCredentials credentials) throws TException {
+      return null;
+    }
   }
 
   static class Opts extends Help {
