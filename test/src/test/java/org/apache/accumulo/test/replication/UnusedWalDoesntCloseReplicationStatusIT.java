@@ -64,7 +64,7 @@ import com.google.common.collect.Iterables;
 /**
  *
  */
-public class UnusedWalDoesntCloseReplicationStatus extends ConfigurableMacIT {
+public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacIT {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
