@@ -66,8 +66,8 @@ import org.slf4j.LoggerFactory;
  * ACCUMULO-3302 series of tests which ensure that a WAL is prematurely closed when a TServer may still continue to use it. Checking that no tablet references a
  * WAL is insufficient to determine if a WAL will never be used in the future.
  */
-public class GarbageCollectorCommunicatesWithTServers extends ConfigurableMacIT {
-  private static final Logger log = LoggerFactory.getLogger(GarbageCollectorCommunicatesWithTServers.class);
+public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacIT {
+  private static final Logger log = LoggerFactory.getLogger(GarbageCollectorCommunicatesWithTServersIT.class);
 
   private final int GC_PERIOD_SECONDS = 1;
 
@@ -83,10 +83,12 @@ public class GarbageCollectorCommunicatesWithTServers extends ConfigurableMacIT 
     // Wait longer to try to let the replication table come online before a cycle runs
     cfg.setProperty(Property.GC_CYCLE_START, "10s");
     cfg.setProperty(Property.REPLICATION_NAME, "master");
-    // Set really long delays for the master to do stuff for replication
+    // Set really long delays for the master to do stuff for replication. We don't need
+    // it to be doing anything, so just let it sleep
     cfg.setProperty(Property.REPLICATION_WORK_PROCESSOR_DELAY, "240s");
     cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "240s");
     cfg.setProperty(Property.REPLICATION_DRIVER_DELAY, "240s");
+    // Pull down the maximum size of the wal so we can test close()'ing it.
     cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "1M");
     coreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
@@ -311,8 +313,6 @@ public class GarbageCollectorCommunicatesWithTServers extends ConfigurableMacIT 
     conn.tableOperations().flush(table, null, null, true);
     // Flush the metadata table too because it will have a reference to the WAL
     conn.tableOperations().flush(MetadataTable.NAME, null, null, true);
-
-    log.info("Waiting for replication table to come online");
 
     log.info("Fetching replication statuses from metadata table");
 

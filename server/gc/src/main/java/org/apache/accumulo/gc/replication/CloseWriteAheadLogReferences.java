@@ -344,6 +344,9 @@ public class CloseWriteAheadLogReferences implements Runnable {
     Set<String> walogs = null;
     if (null != tservers) {
       walogs = new HashSet<String>();
+      // TODO If we have a lot of tservers, this might start to take a fair amount of time
+      // Consider adding a threadpool to parallelize the requests.
+      // Alternatively, we might have to move to a solution that doesn't involve tserver RPC
       for (String tserver : tservers) {
         HostAndPort address = HostAndPort.fromString(tserver);
         List<String> activeWalsForServer = getActiveWalsForServer(conf, tinfo, tcreds, address);
@@ -374,6 +377,8 @@ public class CloseWriteAheadLogReferences implements Runnable {
     try {
       client = getMasterConnection(conf);
 
+      // Could do this through InstanceOperations, but that would set a bunch of new Watchers via ZK on every tserver
+      // node. The master is already tracking all of this info, so hopefully this is less overall work.
       if (null != client) {
         tservers = client.getActiveTservers(tinfo, tcreds);
       }
