@@ -1743,7 +1743,7 @@ public class TabletServer implements Runnable {
 
       return ret;
     }
-    
+
     @Override
     public List<String> getActiveLogs(TInfo tinfo, TCredentials credentials) throws TException {
       Set<String> logs = new HashSet<String>();

@@ -379,7 +379,7 @@ public class CloseWriteAheadLogReferencesTest {
     AccumuloConfiguration conf = EasyMock.createMock(AccumuloConfiguration.class);
     TInfo tinfo = EasyMock.createMock(TInfo.class);
     TCredentials tcreds = EasyMock.createMock(TCredentials.class);
-    
+
     List<String> tservers = Arrays.asList("localhost:12345", "localhost:12346");
     EasyMock.expect(closeWals.getActiveTservers(conf, tinfo, tcreds)).andReturn(tservers);
     int numWals = 0;
@@ -387,21 +387,21 @@ public class CloseWriteAheadLogReferencesTest {
       EasyMock.expect(closeWals.getActiveWalsForServer(conf, tinfo, tcreds, HostAndPort.fromString(tserver))).andReturn(Arrays.asList("/wal" + numWals));
       numWals++;
     }
-    
+
     EasyMock.replay(closeWals);
-    
+
     Set<String> wals = closeWals.getActiveWals(conf, tinfo, tcreds);
-    
+
     EasyMock.verify(closeWals);
-    
+
     Set<String> expectedWals = new HashSet<String>();
     for (int i = 0; i < numWals; i++) {
       expectedWals.add("/wal" + i);
     }
-    
+
     Assert.assertEquals(expectedWals, wals);
   }
-  
+
   @Test
   public void offlineMaster() throws Exception {
     CloseWriteAheadLogReferences closeWals = EasyMock.createMockBuilder(CloseWriteAheadLogReferences.class).addMockedMethod("getActiveTservers")
@@ -409,18 +409,18 @@ public class CloseWriteAheadLogReferencesTest {
     AccumuloConfiguration conf = EasyMock.createMock(AccumuloConfiguration.class);
     TInfo tinfo = EasyMock.createMock(TInfo.class);
     TCredentials tcreds = EasyMock.createMock(TCredentials.class);
-    
+
     EasyMock.expect(closeWals.getActiveTservers(conf, tinfo, tcreds)).andReturn(null);
-    
+
     EasyMock.replay(closeWals);
-    
+
     Set<String> wals = closeWals.getActiveWals(conf, tinfo, tcreds);
-    
+
     EasyMock.verify(closeWals);
-    
+
     Assert.assertNull("Expected to get null for active WALs", wals);
   }
-  
+
   @Test
   public void offlineTserver() throws Exception {
     CloseWriteAheadLogReferences closeWals = EasyMock.createMockBuilder(CloseWriteAheadLogReferences.class).addMockedMethod("getActiveTservers")
@@ -428,18 +428,18 @@ public class CloseWriteAheadLogReferencesTest {
     AccumuloConfiguration conf = EasyMock.createMock(AccumuloConfiguration.class);
     TInfo tinfo = EasyMock.createMock(TInfo.class);
     TCredentials tcreds = EasyMock.createMock(TCredentials.class);
-    
+
     List<String> tservers = Arrays.asList("localhost:12345", "localhost:12346");
     EasyMock.expect(closeWals.getActiveTservers(conf, tinfo, tcreds)).andReturn(tservers);
     EasyMock.expect(closeWals.getActiveWalsForServer(conf, tinfo, tcreds, HostAndPort.fromString("localhost:12345"))).andReturn(Arrays.asList("/wal" + 0));
     EasyMock.expect(closeWals.getActiveWalsForServer(conf, tinfo, tcreds, HostAndPort.fromString("localhost:12346"))).andReturn(null);
-    
+
     EasyMock.replay(closeWals);
-    
+
     Set<String> wals = closeWals.getActiveWals(conf, tinfo, tcreds);
-    
+
     EasyMock.verify(closeWals);
-    
+
     Assert.assertNull("Expected to get null for active WALs", wals);
   }
 }
