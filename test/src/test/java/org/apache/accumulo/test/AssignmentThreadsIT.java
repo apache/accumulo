@@ -1,0 +1,81 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+ package org.apache.accumulo.test;
+
+import java.util.Random;
+import java.util.SortedSet;
+import java.util.TreeSet;
+
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.functional.ConfigurableMacIT;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.Text;
+import org.junit.Test;
+
+import static org.junit.Assert.assertTrue;
+
+public class AssignmentThreadsIT extends ConfigurableMacIT {
+
+  @Override
+  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    cfg.setNumTservers(1);
+    cfg.setProperty(Property.TSERV_ASSIGNMENT_MAXCONCURRENT, "1");
+  }
+  
+  @Test(timeout = 5 * 60 * 1000)
+  public void test() throws Exception {
+    byte[] HEXCHARS = { 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66 };
+    // make a table with a lot of splits
+    String tableName = getUniqueNames(1)[0];
+    Connector c = getConnector();
+    c.tableOperations().create(tableName);
+    SortedSet<Text> splits = new TreeSet<Text>();
+    Random random = new Random();
+    byte[] split = new byte[8];
+    byte[] hex = new byte[split.length * 2];
+    for (int i = 0; i < 4000; i++) {
+      random.nextBytes(split);
+      int count = 0;
+      for (byte x : split) {
+        hex[count++] = HEXCHARS[(x >> 4)&0xf];
+        hex[count++] = HEXCHARS[x&0xf];
+      }
+      splits.add(new Text(hex));
+    }
+    c.tableOperations().addSplits(tableName, splits);
+    c.tableOperations().offline(tableName, true);
+    // time how long it takes to load
+    long now = System.currentTimeMillis();
+    c.tableOperations().online(tableName, true);
+    long diff = System.currentTimeMillis() - now;
+    log.debug("Loaded " + splits.size() + " tablets in " + diff + " ms");
+    c.instanceOperations().setProperty(Property.TSERV_ASSIGNMENT_MAXCONCURRENT.getKey(), "20");
+    now = System.currentTimeMillis();
+    c.tableOperations().offline(tableName, true);
+    // wait >10 seconds for thread pool to update
+    UtilWaitThread.sleep(Math.max(0, now + 11 * 1000 - System.currentTimeMillis()));
+    now = System.currentTimeMillis();
+    c.tableOperations().online(tableName, true);
+    long diff2 = System.currentTimeMillis() - now;
+    log.debug("Loaded " + splits.size() + " tablets in " + diff2 + " ms");
+    assertTrue(diff2 < diff);
+  }
+  
+}

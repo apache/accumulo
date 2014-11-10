@@ -45,6 +45,7 @@ import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -238,7 +239,6 @@ import org.apache.thrift.TServiceClient;
 import org.apache.thrift.server.TServer;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
-
 import com.google.common.net.HostAndPort;
 
 public class TabletServer implements Runnable {
@@ -357,6 +357,7 @@ public class TabletServer implements Runnable {
   private final RowLocks rowLocks = new RowLocks();
 
   private final AtomicLong totalQueuedMutationSize = new AtomicLong(0);
+  private final Semaphore recoverySemaphore = new Semaphore(1, true);
 
   private class ThriftClientHandler extends ClientServiceHandler implements TabletClientService.Iface {
 
@@ -2898,31 +2899,37 @@ public class TabletServer implements Runnable {
   }
 
   public void recover(VolumeManager fs, KeyExtent extent, TableConfiguration tconf, List<LogEntry> logEntries, Set<String> tabletFiles, MutationReceiver mutationReceiver)
-      throws IOException {
-    List<Path> recoveryLogs = new ArrayList<Path>();
-    List<LogEntry> sorted = new ArrayList<LogEntry>(logEntries);
-    Collections.sort(sorted, new Comparator<LogEntry>() {
-      @Override
-      public int compare(LogEntry e1, LogEntry e2) {
-        return (int) (e1.timestamp - e2.timestamp);
-      }
-    });
-    for (LogEntry entry : sorted) {
-      Path recovery = null;
-      for (String log : entry.logSet) {
-        Path finished = RecoveryPath.getRecoveryPath(fs, fs.getFullPath(FileType.WAL, log));
-        finished = SortedLogState.getFinishedMarkerPath(finished);
-        TabletServer.log.info("Looking for " + finished);
-        if (fs.exists(finished)) {
-          recovery = finished.getParent();
-          break;
+      throws IOException, InterruptedException {
+    recoverySemaphore.acquire();
+    try {
+      log.info("Starting Write-Ahead Log recovery for " + extent);
+      List<Path> recoveryLogs = new ArrayList<Path>();
+      List<LogEntry> sorted = new ArrayList<LogEntry>(logEntries);
+      Collections.sort(sorted, new Comparator<LogEntry>() {
+        @Override
+        public int compare(LogEntry e1, LogEntry e2) {
+          return (int) (e1.timestamp - e2.timestamp);
         }
+      });
+      for (LogEntry entry : sorted) {
+        Path recovery = null;
+        for (String log : entry.logSet) {
+          Path finished = RecoveryPath.getRecoveryPath(fs, fs.getFullPath(FileType.WAL, log));
+          finished = SortedLogState.getFinishedMarkerPath(finished);
+          TabletServer.log.info("Looking for " + finished);
+          if (fs.exists(finished)) {
+            recovery = finished.getParent();
+            break;
+          }
+        }
+        if (recovery == null)
+          throw new IOException("Unable to find recovery files for extent " + extent + " logEntry: " + entry);
+        recoveryLogs.add(recovery);
       }
-      if (recovery == null)
-        throw new IOException("Unable to find recovery files for extent " + extent + " logEntry: " + entry);
-      recoveryLogs.add(recovery);
+      logger.recover(fs, extent, tconf, recoveryLogs, tabletFiles, mutationReceiver);
+    } finally {
+      recoverySemaphore.release();
     }
-    logger.recover(fs, extent, tconf, recoveryLogs, tabletFiles, mutationReceiver);
   }
 
   public int createLogId(KeyExtent tablet) {

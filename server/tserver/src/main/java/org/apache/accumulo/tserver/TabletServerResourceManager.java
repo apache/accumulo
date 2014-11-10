@@ -196,9 +196,10 @@ public class TabletServerResourceManager {
     // not sure if concurrent assignments can run safely... even if they could there is probably no benefit at startup because
     // individual tablet servers are already running assignments concurrently... having each individual tablet server run
     // concurrent assignments would put more load on the metadata table at startup
-    assignmentPool = createEs(1, "tablet assignment");
+    assignmentPool = createEs(Property.TSERV_ASSIGNMENT_MAXCONCURRENT, "tablet assignment");
 
-    assignMetaDataPool = createEs(0, 1, 60, "metadata tablet assignment");
+    int max = acuConf.getCount(Property.TSERV_ASSIGNMENT_MAXCONCURRENT);
+    assignMetaDataPool = createEs(0, max, 60, "metadata tablet assignment");
 
     activeAssignments = new ConcurrentHashMap<KeyExtent,RunnableStartedAt>();
 
