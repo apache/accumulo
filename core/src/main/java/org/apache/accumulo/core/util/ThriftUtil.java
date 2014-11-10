@@ -425,7 +425,6 @@ public class ThriftUtil {
      *
      * @param socket
      *          The Socket
-     * @return
      */
     private Socket overrideProtocol(final Socket socket) {
       if (socket instanceof SSLSocket) {
