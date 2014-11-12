@@ -23,6 +23,7 @@ import java.util.Collections;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.MasterClient;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
@@ -30,17 +31,16 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
-public class DynamicThreadPoolsIT extends AccumuloClusterIT {
+public class DynamicThreadPoolsIT extends ConfigurableMacIT {
 
   @Override
-  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
     cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "100ms"));
   }
@@ -63,7 +63,7 @@ public class DynamicThreadPoolsIT extends AccumuloClusterIT {
     for (int i = 1; i < TABLES; i++)
       c.tableOperations().clone("test_ingest", "test_ingest" + i, true, null, null);
     UtilWaitThread.sleep(11 * 1000); // time between checks of the thread pool sizes
-    Credentials creds = new Credentials(getPrincipal(), getToken());
+    Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
     for (int i = 1; i < TABLES; i++)
       c.tableOperations().compact("test_ingest" + i, null, null, true, false);
     for (int i = 0; i < 30; i++) {
