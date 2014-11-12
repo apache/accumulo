@@ -36,6 +36,6 @@ public interface MiniClusterConfigurationCallback {
 
   public static final MiniClusterConfigurationCallback NO_CALLBACK = new NoCallback();
 
-  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite);
+  void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite);
 
 }

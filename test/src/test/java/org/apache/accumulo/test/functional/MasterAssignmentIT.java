@@ -28,13 +28,13 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.fate.util.UtilWaitThread;
-import org.apache.accumulo.harness.UnmanagedAccumuloIT;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class MasterAssignmentIT extends UnmanagedAccumuloIT {
+public class MasterAssignmentIT extends AccumuloClusterIT {
 
   @Override
   protected int defaultTimeoutSeconds() {

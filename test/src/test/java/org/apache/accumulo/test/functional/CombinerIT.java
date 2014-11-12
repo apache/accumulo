@@ -35,10 +35,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.LongCombiner.Type;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.UnmanagedAccumuloIT;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.junit.Test;
 
-public class CombinerIT extends UnmanagedAccumuloIT {
+public class CombinerIT extends AccumuloClusterIT {
 
   @Override
   protected int defaultTimeoutSeconds() {

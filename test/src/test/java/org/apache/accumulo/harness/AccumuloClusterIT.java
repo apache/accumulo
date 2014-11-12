@@ -19,7 +19,6 @@ package org.apache.accumulo.harness;
 import static org.junit.Assert.fail;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
-import org.apache.accumulo.cluster.ManagedAccumuloCluster;
 import org.apache.accumulo.cluster.standalone.StandaloneAccumuloCluster;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
@@ -64,14 +63,16 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
 
   @Before
   public void setupCluster() throws Exception {
-    if (needsManagedCluster()) {
-      // Only run the test if a managed cluster is available
-      Assume.assumeTrue(isManagedCluster());
+    // Before we try to instantiate the cluster, check to see if the test even wants to run against this type of cluster
+    if (!canRunTest(type)) {
+      // Test cannot run with the given ClusterType
+      Assume.assumeTrue(false);
     }
 
     switch (type) {
       case MINI:
         MiniClusterHarness miniClusterHarness = new MiniClusterHarness();
+        // Intrinsically performs the callback to let tests alter MiniAccumuloConfig and core-site.xml
         cluster = miniClusterHarness.create(this, getToken());
         break;
       case STANDALONE:
@@ -79,13 +80,13 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
         cluster = new StandaloneAccumuloCluster(conf.getInstance());
         break;
       case SLIDER:
-        break;
+        throw new UnsupportedOperationException("Running against Slider is not yet supported");
       default:
         throw new RuntimeException("Unhandled type");
     }
 
-    if (isManagedCluster()) {
-      ((ManagedAccumuloCluster) cluster).start();
+    if (isDynamicCluster()) {
+      cluster.start();
     } else {
       log.info("Removing tables which appear to be from a previous test run");
       cleanupTables();
@@ -118,15 +119,15 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
 
   @After
   public void teardownCluster() throws Exception {
-    if (null != cluster && isManagedCluster()) {
-      ((ManagedAccumuloCluster) cluster).stop();
-    }
-
-    if (null != cluster && !isManagedCluster()) {
-      log.info("Removing tables which appear to be from the current test");
-      cleanupTables();
-      log.info("Removing users which appear to be from the current test");
-      cleanupUsers();
+    if (null != cluster) {
+      if (isDynamicCluster()) {
+        cluster.stop();
+      } else {
+        log.info("Removing tables which appear to be from the current test");
+        cleanupTables();
+        log.info("Removing users which appear to be from the current test");
+        cleanupUsers();
+      }
     }
   }
 
@@ -140,7 +141,7 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
     return type;
   }
 
-  public boolean isManagedCluster() {
+  public boolean isDynamicCluster() {
     return ClusterType.MINI == type || ClusterType.SLIDER == type;
   }
 
@@ -166,13 +167,15 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
   }
 
   // TODO Really don't want this here. Will ultimately need to abstract configuration method away from MAConfig
-  // and change over to something that slider can also reuse
+  // and change over to something more generic
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {}
 
   /**
-   * Does the implementation require a {@link ManagedAccumuloCluster}
+   * A test may not be capable of running against a given AccumuloCluster. Implementations can override this method to advertise that they cannot (or perhaps do
+   * not) want to run the test.
    */
-  public abstract boolean needsManagedCluster();
-
+  public boolean canRunTest(ClusterType type) {
+    return true;
+  }
 }

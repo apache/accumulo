@@ -33,6 +33,7 @@ import org.apache.accumulo.test.util.CertUtils;
 import org.apache.hadoop.conf.Configuration;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Preconditions;
 
 /**
  * Harness that sets up a MiniAccumuloCluster in a manner expected for Accumulo integration tests.
@@ -41,8 +42,13 @@ public class MiniClusterHarness {
 
   private static final AtomicLong COUNTER = new AtomicLong(0);
 
-  public MiniClusterHarness() {}
-
+  /**
+   * Create a MiniAccumuloCluster using the given Token as the credentials for the root user.
+   *
+   * @param token
+   * @return
+   * @throws Exception
+   */
   public MiniAccumuloClusterImpl create(AuthenticationToken token) throws Exception {
     return create(MiniClusterHarness.class.getName(), Long.toString(COUNTER.incrementAndGet()), token);
   }
@@ -51,24 +57,37 @@ public class MiniClusterHarness {
     return create(testBase.getClass().getName(), testBase.testName.getMethodName(), token);
   }
 
-  public MiniAccumuloClusterImpl create(AccumuloClusterIT testBase, AuthenticationToken token) throws Exception {
+  public MiniAccumuloClusterImpl create(AccumuloClusterIT testBase, AuthenticationToken token, MiniClusterConfigurationCallback callback) throws Exception {
     return create(testBase.getClass().getName(), testBase.testName.getMethodName(), token, testBase);
   }
 
   public MiniAccumuloClusterImpl create(String testClassName, String testMethodName, AuthenticationToken token) throws Exception {
     return create(testClassName, testMethodName, token, MiniClusterConfigurationCallback.NO_CALLBACK);
-}
+  }
 
   public MiniAccumuloClusterImpl create(String testClassName, String testMethodName, AuthenticationToken token, MiniClusterConfigurationCallback configCallback)
       throws Exception {
+    Preconditions.checkNotNull(token);
+    Preconditions.checkArgument(PasswordToken.class.isAssignableFrom(token.getClass()));
+
     String passwd = new String(((PasswordToken) token).getPassword(), Charsets.UTF_8);
     MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(AccumuloClusterIT.createTestDir(testClassName + "_" + testMethodName), passwd);
+
+    // Enable native maps by default
     cfg.setNativeLibPaths(NativeMapIT.nativeMapLocation().getAbsolutePath());
-    Configuration coreSite = new Configuration(false);
-    configCallback.configureMiniCluster(cfg, coreSite);
     cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.TRUE.toString());
+
+    // Setup SSL and credential providers if the properties request such
     configureForEnvironment(cfg, getClass(), AccumuloClusterIT.createSharedTestDir(this.getClass().getName() + "-ssl"));
+
+    Configuration coreSite = new Configuration(false);
+
+    // Invoke the callback for tests to configure MAC before it starts
+    configCallback.configureMiniCluster(cfg, coreSite);
+
     MiniAccumuloClusterImpl miniCluster = new MiniAccumuloClusterImpl(cfg);
+    
+    // Write out any configuration items to a file so HDFS will pick them up automatically (from the classpath)
     if (coreSite.size() > 0) {
       File csFile = new File(miniCluster.getConfig().getConfDir(), "core-site.xml");
       if (csFile.exists())

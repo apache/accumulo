@@ -38,7 +38,7 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.harness.UnmanagedAccumuloIT;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -47,7 +47,7 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ClassLoaderIT extends UnmanagedAccumuloIT {
+public class ClassLoaderIT extends AccumuloClusterIT {
 
   @Override
   protected int defaultTimeoutSeconds() {

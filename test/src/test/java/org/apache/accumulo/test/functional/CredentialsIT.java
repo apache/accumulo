@@ -37,7 +37,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Base64;
-import org.apache.accumulo.harness.UnmanagedAccumuloIT;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,7 +45,7 @@ import org.junit.Test;
 /**
  *
  */
-public class CredentialsIT extends UnmanagedAccumuloIT {
+public class CredentialsIT extends AccumuloClusterIT {
 
   private static final String username = CredentialsIT.class.getSimpleName();
   private static final String password = Base64.encodeBase64String(username.getBytes());

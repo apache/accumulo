@@ -19,12 +19,12 @@ package org.apache.accumulo.test.functional;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.harness.UnmanagedAccumuloIT;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.junit.Test;
 
-public class RenameIT extends UnmanagedAccumuloIT {
+public class RenameIT extends AccumuloClusterIT {
 
   @Override
   protected int defaultTimeoutSeconds() {

@@ -30,14 +30,14 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.harness.UnmanagedAccumuloIT;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class TableConfigurationUpdateIT extends UnmanagedAccumuloIT {
+public class TableConfigurationUpdateIT extends AccumuloClusterIT {
   private static final Logger log = Logger.getLogger(TableConfigurationUpdateIT.class);
 
   @Override

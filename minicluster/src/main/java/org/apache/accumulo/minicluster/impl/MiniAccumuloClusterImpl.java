@@ -51,7 +51,7 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.accumulo.cluster.ManagedAccumuloCluster;
+import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -114,7 +114,7 @@ import com.google.common.collect.Maps;
  *
  * @since 1.6.0
  */
-public class MiniAccumuloClusterImpl implements ManagedAccumuloCluster {
+public class MiniAccumuloClusterImpl implements AccumuloCluster {
   private static final Logger log = LoggerFactory.getLogger(MiniAccumuloClusterImpl.class);
 
   public static class LogWriter extends Daemon {

@@ -43,11 +43,11 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.ByteArraySet;
-import org.apache.accumulo.harness.UnmanagedAccumuloIT;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class VisibilityIT extends UnmanagedAccumuloIT {
+public class VisibilityIT extends AccumuloClusterIT {
 
   @Override
   protected int defaultTimeoutSeconds() {

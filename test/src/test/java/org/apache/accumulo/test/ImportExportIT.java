@@ -35,7 +35,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.ManagedAccumuloIT;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.Test;
@@ -52,7 +52,7 @@ import com.google.common.io.Files;
  * ACCUMULO-3215
  *
  */
-public class ImportExportIT extends ManagedAccumuloIT {
+public class ImportExportIT extends AccumuloClusterIT {
 
   private static final Logger log = LoggerFactory.getLogger(ImportExportIT.class);
 

@@ -24,12 +24,12 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
-import org.apache.accumulo.harness.UnmanagedAccumuloIT;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class MetaConstraintRetryIT extends UnmanagedAccumuloIT {
+public class MetaConstraintRetryIT extends AccumuloClusterIT {
 
   @Override
   public int defaultTimeoutSeconds() {

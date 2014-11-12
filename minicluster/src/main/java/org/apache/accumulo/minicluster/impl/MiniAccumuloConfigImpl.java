@@ -70,6 +70,8 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
   private long defaultMemorySize = 128 * 1024 * 1024;
 
   private boolean initialized = false;
+
+  // TODO Nuke existingInstance and push it over to StandaloneAccumuloCluster
   private Boolean existingInstance = null;
 
   private boolean useMiniDFS = false;
@@ -610,7 +612,7 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
    *          a File representation of the accumulo-site.xml file for the instance being run
    * @param hadoopConfDir
    *          a File representation of the hadoop configuration directory containing core-site.xml and hdfs-site.xml
-   * 
+   *
    * @return MiniAccumuloConfigImpl which uses an existing accumulo configuration
    *
    * @since 1.6.2
@@ -644,7 +646,7 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
       siteConfigMap.put(e.getKey(), e.getValue());
     }
     _setSiteConfig(siteConfigMap);
-    
+
     for (Entry<String,String> entry : DefaultConfiguration.getDefaultConfiguration())
       accumuloConf.setIfUnset(entry.getKey(), entry.getValue());
 
@@ -671,7 +673,7 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
 
   /**
    * @return accumulo Configuration being used
-   * 
+   *
    * @since 1.6.2
    */
   public Configuration getAccumuloConfiguration() {
@@ -680,7 +682,7 @@ public class MiniAccumuloConfigImpl implements AccumuloConfig {
 
   /**
    * @return hadoop Configuration being used
-   * 
+   *
    * @since 1.6.2
    */
   public Configuration getHadoopConfiguration() {

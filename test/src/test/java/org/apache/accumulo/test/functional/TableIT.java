@@ -33,7 +33,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.harness.UnmanagedAccumuloIT;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
@@ -44,7 +44,7 @@ import org.hamcrest.CoreMatchers;
 import org.junit.Assume;
 import org.junit.Test;
 
-public class TableIT extends UnmanagedAccumuloIT {
+public class TableIT extends AccumuloClusterIT {
 
   @Override
   protected int defaultTimeoutSeconds() {

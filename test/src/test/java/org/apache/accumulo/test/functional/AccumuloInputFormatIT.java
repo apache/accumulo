@@ -43,14 +43,14 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.harness.UnmanagedAccumuloIT;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.junit.Before;
 import org.junit.Test;
 
-public class AccumuloInputFormatIT extends UnmanagedAccumuloIT {
+public class AccumuloInputFormatIT extends AccumuloClusterIT {
 
   AccumuloInputFormat inputFormat;
 

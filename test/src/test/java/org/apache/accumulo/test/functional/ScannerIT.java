@@ -31,7 +31,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.util.UtilWaitThread;
-import org.apache.accumulo.harness.UnmanagedAccumuloIT;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -40,7 +40,7 @@ import com.google.common.base.Stopwatch;
 /**
  *
  */
-public class ScannerIT extends UnmanagedAccumuloIT {
+public class ScannerIT extends AccumuloClusterIT {
 
   @Override
   protected int defaultTimeoutSeconds() {

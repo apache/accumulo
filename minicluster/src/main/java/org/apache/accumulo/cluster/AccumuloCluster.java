@@ -35,27 +35,41 @@ public interface AccumuloCluster {
   /**
    * @return Accumulo instance name
    */
-  public String getInstanceName();
+  String getInstanceName();
 
   /**
    * @return zookeeper connection string
    */
-  public String getZooKeepers();
+  String getZooKeepers();
 
   /**
    * Utility method to get a connector to the cluster.
    */
-  public Connector getConnector(String user, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException;
+  Connector getConnector(String user, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Get the client configuration for the cluster
    */
-  public ClientConfiguration getClientConfig();
-  
+  ClientConfiguration getClientConfig();
+
   /**
    * Get an object that can manage a cluster
-   * 
-   * @return
+   *
+   * @return Manage the state of the cluster
    */
-  public ClusterControl getClusterControl();
+  ClusterControl getClusterControl();
+
+  /**
+   * Start the AccumuloCluster
+   *
+   * @throws Exception
+   */
+  void start() throws Exception;
+
+  /**
+   * Stop the AccumuloCluster
+   *
+   * @throws Exception
+   */
+  void stop() throws Exception;
 }

@@ -17,7 +17,6 @@
 package org.apache.accumulo.cluster.standalone;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
-import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;
@@ -71,8 +70,20 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   }
 
   @Override
-  public ClusterControl getClusterControl() {
+  public StandaloneClusterControl getClusterControl() {
     return new StandaloneClusterControl(null == accumuloHome ? System.getenv("ACCUMULO_HOME") : accumuloHome);
   }
 
+  @Override
+  public void start() {
+    // TODO Need to figure out how to find all of the services per host in the cluster and stop them
+    throw new UnsupportedOperationException("Not yet implemented");
+  }
+
+  @Override
+  public void stop() {
+    // TODO Need to figure out how to find all of the services per host in the cluster and stop them
+    throw new UnsupportedOperationException("Not yet implemented");
+
+  }
 }

@@ -26,12 +26,12 @@ import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.UnmanagedAccumuloIT;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
-public class LogicalTimeIT extends UnmanagedAccumuloIT {
+public class LogicalTimeIT extends AccumuloClusterIT {
   private static final Logger log = Logger.getLogger(LogicalTimeIT.class);
 
   @Override

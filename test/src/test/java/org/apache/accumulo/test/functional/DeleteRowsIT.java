@@ -34,12 +34,12 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.UnmanagedAccumuloIT;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
-public class DeleteRowsIT extends UnmanagedAccumuloIT {
+public class DeleteRowsIT extends AccumuloClusterIT {
 
   @Override
   protected int defaultTimeoutSeconds() {
