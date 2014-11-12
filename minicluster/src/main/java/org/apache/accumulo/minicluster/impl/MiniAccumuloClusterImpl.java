@@ -51,7 +51,6 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.cluster.ManagedAccumuloCluster;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -76,8 +75,6 @@ import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
-import org.apache.accumulo.gc.SimpleGarbageCollector;
-import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.state.SetGoalState;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.Accumulo;
@@ -92,7 +89,6 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriterFactory;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
 import org.apache.accumulo.trace.instrument.Tracer;
-import org.apache.accumulo.tserver.TabletServer;
 import org.apache.commons.configuration.MapConfiguration;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.vfs2.FileObject;
@@ -106,7 +102,6 @@ import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
-import org.apache.zookeeper.server.ZooKeeperServerMain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -168,10 +163,6 @@ public class MiniAccumuloClusterImpl implements ManagedAccumuloCluster {
   }
 
   private boolean initialized = false;
-  private Process zooKeeperProcess = null;
-  private Process masterProcess = null;
-  private Process gcProcess = null;
-  private List<Process> tabletServerProcesses = Collections.synchronizedList(new ArrayList<Process>());
 
   private Set<Pair<ServerType,Integer>> debugPorts = new HashSet<Pair<ServerType,Integer>>();
 
@@ -189,6 +180,12 @@ public class MiniAccumuloClusterImpl implements ManagedAccumuloCluster {
   private List<Process> cleanup = new ArrayList<Process>();
 
   private ExecutorService executor;
+
+  private MiniAccumuloClusterControl clusterControl;
+
+  File getZooCfgFile() {
+    return zooCfgFile;
+  }
 
   public Process exec(Class<?> clazz, String... args) throws IOException {
     return exec(clazz, null, args);
@@ -329,7 +326,7 @@ public class MiniAccumuloClusterImpl implements ManagedAccumuloCluster {
     return process;
   }
 
-  private Process _exec(Class<?> clazz, ServerType serverType, String... args) throws IOException {
+  Process _exec(Class<?> clazz, ServerType serverType, String... args) throws IOException {
 
     List<String> jvmOpts = new ArrayList<String>();
     jvmOpts.add("-Xmx" + config.getMemory(serverType));
@@ -448,6 +445,8 @@ public class MiniAccumuloClusterImpl implements ManagedAccumuloCluster {
     if (auditStream != null) {
       FileUtils.copyInputStreamToFile(auditStream, new File(config.getConfDir(), "auditLog.xml"));
     }
+
+    clusterControl = new MiniAccumuloClusterControl(this);
   }
 
   private void writeConfig(File file, Iterable<Map.Entry<String,String>> settings) throws IOException {
@@ -478,6 +477,8 @@ public class MiniAccumuloClusterImpl implements ManagedAccumuloCluster {
    */
   @Override
   public synchronized void start() throws IOException, InterruptedException {
+    MiniAccumuloClusterControl control = getClusterControl();
+
     if (config.useExistingInstance()) {
       Configuration acuConf = config.getAccumuloConfiguration();
       Configuration hadoopConf = config.getHadoopConfiguration();
@@ -532,9 +533,7 @@ public class MiniAccumuloClusterImpl implements ManagedAccumuloCluster {
         });
       }
 
-      if (zooKeeperProcess == null) {
-        zooKeeperProcess = _exec(ZooKeeperServerMain.class, ServerType.ZOOKEEPER, zooCfgFile.getAbsolutePath());
-      }
+      control.start(ServerType.ZOOKEEPER);
 
       if (!initialized) {
         // sleep a little bit to let zookeeper come up before calling init, seems to work better
@@ -570,11 +569,8 @@ public class MiniAccumuloClusterImpl implements ManagedAccumuloCluster {
 
     log.info("Starting MAC against instance {} and zookeeper(s) {}.", config.getInstanceName(), config.getZooKeepers());
 
-    synchronized (tabletServerProcesses) {
-      for (int i = tabletServerProcesses.size(); i < config.getNumTservers(); i++) {
-        tabletServerProcesses.add(_exec(TabletServer.class, ServerType.TABLET_SERVER));
-      }
-    }
+    control.start(ServerType.TABLET_SERVER);
+
     int ret = 0;
     for (int i = 0; i < 5; i++) {
       ret = exec(Main.class, SetGoalState.class.getName(), MasterGoalState.NORMAL.toString()).waitFor();
@@ -585,13 +581,9 @@ public class MiniAccumuloClusterImpl implements ManagedAccumuloCluster {
     if (ret != 0) {
       throw new RuntimeException("Could not set master goal state, process returned " + ret + ". Check the logs in " + config.getLogDir() + " for errors.");
     }
-    if (masterProcess == null) {
-      masterProcess = _exec(Master.class, ServerType.MASTER);
-    }
 
-    if (gcProcess == null) {
-      gcProcess = _exec(SimpleGarbageCollector.class, ServerType.GARBAGE_COLLECTOR);
-    }
+    control.start(ServerType.MASTER);
+    control.start(ServerType.GARBAGE_COLLECTOR);
 
     if (null == executor) {
       executor = Executors.newSingleThreadExecutor();
@@ -620,82 +612,18 @@ public class MiniAccumuloClusterImpl implements ManagedAccumuloCluster {
 
   public Map<ServerType,Collection<ProcessReference>> getProcesses() {
     Map<ServerType,Collection<ProcessReference>> result = new HashMap<ServerType,Collection<ProcessReference>>();
-    result.put(ServerType.MASTER, references(masterProcess));
-    result.put(ServerType.TABLET_SERVER, references(tabletServerProcesses.toArray(new Process[0])));
-    result.put(ServerType.ZOOKEEPER, references(zooKeeperProcess));
-    if (null != gcProcess) {
-      result.put(ServerType.GARBAGE_COLLECTOR, references(gcProcess));
+    MiniAccumuloClusterControl control = getClusterControl();
+    result.put(ServerType.MASTER, references(control.masterProcess));
+    result.put(ServerType.TABLET_SERVER, references(control.tabletServerProcesses.toArray(new Process[0])));
+    result.put(ServerType.ZOOKEEPER, references(control.zooKeeperProcess));
+    if (null != control.gcProcess) {
+      result.put(ServerType.GARBAGE_COLLECTOR, references(control.gcProcess));
     }
     return result;
   }
 
   public void killProcess(ServerType type, ProcessReference proc) throws ProcessNotFoundException, InterruptedException {
-    boolean found = false;
-    switch (type) {
-      case MASTER:
-        if (proc.equals(masterProcess)) {
-          try {
-            stopProcessWithTimeout(masterProcess, 30, TimeUnit.SECONDS);
-          } catch (ExecutionException e) {
-            log.warn("Master did not fully stop after 30 seconds", e);
-          } catch (TimeoutException e) {
-            log.warn("Master did not fully stop after 30 seconds", e);
-          }
-          masterProcess = null;
-          found = true;
-        }
-        break;
-      case TABLET_SERVER:
-        synchronized (tabletServerProcesses) {
-          for (Process tserver : tabletServerProcesses) {
-            if (proc.equals(tserver)) {
-              tabletServerProcesses.remove(tserver);
-              try {
-                stopProcessWithTimeout(tserver, 30, TimeUnit.SECONDS);
-              } catch (ExecutionException e) {
-                log.warn("TabletServer did not fully stop after 30 seconds", e);
-              } catch (TimeoutException e) {
-                log.warn("TabletServer did not fully stop after 30 seconds", e);
-              }
-              found = true;
-              break;
-            }
-          }
-        }
-        break;
-      case ZOOKEEPER:
-        if (proc.equals(zooKeeperProcess)) {
-          try {
-            stopProcessWithTimeout(zooKeeperProcess, 30, TimeUnit.SECONDS);
-          } catch (ExecutionException e) {
-            log.warn("ZooKeeper did not fully stop after 30 seconds", e);
-          } catch (TimeoutException e) {
-            log.warn("ZooKeeper did not fully stop after 30 seconds", e);
-          }
-          zooKeeperProcess = null;
-          found = true;
-        }
-        break;
-      case GARBAGE_COLLECTOR:
-        if (proc.equals(gcProcess)) {
-          try {
-            stopProcessWithTimeout(gcProcess, 30, TimeUnit.SECONDS);
-          } catch (ExecutionException e) {
-            log.warn("GarbageCollector did not fully stop after 30 seconds", e);
-          } catch (TimeoutException e) {
-            log.warn("GarbageCollector did not fully stop after 30 seconds", e);
-          }
-          gcProcess = null;
-          found = true;
-        }
-        break;
-      default:
-        // Ignore the other types MAC currently doesn't automateE
-        found = true;
-        break;
-    }
-    if (!found)
-      throw new ProcessNotFoundException();
+    getClusterControl().killProcess(type, proc);
   }
 
   /**
@@ -708,7 +636,7 @@ public class MiniAccumuloClusterImpl implements ManagedAccumuloCluster {
 
   /**
    * n
-   * 
+   *
    * @return zookeeper connection string
    */
   @Override
@@ -731,51 +659,12 @@ public class MiniAccumuloClusterImpl implements ManagedAccumuloCluster {
       lw.flush();
     }
 
-    if (gcProcess != null) {
-      try {
-        stopProcessWithTimeout(gcProcess, 30, TimeUnit.SECONDS);
-      } catch (ExecutionException e) {
-        log.warn("GarbageCollector did not fully stop after 30 seconds", e);
-      } catch (TimeoutException e) {
-        log.warn("GarbageCollector did not fully stop after 30 seconds", e);
-      }
-    }
-    if (masterProcess != null) {
-      try {
-        stopProcessWithTimeout(masterProcess, 30, TimeUnit.SECONDS);
-      } catch (ExecutionException e) {
-        log.warn("Master did not fully stop after 30 seconds", e);
-      } catch (TimeoutException e) {
-        log.warn("Master did not fully stop after 30 seconds", e);
-      }
-    }
-    if (tabletServerProcesses != null) {
-      synchronized (tabletServerProcesses) {
-        for (Process tserver : tabletServerProcesses) {
-          try {
-            stopProcessWithTimeout(tserver, 30, TimeUnit.SECONDS);
-          } catch (ExecutionException e) {
-            log.warn("TabletServer did not fully stop after 30 seconds", e);
-          } catch (TimeoutException e) {
-            log.warn("TabletServer did not fully stop after 30 seconds", e);
-          }
-        }
-      }
-    }
-    if (zooKeeperProcess != null) {
-      try {
-        stopProcessWithTimeout(zooKeeperProcess, 30, TimeUnit.SECONDS);
-      } catch (ExecutionException e) {
-        log.warn("ZooKeeper did not fully stop after 30 seconds", e);
-      } catch (TimeoutException e) {
-        log.warn("ZooKeeper did not fully stop after 30 seconds", e);
-      }
-    }
+    MiniAccumuloClusterControl control = getClusterControl();
 
-    zooKeeperProcess = null;
-    masterProcess = null;
-    gcProcess = null;
-    tabletServerProcesses.clear();
+    control.stop(ServerType.GARBAGE_COLLECTOR, null);
+    control.stop(ServerType.MASTER, null);
+    control.stop(ServerType.TABLET_SERVER, null);
+    control.stop(ServerType.ZOOKEEPER, null);
 
     // ACCUMULO-2985 stop the ExecutorService after we finished using it to stop accumulo procs
     if (null != executor) {
@@ -845,7 +734,7 @@ public class MiniAccumuloClusterImpl implements ManagedAccumuloCluster {
     return executor;
   }
 
-  private int stopProcessWithTimeout(final Process proc, long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+  int stopProcessWithTimeout(final Process proc, long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
     FutureTask<Integer> future = new FutureTask<Integer>(new Callable<Integer>() {
       @Override
       public Integer call() throws InterruptedException {
@@ -885,7 +774,7 @@ public class MiniAccumuloClusterImpl implements ManagedAccumuloCluster {
   }
 
   @Override
-  public ClusterControl getControl() {
-    throw new UnsupportedOperationException();
+  public MiniAccumuloClusterControl getClusterControl() {
+    return clusterControl;
   }
 }

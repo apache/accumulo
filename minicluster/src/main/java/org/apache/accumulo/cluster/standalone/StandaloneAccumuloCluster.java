@@ -71,7 +71,7 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   }
 
   @Override
-  public ClusterControl getControl() {
+  public ClusterControl getClusterControl() {
     return new StandaloneClusterControl(null == accumuloHome ? System.getenv("ACCUMULO_HOME") : accumuloHome);
   }
 

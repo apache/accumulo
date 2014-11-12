@@ -57,5 +57,5 @@ public interface AccumuloCluster {
    * 
    * @return
    */
-  public ClusterControl getControl();
+  public ClusterControl getClusterControl();
 }
