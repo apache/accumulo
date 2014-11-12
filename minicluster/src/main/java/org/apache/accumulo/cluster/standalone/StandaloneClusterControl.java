@@ -138,7 +138,7 @@ public class StandaloneClusterControl implements ClusterControl {
   protected String[] getPidCommand(ServerType server, String accumuloHome) {
     // Lifted from stop-server.sh to get the PID
     return new String[] {"ps", "aux", "|", "fgrep", accumuloHome, "|", "fgrep", getProcessString(server), "|", "fgrep", "-v", "grep", "|", "fgrep", "-v",
-        "ssh", "|", "awk", "'{print \\$2}'", "|", "head", "-1"};
+        "ssh", "|", "awk", "'{print \\$2}'", "|", "head", "-1", "|", "tr", "-d", "'\\n'"};
   }
 
   protected String getProcessString(ServerType server) {
