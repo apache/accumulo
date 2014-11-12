@@ -51,6 +51,7 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.cluster.ManagedAccumuloCluster;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -566,9 +567,9 @@ public class MiniAccumuloClusterImpl implements ManagedAccumuloCluster {
         initialized = true;
       }
     }
-    
+
     log.info("Starting MAC against instance {} and zookeeper(s) {}.", config.getInstanceName(), config.getZooKeepers());
-    
+
     synchronized (tabletServerProcesses) {
       for (int i = tabletServerProcesses.size(); i < config.getNumTservers(); i++) {
         tabletServerProcesses.add(_exec(TabletServer.class, ServerType.TABLET_SERVER));
@@ -688,6 +689,10 @@ public class MiniAccumuloClusterImpl implements ManagedAccumuloCluster {
           found = true;
         }
         break;
+      default:
+        // Ignore the other types MAC currently doesn't automateE
+        found = true;
+        break;
     }
     if (!found)
       throw new ProcessNotFoundException();
@@ -702,6 +707,8 @@ public class MiniAccumuloClusterImpl implements ManagedAccumuloCluster {
   }
 
   /**
+   * n
+   * 
    * @return zookeeper connection string
    */
   @Override
@@ -807,7 +814,7 @@ public class MiniAccumuloClusterImpl implements ManagedAccumuloCluster {
   public Connector getConnector(String user, String passwd) throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, new PasswordToken(passwd));
   }
-  
+
   @Override
   public Connector getConnector(String user, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
     Instance instance = new ZooKeeperInstance(getClientConfig());
@@ -875,5 +882,10 @@ public class MiniAccumuloClusterImpl implements ManagedAccumuloCluster {
       }
     }
     return stats;
+  }
+
+  @Override
+  public ClusterControl getControl() {
+    throw new UnsupportedOperationException();
   }
 }

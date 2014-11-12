@@ -51,4 +51,11 @@ public interface AccumuloCluster {
    * Get the client configuration for the cluster
    */
   public ClientConfiguration getClientConfig();
+  
+  /**
+   * Get an object that can manage a cluster
+   * 
+   * @return
+   */
+  public ClusterControl getControl();
 }

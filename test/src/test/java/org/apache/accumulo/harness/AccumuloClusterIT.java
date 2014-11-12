@@ -20,7 +20,7 @@ import static org.junit.Assert.fail;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.cluster.ManagedAccumuloCluster;
-import org.apache.accumulo.cluster.StandaloneAccumuloCluster;
+import org.apache.accumulo.cluster.standalone.StandaloneAccumuloCluster;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;

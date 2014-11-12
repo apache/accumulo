@@ -14,8 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.cluster;
+package org.apache.accumulo.cluster.standalone;
 
+import org.apache.accumulo.cluster.AccumuloCluster;
+import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;
@@ -25,11 +27,12 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 
 /**
- *
+ * AccumuloCluster implementation to connect to an existing deployment of Accumulo
  */
 public class StandaloneAccumuloCluster implements AccumuloCluster {
 
   private Instance instance;
+  private String accumuloHome;
 
   public StandaloneAccumuloCluster(String instanceName, String zookeepers) {
     this.instance = new ZooKeeperInstance(instanceName, zookeepers);
@@ -37,6 +40,14 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
 
   public StandaloneAccumuloCluster(Instance instance) {
     this.instance = instance;
+  }
+
+  public String getAccumuloHome() {
+    return accumuloHome;
+  }
+
+  public void setAccumuloHome(String accumuloHome) {
+    this.accumuloHome = accumuloHome;
   }
 
   @Override
@@ -57,6 +68,11 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   @Override
   public ClientConfiguration getClientConfig() {
     return ClientConfiguration.loadDefault().withInstance(getInstanceName()).withZkHosts(getZooKeepers());
+  }
+
+  @Override
+  public ClusterControl getControl() {
+    return new StandaloneClusterControl(null == accumuloHome ? System.getenv("ACCUMULO_HOME") : accumuloHome);
   }
 
 }
