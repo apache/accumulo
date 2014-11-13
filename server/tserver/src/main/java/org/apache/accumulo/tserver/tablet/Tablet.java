@@ -46,7 +46,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.impl.DurabilityImpl;
-import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -74,7 +73,6 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
@@ -352,29 +350,21 @@ public class Tablet implements TabletCommitter {
         datafiles.put(ref, dfv);
       }
     } else {
+      final Text buffer = new Text();
+      final Text row = extent.getMetadataEntry();
 
-      Text rowName = extent.getMetadataEntry();
-
-      String tableId = extent.isMeta() ? RootTable.ID : MetadataTable.ID;
-      ScannerImpl mdScanner = new ScannerImpl(HdfsZooInstance.getInstance(), SystemCredentials.get(), tableId, Authorizations.EMPTY);
-
-      // Commented out because when no data file is present, each tablet will scan through metadata table and return nothing
-      // reduced batch size to improve performance
-      // changed here after endKeys were implemented from 10 to 1000
-      mdScanner.setBatchSize(1000);
-
-      // leave these in, again, now using endKey for safety
-      mdScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-
-      mdScanner.setRange(new Range(rowName));
-
-      for (Entry<Key,Value> entry : mdScanner) {
-        if (entry.getKey().compareRow(rowName) != 0) {
-          break;
+      for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
+        Key k = entry.getKey();
+        k.getRow(buffer);
+        // Double-check that we have the expected row
+        if (row.equals(buffer)) {
+          k.getColumnFamily(buffer);
+          // Ignore anything but file:
+          if (TabletsSection.DataFileColumnFamily.NAME.equals(buffer)) {
+            FileRef ref = new FileRef(fs, k);
+            datafiles.put(ref, new DataFileValue(entry.getValue().get()));
+          }
         }
-
-        FileRef ref = new FileRef(fs, entry.getKey());
-        datafiles.put(ref, new DataFileValue(entry.getValue().get()));
       }
     }
     return datafiles;
