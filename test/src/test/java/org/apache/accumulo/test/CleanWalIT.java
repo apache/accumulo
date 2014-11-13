@@ -62,13 +62,10 @@ public class CleanWalIT extends AccumuloClusterIT {
     m.put("cf", "cq", "value");
     bw.addMutation(m);
     bw.close();
-    getCluster().getClusterControl().stop(ServerType.TABLET_SERVER, "localhost");
-    // for (ProcessReference tserver : getCluster().getProcesses().get(ServerType.TABLET_SERVER))
-    // getCluster().killProcess(ServerType.TABLET_SERVER, tserver);
+    getCluster().getClusterControl().stopAll(ServerType.TABLET_SERVER);
     // all 3 tables should do recovery, but the bug doesn't really remove the log file references
 
-    getCluster().getClusterControl().start(ServerType.TABLET_SERVER, "localhost");
-    // getCluster().start();
+    getCluster().start();
     for (String table : new String[] {MetadataTable.NAME, RootTable.NAME})
       conn.tableOperations().flush(table, null, null, true);
     assertEquals(1, count(tableName, conn));
@@ -84,12 +81,9 @@ public class CleanWalIT extends AccumuloClusterIT {
     conn.tableOperations().flush(tableName, null, null, true);
     conn.tableOperations().flush(MetadataTable.NAME, null, null, true);
     conn.tableOperations().flush(RootTable.NAME, null, null, true);
-    getCluster().getClusterControl().stop(ServerType.TABLET_SERVER, "localhost");
-    // for (ProcessReference tserver : getCluster().getProcesses().get(ServerType.TABLET_SERVER))
-    // getCluster().killProcess(ServerType.TABLET_SERVER, tserver);
+    getCluster().getClusterControl().stopAll(ServerType.TABLET_SERVER);
     UtilWaitThread.sleep(3 * 1000);
-    getCluster().getClusterControl().start(ServerType.TABLET_SERVER, "localhost");
-    // getCluster().start();
+    getCluster().start();
     assertEquals(0, count(tableName, conn));
   }
 
