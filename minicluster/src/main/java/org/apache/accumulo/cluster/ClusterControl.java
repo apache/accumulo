@@ -25,14 +25,20 @@ import org.apache.accumulo.minicluster.ServerType;
  */
 public interface ClusterControl {
 
-  // void startAll();
-
-  // void stopAll();
+  /**
+   * Starts all occurrences of the given server
+   */
+  void startAll(ServerType server) throws IOException;
 
   /**
    * Start the given process on the host
    */
   void start(ServerType server, String hostname) throws IOException;
+
+  /**
+   * Stops all occurrences of the given server
+   */
+  void stopAll(ServerType server) throws IOException;
 
   /**
    * Stop the given process on the host

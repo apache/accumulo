@@ -16,8 +16,12 @@
  */
 package org.apache.accumulo.cluster.standalone;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.cluster.ClusterControl;
@@ -33,18 +37,19 @@ import com.google.common.collect.Maps;
  */
 public class StandaloneClusterControl implements ClusterControl {
 
-  protected String accumuloHome;
+  protected String accumuloHome, accumuloConfDir;
   protected RemoteShellOptions options;
 
   protected String startServerPath;
 
   public StandaloneClusterControl() {
-    this(System.getenv("ACCUMULO_HOME"));
+    this(System.getenv("ACCUMULO_HOME"), System.getenv("ACCUMULO_CONF_DIR"));
   }
 
-  public StandaloneClusterControl(String accumuloHome) {
+  public StandaloneClusterControl(String accumuloHome, String accumuloConfDir) {
     this.options = new RemoteShellOptions();
     this.accumuloHome = accumuloHome;
+    this.accumuloConfDir = accumuloConfDir;
 
     File bin = new File(accumuloHome, "bin");
     File startServer = new File(bin, "start-server.sh");
@@ -66,9 +71,81 @@ public class StandaloneClusterControl implements ClusterControl {
   }
 
   @Override
+  public void startAll(ServerType server) throws IOException {
+    File confDir = getConfDir();
+
+    switch (server) {
+      case TABLET_SERVER:
+        for (String tserver : getHosts(new File(confDir, "slaves"))) {
+          start(server, tserver);
+        }
+        break;
+      case MASTER:
+        for (String master : getHosts(new File(confDir, "masters"))) {
+          start(server, master);
+        }
+        break;
+      case GARBAGE_COLLECTOR:
+        for (String gc : getHosts(new File(confDir, "gc"))) {
+          start(server, gc);
+        }
+        break;
+      case TRACER:
+        for (String tracer : getHosts(new File(confDir, "tracers"))) {
+          start(server, tracer);
+        }
+        break;
+      case MONITOR:
+        for (String monitor : getHosts(new File(confDir, "monitor"))) {
+          start(server, monitor);
+        }
+        break;
+      case ZOOKEEPER:
+      default:
+        throw new UnsupportedOperationException("Could not start servers for " + server);
+    }
+  }
+
+  @Override
   public void start(ServerType server, String hostname) throws IOException {
     String[] cmd = new String[] {startServerPath, hostname, getProcessString(server)};
     exec(hostname, cmd);
+  }
+
+  @Override
+  public void stopAll(ServerType server) throws IOException {
+    File confDir = getConfDir();
+
+    switch (server) {
+      case TABLET_SERVER:
+        for (String tserver : getHosts(new File(confDir, "slaves"))) {
+          stop(server, tserver);
+        }
+        break;
+      case MASTER:
+        for (String master : getHosts(new File(confDir, "masters"))) {
+          stop(server, master);
+        }
+        break;
+      case GARBAGE_COLLECTOR:
+        for (String gc : getHosts(new File(confDir, "gc"))) {
+          stop(server, gc);
+        }
+        break;
+      case TRACER:
+        for (String tracer : getHosts(new File(confDir, "tracers"))) {
+          stop(server, tracer);
+        }
+        break;
+      case MONITOR:
+        for (String monitor : getHosts(new File(confDir, "monitor"))) {
+          stop(server, monitor);
+        }
+        break;
+      case ZOOKEEPER:
+      default:
+        throw new UnsupportedOperationException("Could not start servers for " + server);
+    }
   }
 
   @Override
@@ -155,6 +232,46 @@ public class StandaloneClusterControl implements ClusterControl {
         return "monitor";
       default:
         throw new UnsupportedOperationException("Unhandled ServerType " + server);
+    }
+  }
+
+  protected File getConfDir() {
+    String confPath = null == accumuloConfDir ? System.getenv("ACCUMULO_CONF_DIR") : accumuloConfDir;
+    File confDir;
+    if (null == confPath) {
+      String homePath = null == accumuloHome ? System.getenv("ACCUMULO_HOME") : accumuloHome;
+      if (null == homePath) {
+        throw new IllegalStateException("Cannot extrapolate an ACCUMULO_CONF_DIR");
+      }
+      confDir = new File(homePath, "conf");
+    } else {
+      confDir = new File(confPath);
+    }
+
+    if (!confDir.exists() || !confDir.isDirectory()) {
+      throw new IllegalStateException("ACCUMULO_CONF_DIR does not exist or is not a directory: " + confDir);
+    }
+
+    return confDir;
+  }
+
+  /**
+   * Read the provided file and return all lines which don't start with a '#' character
+   */
+  protected List<String> getHosts(File f) throws IOException {
+    BufferedReader reader = new BufferedReader(new FileReader(f));
+    try {
+      List<String> hosts = new ArrayList<String>();
+      String line = null;
+      while ((line = reader.readLine()) != null) {
+        if (!line.trim().startsWith("#")) {
+          hosts.add(line);
+        }
+      }
+
+      return hosts;
+    } finally {
+      reader.close();
     }
   }
 }

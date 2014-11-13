@@ -57,6 +57,11 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   }
 
   @Override
+  public synchronized void startAll(ServerType server) throws IOException {
+    start(server, null);
+  }
+
+  @Override
   public synchronized void start(ServerType server, String hostname) throws IOException {
     switch (server) {
       case TABLET_SERVER:
@@ -85,6 +90,11 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       default:
         throw new UnsupportedOperationException("Cannot start process for " + server);
     }
+  }
+
+  @Override
+  public synchronized void stopAll(ServerType server) throws IOException {
+    stop(server);
   }
 
   public void stop(ServerType server) throws IOException {
