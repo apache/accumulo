@@ -48,7 +48,7 @@ public class SslIT extends ConfigurableMacIT {
 
   @Test
   public void concurrency() throws Exception {
-    ConcurrencyIT.runTest(getConnector());
+    ConcurrencyIT.runTest(getConnector(), getUniqueNames(1)[0]);
   }
 
   @Test

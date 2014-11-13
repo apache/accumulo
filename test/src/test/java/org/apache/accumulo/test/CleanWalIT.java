@@ -30,23 +30,22 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.minicluster.impl.ProcessReference;
-import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
-public class CleanWalIT extends ConfigurableMacIT {
-  
+public class CleanWalIT extends AccumuloClusterIT {
+
   @Override
   public int defaultTimeoutSeconds() {
     return 4 * 60;
   }
 
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "3s");
     cfg.setNumTservers(1);
     cfg.useMiniDFS(true);
@@ -63,14 +62,17 @@ public class CleanWalIT extends ConfigurableMacIT {
     m.put("cf", "cq", "value");
     bw.addMutation(m);
     bw.close();
-    for (ProcessReference tserver : getCluster().getProcesses().get(ServerType.TABLET_SERVER))
-      getCluster().killProcess(ServerType.TABLET_SERVER, tserver);
+    getCluster().getClusterControl().stop(ServerType.TABLET_SERVER, "localhost");
+    // for (ProcessReference tserver : getCluster().getProcesses().get(ServerType.TABLET_SERVER))
+    // getCluster().killProcess(ServerType.TABLET_SERVER, tserver);
     // all 3 tables should do recovery, but the bug doesn't really remove the log file references
-    getCluster().start();
-    for (String table : new String[]{MetadataTable.NAME, RootTable.NAME})
+
+    getCluster().getClusterControl().start(ServerType.TABLET_SERVER, "localhost");
+    // getCluster().start();
+    for (String table : new String[] {MetadataTable.NAME, RootTable.NAME})
       conn.tableOperations().flush(table, null, null, true);
     assertEquals(1, count(tableName, conn));
-    for (String table : new String[]{MetadataTable.NAME, RootTable.NAME})
+    for (String table : new String[] {MetadataTable.NAME, RootTable.NAME})
       assertEquals(0, countLogs(table, conn));
 
     bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
@@ -82,10 +84,12 @@ public class CleanWalIT extends ConfigurableMacIT {
     conn.tableOperations().flush(tableName, null, null, true);
     conn.tableOperations().flush(MetadataTable.NAME, null, null, true);
     conn.tableOperations().flush(RootTable.NAME, null, null, true);
-    for (ProcessReference tserver : getCluster().getProcesses().get(ServerType.TABLET_SERVER))
-      getCluster().killProcess(ServerType.TABLET_SERVER, tserver);
+    getCluster().getClusterControl().stop(ServerType.TABLET_SERVER, "localhost");
+    // for (ProcessReference tserver : getCluster().getProcesses().get(ServerType.TABLET_SERVER))
+    // getCluster().killProcess(ServerType.TABLET_SERVER, tserver);
     UtilWaitThread.sleep(3 * 1000);
-    getCluster().start();
+    getCluster().getClusterControl().start(ServerType.TABLET_SERVER, "localhost");
+    // getCluster().start();
     assertEquals(0, count(tableName, conn));
   }
 
