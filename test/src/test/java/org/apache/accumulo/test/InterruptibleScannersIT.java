@@ -27,14 +27,15 @@ import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class Accumulo3030IT extends ConfigurableMacIT {
+// ACCUMULO-3030
+public class InterruptibleScannersIT extends AccumuloClusterIT {
 
   @Override
   public int defaultTimeoutSeconds() {
@@ -42,7 +43,7 @@ public class Accumulo3030IT extends ConfigurableMacIT {
   }
 
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
   }
 

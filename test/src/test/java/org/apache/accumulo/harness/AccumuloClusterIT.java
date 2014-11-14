@@ -18,16 +18,22 @@ package org.apache.accumulo.harness;
 
 import static org.junit.Assert.fail;
 
+import java.util.Map;
+
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.cluster.standalone.StandaloneAccumuloCluster;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.conf.AccumuloClusterPropertyConfiguration;
 import org.apache.accumulo.harness.conf.AccumuloStandaloneClusterConfiguration;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
@@ -163,6 +169,27 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
       fail("Could not connect to Accumulo");
 
       throw new RuntimeException("Could not connect to Accumulo", e);
+    }
+  }
+
+  @SuppressWarnings("deprecation")
+  public FileSystem getFileSystem() {
+    try {
+      Connector conn = getConnector();
+      Map<String,String> conf = conn.instanceOperations().getSystemConfiguration();
+      String uri;
+      if (conf.containsKey(Property.INSTANCE_VOLUMES.getKey())) {
+        String instanceVolumes = conf.get(Property.INSTANCE_VOLUMES.getKey());
+        uri = StringUtils.split(instanceVolumes, ',')[0];
+      } else if (conf.containsKey(Property.INSTANCE_DFS_URI.getKey())) {
+        uri = conf.get(Property.INSTANCE_DFS_URI.getKey());
+      } else {
+        throw new RuntimeException("No DFS configuraiton present in system configuration");
+      }
+
+      return FileSystem.get(new Path(uri).toUri(), new Configuration());
+    } catch (Exception e) {
+      throw new RuntimeException(e);
     }
   }
 

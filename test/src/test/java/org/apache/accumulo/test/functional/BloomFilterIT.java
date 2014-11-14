@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -41,25 +42,24 @@ import org.apache.accumulo.core.file.keyfunctor.ColumnQualifierFunctor;
 import org.apache.accumulo.core.file.keyfunctor.RowFunctor;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.util.UtilWaitThread;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
 import org.junit.Test;
 
-public class BloomFilterIT extends ConfigurableMacIT {
+public class BloomFilterIT extends AccumuloClusterIT {
+  private static final Logger log = Logger.getLogger(BloomFilterIT.class);
 
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setDefaultMemory(1, MemoryUnit.GIGABYTE);
     cfg.setNumTservers(1);
     Map<String,String> siteConfig = new HashMap<String, String>();
     siteConfig.put(Property.TSERV_READ_AHEAD_MAXCONCURRENT.getKey(), "1");
-    siteConfig.put(Property.TABLE_BLOOM_SIZE.getKey(), "2000000");
-    siteConfig.put(Property.TABLE_BLOOM_ERRORRATE.getKey(), "1%");
-    siteConfig.put(Property.TABLE_BLOOM_LOAD_THRESHOLD.getKey(), "0");
     siteConfig.put(Property.TSERV_MUTATION_QUEUE_MAX.getKey(), "10M");
-    siteConfig.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "64K");
     cfg.setSiteConfig(siteConfig );
   }
 
@@ -71,11 +71,18 @@ public class BloomFilterIT extends ConfigurableMacIT {
   @Test
   public void test() throws Exception {
     Connector c = getConnector();
+    c.instanceOperations().setProperty(Property.TSERV_READ_AHEAD_MAXCONCURRENT.getKey(), "1");
+    Thread.sleep(1000);
     final String[] tables = getUniqueNames(4);
     for (String table : tables) {
-      c.tableOperations().create(table);
-      c.tableOperations().setProperty(table, Property.TABLE_INDEXCACHE_ENABLED.getKey(), "false");
-      c.tableOperations().setProperty(table, Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "false");
+      TableOperations tops = c.tableOperations();
+      tops.create(table);
+      tops.setProperty(table, Property.TABLE_INDEXCACHE_ENABLED.getKey(), "false");
+      tops.setProperty(table, Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "false");
+      tops.setProperty(table, Property.TABLE_BLOOM_SIZE.getKey(), "2000000");
+      tops.setProperty(table, Property.TABLE_BLOOM_ERRORRATE.getKey(), "1%");
+      tops.setProperty(table, Property.TABLE_BLOOM_LOAD_THRESHOLD.getKey(), "0");
+      tops.setProperty(table, Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "64K");
     }
     log.info("Writing");
     write(c, tables[0], 1, 0, 2000000000, 500);

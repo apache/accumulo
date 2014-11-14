@@ -17,77 +17,97 @@
 package org.apache.accumulo.test.functional;
 
 import static com.google.common.base.Charsets.UTF_8;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.util.Collections;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
-public class DeleteEverythingIT extends ConfigurableMacIT {
-  
+import com.google.common.collect.Iterables;
+
+public class DeleteEverythingIT extends AccumuloClusterIT {
+
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "1s"));
   }
-  
+
   @Override
   protected int defaultTimeoutSeconds() {
     return 60;
   }
 
+  private String majcDelay;
+
+  @Before
+  public void updateMajcDelay() throws Exception {
+    Connector c = getConnector();
+    majcDelay = c.instanceOperations().getSystemConfiguration().get(Property.TSERV_MAJC_DELAY.getKey());
+    c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1s");
+    if (getClusterType() == ClusterType.STANDALONE) {
+      // Gotta wait for the cluster to get out of the default sleep value
+      Thread.sleep(AccumuloConfiguration.getTimeInMillis(majcDelay));
+    }
+  }
+
+  @After
+  public void resetMajcDelay() throws Exception {
+    Connector c = getConnector();
+    c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
+  }
+
   @Test
   public void run() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("de");
-    BatchWriter bw = getConnector().createBatchWriter("de", new BatchWriterConfig());
+    String tableName = getUniqueNames(1)[0];
+    c.tableOperations().create(tableName);
+    BatchWriter bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m = new Mutation(new Text("foo"));
     m.put(new Text("bar"), new Text("1910"), new Value("5".getBytes(UTF_8)));
     bw.addMutation(m);
     bw.flush();
-    
-    getConnector().tableOperations().flush("de", null, null, true);
-    
-    FunctionalTestUtils.checkRFiles(c, "de", 1, 1, 1, 1);
-    
+
+    getConnector().tableOperations().flush(tableName, null, null, true);
+
+    FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 1, 1);
+
     m = new Mutation(new Text("foo"));
     m.putDelete(new Text("bar"), new Text("1910"));
     bw.addMutation(m);
     bw.flush();
-    
-    Scanner scanner = getConnector().createScanner("de", Authorizations.EMPTY);
+
+    Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY);
     scanner.setRange(new Range());
     int count = FunctionalTestUtils.count(scanner);
     assertEquals("count == " + count, 0, count);
-    getConnector().tableOperations().flush("de", null, null, true);
-    
-    getConnector().tableOperations().setProperty("de", Property.TABLE_MAJC_RATIO.getKey(), "1.0");
+    getConnector().tableOperations().flush(tableName, null, null, true);
+
+    getConnector().tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1.0");
     UtilWaitThread.sleep(4000);
-    
-    FunctionalTestUtils.checkRFiles(c, "de", 1, 1, 0, 0);
-    
+
+    FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 0, 0);
+
     bw.close();
-    
-    count = 0;
-    for (@SuppressWarnings("unused")
-    Entry<Key,Value> entry : scanner) {
-      count++;
-    }
-    
+
+    count = Iterables.size(scanner);
+
     if (count != 0)
       throw new Exception("count == " + count);
   }

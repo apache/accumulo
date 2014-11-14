@@ -26,21 +26,22 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
-public class BigRootTabletIT extends ConfigurableMacIT {
+public class BigRootTabletIT extends AccumuloClusterIT {
   // ACCUMULO-542: A large root tablet will fail to load if it does't fit in the tserver scan buffers
-  
+
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = new HashMap<String,String>();
     siteConfig.put(Property.TABLE_SCAN_MAXMEM.getKey(), "1024");
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "60m");
     cfg.setSiteConfig(siteConfig);
   }
-  
+
   @Override
   protected int defaultTimeoutSeconds() {
     return 4 * 60;
@@ -50,8 +51,9 @@ public class BigRootTabletIT extends ConfigurableMacIT {
   public void test() throws Exception {
     Connector c = getConnector();
     c.tableOperations().addSplits(MetadataTable.NAME, FunctionalTestUtils.splits("0 1 2 3 4 5 6 7 8 9 a".split(" ")));
-    for (int i = 0; i < 10; i++) {
-      c.tableOperations().create("" + i);
+    String[] names = getUniqueNames(10);
+    for (String name : names) {
+      c.tableOperations().create(name);
       c.tableOperations().flush(MetadataTable.NAME, null, null, true);
       c.tableOperations().flush(RootTable.NAME, null, null, true);
     }
@@ -59,5 +61,5 @@ public class BigRootTabletIT extends ConfigurableMacIT {
     cluster.start();
     assertTrue(FunctionalTestUtils.count(c.createScanner(RootTable.NAME, Authorizations.EMPTY)) > 0);
   }
-  
+
 }

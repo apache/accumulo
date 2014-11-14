@@ -49,6 +49,9 @@ import org.junit.rules.TemporaryFolder;
 
 public class BulkFileIT extends ConfigurableMacIT {
 
+  @Rule
+  public TemporaryFolder folder = new TemporaryFolder();
+
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration conf) {
     cfg.setMemory(ServerType.TABLET_SERVER, 128 * 4, MemoryUnit.MEGABYTE);

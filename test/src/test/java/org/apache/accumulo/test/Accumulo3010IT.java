@@ -18,6 +18,7 @@ package org.apache.accumulo.test;
 
 import java.util.Map.Entry;
 
+import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -29,16 +30,15 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.minicluster.impl.ProcessReference;
-import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class Accumulo3010IT extends ConfigurableMacIT {
+public class Accumulo3010IT extends AccumuloClusterIT {
 
   @Override
   public int defaultTimeoutSeconds() {
@@ -46,7 +46,7 @@ public class Accumulo3010IT extends ConfigurableMacIT {
   }
 
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
     // file system supports recovery
@@ -73,15 +73,19 @@ public class Accumulo3010IT extends ConfigurableMacIT {
     // create an unsaved mutation
     bw.addMutation(m);
     bw.close();
-    // kill the tablet server
-    for (ProcessReference p : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
-      cluster.killProcess(ServerType.TABLET_SERVER, p);
-    }
+
+    ClusterControl control = cluster.getClusterControl();
+
+    // kill the tablet servers
+    control.stopAll(ServerType.TABLET_SERVER);
+
     // recover
-    cluster.start();
+    control.startAll(ServerType.TABLET_SERVER);
+
     // ensure the table is readable
     for (@SuppressWarnings("unused") Entry<Key,Value> entry : c.createScanner(tableName, Authorizations.EMPTY)) {
     }
+
     // ensure that the recovery was not a merging minor compaction
     Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
