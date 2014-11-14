@@ -41,7 +41,7 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   private String accumuloHome, accumuloConfDir;
 
   public StandaloneAccumuloCluster(String instanceName, String zookeepers) {
-    this.instance = new ZooKeeperInstance(instanceName, zookeepers);
+    this(new ZooKeeperInstance(instanceName, zookeepers));
   }
 
   public StandaloneAccumuloCluster(Instance instance) {
