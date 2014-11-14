@@ -585,6 +585,7 @@ public class Tablet implements TabletCommitter {
     configObserver.propertiesChanged();
 
     if (!logEntries.isEmpty()) {
+      log.info("Starting Write-Ahead Log recovery for " + this.extent);
       // count[0] = entries used on tablet
       // count[1] = track max time from walog entries wihtout timestamps
       final long[] count = new long[2];

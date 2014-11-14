@@ -31,6 +31,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertTrue;
 
+// ACCUMULO-1177
 public class AssignmentThreadsIT extends ConfigurableMacIT {
 
   @Override
@@ -38,26 +39,32 @@ public class AssignmentThreadsIT extends ConfigurableMacIT {
     cfg.setNumTservers(1);
     cfg.setProperty(Property.TSERV_ASSIGNMENT_MAXCONCURRENT, "1");
   }
-  
+
+  // [0-9a-f]
+  private final static byte[] HEXCHARS = { 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66 };
+  private final static Random random = new Random();
+
+  public static byte[] randomHex(int n) {
+    byte[] binary = new byte[n];
+    byte[] hex = new byte[n * 2];
+    random.nextBytes(binary);
+    int count = 0;
+    for (byte x : binary) {
+      hex[count++] = HEXCHARS[(x >> 4)&0xf];
+      hex[count++] = HEXCHARS[x&0xf];
+    }
+    return hex;
+  }
+
   @Test(timeout = 5 * 60 * 1000)
-  public void test() throws Exception {
-    byte[] HEXCHARS = { 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66 };
+  public void testConcurrentAssignmentPerformance() throws Exception {
     // make a table with a lot of splits
     String tableName = getUniqueNames(1)[0];
     Connector c = getConnector();
     c.tableOperations().create(tableName);
     SortedSet<Text> splits = new TreeSet<Text>();
-    Random random = new Random();
-    byte[] split = new byte[8];
-    byte[] hex = new byte[split.length * 2];
     for (int i = 0; i < 4000; i++) {
-      random.nextBytes(split);
-      int count = 0;
-      for (byte x : split) {
-        hex[count++] = HEXCHARS[(x >> 4)&0xf];
-        hex[count++] = HEXCHARS[x&0xf];
-      }
-      splits.add(new Text(hex));
+      splits.add(new Text(randomHex(8)));
     }
     c.tableOperations().addSplits(tableName, splits);
     c.tableOperations().offline(tableName, true);
@@ -77,5 +84,5 @@ public class AssignmentThreadsIT extends ConfigurableMacIT {
     log.debug("Loaded " + splits.size() + " tablets in " + diff2 + " ms");
     assertTrue(diff2 < diff);
   }
-  
+
 }

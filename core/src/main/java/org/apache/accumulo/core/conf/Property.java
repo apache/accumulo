@@ -295,7 +295,7 @@ public enum Property {
   TSERV_REPLICATION_DEFAULT_HANDLER("tserver.replication.default.replayer", "org.apache.accumulo.tserver.replication.BatchWriterReplicationReplayer",
       PropertyType.CLASSNAME, "Default AccumuloReplicationReplayer implementation"),
   TSERV_REPLICATION_BW_REPLAYER_MEMORY("tserver.replication.batchwriter.replayer.memory", "50M", PropertyType.MEMORY, "Memory to provide to batchwriter to replay mutations for replication"),
-  TSERV_ASSIGNMENT_MAXCONCURRENT("tserver.assignement.concurrent.max", "2", PropertyType.COUNT, "The number of threads available to load tablets."),
+  TSERV_ASSIGNMENT_MAXCONCURRENT("tserver.assignment.concurrent.max", "2", PropertyType.COUNT, "The number of threads available to load tablets. Recoveries are still performed serially."),
 
   // properties that are specific to logger server behavior
   LOGGER_PREFIX("logger.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the write-ahead logger servers"),

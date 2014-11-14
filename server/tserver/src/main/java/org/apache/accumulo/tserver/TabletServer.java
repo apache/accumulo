@@ -16,9 +16,6 @@
  */
 package org.apache.accumulo.tserver;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.server.problems.ProblemType.TABLET_LOAD;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
@@ -54,6 +51,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import javax.management.StandardMBean;
 
+import com.google.common.net.HostAndPort;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -239,7 +237,8 @@ import org.apache.thrift.TServiceClient;
 import org.apache.thrift.server.TServer;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
-import com.google.common.net.HostAndPort;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.server.problems.ProblemType.TABLET_LOAD;
 
 public class TabletServer implements Runnable {
   private static final Logger log = Logger.getLogger(TabletServer.class);
@@ -358,7 +357,7 @@ public class TabletServer implements Runnable {
 
   private final AtomicLong totalQueuedMutationSize = new AtomicLong(0);
   private final Semaphore recoverySemaphore = new Semaphore(1, true);
-
+  
   private class ThriftClientHandler extends ClientServiceHandler implements TabletClientService.Iface {
 
     ThriftClientHandler() {
@@ -2126,21 +2125,25 @@ public class TabletServer implements Runnable {
         // this opens the tablet file and fills in the endKey in the
         // extent
         locationToOpen = VolumeUtil.switchRootTabletVolume(extent, locationToOpen);
-        tablet = new Tablet(TabletServer.this, extent, locationToOpen, trm, tabletsKeyValues);
-        /*
-         * If a minor compaction starts after a tablet opens, this indicates a log recovery occurred. This recovered data must be minor compacted.
-         *
-         * There are three reasons to wait for this minor compaction to finish before placing the tablet in online tablets.
-         *
-         * 1) The log recovery code does not handle data written to the tablet on multiple tablet servers. 2) The log recovery code does not block if memory is
-         * full. Therefore recovering lots of tablets that use a lot of memory could run out of memory. 3) The minor compaction finish event did not make it to
-         * the logs (the file will be in metadata, preventing replay of compacted data)... but do not want a majc to wipe the file out from metadata and then
-         * have another process failure... this could cause duplicate data to replay
-         */
-        if (tablet.getNumEntriesInMemory() > 0 && !tablet.minorCompactNow(MinorCompactionReason.RECOVERY)) {
-          throw new RuntimeException("Minor compaction after recovery fails for " + extent);
-        }
 
+        acquireRecoveryMemory(extent);
+        {
+
+          tablet = new Tablet(TabletServer.this, extent, locationToOpen, trm, tabletsKeyValues);
+          /*
+           * If a minor compaction starts after a tablet opens, this indicates a log recovery occurred. This recovered data must be minor compacted.
+           *
+           * There are three reasons to wait for this minor compaction to finish before placing the tablet in online tablets.
+           *
+           * 1) The log recovery code does not handle data written to the tablet on multiple tablet servers. 2) The log recovery code does not block if memory is
+           * full. Therefore recovering lots of tablets that use a lot of memory could run out of memory. 3) The minor compaction finish event did not make it to
+           * the logs (the file will be in metadata, preventing replay of compacted data)... but do not want a majc to wipe the file out from metadata and then
+           * have another process failure... this could cause duplicate data to replay
+           */
+          if (tablet.getNumEntriesInMemory() > 0 && !tablet.minorCompactNow(MinorCompactionReason.RECOVERY)) {
+            throw new RuntimeException("Minor compaction after recovery fails for " + extent);
+          }
+        }
         Assignment assignment = new Assignment(extent, getTabletSession());
         TabletStateStore.setLocation(assignment);
 
@@ -2160,6 +2163,8 @@ public class TabletServer implements Runnable {
           log.warn(e.getMessage());
         String table = extent.getTableId().toString();
         ProblemReports.getInstance().report(new ProblemReport(table, TABLET_LOAD, extent.getUUID().toString(), getClientAddressString(), e));
+      } finally {
+        releaseRecoveryMemory(extent);
       }
 
       if (!successful) {
@@ -2196,6 +2201,18 @@ public class TabletServer implements Runnable {
     }
   }
 
+  private void acquireRecoveryMemory(KeyExtent extent) throws InterruptedException {
+    if (!extent.isMeta()) {
+      recoverySemaphore.acquireUninterruptibly();
+    }
+  }
+
+  private void releaseRecoveryMemory(KeyExtent extent) {
+    if (!extent.isMeta()) {
+      recoverySemaphore.release();
+    }
+  }
+  
   public void addLoggersToMetadata(List<DfsLogger> logs, KeyExtent extent, int id) {
     if (!this.onlineTablets.containsKey(extent)) {
       log.info("Not adding " + logs.size() + " logs for extent " + extent + " as alias " + id + " tablet is offline");
@@ -2906,37 +2923,31 @@ public class TabletServer implements Runnable {
   }
 
   public void recover(VolumeManager fs, KeyExtent extent, TableConfiguration tconf, List<LogEntry> logEntries, Set<String> tabletFiles, MutationReceiver mutationReceiver)
-      throws IOException, InterruptedException {
-    recoverySemaphore.acquire();
-    try {
-      log.info("Starting Write-Ahead Log recovery for " + extent);
-      List<Path> recoveryLogs = new ArrayList<Path>();
-      List<LogEntry> sorted = new ArrayList<LogEntry>(logEntries);
-      Collections.sort(sorted, new Comparator<LogEntry>() {
-        @Override
-        public int compare(LogEntry e1, LogEntry e2) {
-          return (int) (e1.timestamp - e2.timestamp);
-        }
-      });
-      for (LogEntry entry : sorted) {
-        Path recovery = null;
-        for (String log : entry.logSet) {
-          Path finished = RecoveryPath.getRecoveryPath(fs, fs.getFullPath(FileType.WAL, log));
-          finished = SortedLogState.getFinishedMarkerPath(finished);
-          TabletServer.log.info("Looking for " + finished);
-          if (fs.exists(finished)) {
-            recovery = finished.getParent();
-            break;
-          }
-        }
-        if (recovery == null)
-          throw new IOException("Unable to find recovery files for extent " + extent + " logEntry: " + entry);
-        recoveryLogs.add(recovery);
+      throws IOException {
+    List<Path> recoveryLogs = new ArrayList<Path>();
+    List<LogEntry> sorted = new ArrayList<LogEntry>(logEntries);
+    Collections.sort(sorted, new Comparator<LogEntry>() {
+      @Override
+      public int compare(LogEntry e1, LogEntry e2) {
+        return (int) (e1.timestamp - e2.timestamp);
       }
-      logger.recover(fs, extent, tconf, recoveryLogs, tabletFiles, mutationReceiver);
-    } finally {
-      recoverySemaphore.release();
+    });
+    for (LogEntry entry : sorted) {
+      Path recovery = null;
+      for (String log : entry.logSet) {
+        Path finished = RecoveryPath.getRecoveryPath(fs, fs.getFullPath(FileType.WAL, log));
+        finished = SortedLogState.getFinishedMarkerPath(finished);
+        TabletServer.log.info("Looking for " + finished);
+        if (fs.exists(finished)) {
+          recovery = finished.getParent();
+          break;
+        }
+      }
+      if (recovery == null)
+        throw new IOException("Unable to find recovery files for extent " + extent + " logEntry: " + entry);
+      recoveryLogs.add(recovery);
     }
+    logger.recover(fs, extent, tconf, recoveryLogs, tabletFiles, mutationReceiver);
   }
 
   public int createLogId(KeyExtent tablet) {

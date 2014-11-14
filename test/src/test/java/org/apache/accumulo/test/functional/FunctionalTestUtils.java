@@ -148,7 +148,7 @@ public class FunctionalTestUtils {
     return result.toString();
   }
 
-  static String readAll(MiniAccumuloClusterImpl c, Class<?> klass, Process p) throws Exception {
+  public static String readAll(MiniAccumuloClusterImpl c, Class<?> klass, Process p) throws Exception {
     for (LogWriter writer : c.getLogWriters())
       writer.flush();
     return readAll(new FileInputStream(c.getConfig().getLogDir() + "/" + klass.getSimpleName() + "_" + p.hashCode() + ".out"));

@@ -198,8 +198,7 @@ public class TabletServerResourceManager {
     // concurrent assignments would put more load on the metadata table at startup
     assignmentPool = createEs(Property.TSERV_ASSIGNMENT_MAXCONCURRENT, "tablet assignment");
 
-    int max = acuConf.getCount(Property.TSERV_ASSIGNMENT_MAXCONCURRENT);
-    assignMetaDataPool = createEs(0, max, 60, "metadata tablet assignment");
+    assignMetaDataPool = createEs(0, 1, 60, "metadata tablet assignment");
 
     activeAssignments = new ConcurrentHashMap<KeyExtent,RunnableStartedAt>();
 
