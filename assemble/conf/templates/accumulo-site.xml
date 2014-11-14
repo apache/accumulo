@@ -98,16 +98,10 @@ ${mvnProjBaseDir}
       $ACCUMULO_HOME/lib/accumulo-fate.jar,
       $ACCUMULO_HOME/lib/accumulo-proxy.jar,
       $ACCUMULO_HOME/lib/[^.].*.jar,
-      <!-- End Accumulo requirements -->
-
       <!-- ZooKeeper requirements -->
       $ZOOKEEPER_HOME/zookeeper[^.].*.jar,
-      <!-- End ZooKeeper requirements -->
-
       <!-- Common Hadoop requirements -->
       $HADOOP_CONF_DIR,
-      <!-- End Common Hadoop requirements -->
-
       <!-- Hadoop 2 requirements -->
       $HADOOP_PREFIX/share/hadoop/common/[^.].*.jar,
       $HADOOP_PREFIX/share/hadoop/common/lib/(?!slf4j)[^.].*.jar,
@@ -121,13 +115,16 @@ ${mvnProjBaseDir}
       /usr/lib/hadoop-mapreduce/[^.].*.jar,
       /usr/lib/hadoop-yarn/[^.].*.jar,
       /usr/lib/hadoop-yarn/lib/jersey.*.jar,
-      <!-- End Hadoop 2 requirements -->
-
+      /usr/hdp/current/hadoop-client/[^.].*.jar,
+      /usr/hdp/current/hadoop-client/lib/(?!slf4j)[^.].*.jar,
+      /usr/hdp/current/hadoop-hdfs-client/[^.].*.jar,
+      /usr/hdp/current/hadoop-mapreduce-client/[^.].*.jar,
+      /usr/hdp/current/hadoop-yarn-client/[^.].*.jar,
+      /usr/hdp/current/hadoop-yarn-client/lib/jersey.*.jar,
+      /usr/hdp/current/hive-client/lib/hive-accumulo-handler.jar
       <!-- Hadoop 1 requirements -->
       $HADOOP_PREFIX/[^.].*.jar,
       $HADOOP_PREFIX/lib/(?!slf4j)[^.].*.jar,
-      <!-- End Hadoop 1 requirements -->
-
     </value>
     <description>Classpaths that accumulo checks for updates and class files.</description>
   </property>
