@@ -51,7 +51,7 @@ public class NoMutationRecoveryIT extends ConfigurableMacIT {
   
   @Override
   public int defaultTimeoutSeconds() {
-    return 2 * 60;
+    return 10 * 60;
   }
 
   @Override
