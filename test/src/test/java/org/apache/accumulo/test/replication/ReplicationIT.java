@@ -31,6 +31,7 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -40,6 +41,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.replication.ReplicaSystemFactory;
 import org.apache.accumulo.core.conf.Property;
@@ -66,6 +68,10 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
+import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
@@ -138,6 +144,21 @@ public class ReplicationIT extends ConfigurableMacIT {
       }
     }
     return logs;
+  }
+
+  private void waitForGCLock(Connector conn) throws InterruptedException {
+    // Check if the GC process has the lock before wasting our retry attempts
+    ZooKeeperInstance zki = (ZooKeeperInstance) conn.getInstance();
+    ZooCacheFactory zcf = new ZooCacheFactory();
+    ZooCache zcache = zcf.getZooCache(zki.getZooKeepers(), zki.getZooKeepersSessionTimeOut());
+    String zkPath = ZooUtil.getRoot(conn.getInstance()) + Constants.ZGC_LOCK;
+    log.info("Looking for GC lock at {}", zkPath);
+    byte[] data = ZooLock.getLockData(zcache, zkPath, null);
+    while (null == data) {
+      log.info("Waiting for GC ZooKeeper lock to be acquired");
+      Thread.sleep(1000);
+      data = ZooLock.getLockData(zcache, zkPath, null);
+    }
   }
 
   @Test
@@ -775,7 +796,6 @@ public class ReplicationIT extends ConfigurableMacIT {
 
     log.warn("Found wals {}", wals);
 
-    // for (int j = 0; j < 5; j++) {
     bw = conn.createBatchWriter(table, new BatchWriterConfig());
     m = new Mutation("three");
     byte[] bytes = new byte[1024 * 1024];
@@ -793,7 +813,7 @@ public class ReplicationIT extends ConfigurableMacIT {
       UtilWaitThread.sleep(2000);
     }
 
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 10; i++) {
       s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
       s.fetchColumnFamily(LogColumnFamily.NAME);
       s.setRange(TabletsSection.getRange(tableId));
@@ -1247,6 +1267,12 @@ public class ReplicationIT extends ConfigurableMacIT {
     // in the metadata table, and then in the replication table
     Process gc = cluster.exec(SimpleGarbageCollector.class);
 
+    waitForGCLock(conn);
+
+    Thread.sleep(1000);
+
+    log.info("GC is up and should have had time to run at least once by now");
+
     try {
       boolean allClosed = true;
 
@@ -1492,7 +1518,9 @@ public class ReplicationIT extends ConfigurableMacIT {
     getCluster().exec(SimpleGarbageCollector.class);
 
     // Wait for a bit since the GC has to run (should be running after a one second delay)
-    Thread.sleep(5000);
+    waitForGCLock(conn);
+
+    Thread.sleep(1000);
 
     // We expect no records in the metadata table after compaction. We have to poll
     // because we have to wait for the StatusMaker's next iteration which will clean
@@ -1500,7 +1528,7 @@ public class ReplicationIT extends ConfigurableMacIT {
     // We need the GC to close the file (CloseWriteAheadLogReferences) before we can remove the record
     log.info("Checking metadata table for replication entries");
     foundResults = true;
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 10; i++) {
       s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
       s.setRange(ReplicationSection.getRange());
       long size = 0;
@@ -1512,7 +1540,7 @@ public class ReplicationIT extends ConfigurableMacIT {
         foundResults = false;
         break;
       }
-      Thread.sleep(1000);
+      Thread.sleep(2000);
       log.info("");
     }
 

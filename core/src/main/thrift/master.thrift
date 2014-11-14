@@ -172,4 +172,5 @@ service MasterClientService extends FateService {
   oneway void reportSplitExtent(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string serverName, 3:TabletSplit split)
   oneway void reportTabletStatus(5:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string serverName, 3:TabletLoadState status, 4:data.TKeyExtent tablet)
 
+  list<string> getActiveTservers(1:trace.TInfo tinfo, 2:security.TCredentials credentials) throws (1:client.ThriftSecurityException sec)
 }

@@ -181,7 +181,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   public void grantTablePermission(TInfo tinfo, TCredentials credentials, String user, String tableName, byte permission) throws ThriftSecurityException,
       ThriftTableOperationException {
     String tableId = checkTableId(instance, tableName, TableOperation.PERMISSION);
-    String namespaceId = Tables.getNamespaceId(instance, tableId); 
+    String namespaceId = Tables.getNamespaceId(instance, tableId);
 
     security.grantTablePermission(credentials, user, tableId, TablePermission.getPermissionById(permission), namespaceId);
   }
@@ -202,7 +202,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   public void revokeTablePermission(TInfo tinfo, TCredentials credentials, String user, String tableName, byte permission) throws ThriftSecurityException,
       ThriftTableOperationException {
     String tableId = checkTableId(instance, tableName, TableOperation.PERMISSION);
-    String namespaceId = Tables.getNamespaceId(instance, tableId); 
+    String namespaceId = Tables.getNamespaceId(instance, tableId);
 
     security.revokeTablePermission(credentials, user, tableId, TablePermission.getPermissionById(permission), namespaceId);
   }
@@ -278,6 +278,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     try {
       if (!security.canPerformSystemActions(credentials))
         throw new AccumuloSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+      log.debug("Got request to bulk import files to table(" + tableId + "): " + files);
       return transactionWatcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, new Callable<List<String>>() {
         @Override
         public List<String> call() throws Exception {

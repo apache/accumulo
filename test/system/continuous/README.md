@@ -33,25 +33,25 @@ continuous ingest table.
 The following ingest scripts insert data into accumulo that will form a random
 graph.
 
-> `$ start-ingest.sh  
-$ stop-ingest.sh`
+> $ start-ingest.sh  
+> $ stop-ingest.sh
 
 The following query scripts randomly walk the graph created by the ingesters.
 Each walker produce detailed statistics on query/scan times.
 
-> `$ start-walkers.sh  
-$ stop-walker.sh`
+> $ start-walkers.sh  
+> $ stop-walker.sh
 
 The following scripts start and stop batch walkers.
 
-> `$ start-batchwalkers.sh  
-$ stop-batchwalkers.sh`
+> $ start-batchwalkers.sh  
+> $ stop-batchwalkers.sh
 
 In addition to placing continuous load, the following scripts start and stop a
 service that continually collect statistics about accumulo and HDFS.
 
-> `$ start-stats.sh  
-$ stop-stats.sh`
+> $ start-stats.sh  
+> $ stop-stats.sh
 
 Optionally, start the agitator to periodically kill the tabletserver and/or datanode
 process(es) on random nodes. You can run this script as root and it will properly start
@@ -62,8 +62,8 @@ the case where you run the agitator as a non-privileged user which isn't the sam
 or `ACCUMULO_USER`, the agitator will attempt to `sudo` to these users, which relies on correct
 configuration of sudo. Also, be sure that your `HDFS_USER` has password-less `ssh` configured.
 
-> `$ start-agitator.sh  
-$ stop-agitator.sh`
+> $ start-agitator.sh  
+> $ stop-agitator.sh
 
 Start all three of these services and let them run for a few hours. Then run
 `report.pl` to generate a simple HTML report containing plots and histograms
@@ -75,7 +75,7 @@ variables in `continuous-env.sh` if needed.  Do not run ingest while running thi
 command, this will cause erroneous reporting of UNDEFINED nodes. The MapReduce
 job will scan a reference after it has scanned the definition.
 
-> `$ run-verify.sh`
+> $ run-verify.sh
 
 Each entry, except for the first batch of entries, inserted by continuous
 ingest references a previously flushed entry.  Since we are referencing flushed
@@ -94,5 +94,5 @@ by the MapReduce job itself). Stop ingest before running this MapReduce job.
 Do not run more than one instance of this MapReduce job concurrently against a
 table.
 
-> `$ run-moru.sh`
+> $ run-moru.sh
 

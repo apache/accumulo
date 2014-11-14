@@ -358,11 +358,12 @@ public class GarbageCollectWriteAheadLogs {
     int count = 0;
 
     Iterator<Entry<String,Path>> walIter = nameToFileMap.entrySet().iterator();
+
     while (walIter.hasNext()) {
       Entry<String,Path> wal = walIter.next();
       String fullPath = wal.getValue().toString();
       if (neededByReplication(conn, fullPath)) {
-        log.debug("Removing WAL from candidate deletion as it is still needed for replication: {} ", fullPath);
+        log.debug("Removing WAL from candidate deletion as it is still needed for replication: {}", fullPath);
         // If we haven't already removed it, check to see if this WAL is
         // "in use" by replication (needed for replication purposes)
         status.currentLog.inUse++;
@@ -387,23 +388,6 @@ public class GarbageCollectWriteAheadLogs {
    */
   protected boolean neededByReplication(Connector conn, String wal) {
     log.info("Checking replication table for " + wal);
-
-    // try {
-    // log.info("Current state of Metadata table");
-    // for (Entry<Key,Value> entry : conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-    // log.info(entry.getKey().toStringNoTruncate() + "=" + TextFormat.shortDebugString(Status.parseFrom(entry.getValue().get())));
-    // }
-    // } catch (Exception e) {
-    // log.error("Could not read metadata table");
-    // }
-    // try {
-    // log.info("Current state of replication table");
-    // for (Entry<Key,Value> entry : conn.createScanner(ReplicationTable.NAME, Authorizations.EMPTY)) {
-    // log.info(entry.getKey().toStringNoTruncate() + "=" + TextFormat.shortDebugString(Status.parseFrom(entry.getValue().get())));
-    // }
-    // } catch (Exception e) {
-    // log.error("Could not read replication table");
-    // }
 
     Iterable<Entry<Key,Value>> iter = getReplicationStatusForFile(conn, wal);
 

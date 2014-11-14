@@ -206,12 +206,12 @@ public enum Property {
   TSERV_CLIENTPORT("tserver.port.client", "9997", PropertyType.PORT, "The port used for handling client connections on the tablet servers"),
   @Deprecated
   TSERV_MUTATION_QUEUE_MAX("tserver.mutation.queue.max", "1M", PropertyType.MEMORY,
-      "This setting is deprecated. See tserver.total.mutation.queue.max. " 
+      "This setting is deprecated. See tserver.total.mutation.queue.max. "
           + "The amount of memory to use to store write-ahead-log mutations-per-session before flushing them. Since the buffer is per write session, consider the"
           + " max number of concurrent writer when configuring. When using Hadoop 2, Accumulo will call hsync() on the WAL . For a small number of "
           + "concurrent writers, increasing this buffer size decreases the frequncy of hsync calls. For a large number of concurrent writers a small buffers "
           + "size is ok because of group commit."),
-  TSERV_TOTAL_MUTATION_QUEUE_MAX("tserver.total.mutation.queue.max", "50M", PropertyType.MEMORY, 
+  TSERV_TOTAL_MUTATION_QUEUE_MAX("tserver.total.mutation.queue.max", "50M", PropertyType.MEMORY,
       "The amount of memory used to store write-ahead-log mutations before flushing them."),
   TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN("tserver.tablet.split.midpoint.files.max", "30", PropertyType.COUNT,
       "To find a tablets split points, all index files are opened. This setting determines how many index "
@@ -503,6 +503,8 @@ public enum Property {
   REPLICATION_MAX_UNIT_SIZE("replication.max.unit.size", "64M", PropertyType.MEMORY, "Maximum size of data to send in a replication message"),
   REPLICATION_WORK_ASSIGNER("replication.work.assigner", "org.apache.accumulo.master.replication.UnorderedWorkAssigner", PropertyType.CLASSNAME,
       "Replication WorkAssigner implementation to use"),
+  REPLICATION_DRIVER_DELAY("replication.driver.delay", "0s", PropertyType.TIMEDURATION,
+      "Amount of time to wait before the replication work loop begins in the master."),
   REPLICATION_WORK_PROCESSOR_DELAY("replication.work.processor.delay", "0s", PropertyType.TIMEDURATION, "Amount of time to wait before first checking for replication work, not useful outside of tests"),
   REPLICATION_WORK_PROCESSOR_PERIOD("replication.work.processor.period", "0s", PropertyType.TIMEDURATION, "Amount of time to wait before re-checking for replication work, not useful outside of tests"),
 
@@ -815,7 +817,7 @@ public enum Property {
 
   /**
    * Creates a new instance of a class specified in a configuration property. The table classpath context is used if set.
-   * 
+   *
    * @param conf
    *          configuration containing property
    * @param property
@@ -836,7 +838,7 @@ public enum Property {
 
   /**
    * Creates a new instance of a class specified in a configuration property.
-   * 
+   *
    * @param conf
    *          configuration containing property
    * @param property
@@ -857,7 +859,7 @@ public enum Property {
   /**
    * Collects together properties from the given configuration pertaining to compaction strategies. The relevant properties all begin with the prefix in
    * {@link #TABLE_COMPACTION_STRATEGY_PREFIX}. In the returned map, the prefix is removed from each property's key.
-   * 
+   *
    * @param tableConf
    *          configuration
    * @return map of compaction strategy property keys and values, with the detection prefix removed from each key

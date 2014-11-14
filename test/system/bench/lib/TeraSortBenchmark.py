@@ -73,17 +73,17 @@ class TeraSortBenchmark(Benchmark):
         file = os.path.join( dir, 'splits' )
         code, out, err = cloudshell.run(self.username, self.password, "createtable %s -sf %s\n" % (self.tablename, file))
         command = self.buildcommand('org.apache.accumulo.examples.simple.mapreduce.TeraSortIngest',
-                                    self.numrows(),
-                                    self.keysizemin(),
-                                    self.keysizemax(),
-                                    self.minvaluesize(),
-                                    self.maxvaluesize(),
-                                    self.tablename,
-                                    self.instance,
-                                    self.zookeepers,
-                                    self.username,
-                                    self.password, 
-                                    self.numsplits)
+                                    '--count', self.numrows(),
+                                    '-nk', self.keysizemin(),
+                                    '-xk', self.keysizemax(),
+                                    '-nv', self.minvaluesize(),
+                                    '-xv', self.maxvaluesize(),
+                                    '-t', self.tablename,
+                                    '-i', self.instance,
+                                    '-z', self.zookeepers,
+                                    '-u', self.username,
+                                    '-p', self.password,
+                                    '--splits', self.numsplits)
         handle = runner.start(command, stdin=subprocess.PIPE)
         log.debug("Running: %r", command)
         out, err = handle.communicate("")

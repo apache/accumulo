@@ -747,8 +747,10 @@ public class SimpleGarbageCollector implements Iface {
     while (true) {
       lock = new ZooLock(path);
       if (lock.tryLock(lockWatcher, new ServerServices(addr.toString(), Service.GC_CLIENT).toString().getBytes())) {
-        break;
+        log.debug("Got GC ZooKeeper lock");
+        return;
       }
+      log.debug("Failed to get GC ZooKeeper lock, will retry");
       UtilWaitThread.sleep(1000);
     }
   }

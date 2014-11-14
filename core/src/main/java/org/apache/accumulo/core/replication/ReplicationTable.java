@@ -37,10 +37,12 @@ import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
 
 import com.google.common.collect.ImmutableMap;
 
 public class ReplicationTable {
+  private static final Logger log = Logger.getLogger(ReplicationTable.class);
 
   public static final String ID = "+rep";
   public static final String NAME = Namespaces.ACCUMULO_NAMESPACE + ".replication";
@@ -90,6 +92,7 @@ public class ReplicationTable {
 
   public static void setOnline(Connector conn) throws AccumuloSecurityException, AccumuloException {
     try {
+      log.info("Bringing replication table online");
       conn.tableOperations().online(NAME, true);
     } catch (TableNotFoundException e) {
       throw new AssertionError(NAME + " should exist, but doesn't.");

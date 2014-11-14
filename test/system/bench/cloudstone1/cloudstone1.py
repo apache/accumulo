@@ -31,8 +31,8 @@ class CloudStone1(Benchmark):
     def runTest(self):
         code, out, err = cloudshell.run(self.username, self.password, 'table accumulo.metadata\nscan\n')
         self.assertEqual(code, 0, "Could not scan the metadata table. %s %s" % (out, err))
-        results = runAll('echo help | %s shell' %
-                         accumulo('bin', 'accumulo'))
+        results = runAll('echo help | %s shell -u %s -p %s' %
+                         (accumulo('bin', 'accumulo'), self.username, self.password))
                          
     def setSpeed(self, speed):
         "We want to override this method but no speed can be set"
