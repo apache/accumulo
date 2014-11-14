@@ -67,12 +67,12 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacIT {
     c.tableOperations().create("test_ingest");
     c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
     c.tableOperations().create("unused");
-    TreeSet<Text> splits = TestIngest.getSplitPoints(0, 10000000, 2000);
+    TreeSet<Text> splits = TestIngest.getSplitPoints(0, 10000000, 500);
     log.info("Creating " + splits.size() + " splits");
     c.tableOperations().addSplits("unused", splits);
     List<String> tservers = c.instanceOperations().getTabletServers();
     TestIngest.Opts opts = new TestIngest.Opts();
-    opts.rows = 200000;
+    opts.rows = 50000;
     TestIngest.ingest(c, opts, new BatchWriterOpts());
     c.tableOperations().flush("test_ingest", null, null, false);
     UtilWaitThread.sleep(45 * 1000);
