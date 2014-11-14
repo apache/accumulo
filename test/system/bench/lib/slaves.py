@@ -20,7 +20,7 @@ import time
 import select
 import subprocess
 
-from lib.path import accumulo
+from lib.path import accumuloConf
 from lib.options import log
 
 def slaveNames():
