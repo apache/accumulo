@@ -48,7 +48,7 @@ public class BulkFileIT extends ConfigurableMacIT {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration conf) {
-    cfg.setMemory(ServerType.TABLET_SERVER, cfg.getDefaultMemory() * 3, MemoryUnit.BYTE);
+    cfg.setMemory(ServerType.TABLET_SERVER, 128 * 4, MemoryUnit.MEGABYTE);
   }
 
   @Override
