@@ -121,6 +121,7 @@ ${mvnProjBaseDir}
       /usr/hdp/current/hadoop-mapreduce-client/[^.].*.jar,
       /usr/hdp/current/hadoop-yarn-client/[^.].*.jar,
       /usr/hdp/current/hadoop-yarn-client/lib/jersey.*.jar,
+      <!-- End Hadoop 2 requirements -->
       /usr/hdp/current/hive-client/lib/hive-accumulo-handler.jar
       <!-- Hadoop 1 requirements -->
       $HADOOP_PREFIX/[^.].*.jar,

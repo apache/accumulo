@@ -296,8 +296,8 @@ sed -e "s/\${memMapMax}/${!MEMORY_MAP_MAX}/" \
 if [[ "$HADOOP_VERSION" = "1" ]]; then
   sed -e 's/^test -z \"$HADOOP_CONF_DIR\"/#test -z \"$HADOOP_CONF_DIR\"/' -e 's/^# test -z "$HADOOP_CONF_DIR"/test -z \"$HADOOP_CONF_DIR\"/' ${CONF_DIR}/$ACCUMULO_ENV > temp
   mv temp ${CONF_DIR}/$ACCUMULO_ENV
-  sed -e 's/<!-- Hadoop 2 requirements -->/<!-- Hadoop 2 requirements -->\n      <!--/' \
-      -e 's/<!-- End Hadoop 2 requirements -->/-->\n      <!-- End Hadoop 2 requirements -->/' \
+  sed -e 's/<!-- Hadoop 2 requirements -->/<!-- Hadoop 2 requirements --><!--/' \
+      -e 's/<!-- End Hadoop 2 requirements -->/--><!-- End Hadoop 2 requirements -->/' \
       ${CONF_DIR}/$ACCUMULO_SITE > temp
   mv temp  ${CONF_DIR}/$ACCUMULO_SITE
 fi
