@@ -232,10 +232,10 @@ fi
 if [[ -z "${HADOOP_VERSION}" ]]; then
   echo
   echo "Choose the Apache Hadoop version:"
-  select HADOOP in 'HADOOP 1' 'HADOOP 2' ; do
-    if [ "${HADOOP}" == "HADOOP 2" ]; then
+  select HADOOP in 'Hadoop 1' 'Hadoop 2' ; do
+    if [ "${HADOOP}" == "Hadoop 2" ]; then
       HADOOP_VERSION="2"
-    elif [ "${HADOOP}" == "HADOOP 1" ]; then
+    elif [ "${HADOOP}" == "Hadoop 1" ]; then
       HADOOP_VERSION="1"
     fi
     echo "Using Apache Hadoop version '${HADOOP_VERSION}' configuration"
