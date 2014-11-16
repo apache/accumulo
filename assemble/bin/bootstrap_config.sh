@@ -232,10 +232,10 @@ fi
 if [[ -z "${HADOOP_VERSION}" ]]; then
   echo
   echo "Choose the Apache Hadoop version:"
-  select HADOOP in 'HADOOP 1' 'HADOOP 2' ; do
-    if [ "${HADOOP}" == "HADOOP 2" ]; then
+  select HADOOP in 'Hadoop 1' 'Hadoop 2' ; do
+    if [ "${HADOOP}" == "Hadoop 2" ]; then
       HADOOP_VERSION="2"
-    elif [ "${HADOOP}" == "HADOOP 1" ]; then
+    elif [ "${HADOOP}" == "Hadoop 1" ]; then
       HADOOP_VERSION="1"
     fi
     echo "Using Apache Hadoop version '${HADOOP_VERSION}' configuration"
@@ -296,8 +296,8 @@ sed -e "s/\${memMapMax}/${!MEMORY_MAP_MAX}/" \
 if [[ "$HADOOP_VERSION" = "1" ]]; then
   sed -e 's/^test -z \"$HADOOP_CONF_DIR\"/#test -z \"$HADOOP_CONF_DIR\"/' -e 's/^# test -z "$HADOOP_CONF_DIR"/test -z \"$HADOOP_CONF_DIR\"/' "${CONF_DIR}/$ACCUMULO_ENV" > temp
   mv temp "${CONF_DIR}/$ACCUMULO_ENV"
-  sed -e 's/<!-- Hadoop 2 requirements -->/<!-- Hadoop 2 requirements -->\n      <!--/' \
-      -e 's/<!-- End Hadoop 2 requirements -->/-->\n      <!-- End Hadoop 2 requirements -->/' \
+  sed -e 's/<!-- Hadoop 2 requirements -->/<!-- Hadoop 2 requirements --><!--/' \
+      -e 's/<!-- End Hadoop 2 requirements -->/--><!-- End Hadoop 2 requirements -->/' \
       "${CONF_DIR}/$ACCUMULO_SITE" > temp
   mv temp "${CONF_DIR}/$ACCUMULO_SITE"
 fi
