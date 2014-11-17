@@ -429,6 +429,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       zooCfg.setProperty("tickTime", "2000");
       zooCfg.setProperty("initLimit", "10");
       zooCfg.setProperty("syncLimit", "5");
+      zooCfg.setProperty("clientPortAddress", "127.0.0.1");
       zooCfg.setProperty("clientPort", config.getZooKeeperPort() + "");
       zooCfg.setProperty("maxClientCnxns", "1000");
       zooCfg.setProperty("dataDir", config.getZooKeeperDir().getAbsolutePath());
