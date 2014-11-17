@@ -80,7 +80,11 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
 
           clusterTypeValue = fileProperties.getProperty(ACCUMULO_CLUSTER_TYPE_KEY);
         }
+      } else {
+        log.debug("Property file ({}) is not a readable file", propertyFile);
       }
+    } else {
+      log.debug("No properties file found in {}", ACCUMULO_IT_PROPERTIES_FILE);
     }
 
     if (null == clusterTypeValue) {
