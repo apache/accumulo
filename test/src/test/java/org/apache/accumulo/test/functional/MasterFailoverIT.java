@@ -18,21 +18,23 @@ package org.apache.accumulo.test.functional;
 
 import java.util.Collections;
 
+import org.apache.accumulo.cluster.ClusterControl;
+import org.apache.accumulo.core.cli.BatchWriterOpts;
+import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.master.Master;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.minicluster.impl.ProcessReference;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
-public class MasterFailoverIT extends ConfigurableMacIT {
-  
+public class MasterFailoverIT extends AccumuloClusterIT {
+
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setSiteConfig(Collections.singletonMap(Property.INSTANCE_ZK_TIMEOUT.getKey(), "5s"));
   }
 
@@ -44,22 +46,20 @@ public class MasterFailoverIT extends ConfigurableMacIT {
   @Test
   public void test() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("test_ingest");
+    String[] names = getUniqueNames(2);
+    c.tableOperations().create(names[0]);
     TestIngest.Opts opts = new TestIngest.Opts();
-    TestIngest.ingest(c, opts, BWOPTS);
-    for (ProcessReference master : cluster.getProcesses().get(ServerType.MASTER)) {
-      cluster.killProcess(ServerType.MASTER, master);
-    }
+    opts.tableName = names[0];
+    TestIngest.ingest(c, opts, new BatchWriterOpts());
+
+    ClusterControl control = cluster.getClusterControl();
+    control.stopAll(ServerType.MASTER);
     // start up a new one
-    Process p = cluster.exec(Master.class);
+    control.startAll(ServerType.MASTER);
     // talk to it
-    c.tableOperations().rename("test_ingest", "test_ingest2");
-    try {
-      VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-      vopts.tableName = "test_ingest2";
-      VerifyIngest.verifyIngest(c, vopts, SOPTS);
-    } finally {
-      p.destroy();
-    }
+    c.tableOperations().rename(names[0], names[1]);
+    VerifyIngest.Opts vopts = new VerifyIngest.Opts();
+    vopts.tableName = names[1];
+    VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
   }
 }

@@ -34,6 +34,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
@@ -41,14 +42,16 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class LargeRowIT extends ConfigurableMacIT {
+public class LargeRowIT extends AccumuloClusterIT {
+  private static final Logger log = Logger.getLogger(LargeRowIT.class);
 
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setMemory(ServerType.TABLET_SERVER, cfg.getMemory(ServerType.TABLET_SERVER) * 2, MemoryUnit.BYTE);
     cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "10ms"));
   }
@@ -59,17 +62,18 @@ public class LargeRowIT extends ConfigurableMacIT {
   }
 
   private static final int SEED = 42;
-  private static final String REG_TABLE_NAME = "lr";
-  private static final String PRE_SPLIT_TABLE_NAME = "lrps";
   private static final int NUM_ROWS = 100;
   private static final int ROW_SIZE = 1 << 17;
   private static final int NUM_PRE_SPLITS = 9;
   private static final int SPLIT_THRESH = ROW_SIZE * NUM_ROWS / NUM_PRE_SPLITS;
 
+  private String REG_TABLE_NAME;
+  private String PRE_SPLIT_TABLE_NAME;
   private int timeoutFactor = 1;
+  private String tservMajcDelay;
 
   @Before
-  public void getTimeoutFactor() {
+  public void getTimeoutFactor() throws Exception {
     try {
       timeoutFactor = Integer.parseInt(System.getProperty("timeout.factor"));
     } catch (NumberFormatException e) {
@@ -77,6 +81,22 @@ public class LargeRowIT extends ConfigurableMacIT {
     }
 
     Assert.assertTrue("Timeout factor must be greater than or equal to 1", timeoutFactor >= 1);
+
+    String[] names = getUniqueNames(2);
+    REG_TABLE_NAME = names[0];
+    PRE_SPLIT_TABLE_NAME = names[1];
+
+    Connector c = getConnector();
+    tservMajcDelay = c.instanceOperations().getSystemConfiguration().get(Property.TSERV_MAJC_DELAY.getKey());
+    c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "10ms");
+  }
+
+  @After
+  public void resetMajcDelay() throws Exception {
+    if (null != tservMajcDelay) {
+      Connector conn = getConnector();
+      conn.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), tservMajcDelay);
+    }
   }
 
   @Test
@@ -105,7 +125,7 @@ public class LargeRowIT extends ConfigurableMacIT {
     c.tableOperations().setProperty(REG_TABLE_NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), "" + SPLIT_THRESH);
 
     UtilWaitThread.sleep(timeoutFactor * 12000);
-    Logger.getLogger(LargeRowIT.class).warn("checking splits");
+    log.info("checking splits");
     FunctionalTestUtils.checkSplits(c, REG_TABLE_NAME, NUM_PRE_SPLITS / 2, NUM_PRE_SPLITS * 4);
 
     verify(c, REG_TABLE_NAME);
