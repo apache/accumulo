@@ -296,6 +296,7 @@ public class MiniAccumuloCluster {
     zooCfg.setProperty("tickTime", "1000");
     zooCfg.setProperty("initLimit", "10");
     zooCfg.setProperty("syncLimit", "5");
+    zooCfg.setProperty("clientPortAddress", "127.0.0.1");
     zooCfg.setProperty("clientPort", zooKeeperPort + "");
     zooCfg.setProperty("maxClientCnxns", "100");
     zooCfg.setProperty("dataDir", zooKeeperDir.getAbsolutePath());
