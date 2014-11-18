@@ -53,9 +53,9 @@ public class MasterFailoverIT extends AccumuloClusterIT {
     TestIngest.ingest(c, opts, new BatchWriterOpts());
 
     ClusterControl control = cluster.getClusterControl();
-    control.stopAll(ServerType.MASTER);
+    control.stopAllServers(ServerType.MASTER);
     // start up a new one
-    control.startAll(ServerType.MASTER);
+    control.startAllServers(ServerType.MASTER);
     // talk to it
     c.tableOperations().rename(names[0], names[1]);
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();

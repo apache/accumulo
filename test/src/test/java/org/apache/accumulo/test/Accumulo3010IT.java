@@ -77,10 +77,10 @@ public class Accumulo3010IT extends AccumuloClusterIT {
     ClusterControl control = cluster.getClusterControl();
 
     // kill the tablet servers
-    control.stopAll(ServerType.TABLET_SERVER);
+    control.stopAllServers(ServerType.TABLET_SERVER);
 
     // recover
-    control.startAll(ServerType.TABLET_SERVER);
+    control.startAllServers(ServerType.TABLET_SERVER);
 
     // ensure the table is readable
     for (@SuppressWarnings("unused") Entry<Key,Value> entry : c.createScanner(tableName, Authorizations.EMPTY)) {

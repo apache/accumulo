@@ -28,6 +28,7 @@ import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
@@ -57,7 +58,35 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   }
 
   @Override
-  public synchronized void startAll(ServerType server) throws IOException {
+  public int exec(Class<?> clz, String[] args) throws IOException {
+    Process p = cluster.exec(clz, args);
+    int exitCode;
+    try {
+      exitCode = p.waitFor();
+    } catch (InterruptedException e) {
+      log.warn("Interrupted waiting for process to exit", e);
+      Thread.currentThread().interrupt();
+      throw new IOException(e);
+    }
+    return exitCode;
+  }
+
+  @Override
+  public void adminStopAll() throws IOException {
+    Process p = cluster.exec(Admin.class, "stopAll");
+    try {
+      p.waitFor();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IOException(e);
+    }
+    if (0 != p.exitValue()) {
+      throw new IOException("Failed to run `accumulo admin stopAll`");
+    }
+  }
+
+  @Override
+  public synchronized void startAllServers(ServerType server) throws IOException {
     start(server, null);
   }
 
@@ -93,7 +122,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   }
 
   @Override
-  public synchronized void stopAll(ServerType server) throws IOException {
+  public synchronized void stopAllServers(ServerType server) throws IOException {
     stop(server);
   }
 

@@ -26,9 +26,19 @@ import org.apache.accumulo.minicluster.ServerType;
 public interface ClusterControl {
 
   /**
+   * Execute the given class against the cluster with the provided arguments and waits for completion. Returns the exit code of the process.
+   */
+  int exec(Class<?> clz, String[] args) throws IOException;
+
+  /**
+   * Issue an orderly shutdown of the cluster
+   */
+  void adminStopAll() throws IOException;
+
+  /**
    * Starts all occurrences of the given server
    */
-  void startAll(ServerType server) throws IOException;
+  void startAllServers(ServerType server) throws IOException;
 
   /**
    * Start the given process on the host
@@ -38,7 +48,7 @@ public interface ClusterControl {
   /**
    * Stops all occurrences of the given server
    */
-  void stopAll(ServerType server) throws IOException;
+  void stopAllServers(ServerType server) throws IOException;
 
   /**
    * Stop the given process on the host

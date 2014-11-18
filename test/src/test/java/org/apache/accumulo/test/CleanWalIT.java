@@ -62,7 +62,7 @@ public class CleanWalIT extends AccumuloClusterIT {
     m.put("cf", "cq", "value");
     bw.addMutation(m);
     bw.close();
-    getCluster().getClusterControl().stopAll(ServerType.TABLET_SERVER);
+    getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
     // all 3 tables should do recovery, but the bug doesn't really remove the log file references
 
     getCluster().start();
@@ -81,7 +81,7 @@ public class CleanWalIT extends AccumuloClusterIT {
     conn.tableOperations().flush(tableName, null, null, true);
     conn.tableOperations().flush(MetadataTable.NAME, null, null, true);
     conn.tableOperations().flush(RootTable.NAME, null, null, true);
-    getCluster().getClusterControl().stopAll(ServerType.TABLET_SERVER);
+    getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
     UtilWaitThread.sleep(3 * 1000);
     getCluster().start();
     assertEquals(0, count(tableName, conn));

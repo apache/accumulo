@@ -29,9 +29,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.rfile.CreateEmpty;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
-import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.test.functional.ReadWriteIT;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -71,8 +70,9 @@ public class RecoveryWithEmptyRFileIT extends ConfigurableMacIT {
   public void replaceMissingRFile() throws Exception {
     log.info("Ingest some data, verify it was stored properly, replace an underlying rfile with an empty one and verify we can scan.");
     Connector connector = getConnector();
-    ReadWriteIT.ingest(connector, ROWS, COLS, 50, 0);
-    ReadWriteIT.verify(connector, ROWS, COLS, 50, 0);
+    String tableName = getUniqueNames(1)[0];
+    ReadWriteIT.ingest(connector, ROWS, COLS, 50, 0, tableName);
+    ReadWriteIT.verify(connector, ROWS, COLS, 50, 0, tableName);
 
     connector.tableOperations().flush("test_ingest", null, null, true);
     connector.tableOperations().offline("test_ingest", true);

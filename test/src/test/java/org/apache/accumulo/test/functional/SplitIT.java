@@ -44,7 +44,7 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class SplitIT extends ConfigurableMacIT {
-  
+
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = new HashMap<String,String>();
@@ -52,7 +52,7 @@ public class SplitIT extends ConfigurableMacIT {
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "100ms");
     cfg.setSiteConfig(siteConfig);
   }
-  
+
   @Override
   protected int defaultTimeoutSeconds() {
     return 4 * 60;
@@ -90,18 +90,19 @@ public class SplitIT extends ConfigurableMacIT {
         cluster.exec(CheckForMetadataProblems.class, "-i", cluster.getInstanceName(), "-u", "root", "-p", ROOT_PASSWORD, "-z", cluster.getZooKeepers())
             .waitFor());
   }
-  
+
   @Test
   public void interleaveSplit() throws Exception {
     Connector c = getConnector();
-    c.tableOperations().create("test_ingest");
-    c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
-    c.tableOperations().setProperty("test_ingest", Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none");
-    ReadWriteIT.interleaveTest(c);
+    String tableName = getUniqueNames(1)[0];
+    c.tableOperations().create(tableName);
+    c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
+    c.tableOperations().setProperty(tableName, Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none");
+    ReadWriteIT.interleaveTest(c, tableName);
     UtilWaitThread.sleep(5*1000);
     assertTrue(c.tableOperations().listSplits("test_ingest").size() > 20);
   }
-  
+
   @Test
   public void deleteSplit() throws Exception {
     Connector c = getConnector();
@@ -116,5 +117,5 @@ public class SplitIT extends ConfigurableMacIT {
     }
     assertTrue(c.tableOperations().listSplits("test_ingest").size() > 20);
   }
-  
+
 }

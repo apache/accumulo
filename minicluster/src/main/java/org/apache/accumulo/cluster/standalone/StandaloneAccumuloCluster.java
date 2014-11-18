@@ -27,6 +27,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.master.state.SetGoalState;
 import org.apache.accumulo.minicluster.ServerType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +36,7 @@ import org.slf4j.LoggerFactory;
  * AccumuloCluster implementation to connect to an existing deployment of Accumulo
  */
 public class StandaloneAccumuloCluster implements AccumuloCluster {
+  @SuppressWarnings("unused")
   private static final Logger log = LoggerFactory.getLogger(StandaloneAccumuloCluster.class);
 
   private Instance instance;
@@ -96,6 +98,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
     File confDir = control.getConfDir();
 
     // TODO We can check the hosts files, but that requires us to be on a host with the installation. Limitation at the moment.
+
+    control.exec(SetGoalState.class, new String[] {"NORMAL"});
 
     for (String master : control.getHosts(new File(confDir, "masters"))) {
       control.start(ServerType.MASTER, master);

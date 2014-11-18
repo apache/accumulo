@@ -28,6 +28,7 @@ import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.cluster.RemoteShell;
 import org.apache.accumulo.cluster.RemoteShellOptions;
 import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.server.util.Admin;
 import org.apache.hadoop.util.Shell.ExitCodeException;
 
 import com.google.common.collect.Maps;
@@ -40,7 +41,7 @@ public class StandaloneClusterControl implements ClusterControl {
   protected String accumuloHome, accumuloConfDir;
   protected RemoteShellOptions options;
 
-  protected String startServerPath;
+  protected String startServerPath, accumuloPath;
 
   public StandaloneClusterControl() {
     this(System.getenv("ACCUMULO_HOME"), System.getenv("ACCUMULO_CONF_DIR"));
@@ -54,6 +55,8 @@ public class StandaloneClusterControl implements ClusterControl {
     File bin = new File(accumuloHome, "bin");
     File startServer = new File(bin, "start-server.sh");
     this.startServerPath = startServer.getAbsolutePath();
+    File accumulo = new File(bin, "accumulo");
+    this.accumuloPath = accumulo.getAbsolutePath();
   }
 
   protected Entry<Integer,String> exec(String hostname, String[] command) throws IOException {
@@ -71,7 +74,26 @@ public class StandaloneClusterControl implements ClusterControl {
   }
 
   @Override
-  public void startAll(ServerType server) throws IOException {
+  public int exec(Class<?> clz, String[] args) throws IOException {
+    File confDir = getConfDir();
+    String master = getHosts(new File(confDir, "masters")).get(0);
+    String[] cmd = new String[2 + args.length];
+    cmd[0] = accumuloPath;
+    cmd[1] = clz.getName();
+    System.arraycopy(args, 0, cmd, 2, args.length);
+    return exec(master, cmd).getKey();
+  }
+
+  @Override
+  public void adminStopAll() throws IOException {
+    File confDir = getConfDir();
+    String master = getHosts(new File(confDir, "masters")).get(0);
+    String[] cmd = new String[] { accumuloPath, Admin.class.getName(), "stopAll" };
+    exec(master, cmd);
+  }
+
+  @Override
+  public void startAllServers(ServerType server) throws IOException {
     File confDir = getConfDir();
 
     switch (server) {
@@ -113,7 +135,7 @@ public class StandaloneClusterControl implements ClusterControl {
   }
 
   @Override
-  public void stopAll(ServerType server) throws IOException {
+  public void stopAllServers(ServerType server) throws IOException {
     File confDir = getConfDir();
 
     switch (server) {

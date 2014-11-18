@@ -83,8 +83,8 @@ public class NoMutationRecoveryIT extends AccumuloClusterIT {
     conn.tableOperations().flush(RootTable.NAME, null, null, true);
 
     ClusterControl control = cluster.getClusterControl();
-    control.stopAll(ServerType.TABLET_SERVER);
-    control.startAll(ServerType.TABLET_SERVER);
+    control.stopAllServers(ServerType.TABLET_SERVER);
+    control.startAllServers(ServerType.TABLET_SERVER);
 
     Scanner s = conn.createScanner(table, Authorizations.EMPTY);
     int count = 0;
