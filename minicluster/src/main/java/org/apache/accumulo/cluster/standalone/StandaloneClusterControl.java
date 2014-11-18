@@ -29,7 +29,10 @@ import org.apache.accumulo.cluster.RemoteShell;
 import org.apache.accumulo.cluster.RemoteShellOptions;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.util.Admin;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.util.Shell.ExitCodeException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 
@@ -37,6 +40,7 @@ import com.google.common.collect.Maps;
  * Use the {@link RemoteShell} to control a standalone (possibly distibuted) Accumulo instance
  */
 public class StandaloneClusterControl implements ClusterControl {
+  private static final Logger log = LoggerFactory.getLogger(StandaloneClusterControl.class);
 
   protected String accumuloHome, accumuloConfDir;
   protected RemoteShellOptions options;
@@ -81,6 +85,7 @@ public class StandaloneClusterControl implements ClusterControl {
     cmd[0] = accumuloPath;
     cmd[1] = clz.getName();
     System.arraycopy(args, 0, cmd, 2, args.length);
+    log.info("Running: '{}' on {}", StringUtils.join(cmd, " "), master);
     return exec(master, cmd).getKey();
   }
 
