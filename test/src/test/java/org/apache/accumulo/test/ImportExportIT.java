@@ -35,7 +35,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.test.functional.SimpleMacIT;
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.Test;
@@ -52,7 +52,9 @@ import com.google.common.io.Files;
  * ACCUMULO-3215
  *
  */
-public class ImportExportIT extends AccumuloClusterIT {
+// TODO Can switch to AccumuloClusterIT when FileSystem access from the Cluster is implemented.
+@SuppressWarnings("deprecation")
+public class ImportExportIT extends SimpleMacIT {
 
   private static final Logger log = LoggerFactory.getLogger(ImportExportIT.class);
 
@@ -83,6 +85,7 @@ public class ImportExportIT extends AccumuloClusterIT {
     conn.tableOperations().compact(srcTable, null, null, true, true);
 
     // Make a directory we can use to throw the export and import directories
+    // Must exist on the filesystem the cluster is running.
     File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests", getClass().getName());
     baseDir.mkdirs();
     File exportDir = new File(baseDir, "export");

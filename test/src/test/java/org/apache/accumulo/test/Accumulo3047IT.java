@@ -16,12 +16,14 @@
  */
 package org.apache.accumulo.test;
 
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -30,10 +32,12 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -64,6 +68,31 @@ public class Accumulo3047IT extends AccumuloClusterIT {
     }
 
     Assert.assertTrue("timeout.factor must be greater than or equal to 1", timeoutFactor >= 1);
+  }
+
+  private String gcCycleDelay, gcCycleStart;
+
+  @Before
+  public void alterConfig() throws Exception {
+    InstanceOperations iops = getConnector().instanceOperations();
+    Map<String,String> config = iops.getSystemConfiguration();
+    gcCycleDelay = config.get(Property.GC_CYCLE_DELAY.getKey());
+    gcCycleStart = config.get(Property.GC_CYCLE_START.getKey());
+    getCluster().getClusterControl().stopAllServers(ServerType.GARBAGE_COLLECTOR);
+    getCluster().getClusterControl().startAllServers(ServerType.GARBAGE_COLLECTOR);
+  }
+
+  @After
+  public void restoreConfig() throws Exception {
+    InstanceOperations iops = getConnector().instanceOperations();
+    if (null != gcCycleDelay) {
+      iops.setProperty(Property.GC_CYCLE_DELAY.getKey(), gcCycleDelay);
+    }
+    if (null != gcCycleStart) {
+      iops.setProperty(Property.GC_CYCLE_START.getKey(), gcCycleStart);
+    }
+    getCluster().getClusterControl().stopAllServers(ServerType.GARBAGE_COLLECTOR);
+    getCluster().getClusterControl().startAllServers(ServerType.GARBAGE_COLLECTOR);
   }
 
   @Test

@@ -71,7 +71,9 @@ public class StandaloneClusterControl implements ClusterControl {
       // capture the stdout of the process as well.
       String output = shell.getOutput();
       // add output for the ExitCodeException.
-      throw new ExitCodeException(e.getExitCode(), "stderr: " + e.getMessage() + ", stdout: " + output);
+      ExitCodeException ece = new ExitCodeException(e.getExitCode(), "stderr: " + e.getMessage() + ", stdout: " + output);
+      log.error("Failed to run command", ece);
+      return Maps.immutableEntry(e.getExitCode(), output);
     }
 
     return Maps.immutableEntry(shell.getExitCode(), shell.getOutput());

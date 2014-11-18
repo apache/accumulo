@@ -74,12 +74,12 @@ public class RecoveryWithEmptyRFileIT extends ConfigurableMacIT {
     ReadWriteIT.ingest(connector, ROWS, COLS, 50, 0, tableName);
     ReadWriteIT.verify(connector, ROWS, COLS, 50, 0, tableName);
 
-    connector.tableOperations().flush("test_ingest", null, null, true);
-    connector.tableOperations().offline("test_ingest", true);
+    connector.tableOperations().flush(tableName, null, null, true);
+    connector.tableOperations().offline(tableName, true);
 
     log.debug("Replacing rfile(s) with empty");
     Scanner meta = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    String tableId = connector.tableOperations().tableIdMap().get("test_ingest");
+    String tableId = connector.tableOperations().tableIdMap().get(tableName);
     meta.setRange(new Range(new Text(tableId + ";"), new Text(tableId + "<")));
     meta.fetchColumnFamily(DataFileColumnFamily.NAME);
     boolean foundFile = false;
@@ -95,11 +95,11 @@ public class RecoveryWithEmptyRFileIT extends ConfigurableMacIT {
     assertTrue(foundFile);
 
     log.trace("invalidate cached file handles by issuing a compaction");
-    connector.tableOperations().online("test_ingest", true);
-    connector.tableOperations().compact("test_ingest", null, null, false, true);
+    connector.tableOperations().online(tableName, true);
+    connector.tableOperations().compact(tableName, null, null, false, true);
 
     log.debug("make sure we can still scan");
-    Scanner scan = connector.createScanner("test_ingest", Authorizations.EMPTY);
+    Scanner scan = connector.createScanner(tableName, Authorizations.EMPTY);
     scan.setRange(new Range());
     long cells = 0l;
     for (Entry<Key,Value> entry : scan) {

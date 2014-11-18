@@ -68,6 +68,7 @@ import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.trace.TraceDump;
@@ -194,12 +195,16 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
 
     Connector conn = getConnector();
     String tableName = getUniqueNames(1)[0];
-
-    conn.tableOperations().create(tableName);
+    String user = getClass().getSimpleName() + "_" + testName.getMethodName();
+    conn.securityOperations().createLocalUser(user, new PasswordToken("foo"));
 
     Authorizations auths = new Authorizations("A", "B");
 
-    conn.securityOperations().changeUserAuthorizations("root", auths);
+    conn.securityOperations().changeUserAuthorizations(user, auths);
+    conn.securityOperations().grantSystemPermission(user, SystemPermission.CREATE_TABLE);
+    conn = conn.getInstance().getConnector(user, new PasswordToken("foo"));
+
+    conn.tableOperations().create(tableName);
 
     ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig().setAuthorizations(auths));
 
@@ -1029,8 +1034,9 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
   public void testSecurity() throws Exception {
     // test against table user does not have read and/or write permissions for
     Connector conn = getConnector();
+    String user = getClass().getSimpleName() + "_" + testName.getMethodName();
 
-    conn.securityOperations().createLocalUser("user1", new PasswordToken("u1p"));
+    conn.securityOperations().createLocalUser(user, new PasswordToken("u1p"));
 
     String[] tables = getUniqueNames(3);
     String table1 = tables[0], table2 = tables[1], table3 = tables[2];
@@ -1039,12 +1045,12 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
     conn.tableOperations().create(table2);
     conn.tableOperations().create(table3);
 
-    conn.securityOperations().grantTablePermission("user1", table1, TablePermission.READ);
-    conn.securityOperations().grantTablePermission("user1", table2, TablePermission.WRITE);
-    conn.securityOperations().grantTablePermission("user1", table3, TablePermission.READ);
-    conn.securityOperations().grantTablePermission("user1", table3, TablePermission.WRITE);
+    conn.securityOperations().grantTablePermission(user, table1, TablePermission.READ);
+    conn.securityOperations().grantTablePermission(user, table2, TablePermission.WRITE);
+    conn.securityOperations().grantTablePermission(user, table3, TablePermission.READ);
+    conn.securityOperations().grantTablePermission(user, table3, TablePermission.WRITE);
 
-    Connector conn2 = getConnector().getInstance().getConnector("user1", new PasswordToken("u1p"));
+    Connector conn2 = getConnector().getInstance().getConnector(user, new PasswordToken("u1p"));
 
     ConditionalMutation cm1 = new ConditionalMutation("r1", new Condition("tx", "seq"));
     cm1.put("tx", "seq", "1");

@@ -89,12 +89,13 @@ public class MetadataIT extends AccumuloClusterIT {
   @Test
   public void mergeMeta() throws Exception {
     Connector c = getConnector();
+    String[] names = getUniqueNames(5);
     SortedSet<Text> splits = new TreeSet<Text>();
     for (String id : "1 2 3 4 5".split(" ")) {
       splits.add(new Text(id));
     }
     c.tableOperations().addSplits(MetadataTable.NAME, splits);
-    for (String tableName : "a1 a2 a3 a4 a5".split(" ")) {
+    for (String tableName : names) {
       c.tableOperations().create(tableName);
     }
     c.tableOperations().merge(MetadataTable.NAME, null, null);
