@@ -143,8 +143,9 @@ public class MiniAccumuloClusterControl implements ClusterControl {
             log.warn("Master did not fully stop after 30 seconds", e);
           } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+          } finally {
+            masterProcess = null;
           }
-          masterProcess = null;
         }
         break;
       case GARBAGE_COLLECTOR:
@@ -157,8 +158,9 @@ public class MiniAccumuloClusterControl implements ClusterControl {
             log.warn("Garbage collector did not fully stop after 30 seconds", e);
           } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+          } finally {
+            gcProcess = null;
           }
-          gcProcess = null;
         }
         break;
       case ZOOKEEPER:
@@ -171,26 +173,31 @@ public class MiniAccumuloClusterControl implements ClusterControl {
             log.warn("ZooKeeper did not fully stop after 30 seconds", e);
           } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+          } finally {
+            zooKeeperProcess = null;
           }
         }
         break;
       case TABLET_SERVER:
         if (tabletServerProcesses != null) {
           synchronized (tabletServerProcesses) {
-            for (Process tserver : tabletServerProcesses) {
-              try {
-                cluster.stopProcessWithTimeout(tserver, 30, TimeUnit.SECONDS);
-              } catch (ExecutionException e) {
-                log.warn("TabletServer did not fully stop after 30 seconds", e);
-              } catch (TimeoutException e) {
-                log.warn("TabletServer did not fully stop after 30 seconds", e);
-              } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+            try {
+              for (Process tserver : tabletServerProcesses) {
+                try {
+                  cluster.stopProcessWithTimeout(tserver, 30, TimeUnit.SECONDS);
+                } catch (ExecutionException e) {
+                  log.warn("TabletServer did not fully stop after 30 seconds", e);
+                } catch (TimeoutException e) {
+                  log.warn("TabletServer did not fully stop after 30 seconds", e);
+                } catch (InterruptedException e) {
+                  Thread.currentThread().interrupt();
+                }
               }
+            } finally {
+              tabletServerProcesses.clear();
             }
           }
 
-          tabletServerProcesses.clear();
         }
         break;
       default:
