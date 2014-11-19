@@ -115,12 +115,12 @@ public class ThriftScanner {
     } catch (TApplicationException tae) {
       throw new AccumuloServerException(server, tae);
     } catch (TooManyFilesException e) {
-      log.debug("Tablet (" + extent + ") has too many files " + server + " : " + e);
+      log.warn("Tablet (" + extent + ") has too many files " + server + " : " + e);
     } catch (ThriftSecurityException e) {
       log.warn("Security Violation in scan request to " + server + ": " + e);
       throw new AccumuloSecurityException(e.user, e.code, e);
     } catch (TException e) {
-      log.debug("Error getting transport to " + server + " : " + e);
+      log.warn("Error getting transport to " + server + " : " + e);
     }
     
     throw new AccumuloException("getBatchFromServer: failed");
