@@ -238,6 +238,13 @@ A KeyStore can also be stored in HDFS, which will make the KeyStore readily avai
 all Accumulo servers. If the local filesystem is used, be aware that each Accumulo server
 will expect the KeyStore in the same location.
 
+==== Custom Table Tags
+
+Accumulo has the ability for users to add custom tags to tables.  This allows
+applications to set application-level metadata about a table.  These tags can be
+anything from a table description, administrator notes, date created, etc.
+This is done by naming and setting a property with a prefix +table.custom.*+.
+
 === Initialization
 
 Accumulo must be initialized to create the structures it uses internally to locate
