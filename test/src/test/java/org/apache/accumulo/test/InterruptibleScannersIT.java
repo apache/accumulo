@@ -56,7 +56,8 @@ public class InterruptibleScannersIT extends AccumuloClusterIT {
     // make the world's slowest scanner
     final Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
     final IteratorSetting cfg = new IteratorSetting(100, SlowIterator.class);
-    SlowIterator.setSeekSleepTime(cfg, 99999*1000);
+    // Wait long enough to be sure we can catch it, but not indefinitely.
+    SlowIterator.setSeekSleepTime(cfg, 60 * 1000);
     scanner.addScanIterator(cfg);
     // create a thread to interrupt the slow scan
     final Thread scanThread = Thread.currentThread();
