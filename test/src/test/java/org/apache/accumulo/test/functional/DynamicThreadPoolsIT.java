@@ -64,7 +64,7 @@ public class DynamicThreadPoolsIT extends AccumuloClusterIT {
       Thread.sleep(AccumuloConfiguration.getTimeInMillis(majcDelay));
     }
   }
-  
+
   @After
   public void resetMajcDelay() throws Exception {
     Connector c = getConnector();

@@ -62,7 +62,7 @@ public class CleanUpIT extends AccumuloIT {
     cluster = miniClusterHarness.create(this, getToken());
     cluster.start();
   }
-  
+
   @After
   public void stopMiniCluster() throws Exception {
     if (null != cluster) {
