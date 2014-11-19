@@ -144,9 +144,7 @@ public class RestartIT extends AccumuloClusterIT {
     TestIngest.ingest(c, OPTS, BWOPTS);
     ClusterControl control = getCluster().getClusterControl();
     // TODO implement a kill all too?
-    for (ServerType type : new ServerType[] {ServerType.TABLET_SERVER, ServerType.MASTER, ServerType.MONITOR, ServerType.GARBAGE_COLLECTOR, ServerType.TRACER}) {
-      control.stopAllServers(type);
-    }
+    cluster.stop();
 
     ZooReader zreader = new ZooReader(c.getInstance().getZooKeepers(), c.getInstance().getZooKeepersSessionTimeOut());
     ZooCache zcache = new ZooCache(zreader, null);
@@ -158,6 +156,7 @@ public class RestartIT extends AccumuloClusterIT {
         Thread.sleep(1000);
       }
     } while (null != masterLockData);
+
     cluster.start();
     UtilWaitThread.sleep(5);
     control.stopAllServers(ServerType.MASTER);
