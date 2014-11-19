@@ -635,8 +635,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   }
 
   /**
-   * n
-   *
    * @return zookeeper connection string
    */
   @Override

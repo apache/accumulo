@@ -39,7 +39,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class MetaSplitIT extends AccumuloIT {
-  
+
   private MiniAccumuloClusterImpl cluster;
 
   @Override
@@ -54,14 +54,14 @@ public class MetaSplitIT extends AccumuloIT {
     cluster.getConfig().setNumTservers(1);
     cluster.start();
   }
-  
+
   @After
   public void stopMiniCluster() throws Exception {
     if (null != cluster) {
       cluster.stop();
     }
   }
-  
+
   private Connector getConnector() {
     try {
       return cluster.getConnector("root", getToken());
@@ -69,7 +69,7 @@ public class MetaSplitIT extends AccumuloIT {
       throw new RuntimeException(e);
     }
   }
-  
+
   private AuthenticationToken getToken() {
     return new PasswordToken("rootPassword1");
   }
@@ -122,9 +122,8 @@ public class MetaSplitIT extends AccumuloIT {
     }
   }
 
-  private static void checkMetadataSplits(int numSplits, TableOperations opts)
-      throws AccumuloSecurityException, TableNotFoundException,
-      AccumuloException, InterruptedException {
+  private static void checkMetadataSplits(int numSplits, TableOperations opts) throws AccumuloSecurityException, TableNotFoundException, AccumuloException,
+      InterruptedException {
     for (int i = 0; i < 10; i++) {
       if (opts.listSplits(MetadataTable.NAME).size() == numSplits) {
         break;

@@ -86,7 +86,7 @@ public class MiniClusterHarness {
     configCallback.configureMiniCluster(cfg, coreSite);
 
     MiniAccumuloClusterImpl miniCluster = new MiniAccumuloClusterImpl(cfg);
-    
+
     // Write out any configuration items to a file so HDFS will pick them up automatically (from the classpath)
     if (coreSite.size() > 0) {
       File csFile = new File(miniCluster.getConfig().getConfDir(), "core-site.xml");
