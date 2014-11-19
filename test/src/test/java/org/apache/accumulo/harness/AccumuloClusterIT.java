@@ -50,7 +50,7 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
   private static final Logger log = LoggerFactory.getLogger(AccumuloClusterIT.class);
 
   public static enum ClusterType {
-    MINI, STANDALONE, SLIDER
+    MINI, STANDALONE
   }
 
   private static boolean initialized = false;
@@ -85,8 +85,6 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
         AccumuloStandaloneClusterConfiguration conf = (AccumuloStandaloneClusterConfiguration) clusterConf;
         cluster = new StandaloneAccumuloCluster(conf.getInstance());
         break;
-      case SLIDER:
-        throw new UnsupportedOperationException("Running against Slider is not yet supported");
       default:
         throw new RuntimeException("Unhandled type");
     }
@@ -148,7 +146,7 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
   }
 
   public boolean isDynamicCluster() {
-    return ClusterType.MINI == type || ClusterType.SLIDER == type;
+    return ClusterType.MINI == type;
   }
 
   public static String getPrincipal() {

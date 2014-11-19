@@ -43,7 +43,6 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
 
   public static final String ACCUMULO_MINI_PREFIX = "accumulo.it.cluster.mini.";
   public static final String ACCUMULO_STANDALONE_PREFIX = "accumulo.it.cluster.standalone.";
-  public static final String ACCUMULO_SLIDER_PREFIX = "accumulo.it.cluster.slider";
 
   protected ClusterType clusterType;
 
@@ -105,8 +104,6 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
         return new AccumuloMiniClusterConfiguration();
       case STANDALONE:
         return new AccumuloStandaloneClusterConfiguration();
-      case SLIDER:
-        throw new UnsupportedOperationException("Not yet implemented");
       default:
         throw new RuntimeException("Clusters other than MiniAccumuloCluster are not yet implemented");
     }
@@ -122,9 +119,6 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
         break;
       case STANDALONE:
         prefix = ACCUMULO_STANDALONE_PREFIX;
-        break;
-      case SLIDER:
-        prefix = ACCUMULO_SLIDER_PREFIX;
         break;
       default:
         throw new IllegalArgumentException("Unknown ClusterType: " + type);

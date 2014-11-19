@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.cluster;
 
+import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;
