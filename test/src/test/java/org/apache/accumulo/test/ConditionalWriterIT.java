@@ -1232,7 +1232,6 @@ public class ConditionalWriterIT extends SimpleMacIT {
 
     String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
-    conn.tableOperations().deleteRows("trace", null, null);
 
     DistributedTrace.enable(conn.getInstance(), new ZooReader(conn.getInstance().getZooKeepers(), 30*1000), "testTrace", "localhost");
     Span root = Trace.on("traceTest");

@@ -66,8 +66,7 @@ public class TracerRecoversAfterOfflineTableIT extends ConfigurableMacIT {
       }
     }
 
-    log.info("Deleting trace table records and taking table offline");
-    conn.tableOperations().deleteRows("trace", null, null);
+    log.info("Taking table offline");
     conn.tableOperations().offline("trace", true);
 
     String tableName = getUniqueNames(1)[0];
