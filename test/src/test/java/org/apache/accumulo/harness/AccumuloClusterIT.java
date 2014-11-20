@@ -125,7 +125,7 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
   @After
   public void teardownCluster() throws Exception {
     if (null != cluster) {
-      if (isDynamicCluster()) {
+      if (type.isDynamic()) {
         cluster.stop();
       } else {
         log.info("Removing tables which appear to be from the current test");
@@ -144,10 +144,6 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
   public static ClusterType getClusterType() {
     Preconditions.checkState(initialized);
     return type;
-  }
-
-  public boolean isDynamicCluster() {
-    return ClusterType.MINI == type;
   }
 
   public static String getPrincipal() {
