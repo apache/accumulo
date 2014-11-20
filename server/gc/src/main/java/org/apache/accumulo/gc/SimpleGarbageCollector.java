@@ -515,6 +515,7 @@ public class SimpleGarbageCollector implements Iface {
 
     // Sleep for an initial period, giving the master time to start up and
     // old data files to be unused
+    log.info("Trying to acquire ZooKeeper lock for garbage collector");
 
     try {
       getZooLock(startStatsService());
