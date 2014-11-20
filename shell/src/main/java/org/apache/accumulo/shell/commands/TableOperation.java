@@ -45,10 +45,12 @@ public abstract class TableOperation extends Command {
     // populate the tableSet set with the tables you want to operate on
     final SortedSet<String> tableSet = new TreeSet<String>();
     if (cl.hasOption(optTablePattern.getOpt())) {
+      String tablePattern = cl.getOptionValue(optTablePattern.getOpt());
       for (String table : shellState.getConnector().tableOperations().list())
-        if (table.matches(cl.getOptionValue(optTablePattern.getOpt()))) {
+        if (table.matches(tablePattern)) {
           tableSet.add(table);
         }
+      pruneTables(tablePattern, tableSet);
     } else if (cl.hasOption(optTableName.getOpt())) {
       tableSet.add(cl.getOptionValue(optTableName.getOpt()));
     } else if (cl.hasOption(optNamespace.getOpt())) {
@@ -91,6 +93,18 @@ public abstract class TableOperation extends Command {
     }
 
     return 0;
+  }
+
+  /**
+   * Allows implementation to remove certain tables from the set of tables to be operated on.
+   * 
+   * @param pattern
+   *          The pattern which tables were selected using
+   * @param tables
+   *          A reference to the Set of tables to be operated on
+   */
+  protected void pruneTables(String pattern, Set<String> tables) {
+    // Default no pruning
   }
 
   protected abstract void doTableOp(Shell shellState, String tableName) throws Exception;
