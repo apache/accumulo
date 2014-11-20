@@ -495,6 +495,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           Session session = iter.next();
           long idleTime = System.currentTimeMillis() - session.lastAccessTime;
           if (idleTime > maxIdle && !session.reserved) {
+            log.info("Closing idle session from user=" + session.user + ", client=" + session.client + ", idle=" + idleTime + "ms");
             iter.remove();
             sessionsToCleanup.add(session);
           }
@@ -507,7 +508,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       }
     }
 
-    synchronized void removeIfNotAccessed(final long sessionId, long delay) {
+    synchronized void removeIfNotAccessed(final long sessionId, final long delay) {
       Session session = sessions.get(sessionId);
       if (session != null) {
         final long removeTime = session.lastAccessTime;
@@ -518,6 +519,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
             synchronized (SessionManager.this) {
               Session session2 = sessions.get(sessionId);
               if (session2 != null && session2.lastAccessTime == removeTime && !session2.reserved) {
+                log.info("Closing not accessed session from user=" + session2.user + ", client=" + session2.client + ", duration=" + delay + "ms");
                 sessions.remove(sessionId);
                 sessionToCleanup = session2;
               }
