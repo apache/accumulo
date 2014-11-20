@@ -50,7 +50,11 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
   private static final Logger log = LoggerFactory.getLogger(AccumuloClusterIT.class);
 
   public static enum ClusterType {
-    MINI, STANDALONE
+    MINI, STANDALONE;
+
+    public boolean isDynamic() {
+      return this == MINI;
+    }
   }
 
   private static boolean initialized = false;
@@ -70,10 +74,7 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
   @Before
   public void setupCluster() throws Exception {
     // Before we try to instantiate the cluster, check to see if the test even wants to run against this type of cluster
-    if (!canRunTest(type)) {
-      // Test cannot run with the given ClusterType
-      Assume.assumeTrue(false);
-    }
+    Assume.assumeTrue(canRunTest(type));
 
     switch (type) {
       case MINI:
@@ -89,7 +90,7 @@ public abstract class AccumuloClusterIT extends AccumuloIT implements MiniCluste
         throw new RuntimeException("Unhandled type");
     }
 
-    if (isDynamicCluster()) {
+    if (type.isDynamic()) {
       cluster.start();
     } else {
       log.info("Removing tables which appear to be from a previous test run");
