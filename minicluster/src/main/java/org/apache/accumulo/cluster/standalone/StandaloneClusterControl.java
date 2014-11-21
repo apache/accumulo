@@ -151,7 +151,10 @@ public class StandaloneClusterControl implements ClusterControl {
   @Override
   public void start(ServerType server, String hostname) throws IOException {
     String[] cmd = new String[] {startServerPath, hostname, getProcessString(server)};
-    exec(hostname, cmd);
+    Entry<Integer,String> pair = exec(hostname, cmd);
+    if (0 != pair.getKey()) {
+      throw new IOException("Start " + server + " on " + hostname + " failed for execute successfully");
+    }
   }
 
   @Override
@@ -192,12 +195,9 @@ public class StandaloneClusterControl implements ClusterControl {
 
   @Override
   public void stop(ServerType server, String hostname) throws IOException {
-    String pid = getPid(server, accumuloHome, hostname);
-
     // TODO Use `accumulo admin stop` for tservers, instrument clean stop for GC, monitor, tracer instead kill
 
-    String[] stopCmd = new String[] {"kill", "-9", pid};
-    exec(hostname, stopCmd);
+    kill(server, hostname);
   }
 
   @Override
@@ -212,36 +212,30 @@ public class StandaloneClusterControl implements ClusterControl {
 
     String[] stopCmd;
     if (isSignalNumber) {
-      stopCmd = new String[] {"kill", signal, pid};
+      stopCmd = new String[] {"kill", "-" + signal, pid};
     } else {
       stopCmd = new String[] {"kill", "-s", signal, pid};
     }
 
-    exec(hostname, stopCmd);
+    Entry<Integer,String> pair = exec(hostname, stopCmd);
+    if (0 != pair.getKey()) {
+      throw new IOException("Signal " + signal + " to " + server + " on " + hostname + " failed for execute successfully");
+    }
   }
 
   @Override
   public void suspend(ServerType server, String hostname) throws IOException {
-    String pid = getPid(server, accumuloHome, hostname);
-
-    String[] stopCmd = new String[] {"kill", "-s", "SIGSTOP", pid};
-    exec(hostname, stopCmd);
+    signal(server, hostname, "SIGSTOP");
   }
 
   @Override
   public void resume(ServerType server, String hostname) throws IOException {
-    String pid = getPid(server, accumuloHome, hostname);
-
-    String[] stopCmd = new String[] {"kill", "-s", "SIGCONT", pid};
-    exec(hostname, stopCmd);
+    signal(server, hostname, "SIGCONT");
   }
 
   @Override
   public void kill(ServerType server, String hostname) throws IOException {
-    String pid = getPid(server, accumuloHome, hostname);
-
-    String[] stopCmd = new String[] {"kill", "-s", "SIGKILL", pid};
-    exec(hostname, stopCmd);
+    signal(server, hostname, "SIGKILL");
   }
 
   protected String getPid(ServerType server, String accumuloHome, String hostname) throws IOException {
