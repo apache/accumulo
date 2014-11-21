@@ -87,6 +87,7 @@ import org.apache.accumulo.tracer.TraceServer;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
@@ -1237,12 +1238,13 @@ public class ConditionalWriterIT extends AccumuloClusterIT {
     Process tracer = null;
     Connector conn = getConnector();
     if (!conn.tableOperations().exists("trace")) {
+      Assume.assumeTrue(getClusterType() == ClusterType.MINI);
       AccumuloCluster cluster = getCluster();
       MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) cluster;
       tracer = mac.exec(TraceServer.class);
-    }
-    while (!conn.tableOperations().exists("trace")) {
-      UtilWaitThread.sleep(1000);
+      while (!conn.tableOperations().exists("trace")) {
+        UtilWaitThread.sleep(1000);
+      }
     }
 
     String tableName = getUniqueNames(1)[0];
