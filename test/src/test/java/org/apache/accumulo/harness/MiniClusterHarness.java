@@ -42,6 +42,9 @@ public class MiniClusterHarness {
 
   private static final AtomicLong COUNTER = new AtomicLong(0);
 
+  public static final String USE_SSL_FOR_IT_OPTION = "org.apache.accumulo.test.functional.useSslForIT",
+      USE_CRED_PROVIDER_FOR_IT_OPTION = "org.apache.accumulo.test.functional.useCredProviderForIT", TRUE = Boolean.toString(true);
+
   /**
    * Create a MiniAccumuloCluster using the given Token as the credentials for the root user.
    *
@@ -102,17 +105,17 @@ public class MiniClusterHarness {
   }
 
   protected void configureForEnvironment(MiniAccumuloConfigImpl cfg, Class<?> testClass, File folder) {
-    if ("true".equals(System.getProperty("org.apache.accumulo.test.functional.useSslForIT"))) {
+    if (TRUE.equals(System.getProperty(USE_SSL_FOR_IT_OPTION))) {
       configureForSsl(cfg, folder);
     }
-    if ("true".equals(System.getProperty("org.apache.accumulo.test.functional.useCredProviderForIT"))) {
+    if (TRUE.equals(System.getProperty(USE_CRED_PROVIDER_FOR_IT_OPTION))) {
       cfg.setUseCredentialProvider(true);
     }
   }
 
   protected void configureForSsl(MiniAccumuloConfigImpl cfg, File folder) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
-    if ("true".equals(siteConfig.get(Property.INSTANCE_RPC_SSL_ENABLED.getKey()))) {
+    if (TRUE.equals(siteConfig.get(Property.INSTANCE_RPC_SSL_ENABLED.getKey()))) {
       // already enabled; don't mess with it
       return;
     }

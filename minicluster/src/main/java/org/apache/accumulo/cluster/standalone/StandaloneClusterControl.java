@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -41,6 +42,10 @@ import com.google.common.collect.Maps;
  */
 public class StandaloneClusterControl implements ClusterControl {
   private static final Logger log = LoggerFactory.getLogger(StandaloneClusterControl.class);
+
+  private static final String START_SERVER_SCRIPT = "start-server.sh", ACCUMULO_SCRIPT = "accumulo";
+  private static final String MASTER_HOSTS_FILE = "masters", GC_HOSTS_FILE = "gc", TSERVER_HOSTS_FILE = "slaves", TRACER_HOSTS_FILE = "tracers",
+      MONITOR_HOSTS_FILE = "monitor";
 
   protected String accumuloHome, accumuloConfDir;
   protected RemoteShellOptions options;
@@ -105,27 +110,35 @@ public class StandaloneClusterControl implements ClusterControl {
 
     switch (server) {
       case TABLET_SERVER:
-        for (String tserver : getHosts(new File(confDir, "slaves"))) {
+        for (String tserver : getHosts(new File(confDir, TSERVER_HOSTS_FILE))) {
           start(server, tserver);
         }
         break;
       case MASTER:
-        for (String master : getHosts(new File(confDir, "masters"))) {
+        for (String master : getHosts(new File(confDir, MASTER_HOSTS_FILE))) {
           start(server, master);
         }
         break;
       case GARBAGE_COLLECTOR:
-        for (String gc : getHosts(new File(confDir, "gc"))) {
+        List<String> hosts = getHosts(new File(confDir, GC_HOSTS_FILE));
+        if (hosts.isEmpty()) {
+          hosts = getHosts(new File(confDir, MASTER_HOSTS_FILE));
+          if (hosts.isEmpty()) {
+            throw new IOException("Found hosts to run garbage collector on");
+          }
+          hosts = Collections.singletonList(hosts.get(0));
+        }
+        for (String gc : hosts) {
           start(server, gc);
         }
         break;
       case TRACER:
-        for (String tracer : getHosts(new File(confDir, "tracers"))) {
+        for (String tracer : getHosts(new File(confDir, TRACER_HOSTS_FILE))) {
           start(server, tracer);
         }
         break;
       case MONITOR:
-        for (String monitor : getHosts(new File(confDir, "monitor"))) {
+        for (String monitor : getHosts(new File(confDir, MONITOR_HOSTS_FILE))) {
           start(server, monitor);
         }
         break;
@@ -147,27 +160,27 @@ public class StandaloneClusterControl implements ClusterControl {
 
     switch (server) {
       case TABLET_SERVER:
-        for (String tserver : getHosts(new File(confDir, "slaves"))) {
+        for (String tserver : getHosts(new File(confDir, TSERVER_HOSTS_FILE))) {
           stop(server, tserver);
         }
         break;
       case MASTER:
-        for (String master : getHosts(new File(confDir, "masters"))) {
+        for (String master : getHosts(new File(confDir, MASTER_HOSTS_FILE))) {
           stop(server, master);
         }
         break;
       case GARBAGE_COLLECTOR:
-        for (String gc : getHosts(new File(confDir, "gc"))) {
+        for (String gc : getHosts(new File(confDir, GC_HOSTS_FILE))) {
           stop(server, gc);
         }
         break;
       case TRACER:
-        for (String tracer : getHosts(new File(confDir, "tracers"))) {
+        for (String tracer : getHosts(new File(confDir, TRACER_HOSTS_FILE))) {
           stop(server, tracer);
         }
         break;
       case MONITOR:
-        for (String monitor : getHosts(new File(confDir, "monitor"))) {
+        for (String monitor : getHosts(new File(confDir, MONITOR_HOSTS_FILE))) {
           stop(server, monitor);
         }
         break;

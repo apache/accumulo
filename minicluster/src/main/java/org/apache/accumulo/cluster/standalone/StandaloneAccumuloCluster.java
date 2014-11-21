@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.cluster.standalone;
 
-import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -95,58 +95,24 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   @Override
   public void start() throws IOException {
     StandaloneClusterControl control = getClusterControl();
-    File confDir = control.getConfDir();
 
     // TODO We can check the hosts files, but that requires us to be on a host with the installation. Limitation at the moment.
 
     control.exec(SetGoalState.class, new String[] {"NORMAL"});
 
-    for (String master : control.getHosts(new File(confDir, "masters"))) {
-      control.start(ServerType.MASTER, master);
-    }
-
-    for (String tserver : control.getHosts(new File(confDir, "slaves"))) {
-      control.start(ServerType.TABLET_SERVER, tserver);
-    }
-
-    for (String tracer : control.getHosts(new File(confDir, "tracers"))) {
-      control.start(ServerType.TRACER, tracer);
-    }
-
-    for (String gc : control.getHosts(new File(confDir, "gc"))) {
-      control.start(ServerType.GARBAGE_COLLECTOR, gc);
-    }
-
-    for (String monitor : control.getHosts(new File(confDir, "monitor"))) {
-      control.start(ServerType.MONITOR, monitor);
+    for (ServerType type : Arrays.asList(ServerType.MASTER, ServerType.TABLET_SERVER, ServerType.TRACER, ServerType.GARBAGE_COLLECTOR, ServerType.MONITOR)) {
+      control.startAllServers(type);
     }
   }
 
   @Override
   public void stop() throws IOException {
     StandaloneClusterControl control = getClusterControl();
-    File confDir = control.getConfDir();
 
     // TODO We can check the hosts files, but that requires us to be on a host with the installation. Limitation at the moment.
 
-    for (String master : control.getHosts(new File(confDir, "masters"))) {
-      control.stop(ServerType.MASTER, master);
-    }
-
-    for (String tserver : control.getHosts(new File(confDir, "slaves"))) {
-      control.stop(ServerType.TABLET_SERVER, tserver);
-    }
-
-    for (String tracer : control.getHosts(new File(confDir, "tracers"))) {
-      control.stop(ServerType.TRACER, tracer);
-    }
-
-    for (String gc : control.getHosts(new File(confDir, "gc"))) {
-      control.stop(ServerType.GARBAGE_COLLECTOR, gc);
-    }
-
-    for (String monitor : control.getHosts(new File(confDir, "monitor"))) {
-      control.stop(ServerType.MONITOR, monitor);
+    for (ServerType type : Arrays.asList(ServerType.MASTER, ServerType.TABLET_SERVER, ServerType.TRACER, ServerType.GARBAGE_COLLECTOR, ServerType.MONITOR)) {
+      control.stopAllServers(type);
     }
   }
 
