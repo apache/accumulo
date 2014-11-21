@@ -1246,6 +1246,7 @@ public class ConditionalWriterIT extends SimpleMacIT {
 
     final Scanner scanner = conn.createScanner("trace", Authorizations.EMPTY);
     scanner.setRange(new Range(new Text(Long.toHexString(root.traceId()))));
+    loop:
     while (true) {
       final StringBuffer finalBuffer = new StringBuffer();
       int traceCount = TraceDump.printTrace(scanner, new Printer() {
@@ -1266,6 +1267,11 @@ public class ConditionalWriterIT extends SimpleMacIT {
         {
           log.info("Looking in trace output for '" + part + "'");
           int pos = traceOutput.indexOf(part);
+          if (-1 == pos) {
+            log.info("Trace output doesn't contain '" + part + "'");
+            Thread.sleep(1000);
+            break loop;
+          }
           assertTrue("Did not find '" + part + "' in output", pos > 0);
           assertTrue("'" + part + "' occurred earlier than the previous element unexpectedly", pos > lastPos);
           lastPos = pos;
